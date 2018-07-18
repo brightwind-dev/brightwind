@@ -1,0 +1,12 @@
+window_sizes 1108 1368 233 870 1218 104
+
+diagrams
+  active  componentdiagram_ref 134530 // top-level structure
+    870 1218 100 A4 0 0
+end
+show_stereotypes
+selected componentdiagram_ref 134530 // top-level structure
+open
+  componentview_ref 134530 // module structure
+end
+end
