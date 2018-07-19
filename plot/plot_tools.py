@@ -11,6 +11,8 @@ def bw_colors(bw_color):
     #Define color scheme to be used across graphs, and tables.
     if bw_color == 'green':
         bw_color = [156, 197, 55]
+    elif bw_color == 'wind_rose_gradient':
+        bw_color = []
     elif bw_color == 'light_green_for_gradient':
         bw_color = [154, 205, 50]
     elif bw_color == 'dark_green_for_gradient':
@@ -29,7 +31,8 @@ def bw_colors(bw_color):
     return bw_color
 
 
-def plot_freq_distribution(data, max_speed=30, save_fig=False):
+def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_green_for_gradient'),
+                                        bw_colors('dark_green_for_gradient'),bw_colors('darkgreen')],save_fig=False):
     from matplotlib.ticker import PercentFormatter
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8,0.8])
@@ -46,16 +49,16 @@ def plot_freq_distribution(data, max_speed=30, save_fig=False):
     ax.grid(b=True, axis='y', zorder=0)
     #ax.bar(result.index, result.values,facecolor='#9ACD32',edgecolor=['#6C9023' for i in range(len(result))],zorder=3)
     for frequency, bin in zip(data,x_data):
-        ax.imshow(np.array([[bw_colors('light_green_for_gradient')], [bw_colors('dark_green_for_gradient')]]),
+        ax.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
                   interpolation='gaussian', extent=(bin-0.4, bin+0.4, 0, frequency), aspect='auto', zorder=3)
-        ax.bar(bin, frequency, edgecolor=bw_colors('darkgreen'), linewidth=0.3, fill=False, zorder=5)
+        ax.bar(bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
     ax.set_title('Wind Speed Frequency Distribution')
     if save_fig:
         plt.savefig(save_fig)
     plt.show()
 
 
-def plot_wind_rose(data, freq_table=False, direction_col_name=0,sectors=12):
+def plot_wind_rose(data, direction_col_name=0,sectors=12):
     """Plot a wind rose from a direction data or a frequency table.
     """
     if not freq_table:
@@ -72,24 +75,26 @@ def plot_wind_rose(data, freq_table=False, direction_col_name=0,sectors=12):
     ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.arange(0,360,360.0/sectors))
-    ax.set_rgrids(np.arange(0,101,10),labels=[str(i)+'%' for i in np.arange(0,101,10)],angle=0)
-    ax.bar(np.arange(0,2.0*np.pi,2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0,color='#9ACD32',
-           edgecolor=['#6C9023' for i in range(len(result))],alpha=0.8)
-    ax.set_title(str(direction_col_name)+' Wind Rose',loc='center')
+    ax.set_thetagrids(np.arange(0,360, 360.0/sectors))
+    ax.set_rgrids(np.arange(0,101,10), labels=[str(i)+'%' for i in np.arange(0,101,10)],angle=0)
+    ax.bar(np.arange(0,2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
+           edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
+    ax.set_title(str(direction_col_name)+' Wind Rose', loc='center')
     plt.show()
 
 
-def plot_wind_rose_with_speed_3_bins(table):
+def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b8dc6f','#9acd32','#7ba428', '#5c7b1e']):
     import matplotlib as mpl
     sectors=len(table.columns)
     table_binned=pd.DataFrame()
+    if isinstance(table.index[0], pd.Interval):
+        table.index = [i.mid for i in table.index]
     table_trans = table.T
-    table_binned = pd.concat([table_binned,table_trans.loc[:,0:3].sum(axis=1).rename(3)],axis=1)
-    table_binned = pd.concat([table_binned,table_trans.loc[:,4:6].sum(axis=1).rename(6)],axis=1)
-    table_binned = pd.concat([table_binned,table_trans.loc[:,7:9].sum(axis=1).rename(9)],axis=1)
-    table_binned = pd.concat([table_binned,table_trans.loc[:,10:12].sum(axis=1).rename(12)],axis=1)
-    table_binned = pd.concat([table_binned,table_trans.loc[:,13:15].sum(axis=1).rename(15)],axis=1)
+    table_binned = pd.concat([table_binned,table_trans.loc[:, 0:3].sum(axis=1).rename(3)],axis=1)
+    table_binned = pd.concat([table_binned,table_trans.loc[:, 4:6].sum(axis=1).rename(6)],axis=1)
+    table_binned = pd.concat([table_binned,table_trans.loc[:, 7:9].sum(axis=1).rename(9)],axis=1)
+    table_binned = pd.concat([table_binned,table_trans.loc[:, 10:12].sum(axis=1).rename(12)],axis=1)
+    table_binned = pd.concat([table_binned,table_trans.loc[:, 13:15].sum(axis=1).rename(15)],axis=1)
     table_binned = pd.concat([table_binned, table_trans.loc[:, 16:].sum(axis=1).rename(18)], axis=1)
     table_binned = table_binned.T
     fig = plt.figure(figsize=(12, 12))
@@ -103,9 +108,10 @@ def plot_wind_rose_with_speed_3_bins(table):
     direction_bins = np.insert(direction_bins,0,direction_bins[-2])
     ax.set_ylim(0,max(table.sum(axis=0))+3.0)
     angular_width = 2*np.pi/sectors - (np.pi/180) #Leaving 1 degree gap
+
     def _choose_color(speed_bin):
-        colors = ['#f5faea','#d6ebad','#b8dc6f','#9acd32','#7ba428', '#5c7b1e']
-        bins = [0,3.5,6.5,9.5,12.5,15.5,18.5,41]
+        colors = gradient_colors
+        bins = [0, 3.5, 6.5, 9.5, 12.5, 15.5, 18.5, 41]
         return(colors[np.digitize([speed_bin], bins)[0]-1])
 
     for column in table_binned:
@@ -117,59 +123,12 @@ def plot_wind_rose_with_speed_3_bins(table):
                                           edgecolor='#5c7b1e',linewidth=0.3)
             ax.add_patch(patch)
             radial_pos += frequency
-    legend_patches = [mpl.patches.Patch(color='#f5faea', label='0-3 m/s'),
-                        mpl.patches.Patch(color='#d6ebad', label='4-6 m/s'),
-                        mpl.patches.Patch(color='#b8dc6f', label='7-9 m/s'),
-                        mpl.patches.Patch(color='#9acd32', label='10-12 m/s'),
-                        mpl.patches.Patch(color='#7ba428', label='13-15 m/s'),
-                      mpl.patches.Patch(color='#5c7b1e', label='15+ m/s')]
-    ax.legend(handles=legend_patches)
-    plt.show()
-
-
-def plot_wind_rose_with_speed(table):
-    import matplotlib as mpl
-    sectors=len(table.columns)
-    table_binned=pd.DataFrame()
-    table_trans = table.T
-    table_binned = pd.concat([table_binned,table_trans.loc[:,0:4].sum(axis=1).rename(4)],axis=1)
-    table_binned = pd.concat([table_binned,table_trans.loc[:,5:8].sum(axis=1).rename(8)],axis=1)
-    table_binned = pd.concat([table_binned,table_trans.loc[:,9:12].sum(axis=1).rename(12)],axis=1)
-    table_binned = pd.concat([table_binned,table_trans.loc[:,13:16].sum(axis=1).rename(16)],axis=1)
-    table_binned = pd.concat([table_binned,table_trans.loc[:,17:].sum(axis=1).rename(40)],axis=1)
-    table_binned = table_binned.T
-
-    fig = plt.figure(figsize=(12, 12))
-    ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
-    ax.set_theta_zero_location('N')
-    ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.arange(0,360,360.0/sectors))
-    ax.set_rgrids(np.linspace(0,max(table.sum(axis=0))+2.0,10),labels=[ '%.0f' % round(i)+'%' for i in
-                                                                np.linspace(0,max(table.sum(axis=0))+2.0,10)],angle=0)
-    direction_bins = get_direction_bin_array(sectors)[1:-2]
-    direction_bins = np.insert(direction_bins,0,direction_bins[-2])
-    ax.set_ylim(0,max(table.sum(axis=0))+3.0)
-    angular_width = 2*np.pi/sectors - (np.pi/180) #Leaving 1 degree gap
-
-    def _choose_color(speed_bin):
-        colors = ['#d6ebad','#b8dc6f','#9acd32','#7ba428', '#5c7b1e']
-        bins = [0,4.5,8.5,12.5,16.5,41]
-        return(colors[np.digitize([speed_bin], bins)[0]-1])
-
-    for column in table_binned:
-        radial_pos = 0.0
-        angular_pos = (np.pi / 180.0) * float(column.split('-')[0])
-        for speed_bin,frequency in zip(table_binned.index,table_binned[column]):
-            color = _choose_color(speed_bin)
-            patch = mpl.patches.Rectangle((angular_pos, radial_pos), angular_width, frequency, facecolor=color,
-                                          edgecolor='#5c7b1e',linewidth=0.3)
-            ax.add_patch(patch)
-            radial_pos += frequency
-    legend_patches = [mpl.patches.Patch(color='#d6ebad', label='0-4 m/s'),
-                        mpl.patches.Patch(color='#b8dc6f', label='5-8 m/s'),
-                        mpl.patches.Patch(color='#9acd32', label='9-12 m/s'),
-                        mpl.patches.Patch(color='#7ba428', label='13-16 m/s'),
-                        mpl.patches.Patch(color='#5c7b1e', label='16+ m/s')]
+    legend_patches = [mpl.patches.Patch(color=gradient_colors[0], label='0-3 m/s'),
+                        mpl.patches.Patch(color=gradient_colors[1], label='4-6 m/s'),
+                        mpl.patches.Patch(color=gradient_colors[2], label='7-9 m/s'),
+                        mpl.patches.Patch(color=gradient_colors[3], label='10-12 m/s'),
+                        mpl.patches.Patch(color=gradient_colors[4], label='13-15 m/s'),
+                      mpl.patches.Patch(color=gradient_colors[5], label='15+ m/s')]
     ax.legend(handles=legend_patches)
     plt.show()
 
