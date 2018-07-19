@@ -178,8 +178,8 @@ def get_time_continuity(data,time_col_name,time_interval):
          'Days Lost': data_problems['Days Lost']})
     return time_continuity
 
-def get_monthly_coverage(data, time_col_name,time_interval):
 
+def get_monthly_coverage(data, time_col_name,time_interval):
     #Convert the timestamp column to a datetime variable in pandas
     data[time_col_name] = pd.to_datetime(data[time_col_name])
 
@@ -197,8 +197,8 @@ def get_monthly_coverage(data, time_col_name,time_interval):
     data = data.set_index(time_col_name)
     return data
 
-def get_monthly_means(data,time_col_name):
 
+def get_monthly_means(data,time_col_name):
     # Convert the timestamp column to a datetime variable in pandas
     data[time_col_name] = pd.to_datetime(data[time_col_name])
 
@@ -210,6 +210,7 @@ def get_monthly_means(data,time_col_name):
     data[time_col_name] = data[time_col_name].apply(lambda x: x.strftime('%b-%Y'))
     data = data.set_index(time_col_name)
     return data
+
 
 def get_basic_stats(data,time_col_name):
     #Get basic stats for dataframe, mean, max, min and count
@@ -238,7 +239,6 @@ def get_basic_stats(data,time_col_name):
 
 
 def get_TI_by_Speed(data,speed_col_name,std_col_name):
-
     #Takes a dataframe, pulls the speed and standard deviation column.
     #This is then binned by windspeed and the average TI and count of TI extracted.
 

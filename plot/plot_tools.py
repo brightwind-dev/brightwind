@@ -7,6 +7,49 @@ from analyse.frequency_analysis import *
 plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\brightwind\plot\bw.mplstyle')
 
 
+def BWcolors(BWcolor):
+    #Define color scheme to be used across graphs, and tables.
+    if BWcolor == 'green':
+        BWcolor = [156, 197, 55]
+    elif BWcolor == 'asphault':
+        BWcolor = [46, 55, 67]
+    elif BWcolor == 'greyline':
+        BWcolor = [108, 120, 134]
+    elif BWcolor == 'darkgreen':
+        BWcolor = [108, 144, 35]
+    elif BWcolor == 'redline':
+        BWcolor = [255, 0, 0]
+    else:
+        BWcolor = [156, 197, 55]
+    BWcolor[:] = [x / 255 for x in BWcolor]
+    return BWcolor
+
+
+def plot_freq_distribution(data, max_speed=30, save_fig=False):
+    from matplotlib.ticker import PercentFormatter
+    fig = plt.figure(figsize=(15, 8))
+    ax = fig.add_axes([0.1, 0.1, 0.8,0.8])
+    ax.set_xlabel('Speed [m/s]')
+    ax.set_ylabel('Frequency [%]')
+    if isinstance(data.index[0], pd.Interval):
+        ax.set_xticks([i.mid for i in data.index])
+    else:
+        ax.set_xticks(data.index)
+    ax.set_xlim(-0.5,max_speed+0.5)
+    ax.set_ylim(0,max(data)+5)
+    ax.yaxis.set_major_formatter(PercentFormatter())
+    ax.grid(b=True, axis='y', zorder=0)
+    #ax.bar(result.index, result.values,facecolor='#9ACD32',edgecolor=['#6C9023' for i in range(len(result))],zorder=3)
+    for frequency, bin in zip(data,[i.mid for i in data.index]):
+        ax.imshow(np.array([[[154, 205, 50]], [[215, 235, 173]]])/255.0, interpolation='gaussian',
+                  extent=(bin-0.4, bin+0.4, 0, frequency), aspect='auto', zorder=3)
+        ax.bar(bin, frequency, edgecolor='#6c9023', linewidth=0.3, fill=False, zorder=5)
+    ax.set_title('Wind Speed Frequency Distribution')
+    if save_fig:
+        plt.savefig(save_fig)
+    plt.show()
+
+
 def plot_wind_rose(data, freq_table=False, direction_col_name=0,sectors=12):
     """Plot a wind rose from a direction data or a frequency table.
     """
@@ -29,27 +72,6 @@ def plot_wind_rose(data, freq_table=False, direction_col_name=0,sectors=12):
     ax.bar(np.arange(0,2.0*np.pi,2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0,color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))],alpha=0.8)
     ax.set_title(str(direction_col_name)+' Wind Rose',loc='center')
-    plt.show()
-
-
-def plot_freq_distribution(data,max_speed=30):
-    from matplotlib.ticker import PercentFormatter
-    fig = plt.figure(figsize=(15, 8))
-    ax = fig.add_axes([0.1, 0.1, 0.8,0.8])
-    ax.set_xlabel('Speed [m/s]')
-    ax.set_ylabel('Frequency [%]')
-    ax.set_xticks(data.index)
-    ax.set_xlim(-0.5,max_speed+0.5)
-    ax.set_ylim(0,max(data)+5)
-    ax.yaxis.set_major_formatter(PercentFormatter())
-    ax.grid(b=True, axis='y', zorder=0)
-    #ax.bar(result.index, result.values,facecolor='#9ACD32',edgecolor=['#6C9023' for i in range(len(result))],zorder=3)
-    for frequency, bin in zip(data,data.index):
-        ax.imshow(np.array([[[154, 205, 50]], [[215, 235, 173]]])/255.0, interpolation='gaussian',
-
-                  extent=(bin-0.4, bin+0.4, 0, frequency), aspect='auto', zorder=3)
-        ax.bar(bin, frequency, edgecolor='#6c9023', linewidth=0.3, fill=False, zorder=5)
-    ax.set_title('Wind Speed Frequency Distribution')
     plt.show()
 
 
@@ -147,7 +169,6 @@ def plot_wind_rose_with_speed(table):
     plt.show()
 
 
-
 def plot_TI_by_Speed(data,speed_col_name,std_col_name):
 
     #IEC Class 2005
@@ -183,26 +204,6 @@ def plot_TI_by_Speed(data,speed_col_name,std_col_name):
     plt.grid(True)
     plt.legend()
     plt.show()
-
-
-
-def BWcolors(BWcolor):
-    #Define color scheme to be used across graphs, and tables.
-    if BWcolor == 'green':
-        BWcolor = [156, 197, 55]
-    elif BWcolor == 'asphault':
-        BWcolor = [46, 55, 67]
-    elif BWcolor == 'greyline':
-        BWcolor = [108, 120, 134]
-    elif BWcolor == 'darkgreen':
-        BWcolor = [108, 144, 35]
-    elif BWcolor == 'redline':
-        BWcolor = [255, 0, 0]
-    else:
-        BWcolor = [156, 197, 55]
-
-    BWcolor[:]=[x / 255 for x in BWcolor]
-    return BWcolor
 
 
 def plot_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sectors,min_speed):
