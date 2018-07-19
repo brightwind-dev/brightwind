@@ -7,22 +7,26 @@ from analyse.frequency_analysis import *
 plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\brightwind\plot\bw.mplstyle')
 
 
-def BWcolors(BWcolor):
+def bw_colors(bw_color):
     #Define color scheme to be used across graphs, and tables.
-    if BWcolor == 'green':
-        BWcolor = [156, 197, 55]
-    elif BWcolor == 'asphault':
-        BWcolor = [46, 55, 67]
-    elif BWcolor == 'greyline':
-        BWcolor = [108, 120, 134]
-    elif BWcolor == 'darkgreen':
-        BWcolor = [108, 144, 35]
-    elif BWcolor == 'redline':
-        BWcolor = [255, 0, 0]
+    if bw_color == 'green':
+        bw_color = [156, 197, 55]
+    elif bw_color == 'light_green_for_gradient':
+        bw_color = [154, 205, 50]
+    elif bw_color == 'dark_green_for_gradient':
+        bw_color = [215, 235, 173]
+    elif bw_color == 'asphault':
+        bw_color = [46, 55, 67]
+    elif bw_color == 'greyline':
+        bw_color = [108, 120, 134]
+    elif bw_color == 'darkgreen':
+        bw_color = [108, 144, 35]
+    elif bw_color == 'redline':
+        bw_color = [255, 0, 0]
     else:
-        BWcolor = [156, 197, 55]
-    BWcolor[:] = [x / 255 for x in BWcolor]
-    return BWcolor
+        bw_color = [156, 197, 55]
+    bw_color[:] = [x / 255.0 for x in bw_color]
+    return bw_color
 
 
 def plot_freq_distribution(data, max_speed=30, save_fig=False):
@@ -32,18 +36,19 @@ def plot_freq_distribution(data, max_speed=30, save_fig=False):
     ax.set_xlabel('Speed [m/s]')
     ax.set_ylabel('Frequency [%]')
     if isinstance(data.index[0], pd.Interval):
-        ax.set_xticks([i.mid for i in data.index])
+        x_data = [i.mid for i in data.index]
     else:
-        ax.set_xticks(data.index)
+        x_data = data.index
+    ax.set_xticks(x_data)
     ax.set_xlim(-0.5,max_speed+0.5)
     ax.set_ylim(0,max(data)+5)
     ax.yaxis.set_major_formatter(PercentFormatter())
     ax.grid(b=True, axis='y', zorder=0)
     #ax.bar(result.index, result.values,facecolor='#9ACD32',edgecolor=['#6C9023' for i in range(len(result))],zorder=3)
-    for frequency, bin in zip(data,[i.mid for i in data.index]):
-        ax.imshow(np.array([[[154, 205, 50]], [[215, 235, 173]]])/255.0, interpolation='gaussian',
-                  extent=(bin-0.4, bin+0.4, 0, frequency), aspect='auto', zorder=3)
-        ax.bar(bin, frequency, edgecolor='#6c9023', linewidth=0.3, fill=False, zorder=5)
+    for frequency, bin in zip(data,x_data):
+        ax.imshow(np.array([[bw_colors('light_green_for_gradient')], [bw_colors('dark_green_for_gradient')]]),
+                  interpolation='gaussian', extent=(bin-0.4, bin+0.4, 0, frequency), aspect='auto', zorder=3)
+        ax.bar(bin, frequency, edgecolor=bw_colors('darkgreen'), linewidth=0.3, fill=False, zorder=5)
     ax.set_title('Wind Speed Frequency Distribution')
     if save_fig:
         plt.savefig(save_fig)
@@ -190,12 +195,12 @@ def plot_TI_by_Speed(data,speed_col_name,std_col_name):
 
     #Plot Figure
     plt.figure(figsize=(15, 7.5))
-    plt.scatter([data[speed_col_name]], [data['Turbulence_Intensity']], color=BWcolors('green'), s=1, alpha=0.3)
-    plt.plot(TI.iloc[:, 0], TI.iloc[:, 1], color=BWcolors('darkgreen'))
-    plt.plot(TI.iloc[:, 0], TI.iloc[:, 5], color=BWcolors('redline'))
-    plt.plot(IEC_Class_2005.iloc[:, 0], IEC_Class_2005.iloc[:, 1], color=BWcolors('greyline'))
-    plt.plot(IEC_Class_2005.iloc[:, 0], IEC_Class_2005.iloc[:, 2], color=BWcolors('greyline'))
-    plt.plot(IEC_Class_2005.iloc[:, 0], IEC_Class_2005.iloc[:, 3], color=BWcolors('greyline'))
+    plt.scatter([data[speed_col_name]], [data['Turbulence_Intensity']], color=bw_colors('green'), s=1, alpha=0.3)
+    plt.plot(TI.iloc[:, 0], TI.iloc[:, 1], color=bw_colors('darkgreen'))
+    plt.plot(TI.iloc[:, 0], TI.iloc[:, 5], color=bw_colors('redline'))
+    plt.plot(IEC_Class_2005.iloc[:, 0], IEC_Class_2005.iloc[:, 1], color=bw_colors('greyline'))
+    plt.plot(IEC_Class_2005.iloc[:, 0], IEC_Class_2005.iloc[:, 2], color=bw_colors('greyline'))
+    plt.plot(IEC_Class_2005.iloc[:, 0], IEC_Class_2005.iloc[:, 3], color=bw_colors('greyline'))
     plt.axis([2, 25, 0, 0.6])
     plt.xticks(np.arange(2, 26, 1))
     plt.xlabel('Wind speed [m/s]')
@@ -229,7 +234,7 @@ def plot_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sector
     TI['Turbulence Intensity Average by sector'] = TI['Turbulence_Intensity_Avg']
 
     #Plot the Average turbulence Intensity and assign a title to the graph
-    ax.plot(TI['Polar degrees'], TI['Turbulence Intensity Average by sector'], c=BWcolors('green'), linewidth=4)
+    ax.plot(TI['Polar degrees'], TI['Turbulence Intensity Average by sector'], c=bw_colors('green'), linewidth=4)
     plt.title('Turbulence Intensity by Direction')
 
     #Set the max extent of the polar plot to be the max average sector turbulence + 0.1
@@ -243,7 +248,7 @@ def plot_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sector
     #Finally produce a scatter plot of all of the Turbulence Intensity data points
     data['Turbulence Intensity by datapoint'] = data[std_col_name] / data[speed_col_name]
     data['Polar degrees'] = np.radians(data[direction_col_name])
-    ax.scatter(data['Polar degrees'], data['Turbulence Intensity by datapoint'], c=BWcolors('asphault'), alpha=0.3, s=1)
+    ax.scatter(data['Polar degrees'], data['Turbulence Intensity by datapoint'], c=bw_colors('asphault'), alpha=0.3, s=1)
     plt.legend(loc=8, framealpha=1)
     plt.show()
 
