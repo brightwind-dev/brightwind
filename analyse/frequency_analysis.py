@@ -2,9 +2,6 @@ import pandas as pd
 import numpy as np
 
 
-plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\wind-analyse-scripts\bw.mplstyle')
-
-
 def get_distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
                      aggregation_method='%frequency'):
     """Accepts 2 series of same/different variables and computes the distribution of first variable with respect to
@@ -26,7 +23,7 @@ def get_distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41
         return data.groupby(['variable_bin'])['data'].agg(aggregation_method)
 
 
-def _get_direction_bin_array(sectors):
+def get_direction_bin_array(sectors):
     bin_start = 180.0/sectors
     direction_bins = np.arange(bin_start, 360, 360.0/sectors)
     direction_bins = np.insert(direction_bins, 0, 0)
@@ -35,16 +32,16 @@ def _get_direction_bin_array(sectors):
 
 
 def _get_direction_bin_labels(sectors, direction_bins, zero_centred=True):
-    map = dict()
+    mapper = dict()
     for i, lower_bound in enumerate(direction_bins[:sectors]):
         if i == 0 and zero_centred:
-            map[i+1] = '{0}-{1}'.format(direction_bins[-2], direction_bins[1])
+            mapper[i+1] = '{0}-{1}'.format(direction_bins[-2], direction_bins[1])
         else:
-            map[i+1] = '{0}-{1}'.format(lower_bound, direction_bins[i+1])
-    return map.values()
+            mapper[i+1] = '{0}-{1}'.format(lower_bound, direction_bins[i+1])
+    return mapper.values()
 
 
-def _map_direction_bin(wdir, bins, sectors):
+def map_direction_bin(wdir, bins, sectors):
     kwargs = {}
     if wdir == max(bins):
         kwargs['right'] = True
@@ -66,8 +63,8 @@ def get_binned_direction_series(direction_series, sectors, direction_bin_array=N
     is not specified
     """
     if direction_bin_array is None:
-        direction_bin_array = _get_direction_bin_array(sectors)
-    return direction_series.apply(_map_direction_bin,bins=direction_bin_array, sectors= sectors)
+        direction_bin_array = get_direction_bin_array(sectors)
+    return direction_series.apply(map_direction_bin, bins=direction_bin_array, sectors=sectors)
 
 
 def get_distribution_by_wind_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
@@ -90,25 +87,26 @@ def get_distribution_by_wind_sector(var_series, direction_series, sectors=12, ag
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
     if direction_bin_array is None:
-        direction_bin_array = _get_direction_bin_array(sectors)
+        direction_bin_array = get_direction_bin_array(sectors)
         zero_centered = True
     else:
         sectors = len(direction_bin_array)-1
         zero_centered = False
     if direction_bin_labels is None:
         direction_bin_labels = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
-    direction_binned_series = get_binned_direction_series(direction_series, sectors, direction_bin_array).rename('direction_bin')
+    direction_binned_series = get_binned_direction_series(direction_series, sectors, direction_bin_array)\
+        .rename('direction_bin')
     data = pd.concat([var_series.rename('data'), direction_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
-        result = data.groupby(['direction_bin'])['data'].count().rename('%frequency')/len(data) *100.0
+        result = data.groupby(['direction_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
     else:
         result = data.groupby(['direction_bin'])['data'].agg(aggregation_method)
     result.index = direction_bin_labels
     return result
 
 
-def get_freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5,41,1), sectors=12, var_bin_labels=None,
-                   direction_bin_array=None, direction_bin_labels=None,freq_as_percentage=True):
+def get_freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), sectors=12, var_bin_labels=None,
+                   direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True):
     """Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
     direction are binned
     :param var_series: Series of variable to be binned
@@ -121,14 +119,14 @@ def get_freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5,41
     bins to this
     :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
     labels of the format '30-90' by default
-    :param freq_as_percentage: Optional, True by default. Returns the frequency as percentages. To return just the count change
-    it to False
+    :param freq_as_percentage: Optional, True by default. Returns the frequency as percentages. To return just the count
+    change it to False
     :returns A DataFrame with row indexes as variable bins and columns as wind direction bins.
     """
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
     if direction_bin_array is None:
-        direction_bin_array = _get_direction_bin_array(sectors)
+        direction_bin_array = get_direction_bin_array(sectors)
         zero_centered = True
     else:
         sectors = len(direction_bin_array)-1
@@ -175,10 +173,10 @@ def get_time_continuity(data,time_col_name,time_interval):
     data_problems['Days Lost'] = (data_problems[time_col_name] - data_problems['Timestamp before']) / np.timedelta64(1,'m')
     data_problems['Days Lost'] = data_problems['Days Lost'] / (1440)
 
-    Time_continuity = pd.DataFrame(
+    time_continuity = pd.DataFrame(
         {'Start Date': data_problems['Timestamp before'], 'End Date': data_problems[time_col_name],
          'Days Lost': data_problems['Days Lost']})
-    return Time_continuity
+    return time_continuity
 
 def get_monthly_coverage(data, time_col_name,time_interval):
 
@@ -238,21 +236,6 @@ def get_basic_stats(data,time_col_name):
     data = data.reset_index(drop=True)
     return data
 
-def plot_monthly_means(data,time_col_name):
-    #Get table of monthly means from data passed
-    data = get_monthly_means(data, time_col_name)
-
-    #Make Timestamp its own column and not an index
-    data = data.reset_index()
-
-    #Setup figure for plotting, then plot all columns in dataframe
-    plt.figure(figsize=(15, 7.5))
-    for i in range(1, len(data.columns)):
-        plt.plot(data.iloc[:, 0], data.iloc[:, i])
-    plt.ylabel('Wind speed [m/s]')
-    plt.xticks(rotation=90)
-    plt.legend()
-    plt.show()
 
 def get_TI_by_Speed(data,speed_col_name,std_col_name):
 
@@ -263,7 +246,7 @@ def get_TI_by_Speed(data,speed_col_name,std_col_name):
     data['Turbulence_Intensity'] = data[std_col_name] / data[speed_col_name]
     speed_bins = np.arange(-0.5, 41, 1)
     # data['bins'] = pd.cut(data[speed_col_name], speed_bins,right=False)
-    data = pd.concat([data, data.loc[:, speed_col_name].apply(_map_speed_bin, bins=speed_bins).rename('bins')], axis=1)
+    data = pd.concat([data, data.loc[:, speed_col_name].apply(map_speed_bin, bins=speed_bins).rename('bins')], axis=1)
     max_bin = data['bins'].max()
     grouped = data.groupby(['bins'])
     grouped1 = grouped['Turbulence_Intensity'].mean()
@@ -299,7 +282,7 @@ def get_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sectors
     #We have implemented sector division here.
 
     direction_bins = np.arange(0, 360 + (360 / sectors), 360 / sectors)
-    data = pd.concat([data, data.loc[:, direction_col_name].apply(_map_direction_bin,bins=direction_bins).rename('Direction Bin')], axis=1)
+    data = pd.concat([data, data.loc[:, direction_col_name].apply(map_direction_bin,bins=direction_bins).rename('Direction Bin')], axis=1)
 
     grouped = data.groupby(['Direction Bin'])
     grouped1 = grouped['Turbulence_Intensity'].mean()
@@ -310,7 +293,7 @@ def get_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sectors
 
     #Convert direction bins to actual bins, i.e. to include 345-15 degrees, and drop 345-360 sector
 
-    direction_row = _get_direction_bin_dict(_get_direction_bin_array(sectors), sectors)
+    direction_row = _get_direction_bin_dict(get_direction_bin_array(sectors), sectors)
     new_bins = pd.Series(direction_row, name='bins', dtype='category')
     new_bins = new_bins.reset_index()
     result['Direction bin'] = new_bins['bins']
@@ -335,7 +318,7 @@ def get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name):
     return result
 
 
-def _map_speed_bin(wdspd, bins):
+def map_speed_bin(wdspd, bins):
     # Copy of Inders function, can be removed once this is integrated into main library
     kwargs = {}
     if wdspd == max(bins):

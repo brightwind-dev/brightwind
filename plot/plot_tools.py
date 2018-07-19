@@ -2,15 +2,18 @@ import matplotlib.pyplot as plt
 import calendar
 import numpy as np
 import pandas as pd
-from analyse.frequency_analysis import _map_direction_bin, _get_direction_bin_array, get_TI_by_Speed, get_TI_by_sector,\
-    get_12x24_TI_matrix
+from analyse.frequency_analysis import *
 
-def plot_wind_rose(data, freq_table=False,direction_col_name=0,sectors=12):
+plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\brightwind\plot\bw.mplstyle')
+
+
+def plot_wind_rose(data, freq_table=False, direction_col_name=0,sectors=12):
     """Plot a wind rose from a direction data or a frequency table.
     """
     if not freq_table:
         data = data.dropna(subset=[direction_col_name])
-        data.loc[:, 'direction_bin'] = data[direction_col_name].apply(_map_direction_bin, bins=_get_direction_bin_array(sectors))
+        data.loc[:, 'direction_bin'] = data[direction_col_name].apply(map_direction_bin,
+                                                                      bins=get_direction_bin_array(sectors))
         result = data['direction_bin'].value_counts() / len(data['direction_bin']) * 100.0
         result.loc[1] += result.loc[sectors+1]
         result = result.drop(sectors+1, axis=0).sort_index()
@@ -23,7 +26,8 @@ def plot_wind_rose(data, freq_table=False,direction_col_name=0,sectors=12):
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0,360,360.0/sectors))
     ax.set_rgrids(np.arange(0,101,10),labels=[str(i)+'%' for i in np.arange(0,101,10)],angle=0)
-    ax.bar(np.arange(0,2.0*np.pi,2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0,color='#9ACD32',edgecolor=['#6C9023' for i in range(len(result))],alpha=0.8)
+    ax.bar(np.arange(0,2.0*np.pi,2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0,color='#9ACD32',
+           edgecolor=['#6C9023' for i in range(len(result))],alpha=0.8)
     ax.set_title(str(direction_col_name)+' Wind Rose',loc='center')
     plt.show()
 
@@ -66,8 +70,9 @@ def plot_wind_rose_with_speed_3_bins(table):
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0,360,360.0/sectors))
-    ax.set_rgrids(np.linspace(0,max(table.sum(axis=0))+2.0,10),labels=[ '%.0f' % round(i)+'%' for i in np.linspace(0,max(table.sum(axis=0))+2.0,10)],angle=0)
-    direction_bins = _get_direction_bin_array(sectors)[1:-2]
+    ax.set_rgrids(np.linspace(0,max(table.sum(axis=0))+2.0,10),labels=[ '%.0f' % round(i)+'%' for i in
+                                                                np.linspace(0,max(table.sum(axis=0))+2.0,10)],angle=0)
+    direction_bins = get_direction_bin_array(sectors)[1:-2]
     direction_bins = np.insert(direction_bins,0,direction_bins[-2])
     ax.set_ylim(0,max(table.sum(axis=0))+3.0)
     angular_width = 2*np.pi/sectors - (np.pi/180) #Leaving 1 degree gap
@@ -81,7 +86,8 @@ def plot_wind_rose_with_speed_3_bins(table):
         angular_pos = (np.pi / 180.0) * float(column.split('-')[0])
         for speed_bin,frequency in zip(table_binned.index,table_binned[column]):
             color = _choose_color(speed_bin)
-            patch = mpl.patches.Rectangle((angular_pos, radial_pos), angular_width, frequency, facecolor=color,edgecolor='#5c7b1e',linewidth=0.3)
+            patch = mpl.patches.Rectangle((angular_pos, radial_pos), angular_width, frequency, facecolor=color,
+                                          edgecolor='#5c7b1e',linewidth=0.3)
             ax.add_patch(patch)
             radial_pos += frequency
     legend_patches = [mpl.patches.Patch(color='#f5faea', label='0-3 m/s'),
@@ -111,8 +117,9 @@ def plot_wind_rose_with_speed(table):
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0,360,360.0/sectors))
-    ax.set_rgrids(np.linspace(0,max(table.sum(axis=0))+2.0,10),labels=[ '%.0f' % round(i)+'%' for i in np.linspace(0,max(table.sum(axis=0))+2.0,10)],angle=0)
-    direction_bins = _get_direction_bin_array(sectors)[1:-2]
+    ax.set_rgrids(np.linspace(0,max(table.sum(axis=0))+2.0,10),labels=[ '%.0f' % round(i)+'%' for i in
+                                                                np.linspace(0,max(table.sum(axis=0))+2.0,10)],angle=0)
+    direction_bins = get_direction_bin_array(sectors)[1:-2]
     direction_bins = np.insert(direction_bins,0,direction_bins[-2])
     ax.set_ylim(0,max(table.sum(axis=0))+3.0)
     angular_width = 2*np.pi/sectors - (np.pi/180) #Leaving 1 degree gap
@@ -127,7 +134,8 @@ def plot_wind_rose_with_speed(table):
         angular_pos = (np.pi / 180.0) * float(column.split('-')[0])
         for speed_bin,frequency in zip(table_binned.index,table_binned[column]):
             color = _choose_color(speed_bin)
-            patch = mpl.patches.Rectangle((angular_pos, radial_pos), angular_width, frequency, facecolor=color,edgecolor='#5c7b1e',linewidth=0.3)
+            patch = mpl.patches.Rectangle((angular_pos, radial_pos), angular_width, frequency, facecolor=color,
+                                          edgecolor='#5c7b1e',linewidth=0.3)
             ax.add_patch(patch)
             radial_pos += frequency
     legend_patches = [mpl.patches.Patch(color='#d6ebad', label='0-4 m/s'),
@@ -239,6 +247,21 @@ def plot_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sector
     plt.show()
 
 
+def plot_monthly_means(data,time_col_name):
+    #Get table of monthly means from data passed
+    data = get_monthly_means(data, time_col_name)
+
+    #Make Timestamp its own column and not an index
+    data = data.reset_index()
+
+    #Setup figure for plotting, then plot all columns in dataframe
+    plt.figure(figsize=(15, 7.5))
+    for i in range(1, len(data.columns)):
+        plt.plot(data.iloc[:, 0], data.iloc[:, i])
+    plt.ylabel('Wind speed [m/s]')
+    plt.xticks(rotation=90)
+    plt.legend()
+    plt.show()
 
 
 def plot_12x24_TI_Contours(data,time_col_name,speed_col_name,std_col_name):
