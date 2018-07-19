@@ -58,7 +58,7 @@ def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_gre
     plt.show()
 
 
-def plot_wind_rose(data, direction_col_name=0,sectors=12):
+def plot_wind_rose(data, freq_table=False, direction_col_name=0, sectors=12):
     """Plot a wind rose from a direction data or a frequency table.
     """
     if not freq_table:
