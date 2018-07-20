@@ -8,7 +8,7 @@ plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\brightwind\plot\bw.mpls
 
 
 def bw_colors(bw_color):
-    #Define color scheme to be used across graphs, and tables.
+    # Define color scheme to be used across graphs, and tables.
     if bw_color == 'green':
         bw_color = [156, 197, 55]
     elif bw_color == 'wind_rose_gradient':
@@ -43,11 +43,11 @@ def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_gre
     else:
         x_data = data.index
     ax.set_xticks(x_data)
-    ax.set_xlim(-0.5,max_speed+0.5)
-    ax.set_ylim(0,max(data)+5)
+    ax.set_xlim(-0.5, max_speed+0.5)
+    ax.set_ylim(0, max(data)+5)
     ax.yaxis.set_major_formatter(PercentFormatter())
     ax.grid(b=True, axis='y', zorder=0)
-    #ax.bar(result.index, result.values,facecolor='#9ACD32',edgecolor=['#6C9023' for i in range(len(result))],zorder=3)
+    # ax.bar(result.index, result.values,facecolor='#9ACD32',edgecolor=['#6C9023' for i in range(len(result))],zorder=3)
     for frequency, bin in zip(data,x_data):
         ax.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
                   interpolation='gaussian', extent=(bin-0.4, bin+0.4, 0, frequency), aspect='auto', zorder=3)
@@ -69,7 +69,7 @@ def plot_wind_rose(data, freq_table=False, direction_col_name=0, sectors=12):
         result.loc[1] += result.loc[sectors+1]
         result = result.drop(sectors+1, axis=0).sort_index()
     else:
-        sectors= data.shape[1]
+        sectors = data.shape[1]
         result = data.sum(axis=0)
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
@@ -102,17 +102,17 @@ def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0,360,360.0/sectors))
-    ax.set_rgrids(np.linspace(0,max(table.sum(axis=0))+2.0,10),labels=[ '%.0f' % round(i)+'%' for i in
-                                                                np.linspace(0,max(table.sum(axis=0))+2.0,10)],angle=0)
+    ax.set_rgrids(np.linspace(0, max(table.sum(axis=0))+2.0,10),labels=[ '%.0f' % round(i)+'%' for i in
+                                                                np.linspace(0, max(table.sum(axis=0))+2.0,10)],angle=0)
     direction_bins = get_direction_bin_array(sectors)[1:-2]
     direction_bins = np.insert(direction_bins,0,direction_bins[-2])
-    ax.set_ylim(0,max(table.sum(axis=0))+3.0)
-    angular_width = 2*np.pi/sectors - (np.pi/180) #Leaving 1 degree gap
+    ax.set_ylim(0, max(table.sum(axis=0))+3.0)
+    angular_width = 2*np.pi/sectors - (np.pi/180)  # Leaving 1 degree gap
 
     def _choose_color(speed_bin):
         colors = gradient_colors
         bins = [0, 3.5, 6.5, 9.5, 12.5, 15.5, 18.5, 41]
-        return(colors[np.digitize([speed_bin], bins)[0]-1])
+        return colors[np.digitize([speed_bin], bins)[0]-1]
 
     for column in table_binned:
         radial_pos = 0.0
@@ -128,16 +128,16 @@ def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b
                         mpl.patches.Patch(color=gradient_colors[2], label='7-9 m/s'),
                         mpl.patches.Patch(color=gradient_colors[3], label='10-12 m/s'),
                         mpl.patches.Patch(color=gradient_colors[4], label='13-15 m/s'),
-                      mpl.patches.Patch(color=gradient_colors[5], label='15+ m/s')]
+                        mpl.patches.Patch(color=gradient_colors[5], label='15+ m/s')]
     ax.legend(handles=legend_patches)
     plt.show()
 
 
 def plot_TI_by_Speed(data,speed_col_name,std_col_name):
 
-    #IEC Class 2005
-    #Note we have removed option to include IEC Class 1999 as no longer appropriate.
-    #This may need to be placed in a separate function when updated IEC standard is released
+    # IEC Class 2005
+    # Note we have removed option to include IEC Class 1999 as no longer appropriate.
+    # This may need to be placed in a separate function when updated IEC standard is released
 
     columns = ['Windspeed', 'IEC Class A', 'IEC Class B', 'IEC Class C']
     IEC_Class_2005 = pd.DataFrame(np.zeros([26, 4]), columns=columns)
@@ -148,7 +148,7 @@ def plot_TI_by_Speed(data,speed_col_name,std_col_name):
         IEC_Class_2005.iloc[n, 2] = 0.14 * (0.75 + (5.6 / n))
         IEC_Class_2005.iloc[n, 3] = 0.12 * (0.75 + (5.6 / n))
 
-    #Get Average Turbulence Intensity and Representative Turbulence Intensity for the plot
+    # Get Average Turbulence Intensity and Representative Turbulence Intensity for the plot
     TI = get_TI_by_Speed(data, speed_col_name, std_col_name)
     data['Turbulence_Intensity'] = data[std_col_name] / data[speed_col_name]
 
@@ -172,39 +172,39 @@ def plot_TI_by_Speed(data,speed_col_name,std_col_name):
 
 def plot_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sectors,min_speed):
 
-    #First we need to calculate the Turbulence Intensity by sector by calling the sector function.
+    # First we need to calculate the Turbulence Intensity by sector by calling the sector function.
     TI = get_TI_by_sector(data, speed_col_name, std_col_name, direction_col_name, sectors, min_speed)
 
-    #Next we convert the Median bin degree to radians for plotting
+    # Next we convert the Median bin degree to radians for plotting
     TI['Polar degrees'] = np.radians(TI.index * (360 / sectors))
 
-    #To complete the plot, we need to copy the first row and append a new last row.
+    # To complete the plot, we need to copy the first row and append a new last row.
     TI.loc[-1] = TI.loc[0, :]
 
-    #Set Figure size, define it as polar, set north, set number of sectors to be displayed
+    # Set Figure size, define it as polar, set north, set number of sectors to be displayed
     fig = plt.figure(figsize=(9, 9))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0, 360, 360.0 / sectors))
     ax.tick_params(axis='y',labelsize=15)
-    #,grid_color='white',labelcolor='white
-    #Convert name of Turbulence Intensity Avg Column so it will read well in legend.
+    # ,grid_color='white',labelcolor='white
+    # Convert name of Turbulence Intensity Avg Column so it will read well in legend.
     TI['Turbulence Intensity Average by sector'] = TI['Turbulence_Intensity_Avg']
 
-    #Plot the Average turbulence Intensity and assign a title to the graph
+    # Plot the Average turbulence Intensity and assign a title to the graph
     ax.plot(TI['Polar degrees'], TI['Turbulence Intensity Average by sector'], c=bw_colors('green'), linewidth=4)
     plt.title('Turbulence Intensity by Direction')
 
-    #Set the max extent of the polar plot to be the max average sector turbulence + 0.1
+    # Set the max extent of the polar plot to be the max average sector turbulence + 0.1
     maxlevel = TI['Turbulence_Intensity_Avg'].max() + 0.1
     ax.set_ylim(0, maxlevel)
 
-    #Add in comment at bottom of graph about what anemometer and wind vane are used.
+    # Add in comment at bottom of graph about what anemometer and wind vane are used.
     ax.annotate('*Plot generated using Anemometer ' + speed_col_name + ' and Wind Vane ' + direction_col_name,
                 xy=(120, 10), xycoords='figure pixels')
 
-    #Finally produce a scatter plot of all of the Turbulence Intensity data points
+    # Finally produce a scatter plot of all of the Turbulence Intensity data points
     data['Turbulence Intensity by datapoint'] = data[std_col_name] / data[speed_col_name]
     data['Polar degrees'] = np.radians(data[direction_col_name])
     ax.scatter(data['Polar degrees'], data['Turbulence Intensity by datapoint'], c=bw_colors('asphault'), alpha=0.3, s=1)
@@ -213,13 +213,13 @@ def plot_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sector
 
 
 def plot_monthly_means(data,time_col_name):
-    #Get table of monthly means from data passed
+    # Get table of monthly means from data passed
     data = get_monthly_means(data, time_col_name)
 
-    #Make Timestamp its own column and not an index
+    # Make Timestamp its own column and not an index
     data = data.reset_index()
 
-    #Setup figure for plotting, then plot all columns in dataframe
+    # Setup figure for plotting, then plot all columns in dataframe
     plt.figure(figsize=(15, 7.5))
     for i in range(1, len(data.columns)):
         plt.plot(data.iloc[:, 0], data.iloc[:, i])
@@ -230,7 +230,7 @@ def plot_monthly_means(data,time_col_name):
 
 
 def plot_12x24_TI_Contours(data,time_col_name,speed_col_name,std_col_name):
-    #Get Contour Plot of 12 month x 24 hour matrix of turbulence intensity
+    # Get Contour Plot of 12 month x 24 hour matrix of turbulence intensity
     result = get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name)
     plt.figure(figsize=(15, 7.5))
     x = plt.contourf(result, cmap="Greens")

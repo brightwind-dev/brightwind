@@ -184,7 +184,7 @@ def linear_regression(ref: pd.Series, target: pd.Series, averaging_prd: str, cov
 
     common_idxs, data_pts = _common_idxs(ref_processed, target_processed)
 
-    if plot == True:
+    if plot:
         _scatter_plot(ref_processed.loc[common_idxs].values,target_processed.loc[common_idxs].values, "Reference Data", "Target Data  ")
     # Linear Regression
     model = LinearRegression()

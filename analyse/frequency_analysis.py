@@ -145,7 +145,7 @@ def get_freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 4
     return result
 
 
-def get_time_continuity(data,time_col_name,time_interval):
+def get_time_continuity(data, time_col_name, time_interval):
     #Get time continuity is a function that sees if there are any gaps bigger than the time interval specified in the
     #data, and brings back a table of values.
 
