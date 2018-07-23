@@ -1,7 +1,5 @@
 import matplotlib.pyplot as plt
 import calendar
-import numpy as np
-import pandas as pd
 from analyse.frequency_analysis import *
 
 plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\brightwind\plot\bw.mplstyle')
@@ -31,7 +29,7 @@ def bw_colors(bw_color):
     return bw_color
 
 
-def _scatter_plot(x, y, x_label, y_label):
+def _scatter_plot(x, y, predicted_y, x_label="Reference", y_label="Target"):
     fig2 = plt.figure(111)
     scat = fig2.add_subplot(111)
     scat.set_xlabel(x_label)
@@ -39,6 +37,7 @@ def _scatter_plot(x, y, x_label, y_label):
     scat.scatter(x, y)
     fig2.set_figwidth(10)
     fig2.set_figheight(10)
+    plt.plot(x, predicted_y, 'k-')
     plt.show()
 
 

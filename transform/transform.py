@@ -1,6 +1,6 @@
 from analyse.reanalysis import mean_of_monthly_means
 import numpy as np
-
+import pandas as pd
 
 def _convert_days_to_hours(prd):
     return str(int(prd[:-1])*24)+'H'
@@ -98,7 +98,7 @@ def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
 def _filter_by_coverage_threshold(data, data_averaged, coverage_threshold):
     """Remove data with coverage less than coverage_threshold"""
     data_averaged['Coverage'] = data_averaged['Count'] / _max_coverage_count(data.index, data_averaged.index)
-    return data_averaged[data_averaged["Coverage"]>=coverage_threshold]
+    return data_averaged[data_averaged["Coverage"] >= coverage_threshold]
 
 
 def _average_data_by_period(data: pd.Series, period: str) -> pd.DataFrame:
@@ -123,14 +123,3 @@ def _average_data_by_period(data: pd.Series, period: str) -> pd.DataFrame:
     grouped_means = grouper_obj.mean()
     grouped_data = pd.concat([grouped_means, num_data_points], axis=1)
     return grouped_data
-
-
-def _preprocess_data_for_correlations(ref: pd.DataFrame, target:pd.DataFrame, averaging_prd, coverage_threshold):
-    """A wrapper function that calls other functions necessary for pre-processing the data"""
-    ref_overlap, target_overlap = _get_overlapping_data(ref, target, averaging_prd)
-    ref_overlap_avgd = _average_data_by_period(ref_overlap, averaging_prd)
-    target_overlap_avgd = _average_data_by_period(target_overlap, averaging_prd)
-    ref_filtered_for_coverage = _filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)
-    target_filtered_for_coverage = _filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
-    return ref_filtered_for_coverage.drop(['Count','Coverage'], axis=1), \
-           target_filtered_for_coverage.drop(['Count','Coverage'], axis=1)
