@@ -31,6 +31,17 @@ def bw_colors(bw_color):
     return bw_color
 
 
+def _scatter_plot(x, y, x_label, y_label):
+    fig2 = plt.figure(111)
+    scat = fig2.add_subplot(111)
+    scat.set_xlabel(x_label)
+    scat.set_ylabel(y_label)
+    scat.scatter(x, y)
+    fig2.set_figwidth(10)
+    fig2.set_figheight(10)
+    plt.show()
+
+
 def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_green_for_gradient'),
                                         bw_colors('dark_green_for_gradient'),bw_colors('darkgreen')],save_fig=False):
     from matplotlib.ticker import PercentFormatter
