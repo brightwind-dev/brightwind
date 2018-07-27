@@ -123,3 +123,4 @@ def _average_data_by_period(data: pd.Series, period: str) -> pd.DataFrame:
     grouped_means = grouper_obj.mean()
     grouped_data = pd.concat([grouped_means, num_data_points], axis=1)
     return grouped_data
+
