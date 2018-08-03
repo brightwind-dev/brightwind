@@ -29,15 +29,16 @@ def bw_colors(bw_color):
     return bw_color
 
 
-def _scatter_plot(x, y, predicted_y, x_label="Reference", y_label="Target"):
+def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target"):
     fig2 = plt.figure(111)
     scat = fig2.add_subplot(111)
     scat.set_xlabel(x_label)
     scat.set_ylabel(y_label)
-    scat.scatter(x, y)
+    scat.scatter(x, y, marker = '.', color='#9ACD32')
     fig2.set_figwidth(10)
     fig2.set_figheight(10)
-    plt.plot(x, predicted_y, 'k-')
+    if predicted_y is not None:
+        plt.plot(x, predicted_y, 'k-')
     plt.show()
 
 
@@ -111,9 +112,9 @@ def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b
     ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.arange(0,360,360.0/sectors))
+    ax.set_thetagrids(np.arange(0,360,360.0/sectors), zorder=2)
     ax.set_rgrids(np.linspace(0, max(table.sum(axis=0))+2.0,10),labels=[ '%.0f' % round(i)+'%' for i in
-                                                                np.linspace(0, max(table.sum(axis=0))+2.0,10)],angle=0)
+                                                    np.linspace(0, max(table.sum(axis=0))+2.0, 10)], angle=0, zorder=2)
     direction_bins = get_direction_bin_array(sectors)[1:-2]
     direction_bins = np.insert(direction_bins,0,direction_bins[-2])
     ax.set_ylim(0, max(table.sum(axis=0))+3.0)
@@ -130,7 +131,7 @@ def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b
         for speed_bin,frequency in zip(table_binned.index,table_binned[column]):
             color = _choose_color(speed_bin)
             patch = mpl.patches.Rectangle((angular_pos, radial_pos), angular_width, frequency, facecolor=color,
-                                          edgecolor='#5c7b1e',linewidth=0.3)
+                                          edgecolor='#5c7b1e', linewidth=0.3, zorder=5)
             ax.add_patch(patch)
             radial_pos += frequency
     legend_patches = [mpl.patches.Patch(color=gradient_colors[0], label='0-3 m/s'),

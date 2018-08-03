@@ -31,8 +31,10 @@ def _compute_wind_vector(wspd, wdir):
 
 
 def _range_0_to_360(dir):
-     if dir < 0: return dir+360
-     else :  return dir
+    if dir < 0:
+        return dir+360
+    else:
+        return dir
 
 
 def degree_to_radian(degree):
@@ -48,18 +50,18 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
     ref_spd = ref_spd.sort_index().dropna()
     target_spd = target_spd.sort_index().dropna()
     ref_overlap, target_overlap = _get_overlapping_data(ref_spd, target_spd, averaging_prd)
-    ref  = pd.concat([ref_overlap, ref_dir.apply(degree_to_radian)],axis=1, join='inner')
+    ref = pd.concat([ref_overlap, ref_dir.apply(degree_to_radian)],axis=1, join='inner')
     ref.columns = ['ref_spd','ref_dir']
     ref['N'], ref['E'] = _compute_wind_vector(ref['ref_spd'],ref['ref_dir'])
     target = pd.concat([target_overlap, target_dir.apply(degree_to_radian)],axis=1, join='inner')
     target.columns = ['target_spd', 'target_dir']
-    target['N'], target['E'] = _compute_wind_vector(target['ref_spd'], target['ref_dir'])
+    target['N'], target['E'] = _compute_wind_vector(target['target_spd'], target['target_dir'])
     ref_N_avgd = _average_data_by_period(ref['N'], averaging_prd)
     ref_E_avgd = _average_data_by_period(ref['E'], averaging_prd)
-    ref_dir_avgd = np.arctan2(ref_E_avgd, ref_N_avgd).apply(radian_to_degree).apply(_range_0_to_360)
+    ref_dir_avgd = np.arctan2(ref_E_avgd, ref_N_avgd).applymap(radian_to_degree).applymap(_range_0_to_360)
     target_N_avgd = _average_data_by_period(target['N'], averaging_prd)
     target_E_avgd = _average_data_by_period(target['E'], averaging_prd)
-    target_dir_avgd = np.arctan2(target_E_avgd, target_N_avgd).apply(radian_to_degree).apply(_range_0_to_360)
+    target_dir_avgd = np.arctan2(target_E_avgd, target_N_avgd).applymap(radian_to_degree).applymap(_range_0_to_360)
     ref_dir_filtered_for_coverage = _filter_by_coverage_threshold(ref_dir, ref_dir_avgd, coverage_threshold)
     target_dir_filtered_for_coverage = _filter_by_coverage_threshold(target_dir, target_dir_avgd, coverage_threshold)
     common_idxs, data_pts = _common_idxs(ref_dir_filtered_for_coverage, target_dir_filtered_for_coverage)
@@ -166,35 +168,67 @@ class oridnary_least_squares:
         return self._predict(data)
 
 
-class speedsort:
+class speedsort_nondirectional:
 
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, lt_ref_speed=None):
+    def __init__(self, ref, target, averaging_prd, coverage_threshold, lt_ref_speed=None, pre_processing=True):
         self.ref = ref
         self.target = target
         self.averaging_prd = averaging_prd
         self.coverage_threshold = coverage_threshold
+        self.pre_processing = pre_processing
         if lt_ref_speed is None:
             self.lt_ref_speed = calc_lt_ref_speed(ref)
         else:
             self.lt_ref_speed = lt_ref_speed
-        print(self.lt_ref_speed)
         self.cutoff = min(0.5*self.lt_ref_speed, 4.0)
         self.fit()
 
     def fit(self):
-        self._ref_processed, self._target_processed = _preprocess_data_for_correlations(self.ref, self.target,
+        if self.pre_processing == True:
+            self._ref_processed, self._target_processed = _preprocess_data_for_correlations(self.ref, self.target,
                                                                                         self.averaging_prd,
                                                                                         self.coverage_threshold)
-        x_data = sorted([wdspd for wdspd in self._ref_processed.values.flatten() if wdspd > self.cutoff])
+        else:
+            self._ref_processed, self._target_processed = self.ref, self.target
+        x_data = sorted([wdspd for wdspd in self._ref_processed.values.flatten()])
         y_data = sorted([wdspd for wdspd in self._target_processed.values.flatten()])
-        data_pts = min(len(x_data),len(y_data))
-        self._data = RealData(x_data[:data_pts], y_data[:data_pts])
-        self._model = ODR(self._data, Model(linear_func), beta0=[1.0, 0.0])
+
+        for idx, wdspd in enumerate(x_data):
+            if wdspd > self.cutoff:
+                start_idx = idx
+                break
+        x_data = x_data[start_idx:]
+        y_data = y_data[start_idx:]
+        # print(y_data)
+        self.target_cutoff = y_data[0]
+        # print("start idx:", start_idx)
+        # print([i for i in y_data if i < self.target_cutoff])
+
+        self.data_pts = min(len(x_data),len(y_data))
+        # orthogonal least squares
+        self._data = RealData(x_data[:self.data_pts], y_data[:self.data_pts])
+        print((np.asarray(x_data)[:, np.newaxis]**[1, 0]).shape, (np.asarray(y_data)[:,np.newaxis]).shape)
+
+        p, res = lstsq(np.nan_to_num(np.asarray(x_data)[:, np.newaxis]**[1, 0]), np.nan_to_num(np.asarray(y_data)[:, np.newaxis]))[0:2]
+        print("Linear regression:", p[0], p[1])
+        """
+        self._model = ODR(self._data, Model(linear_func), beta0=[p[0][0], p[1][0]])
+
         self.out = self._model.run()
         self.params = self.out.beta
 
         print(self.out.pprint())
-        #orthogonal least squares
+        """
+        # Karen's line fit
+        mid_pnt = int(len(x_data)/2)
+        xmean1 = np.mean(x_data[:mid_pnt])
+        xmean2 = np.mean(x_data[mid_pnt:])
+        ymean1 = np.mean(y_data[:mid_pnt])
+        ymean2 = np.mean(y_data[mid_pnt:])
+        self.params = [0 , 0]
+        self.params[0] = (ymean2 - ymean1) /(xmean2 - xmean1)
+        self.params[1] = ymean1 - (xmean1 * self.params[0])
+        print("Karen's regression:", self.params)
 
     def show_params(self):
         print("Parameters:", self.params)
@@ -202,6 +236,7 @@ class speedsort:
     def _predict(self, x):
         if isinstance(x, pd.Series):
             x = x.to_frame()
+
         def linear_func_inverted(x, p=self.params):
             if x > self.cutoff:
                 return linear_func(p, x)
@@ -220,7 +255,7 @@ class speedsort:
         return self._predict(data)
 
 
-class speedsort_directional:
+class speedsort:
     def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold, sectors=12,
                  direction_bin_array=None, lt_ref_speed=None):
         self.ref_spd = ref_spd
@@ -231,7 +266,7 @@ class speedsort_directional:
         self.sectors = sectors
         self.direction_bin_array = direction_bin_array
         self.coverage_threshold = coverage_threshold
-
+        self.params = dict()
         #preprocess data
         self._ref_spd_processed, self._target_spd_processed = _preprocess_data_for_correlations(self.ref_spd,
                                                                                                 self.target_spd,
@@ -244,64 +279,92 @@ class speedsort_directional:
                                                                                                 self.averaging_prd,
                                                                                                 self.coverage_threshold)
         # collect all the data in dataframe
-        data = pd.concat([self._ref_spd_processed, self._target_spd_processed,self._ref_dir_processed,
+        self.data = pd.concat([self._ref_spd_processed, self._target_spd_processed,self._ref_dir_processed,
                           self._target_dir_processed],axis=1, join='inner')
-        # for low ref_speed and high target_speed recalculate direction sector
-        self._filter_low_reference_speed()
-
-        # randomize calm periods
-        self._randomize_calm_periods()
-        #add direction sector
-        self.ref_dir_bins = get_binned_direction_series(ref_dir, sectors, direction_bin_array=self.direction_bin_array)
-
-        #add direction bin column to dataframe
-
-
-        self.ref_veer_cutoff = self._get_veer_cutoff(self._ref_processed)
-        self.target_veer_cutoff = self._get_veer_cutoff((self._target_processed))
-
+        self.data.columns = ['ref_spd', 'target_spd', 'ref_dir', 'target_dir']
         if lt_ref_speed is None:
-            self.lt_ref_speed = calc_lt_ref_speed(ref_spd)
+            self.lt_ref_speed = calc_lt_ref_speed(self.data['ref_spd'])
         else:
             self.lt_ref_speed = lt_ref_speed
-        print(self.lt_ref_speed)
-        self.cutoff = min(0.5*self.lt_ref_speed, 4.0)
-        print(self.cutoff)
+        self.cutoff = min(0.5 * self.lt_ref_speed, 4.0)
+        self.ref_veer_cutoff = self._get_veer_cutoff(self.data['ref_spd'])
+        self.target_veer_cutoff = self._get_veer_cutoff((self.data['target_spd']))
 
-    def _filter_low_reference_speed(self):
-         idxs = data[data['ref_spd'<2 & data['target_spd']> (data['ref_spd']+4)]].index
-         data.loc[idx,'ref_dir'] = data.loc[idxs, 'target_dir']
+        # for low ref_speed and high target_speed recalculate direction sector
+        self._adjust_low_reference_speed_dir()
 
-    def _preprocess_for_veer(self,df):
-        data_veer  = df[df['ref_spd'] >= self.ref_veer_cutoff & df['target_spd']>=self.target_veer_cutoff]
+        # add direction sector
+        self.ref_dir_bins = get_binned_direction_series(self.data['ref_dir'], sectors,
+                                                    direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')
 
-        return data_veer
+        self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
+        # randomize calm periods
+        self._randomize_calm_periods()
+        self.data = self.data.dropna()
+        self.fit()
 
-    def _preprocess_for_speed(self):
-        return data_speed
-    @staticmethod
-    def _get_veer(ref_d, target_d):
-        v = target_d - ref_d
-        if v > 180:
-            return v - 360.0
-        elif v < -180:
-            return v + 360.0
-        else:
-            return v
+    def _randomize_calm_periods(self):
+        idxs = self.data[self.data['ref_spd'] <= 1].index
+        self.data.loc[idxs, 'ref_dir_bin'] = np.random.choice(np.arange(1, self.sectors+1, 1), size=len(idxs))
+
+    def _adjust_low_reference_speed_dir(self):
+        idxs = self.data[(self.data['ref_spd']<2) & (self.data['target_spd']> (self.data['ref_spd']+4))].index
+        self.data.loc[idxs, 'ref_dir'] = self.data.loc[idxs, 'target_dir']
 
     @staticmethod
     def _get_veer_cutoff(speed_col):
         return 0.5*(6.0 + (0.5*speed_col.mean()))
 
-    def veer_fit(self, data):
-        for sector, group in data.groupby(['ref_dir_bin']):
-            self.veer_num_pts[sector] = len(group['ref_dir'])
-            self.veers[sector] = self._get_veer(group['ref_dir'], group['target_dir']).mean()
+    @staticmethod
+    def _get_veer(ref_d, target_d):
+        def change_range(veer):
+            if veer > 180:
+                return veer - 360.0
+            elif veer < -180:
+                return veer + 360.0
+            else:
+                return veer
+        v = target_d - ref_d
+        return v.apply(change_range)
 
-    def speed_fit(self, data):
-        for sector, group in data.groupby(['ref_dir_bin']):
-            self.
+    def _avg_veer(self, sector_data):
+        sector_data = sector_data[(sector_data['ref_spd'] >= self.ref_veer_cutoff) & (sector_data['target_spd']>=self.target_veer_cutoff)]
+        return {'average_veer':round(self._get_veer(sector_data['ref_dir'], sector_data['target_dir']).mean()),
+                'num_pts_for_veer':len(sector_data['ref_dir'])}
 
+    def fit(self):
+        self.params['Ref_cutoff_for_speed'] =self.cutoff
+        self.params['Ref_veer_cutoff'] = self.ref_veer_cutoff
+        self.params['Target_veer_cutoff'] = self.target_veer_cutoff
+        print(self.params)
+        for sector, group in self.data.groupby(['ref_dir_bin']):
+            print('Processing sector:', sector)
+            self.speed_model = speedsort_nondirectional(ref=group['ref_spd'], target=group['target_spd'],averaging_prd=self.averaging_prd,
+                                         coverage_threshold=0.0, lt_ref_speed=self.lt_ref_speed, pre_processing=False)
+            self.params[sector] = {'slope':self.speed_model.params[0],'offset':self.speed_model.params[1],
+                                   'target_cutoff': self.speed_model.target_cutoff,
+                                   'num_pts_for_speed_fit': self.speed_model.data_pts,
+                                   'num_total_pts': min(group.count())}
+            self.params[sector].update(self._avg_veer(group))
+            if sector == 9 or sector == 10:
+                group.to_csv("sector{0}_speedsort_test.csv".format(sector))
+
+    def _predict(self, x, param):
+        if isinstance(x, pd.Series):
+            x = x.to_frame()
+
+        def linear_func_inverted(x, p=param):
+            if x > self.cutoff:
+                return linear_func(p, x)
+            else:
+                return (self._data.y[0] / self._data.x[0]) * x
+
+        return x.applymap(linear_func_inverted)
+
+    def synthesize(self, data=None):
+        if data is None:
+            data = self.ref
+        return self._predict(data)
 
 
 def linear_regression(ref: pd.Series, target: pd.Series, averaging_prd: str, coverage_threshold: float, plot:bool=False):
@@ -321,7 +384,8 @@ def linear_regression(ref: pd.Series, target: pd.Series, averaging_prd: str, cov
     ref_processed, target_processed = _preprocess_data_for_correlations(ref, target, averaging_prd, coverage_threshold)
     common_idxs, data_pts = _common_idxs(ref_processed, target_processed)
     if plot:
-        _scatter_plot(ref_processed.loc[common_idxs].values,target_processed.loc[common_idxs].values, predicted_y=0, x_label="Reference Data", y_label="Target Data  ")
+        _scatter_plot(ref_processed.loc[common_idxs].values,target_processed.loc[common_idxs].values, predicted_y=0,
+                      x_label="Reference Data", y_label="Target Data  ")
 
 
     # Linear Regression
