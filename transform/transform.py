@@ -95,10 +95,13 @@ def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
     return max_pts
 
 
-def _filter_by_coverage_threshold(data, data_averaged, coverage_threshold):
+def _filter_by_coverage_threshold(data, data_averaged, coverage_threshold, filter=True):
     """Remove data with coverage less than coverage_threshold"""
     data_averaged['Coverage'] = data_averaged['Count'] / _max_coverage_count(data.index, data_averaged.index)
-    return data_averaged[data_averaged["Coverage"] >= coverage_threshold]
+    if filter:
+        return data_averaged[data_averaged["Coverage"] >= coverage_threshold]
+    else:
+        return data_averaged
 
 
 def _average_data_by_period(data: pd.Series, period: str) -> pd.DataFrame:
@@ -124,3 +127,7 @@ def _average_data_by_period(data: pd.Series, period: str) -> pd.DataFrame:
     grouped_data = pd.concat([grouped_means, num_data_points], axis=1)
     return grouped_data
 
+
+def get_coverage(data: pd.Series, period: str='1M'):
+    _filter_by_coverage_threshold(data, _average_data_by_period(data, period),
+                                  coverage_threshold=0, filter=False)
