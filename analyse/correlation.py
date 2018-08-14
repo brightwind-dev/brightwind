@@ -96,8 +96,8 @@ class orthogonal_least_squares():
         self.fit()
 
     def fit(self):
-        self._ref_processed, self._target_processed = _preprocess_data_for_correlations(self.ref, self.target, self.averaging_prd,
-                                                                            self.coverage_threshold)
+        self._ref_processed, self._target_processed = _preprocess_data_for_correlations(self.ref, self.target,
+                                                                        self.averaging_prd, self.coverage_threshold)
         data = RealData(self._ref_processed.values.flatten(), self._target_processed.values.flatten())
         self._model = ODR(data, self.function, beta0=[1.0,0.0])
         self.out = self._model.run()
@@ -192,9 +192,9 @@ class speedsort_nondirectional:
             self._ref_processed, self._target_processed = self.ref, self.target
         x_data = sorted([wdspd for wdspd in self._ref_processed.values.flatten()])
         y_data = sorted([wdspd for wdspd in self._target_processed.values.flatten()])
-
+        start_idx = 0
         for idx, wdspd in enumerate(x_data):
-            if wdspd > self.cutoff:
+            if wdspd >= self.cutoff:
                 start_idx = idx
                 break
         x_data = x_data[start_idx:]
@@ -209,7 +209,8 @@ class speedsort_nondirectional:
         self._data = RealData(x_data[:self.data_pts], y_data[:self.data_pts])
         print((np.asarray(x_data)[:, np.newaxis]**[1, 0]).shape, (np.asarray(y_data)[:,np.newaxis]).shape)
 
-        p, res = lstsq(np.nan_to_num(np.asarray(x_data)[:, np.newaxis]**[1, 0]), np.nan_to_num(np.asarray(y_data)[:, np.newaxis]))[0:2]
+        p, res = lstsq(np.nan_to_num(np.asarray(x_data)[:, np.newaxis]**[1, 0]), np.nan_to_num(np.asarray(y_data)
+                                                                                               [:, np.newaxis]))[0:2]
         print("Linear regression:", p[0], p[1])
         """
         self._model = ODR(self._data, Model(linear_func), beta0=[p[0][0], p[1][0]])
@@ -289,27 +290,41 @@ class speedsort:
         self.cutoff = min(0.5 * self.lt_ref_speed, 4.0)
         self.ref_veer_cutoff = self._get_veer_cutoff(self.data['ref_spd'])
         self.target_veer_cutoff = self._get_veer_cutoff((self.data['target_spd']))
-
+        self._randomize_calm_periods()
+        self._get_overall_veer()
         # for low ref_speed and high target_speed recalculate direction sector
         self._adjust_low_reference_speed_dir()
 
+        #round-off diections for checking with Ciaran's tool
+        self._round_off_directions()
         # add direction sector
         self.ref_dir_bins = get_binned_direction_series(self.data['ref_dir'], sectors,
                                                     direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')
 
         self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
-        # randomize calm periods
-        self._randomize_calm_periods()
+
         self.data = self.data.dropna()
         self.fit()
 
+    def _round_off_directions(self):
+        self.data.loc[:, 'ref_dir'] = round(self.data.loc[:, 'ref_dir'])
+        self.data.loc[:, 'target_dir'] = round(self.data.loc[:, 'target_dir'])
+
     def _randomize_calm_periods(self):
-        idxs = self.data[self.data['ref_spd'] <= 1].index
-        self.data.loc[idxs, 'ref_dir_bin'] = np.random.choice(np.arange(1, self.sectors+1, 1), size=len(idxs))
+        idxs = self.data[self.data['ref_spd'] < 1].index
+        self.data.loc[idxs, 'ref_dir'] = 360.0 * np.random.random(size=len(idxs))
+        idxs = self.data[self.data['target_spd'] < 1].index
+        self.data.loc[idxs, 'target_dir'] = 360.0 * np.random.random(size=len(idxs))
+
+    def _get_overall_veer(self):
+        idxs = self.data[(self.data['ref_spd'] >= self.ref_veer_cutoff) & (self.data['target_spd'] >=
+                                                                           self.target_veer_cutoff)].index
+        self.overall_veer = self._get_veer(self.data.loc[idxs, 'ref_dir'], self.data.loc[idxs, 'target_dir']).mean()
 
     def _adjust_low_reference_speed_dir(self):
-        idxs = self.data[(self.data['ref_spd']<2) & (self.data['target_spd']> (self.data['ref_spd']+4))].index
-        self.data.loc[idxs, 'ref_dir'] = self.data.loc[idxs, 'target_dir']
+        idxs = self.data[(self.data['ref_spd'] < 2) & (self.data['target_spd'] > (self.data['ref_spd']+4))].index
+
+        self.data.loc[idxs, 'ref_dir'] = (self.data.loc[idxs, 'target_dir'] - self.overall_veer).apply(_range_0_to_360)
 
     @staticmethod
     def _get_veer_cutoff(speed_col):
@@ -328,19 +343,22 @@ class speedsort:
         return v.apply(change_range)
 
     def _avg_veer(self, sector_data):
-        sector_data = sector_data[(sector_data['ref_spd'] >= self.ref_veer_cutoff) & (sector_data['target_spd']>=self.target_veer_cutoff)]
-        return {'average_veer':round(self._get_veer(sector_data['ref_dir'], sector_data['target_dir']).mean()),
-                'num_pts_for_veer':len(sector_data['ref_dir'])}
+        sector_data = sector_data[(sector_data['ref_spd'] >= self.ref_veer_cutoff) & (sector_data['target_spd'] >=
+                                                                                      self.target_veer_cutoff)]
+        return {'average_veer': self._get_veer(sector_data['ref_dir'], sector_data['target_dir']).mean(),
+                'num_pts_for_veer': len(sector_data['ref_dir'])}
 
     def fit(self):
         self.params['Ref_cutoff_for_speed'] =self.cutoff
         self.params['Ref_veer_cutoff'] = self.ref_veer_cutoff
         self.params['Target_veer_cutoff'] = self.target_veer_cutoff
+        self.params['Overall_average_veer'] = self.overall_veer
         print(self.params)
         for sector, group in self.data.groupby(['ref_dir_bin']):
             print('Processing sector:', sector)
-            self.speed_model = speedsort_nondirectional(ref=group['ref_spd'], target=group['target_spd'],averaging_prd=self.averaging_prd,
-                                         coverage_threshold=0.0, lt_ref_speed=self.lt_ref_speed, pre_processing=False)
+            self.speed_model = speedsort_nondirectional(ref=group['ref_spd'], target=group['target_spd'],
+                                averaging_prd=self.averaging_prd, coverage_threshold=0.0,
+                                                        lt_ref_speed=self.lt_ref_speed, pre_processing=False)
             self.params[sector] = {'slope':self.speed_model.params[0],'offset':self.speed_model.params[1],
                                    'target_cutoff': self.speed_model.target_cutoff,
                                    'num_pts_for_speed_fit': self.speed_model.data_pts,
