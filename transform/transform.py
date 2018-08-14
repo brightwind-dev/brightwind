@@ -129,5 +129,5 @@ def _average_data_by_period(data: pd.Series, period: str) -> pd.DataFrame:
 
 
 def get_coverage(data: pd.Series, period: str='1M'):
-    _filter_by_coverage_threshold(data, _average_data_by_period(data, period),
+    return _filter_by_coverage_threshold(data, _average_data_by_period(data, period),
                                   coverage_threshold=0, filter=False)

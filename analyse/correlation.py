@@ -386,6 +386,60 @@ class speedsort:
             data = self.ref
         return self._predict(data)
 
+class bulkspeedratio:
+    def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold, sectors=12,
+                 cutoff=None, direction_bin_array=None, lt_ref_speed=None):
+        self.ref_spd = ref_spd
+        self.target_spd = target_spd
+        self.ref_dir = ref_dir
+        self.target_dir = target_dir
+        self.averaging_prd = averaging_prd
+        self.sectors = sectors
+        self.cutoff = cutoff
+        self.direction_bin_array = direction_bin_array
+        self.coverage_threshold = coverage_threshold
+        self.params = dict()
+        # preprocess data
+        self._ref_spd_processed, self._target_spd_processed = _preprocess_data_for_correlations(self.ref_spd,
+                                                                                                self.target_spd,
+                                                                                                self.averaging_prd,
+                                                                                                self.coverage_threshold)
+        self._ref_dir_processed, self._target_dir_processed = _preprocess_dir_data_for_correlations(self.ref_spd,
+                                                                                                    self.ref_dir,
+                                                                                                    self.target_spd,
+                                                                                                    self.target_dir,
+                                                                                                    self.averaging_prd,
+                                                                                                    self.coverage_threshold)
+        # collect all the data in dataframe
+        self.data = pd.concat([self._ref_spd_processed, self._target_spd_processed, self._ref_dir_processed,
+                               self._target_dir_processed], axis=1, join='inner')
+        self.data.columns = ['ref_spd', 'target_spd', 'ref_dir', 'target_dir']
+        self._round_off_directions()
+        #Filter low wind speeds
+        self._filter()
+
+        self.ref_dir_bins = get_binned_direction_series(self.data['ref_dir'], sectors,
+                                                        direction_bin_array=self.direction_bin_array).rename(
+            'ref_dir_bin')
+
+        self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
+
+        self.data = self.data.dropna()
+        self.fit()
+
+    def _round_off_directions(self):
+        self.data.loc[:, 'ref_dir'] = round(self.data.loc[:, 'ref_dir'])
+        self.data.loc[:, 'target_dir'] = round(self.data.loc[:, 'target_dir'])
+
+
+    def _filter(self):
+        if self.cutoff is not None:
+            self.data = self.data[(self.data['ref_spd'] >= self.cutoff) & (self.data['target_spd'] >= self.cutoff)]
+
+    def fit(self):
+        for sector, group in self.data.groupby(['ref_dir_bin']):
+            self.params['slope sector'+str(sector)] =   group['target_spd'].mean()/group['ref_spd'].mean()
+
 
 def linear_regression(ref: pd.Series, target: pd.Series, averaging_prd: str, coverage_threshold: float, plot:bool=False):
     """Accepts two dataframes with timestamps as indexes and averaging period.
