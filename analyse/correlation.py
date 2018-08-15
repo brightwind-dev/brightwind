@@ -10,7 +10,6 @@ from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from .frequency_analysis import get_binned_direction_series
 
-
 def _preprocess_data_for_correlations(ref: pd.DataFrame, target:pd.DataFrame, averaging_prd, coverage_threshold):
     """A wrapper function that calls other functions necessary for pre-processing the data"""
     ref = ref.sort_index().dropna()
@@ -47,23 +46,26 @@ def radian_to_degree(radian):
     return (radian/np.pi) * 180.0
 
 
+def _dir_averager(spd_overlap, dir, averaging_prd, coverage_threshold):
+    vec = pd.concat([spd_overlap, dir.apply(degree_to_radian)], axis=1, join='inner')
+    vec.columns = ['spd', 'dir']
+    vec['N'], vec['E'] = _compute_wind_vector(vec['spd'], vec['dir'])
+    vec_N_avgd = _average_data_by_period(vec['N'], averaging_prd)
+    vec_E_avgd = _average_data_by_period(vec['E'], averaging_prd)
+    vec_dir_avgd = np.arctan2(vec_E_avgd.loc[:,vec_E_avgd.columns != 'Count'], vec_N_avgd.loc[:,vec_N_avgd.columns !=
+                                                    'Count']).applymap(radian_to_degree).applymap(_range_0_to_360)
+    vec_dir_avgd.loc[:] = round(vec_dir_avgd.loc[:])
+    vec_dir_avgd = pd.concat([vec_dir_avgd,vec_E_avgd['Count']], axis=1, join='inner')
+    return vec_dir_avgd
+
+
 def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.DataFrame, target_spd:pd.DataFrame,
                                           target_dir: pd.DataFrame, averaging_prd, coverage_threshold):
     ref_spd = ref_spd.sort_index().dropna()
     target_spd = target_spd.sort_index().dropna()
     ref_overlap, target_overlap = _get_overlapping_data(ref_spd, target_spd, averaging_prd)
-    ref = pd.concat([ref_overlap, ref_dir.apply(degree_to_radian)],axis=1, join='inner')
-    ref.columns = ['ref_spd','ref_dir']
-    ref['N'], ref['E'] = _compute_wind_vector(ref['ref_spd'],ref['ref_dir'])
-    target = pd.concat([target_overlap, target_dir.apply(degree_to_radian)],axis=1, join='inner')
-    target.columns = ['target_spd', 'target_dir']
-    target['N'], target['E'] = _compute_wind_vector(target['target_spd'], target['target_dir'])
-    ref_N_avgd = _average_data_by_period(ref['N'], averaging_prd)
-    ref_E_avgd = _average_data_by_period(ref['E'], averaging_prd)
-    ref_dir_avgd = np.arctan2(ref_E_avgd, ref_N_avgd).applymap(radian_to_degree).applymap(_range_0_to_360)
-    target_N_avgd = _average_data_by_period(target['N'], averaging_prd)
-    target_E_avgd = _average_data_by_period(target['E'], averaging_prd)
-    target_dir_avgd = np.arctan2(target_E_avgd, target_N_avgd).applymap(radian_to_degree).applymap(_range_0_to_360)
+    ref_dir_avgd = _dir_averager(ref_overlap, ref_dir, averaging_prd, coverage_threshold)
+    target_dir_avgd = _dir_averager(target_overlap, target_dir, averaging_prd, coverage_threshold)
     ref_dir_filtered_for_coverage = _filter_by_coverage_threshold(ref_dir, ref_dir_avgd, coverage_threshold)
     target_dir_filtered_for_coverage = _filter_by_coverage_threshold(target_dir, target_dir_avgd, coverage_threshold)
     common_idxs, data_pts = _common_idxs(ref_dir_filtered_for_coverage, target_dir_filtered_for_coverage)
@@ -71,8 +73,36 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
                     target_dir_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs]
 
 
-def linear_func(p, x):
-    return p[0] * x + p[1]
+class BWBase:
+    def __init__(self, ref, target, averaging_prd, coverage_threshold, ref_dir=None, target_dir=None):
+        self.ref = ref
+        self.target = target
+        self.averaging_prd = averaging_prd
+        self.coverage_threshold = coverage_threshold
+        self.ref_dir = ref_dir
+        self.target_dir = target_dir
+
+    def preprocess_for_correlation(self):
+        return 0
+
+    def set_data(self):
+        return 0
+
+    def synthesize(self):
+        return 0
+
+    def get_error_metrics(self):
+        return 0
+
+    def show_params(self):
+        return 0
+
+    def plot(self):
+        return 0
+
+    def get_coverage(self):
+        return 0
+
 
 
 class orthogonal_least_squares():
@@ -88,6 +118,9 @@ class orthogonal_least_squares():
         Set period to 1AS fo annual average
     :return An object representing orthogonals least squares fit model
     """
+
+    def linear_func(p, x):
+        return p[0] * x + p[1]
 
     def __init__(self, ref, target, averaging_prd, coverage_threshold, function=Model(linear_func)):
         self.ref = ref
@@ -258,7 +291,7 @@ class speedsort_nondirectional:
         return self._predict(data)
 
 
-class speedsort:
+class SpeedSort:
     def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold, sectors=12,
                  direction_bin_array=None, lt_ref_speed=None):
         self.ref_spd = ref_spd
@@ -386,6 +419,7 @@ class speedsort:
             data = self.ref
         return self._predict(data)
 
+
 class bulkspeedratio:
     def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold, sectors=12,
                  cutoff=None, direction_bin_array=None, lt_ref_speed=None):
@@ -430,7 +464,6 @@ class bulkspeedratio:
     def _round_off_directions(self):
         self.data.loc[:, 'ref_dir'] = round(self.data.loc[:, 'ref_dir'])
         self.data.loc[:, 'target_dir'] = round(self.data.loc[:, 'target_dir'])
-
 
     def _filter(self):
         if self.cutoff is not None:
