@@ -10,6 +10,7 @@ from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from .frequency_analysis import get_binned_direction_series
 
+
 def _preprocess_data_for_correlations(ref: pd.DataFrame, target:pd.DataFrame, averaging_prd, coverage_threshold):
     """A wrapper function that calls other functions necessary for pre-processing the data"""
     ref = ref.sort_index().dropna()
@@ -74,38 +75,53 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
 
 
 class BWBase:
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, ref_dir=None, target_dir=None):
+    def __init__(self, ref, target, averaging_prd, coverage_threshold, ref_dir=None, target_dir=None, preprocess=True):
         self.ref = ref
         self.target = target
         self.averaging_prd = averaging_prd
         self.coverage_threshold = coverage_threshold
-        self.ref_dir = ref_dir
-        self.target_dir = target_dir
+        self.preprocess = preprocess
+        if preprocess:
+            self.data = BWBase._averager(ref, target, averaging_prd, coverage_threshold, ref_dir, target_dir)
+        else:
+            self.data = pd.concat([ref, target, ref_dir, target_dir], axis=1, join='inner')
+        if ref_dir is None and target_dir is None:
+            self.data.columns = ['ref_spd', 'target_spd']
+        else:
+            self.data.columns = ['ref_spd', 'target_spd', 'ref_dir', 'target_dir']
+        self.num_data_pts = len(self.data)
 
-    def preprocess_for_correlation(self):
-        return 0
+    @staticmethod
+    def _averager(ref, target, averaging_prd, coverage_threshold, ref_dir, target_dir):
+        data = pd.concat(list(_preprocess_data_for_correlations(ref, target, averaging_prd,
+                            coverage_threshold)), axis=1, join='inner')
+        if ref_dir is not None and target_dir is not None:
+            data = pd.concat([data]+list(_preprocess_dir_data_for_correlations(ref, ref_dir, target,target_dir
+                                                , averaging_prd, coverage_threshold)), axis=1, join='inner')
+        return data
 
-    def set_data(self):
-        return 0
+    def show_params(self):
+        print(self.params)
 
-    def synthesize(self):
+    def plot(self):
+        _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
+                   self._predict(self.data['ref_spd']).values.flatten())
+
+    def synthesize(self, input=None):
+        if input is None:
+            return pd.concat([self._predict(_average_data_by_period(self.ref.loc[:min(self.data.index)],
+                                        self.averaging_prd, drop_count=True)),self.data['target_spd']],axis=0)
+        else:
+            return self._predict(input)
+
+    def get_coverage(self):
         return 0
 
     def get_error_metrics(self):
         return 0
 
-    def show_params(self):
-        return 0
 
-    def plot(self):
-        return 0
-
-    def get_coverage(self):
-        return 0
-
-
-
-class orthogonal_least_squares():
+class orthogonal_least_squares(BWBase):
     """Accepts two dataframes with timestamps as indexes and averaging period.
     :param ref_speed : Dataframe containing reference speed as a column, timestamp as the index.
     :param target_speed: Dataframe containing target speed as a column, timestamp as the index.
@@ -118,46 +134,35 @@ class orthogonal_least_squares():
         Set period to 1AS fo annual average
     :return An object representing orthogonals least squares fit model
     """
-
+    @staticmethod
     def linear_func(p, x):
         return p[0] * x + p[1]
 
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, function=Model(linear_func)):
-        self.ref = ref
-        self.target = target
-        self.averaging_prd = averaging_prd
-        self.coverage_threshold = coverage_threshold
-        self.function = function
-        self.fit()
+    def __init__(self, ref, target, averaging_prd, coverage_threshold, func=Model(orthogonal_least_squares.
+                                                                                  linear_func),preprocess=True):
+        BWBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+        self.function = func
+        self.params = 'not run yet'
 
-    def fit(self):
-        self._ref_processed, self._target_processed = _preprocess_data_for_correlations(self.ref, self.target,
-                                                                        self.averaging_prd, self.coverage_threshold)
-        data = RealData(self._ref_processed.values.flatten(), self._target_processed.values.flatten())
-        self._model = ODR(data, self.function, beta0=[1.0,0.0])
+    def __repr__(self):
+        return 'Orthogonal Least Squares Model '+str(self.params)
+
+    def run(self):
+        fit_data = RealData(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten())
+        p, res = lstsq(np.nan_to_num(fit_data.x[:, np.newaxis] ** [1, 0]), np.nan_to_num(np.asarray(fit_data.y)
+                                                                                                 [:, np.newaxis]))[0:2]
+        self._model = ODR(fit_data, self.function, beta0=[p[0][0], p[1][0]])
         self.out = self._model.run()
-        self.params = self.out.beta
-        print(self.out.pprint())
-
-    def show_params(self):
-        print("Parameters:", self.params)
+        self.params = {'slope':self.out.beta[0], 'offset':self.out.beta[1]}
+        print("Model output:", self.out.pprint())
 
     def _predict(self, x):
         def linear_func_inverted(x, p):
-            return linear_func(p, x)
-        return x.transform(linear_func_inverted, p=self.params)
-
-    def plot_model(self):
-        _scatter_plot(self._ref_processed.values.flatten(), self._target_processed.values.flatten(),
-                      self._predict(self._ref_processed).values.flatten())
-
-    def synthesize(self, data=None):
-        if data is None:
-            data = self.ref
-        return self._predict(data)
+            return self.linear_func(p, x)
+        return x.transform(linear_func_inverted, p=[self.params['slope'],self.params['offset']])
 
 
-class oridnary_least_squares:
+class oridnary_least_squares(BWBase):
     """Accepts two dataframes with timestamps as indexes and averaging period.
     :param ref_speed : Dataframe containing reference speed as a column, timestamp as the index.
     :param target_speed: Dataframe containing target speed as a column, timestamp as the index.
@@ -170,37 +175,26 @@ class oridnary_least_squares:
         Set period to 1AS fo annual average
     :return An object representing ordinary least squares fit model
     """
+    @staticmethod
+    def linear_func(p, x):
+        return p[0] * x + p[1]
 
-    def __init__(self, ref, target, averaging_prd, coverage_threshold):
-        self.ref = ref
-        self.target = target
-        self.averaging_prd = averaging_prd
-        self.coverage_threshold = coverage_threshold
-        self.fit()
+    def __init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=True):
+        BWBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+        self.params = 'not run yet'
 
-    def fit(self):
-        self._ref_processed, self._target_processed = _preprocess_data_for_correlations(self.ref, self.target,
-                                                                            self.averaging_prd, self.coverage_threshold)
-        p, res = lstsq(self._ref_processed.values.flatten()[:, np.newaxis]**[1, 0],
-                                             self._target_processed.values.flatten())[0:2]
+    def __repr(self):
+        return 'Ordinary Least Squares Model' + str(self.params)
+
+    def run(self):
+        p, res = lstsq(self.data['ref_spd'].values.flatten()[:, np.newaxis]**[1, 0],
+                                             self.data['target_spd'].values.flatten())[0:2]
         self.params = {'slope':p[0],'offset': p[1],'sum of residues': res}
-
-    def show_params(self):
-        print("Parameters:", self.params)
 
     def _predict(self, x):
         def linear_function(x, slope, offset):
             return x*slope + offset
         return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
-
-    def plot_model(self):
-        _scatter_plot(self._ref_processed.values.flatten(), self._target_processed.values.flatten(),
-                      self._predict(self._ref_processed).values.flatten())
-
-    def synthesize(self, data=None):
-        if data is None:
-            data = self.ref
-        return self._predict(data)
 
 
 class speedsort_nondirectional:
