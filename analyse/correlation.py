@@ -74,7 +74,7 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
                     target_dir_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs]
 
 
-class BWBase:
+class CorrelBase:
     def __init__(self, ref, target, averaging_prd, coverage_threshold, ref_dir=None, target_dir=None, preprocess=True):
         self.ref = ref
         self.target = target
@@ -82,7 +82,7 @@ class BWBase:
         self.coverage_threshold = coverage_threshold
         self.preprocess = preprocess
         if preprocess:
-            self.data = BWBase._averager(ref, target, averaging_prd, coverage_threshold, ref_dir, target_dir)
+            self.data = CorrelBase._averager(ref, target, averaging_prd, coverage_threshold, ref_dir, target_dir)
         else:
             self.data = pd.concat([ref, target, ref_dir, target_dir], axis=1, join='inner')
         if ref_dir is None and target_dir is None:
@@ -121,7 +121,7 @@ class BWBase:
         return 0
 
 
-class orthogonal_least_squares(BWBase):
+class OrthogonalLeastSquares(CorrelBase):
     """Accepts two dataframes with timestamps as indexes and averaging period.
     :param ref_speed : Dataframe containing reference speed as a column, timestamp as the index.
     :param target_speed: Dataframe containing target speed as a column, timestamp as the index.
@@ -134,14 +134,12 @@ class orthogonal_least_squares(BWBase):
         Set period to 1AS fo annual average
     :return An object representing orthogonals least squares fit model
     """
-    @staticmethod
+    # @staticmethod
     def linear_func(p, x):
         return p[0] * x + p[1]
 
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, func=Model(orthogonal_least_squares.
-                                                                                  linear_func),preprocess=True):
-        BWBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
-        self.function = func
+    def __init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=True):
+        CorrelBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
         self.params = 'not run yet'
 
     def __repr__(self):
@@ -151,18 +149,18 @@ class orthogonal_least_squares(BWBase):
         fit_data = RealData(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten())
         p, res = lstsq(np.nan_to_num(fit_data.x[:, np.newaxis] ** [1, 0]), np.nan_to_num(np.asarray(fit_data.y)
                                                                                                  [:, np.newaxis]))[0:2]
-        self._model = ODR(fit_data, self.function, beta0=[p[0][0], p[1][0]])
+        self._model = ODR(fit_data, Model(OrthogonalLeastSquares.linear_func), beta0=[p[0][0], p[1][0]])
         self.out = self._model.run()
         self.params = {'slope':self.out.beta[0], 'offset':self.out.beta[1]}
         print("Model output:", self.out.pprint())
 
     def _predict(self, x):
         def linear_func_inverted(x, p):
-            return self.linear_func(p, x)
+            return OrthogonalLeastSquares.linear_func(p, x)
         return x.transform(linear_func_inverted, p=[self.params['slope'],self.params['offset']])
 
 
-class oridnary_least_squares(BWBase):
+class OridnaryLeastSquares(CorrelBase):
     """Accepts two dataframes with timestamps as indexes and averaging period.
     :param ref_speed : Dataframe containing reference speed as a column, timestamp as the index.
     :param target_speed: Dataframe containing target speed as a column, timestamp as the index.
@@ -180,7 +178,7 @@ class oridnary_least_squares(BWBase):
         return p[0] * x + p[1]
 
     def __init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=True):
-        BWBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+        CorrelBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
         self.params = 'not run yet'
 
     def __repr(self):
@@ -195,6 +193,32 @@ class oridnary_least_squares(BWBase):
         def linear_function(x, slope, offset):
             return x*slope + offset
         return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
+
+
+class BulkSpeedRatio(CorrelBase):
+    def __init__(self, ref, ref_dir, target, target_dir, averaging_prd, coverage_threshold, sectors=12,
+                                        cutoff=None, direction_bin_array=None, lt_ref_speed=None, preprocess=True):
+        CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, ref_dir=ref_dir, target_dir=target_dir,
+                            preprocess=preprocess)
+        self.params = 'not run yet'
+        self.sectors = sectors
+        self.cutoff = cutoff
+        self.direction_bin_array = direction_bin_array
+        self._filter()      #Filter low wind speeds
+        self.ref_dir_bins = get_binned_direction_series(self.data['ref_dir'], sectors, direction_bin_array=
+                                                                        self.direction_bin_array).rename('ref_dir_bin')
+        self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
+        self.data = self.data.dropna()
+        self.run()
+
+    def _filter(self):
+        if self.cutoff is not None:
+            self.data = self.data[(self.data['ref_spd'] >= self.cutoff) & (self.data['target_spd'] >= self.cutoff)]
+
+    def run(self):
+        self.params = dict()
+        for sector, group in self.data.groupby(['ref_dir_bin']):
+            self.params['Sector '+str(sector)+" slope"] = group['target_spd'].mean()/group['ref_spd'].mean()
 
 
 class speedsort_nondirectional:
@@ -412,60 +436,6 @@ class SpeedSort:
         if data is None:
             data = self.ref
         return self._predict(data)
-
-
-class bulkspeedratio:
-    def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold, sectors=12,
-                 cutoff=None, direction_bin_array=None, lt_ref_speed=None):
-        self.ref_spd = ref_spd
-        self.target_spd = target_spd
-        self.ref_dir = ref_dir
-        self.target_dir = target_dir
-        self.averaging_prd = averaging_prd
-        self.sectors = sectors
-        self.cutoff = cutoff
-        self.direction_bin_array = direction_bin_array
-        self.coverage_threshold = coverage_threshold
-        self.params = dict()
-        # preprocess data
-        self._ref_spd_processed, self._target_spd_processed = _preprocess_data_for_correlations(self.ref_spd,
-                                                                                                self.target_spd,
-                                                                                                self.averaging_prd,
-                                                                                                self.coverage_threshold)
-        self._ref_dir_processed, self._target_dir_processed = _preprocess_dir_data_for_correlations(self.ref_spd,
-                                                                                                    self.ref_dir,
-                                                                                                    self.target_spd,
-                                                                                                    self.target_dir,
-                                                                                                    self.averaging_prd,
-                                                                                                    self.coverage_threshold)
-        # collect all the data in dataframe
-        self.data = pd.concat([self._ref_spd_processed, self._target_spd_processed, self._ref_dir_processed,
-                               self._target_dir_processed], axis=1, join='inner')
-        self.data.columns = ['ref_spd', 'target_spd', 'ref_dir', 'target_dir']
-        self._round_off_directions()
-        #Filter low wind speeds
-        self._filter()
-
-        self.ref_dir_bins = get_binned_direction_series(self.data['ref_dir'], sectors,
-                                                        direction_bin_array=self.direction_bin_array).rename(
-            'ref_dir_bin')
-
-        self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
-
-        self.data = self.data.dropna()
-        self.fit()
-
-    def _round_off_directions(self):
-        self.data.loc[:, 'ref_dir'] = round(self.data.loc[:, 'ref_dir'])
-        self.data.loc[:, 'target_dir'] = round(self.data.loc[:, 'target_dir'])
-
-    def _filter(self):
-        if self.cutoff is not None:
-            self.data = self.data[(self.data['ref_spd'] >= self.cutoff) & (self.data['target_spd'] >= self.cutoff)]
-
-    def fit(self):
-        for sector, group in self.data.groupby(['ref_dir_bin']):
-            self.params['slope sector'+str(sector)] =   group['target_spd'].mean()/group['ref_spd'].mean()
 
 
 def linear_regression(ref: pd.Series, target: pd.Series, averaging_prd: str, coverage_threshold: float, plot:bool=False):
