@@ -77,6 +77,7 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
 class CorrelBase:
     def __init__(self, ref, target, averaging_prd, coverage_threshold, ref_dir=None, target_dir=None, preprocess=True):
         self.ref = ref
+        self.ref_dir = ref_dir
         self.target = target
         self.averaging_prd = averaging_prd
         self.coverage_threshold = coverage_threshold
@@ -221,121 +222,51 @@ class BulkSpeedRatio(CorrelBase):
             self.params['Sector '+str(sector)+" slope"] = group['target_spd'].mean()/group['ref_spd'].mean()
 
 
-class speedsort_nondirectional:
+class SpeedSort(CorrelBase):
 
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, lt_ref_speed=None, pre_processing=True):
-        self.ref = ref
-        self.target = target
-        self.averaging_prd = averaging_prd
-        self.coverage_threshold = coverage_threshold
-        self.pre_processing = pre_processing
-        if lt_ref_speed is None:
-            self.lt_ref_speed = calc_lt_ref_speed(ref)
-        else:
-            self.lt_ref_speed = lt_ref_speed
-        self.cutoff = min(0.5*self.lt_ref_speed, 4.0)
-        self.fit()
+    class SectorSpeedModel:
 
-    def fit(self):
-        if self.pre_processing == True:
-            self._ref_processed, self._target_processed = _preprocess_data_for_correlations(self.ref, self.target,
-                                                                                        self.averaging_prd,
-                                                                                        self.coverage_threshold)
-        else:
-            self._ref_processed, self._target_processed = self.ref, self.target
-        x_data = sorted([wdspd for wdspd in self._ref_processed.values.flatten()])
-        y_data = sorted([wdspd for wdspd in self._target_processed.values.flatten()])
-        start_idx = 0
-        for idx, wdspd in enumerate(x_data):
-            if wdspd >= self.cutoff:
-                start_idx = idx
-                break
-        x_data = x_data[start_idx:]
-        y_data = y_data[start_idx:]
-        # print(y_data)
-        self.target_cutoff = y_data[0]
-        # print("start idx:", start_idx)
-        # print([i for i in y_data if i < self.target_cutoff])
+        def __init__(self, ref, target, lt_ref_speed=None):
+            self.sector_ref = ref
+            self.sector_target = target
+            self.cutoff = min(0.5 * lt_ref_speed, 4.0)
+            x_data = sorted([wdspd for wdspd in self.sector_ref.values.flatten()])
+            y_data = sorted([wdspd for wdspd in self.sector_target.values.flatten()])
+            start_idx = 0
+            for idx, wdspd in enumerate(x_data):
+                if wdspd >= self.cutoff:
+                    start_idx = idx
+                    break
+            x_data = x_data[start_idx:]
+            y_data = y_data[start_idx:]
+            self.target_cutoff = y_data[0]
+            self.data_pts = min(len(x_data), len(y_data))
+            # Line fit
+            mid_pnt = int(len(x_data) / 2)
+            xmean1 = np.mean(x_data[:mid_pnt])
+            xmean2 = np.mean(x_data[mid_pnt:])
+            ymean1 = np.mean(y_data[:mid_pnt])
+            ymean2 = np.mean(y_data[mid_pnt:])
+            self.params = dict()
+            self.params['slope'] = (ymean2 - ymean1) / (xmean2 - xmean1)
+            self.params['offset'] = ymean1 - (xmean1 * self.params['slope'])
+            print(self.params)
 
-        self.data_pts = min(len(x_data),len(y_data))
-        # orthogonal least squares
-        self._data = RealData(x_data[:self.data_pts], y_data[:self.data_pts])
-        print((np.asarray(x_data)[:, np.newaxis]**[1, 0]).shape, (np.asarray(y_data)[:,np.newaxis]).shape)
+        def sector_predict(self, x):
+            def linear_function(x, slope, offset):
+                return x * slope + offset
+            return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
 
-        p, res = lstsq(np.nan_to_num(np.asarray(x_data)[:, np.newaxis]**[1, 0]), np.nan_to_num(np.asarray(y_data)
-                                                                                               [:, np.newaxis]))[0:2]
-        print("Linear regression:", p[0], p[1])
-        """
-        self._model = ODR(self._data, Model(linear_func), beta0=[p[0][0], p[1][0]])
+        def plot_model(self, title):
+            _scatter_plot(sorted(self.sector_ref.values.flatten()), sorted(self.sector_target.values.flatten()),
+                          sorted(self.sector_predict(self.sector_ref).values.flatten()),title=title, size=(7,7))
 
-        self.out = self._model.run()
-        self.params = self.out.beta
-
-        print(self.out.pprint())
-        """
-        # Karen's line fit
-        mid_pnt = int(len(x_data)/2)
-        xmean1 = np.mean(x_data[:mid_pnt])
-        xmean2 = np.mean(x_data[mid_pnt:])
-        ymean1 = np.mean(y_data[:mid_pnt])
-        ymean2 = np.mean(y_data[mid_pnt:])
-        self.params = [0 , 0]
-        self.params[0] = (ymean2 - ymean1) /(xmean2 - xmean1)
-        self.params[1] = ymean1 - (xmean1 * self.params[0])
-        print("Karen's regression:", self.params)
-
-    def show_params(self):
-        print("Parameters:", self.params)
-
-    def _predict(self, x):
-        if isinstance(x, pd.Series):
-            x = x.to_frame()
-
-        def linear_func_inverted(x, p=self.params):
-            if x > self.cutoff:
-                return linear_func(p, x)
-            else:
-                return (self._data.y[0]/self._data.x[0])*x
-        return x.applymap(linear_func_inverted)
-
-    def plot_model(self):
-        #_scatter_plot(self._data.x, self._data.y, self._predict(self._data.x))
-        _scatter_plot(sorted(self._ref_processed.values.flatten()), sorted(self._target_processed.values.flatten()),
-                      sorted(self._predict(self._ref_processed).values.flatten()))
-
-    def synthesize(self, data=None):
-        if data is None:
-            data = self.ref
-        return self._predict(data)
-
-
-class SpeedSort:
     def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold, sectors=12,
-                 direction_bin_array=None, lt_ref_speed=None):
-        self.ref_spd = ref_spd
-        self.target_spd = target_spd
-        self.ref_dir = ref_dir
-        self.target_dir = target_dir
-        self.averaging_prd = averaging_prd
+                 direction_bin_array=None, lt_ref_speed=None, preprocess=True):
+        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
+                                                                        target_dir=target_dir, preprocess=preprocess)
         self.sectors = sectors
         self.direction_bin_array = direction_bin_array
-        self.coverage_threshold = coverage_threshold
-        self.params = dict()
-        #preprocess data
-        self._ref_spd_processed, self._target_spd_processed = _preprocess_data_for_correlations(self.ref_spd,
-                                                                                                self.target_spd,
-                                                                                                self.averaging_prd,
-                                                                                                self.coverage_threshold)
-        self._ref_dir_processed, self._target_dir_processed = _preprocess_dir_data_for_correlations(self.ref_spd,
-                                                                                                self.ref_dir,
-                                                                                                self.target_spd,
-                                                                                                self.target_dir,
-                                                                                                self.averaging_prd,
-                                                                                                self.coverage_threshold)
-        # collect all the data in dataframe
-        self.data = pd.concat([self._ref_spd_processed, self._target_spd_processed,self._ref_dir_processed,
-                          self._target_dir_processed],axis=1, join='inner')
-        self.data.columns = ['ref_spd', 'target_spd', 'ref_dir', 'target_dir']
         if lt_ref_speed is None:
             self.lt_ref_speed = calc_lt_ref_speed(self.data['ref_spd'])
         else:
@@ -347,17 +278,17 @@ class SpeedSort:
         self._get_overall_veer()
         # for low ref_speed and high target_speed recalculate direction sector
         self._adjust_low_reference_speed_dir()
-
-        #round-off diections for checking with Ciaran's tool
+        #round-off directions
         self._round_off_directions()
         # add direction sector
         self.ref_dir_bins = get_binned_direction_series(self.data['ref_dir'], sectors,
                                                     direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')
-
         self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
-
         self.data = self.data.dropna()
-        self.fit()
+        self.params = 'not run yet'
+
+    def __repr__(self):
+        return 'Speed Sort Model '+str(self.params)
 
     def _round_off_directions(self):
         self.data.loc[:, 'ref_dir'] = round(self.data.loc[:, 'ref_dir'])
@@ -401,41 +332,54 @@ class SpeedSort:
         return {'average_veer': self._get_veer(sector_data['ref_dir'], sector_data['target_dir']).mean(),
                 'num_pts_for_veer': len(sector_data['ref_dir'])}
 
-    def fit(self):
+    def run(self):
+        self.params = dict()
         self.params['Ref_cutoff_for_speed'] =self.cutoff
         self.params['Ref_veer_cutoff'] = self.ref_veer_cutoff
         self.params['Target_veer_cutoff'] = self.target_veer_cutoff
         self.params['Overall_average_veer'] = self.overall_veer
         print(self.params)
+        self.speed_model = dict()
         for sector, group in self.data.groupby(['ref_dir_bin']):
             print('Processing sector:', sector)
-            self.speed_model = speedsort_nondirectional(ref=group['ref_spd'], target=group['target_spd'],
-                                averaging_prd=self.averaging_prd, coverage_threshold=0.0,
-                                                        lt_ref_speed=self.lt_ref_speed, pre_processing=False)
-            self.params[sector] = {'slope':self.speed_model.params[0],'offset':self.speed_model.params[1],
-                                   'target_cutoff': self.speed_model.target_cutoff,
-                                   'num_pts_for_speed_fit': self.speed_model.data_pts,
+            self.speed_model[sector] = SpeedSort.SectorSpeedModel(ref=group['ref_spd'], target=group['target_spd'],
+                                                        lt_ref_speed=self.lt_ref_speed)
+            self.params[sector] = {'slope':self.speed_model[sector].params['slope'],
+                                   'offset':self.speed_model[sector].params['offset'],
+                                   'target_cutoff': self.speed_model[sector].target_cutoff,
+                                   'num_pts_for_speed_fit': self.speed_model[sector].data_pts,
                                    'num_total_pts': min(group.count())}
             self.params[sector].update(self._avg_veer(group))
-            if sector == 9 or sector == 10:
-                group.to_csv("sector{0}_speedsort_test.csv".format(sector))
 
-    def _predict(self, x, param):
-        if isinstance(x, pd.Series):
-            x = x.to_frame()
+    def get_result_table(self):
+        result = pd.DataFrame()
+        for key in self.params:
+            if not isinstance(key, str):
+                result = pd.concat([pd.DataFrame.from_records(self.params[key], index=[key]), result], axis=0)
+        result = result.sort_index()
+        return result
 
-        def linear_func_inverted(x, p=param):
-            if x > self.cutoff:
-                return linear_func(p, x)
-            else:
-                return (self._data.y[0] / self._data.x[0]) * x
+    def plot(self):
+        for model in self.speed_model:
+            self.speed_model[model].plot_model('Sector '+str(model))
 
-        return x.applymap(linear_func_inverted)
+    def _predict(self, x_spd, x_dir):
+        x = pd.concat([x_spd.rename('spd'), get_binned_direction_series(x_dir, self.sectors, direction_bin_array=
+                                                self.direction_bin_array).rename('ref_dir_bin')], axis=1, join='inner')
+        prediction = pd.DataFrame()
+        for sector, data in x.groupby(['ref_dir_bin']):
+            prediction.append(self.speed_model[sector].sector_predict(data['spd']))
+        return prediction.sort_index()
 
-    def synthesize(self, data=None):
-        if data is None:
-            data = self.ref
-        return self._predict(data)
+    def synthesize(self, input_spd=None, input_dir=None):
+        if input_spd is None and input_dir is None:
+            return pd.concat([self._predict(_average_data_by_period(self.ref.loc[:min(self.data.index)],
+                                        self.averaging_prd, drop_count=True),
+                                _average_data_by_period(self.ref_dir.loc[:min(self.data.index)],self.averaging_prd,
+                                                        drop_count=True)),self.data['target_spd']], axis=0)
+        else:
+            return self._predict(input_spd, input_dir)
+
 
 
 def linear_regression(ref: pd.Series, target: pd.Series, averaging_prd: str, coverage_threshold: float, plot:bool=False):

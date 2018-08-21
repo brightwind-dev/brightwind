@@ -29,14 +29,15 @@ def bw_colors(bw_color):
     return bw_color
 
 
-def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target"):
+def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", title="",size=(10,10)):
     fig2 = plt.figure(111)
     scat = fig2.add_subplot(111)
     scat.set_xlabel(x_label)
     scat.set_ylabel(y_label)
     scat.scatter(x, y, marker = '.', color='#9ACD32')
-    fig2.set_figwidth(10)
-    fig2.set_figheight(10)
+    fig2.set_figwidth(size[0])
+    fig2.set_figheight(size[1])
+    plt.title(title)
     if predicted_y is not None:
         plt.plot(x, predicted_y, 'k-')
     plt.show()
