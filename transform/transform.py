@@ -104,7 +104,7 @@ def _filter_by_coverage_threshold(data, data_averaged, coverage_threshold, filte
         return data_averaged
 
 
-def _average_data_by_period(data: pd.Series, period: str, drop_count=False) -> pd.DataFrame:
+def _average_data_by_period(data: pd.Series, period: str, aggregation_method='mean', drop_count=False) -> pd.DataFrame:
     """Averages the data by the time period specified by period.
     Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
     Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
@@ -121,13 +121,15 @@ def _average_data_by_period(data: pd.Series, period: str, drop_count=False) -> p
         period = period+'S'
     grouper_obj = data.resample(period, axis=0, closed='left', label='left',base=0,
                                 convention='start', kind='timestamp')
-    grouped_data = grouper_obj.mean()
+    if aggregation_method == 'mean':
+        grouped_data = grouper_obj.mean()
+    if aggregation_method == 'sum':
+        grouped_data = grouper_obj.mean()
     if not drop_count:
         num_data_points = grouper_obj.count()
         num_data_points.name = 'Count'
         grouped_data = pd.concat([grouped_data, num_data_points], axis=1)
     return grouped_data
-
 
 
 def get_coverage(data: pd.Series, period: str='1M'):

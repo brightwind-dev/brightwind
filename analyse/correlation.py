@@ -3,8 +3,8 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from typing import List, Dict
-from transform.transform import calc_lt_ref_speed, _get_overlapping_data, _average_data_by_period, \
-    _filter_by_coverage_threshold, _common_idxs
+from transform.transform import calc_lt_ref_speed, _get_overlapping_data, _average_data_by_period, _filter_by_coverage_threshold, _common_idxs
+
 from plot.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
@@ -18,6 +18,20 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target:pd.DataFrame, av
     ref_overlap, target_overlap = _get_overlapping_data(ref, target, averaging_prd)
     ref_overlap_avgd = _average_data_by_period(ref_overlap, averaging_prd)
     target_overlap_avgd = _average_data_by_period(target_overlap, averaging_prd)
+    ref_filtered_for_coverage = _filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)
+    target_filtered_for_coverage = _filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
+    common_idxs, data_pts = _common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)
+    return ref_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs], \
+                    target_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs]
+
+
+def _preprocess_power_data_for_correlations(ref: pd.DataFrame, target:pd.DataFrame, averaging_prd, coverage_threshold):
+    """A wrapper function that calls other functions necessary for pre-processing the data"""
+    ref = ref.sort_index().dropna()
+    target = target.sort_index().dropna()
+    ref_overlap, target_overlap = _get_overlapping_data(ref, target, averaging_prd)
+    ref_overlap_avgd = _average_data_by_period(ref_overlap, averaging_prd)
+    target_overlap_avgd = _average_data_by_period(target_overlap, averaging_prd, aggregation_method='sum')
     ref_filtered_for_coverage = _filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)
     target_filtered_for_coverage = _filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
     common_idxs, data_pts = _common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)
@@ -101,12 +115,15 @@ class CorrelBase:
                                                 , averaging_prd, coverage_threshold)), axis=1, join='inner')
         return data
 
+    def long_term_ref_speed(self):
+        return calc_lt_ref_speed(self.data['ref_spd'])
+
     def show_params(self):
         print(self.params)
 
-    def plot(self):
+    def plot(self, title=""):
         _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
-                   self._predict(self.data['ref_spd']).values.flatten())
+                   self._predict(self.data['ref_spd']).values.flatten(), title=title)
 
     def synthesize(self, input=None):
         if input is None:
@@ -161,7 +178,7 @@ class OrthogonalLeastSquares(CorrelBase):
         return x.transform(linear_func_inverted, p=[self.params['slope'],self.params['offset']])
 
 
-class OridnaryLeastSquares(CorrelBase):
+class OrdinaryLeastSquares(CorrelBase):
     """Accepts two dataframes with timestamps as indexes and averaging period.
     :param ref_speed : Dataframe containing reference speed as a column, timestamp as the index.
     :param target_speed: Dataframe containing target speed as a column, timestamp as the index.
@@ -178,7 +195,7 @@ class OridnaryLeastSquares(CorrelBase):
     def linear_func(p, x):
         return p[0] * x + p[1]
 
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=True):
+    def __init__(self, ref, target, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
         CorrelBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
         self.params = 'not run yet'
 
@@ -188,7 +205,8 @@ class OridnaryLeastSquares(CorrelBase):
     def run(self):
         p, res = lstsq(self.data['ref_spd'].values.flatten()[:, np.newaxis]**[1, 0],
                                              self.data['target_spd'].values.flatten())[0:2]
-        self.params = {'slope':p[0],'offset': p[1],'sum of residues': res}
+        r2 = 1.0 - (res / (self.num_data_pts * self.data['target_spd'].var()))
+        self.params = {'slope':p[0],'offset': p[1],'r2': r2}
 
     def _predict(self, x):
         def linear_function(x, slope, offset):
@@ -197,12 +215,11 @@ class OridnaryLeastSquares(CorrelBase):
 
 
 class BulkSpeedRatio(CorrelBase):
-    def __init__(self, ref, ref_dir, target, target_dir, averaging_prd, coverage_threshold, sectors=12,
+    def __init__(self, ref, target, averaging_prd, coverage_threshold, sectors=12,
                                         cutoff=None, direction_bin_array=None, lt_ref_speed=None, preprocess=True):
         CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, ref_dir=ref_dir, target_dir=target_dir,
                             preprocess=preprocess)
         self.params = 'not run yet'
-        self.sectors = sectors
         self.cutoff = cutoff
         self.direction_bin_array = direction_bin_array
         self._filter()      #Filter low wind speeds
@@ -222,10 +239,10 @@ class BulkSpeedRatio(CorrelBase):
             self.params['Sector '+str(sector)+" slope"] = group['target_spd'].mean()/group['ref_spd'].mean()
 
 
+
 class SpeedSort(CorrelBase):
 
     class SectorSpeedModel:
-
         def __init__(self, ref, target, lt_ref_speed=None):
             self.sector_ref = ref
             self.sector_target = target
@@ -379,7 +396,6 @@ class SpeedSort(CorrelBase):
                                                         drop_count=True)),self.data['target_spd']], axis=0)
         else:
             return self._predict(input_spd, input_dir)
-
 
 
 def linear_regression(ref: pd.Series, target: pd.Series, averaging_prd: str, coverage_threshold: float, plot:bool=False):
