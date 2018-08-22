@@ -132,6 +132,11 @@ class CorrelBase:
         else:
             return self._predict(input)
 
+    def get_r2(self):
+        """Returns the r2 score of the model"""
+        return 1.0 - (sum((self.data['target_spd'] - self._predict(self.data['ref_spd'])) ** 2) / (
+            sum((self.data['target_spd'] - self.data['target_spd'].mean()) ** 2)))
+
     def get_coverage(self):
         return 0
 
@@ -170,6 +175,7 @@ class OrthogonalLeastSquares(CorrelBase):
         self._model = ODR(fit_data, Model(OrthogonalLeastSquares.linear_func), beta0=[p[0][0], p[1][0]])
         self.out = self._model.run()
         self.params = {'slope':self.out.beta[0], 'offset':self.out.beta[1]}
+        self.params['r2'] = self.get_r2()
         print("Model output:", self.out.pprint())
 
     def _predict(self, x):
@@ -193,7 +199,7 @@ class OrdinaryLeastSquares(CorrelBase):
     """
     @staticmethod
     def linear_func(p, x):
-        return p[0] * x + p[1]
+        return (p[0] * x) + p[1]
 
     def __init__(self, ref, target, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
         CorrelBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
@@ -205,12 +211,14 @@ class OrdinaryLeastSquares(CorrelBase):
     def run(self):
         p, res = lstsq(self.data['ref_spd'].values.flatten()[:, np.newaxis]**[1, 0],
                                              self.data['target_spd'].values.flatten())[0:2]
-        r2 = 1.0 - (res / (self.num_data_pts * self.data['target_spd'].var()))
-        self.params = {'slope':p[0],'offset': p[1],'r2': r2}
+        # r2 = 1.0 - (res / (self.num_data_pts * self.data['target_spd'].var()))
+
+        self.params = {'slope':p[0],'offset': p[1]}
+        self.params['r2'] = self.get_r2()
 
     def _predict(self, x):
         def linear_function(x, slope, offset):
-            return x*slope + offset
+            return (x*slope) + offset
         return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
 
 

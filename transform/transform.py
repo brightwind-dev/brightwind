@@ -124,7 +124,7 @@ def _average_data_by_period(data: pd.Series, period: str, aggregation_method='me
     if aggregation_method == 'mean':
         grouped_data = grouper_obj.mean()
     if aggregation_method == 'sum':
-        grouped_data = grouper_obj.mean()
+        grouped_data = grouper_obj.sum()
     if not drop_count:
         num_data_points = grouper_obj.count()
         num_data_points.name = 'Count'
