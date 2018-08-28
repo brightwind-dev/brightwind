@@ -302,15 +302,11 @@ def import_merra2_from_brightwind_csv(filename: str) -> pd.DataFrame:
     return temp_df
 
 
-def monthly_means(df: pd.DataFrame, aggregated: bool=False) -> pd.DataFrame:
-    """ Return a dataframe with the calculated monthly means of each column for a dataframe with timestamp as the index.
-        If 'aggregated' is True then each record in a certain calendar month is averaged together (used for the
-        calculation of the mean of monthly means).
+def monthly_means(df: pd.DataFrame) -> pd.DataFrame:
     """
-    if aggregated is False:
-        df = df.resample("MS").mean()
-    elif aggregated is True:
-        df = df.groupby(df.index.month).mean()
+    Returns a dataframe with the calculated monthly means of each column for a dataframe with timestamp as the index.
+    """
+    df = df.groupby(df.index.month).mean()
     return df
 
 
@@ -318,9 +314,7 @@ def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
     """ Return series of mean of momthly means for each column in the dataframe with timestamp as the index.
         Calculate the monthly mean for each calendar month and then average the resulting 12 months.
     """
-    # monthly_df = df.groupby(df.index.month).mean()
-    # monthly_df = df.groupby(df.index.month).agg(['mean', 'count'])
-    monthly_df: pd.DataFrame = monthly_means(df, aggregated=True)
+    monthly_df: pd.DataFrame = monthly_means(df)
     momm_series: pd.Series = monthly_df.mean()
     momm_df: pd.DataFrame = pd.DataFrame([momm_series], columns=['MOMM'])
     return momm_df
