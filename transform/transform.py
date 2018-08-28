@@ -80,6 +80,7 @@ def calc_lt_ref_speed(data: pd.DataFrame, date_from: str='', date_to: str=''):
         date_from = dt.datetime.strptime(date_from[:10], "%Y-%m-%d")
         date_to = dt.datetime.strptime(date_to[:10], "%Y-%m-%d")
         data = data.loc[date_from:date_to, :]
+
     return mean_of_monthly_means(data).get_value(index=0, col='MOMM')
 
 

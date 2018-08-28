@@ -115,9 +115,6 @@ class CorrelBase:
                                                 , averaging_prd, coverage_threshold)), axis=1, join='inner')
         return data
 
-    def long_term_ref_speed(self):
-        return calc_lt_ref_speed(self.ref)
-
     def show_params(self):
         print(self.params)
 
@@ -125,12 +122,12 @@ class CorrelBase:
         _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
                    self._predict(self.data['ref_spd']).values.flatten(), title=title)
 
-    def synthesize(self, input=None):
+    def synthesize(self, ext_input=None):
         if input is None:
             return pd.concat([self._predict(_average_data_by_period(self.ref.loc[:min(self.data.index)],
                                         self.averaging_prd, drop_count=True)),self.data['target_spd']],axis=0)
         else:
-            return self._predict(input)
+            return self._predict(ext_input)
 
     def get_r2(self):
         """Returns the r2 score of the model"""
@@ -202,7 +199,7 @@ class OrdinaryLeastSquares(CorrelBase):
         return (p[0] * x) + p[1]
 
     def __init__(self, ref, target, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
-        CorrelBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+        CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
         self.params = 'not run yet'
 
     def __repr(self):
@@ -235,12 +232,12 @@ class BulkSpeedRatio(CorrelBase):
 
     def run(self):
         self.params = dict()
-        self.params[" slope"] = self.data['target_spd'].mean()/self.data['ref_spd'].mean()
+        self.params["slope"] = self.data['target_spd'].mean()/self.data['ref_spd'].mean()
 
     def _predict(self, x):
-        def linear_function(x, slope, offset):
-            return (x*slope) + offset
-        return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
+        def linear_function(x, slope):
+            return (x*slope)
+        return x.transform(linear_function, slope=self.params['slope'])
 
 
 class SpeedSort(CorrelBase):
