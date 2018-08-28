@@ -21,8 +21,8 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target:pd.DataFrame, av
     ref_filtered_for_coverage = _filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)
     target_filtered_for_coverage = _filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
     common_idxs, data_pts = _common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)
-    return ref_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs], \
-                    target_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs]
+    return ref_filtered_for_coverage.drop(['Count', 'Coverage'], axis=1).loc[common_idxs], \
+                    target_filtered_for_coverage.drop(['Count', 'Coverage'], axis=1).loc[common_idxs]
 
 
 def _preprocess_power_data_for_correlations(ref: pd.DataFrame, target:pd.DataFrame, averaging_prd, coverage_threshold):
@@ -116,7 +116,7 @@ class CorrelBase:
         return data
 
     def long_term_ref_speed(self):
-        return calc_lt_ref_speed(self.data['ref_spd'])
+        return calc_lt_ref_speed(self.ref)
 
     def show_params(self):
         print(self.params)
@@ -211,7 +211,7 @@ class OrdinaryLeastSquares(CorrelBase):
     def run(self):
         p, res = lstsq(self.data['ref_spd'].values.flatten()[:, np.newaxis]**[1, 0],
                                              self.data['target_spd'].values.flatten())[0:2]
-        # r2 = 1.0 - (res / (self.num_data_pts * self.data['target_spd'].var()))
+
 
         self.params = {'slope':p[0],'offset': p[1]}
         self.params['r2'] = self.get_r2()
