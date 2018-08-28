@@ -8,6 +8,7 @@ import pandas as pd
 from urllib.request import urlopen
 import json
 from typing import List, Dict
+from transform.transform import _average_data_by_period
 #import netCDF4
 import numpy as np
 import math
@@ -302,19 +303,11 @@ def import_merra2_from_brightwind_csv(filename: str) -> pd.DataFrame:
     return temp_df
 
 
-def monthly_means(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Returns a dataframe with the calculated monthly means of each column for a dataframe with timestamp as the index.
-    """
-    df = df.groupby(df.index.month).mean()
-    return df
-
-
 def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
     """ Return series of mean of momthly means for each column in the dataframe with timestamp as the index.
         Calculate the monthly mean for each calendar month and then average the resulting 12 months.
     """
-    monthly_df: pd.DataFrame = monthly_means(df)
+    monthly_df: pd.DataFrame = df.groupby(df.index.month).mean()
     momm_series: pd.Series = monthly_df.mean()
     momm_df: pd.DataFrame = pd.DataFrame([momm_series], columns=['MOMM'])
     return momm_df
@@ -348,8 +341,7 @@ def merra2_monthly_means_index_momm_to_csv(nodes: List[Dict[str, str]], date_fro
             merra2_merged_df = pd.merge(merra2_merged_df, df, left_index=True, right_index=True)
 
     # calculate monthly means
-    monthly_mean_df: pd.DataFrame = monthly_means(merra2_merged_df)
-
+    monthly_mean_df: pd.DataFrame = _average_data_by_period(merra2_merged_df, period='1M', drop_count=False)
     # create an index of the datasets
     monthly_mean_df = add_index(monthly_mean_df)
     print('Monthly means:')
