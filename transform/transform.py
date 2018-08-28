@@ -2,6 +2,7 @@ from analyse.reanalysis import mean_of_monthly_means
 import numpy as np
 import pandas as pd
 
+
 def _convert_days_to_hours(prd):
     return str(int(prd[:-1])*24)+'H'
 
@@ -73,12 +74,12 @@ def calc_lt_ref_speed(data: pd.DataFrame, date_from: str='', date_to: str=''):
     import datetime
     if (isinstance(date_from, datetime.date) or isinstance(date_from, datetime.datetime))\
         and (isinstance(date_to,datetime.date) or isinstance(date_to, datetime.datetime)):
-        data = data[date_from:date_to]
+        data = data.loc[date_from:date_to, :]
     elif date_from and date_to:
         import datetime as dt
         date_from = dt.datetime.strptime(date_from[:10], "%Y-%m-%d")
         date_to = dt.datetime.strptime(date_to[:10], "%Y-%m-%d")
-        data = data[date_from:date_to]
+        data = data.loc[date_from:date_to, :]
     return mean_of_monthly_means(data).get_value(index=0, col='MOMM')
 
 
