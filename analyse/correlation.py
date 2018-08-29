@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from typing import List, Dict
 from transform.transform import calc_lt_ref_speed, _get_overlapping_data, _average_data_by_period, _filter_by_coverage_threshold, _common_idxs
-
+from utils.utils import _range_0_to_360
 from plot.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
@@ -42,15 +42,6 @@ def _preprocess_power_data_for_correlations(ref: pd.DataFrame, target:pd.DataFra
 def _compute_wind_vector(wspd, wdir):
     """Returns north and east component of wind-vector"""
     return wspd*np.cos(wdir), wspd*np.sin(wdir)
-
-
-def _range_0_to_360(dir):
-    if dir < 0:
-        return dir+360
-    elif dir > 360:
-        return dir % 360
-    else:
-        return dir
 
 
 def degree_to_radian(degree):

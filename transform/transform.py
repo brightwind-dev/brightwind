@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-
+from utils.utils import _range_0_to_360
 
 def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
     """ Return series of mean of momthly means for each column in the dataframe with timestamp as the index.
@@ -153,6 +153,19 @@ def scale_wind_speed(spd: pd.Series, scale_factor: float) ->pd.Series:
     :param spd: Series or data frame or a single value of wind speed to scale
     :param scale_factor: Scaling factor in decimal, if scaling factor is 0.8 output would be (1+0.8) times wind speed,
     if it is -0.8 the output would be (1-0.8) times the wind speed
-    :return: Series or dataframe with scaled wind speeds
+    :return: Series or data frame with scaled wind speeds
     """
     return spd*(1+scale_factor)
+
+
+def offset_wind_direction(dir: pd.Series, offset: float) -> pd.Series:
+    """
+    Add/ subtract offset from wind direction. Keeps the ranges between 0 to 360
+    :param dir: Series or data frame or a single direction to offset
+    :param offset: Offset in degrees can be negative or positive
+    :return: Series or data frame with offsetted directions
+    """
+    if isinstance(dir, float):
+        return _range_0_to_360(dir + offset)
+    else:
+        return (dir + offset).apply(_range_0_to_360)
