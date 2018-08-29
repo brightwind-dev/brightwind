@@ -233,13 +233,21 @@ def get_merra2_dataframe(lat: str, long: str, from_date: str, to_date: str) -> r
     data = reanalysis(lat,long, data_df, "MERRA2")
     return data
 
-def get_merra2_4nearest_dataframe(lat: str, long: str, from_date: str, to_date: str ):
+
+def calc_distance(lat1, long1, lat2, long2):
+    lat1, long1, lat2, long2 = float(lat1), float(long1), float(lat2), float(long2)
+    return math.sqrt((lat2 - lat1)**2 + (long2 - long1)**2)
+
+
+def get_merra2_nearest_nodes(lat: str, long: str, from_date: str, to_date: str, nearest_4: bool=True) ->\
+        List[reanalysis]:
     """Returns a list of 4 reanalysis objects for 4 locations nearest to the one passed in parameters. A date range
     can also be used to get within a specified period.
     :param: lat: Latitude of the site
     :param: long: Longitude of the site
     :param: from_data: Start date for he dataset in format YYYY-MM-DD
     :param: to_date: End date for data in the format YYYY-MM-DD
+    :param
     :returns: A list of reanalysis objects"""
     import pymysql.cursors
 
@@ -288,12 +296,23 @@ def get_merra2_4nearest_dataframe(lat: str, long: str, from_date: str, to_date: 
             query_output = cursor.fetchall()
     finally:
         connection.close()
-
-    for location in query_output:
-        location_lat = str(location[-2])
-        location_long = str(location[-1])
-        reanalysis_objs.append(get_merra2_dataframe(location_lat,location_long, from_date, to_date))
-    return(reanalysis_objs)
+    if nearest_4:
+        for location in query_output:
+            location_lat = str(location[-2])
+            location_long = str(location[-1])
+            reanalysis_objs.append(get_merra2_dataframe(location_lat,location_long, from_date, to_date))
+    else:
+        nearest_dist = 1e8
+        for location in query_output:
+            location_lat = str(location[-2])
+            location_long = str(location[-1])
+            distance = calc_distance(location_lat, location_long, lat, long)
+            if distance < nearest_dist:
+                nearest_dist = distance
+                nearest_lat = location_lat
+                nearest_long = location_long
+        reanalysis_objs.append(get_merra2_dataframe(nearest_lat, nearest_long, from_date, to_date))
+    return reanalysis_objs
 
 
 def import_merra2_from_brightwind_csv(filename: str) -> pd.DataFrame:
@@ -301,16 +320,6 @@ def import_merra2_from_brightwind_csv(filename: str) -> pd.DataFrame:
     """
     temp_df: pd.DataFrame = pd.read_csv(filename, header=0, index_col=0, parse_dates=True)
     return temp_df
-
-
-def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
-    """ Return series of mean of momthly means for each column in the dataframe with timestamp as the index.
-        Calculate the monthly mean for each calendar month and then average the resulting 12 months.
-    """
-    monthly_df: pd.DataFrame = df.groupby(df.index.month).mean()
-    momm_series: pd.Series = monthly_df.mean()
-    momm_df: pd.DataFrame = pd.DataFrame([momm_series], columns=['MOMM'])
-    return momm_df
 
 
 def add_index(df: pd.DataFrame) -> pd.DataFrame:

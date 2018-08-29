@@ -1,6 +1,15 @@
-from analyse.reanalysis import mean_of_monthly_means
 import numpy as np
 import pandas as pd
+
+
+def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
+    """ Return series of mean of momthly means for each column in the dataframe with timestamp as the index.
+        Calculate the monthly mean for each calendar month and then average the resulting 12 months.
+    """
+    monthly_df: pd.DataFrame = df.groupby(df.index.month).mean()
+    momm_series: pd.Series = monthly_df.mean()
+    momm_df: pd.DataFrame = pd.DataFrame([momm_series], columns=['MOMM'])
+    return momm_df
 
 
 def _convert_days_to_hours(prd):
