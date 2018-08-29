@@ -145,3 +145,14 @@ def _average_data_by_period(data: pd.Series, period: str, aggregation_method='me
 def get_coverage(data: pd.Series, period: str='1M'):
     return _filter_by_coverage_threshold(data, _average_data_by_period(data, period),
                                   coverage_threshold=0, filter=False)
+
+
+def scale_wind_speed(spd: pd.Series, scale_factor: float) ->pd.Series:
+    """
+    Scales wind speed by the scale_factor
+    :param spd: Series or data frame of wind speed to scale
+    :param scale_factor: Scaling factor in decimal, if scaling factor is 0.8 output would be (1+0.8) times wind speed,
+    if it is -0.8 the output would be (1-0.8) times the wind speed
+    :return: Series or dataframe with scaled wind speeds
+    """
+    return spd*(1+scale_factor)
