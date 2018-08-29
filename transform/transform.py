@@ -150,7 +150,7 @@ def get_coverage(data: pd.Series, period: str='1M'):
 def scale_wind_speed(spd: pd.Series, scale_factor: float) ->pd.Series:
     """
     Scales wind speed by the scale_factor
-    :param spd: Series or data frame of wind speed to scale
+    :param spd: Series or data frame or a single value of wind speed to scale
     :param scale_factor: Scaling factor in decimal, if scaling factor is 0.8 output would be (1+0.8) times wind speed,
     if it is -0.8 the output would be (1-0.8) times the wind speed
     :return: Series or dataframe with scaled wind speeds
