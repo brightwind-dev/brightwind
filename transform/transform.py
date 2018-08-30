@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from utils.utils import _range_0_to_360
 
+
 def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
     """ Return series of mean of momthly means for each column in the dataframe with timestamp as the index.
         Calculate the monthly mean for each calendar month and then average the resulting 12 months.
