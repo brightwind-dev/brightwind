@@ -288,6 +288,7 @@ def get_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sectors
     grouped1 = grouped['Turbulence_Intensity'].mean()
     grouped2 = grouped['Turbulence_Intensity'].count()
 
+
     result = pd.DataFrame({'Turbulence_Intensity_Avg': grouped1, 'Turbulence_Intensity_Count': grouped2})
     result = result.reset_index()
 
@@ -302,7 +303,6 @@ def get_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sectors
     #function in access. Mod is used to convert values that are above 360 degrees, back to nomrmal degrees.
     #In practice, high unlikely any direction values will exceed 360 degrees. When this was removed, results matched exactly.
     return result
-
 
 
 def get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name):
@@ -323,6 +323,7 @@ def map_speed_bin(wdspd, bins):
     kwargs = {}
     if wdspd == max(bins):
         kwargs['right'] = True
+
     bin = bins[np.digitize([wdspd], bins, **kwargs)[0]]
     bin_lower = bins[np.digitize([wdspd], bins, **kwargs)[0]-1]
     return np.digitize([wdspd], bins, **kwargs)[0]-1.0
