@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from utils.utils import _range_0_to_360
+from utils import utils
 
 
 def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
@@ -167,6 +167,6 @@ def offset_wind_direction(dir: pd.Series, offset: float) -> pd.Series:
     :return: Series or data frame with offsetted directions
     """
     if isinstance(dir, float):
-        return _range_0_to_360(dir + offset)
+        return utils._range_0_to_360(dir + offset)
     else:
         return (dir + offset).apply(_range_0_to_360)

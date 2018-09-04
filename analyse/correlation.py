@@ -3,9 +3,8 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from typing import List, Dict
-from transform.transform import calc_lt_ref_speed, _get_overlapping_data, _average_data_by_period, \
-    _filter_by_coverage_threshold, _common_idxs
-from utils.utils import _range_0_to_360
+from transform import transform as tf
+from .utils import utils
 from plot.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
@@ -16,12 +15,12 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target:pd.DataFrame, av
     """A wrapper function that calls other functions necessary for pre-processing the data"""
     ref = ref.sort_index().dropna()
     target = target.sort_index().dropna()
-    ref_overlap, target_overlap = _get_overlapping_data(ref, target, averaging_prd)
-    ref_overlap_avgd = _average_data_by_period(ref_overlap, averaging_prd)
-    target_overlap_avgd = _average_data_by_period(target_overlap, averaging_prd)
-    ref_filtered_for_coverage = _filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)
-    target_filtered_for_coverage = _filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
-    common_idxs, data_pts = _common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)
+    ref_overlap, target_overlap = tf._get_overlapping_data(ref, target, averaging_prd)
+    ref_overlap_avgd = tf._average_data_by_period(ref_overlap, averaging_prd)
+    target_overlap_avgd = tf._average_data_by_period(target_overlap, averaging_prd)
+    ref_filtered_for_coverage = tf._filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)
+    target_filtered_for_coverage = tf._filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
+    common_idxs, data_pts = tf._common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)
     return ref_filtered_for_coverage.drop(['Count', 'Coverage'], axis=1).loc[common_idxs], \
                     target_filtered_for_coverage.drop(['Count', 'Coverage'], axis=1).loc[common_idxs]
 
@@ -30,12 +29,12 @@ def _preprocess_power_data_for_correlations(ref: pd.DataFrame, target:pd.DataFra
     """A wrapper function that calls other functions necessary for pre-processing the data"""
     ref = ref.sort_index().dropna()
     target = target.sort_index().dropna()
-    ref_overlap, target_overlap = _get_overlapping_data(ref, target, averaging_prd)
-    ref_overlap_avgd = _average_data_by_period(ref_overlap, averaging_prd)
-    target_overlap_avgd = _average_data_by_period(target_overlap, averaging_prd, aggregation_method='sum')
-    ref_filtered_for_coverage = _filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)
-    target_filtered_for_coverage = _filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
-    common_idxs, data_pts = _common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)
+    ref_overlap, target_overlap = tf._get_overlapping_data(ref, target, averaging_prd)
+    ref_overlap_avgd = tf._average_data_by_period(ref_overlap, averaging_prd)
+    target_overlap_avgd = tf._average_data_by_period(target_overlap, averaging_prd, aggregation_method='sum')
+    ref_filtered_for_coverage = tf._filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)
+    target_filtered_for_coverage = tf._filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
+    common_idxs, data_pts = tf._common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)
     return ref_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs], \
                     target_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs]
 
@@ -57,10 +56,10 @@ def _dir_averager(spd_overlap, dir, averaging_prd, coverage_threshold):
     vec = pd.concat([spd_overlap, dir.apply(degree_to_radian)], axis=1, join='inner')
     vec.columns = ['spd', 'dir']
     vec['N'], vec['E'] = _compute_wind_vector(vec['spd'], vec['dir'])
-    vec_N_avgd = _average_data_by_period(vec['N'], averaging_prd)
-    vec_E_avgd = _average_data_by_period(vec['E'], averaging_prd)
+    vec_N_avgd = tf._average_data_by_period(vec['N'], averaging_prd)
+    vec_E_avgd = tf._average_data_by_period(vec['E'], averaging_prd)
     vec_dir_avgd = np.arctan2(vec_E_avgd.loc[:,vec_E_avgd.columns != 'Count'], vec_N_avgd.loc[:,vec_N_avgd.columns !=
-                                                    'Count']).applymap(radian_to_degree).applymap(_range_0_to_360)
+                                                    'Count']).applymap(radian_to_degree).applymap(utils._range_0_to_360)
     vec_dir_avgd.loc[:] = round(vec_dir_avgd.loc[:])
     vec_dir_avgd = pd.concat([vec_dir_avgd,vec_E_avgd['Count']], axis=1, join='inner')
     return vec_dir_avgd
@@ -70,12 +69,12 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
                                           target_dir: pd.DataFrame, averaging_prd, coverage_threshold):
     ref_spd = ref_spd.sort_index().dropna()
     target_spd = target_spd.sort_index().dropna()
-    ref_overlap, target_overlap = _get_overlapping_data(ref_spd, target_spd, averaging_prd)
+    ref_overlap, target_overlap = tf._get_overlapping_data(ref_spd, target_spd, averaging_prd)
     ref_dir_avgd = _dir_averager(ref_overlap, ref_dir, averaging_prd, coverage_threshold)
     target_dir_avgd = _dir_averager(target_overlap, target_dir, averaging_prd, coverage_threshold)
-    ref_dir_filtered_for_coverage = _filter_by_coverage_threshold(ref_dir, ref_dir_avgd, coverage_threshold)
-    target_dir_filtered_for_coverage = _filter_by_coverage_threshold(target_dir, target_dir_avgd, coverage_threshold)
-    common_idxs, data_pts = _common_idxs(ref_dir_filtered_for_coverage, target_dir_filtered_for_coverage)
+    ref_dir_filtered_for_coverage = tf._filter_by_coverage_threshold(ref_dir, ref_dir_avgd, coverage_threshold)
+    target_dir_filtered_for_coverage = tf._filter_by_coverage_threshold(target_dir, target_dir_avgd, coverage_threshold)
+    common_idxs, data_pts = tf._common_idxs(ref_dir_filtered_for_coverage, target_dir_filtered_for_coverage)
     return ref_dir_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs], \
                     target_dir_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs]
 
@@ -116,7 +115,7 @@ class CorrelBase:
 
     def synthesize(self, ext_input=None):
         if input is None:
-            return pd.concat([self._predict(_average_data_by_period(self.ref.loc[:min(self.data.index)],
+            return pd.concat([self._predict(tf._average_data_by_period(self.ref.loc[:min(self.data.index)],
                                         self.averaging_prd, drop_count=True)),self.data['target_spd']],axis=0)
         else:
             return self._predict(ext_input)
@@ -277,7 +276,7 @@ class SpeedSort(CorrelBase):
         self.sectors = sectors
         self.direction_bin_array = direction_bin_array
         if lt_ref_speed is None:
-            self.lt_ref_speed = calc_lt_ref_speed(self.data['ref_spd'])
+            self.lt_ref_speed = tf.calc_lt_ref_speed(self.data['ref_spd'])
         else:
             self.lt_ref_speed = lt_ref_speed
         self.cutoff = min(0.5 * self.lt_ref_speed, 4.0)
@@ -317,7 +316,7 @@ class SpeedSort(CorrelBase):
     def _adjust_low_reference_speed_dir(self):
         idxs = self.data[(self.data['ref_spd'] < 2) & (self.data['target_spd'] > (self.data['ref_spd']+4))].index
 
-        self.data.loc[idxs, 'ref_dir'] = (self.data.loc[idxs, 'target_dir'] - self.overall_veer).apply(_range_0_to_360)
+        self.data.loc[idxs, 'ref_dir'] = (self.data.loc[idxs, 'target_dir'] - self.overall_veer).apply(utils._range_0_to_360)
 
     @staticmethod
     def _get_veer_cutoff(speed_col):
@@ -382,9 +381,9 @@ class SpeedSort(CorrelBase):
 
     def synthesize(self, input_spd=None, input_dir=None):
         if input_spd is None and input_dir is None:
-            return pd.concat([self._predict(_average_data_by_period(self.ref.loc[:min(self.data.index)],
+            return pd.concat([self._predict(tf._average_data_by_period(self.ref.loc[:min(self.data.index)],
                                         self.averaging_prd, drop_count=True),
-                                _average_data_by_period(self.ref_dir.loc[:min(self.data.index)],self.averaging_prd,
+                                tf._average_data_by_period(self.ref_dir.loc[:min(self.data.index)],self.averaging_prd,
                                                         drop_count=True)),self.data['target_spd']], axis=0)
         else:
             return self._predict(input_spd, input_dir)

@@ -282,7 +282,7 @@ def get_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sectors
     #We have implemented sector division here.
 
     direction_bins = np.arange(0, 360 + (360 / sectors), 360 / sectors)
-    data = pd.concat([data, data.loc[:, direction_col_name].apply(map_direction_bin,bins=direction_bins).rename('Direction Bin')], axis=1)
+    data = pd.concat([data, data.loc[:, direction_col_name].apply(map_direction_bin, sectors=sectors, bins=direction_bins).rename('Direction Bin')], axis=1)
 
     grouped = data.groupby(['Direction Bin'])
     grouped1 = grouped['Turbulence_Intensity'].mean()

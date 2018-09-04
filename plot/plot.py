@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import calendar
-from analyse.frequency_analysis import *
+import numpy as np
+import pandas as pd
+from analyse import frequency_analysis as freq_an
 
 plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\brightwind\plot\bw.mplstyle')
 
@@ -75,8 +77,8 @@ def plot_wind_rose(data, freq_table=False, direction_col_name=0, sectors=12):
     """
     if not freq_table:
         data = data.dropna(subset=[direction_col_name])
-        data.loc[:, 'direction_bin'] = data[direction_col_name].apply(map_direction_bin,
-                                                                      bins=get_direction_bin_array(sectors))
+        data.loc[:, 'direction_bin'] = data[direction_col_name].apply(freq_an.map_direction_bin,
+                                                                      bins=freq_an.get_direction_bin_array(sectors))
         result = data['direction_bin'].value_counts() / len(data['direction_bin']) * 100.0
         result.loc[1] += result.loc[sectors+1]
         result = result.drop(sectors+1, axis=0).sort_index()
@@ -116,7 +118,7 @@ def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b
     ax.set_thetagrids(np.arange(0,360,360.0/sectors), zorder=2)
     ax.set_rgrids(np.linspace(0, max(table.sum(axis=0))+2.0,10),labels=[ '%.0f' % round(i)+'%' for i in
                                                     np.linspace(0, max(table.sum(axis=0))+2.0, 10)], angle=0, zorder=2)
-    direction_bins = get_direction_bin_array(sectors)[1:-2]
+    direction_bins = freq_an.get_direction_bin_array(sectors)[1:-2]
     direction_bins = np.insert(direction_bins,0,direction_bins[-2])
     ax.set_ylim(0, max(table.sum(axis=0))+3.0)
     angular_width = 2*np.pi/sectors - (np.pi/180)  # Leaving 1 degree gap
@@ -161,7 +163,7 @@ def plot_TI_by_Speed(data,speed_col_name,std_col_name):
         IEC_Class_2005.iloc[n, 3] = 0.12 * (0.75 + (5.6 / n))
 
     # Get Average Turbulence Intensity and Representative Turbulence Intensity for the plot
-    TI = get_TI_by_Speed(data, speed_col_name, std_col_name)
+    TI = freq_an.get_TI_by_Speed(data, speed_col_name, std_col_name)
     data['Turbulence_Intensity'] = data[std_col_name] / data[speed_col_name]
 
     #Plot Figure
@@ -185,7 +187,7 @@ def plot_TI_by_Speed(data,speed_col_name,std_col_name):
 def plot_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sectors,min_speed):
 
     # First we need to calculate the Turbulence Intensity by sector by calling the sector function.
-    TI = get_TI_by_sector(data, speed_col_name, std_col_name, direction_col_name, sectors, min_speed)
+    TI = freq_an.get_TI_by_sector(data, speed_col_name, std_col_name, direction_col_name, sectors, min_speed)
 
     # Next we convert the Median bin degree to radians for plotting
     TI['Polar degrees'] = np.radians(TI.index * (360 / sectors))
@@ -226,7 +228,7 @@ def plot_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sector
 
 def plot_monthly_means(data,time_col_name):
     # Get table of monthly means from data passed
-    data = get_monthly_means(data, time_col_name)
+    data = freq_an.get_monthly_means(data, time_col_name)
 
     # Make Timestamp its own column and not an index
     data = data.reset_index()
@@ -243,7 +245,7 @@ def plot_monthly_means(data,time_col_name):
 
 def plot_12x24_TI_Contours(data,time_col_name,speed_col_name,std_col_name):
     # Get Contour Plot of 12 month x 24 hour matrix of turbulence intensity
-    result = get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name)
+    result = freq_an.get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name)
     plt.figure(figsize=(15, 7.5))
     x = plt.contourf(result, cmap="Greens")
     cbar = plt.colorbar(x)
