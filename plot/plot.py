@@ -184,7 +184,7 @@ def plot_TI_by_Speed(data,speed_col_name,std_col_name):
     plt.show()
 
 
-def plot_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sectors,min_speed):
+def plot_TI_by_sector(data, speed_col_name,std_col_name,direction_col_name,sectors,min_speed):
 
     # First we need to calculate the Turbulence Intensity by sector by calling the sector function.
     TI = freq_an.get_TI_by_sector(data, speed_col_name, std_col_name, direction_col_name, sectors, min_speed)
@@ -257,3 +257,75 @@ def plot_12x24_TI_Contours(data,time_col_name,speed_col_name,std_col_name):
     plt.title('Hourly Mean Turbulence Intensity by Calendar Month')
     plt.show()
 
+
+def plot_sector_ratio(data, speed_col_name_1, speed_col_name_2, direction_col_name, boom_dir_1=0, boom_dir_2=0,
+                      booms=False):
+    """Accepts a dataframe table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
+    by sector. Optionally can include anemometer boom directions also.
+    :param data: dataframe of windspeed and direction data
+    :param speed_col_name_1: Anemometer 1 column name in dataframe. This is divisor series.
+    :param speed_col_name_2: Anemometer 2 column name in dataframe.
+    :param direction_col_name: Wind Vane column name in dataframe.
+    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to 0.
+    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to 0.
+    :param booms: Boolean function. True if you want booms displayed on chart, False if not. Default False.
+    :returns A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
+    """
+
+    # Get Speed Ratio table
+    SectorRatio = freq_an.get_sector_ratio(data, speed_col_name_1, speed_col_name_2, direction_col_name)
+
+    # Convert Speed Ratio table bins into polar coordinates
+    SectorRatio['Polar degrees'] = np.radians(SectorRatio.index * (360 / 72))
+
+    # Copy first line to last line so polar plot completes full circle.
+    SectorRatio.loc[-1] = SectorRatio.loc[0, :]
+
+    # Setup polar plot
+    fig = plt.figure(figsize=(9, 9))
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
+    ax.set_theta_zero_location('N')
+    ax.set_theta_direction(-1)
+    ax.set_thetagrids(np.arange(0, 360, 360.0 / 72))
+    ax.tick_params(axis='y', labelsize=15)
+
+    # Rename column headings, as Sector Speed Ratio Average needs to show up in legend
+    SectorRatio.columns = ['index', 'Sector Speed Ratio Average', 'Polar degrees']
+
+    # Plot Sector Speed Ratio average and give chart a title
+    ax.plot(SectorRatio['Polar degrees'], SectorRatio['Sector Speed Ratio Average'], c=bw_colors('green'), linewidth=4)
+    plt.title('Speed Ratio by Direction')
+
+    # Get max and min levels and set chart axes
+    maxlevel = SectorRatio['Sector Speed Ratio Average'].max() + 0.05
+    minlevel = SectorRatio['Sector Speed Ratio Average'].min() - 0.1
+    ax.set_ylim(minlevel, maxlevel)
+
+    # Add boom dimensions to chart, if required
+    if booms == True:
+
+        boom_dir_1 = np.radians(boom_dir_1)
+        boom_dir_2 = np.radians(boom_dir_2)
+
+        width = np.pi / 72
+        radii = maxlevel
+
+        ax.bar(boom_dir_1, radii, width=width, bottom=minlevel, color='orange')
+        ax.bar(boom_dir_2, radii, width=width, bottom=minlevel, color='yellow')
+
+        ax.annotate(
+            '*Plot generated using ' + speed_col_name_2 + ' (yellow boom) divided by ' + speed_col_name_1 + ' (orange boom)',
+            xy=(20, 10), xycoords='figure pixels')
+
+    else:
+        ax.annotate('*Plot generated using ' + speed_col_name_2 + ' divided by ' + speed_col_name_1,
+                    xy=(20, 10), xycoords='figure pixels')
+
+    # Finally produce a scatter plot of all of the Speed Ratio data points
+    data['Speed Ratio by datapoint'] = data[speed_col_name_2] / data[speed_col_name_1]
+    data['Polar degrees'] = np.radians(data[direction_col_name])
+    ax.scatter(data['Polar degrees'], data['Speed Ratio by datapoint'], c=bw_colors('asphault'), alpha=0.3, s=1)
+
+    plt.legend(loc=8, framealpha=1)
+
+    plt.show()

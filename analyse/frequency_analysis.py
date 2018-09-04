@@ -2,6 +2,25 @@ import pandas as pd
 import numpy as np
 
 
+def get_sector_ratio(data, speed_col_name_1, speed_col_name_2, direction_col_name):
+    """Accepts a dataframe table, 2 anemometer names, and one wind vane name and returns the speed ratio by sector
+    in a table.
+    :param data: dataframe of windspeed and direction data
+    :param speed_col_name_1: Anemometer 1 column name in dataframe. This is divisor series.
+    :param speed_col_name_2: Anemometer 2 column name in dataframe.
+    :param direction_col_name: Wind Vane column name in dataframe.
+    :returns Table of speed ratio by sector
+    """
+    data[direction_col_name] = data[direction_col_name].mod(360)
+
+    data['Speedsector'] = data[speed_col_name_2] / data[speed_col_name_1]
+    sectorRatio = get_distribution_by_wind_sector(data['Speedsector'], data[direction_col_name], sectors=72,
+                                                  aggregation_method='mean',
+                                                  direction_bin_array=None, direction_bin_labels=None)
+    sectorRatio = sectorRatio.reset_index()
+    return sectorRatio
+
+
 def get_distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
                      aggregation_method='%frequency'):
     """Accepts 2 series of same/different variables and computes the distribution of first variable with respect to
