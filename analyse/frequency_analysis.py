@@ -11,6 +11,9 @@ def get_sector_ratio(data, speed_col_name_1, speed_col_name_2, direction_col_nam
     :param direction_col_name: Wind Vane column name in dataframe.
     :returns Table of speed ratio by sector
     """
+    data = data[data[speed_col_name_2] > 3]
+    data = data[data[speed_col_name_1] > 3]
+
     data[direction_col_name] = data[direction_col_name].mod(360)
 
     data['Speedsector'] = data[speed_col_name_2] / data[speed_col_name_1]
