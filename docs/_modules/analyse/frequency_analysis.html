@@ -1,0 +1,435 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>analyse.frequency_analysis &#8212; brightwind 1 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for analyse.frequency_analysis</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="get_distribution"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.get_distribution">[docs]</a><span class="k">def</span> <span class="nf">get_distribution</span><span class="p">(</span><span class="n">var1_series</span><span class="p">,</span> <span class="n">var2_series</span><span class="p">,</span> <span class="n">var2_bin_array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">var2_bin_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">aggregation_method</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%f</span><span class="s1">requency&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Accepts 2 series of same/different variables and computes the distribution of first variable with respect to</span>
+<span class="sd">    the bins of another variable.</span>
+<span class="sd">    :param var1_series: Series of the variable whose distribution we need to find</span>
+<span class="sd">    :param var2_series: Series of the variable which we want to bin</span>
+<span class="sd">    :param var2_bin_array: Array of numbers where adjacent elements of array form a bin</span>
+<span class="sd">    :param var2_bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default</span>
+<span class="sd">    :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,</span>
+<span class="sd">    describe, a custom function, etc,computes frequency in percentages by default</span>
+<span class="sd">    :returns A DataFrame/Series with bins as row indexes and columns with statistics chosen by aggregation_method&quot;&quot;&quot;</span>
+    <span class="n">var1_series</span> <span class="o">=</span> <span class="n">var1_series</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+    <span class="n">var2_series</span> <span class="o">=</span> <span class="n">var2_series</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+    <span class="n">var2_binned_series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">var2_series</span><span class="p">,</span> <span class="n">var2_bin_array</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">var2_bin_labels</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;variable_bin&#39;</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">var1_series</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">),</span> <span class="n">var2_binned_series</span><span class="p">],</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">aggregation_method</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="si">%f</span><span class="s1">requency&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;variable_bin&#39;</span><span class="p">])[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%f</span><span class="s1">requency&#39;</span><span class="p">)</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;variable_bin&#39;</span><span class="p">])[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">aggregation_method</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_direction_bin_array"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.get_direction_bin_array">[docs]</a><span class="k">def</span> <span class="nf">get_direction_bin_array</span><span class="p">(</span><span class="n">sectors</span><span class="p">):</span>
+    <span class="n">bin_start</span> <span class="o">=</span> <span class="mf">180.0</span><span class="o">/</span><span class="n">sectors</span>
+    <span class="n">direction_bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">bin_start</span><span class="p">,</span> <span class="mi">360</span><span class="p">,</span> <span class="mf">360.0</span><span class="o">/</span><span class="n">sectors</span><span class="p">)</span>
+    <span class="n">direction_bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">direction_bins</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">direction_bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">direction_bins</span><span class="p">,</span> <span class="mi">360</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">direction_bins</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_direction_bin_labels</span><span class="p">(</span><span class="n">sectors</span><span class="p">,</span> <span class="n">direction_bins</span><span class="p">,</span> <span class="n">zero_centred</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">mapper</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">lower_bound</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">direction_bins</span><span class="p">[:</span><span class="n">sectors</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">zero_centred</span><span class="p">:</span>
+            <span class="n">mapper</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">-</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">direction_bins</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">direction_bins</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mapper</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">-</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lower_bound</span><span class="p">,</span> <span class="n">direction_bins</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">mapper</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="map_direction_bin"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.map_direction_bin">[docs]</a><span class="k">def</span> <span class="nf">map_direction_bin</span><span class="p">(</span><span class="n">wdir</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">sectors</span><span class="p">):</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">wdir</span> <span class="o">==</span> <span class="nb">max</span><span class="p">(</span><span class="n">bins</span><span class="p">):</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;right&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;right&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">bin_num</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">([</span><span class="n">wdir</span><span class="p">],</span> <span class="n">bins</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">bin_num</span> <span class="o">==</span> <span class="n">sectors</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">bin_num</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">bin_num</span></div>
+
+
+<div class="viewcode-block" id="get_binned_direction_series"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.get_binned_direction_series">[docs]</a><span class="k">def</span> <span class="nf">get_binned_direction_series</span><span class="p">(</span><span class="n">direction_series</span><span class="p">,</span> <span class="n">sectors</span><span class="p">,</span> <span class="n">direction_bin_array</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Accepts a series with wind directions and number of sectors  you want to divide.</span>
+<span class="sd">    :param  direction_series: Series of directions to bin</span>
+<span class="sd">    :param  sectors: number of direction sectors</span>
+<span class="sd">    :param direction_bin_array: An optional parameter, if you want custom direction bins pass an array</span>
+<span class="sd">                        of the bins. If nto specified direction_bins will be centered around 0</span>
+<span class="sd">    :returns  A series with direction-bins, bins centered around 0 degree by default if direction_bin_array</span>
+<span class="sd">    is not specified</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">direction_bin_array</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">direction_bin_array</span> <span class="o">=</span> <span class="n">get_direction_bin_array</span><span class="p">(</span><span class="n">sectors</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">direction_series</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">map_direction_bin</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">direction_bin_array</span><span class="p">,</span> <span class="n">sectors</span><span class="o">=</span><span class="n">sectors</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_distribution_by_wind_sector"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.get_distribution_by_wind_sector">[docs]</a><span class="k">def</span> <span class="nf">get_distribution_by_wind_sector</span><span class="p">(</span><span class="n">var_series</span><span class="p">,</span> <span class="n">direction_series</span><span class="p">,</span> <span class="n">sectors</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">aggregation_method</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%f</span><span class="s1">requency&#39;</span><span class="p">,</span>
+                                    <span class="n">direction_bin_array</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">direction_bin_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Accepts a series of a variable and  wind direction. Computes the distribution of first variable with respect to</span>
+<span class="sd">    wind direction sectors</span>
+<span class="sd">    :param var_series: Series of the variable whose distribution we need to find</span>
+<span class="sd">    :param direction_series: Series of wind directions between [0-360]</span>
+<span class="sd">    :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that</span>
+<span class="sd">            behaviour specify direction_bin_array</span>
+<span class="sd">    :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,</span>
+<span class="sd">    describe, a custom function, etc. Computes frequency in percentages by default</span>
+<span class="sd">    :param direction_bin_array: Optional, to change default behaviour of first sector centered at 0 assign an array of</span>
+<span class="sd">    bins to this</span>
+<span class="sd">    :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string</span>
+<span class="sd">    labels of the format &#39;30-90&#39; by default</span>
+<span class="sd">    :returns A dataframe/series with wind direction sector as row indexes and columns with statistics chosen by</span>
+<span class="sd">    aggregation_method</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">var_series</span> <span class="o">=</span> <span class="n">var_series</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+    <span class="n">direction_series</span> <span class="o">=</span> <span class="n">direction_series</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">direction_bin_array</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">direction_bin_array</span> <span class="o">=</span> <span class="n">get_direction_bin_array</span><span class="p">(</span><span class="n">sectors</span><span class="p">)</span>
+        <span class="n">zero_centered</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sectors</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">direction_bin_array</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+        <span class="n">zero_centered</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">direction_bin_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">direction_bin_labels</span> <span class="o">=</span> <span class="n">_get_direction_bin_labels</span><span class="p">(</span><span class="n">sectors</span><span class="p">,</span> <span class="n">direction_bin_array</span><span class="p">,</span> <span class="n">zero_centered</span><span class="p">)</span>
+    <span class="n">direction_binned_series</span> <span class="o">=</span> <span class="n">get_binned_direction_series</span><span class="p">(</span><span class="n">direction_series</span><span class="p">,</span> <span class="n">sectors</span><span class="p">,</span> <span class="n">direction_bin_array</span><span class="p">)</span>\
+        <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;direction_bin&#39;</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">var_series</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">),</span> <span class="n">direction_binned_series</span><span class="p">],</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">aggregation_method</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="si">%f</span><span class="s1">requency&#39;</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;direction_bin&#39;</span><span class="p">])[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%f</span><span class="s1">requency&#39;</span><span class="p">)</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;direction_bin&#39;</span><span class="p">])[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">aggregation_method</span><span class="p">)</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">direction_bin_labels</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="get_freq_table"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.get_freq_table">[docs]</a><span class="k">def</span> <span class="nf">get_freq_table</span><span class="p">(</span><span class="n">var_series</span><span class="p">,</span> <span class="n">direction_series</span><span class="p">,</span> <span class="n">var_bin_array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">sectors</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">var_bin_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">direction_bin_array</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">direction_bin_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">freq_as_percentage</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and</span>
+<span class="sd">    direction are binned</span>
+<span class="sd">    :param var_series: Series of variable to be binned</span>
+<span class="sd">    :param direction_series: Series of wind directions between [0-360]</span>
+<span class="sd">    :param var_bin_array: Array of numbers where adjacent elements of array form a bin</span>
+<span class="sd">    :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that</span>
+<span class="sd">            behaviour specify direction_bin_array</span>
+<span class="sd">    :param var_bin_labels: Optional, an array of labels to use for variable bins</span>
+<span class="sd">    :param direction_bin_array: Optional, to change default behaviour of first sector centered at 0 assign an array of</span>
+<span class="sd">    bins to this</span>
+<span class="sd">    :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string</span>
+<span class="sd">    labels of the format &#39;30-90&#39; by default</span>
+<span class="sd">    :param freq_as_percentage: Optional, True by default. Returns the frequency as percentages. To return just the count</span>
+<span class="sd">    change it to False</span>
+<span class="sd">    :returns A DataFrame with row indexes as variable bins and columns as wind direction bins.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">var_series</span> <span class="o">=</span> <span class="n">var_series</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+    <span class="n">direction_series</span> <span class="o">=</span> <span class="n">direction_series</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">direction_bin_array</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">direction_bin_array</span> <span class="o">=</span> <span class="n">get_direction_bin_array</span><span class="p">(</span><span class="n">sectors</span><span class="p">)</span>
+        <span class="n">zero_centered</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sectors</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">direction_bin_array</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+        <span class="n">zero_centered</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">direction_bin_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">direction_bin_labels</span> <span class="o">=</span> <span class="n">_get_direction_bin_labels</span><span class="p">(</span><span class="n">sectors</span><span class="p">,</span> <span class="n">direction_bin_array</span><span class="p">,</span> <span class="n">zero_centered</span><span class="p">)</span>
+    <span class="n">var_binned_series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">var_series</span><span class="p">,</span> <span class="n">var_bin_array</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">var_bin_labels</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;variable_bin&#39;</span><span class="p">)</span>
+    <span class="n">direction_binned_series</span> <span class="o">=</span> <span class="n">get_binned_direction_series</span><span class="p">(</span><span class="n">direction_series</span><span class="p">,</span> <span class="n">sectors</span><span class="p">,</span> <span class="n">direction_bin_array</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+        <span class="s1">&#39;direction_bin&#39;</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">var_series</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;var_data&#39;</span><span class="p">),</span> <span class="n">var_binned_series</span><span class="p">,</span><span class="n">direction_binned_series</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">freq_as_percentage</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="s1">&#39;variable_bin&#39;</span><span class="p">],</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="s1">&#39;direction_bin&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">*</span><span class="mf">100.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;variable_bin&#39;</span><span class="p">],</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;direction_bin&#39;</span><span class="p">])</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">direction_bin_labels</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="get_time_continuity"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.get_time_continuity">[docs]</a><span class="k">def</span> <span class="nf">get_time_continuity</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">time_col_name</span><span class="p">,</span> <span class="n">time_interval</span><span class="p">):</span>
+    <span class="c1">#Get time continuity is a function that sees if there are any gaps bigger than the time interval specified in the</span>
+    <span class="c1">#data, and brings back a table of values.</span>
+
+    <span class="c1">#Note this first part of the function should be obselete, as the data should be preppred before it is used in</span>
+    <span class="c1">#mast analyse, with timestamp converted correctly to pandas dataframe. Month, and day can get mixed up creating</span>
+    <span class="c1">#multiple errors if this is not done correctly. The same fuction is used, but with parameters yearfirst or dayfirst</span>
+    <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">])</span>
+
+    <span class="c1">#Next sort values by time, then re-index dataframe</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="n">time_col_name</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">])</span>
+    <span class="c1">#Create a new column, if interval ok, column is True, if interval is not, column is false</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Interval&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">(</span><span class="n">time_interval</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">))</span>
+
+    <span class="c1">#Where the column is False create a new dataframe, data_problems. Reset the index in this, and apply minus 1, then apply</span>
+    <span class="c1">#index again. This provides the index for the timestamp prior to the gap.</span>
+    <span class="n">data_problems</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;Interval&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">False</span><span class="p">]</span>
+    <span class="n">data_problems</span> <span class="o">=</span> <span class="n">data_problems</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="n">data_problems</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_problems</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">data_problems</span> <span class="o">=</span> <span class="n">data_problems</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;index&#39;</span><span class="p">)</span>
+    <span class="n">data_problems</span><span class="p">[</span><span class="s1">&#39;Timestamp before&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span>
+
+    <span class="c1">#Next calculate the days lost for each gap</span>
+    <span class="n">data_problems</span><span class="p">[</span><span class="s1">&#39;Days Lost&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">data_problems</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span> <span class="o">-</span> <span class="n">data_problems</span><span class="p">[</span><span class="s1">&#39;Timestamp before&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
+    <span class="n">data_problems</span><span class="p">[</span><span class="s1">&#39;Days Lost&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_problems</span><span class="p">[</span><span class="s1">&#39;Days Lost&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1440</span><span class="p">)</span>
+
+    <span class="n">time_continuity</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="p">{</span><span class="s1">&#39;Start Date&#39;</span><span class="p">:</span> <span class="n">data_problems</span><span class="p">[</span><span class="s1">&#39;Timestamp before&#39;</span><span class="p">],</span> <span class="s1">&#39;End Date&#39;</span><span class="p">:</span> <span class="n">data_problems</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">],</span>
+         <span class="s1">&#39;Days Lost&#39;</span><span class="p">:</span> <span class="n">data_problems</span><span class="p">[</span><span class="s1">&#39;Days Lost&#39;</span><span class="p">]})</span>
+    <span class="k">return</span> <span class="n">time_continuity</span></div>
+
+
+<div class="viewcode-block" id="get_monthly_coverage"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.get_monthly_coverage">[docs]</a><span class="k">def</span> <span class="nf">get_monthly_coverage</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">time_col_name</span><span class="p">,</span><span class="n">time_interval</span><span class="p">):</span>
+    <span class="c1">#Convert the timestamp column to a datetime variable in pandas</span>
+    <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">])</span>
+
+    <span class="c1">#Group data by month and count number of values for each column for each month</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">time_col_name</span><span class="p">)</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Grouper</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="s1">&#39;M&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+
+    <span class="c1">#Divide column values by total records possible each month to return coverage</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Divsor&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">day</span> <span class="o">*</span> <span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">60</span><span class="o">/</span><span class="n">time_interval</span><span class="p">))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,:]</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;Divsor&#39;</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Divsor&#39;</span><span class="p">])</span>
+
+    <span class="c1">#Now format the datetime index as MMM-YYYY</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%b-%Y&#39;</span><span class="p">))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">time_col_name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="get_monthly_means"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.get_monthly_means">[docs]</a><span class="k">def</span> <span class="nf">get_monthly_means</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">time_col_name</span><span class="p">):</span>
+    <span class="c1"># Convert the timestamp column to a datetime variable in pandas</span>
+    <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">])</span>
+
+    <span class="c1"># Group data by month and count number of values for each column for each month</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">time_col_name</span><span class="p">)</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Grouper</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="s1">&#39;M&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="c1"># Now format the datetime index as MMM-YYYY</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%b-%Y&#39;</span><span class="p">))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">time_col_name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="get_basic_stats"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.get_basic_stats">[docs]</a><span class="k">def</span> <span class="nf">get_basic_stats</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">time_col_name</span><span class="p">):</span>
+    <span class="c1">#Get basic stats for dataframe, mean, max, min and count</span>
+    <span class="n">data1</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="s1">&#39;count&#39;</span><span class="p">]]</span>
+    <span class="n">data1</span> <span class="o">=</span> <span class="n">data1</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">data1</span> <span class="o">=</span> <span class="n">data1</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="n">data1</span> <span class="o">=</span> <span class="n">data1</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="s1">&#39;Instrument&#39;</span><span class="p">})</span>
+
+    <span class="c1">#The describe function does not return the min, max, count and mean for the timestamp column.</span>
+    <span class="c1">#So we have calculated these separately here, and then added them back to the data1 above.</span>
+    <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">])</span>
+    <span class="n">Timestamp_min</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="n">Timestamp_max</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">Timestamp_mean</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">Timestamp_max</span> <span class="o">-</span> <span class="n">Timestamp_min</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">Timestamp_mean</span> <span class="o">=</span> <span class="n">Timestamp_min</span> <span class="o">+</span> <span class="n">Timestamp_mean</span>
+    <span class="n">Timestamp_count</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data1</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;Instrument&#39;</span><span class="p">:</span> <span class="n">time_col_name</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="n">Timestamp_mean</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="n">Timestamp_max</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">:</span> <span class="n">Timestamp_min</span><span class="p">,</span>
+                  <span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="n">Timestamp_count</span><span class="p">},</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1">#After data is appended, then the Timestamp row has to be ordered to be the first row.</span>
+    <span class="n">target_row</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">target_row</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">target_row</span><span class="p">]</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="get_TI_by_Speed"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.get_TI_by_Speed">[docs]</a><span class="k">def</span> <span class="nf">get_TI_by_Speed</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">speed_col_name</span><span class="p">,</span><span class="n">std_col_name</span><span class="p">):</span>
+    <span class="c1">#Takes a dataframe, pulls the speed and standard deviation column.</span>
+    <span class="c1">#This is then binned by windspeed and the average TI and count of TI extracted.</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="n">speed_col_name</span><span class="p">,</span> <span class="n">std_col_name</span><span class="p">])</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Turbulence_Intensity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">std_col_name</span><span class="p">]</span> <span class="o">/</span> <span class="n">data</span><span class="p">[</span><span class="n">speed_col_name</span><span class="p">]</span>
+    <span class="n">speed_bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># data[&#39;bins&#39;] = pd.cut(data[speed_col_name], speed_bins,right=False)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">data</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">speed_col_name</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">map_speed_bin</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">speed_bins</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;bins&#39;</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">max_bin</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;bins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">grouped</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;bins&#39;</span><span class="p">])</span>
+    <span class="n">grouped1</span> <span class="o">=</span> <span class="n">grouped</span><span class="p">[</span><span class="s1">&#39;Turbulence_Intensity&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">grouped2</span> <span class="o">=</span> <span class="n">grouped</span><span class="p">[</span><span class="s1">&#39;Turbulence_Intensity&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+    <span class="n">grouped3</span> <span class="o">=</span> <span class="n">grouped</span><span class="p">[</span><span class="n">std_col_name</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+    <span class="n">grouped4</span> <span class="o">=</span> <span class="n">grouped</span><span class="p">[</span><span class="s1">&#39;Turbulence_Intensity&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="o">.</span><span class="mi">9</span><span class="p">)</span>
+    <span class="n">speed_bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_bin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">charTI</span> <span class="o">=</span> <span class="n">grouped1</span> <span class="o">+</span> <span class="p">(</span><span class="n">grouped3</span> <span class="o">/</span> <span class="n">speed_bins</span><span class="p">)</span>
+    <span class="n">TI</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="nb">str</span><span class="p">(</span><span class="n">speed_col_name</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_TI_Avg&#39;</span><span class="p">:</span> <span class="n">grouped1</span><span class="p">,</span>
+                       <span class="nb">str</span><span class="p">(</span><span class="n">speed_col_name</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_TI_Count&#39;</span><span class="p">:</span> <span class="n">grouped2</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">std_col_name</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_SigmaSigma&#39;</span><span class="p">:</span> <span class="n">grouped3</span><span class="p">,</span>
+                       <span class="nb">str</span><span class="p">(</span><span class="n">speed_col_name</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_CharTI&#39;</span><span class="p">:</span> <span class="n">charTI</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">speed_col_name</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_RepTI&#39;</span><span class="p">:</span> <span class="n">grouped4</span><span class="p">})</span>
+    <span class="n">TI</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">speed_col_name</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_CharTI&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">TI</span> <span class="o">=</span> <span class="n">TI</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">TI</span></div>
+
+
+<div class="viewcode-block" id="get_TI_by_sector"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.get_TI_by_sector">[docs]</a><span class="k">def</span> <span class="nf">get_TI_by_sector</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">speed_col_name</span><span class="p">,</span><span class="n">std_col_name</span><span class="p">,</span><span class="n">direction_col_name</span><span class="p">,</span><span class="n">sectors</span><span class="p">,</span><span class="n">min_speed</span><span class="p">):</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="n">speed_col_name</span><span class="p">,</span> <span class="n">std_col_name</span><span class="p">,</span> <span class="n">direction_col_name</span><span class="p">])</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Turbulence_Intensity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">std_col_name</span><span class="p">]</span> <span class="o">/</span> <span class="n">data</span><span class="p">[</span><span class="n">speed_col_name</span><span class="p">]</span>
+
+    <span class="c1">#Reduce dataframe by excluding all values below Minimum Speed</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">speed_col_name</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">min_speed</span><span class="p">]</span>
+
+    <span class="c1">#Here we take away half of the sector value from all of the direction column and if below zero we add 360.</span>
+    <span class="c1">#Essentially rotates values by the appropriate amount, then when you bin from zero up to 360, you are actually</span>
+    <span class="c1">#binning from half way through each sector, and get over the issue of having to add bins on either side of 360 degrees</span>
+    <span class="n">data</span><span class="p">[</span><span class="n">direction_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">direction_col_name</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="mi">360</span> <span class="o">/</span> <span class="p">(</span><span class="n">sectors</span> <span class="o">*</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">direction_col_name</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">direction_col_name</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">360</span>
+
+    <span class="c1">#Get Direction Bins, and then group data by bins while calculating mean TI and count the values</span>
+    <span class="c1">#Note that sectors in Mast Analysis sheet calculated differently, first sector is not divided on either side of 0.</span>
+    <span class="c1">#We have implemented sector division here.</span>
+
+    <span class="n">direction_bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">360</span> <span class="o">+</span> <span class="p">(</span><span class="mi">360</span> <span class="o">/</span> <span class="n">sectors</span><span class="p">),</span> <span class="mi">360</span> <span class="o">/</span> <span class="n">sectors</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">data</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">direction_col_name</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">map_direction_bin</span><span class="p">,</span><span class="n">bins</span><span class="o">=</span><span class="n">direction_bins</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;Direction Bin&#39;</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">grouped</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;Direction Bin&#39;</span><span class="p">])</span>
+    <span class="n">grouped1</span> <span class="o">=</span> <span class="n">grouped</span><span class="p">[</span><span class="s1">&#39;Turbulence_Intensity&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">grouped2</span> <span class="o">=</span> <span class="n">grouped</span><span class="p">[</span><span class="s1">&#39;Turbulence_Intensity&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;Turbulence_Intensity_Avg&#39;</span><span class="p">:</span> <span class="n">grouped1</span><span class="p">,</span> <span class="s1">&#39;Turbulence_Intensity_Count&#39;</span><span class="p">:</span> <span class="n">grouped2</span><span class="p">})</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+    <span class="c1">#Convert direction bins to actual bins, i.e. to include 345-15 degrees, and drop 345-360 sector</span>
+
+    <span class="n">direction_row</span> <span class="o">=</span> <span class="n">_get_direction_bin_dict</span><span class="p">(</span><span class="n">get_direction_bin_array</span><span class="p">(</span><span class="n">sectors</span><span class="p">),</span> <span class="n">sectors</span><span class="p">)</span>
+    <span class="n">new_bins</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">direction_row</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;bins&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;category&#39;</span><span class="p">)</span>
+    <span class="n">new_bins</span> <span class="o">=</span> <span class="n">new_bins</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="n">result</span><span class="p">[</span><span class="s1">&#39;Direction bin&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_bins</span><span class="p">[</span><span class="s1">&#39;bins&#39;</span><span class="p">]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="p">[[</span><span class="s1">&#39;Direction bin&#39;</span><span class="p">,</span> <span class="s1">&#39;Turbulence_Intensity_Avg&#39;</span><span class="p">,</span> <span class="s1">&#39;Turbulence_Intensity_Count&#39;</span><span class="p">]]</span>
+    <span class="c1">#Note results differ from Mast Analysis sheet when same binning used. Error was found to be associated with use of mod</span>
+    <span class="c1">#function in access. Mod is used to convert values that are above 360 degrees, back to nomrmal degrees.</span>
+    <span class="c1">#In practice, high unlikely any direction values will exceed 360 degrees. When this was removed, results matched exactly.</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+
+<div class="viewcode-block" id="get_12x24_TI_matrix"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.get_12x24_TI_matrix">[docs]</a><span class="k">def</span> <span class="nf">get_12x24_TI_matrix</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">time_col_name</span><span class="p">,</span><span class="n">speed_col_name</span><span class="p">,</span><span class="n">std_col_name</span><span class="p">):</span>
+    <span class="c1">#Get the 12 month x 24 hour matrix of turbulence intensity</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">,</span> <span class="n">speed_col_name</span><span class="p">,</span> <span class="n">std_col_name</span><span class="p">])</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Turbulence_Intensity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="n">std_col_name</span><span class="p">]</span> <span class="o">/</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="n">speed_col_name</span><span class="p">]</span>
+    <span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">])</span>
+
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Month&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="n">time_col_name</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">month</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Hour&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="n">time_col_name</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">hour</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s1">&#39;Hour&#39;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s1">&#39;Month&#39;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s1">&#39;Turbulence_Intensity&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="map_speed_bin"><a class="viewcode-back" href="../../analyse.html#analyse.frequency_analysis.map_speed_bin">[docs]</a><span class="k">def</span> <span class="nf">map_speed_bin</span><span class="p">(</span><span class="n">wdspd</span><span class="p">,</span> <span class="n">bins</span><span class="p">):</span>
+    <span class="c1"># Copy of Inders function, can be removed once this is integrated into main library</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">wdspd</span> <span class="o">==</span> <span class="nb">max</span><span class="p">(</span><span class="n">bins</span><span class="p">):</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;right&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="nb">bin</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">([</span><span class="n">wdspd</span><span class="p">],</span> <span class="n">bins</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="n">bin_lower</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">([</span><span class="n">wdspd</span><span class="p">],</span> <span class="n">bins</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">([</span><span class="n">wdspd</span><span class="p">],</span> <span class="n">bins</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mf">1.0</span></div>
+
+<span class="k">def</span> <span class="nf">_get_direction_bin_dict</span><span class="p">(</span><span class="n">direction_bins</span><span class="p">,</span><span class="n">sectors</span><span class="p">):</span>
+    <span class="c1"># Copy of Inders function, can be removed once this is integrated into main library</span>
+    <span class="nb">map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">lower_bound</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">direction_bins</span><span class="p">[:</span><span class="n">sectors</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="n">i</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="nb">map</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">-</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">direction_bins</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span><span class="n">direction_bins</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">map</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">-</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lower_bound</span><span class="p">,</span><span class="n">direction_bins</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="nb">map</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">brightwind</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, BrightWind Analysis.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
