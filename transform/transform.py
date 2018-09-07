@@ -169,4 +169,4 @@ def offset_wind_direction(dir: pd.Series, offset: float) -> pd.Series:
     if isinstance(dir, float):
         return utils._range_0_to_360(dir + offset)
     else:
-        return (dir + offset).apply(_range_0_to_360)
+        return (dir + offset).apply(utils._range_0_to_360)

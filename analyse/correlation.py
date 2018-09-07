@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from typing import List, Dict
 from transform import transform as tf
-from .utils import utils
+from utils import utils
 from plot.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
@@ -208,6 +208,12 @@ class OrdinaryLeastSquares(CorrelBase):
         def linear_function(x, slope, offset):
             return (x*slope) + offset
         return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
+
+class MultipleLinearRegression(CorrelBase):
+    def __init__(self, ref, target, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
+        CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+        self.params = 'not run yet'
+
 
 
 class BulkSpeedRatio(CorrelBase):

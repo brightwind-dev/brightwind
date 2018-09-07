@@ -167,6 +167,7 @@ def get_freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 4
     return result
 
 
+
 def get_time_continuity(data, time_col_name, time_interval):
     #Get time continuity is a function that sees if there are any gaps bigger than the time interval specified in the
     #data, and brings back a table of values.
@@ -276,7 +277,7 @@ def get_TI_by_Speed(data,speed_col_name,std_col_name):
     grouped3 = grouped[std_col_name].std()
     grouped4 = grouped['Turbulence_Intensity'].quantile(.9)
     speed_bins = np.arange(0, max_bin + 1, 1)
-    charTI = grouped1 + (grouped3 / speed_bins)
+    charTI = grouped1 + (grouped3 / grouped3.index)
     TI = pd.DataFrame({str(speed_col_name) + '_TI_Avg': grouped1,
                        str(speed_col_name) + '_TI_Count': grouped2, str(std_col_name) + '_SigmaSigma': grouped3,
                        str(speed_col_name) + '_CharTI': charTI, str(speed_col_name) + '_RepTI': grouped4})
