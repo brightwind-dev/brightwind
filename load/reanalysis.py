@@ -8,7 +8,7 @@ import pandas as pd
 from urllib.request import urlopen
 import json
 from typing import List, Dict
-from transform.transform import _average_data_by_period
+from transform.transform import average_data_by_period
 #import netCDF4
 import numpy as np
 import math

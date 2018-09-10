@@ -23,7 +23,8 @@ def _convert_weeks_to_hours(prd):
 
 def _get_min_overlap_timestamp( df1_timestamps, df2_timestamps):
     """Get the minimum overlapping timestamp from two series"""
-    if df1_timestamps.max()<df2_timestamps.min() or df1_timestamps.min()>df2_timestamps.max():
+    if df1_timestamps.max()\
+            <df2_timestamps.min() or df1_timestamps.min()>df2_timestamps.max():
         raise IndexError("No overlapping data. Ranges: {0} to {1}  and {2} to {3}"\
                          .format(df1_timestamps.min(),df1_timestamps.max(),df2_timestamps.min(),df2_timestamps.max()),)
     return max(df1_timestamps.min(), df2_timestamps.min())
@@ -106,46 +107,49 @@ def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
     return max_pts
 
 
-def _filter_by_coverage_threshold(data, data_averaged, coverage_threshold, filter=True):
-    """Remove data with coverage less than coverage_threshold"""
-    data_averaged['Coverage'] = data_averaged['Count'] / _max_coverage_count(data.index, data_averaged.index)
-    if filter:
-        return data_averaged[data_averaged["Coverage"] >= coverage_threshold]
-    else:
-        return data_averaged
+def _get_coverage_series(data, grouper_obj):
+    coverage = grouper_obj.count() / _max_coverage_count(data.index, grouper_obj.mean().index)
+    coverage.name = 'Coverage'
+    return coverage
 
 
-def _average_data_by_period(data: pd.Series, period: str, aggregation_method='mean', drop_count=False) -> pd.DataFrame:
+def average_data_by_period(data: pd.Series, period, aggregation_method='mean', filter=False, coverage_threshold=1, return_coverage=False) -> pd.DataFrame:
     """Averages the data by the time period specified by period.
     Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
     Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
     Set period to 1M for monthly average
     Set period to 1AS for annual taking start of the year as the date
     For minutes use 10min, 20 min, etc.
+    Can be a DateOffset object too
     """
     data = data.sort_index()
-    if period[-1] == 'D':
-        period = _convert_days_to_hours(period)
-    if period[-1] == 'W':
-        period = _convert_weeks_to_hours(period)
-    if period[-1] == 'M':
-        period = period+'S'
+    if isinstance(period, str):
+        if period[-1] == 'D':
+            period = _convert_days_to_hours(period)
+        if period[-1] == 'W':
+            period = _convert_weeks_to_hours(period)
+        if period[-1] == 'M':
+            period = period+'S'
     grouper_obj = data.resample(period, axis=0, closed='left', label='left',base=0,
                                 convention='start', kind='timestamp')
     if aggregation_method == 'mean':
         grouped_data = grouper_obj.mean()
     if aggregation_method == 'sum':
         grouped_data = grouper_obj.sum()
-    if not drop_count:
-        num_data_points = grouper_obj.count()
-        num_data_points.name = 'Count'
-        grouped_data = pd.concat([grouped_data, num_data_points], axis=1)
-    return grouped_data
+
+    coverage = _get_coverage_series(data, grouper_obj)
+
+    if filter:
+        grouped_data = grouped_data[(coverage >= coverage_threshold).index]
+
+    if return_coverage:
+        return grouped_data, coverage
+    else:
+        return grouped_data
 
 
 def get_coverage(data: pd.Series, period: str='1M'):
-    return _filter_by_coverage_threshold(data, _average_data_by_period(data, period),
-                                  coverage_threshold=0, filter=False)
+    return average_data_by_period(data, period, filter=False, return_coverage=True)
 
 
 def scale_wind_speed(spd: pd.Series, scale_factor: float) ->pd.Series:
