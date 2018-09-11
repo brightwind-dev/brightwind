@@ -107,7 +107,7 @@ def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
 
 
 def _get_coverage_series(data, grouper_obj):
-    coverage = grouper_obj.count() / _max_coverage_count(data.index, grouper_obj.mean().index)
+    coverage = grouper_obj.count().divide(_max_coverage_count(data.index, grouper_obj.mean().index), axis=0)
     return coverage
 
 
@@ -147,7 +147,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
 
 
 def get_coverage(data: pd.Series, period: str='1M'):
-    return average_data_by_period(data, period, filter=False, return_coverage=True)
+    return average_data_by_period(data, period, filter=False, return_coverage=True)[1]
 
 
 def scale_wind_speed(spd: pd.Series, scale_factor: float) ->pd.Series:

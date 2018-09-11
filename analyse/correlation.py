@@ -227,6 +227,7 @@ class OrdinaryLeastSquares(CorrelBase):
             return (x*slope) + offset
         return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
 
+
 class MultipleLinearRegression(CorrelBase):
     def __init__(self, ref, target, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
         CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
