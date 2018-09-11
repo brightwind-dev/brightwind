@@ -10,8 +10,8 @@ from scipy.linalg import lstsq
 from .frequency_analysis import get_binned_direction_series
 
 
-def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold, aggregation_method_ref='mean',
-                                      aggregation_method_target='mean'):
+def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
+                                      aggregation_method_ref='mean', aggregation_method_target='mean'):
     ref = ref.sort_index().dropna()
     target = target.sort_index().dropna()
     ref_overlap, target_overlap = tf._get_overlapping_data(ref, target, averaging_prd)
@@ -19,9 +19,11 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
     ref_resolution = tf._get_data_resolution(ref_overlap.index)
     target_resolution = tf._get_data_resolution(target_overlap.index)
     if ref_resolution > target_resolution:
-        target_overlap = tf.average_data_by_period(target_overlap, to_offset(ref_resolution), filter=True, coverage_threshold=1,aggregation_method=aggregation_method_target)
+        target_overlap = tf.average_data_by_period(target_overlap, to_offset(ref_resolution), filter=True,
+                                                   coverage_threshold=1,aggregation_method=aggregation_method_target)
     if ref_resolution < target_resolution:
-        ref_overlap = tf.average_data_by_period(ref_overlap, to_offset(target_resolution), filter=True, coverage_threshold=1,aggregation_method=aggregation_method_ref)
+        ref_overlap = tf.average_data_by_period(ref_overlap, to_offset(target_resolution), filter=True,
+                                                coverage_threshold=1,aggregation_method=aggregation_method_ref)
     common_idxs, data_pts = tf._common_idxs(ref_overlap, target_overlap)
     ref_concurrent = ref_overlap.loc[common_idxs]
     target_concurrent = target_overlap.loc[common_idxs]
@@ -120,8 +122,8 @@ class CorrelBase:
         data = pd.concat(list(_preprocess_data_for_correlations(ref, target, averaging_prd,
                             coverage_threshold)), axis=1, join='inner')
         if ref_dir is not None and target_dir is not None:
-            data = pd.concat([data]+list(_preprocess_dir_data_for_correlations(ref, ref_dir, target,target_dir
-                                                , averaging_prd, coverage_threshold)), axis=1, join='inner')
+            data = pd.concat([data]+list(_preprocess_dir_data_for_correlations(ref, ref_dir, target, target_dir,
+                                                            averaging_prd, coverage_threshold)), axis=1, join='inner')
         return data
 
     def show_params(self):
@@ -132,9 +134,9 @@ class CorrelBase:
                    self._predict(self.data['ref_spd']).values.flatten(), title=title)
 
     def synthesize(self, ext_input=None):
-        if input is None:
+        if ext_input is None:
             return pd.concat([self._predict(tf.average_data_by_period(self.ref.loc[:min(self.data.index)],
-                                        self.averaging_prd, filter=False,return_coverage=False)),self.data['target_spd']],axis=0)
+                            self.averaging_prd, filter=False, return_coverage=False)),self.data['target_spd']],axis=0)
         else:
             return self._predict(ext_input)
 
@@ -218,7 +220,6 @@ class OrdinaryLeastSquares(CorrelBase):
         p, res = lstsq(self.data['ref_spd'].values.flatten()[:, np.newaxis]**[1, 0],
                                              self.data['target_spd'].values.flatten())[0:2]
 
-
         self.params = {'slope':p[0],'offset': p[1]}
         self.params['r2'] = self.get_r2()
 
@@ -229,10 +230,43 @@ class OrdinaryLeastSquares(CorrelBase):
 
 
 class MultipleLinearRegression(CorrelBase):
-    def __init__(self, ref, target, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
-        CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+    def __init__(self, ref: List, target, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
+        self.ref = pd.concat(ref, axis=1, join='inner')
+        self.target = target
+        self.averaging_prd = averaging_prd
+        self.coverage_threshold = coverage_threshold
+        self.preprocess = preprocess
+        if preprocess:
+            self.data = pd.concat(list(_preprocess_data_for_correlations(self.ref, self.target, averaging_prd,
+                            coverage_threshold)), axis=1, join='inner')
+        else:
+            self.data = pd.concat(list(self.ref, self.target), axis=1, join='inner')
+        self.data.columns = ['ref_spd_'+str(i+1) for i in range(0,len(self.ref.columns))]+['target_spd']
+        self.data = self.data.dropna()
         self.params = 'not run yet'
 
+    def __repr(self):
+        return 'Multiple Linear Regression Model' + str(self.params)
+
+    def run(self):
+        p, res = lstsq(np.column_stack((self.data.iloc[:,:len(self.data.columns)-1].values,
+                                        np.ones(len(self.data)))), self.data['target_spd'].values.flatten())[0:2]
+        self.params = {'slope':p[:-1],'offset': p[-1]}
+
+    def show_params(self):
+        print(self.params)
+
+    def _predict(self, x):
+        def linear_function(x, slope, offset):
+            return sum(x*slope) + offset
+        return x.apply(linear_function, axis=1, slope=self.params['slope'], offset=self.params['offset'])
+
+    def synthesize(self, ext_input=None):
+        if ext_input is None:
+            return pd.concat([self._predict(tf.average_data_by_period(self.ref.loc[:min(self.data.index)],
+                            self.averaging_prd, filter=False, return_coverage=False)),self.data['target_spd']],axis=0)
+        else:
+            return self._predict(ext_input)
 
 
 class BulkSpeedRatio(CorrelBase):
