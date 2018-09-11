@@ -103,13 +103,11 @@ def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
     """For a given resolution of data finds the maximum number of data points in the averaging period"""
     max_pts = (averaged_data_index.to_series().diff().shift(-1)) / _get_data_resolution(data_index)
     max_pts[-1] = ((averaged_data_index[-1] + 1) - averaged_data_index[-1]) / _get_data_resolution(data_index)
-    max_pts.name = 'Max_pts'
     return max_pts
 
 
 def _get_coverage_series(data, grouper_obj):
     coverage = grouper_obj.count() / _max_coverage_count(data.index, grouper_obj.mean().index)
-    coverage.name = 'Coverage'
     return coverage
 
 
