@@ -52,6 +52,18 @@
 <div class="section" id="module-transform.transform">
 <span id="transform-transform-module"></span><h2>transform.transform module<a class="headerlink" href="#module-transform.transform" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
+<dt id="transform.transform.average_data_by_period">
+<code class="descclassname">transform.transform.</code><code class="descname">average_data_by_period</code><span class="sig-paren">(</span><em>data: pandas.core.series.Series</em>, <em>period</em>, <em>aggregation_method='mean'</em>, <em>filter=False</em>, <em>coverage_threshold=1</em>, <em>return_coverage=False</em><span class="sig-paren">)</span> &#x2192; pandas.core.frame.DataFrame<a class="reference internal" href="_modules/transform/transform.html#average_data_by_period"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#transform.transform.average_data_by_period" title="Permalink to this definition">¶</a></dt>
+<dd><p>Averages the data by the time period specified by period.
+Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
+Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+Set period to 1M for monthly average
+Set period to 1AS for annual taking start of the year as the date
+For minutes use 10min, 20 min, etc.
+Can be a DateOffset object too</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="transform.transform.calc_lt_ref_speed">
 <code class="descclassname">transform.transform.</code><code class="descname">calc_lt_ref_speed</code><span class="sig-paren">(</span><em>data: pandas.core.frame.DataFrame</em>, <em>date_from: str = ''</em>, <em>date_to: str = ''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/transform/transform.html#calc_lt_ref_speed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#transform.transform.calc_lt_ref_speed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates and returns long term reference speed. Accepts a dataframe

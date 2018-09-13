@@ -6,6 +6,10 @@
 Welcome to brightwind's documentation!
 ======================================
 
+.. automodule:: analyse
+   :members:
+   :private-members:
+   
 .. automodule:: transform
    :members:
    :private-members:

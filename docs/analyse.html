@@ -1,0 +1,437 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>analyse package &#8212; brightwind 1 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">brightwind 1 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="analyse-package">
+<h1>analyse package<a class="headerlink" href="#analyse-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-analyse.correlation">
+<span id="analyse-correlation-module"></span><h2>analyse.correlation module<a class="headerlink" href="#module-analyse.correlation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="analyse.correlation.BulkSpeedRatio">
+<em class="property">class </em><code class="descclassname">analyse.correlation.</code><code class="descname">BulkSpeedRatio</code><span class="sig-paren">(</span><em>ref</em>, <em>target</em>, <em>averaging_prd</em>, <em>coverage_threshold</em>, <em>cutoff=None</em>, <em>preprocess=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#BulkSpeedRatio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.BulkSpeedRatio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#analyse.correlation.CorrelBase" title="analyse.correlation.CorrelBase"><code class="xref py py-class docutils literal"><span class="pre">analyse.correlation.CorrelBase</span></code></a></p>
+<dl class="method">
+<dt id="analyse.correlation.BulkSpeedRatio.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#BulkSpeedRatio.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.BulkSpeedRatio.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="analyse.correlation.CorrelBase">
+<em class="property">class </em><code class="descclassname">analyse.correlation.</code><code class="descname">CorrelBase</code><span class="sig-paren">(</span><em>ref</em>, <em>target</em>, <em>averaging_prd</em>, <em>coverage_threshold</em>, <em>ref_dir=None</em>, <em>target_dir=None</em>, <em>preprocess=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#CorrelBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.CorrelBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="analyse.correlation.CorrelBase.get_coverage">
+<code class="descname">get_coverage</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#CorrelBase.get_coverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.CorrelBase.get_coverage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.CorrelBase.get_error_metrics">
+<code class="descname">get_error_metrics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#CorrelBase.get_error_metrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.CorrelBase.get_error_metrics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.CorrelBase.get_r2">
+<code class="descname">get_r2</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#CorrelBase.get_r2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.CorrelBase.get_r2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the r2 score of the model</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.CorrelBase.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>title=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#CorrelBase.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.CorrelBase.plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.CorrelBase.show_params">
+<code class="descname">show_params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#CorrelBase.show_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.CorrelBase.show_params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.CorrelBase.synthesize">
+<code class="descname">synthesize</code><span class="sig-paren">(</span><em>ext_input=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#CorrelBase.synthesize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.CorrelBase.synthesize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="analyse.correlation.MultipleLinearRegression">
+<em class="property">class </em><code class="descclassname">analyse.correlation.</code><code class="descname">MultipleLinearRegression</code><span class="sig-paren">(</span><em>ref: typing.List</em>, <em>target</em>, <em>averaging_prd='1H'</em>, <em>coverage_threshold=0.9</em>, <em>preprocess=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#MultipleLinearRegression"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.MultipleLinearRegression" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#analyse.correlation.CorrelBase" title="analyse.correlation.CorrelBase"><code class="xref py py-class docutils literal"><span class="pre">analyse.correlation.CorrelBase</span></code></a></p>
+<dl class="method">
+<dt id="analyse.correlation.MultipleLinearRegression.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#MultipleLinearRegression.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.MultipleLinearRegression.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.MultipleLinearRegression.show_params">
+<code class="descname">show_params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#MultipleLinearRegression.show_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.MultipleLinearRegression.show_params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.MultipleLinearRegression.synthesize">
+<code class="descname">synthesize</code><span class="sig-paren">(</span><em>ext_input=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#MultipleLinearRegression.synthesize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.MultipleLinearRegression.synthesize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="analyse.correlation.OrdinaryLeastSquares">
+<em class="property">class </em><code class="descclassname">analyse.correlation.</code><code class="descname">OrdinaryLeastSquares</code><span class="sig-paren">(</span><em>ref</em>, <em>target</em>, <em>averaging_prd='1H'</em>, <em>coverage_threshold=0.9</em>, <em>preprocess=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#OrdinaryLeastSquares"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.OrdinaryLeastSquares" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#analyse.correlation.CorrelBase" title="analyse.correlation.CorrelBase"><code class="xref py py-class docutils literal"><span class="pre">analyse.correlation.CorrelBase</span></code></a></p>
+<p>Accepts two dataframes with timestamps as indexes and averaging period.
+:param ref_speed : Dataframe containing reference speed as a column, timestamp as the index.
+:param target_speed: Dataframe containing target speed as a column, timestamp as the index.
+:param averaging_prd: Groups data by the period specified by period.</p>
+<blockquote>
+<div>2T, 2 min for minutely average
+Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
+Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+week
+Set period to 1MS for monthly average
+Set period to 1AS fo annual average</div></blockquote>
+<p>:return An object representing ordinary least squares fit model</p>
+<dl class="staticmethod">
+<dt id="analyse.correlation.OrdinaryLeastSquares.linear_func">
+<em class="property">static </em><code class="descname">linear_func</code><span class="sig-paren">(</span><em>p</em>, <em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#OrdinaryLeastSquares.linear_func"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.OrdinaryLeastSquares.linear_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.OrdinaryLeastSquares.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#OrdinaryLeastSquares.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.OrdinaryLeastSquares.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="analyse.correlation.OrthogonalLeastSquares">
+<em class="property">class </em><code class="descclassname">analyse.correlation.</code><code class="descname">OrthogonalLeastSquares</code><span class="sig-paren">(</span><em>ref</em>, <em>target</em>, <em>averaging_prd</em>, <em>coverage_threshold</em>, <em>preprocess=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#OrthogonalLeastSquares"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.OrthogonalLeastSquares" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#analyse.correlation.CorrelBase" title="analyse.correlation.CorrelBase"><code class="xref py py-class docutils literal"><span class="pre">analyse.correlation.CorrelBase</span></code></a></p>
+<p>Accepts two dataframes with timestamps as indexes and averaging period.
+:param ref_speed : Dataframe containing reference speed as a column, timestamp as the index.
+:param target_speed: Dataframe containing target speed as a column, timestamp as the index.
+:param averaging_prd: Groups data by the period specified by period.</p>
+<blockquote>
+<div>2T, 2 min for minutely average
+Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
+Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+week
+Set period to 1MS for monthly average
+Set period to 1AS fo annual average</div></blockquote>
+<p>:return An object representing orthogonals least squares fit model</p>
+<dl class="method">
+<dt id="analyse.correlation.OrthogonalLeastSquares.linear_func">
+<code class="descname">linear_func</code><span class="sig-paren">(</span><em>p</em>, <em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#OrthogonalLeastSquares.linear_func"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.OrthogonalLeastSquares.linear_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.OrthogonalLeastSquares.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#OrthogonalLeastSquares.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.OrthogonalLeastSquares.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="analyse.correlation.SpeedSort">
+<em class="property">class </em><code class="descclassname">analyse.correlation.</code><code class="descname">SpeedSort</code><span class="sig-paren">(</span><em>ref_spd</em>, <em>ref_dir</em>, <em>target_spd</em>, <em>target_dir</em>, <em>averaging_prd</em>, <em>coverage_threshold</em>, <em>sectors=12</em>, <em>direction_bin_array=None</em>, <em>lt_ref_speed=None</em>, <em>preprocess=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#SpeedSort"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.SpeedSort" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#analyse.correlation.CorrelBase" title="analyse.correlation.CorrelBase"><code class="xref py py-class docutils literal"><span class="pre">analyse.correlation.CorrelBase</span></code></a></p>
+<dl class="class">
+<dt id="analyse.correlation.SpeedSort.SectorSpeedModel">
+<em class="property">class </em><code class="descname">SectorSpeedModel</code><span class="sig-paren">(</span><em>ref</em>, <em>target</em>, <em>lt_ref_speed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#SpeedSort.SectorSpeedModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.SpeedSort.SectorSpeedModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="analyse.correlation.SpeedSort.SectorSpeedModel.plot_model">
+<code class="descname">plot_model</code><span class="sig-paren">(</span><em>title</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#SpeedSort.SectorSpeedModel.plot_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.SpeedSort.SectorSpeedModel.plot_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.SpeedSort.SectorSpeedModel.sector_predict">
+<code class="descname">sector_predict</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#SpeedSort.SectorSpeedModel.sector_predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.SpeedSort.SectorSpeedModel.sector_predict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.SpeedSort.get_result_table">
+<code class="descname">get_result_table</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#SpeedSort.get_result_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.SpeedSort.get_result_table" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.SpeedSort.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#SpeedSort.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.SpeedSort.plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.SpeedSort.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#SpeedSort.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.SpeedSort.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="analyse.correlation.SpeedSort.synthesize">
+<code class="descname">synthesize</code><span class="sig-paren">(</span><em>input_spd=None</em>, <em>input_dir=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#SpeedSort.synthesize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.SpeedSort.synthesize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="analyse.correlation.degree_to_radian">
+<code class="descclassname">analyse.correlation.</code><code class="descname">degree_to_radian</code><span class="sig-paren">(</span><em>degree</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#degree_to_radian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.degree_to_radian" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="analyse.correlation.radian_to_degree">
+<code class="descclassname">analyse.correlation.</code><code class="descname">radian_to_degree</code><span class="sig-paren">(</span><em>radian</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#radian_to_degree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.radian_to_degree" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-analyse.frequency_analysis">
+<span id="analyse-frequency-analysis-module"></span><h2>analyse.frequency_analysis module<a class="headerlink" href="#module-analyse.frequency_analysis" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_12x24_TI_matrix">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_12x24_TI_matrix</code><span class="sig-paren">(</span><em>data</em>, <em>time_col_name</em>, <em>speed_col_name</em>, <em>std_col_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_12x24_TI_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_12x24_TI_matrix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_TI_by_Speed">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_TI_by_Speed</code><span class="sig-paren">(</span><em>data</em>, <em>speed_col_name</em>, <em>std_col_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_TI_by_Speed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_TI_by_Speed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_TI_by_sector">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_TI_by_sector</code><span class="sig-paren">(</span><em>data</em>, <em>speed_col_name</em>, <em>std_col_name</em>, <em>direction_col_name</em>, <em>sectors</em>, <em>min_speed</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_TI_by_sector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_TI_by_sector" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_basic_stats">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_basic_stats</code><span class="sig-paren">(</span><em>data</em>, <em>time_col_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_basic_stats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_basic_stats" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_binned_direction_series">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_binned_direction_series</code><span class="sig-paren">(</span><em>direction_series</em>, <em>sectors</em>, <em>direction_bin_array=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_binned_direction_series"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_binned_direction_series" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accepts a series with wind directions and number of sectors  you want to divide.
+:param  direction_series: Series of directions to bin
+:param  sectors: number of direction sectors
+:param direction_bin_array: An optional parameter, if you want custom direction bins pass an array</p>
+<blockquote>
+<div>of the bins. If nto specified direction_bins will be centered around 0</div></blockquote>
+<p>:returns  A series with direction-bins, bins centered around 0 degree by default if direction_bin_array
+is not specified</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_direction_bin_array">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_direction_bin_array</code><span class="sig-paren">(</span><em>sectors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_direction_bin_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_direction_bin_array" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_distribution">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_distribution</code><span class="sig-paren">(</span><em>var1_series</em>, <em>var2_series</em>, <em>var2_bin_array=array([ -0.5</em>, <em>0.5</em>, <em>1.5</em>, <em>2.5</em>, <em>3.5</em>, <em>4.5</em>, <em>5.5</em>, <em>6.5</em>, <em>7.5</em>, <em>8.5</em>, <em>9.5</em>, <em>10.5</em>, <em>11.5</em>, <em>12.5</em>, <em>13.5</em>, <em>14.5</em>, <em>15.5</em>, <em>16.5</em>, <em>17.5</em>, <em>18.5</em>, <em>19.5</em>, <em>20.5</em>, <em>21.5</em>, <em>22.5</em>, <em>23.5</em>, <em>24.5</em>, <em>25.5</em>, <em>26.5</em>, <em>27.5</em>, <em>28.5</em>, <em>29.5</em>, <em>30.5</em>, <em>31.5</em>, <em>32.5</em>, <em>33.5</em>, <em>34.5</em>, <em>35.5</em>, <em>36.5</em>, <em>37.5</em>, <em>38.5</em>, <em>39.5</em>, <em>40.5])</em>, <em>var2_bin_labels=None</em>, <em>aggregation_method='%frequency'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_distribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_distribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accepts 2 series of same/different variables and computes the distribution of first variable with respect to
+the bins of another variable.
+:param var1_series: Series of the variable whose distribution we need to find
+:param var2_series: Series of the variable which we want to bin
+:param var2_bin_array: Array of numbers where adjacent elements of array form a bin
+:param var2_bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default
+:param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
+describe, a custom function, etc,computes frequency in percentages by default
+:returns A DataFrame/Series with bins as row indexes and columns with statistics chosen by aggregation_method</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_distribution_by_wind_sector">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_distribution_by_wind_sector</code><span class="sig-paren">(</span><em>var_series</em>, <em>direction_series</em>, <em>sectors=12</em>, <em>aggregation_method='%frequency'</em>, <em>direction_bin_array=None</em>, <em>direction_bin_labels=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_distribution_by_wind_sector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_distribution_by_wind_sector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accepts a series of a variable and  wind direction. Computes the distribution of first variable with respect to
+wind direction sectors
+:param var_series: Series of the variable whose distribution we need to find
+:param direction_series: Series of wind directions between [0-360]
+:param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that</p>
+<blockquote>
+<div>behaviour specify direction_bin_array</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>aggregation_method</strong> – Statistical method used to find distribution it can be mean, max, min, std, count,</td>
+</tr>
+</tbody>
+</table>
+<p>describe, a custom function, etc. Computes frequency in percentages by default
+:param direction_bin_array: Optional, to change default behaviour of first sector centered at 0 assign an array of
+bins to this
+:param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
+labels of the format ‘30-90’ by default
+:returns A dataframe/series with wind direction sector as row indexes and columns with statistics chosen by
+aggregation_method</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_freq_table">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_freq_table</code><span class="sig-paren">(</span><em>var_series</em>, <em>direction_series</em>, <em>var_bin_array=array([ -0.5</em>, <em>0.5</em>, <em>1.5</em>, <em>2.5</em>, <em>3.5</em>, <em>4.5</em>, <em>5.5</em>, <em>6.5</em>, <em>7.5</em>, <em>8.5</em>, <em>9.5</em>, <em>10.5</em>, <em>11.5</em>, <em>12.5</em>, <em>13.5</em>, <em>14.5</em>, <em>15.5</em>, <em>16.5</em>, <em>17.5</em>, <em>18.5</em>, <em>19.5</em>, <em>20.5</em>, <em>21.5</em>, <em>22.5</em>, <em>23.5</em>, <em>24.5</em>, <em>25.5</em>, <em>26.5</em>, <em>27.5</em>, <em>28.5</em>, <em>29.5</em>, <em>30.5</em>, <em>31.5</em>, <em>32.5</em>, <em>33.5</em>, <em>34.5</em>, <em>35.5</em>, <em>36.5</em>, <em>37.5</em>, <em>38.5</em>, <em>39.5</em>, <em>40.5])</em>, <em>sectors=12</em>, <em>var_bin_labels=None</em>, <em>direction_bin_array=None</em>, <em>direction_bin_labels=None</em>, <em>freq_as_percentage=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_freq_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_freq_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
+direction are binned
+:param var_series: Series of variable to be binned
+:param direction_series: Series of wind directions between [0-360]
+:param var_bin_array: Array of numbers where adjacent elements of array form a bin
+:param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that</p>
+<blockquote>
+<div>behaviour specify direction_bin_array</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>var_bin_labels</strong> – Optional, an array of labels to use for variable bins</li>
+<li><strong>direction_bin_array</strong> – Optional, to change default behaviour of first sector centered at 0 assign an array of</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>bins to this
+:param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
+labels of the format ‘30-90’ by default
+:param freq_as_percentage: Optional, True by default. Returns the frequency as percentages. To return just the count
+change it to False
+:returns A DataFrame with row indexes as variable bins and columns as wind direction bins.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_monthly_coverage">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_monthly_coverage</code><span class="sig-paren">(</span><em>data</em>, <em>time_col_name</em>, <em>time_interval</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_monthly_coverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_monthly_coverage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_monthly_means">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_monthly_means</code><span class="sig-paren">(</span><em>data</em>, <em>time_col_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_monthly_means"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_monthly_means" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_sector_ratio">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_sector_ratio</code><span class="sig-paren">(</span><em>data</em>, <em>speed_col_name_1</em>, <em>speed_col_name_2</em>, <em>direction_col_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_sector_ratio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_sector_ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accepts a dataframe table, 2 anemometer names, and one wind vane name and returns the speed ratio by sector
+in a table.
+:param data: dataframe of windspeed and direction data
+:param speed_col_name_1: Anemometer 1 column name in dataframe. This is divisor series.
+:param speed_col_name_2: Anemometer 2 column name in dataframe.
+:param direction_col_name: Wind Vane column name in dataframe.
+:returns Table of speed ratio by sector</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.get_time_continuity">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">get_time_continuity</code><span class="sig-paren">(</span><em>data</em>, <em>time_col_name</em>, <em>time_interval</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#get_time_continuity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.get_time_continuity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.map_direction_bin">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">map_direction_bin</code><span class="sig-paren">(</span><em>wdir</em>, <em>bins</em>, <em>sectors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#map_direction_bin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.map_direction_bin" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="analyse.frequency_analysis.map_speed_bin">
+<code class="descclassname">analyse.frequency_analysis.</code><code class="descname">map_speed_bin</code><span class="sig-paren">(</span><em>wdspd</em>, <em>bins</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/frequency_analysis.html#map_speed_bin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.frequency_analysis.map_speed_bin" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-analyse.shear">
+<span id="analyse-shear-module"></span><h2>analyse.shear module<a class="headerlink" href="#module-analyse.shear" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="analyse.shear.calc_shear">
+<code class="descclassname">analyse.shear.</code><code class="descname">calc_shear</code><span class="sig-paren">(</span><em>wind_speeds: typing.List[float], heights: typing.List[float]</em><span class="sig-paren">)</span> &#x2192; float<a class="reference internal" href="_modules/analyse/shear.html#calc_shear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.shear.calc_shear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the shear using the power law method.
+:param wind_speeds: List of wind speeds.
+:param heights: List of heights. The position of the height in the list must be the same position in the list as its
+corresponding wind speed value.
+:return: The shear value alpha.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-analyse">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-analyse" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">brightwind 1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, BrightWind Analysis.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>
