@@ -124,18 +124,37 @@
 <dt id="analyse.correlation.OrdinaryLeastSquares">
 <em class="property">class </em><code class="descclassname">analyse.correlation.</code><code class="descname">OrdinaryLeastSquares</code><span class="sig-paren">(</span><em>ref</em>, <em>target</em>, <em>averaging_prd='1H'</em>, <em>coverage_threshold=0.9</em>, <em>preprocess=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#OrdinaryLeastSquares"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.OrdinaryLeastSquares" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#analyse.correlation.CorrelBase" title="analyse.correlation.CorrelBase"><code class="xref py py-class docutils literal"><span class="pre">analyse.correlation.CorrelBase</span></code></a></p>
-<p>Accepts two dataframes with timestamps as indexes and averaging period.
-:param ref_speed : Dataframe containing reference speed as a column, timestamp as the index.
-:param target_speed: Dataframe containing target speed as a column, timestamp as the index.
-:param averaging_prd: Groups data by the period specified by period.</p>
-<blockquote>
-<div>2T, 2 min for minutely average
+<dl class="docutils">
+<dt>Accepts two dataframes with timestamps as indexes and averaging period.</dt>
+<dd><table class="first docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">param ref_speed:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">Dataframe containing reference speed as a column, timestamp as the index.</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">param target_speed:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body">Dataframe containing target speed as a column, timestamp as the index.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">param averaging_prd:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">Groups data by the period specified by period.
+2T, 2 min for minutely average
 Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
 Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-week
 Set period to 1MS for monthly average
-Set period to 1AS fo annual average</div></blockquote>
-<p>:return An object representing ordinary least squares fit model</p>
+Set period to 1AS fo annual average</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">param coverage_threshold:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body">Minimum coverage to include for correlation</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">param preprocess:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">To average and check for coverage before correlating</td>
+</tr>
+</tbody>
+</table>
+<p class="last">:returns An object representing ordinary least squares fit model</p>
+</dd>
+</dl>
 <dl class="staticmethod">
 <dt id="analyse.correlation.OrdinaryLeastSquares.linear_func">
 <em class="property">static </em><code class="descname">linear_func</code><span class="sig-paren">(</span><em>p</em>, <em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#OrdinaryLeastSquares.linear_func"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.OrdinaryLeastSquares.linear_func" title="Permalink to this definition">¶</a></dt>
@@ -150,20 +169,37 @@ Set period to 1AS fo annual average</div></blockquote>
 
 <dl class="class">
 <dt id="analyse.correlation.OrthogonalLeastSquares">
-<em class="property">class </em><code class="descclassname">analyse.correlation.</code><code class="descname">OrthogonalLeastSquares</code><span class="sig-paren">(</span><em>ref</em>, <em>target</em>, <em>averaging_prd</em>, <em>coverage_threshold</em>, <em>preprocess=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#OrthogonalLeastSquares"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.OrthogonalLeastSquares" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">analyse.correlation.</code><code class="descname">OrthogonalLeastSquares</code><span class="sig-paren">(</span><em>ref: pandas.core.series.Series</em>, <em>target: pandas.core.series.Series</em>, <em>averaging_prd: str</em>, <em>coverage_threshold: float</em>, <em>preprocess: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#OrthogonalLeastSquares"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.OrthogonalLeastSquares" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#analyse.correlation.CorrelBase" title="analyse.correlation.CorrelBase"><code class="xref py py-class docutils literal"><span class="pre">analyse.correlation.CorrelBase</span></code></a></p>
-<p>Accepts two dataframes with timestamps as indexes and averaging period.
-:param ref_speed : Dataframe containing reference speed as a column, timestamp as the index.
-:param target_speed: Dataframe containing target speed as a column, timestamp as the index.
-:param averaging_prd: Groups data by the period specified by period.</p>
-<blockquote>
-<div>2T, 2 min for minutely average
+<dl class="docutils">
+<dt>Accepts two series with timestamps as indexes and averaging period.</dt>
+<dd><table class="first docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">param ref:</th><td class="field-body">Series containing reference speed as a column, timestamp as the index</td>
+</tr>
+<tr class="field-even field"><th class="field-name">param target:</th><td class="field-body">Series containing target speed as a column, timestamp as the index</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">param averaging_prd:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">Groups data by the period specified by period.
+2T, 2 min for minutely average
 Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
 Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-week
 Set period to 1MS for monthly average
-Set period to 1AS fo annual average</div></blockquote>
-<p>:return An object representing orthogonals least squares fit model</p>
+Set period to 1AS fo annual average</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">param coverage_threshold:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body">Minimum coverage to include for correlation</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">param preprocess:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">To average and check for coverage before correlating</td>
+</tr>
+</tbody>
+</table>
+<p class="last">:returns Returns an object representing the model</p>
+</dd>
+</dl>
 <dl class="method">
 <dt id="analyse.correlation.OrthogonalLeastSquares.linear_func">
 <code class="descname">linear_func</code><span class="sig-paren">(</span><em>p</em>, <em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/analyse/correlation.html#OrthogonalLeastSquares.linear_func"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#analyse.correlation.OrthogonalLeastSquares.linear_func" title="Permalink to this definition">¶</a></dt>
@@ -297,17 +333,22 @@ wind direction sectors
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>aggregation_method</strong> – Statistical method used to find distribution it can be mean, max, min, std, count,</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>aggregation_method</strong> – Statistical method used to find distribution it can be mean, max, min, std, count,
+describe, a custom function, etc. Computes frequency in percentages by default</li>
+<li><strong>direction_bin_array</strong> – Optional, to change default behaviour of first sector centered at 0 assign an array of
+bins to this</li>
+<li><strong>direction_bin_labels</strong> – Optional, you can specify an array of labels to be used for the bins. uses string
+labels of the format ‘30-90’ by default</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
-<p>describe, a custom function, etc. Computes frequency in percentages by default
-:param direction_bin_array: Optional, to change default behaviour of first sector centered at 0 assign an array of
-bins to this
-:param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
-labels of the format ‘30-90’ by default
-:returns A dataframe/series with wind direction sector as row indexes and columns with statistics chosen by
-aggregation_method</p>
+<dl class="docutils">
+<dt>:returns A dataframe/series with wind direction sector as row indexes and columns with statistics chosen by</dt>
+<dd>aggregation_method</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">

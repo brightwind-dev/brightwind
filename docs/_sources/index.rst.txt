@@ -10,12 +10,9 @@ Welcome to brightwind's documentation!
    :members:
    :private-members:
    
-.. automodule:: transform
-   :members:
-   :private-members:
    
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Contents:
 
 

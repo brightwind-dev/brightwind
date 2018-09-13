@@ -153,23 +153,27 @@ class CorrelBase:
 
 
 class OrthogonalLeastSquares(CorrelBase):
-    """Accepts two dataframes with timestamps as indexes and averaging period.
-    :param ref_speed : Dataframe containing reference speed as a column, timestamp as the index.
-    :param target_speed: Dataframe containing target speed as a column, timestamp as the index.
-    :param averaging_prd: Groups data by the period specified by period.
-        2T, 2 min for minutely average
-        Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
-        Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-        week
-        Set period to 1MS for monthly average
-        Set period to 1AS fo annual average
-    :return An object representing orthogonals least squares fit model
     """
-    # @staticmethod
+    Accepts two series with timestamps as indexes and averaging period.
+        :param ref: Series containing reference speed as a column, timestamp as the index
+        :param target: Series containing target speed as a column, timestamp as the index
+        :param averaging_prd: Groups data by the period specified by period.
+                2T, 2 min for minutely average
+                Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
+                Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+                Set period to 1MS for monthly average
+                Set period to 1AS fo annual average
+        :param coverage_threshold: Minimum coverage to include for correlation
+        :param preprocess: To average and check for coverage before correlating
+
+        :returns Returns an object representing the model
+
+    """
     def linear_func(p, x):
         return p[0] * x + p[1]
 
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=True):
+    def __init__(self, ref: pd.Series, target: pd.Series, averaging_prd: str, coverage_threshold: float, preprocess: bool = True):
+
         CorrelBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
         self.params = 'not run yet'
 
@@ -193,23 +197,29 @@ class OrthogonalLeastSquares(CorrelBase):
 
 
 class OrdinaryLeastSquares(CorrelBase):
-    """Accepts two dataframes with timestamps as indexes and averaging period.
-    :param ref_speed : Dataframe containing reference speed as a column, timestamp as the index.
-    :param target_speed: Dataframe containing target speed as a column, timestamp as the index.
-    :param averaging_prd: Groups data by the period specified by period.
-        2T, 2 min for minutely average
-        Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
-        Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-        week
-        Set period to 1MS for monthly average
-        Set period to 1AS fo annual average
-    :return An object representing ordinary least squares fit model
     """
+    Accepts two dataframes with timestamps as indexes and averaging period.
+        :param ref_speed: Dataframe containing reference speed as a column, timestamp as the index.
+        :param target_speed: Dataframe containing target speed as a column, timestamp as the index.
+        :param averaging_prd: Groups data by the period specified by period.
+                2T, 2 min for minutely average
+                Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
+                Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+                Set period to 1MS for monthly average
+                Set period to 1AS fo annual average
+        :param coverage_threshold: Minimum coverage to include for correlation
+        :param preprocess: To average and check for coverage before correlating
+
+        :returns An object representing ordinary least squares fit model
+
+    """
+
     @staticmethod
     def linear_func(p, x):
         return (p[0] * x) + p[1]
 
     def __init__(self, ref, target, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
+
         CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
         self.params = 'not run yet'
 

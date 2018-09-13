@@ -98,13 +98,13 @@ def get_distribution_by_wind_sector(var_series, direction_series, sectors=12, ag
     :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that
             behaviour specify direction_bin_array
     :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
-    describe, a custom function, etc. Computes frequency in percentages by default
+            describe, a custom function, etc. Computes frequency in percentages by default
     :param direction_bin_array: Optional, to change default behaviour of first sector centered at 0 assign an array of
-    bins to this
+            bins to this
     :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
-    labels of the format '30-90' by default
+            labels of the format '30-90' by default
     :returns A dataframe/series with wind direction sector as row indexes and columns with statistics chosen by
-    aggregation_method
+            aggregation_method
     """
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
