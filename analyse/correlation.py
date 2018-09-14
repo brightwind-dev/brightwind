@@ -100,6 +100,7 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
 
 
 class CorrelBase:
+
     def __init__(self, ref, target, averaging_prd, coverage_threshold, ref_dir=None, target_dir=None, preprocess=True):
         self.ref = ref
         self.ref_dir = ref_dir
@@ -127,9 +128,11 @@ class CorrelBase:
         return data
 
     def show_params(self):
+        "Show the dictionary of parameters"
         print(self.params)
 
     def plot(self, title=""):
+        """For plotting"""
         _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
                    self._predict(self.data['ref_spd']).values.flatten(), title=title)
 
@@ -152,65 +155,29 @@ class CorrelBase:
         return 0
 
 
-class OrthogonalLeastSquares(CorrelBase):
-    """
-    Accepts two series with timestamps as indexes and averaging period.
-        :param ref: Series containing reference speed as a column, timestamp as the index
-        :param target: Series containing target speed as a column, timestamp as the index
-        :param averaging_prd: Groups data by the period specified by period.
-                2T, 2 min for minutely average
-                Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
-                Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-                Set period to 1MS for monthly average
-                Set period to 1AS fo annual average
-        :param coverage_threshold: Minimum coverage to include for correlation
-        :param preprocess: To average and check for coverage before correlating
-
-        :returns Returns an object representing the model
-
-    """
-    def linear_func(p, x):
-        return p[0] * x + p[1]
-
-    def __init__(self, ref: pd.Series, target: pd.Series, averaging_prd: str, coverage_threshold: float, preprocess: bool = True):
-
-        CorrelBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
-        self.params = 'not run yet'
-
-    def __repr__(self):
-        return 'Orthogonal Least Squares Model '+str(self.params)
-
-    def run(self):
-        fit_data = RealData(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten())
-        p, res = lstsq(np.nan_to_num(fit_data.x[:, np.newaxis] ** [1, 0]), np.nan_to_num(np.asarray(fit_data.y)
-                                                                                                 [:, np.newaxis]))[0:2]
-        self._model = ODR(fit_data, Model(OrthogonalLeastSquares.linear_func), beta0=[p[0][0], p[1][0]])
-        self.out = self._model.run()
-        self.params = {'slope':self.out.beta[0], 'offset':self.out.beta[1]}
-        self.params['r2'] = self.get_r2()
-        print("Model output:", self.out.pprint())
-
-    def _predict(self, x):
-        def linear_func_inverted(x, p):
-            return OrthogonalLeastSquares.linear_func(p, x)
-        return x.transform(linear_func_inverted, p=[self.params['slope'],self.params['offset']])
-
-
 class OrdinaryLeastSquares(CorrelBase):
-    """
-    Accepts two dataframes with timestamps as indexes and averaging period.
-        :param ref_speed: Dataframe containing reference speed as a column, timestamp as the index.
-        :param target_speed: Dataframe containing target speed as a column, timestamp as the index.
-        :param averaging_prd: Groups data by the period specified by period.
-                2T, 2 min for minutely average
-                Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
-                Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-                Set period to 1MS for monthly average
-                Set period to 1AS fo annual average
-        :param coverage_threshold: Minimum coverage to include for correlation
-        :param preprocess: To average and check for coverage before correlating
+    """Accepts two dataframes with timestamps as indexes and averaging period.
 
-        :returns An object representing ordinary least squares fit model
+    :param ref_speed: Series containing reference speed as a column, timestamp as the index.
+    :type ref_speed: pandas.Series
+    :param target_speed: Dataframe containing target speed as a column, timestamp as the index.
+    :type target_speed: pandas.Series
+    :param averaging_prd: Groups data by the period specified by period.
+
+            - 2T, 2 min for minutely average
+            - Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
+            - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+            - Set period to 1MS for monthly average
+            - Set period to 1AS fo annual average
+
+    :type averaging_prd: string or pandas.DateOffset
+    :param coverage_threshold: Minimum coverage to include for correlation
+    :type coverage_threshold: float
+    :param preprocess: To average and check for coverage before correlating
+    :type preprocess: bool
+
+    :returns: An object representing ordinary least squares fit model
+
 
     """
 
@@ -237,6 +204,50 @@ class OrdinaryLeastSquares(CorrelBase):
         def linear_function(x, slope, offset):
             return (x*slope) + offset
         return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
+
+class OrthogonalLeastSquares(CorrelBase):
+    """Accepts two series with timestamps as indexes and averaging period.
+
+    :param ref: Series containing reference speed as a column, timestamp as the index
+    :param target: Series containing target speed as a column, timestamp as the index
+    :param averaging_prd: Groups data by the period specified by period.
+
+            * 2T, 2 min for minutely average
+            * Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
+            * Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+            * Set period to 1MS for monthly average
+            * Set period to 1AS fo annual average
+    :param coverage_threshold: Minimum coverage to include for correlation
+    :param preprocess: To average and check for coverage before correlating
+
+    :returns: Returns an object representing the model
+
+    """
+    def linear_func(p, x):
+        return p[0] * x + p[1]
+
+    def __init__(self, ref, target, averaging_prd, coverage_threshold, preprocess= True):
+
+        CorrelBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+        self.params = 'not run yet'
+
+    def __repr__(self):
+        return 'Orthogonal Least Squares Model '+str(self.params)
+
+    def run(self):
+        fit_data = RealData(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten())
+        p, res = lstsq(np.nan_to_num(fit_data.x[:, np.newaxis] ** [1, 0]), np.nan_to_num(np.asarray(fit_data.y)
+                                                                                                 [:, np.newaxis]))[0:2]
+        self._model = ODR(fit_data, Model(OrthogonalLeastSquares.linear_func), beta0=[p[0][0], p[1][0]])
+        self.out = self._model.run()
+        self.params = {'slope':self.out.beta[0], 'offset':self.out.beta[1]}
+        self.params['r2'] = self.get_r2()
+        print("Model output:", self.out.pprint())
+
+    def _predict(self, x):
+        def linear_func_inverted(x, p):
+            return OrthogonalLeastSquares.linear_func(p, x)
+        return x.transform(linear_func_inverted, p=[self.params['slope'],self.params['offset']])
 
 
 class MultipleLinearRegression(CorrelBase):
