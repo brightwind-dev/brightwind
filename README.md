@@ -2,7 +2,7 @@
 --------------
 
 <p align="center">
-  <img src="https://github.com/brightwindanalysis/brightwind/issues/1#issue-361326189" height="600" width="800">
+  <img src="https://user-images.githubusercontent.com/23189856/45693728-a171bc80-bb55-11e8-90a1-e5257b07efc0.jpg" height="600" width="800">
 </p>
 
 
