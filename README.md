@@ -1,8 +1,8 @@
-##Brightwind
+# Brightwind
 --------------
 
 <p align="center">
-  <img src="https://github.com/brightwindanalysis/brightwind/issues/1#issue-361326189" height="300" width="400">
+  <img src="https://github.com/brightwindanalysis/brightwind/issues/1#issue-361326189" height="600" width="800">
 </p>
 
 
