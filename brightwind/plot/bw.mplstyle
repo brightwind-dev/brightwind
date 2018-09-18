@@ -1,0 +1,20 @@
+#light asphalt #a0a0a0
+#dark asphalt #2e3743
+#BW dark green #6C9023
+#BW light green
+#BW main green #9ACD32
+#Download Gotham Rounded Book font on your PC
+#axes.grid : True
+grid.color : a0a0a0
+axes.edgecolor : 2e3743
+figure.figsize : 13, 9
+font.family : Gotham Rounded
+axes.labelsize : 18
+axes.titlesize : 18
+legend.fontsize : 12
+xtick.labelsize : 12
+ytick.labelsize : 12
+#axes.xmargin : 0
+#axes.ymargin : 0
+savefig.bbox : tight
+savefig.pad_inches : 0.1
