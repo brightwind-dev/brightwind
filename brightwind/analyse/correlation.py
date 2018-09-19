@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 
 from typing import List, Dict
-from ..transform import transform as tf
-from ..utils import utils
-from ..plot.plot import _scatter_plot
+from brightwind.transform import transform as tf
+from brightwind.utils import utils
+from brightwind.plot.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from .frequency_analysis import get_binned_direction_series
@@ -471,7 +471,7 @@ class SpeedSort(CorrelBase):
 
 class SVR(CorrelBase):
     def __init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=True):
-        from sc
+        from sklearn.svm import SVR
         CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
         self.params = 'not run yet'
 
