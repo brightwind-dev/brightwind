@@ -57,7 +57,7 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
 #     common_idxs, data_pts = tf._common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)
 #     return ref_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs], \
 #                     target_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs]
-#
+
 
 def _compute_wind_vector(wspd, wdir):
     """Returns north and east component of wind-vector"""
@@ -194,8 +194,8 @@ class OrdinaryLeastSquares(CorrelBase):
         return 'Ordinary Least Squares Model' + str(self.params)
 
     def run(self):
-        p, res = lstsq(self.data['ref_spd'].values.flatten()[:, np.newaxis]**[1, 0],
-                                             self.data['target_spd'].values.flatten())[0:2]
+        p, res = lstsq(np.nan_to_num(self.data['ref_spd'].values.flatten()[:, np.newaxis]**[1, 0]),
+                       np.nan_to_num(self.data['target_spd'].values.flatten()))[0:2]
 
         self.params = {'slope':p[0],'offset': p[1]}
         self.params['r2'] = self.get_r2()
