@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 
 from typing import List, Dict
-from transform import transform as tf
-from utils import utils
-from plot.plot import _scatter_plot
+from ..transform import transform as tf
+from ..utils import utils
+from ..plot.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from .frequency_analysis import get_binned_direction_series
@@ -467,3 +467,19 @@ class SpeedSort(CorrelBase):
                                                           filter=False, return_coverage=False)),self.data['target_spd']], axis=0)
         else:
             return self._predict(input_spd, input_dir)
+
+
+class SVR(CorrelBase):
+    def __init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=True):
+        from sc
+        CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+        self.params = 'not run yet'
+
+    def run(self):
+        self.params = dict()
+        self.params["slope"] = self.data['target_spd'].mean()/self.data['ref_spd'].mean()
+
+    def _predict(self, x):
+        def linear_function(x, slope):
+            return (x*slope)
+        return x.transform(linear_function, slope=self.params['slope'])
