@@ -10,27 +10,6 @@ from scipy.linalg import lstsq
 from analyse.frequency_analysis import get_binned_direction_series
 
 
-def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
-                                      aggregation_method_ref='mean', aggregation_method_target='mean'):
-    ref = ref.sort_index().dropna()
-    target = target.sort_index().dropna()
-    ref_overlap, target_overlap = tf._get_overlapping_data(ref, target, averaging_prd)
-    from pandas.tseries.frequencies import to_offset
-    ref_resolution = tf._get_data_resolution(ref_overlap.index)
-    target_resolution = tf._get_data_resolution(target_overlap.index)
-    if ref_resolution > target_resolution:
-        target_overlap = tf.average_data_by_period(target_overlap, to_offset(ref_resolution), filter=True,
-                                                   coverage_threshold=1,aggregation_method=aggregation_method_target)
-    if ref_resolution < target_resolution:
-        ref_overlap = tf.average_data_by_period(ref_overlap, to_offset(target_resolution), filter=True,
-                                                coverage_threshold=1,aggregation_method=aggregation_method_ref)
-    common_idxs, data_pts = tf._common_idxs(ref_overlap, target_overlap)
-    ref_concurrent = ref_overlap.loc[common_idxs]
-    target_concurrent = target_overlap.loc[common_idxs]
-    return tf.average_data_by_period(ref_concurrent, averaging_prd, filter=True, coverage_threshold=coverage_threshold, aggregation_method=aggregation_method_ref), \
-           tf.average_data_by_period(target_concurrent, averaging_prd, filter=True, coverage_threshold=coverage_threshold,aggregation_method=aggregation_method_target)
-
-
 # def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold):
 #     """A wrapper function that calls other functions necessary for pre-processing the data"""
 #     ref = ref.sort_index().dropna()
@@ -120,7 +99,7 @@ class CorrelBase:
 
     @staticmethod
     def _averager(ref, target, averaging_prd, coverage_threshold, ref_dir, target_dir):
-        data = pd.concat(list(_preprocess_data_for_correlations(ref, target, averaging_prd,
+        data = pd.concat(list(tf._preprocess_data_for_correlations(ref, target, averaging_prd,
                             coverage_threshold)), axis=1, join='inner')
         if ref_dir is not None and target_dir is not None:
             data = pd.concat([data]+list(_preprocess_dir_data_for_correlations(ref, ref_dir, target, target_dir,
@@ -258,7 +237,7 @@ class MultipleLinearRegression(CorrelBase):
         self.coverage_threshold = coverage_threshold
         self.preprocess = preprocess
         if preprocess:
-            self.data = pd.concat(list(_preprocess_data_for_correlations(self.ref, self.target, averaging_prd,
+            self.data = pd.concat(list(tf._preprocess_data_for_correlations(self.ref, self.target, averaging_prd,
                             coverage_threshold)), axis=1, join='inner')
         else:
             self.data = pd.concat(list(self.ref, self.target), axis=1, join='inner')
