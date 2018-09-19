@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>analyse.correlation &#8212; brightwind  documentation</title>
+    <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../index.html">
+          brightwind</a>
+        <span class="navbar-text navbar-version pull-left"><b>1</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../Structure.html">Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../API.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to_contribute.html">How to contribute?</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+              
+                
+              
+            
+            
+            
+            
+              <li class="hidden-sm"></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+      <div class="col-md-3">
+        <div id="sidebar" class="bs-sidenav" role="complementary">
+<form action="../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+    <div class="col-md-9 content">
+      
+  <h1>Source code for analyse.correlation</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">transform</span> <span class="k">import</span> <span class="n">transform</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">plot.plot</span> <span class="k">import</span> <span class="n">_scatter_plot</span>
+<span class="kn">from</span> <span class="nn">scipy.odr</span> <span class="k">import</span> <span class="n">ODR</span><span class="p">,</span> <span class="n">RealData</span><span class="p">,</span> <span class="n">Model</span>
+<span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="k">import</span> <span class="n">lstsq</span>
+<span class="kn">from</span> <span class="nn">analyse.frequency_analysis</span> <span class="k">import</span> <span class="n">get_binned_direction_series</span>
+
+
+<span class="c1"># def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold):</span>
+<span class="c1">#     &quot;&quot;&quot;A wrapper function that calls other functions necessary for pre-processing the data&quot;&quot;&quot;</span>
+<span class="c1">#     ref = ref.sort_index().dropna()</span>
+<span class="c1">#     target = target.sort_index().dropna()</span>
+<span class="c1">#     ref_overlap, target_overlap = tf._get_overlapping_data(ref, target, averaging_prd)</span>
+<span class="c1">#     ref_overlap_avgd = tf.average_data_by_period(ref_overlap, averaging_prd)</span>
+<span class="c1">#     target_overlap_avgd = tf.average_data_by_period(target_overlap, averaging_prd)</span>
+<span class="c1">#     ref_filtered_for_coverage = tf._filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)</span>
+<span class="c1">#     target_filtered_for_coverage = tf._filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)</span>
+<span class="c1">#     common_idxs, data_pts = tf._common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)</span>
+<span class="c1">#     return ref_filtered_for_coverage.drop([&#39;Count&#39;, &#39;Coverage&#39;], axis=1).loc[common_idxs], \</span>
+<span class="c1">#                     target_filtered_for_coverage.drop([&#39;Count&#39;, &#39;Coverage&#39;], axis=1).loc[common_idxs]</span>
+
+
+<span class="c1"># def _preprocess_power_data_for_correlations(ref: pd.DataFrame, target:pd.DataFrame, averaging_prd, coverage_threshold):</span>
+<span class="c1">#     &quot;&quot;&quot;A wrapper function that calls other functions necessary for pre-processing the data&quot;&quot;&quot;</span>
+<span class="c1">#     ref = ref.sort_index().dropna()</span>
+<span class="c1">#     target = target.sort_index().dropna()</span>
+<span class="c1">#     ref_overlap, target_overlap = tf._get_overlapping_data(ref, target, averaging_prd)</span>
+<span class="c1">#     ref_overlap_avgd = tf.average_data_by_period(ref_overlap, averaging_prd)</span>
+<span class="c1">#     target_overlap_avgd = tf.average_data_by_period(target_overlap, averaging_prd, aggregation_method=&#39;sum&#39;)</span>
+<span class="c1">#     ref_filtered_for_coverage = tf._filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)</span>
+<span class="c1">#     target_filtered_for_coverage = tf._filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)</span>
+<span class="c1">#     common_idxs, data_pts = tf._common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)</span>
+<span class="c1">#     return ref_filtered_for_coverage.drop([&#39;Count&#39;,&#39;Coverage&#39;], axis=1).loc[common_idxs], \</span>
+<span class="c1">#                     target_filtered_for_coverage.drop([&#39;Count&#39;,&#39;Coverage&#39;], axis=1).loc[common_idxs]</span>
+
+
+<span class="k">def</span> <span class="nf">_compute_wind_vector</span><span class="p">(</span><span class="n">wspd</span><span class="p">,</span> <span class="n">wdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns north and east component of wind-vector&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">wspd</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">wdir</span><span class="p">),</span> <span class="n">wspd</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">wdir</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">degree_to_radian</span><span class="p">(</span><span class="n">degree</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">degree</span> <span class="o">/</span><span class="mf">180.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+
+
+<span class="k">def</span> <span class="nf">radian_to_degree</span><span class="p">(</span><span class="n">radian</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">radian</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="mf">180.0</span>
+
+
+<span class="k">def</span> <span class="nf">_dir_averager</span><span class="p">(</span><span class="n">spd_overlap</span><span class="p">,</span> <span class="nb">dir</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">):</span>
+    <span class="n">vec</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">spd_overlap</span><span class="p">,</span> <span class="nb">dir</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">degree_to_radian</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">)</span>
+    <span class="n">vec</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;spd&#39;</span><span class="p">,</span> <span class="s1">&#39;dir&#39;</span><span class="p">]</span>
+    <span class="n">vec</span><span class="p">[</span><span class="s1">&#39;N&#39;</span><span class="p">],</span> <span class="n">vec</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_compute_wind_vector</span><span class="p">(</span><span class="n">vec</span><span class="p">[</span><span class="s1">&#39;spd&#39;</span><span class="p">],</span> <span class="n">vec</span><span class="p">[</span><span class="s1">&#39;dir&#39;</span><span class="p">])</span>
+    <span class="n">vec_N_avgd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">average_data_by_period</span><span class="p">(</span><span class="n">vec</span><span class="p">[</span><span class="s1">&#39;N&#39;</span><span class="p">],</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_coverage</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">vec_E_avgd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">average_data_by_period</span><span class="p">(</span><span class="n">vec</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">],</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">return_coverage</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">vec_dir_avgd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">vec_E_avgd</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="n">vec_E_avgd</span><span class="o">.</span><span class="n">columns</span> <span class="o">!=</span> <span class="s1">&#39;Count&#39;</span><span class="p">],</span> <span class="n">vec_N_avgd</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="n">vec_N_avgd</span><span class="o">.</span><span class="n">columns</span> <span class="o">!=</span>
+                                                    <span class="s1">&#39;Count&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">applymap</span><span class="p">(</span><span class="n">radian_to_degree</span><span class="p">)</span><span class="o">.</span><span class="n">applymap</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">_range_0_to_360</span><span class="p">)</span>
+    <span class="n">vec_dir_avgd</span><span class="o">.</span><span class="n">loc</span><span class="p">[:]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">vec_dir_avgd</span><span class="o">.</span><span class="n">loc</span><span class="p">[:])</span>
+    <span class="n">vec_dir_avgd</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">vec_dir_avgd</span><span class="p">,</span><span class="n">vec_E_avgd</span><span class="p">[</span><span class="s1">&#39;Count&#39;</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">vec_dir_avgd</span>
+
+
+<span class="k">def</span> <span class="nf">_preprocess_dir_data_for_correlations</span><span class="p">(</span><span class="n">ref_spd</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">ref_dir</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">target_spd</span><span class="p">:</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+                                          <span class="n">target_dir</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">):</span>
+    <span class="n">ref_spd</span> <span class="o">=</span> <span class="n">ref_spd</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+    <span class="n">target_spd</span> <span class="o">=</span> <span class="n">target_spd</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+    <span class="n">ref_overlap</span><span class="p">,</span> <span class="n">target_overlap</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">_get_overlapping_data</span><span class="p">(</span><span class="n">ref_spd</span><span class="p">,</span> <span class="n">target_spd</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">)</span>
+    <span class="n">ref_dir_avgd</span> <span class="o">=</span> <span class="n">_dir_averager</span><span class="p">(</span><span class="n">ref_overlap</span><span class="p">,</span> <span class="n">ref_dir</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">)</span>
+    <span class="n">target_dir_avgd</span> <span class="o">=</span> <span class="n">_dir_averager</span><span class="p">(</span><span class="n">target_overlap</span><span class="p">,</span> <span class="n">target_dir</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">)</span>
+    <span class="n">ref_dir_filtered_for_coverage</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">_filter_by_coverage_threshold</span><span class="p">(</span><span class="n">ref_dir</span><span class="p">,</span> <span class="n">ref_dir_avgd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">)</span>
+    <span class="n">target_dir_filtered_for_coverage</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">_filter_by_coverage_threshold</span><span class="p">(</span><span class="n">target_dir</span><span class="p">,</span> <span class="n">target_dir_avgd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">)</span>
+    <span class="n">common_idxs</span><span class="p">,</span> <span class="n">data_pts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">_common_idxs</span><span class="p">(</span><span class="n">ref_dir_filtered_for_coverage</span><span class="p">,</span> <span class="n">target_dir_filtered_for_coverage</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ref_dir_filtered_for_coverage</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s1">&#39;Count&#39;</span><span class="p">,</span><span class="s1">&#39;Coverage&#39;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">common_idxs</span><span class="p">],</span> \
+                    <span class="n">target_dir_filtered_for_coverage</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s1">&#39;Count&#39;</span><span class="p">,</span><span class="s1">&#39;Coverage&#39;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">common_idxs</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">CorrelBase</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">,</span> <span class="n">ref_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref</span> <span class="o">=</span> <span class="n">ref</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_dir</span> <span class="o">=</span> <span class="n">ref_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">averaging_prd</span> <span class="o">=</span> <span class="n">averaging_prd</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coverage_threshold</span> <span class="o">=</span> <span class="n">coverage_threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preprocess</span> <span class="o">=</span> <span class="n">preprocess</span>
+        <span class="k">if</span> <span class="n">preprocess</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">CorrelBase</span><span class="o">.</span><span class="n">_averager</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">,</span> <span class="n">ref_dir</span><span class="p">,</span> <span class="n">target_dir</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">ref_dir</span><span class="p">,</span> <span class="n">target_dir</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ref_dir</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">target_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">,</span> <span class="s1">&#39;target_spd&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">,</span> <span class="s1">&#39;target_spd&#39;</span><span class="p">,</span> <span class="s1">&#39;ref_dir&#39;</span><span class="p">,</span> <span class="s1">&#39;target_dir&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_data_pts</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_averager</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">,</span> <span class="n">ref_dir</span><span class="p">,</span> <span class="n">target_dir</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">_preprocess_data_for_correlations</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span>
+                            <span class="n">coverage_threshold</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ref_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">target_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">data</span><span class="p">]</span><span class="o">+</span><span class="nb">list</span><span class="p">(</span><span class="n">_preprocess_dir_data_for_correlations</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">ref_dir</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">target_dir</span><span class="p">,</span>
+                                                            <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">show_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Show the dictionary of parameters&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;For plotting&quot;&quot;&quot;</span>
+        <span class="n">_scatter_plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">synthesize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ext_input</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ext_input</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">average_data_by_period</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="o">.</span><span class="n">loc</span><span class="p">[:</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)],</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">averaging_prd</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_coverage</span><span class="o">=</span><span class="kc">False</span><span class="p">)),</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">ext_input</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_r2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the r2 score of the model&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="nb">sum</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="nb">sum</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">get_error_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">0</span>
+
+
+<div class="viewcode-block" id="OrdinaryLeastSquares"><a class="viewcode-back" href="../../analyse.html#analyse.correlation.OrdinaryLeastSquares">[docs]</a><span class="k">class</span> <span class="nc">OrdinaryLeastSquares</span><span class="p">(</span><span class="n">CorrelBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Accepts two dataframes with timestamps as indexes and averaging period.</span>
+
+<span class="sd">    :param ref_speed: Series containing reference speed as a column, timestamp as the index.</span>
+<span class="sd">    :type ref_speed: pandas.Series</span>
+<span class="sd">    :param target_speed: Dataframe containing target speed as a column, timestamp as the index.</span>
+<span class="sd">    :type target_speed: pandas.Series</span>
+<span class="sd">    :param averaging_prd: Groups data by the period specified by period.</span>
+
+<span class="sd">            - 2T, 2 min for minutely average</span>
+<span class="sd">            - Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.</span>
+<span class="sd">            - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.</span>
+<span class="sd">            - Set period to 1MS for monthly average</span>
+<span class="sd">            - Set period to 1AS fo annual average</span>
+
+<span class="sd">    :type averaging_prd: string or pandas.DateOffset</span>
+<span class="sd">    :param coverage_threshold: Minimum coverage to include for correlation</span>
+<span class="sd">    :type coverage_threshold: float</span>
+<span class="sd">    :param preprocess: To average and check for coverage before correlating</span>
+<span class="sd">    :type preprocess: bool</span>
+
+<span class="sd">    :returns: An object representing ordinary least squares fit model</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="OrdinaryLeastSquares.linear_func"><a class="viewcode-back" href="../../analyse.html#analyse.correlation.OrdinaryLeastSquares.linear_func">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">linear_func</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="o">=</span><span class="s1">&#39;1H&#39;</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+        <span class="n">CorrelBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="n">preprocess</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="s1">&#39;not run yet&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;Ordinary Least Squares Model&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="OrdinaryLeastSquares.run"><a class="viewcode-back" href="../../analyse.html#analyse.correlation.OrdinaryLeastSquares.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">p</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="n">lstsq</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">**</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span>
+                       <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()))[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;slope&#39;</span><span class="p">:</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="s1">&#39;offset&#39;</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;r2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_r2</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">linear_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">slope</span><span class="p">,</span> <span class="n">offset</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="o">*</span><span class="n">slope</span><span class="p">)</span> <span class="o">+</span> <span class="n">offset</span>
+        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">linear_function</span><span class="p">,</span> <span class="n">slope</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;slope&#39;</span><span class="p">],</span> <span class="n">offset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;offset&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="OrthogonalLeastSquares"><a class="viewcode-back" href="../../API.html#analyse.correlation.OrthogonalLeastSquares">[docs]</a><span class="k">class</span> <span class="nc">OrthogonalLeastSquares</span><span class="p">(</span><span class="n">CorrelBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Accepts two series with timestamps as indexes and averaging period.</span>
+
+<span class="sd">    :param ref: Series containing reference speed as a column, timestamp as the index</span>
+<span class="sd">    :param target: Series containing target speed as a column, timestamp as the index</span>
+<span class="sd">    :param averaging_prd: Groups data by the period specified by period.</span>
+
+<span class="sd">            * 2T, 2 min for minutely average</span>
+<span class="sd">            * Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.</span>
+<span class="sd">            * Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.</span>
+<span class="sd">            * Set period to 1MS for monthly average</span>
+<span class="sd">            * Set period to 1AS fo annual average</span>
+<span class="sd">    :param coverage_threshold: Minimum coverage to include for correlation</span>
+<span class="sd">    :param preprocess: To average and check for coverage before correlating</span>
+
+<span class="sd">    :returns: Returns an object representing the model</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="OrthogonalLeastSquares.linear_func"><a class="viewcode-back" href="../../API.html#analyse.correlation.OrthogonalLeastSquares.linear_func">[docs]</a>    <span class="k">def</span> <span class="nf">linear_func</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+
+        <span class="n">CorrelBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="n">preprocess</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="s1">&#39;not run yet&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;Orthogonal Least Squares Model &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="OrthogonalLeastSquares.run"><a class="viewcode-back" href="../../API.html#analyse.correlation.OrthogonalLeastSquares.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fit_data</span> <span class="o">=</span> <span class="n">RealData</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+        <span class="n">p</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="n">lstsq</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">fit_data</span><span class="o">.</span><span class="n">x</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">**</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">fit_data</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+                                                                                                 <span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]))[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">ODR</span><span class="p">(</span><span class="n">fit_data</span><span class="p">,</span> <span class="n">Model</span><span class="p">(</span><span class="n">OrthogonalLeastSquares</span><span class="o">.</span><span class="n">linear_func</span><span class="p">),</span> <span class="n">beta0</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;slope&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">beta</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;offset&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">beta</span><span class="p">[</span><span class="mi">1</span><span class="p">]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;r2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_r2</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Model output:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">pprint</span><span class="p">())</span></div>
+
+    <span class="k">def</span> <span class="nf">_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">linear_func_inverted</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">OrthogonalLeastSquares</span><span class="o">.</span><span class="n">linear_func</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">linear_func_inverted</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;slope&#39;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;offset&#39;</span><span class="p">]])</span></div>
+
+
+<span class="k">class</span> <span class="nc">MultipleLinearRegression</span><span class="p">(</span><span class="n">CorrelBase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="n">List</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="o">=</span><span class="s1">&#39;1H&#39;</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">averaging_prd</span> <span class="o">=</span> <span class="n">averaging_prd</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coverage_threshold</span> <span class="o">=</span> <span class="n">coverage_threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preprocess</span> <span class="o">=</span> <span class="n">preprocess</span>
+        <span class="k">if</span> <span class="n">preprocess</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">_preprocess_data_for_correlations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span>
+                            <span class="n">coverage_threshold</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ref_spd_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="o">.</span><span class="n">columns</span><span class="p">))]</span><span class="o">+</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="s1">&#39;not run yet&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;Multiple Linear Regression Model&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">p</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="n">lstsq</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,:</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+                                        <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)))),</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">())[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;slope&#39;</span><span class="p">:</span><span class="n">p</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="s1">&#39;offset&#39;</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]}</span>
+
+    <span class="k">def</span> <span class="nf">show_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">linear_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">slope</span><span class="p">,</span> <span class="n">offset</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x</span><span class="o">*</span><span class="n">slope</span><span class="p">)</span> <span class="o">+</span> <span class="n">offset</span>
+        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">linear_function</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">slope</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;slope&#39;</span><span class="p">],</span> <span class="n">offset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;offset&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">synthesize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ext_input</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ext_input</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">average_data_by_period</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="o">.</span><span class="n">loc</span><span class="p">[:</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)],</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">averaging_prd</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_coverage</span><span class="o">=</span><span class="kc">False</span><span class="p">)),</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">ext_input</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">BulkSpeedRatio</span><span class="p">(</span><span class="n">CorrelBase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">CorrelBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="n">preprocess</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="s1">&#39;not run yet&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span> <span class="o">=</span> <span class="n">cutoff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="p">()</span>      <span class="c1">#Filter low wind speeds</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;Multiple Linear Regression Model&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span><span class="p">)]</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;slope&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">linear_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">slope</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="o">*</span><span class="n">slope</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">linear_function</span><span class="p">,</span> <span class="n">slope</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;slope&#39;</span><span class="p">])</span>
+
+
+<span class="k">class</span> <span class="nc">SpeedSort</span><span class="p">(</span><span class="n">CorrelBase</span><span class="p">):</span>
+
+    <span class="k">class</span> <span class="nc">SectorSpeedModel</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">lt_ref_speed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sector_ref</span> <span class="o">=</span> <span class="n">ref</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sector_target</span> <span class="o">=</span> <span class="n">target</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">lt_ref_speed</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">)</span>
+            <span class="n">x_data</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">wdspd</span> <span class="k">for</span> <span class="n">wdspd</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sector_ref</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()])</span>
+            <span class="n">y_data</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">wdspd</span> <span class="k">for</span> <span class="n">wdspd</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sector_target</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()])</span>
+            <span class="n">start_idx</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">wdspd</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">x_data</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">wdspd</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span><span class="p">:</span>
+                    <span class="n">start_idx</span> <span class="o">=</span> <span class="n">idx</span>
+                    <span class="k">break</span>
+            <span class="n">x_data</span> <span class="o">=</span> <span class="n">x_data</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:]</span>
+            <span class="n">y_data</span> <span class="o">=</span> <span class="n">y_data</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_cutoff</span> <span class="o">=</span> <span class="n">y_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_pts</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_data</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_data</span><span class="p">))</span>
+            <span class="c1"># Line fit</span>
+            <span class="n">mid_pnt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">xmean1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x_data</span><span class="p">[:</span><span class="n">mid_pnt</span><span class="p">])</span>
+            <span class="n">xmean2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x_data</span><span class="p">[</span><span class="n">mid_pnt</span><span class="p">:])</span>
+            <span class="n">ymean1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y_data</span><span class="p">[:</span><span class="n">mid_pnt</span><span class="p">])</span>
+            <span class="n">ymean2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y_data</span><span class="p">[</span><span class="n">mid_pnt</span><span class="p">:])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;slope&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">ymean2</span> <span class="o">-</span> <span class="n">ymean1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">xmean2</span> <span class="o">-</span> <span class="n">xmean1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;offset&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ymean1</span> <span class="o">-</span> <span class="p">(</span><span class="n">xmean1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;slope&#39;</span><span class="p">])</span>
+            <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">sector_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">linear_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">slope</span><span class="p">,</span> <span class="n">offset</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">slope</span> <span class="o">+</span> <span class="n">offset</span>
+            <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">linear_function</span><span class="p">,</span> <span class="n">slope</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;slope&#39;</span><span class="p">],</span> <span class="n">offset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;offset&#39;</span><span class="p">])</span>
+
+        <span class="k">def</span> <span class="nf">plot_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">):</span>
+            <span class="n">_scatter_plot</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sector_ref</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()),</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sector_target</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()),</span>
+                          <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sector_predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sector_ref</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()),</span><span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span><span class="mi">7</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_spd</span><span class="p">,</span> <span class="n">ref_dir</span><span class="p">,</span> <span class="n">target_spd</span><span class="p">,</span> <span class="n">target_dir</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">,</span> <span class="n">sectors</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+                 <span class="n">direction_bin_array</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lt_ref_speed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">CorrelBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_spd</span><span class="p">,</span> <span class="n">target_spd</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">,</span> <span class="n">ref_dir</span><span class="o">=</span><span class="n">ref_dir</span><span class="p">,</span>
+                                                                        <span class="n">target_dir</span><span class="o">=</span><span class="n">target_dir</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="n">preprocess</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sectors</span> <span class="o">=</span> <span class="n">sectors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">direction_bin_array</span> <span class="o">=</span> <span class="n">direction_bin_array</span>
+        <span class="k">if</span> <span class="n">lt_ref_speed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lt_ref_speed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">calc_lt_ref_speed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lt_ref_speed</span> <span class="o">=</span> <span class="n">lt_ref_speed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lt_ref_speed</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_veer_cutoff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_veer_cutoff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_veer_cutoff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_veer_cutoff</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_randomize_calm_periods</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_overall_veer</span><span class="p">()</span>
+        <span class="c1"># for low ref_speed and high target_speed recalculate direction sector</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_adjust_low_reference_speed_dir</span><span class="p">()</span>
+        <span class="c1">#round-off directions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_round_off_directions</span><span class="p">()</span>
+        <span class="c1"># add direction sector</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_dir_bins</span> <span class="o">=</span> <span class="n">get_binned_direction_series</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_dir&#39;</span><span class="p">],</span> <span class="n">sectors</span><span class="p">,</span>
+                                                    <span class="n">direction_bin_array</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">direction_bin_array</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;ref_dir_bin&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_dir_bins</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="s1">&#39;not run yet&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;Speed Sort Model &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_round_off_directions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;ref_dir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;ref_dir&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;target_dir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;target_dir&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_randomize_calm_periods</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">idxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">idxs</span><span class="p">,</span> <span class="s1">&#39;ref_dir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">360.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">idxs</span><span class="p">))</span>
+        <span class="n">idxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">idxs</span><span class="p">,</span> <span class="s1">&#39;target_dir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">360.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">idxs</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_get_overall_veer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">idxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_veer_cutoff</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span> <span class="o">&gt;=</span>
+                                                                           <span class="bp">self</span><span class="o">.</span><span class="n">target_veer_cutoff</span><span class="p">)]</span><span class="o">.</span><span class="n">index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">overall_veer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_veer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">idxs</span><span class="p">,</span> <span class="s1">&#39;ref_dir&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">idxs</span><span class="p">,</span> <span class="s1">&#39;target_dir&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_adjust_low_reference_speed_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">idxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]</span><span class="o">+</span><span class="mi">4</span><span class="p">))]</span><span class="o">.</span><span class="n">index</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">idxs</span><span class="p">,</span> <span class="s1">&#39;ref_dir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">idxs</span><span class="p">,</span> <span class="s1">&#39;target_dir&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">overall_veer</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">_range_0_to_360</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_veer_cutoff</span><span class="p">(</span><span class="n">speed_col</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="mf">6.0</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="n">speed_col</span><span class="o">.</span><span class="n">mean</span><span class="p">()))</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_veer</span><span class="p">(</span><span class="n">ref_d</span><span class="p">,</span> <span class="n">target_d</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">change_range</span><span class="p">(</span><span class="n">veer</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">veer</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">veer</span> <span class="o">-</span> <span class="mf">360.0</span>
+            <span class="k">elif</span> <span class="n">veer</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">180</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">veer</span> <span class="o">+</span> <span class="mf">360.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">veer</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">target_d</span> <span class="o">-</span> <span class="n">ref_d</span>
+        <span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">change_range</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_avg_veer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sector_data</span><span class="p">):</span>
+        <span class="n">sector_data</span> <span class="o">=</span> <span class="n">sector_data</span><span class="p">[(</span><span class="n">sector_data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_veer_cutoff</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">sector_data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span> <span class="o">&gt;=</span>
+                                                                                      <span class="bp">self</span><span class="o">.</span><span class="n">target_veer_cutoff</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;average_veer&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_veer</span><span class="p">(</span><span class="n">sector_data</span><span class="p">[</span><span class="s1">&#39;ref_dir&#39;</span><span class="p">],</span> <span class="n">sector_data</span><span class="p">[</span><span class="s1">&#39;target_dir&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+                <span class="s1">&#39;num_pts_for_veer&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">sector_data</span><span class="p">[</span><span class="s1">&#39;ref_dir&#39;</span><span class="p">])}</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;Ref_cutoff_for_speed&#39;</span><span class="p">]</span> <span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;Ref_veer_cutoff&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_veer_cutoff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;Target_veer_cutoff&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_veer_cutoff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;Overall_average_veer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">overall_veer</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">speed_model</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">sector</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;ref_dir_bin&#39;</span><span class="p">]):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Processing sector:&#39;</span><span class="p">,</span> <span class="n">sector</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">speed_model</span><span class="p">[</span><span class="n">sector</span><span class="p">]</span> <span class="o">=</span> <span class="n">SpeedSort</span><span class="o">.</span><span class="n">SectorSpeedModel</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">],</span> <span class="n">target</span><span class="o">=</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">],</span>
+                                                        <span class="n">lt_ref_speed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lt_ref_speed</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">sector</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;slope&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">speed_model</span><span class="p">[</span><span class="n">sector</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;slope&#39;</span><span class="p">],</span>
+                                   <span class="s1">&#39;offset&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">speed_model</span><span class="p">[</span><span class="n">sector</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;offset&#39;</span><span class="p">],</span>
+                                   <span class="s1">&#39;target_cutoff&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">speed_model</span><span class="p">[</span><span class="n">sector</span><span class="p">]</span><span class="o">.</span><span class="n">target_cutoff</span><span class="p">,</span>
+                                   <span class="s1">&#39;num_pts_for_speed_fit&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">speed_model</span><span class="p">[</span><span class="n">sector</span><span class="p">]</span><span class="o">.</span><span class="n">data_pts</span><span class="p">,</span>
+                                   <span class="s1">&#39;num_total_pts&#39;</span><span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">count</span><span class="p">())}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">sector</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_avg_veer</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">get_result_table</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="n">key</span><span class="p">]),</span> <span class="n">result</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">speed_model</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">speed_model</span><span class="p">[</span><span class="n">model</span><span class="p">]</span><span class="o">.</span><span class="n">plot_model</span><span class="p">(</span><span class="s1">&#39;Sector &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_spd</span><span class="p">,</span> <span class="n">x_dir</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">x_spd</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;spd&#39;</span><span class="p">),</span> <span class="n">get_binned_direction_series</span><span class="p">(</span><span class="n">x_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sectors</span><span class="p">,</span> <span class="n">direction_bin_array</span><span class="o">=</span>
+                                                <span class="bp">self</span><span class="o">.</span><span class="n">direction_bin_array</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;ref_dir_bin&#39;</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">)</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">sector</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;ref_dir_bin&#39;</span><span class="p">]):</span>
+            <span class="n">prediction</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">speed_model</span><span class="p">[</span><span class="n">sector</span><span class="p">]</span><span class="o">.</span><span class="n">sector_predict</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;spd&#39;</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">prediction</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">synthesize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_spd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">input_spd</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">input_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">average_data_by_period</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="o">.</span><span class="n">loc</span><span class="p">[:</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)],</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">averaging_prd</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">return_coverage</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                                <span class="n">tf</span><span class="o">.</span><span class="n">average_data_by_period</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_dir</span><span class="o">.</span><span class="n">loc</span><span class="p">[:</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)],</span><span class="bp">self</span><span class="o">.</span><span class="n">averaging_prd</span><span class="p">,</span>
+                                                          <span class="nb">filter</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_coverage</span><span class="o">=</span><span class="kc">False</span><span class="p">)),</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">input_spd</span><span class="p">,</span> <span class="n">input_dir</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">SVR</span><span class="p">(</span><span class="n">CorrelBase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s1">&#39;rbf&#39;</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">CorrelBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">averaging_prd</span><span class="p">,</span> <span class="n">coverage_threshold</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="n">preprocess</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">C</span> <span class="o">=</span> <span class="n">C</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+        <span class="c1"># self.kwargs  = **kwargs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="s1">&#39;not run yet&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;Support Vector Regression Model &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">sklearn.svm</span> <span class="k">import</span> <span class="n">SVR</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">SVR</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;slope&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2018, BrightWind Analysis.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

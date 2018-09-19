@@ -20,7 +20,7 @@
 import os
 import sys
 import sphinx_bootstrap_theme
-sys.path.insert(0, r'C:\BW\RTD\repos-hadley\brightwind')
+sys.path.insert(0, r'C:\BW\RTD\repos-hadley\brightwind\brightwind')
 
 
 # -- General configuration ------------------------------------------------

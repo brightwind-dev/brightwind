@@ -1,0 +1,22 @@
+brightwind\.load package
+========================
+
+Submodules
+----------
+
+brightwind\.load\.reanalysis module
+-----------------------------------
+
+.. automodule:: brightwind.load.reanalysis
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: brightwind.load
+    :members:
+    :undoc-members:
+    :show-inheritance:

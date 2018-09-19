@@ -1,0 +1,34 @@
+brightwind package
+==================
+
+Subpackages
+-----------
+
+.. toctree::
+
+    brightwind.analyse
+    brightwind.export
+    brightwind.load
+    brightwind.plot
+    brightwind.transform
+    brightwind.utils
+
+Submodules
+----------
+
+brightwind\.inheritance\_class\_method\_test module
+---------------------------------------------------
+
+.. automodule:: brightwind.inheritance_class_method_test
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: brightwind
+    :members:
+    :undoc-members:
+    :show-inheritance:

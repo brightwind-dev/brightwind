@@ -1,0 +1,22 @@
+brightwind\.plot package
+========================
+
+Submodules
+----------
+
+brightwind\.plot\.plot module
+-----------------------------
+
+.. automodule:: brightwind.plot.plot
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: brightwind.plot
+    :members:
+    :undoc-members:
+    :show-inheritance:
