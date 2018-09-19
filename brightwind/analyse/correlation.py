@@ -2,12 +2,12 @@ import pandas as pd
 import numpy as np
 
 from typing import List, Dict
-from brightwind.transform import transform as tf
-from brightwind.utils import utils
-from brightwind.plot.plot import _scatter_plot
+from transform import transform as tf
+from utils import utils
+from plot.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
-from .frequency_analysis import get_binned_direction_series
+from analyse.frequency_analysis import get_binned_direction_series
 
 
 def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
@@ -266,7 +266,7 @@ class MultipleLinearRegression(CorrelBase):
         self.data = self.data.dropna()
         self.params = 'not run yet'
 
-    def __repr(self):
+    def __repr__(self):
         return 'Multiple Linear Regression Model' + str(self.params)
 
     def run(self):
@@ -296,6 +296,9 @@ class BulkSpeedRatio(CorrelBase):
         self.params = 'not run yet'
         self.cutoff = cutoff
         self._filter()      #Filter low wind speeds
+
+    def __repr__(self):
+        return 'Multiple Linear Regression Model' + str(self.params)
 
     def _filter(self):
         if self.cutoff is not None:

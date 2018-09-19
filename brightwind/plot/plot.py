@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import calendar
 import numpy as np
 import pandas as pd
-from brightwind.analyse import frequency_analysis as freq_an
+from analyse import frequency_analysis as freq_an
 
 plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\brightwind\brightwind\plot\bw.mplstyle')
 
