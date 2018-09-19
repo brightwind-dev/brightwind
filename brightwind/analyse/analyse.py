@@ -1,12 +1,23 @@
 import pandas as pd
 from transform import transform as tf
 
+
 def get_coverage(ref, target, averaging_prd, aggregation_method_ref='mean', aggregation_method_target='mean'):
     """
-    Accepts ref and target data and returns the coverage of concurrent data
-    :param ref:
-    :param target:
-    :param averaging_prd:
+    Accepts ref and target data and returns the coverage of concurrent data.
+    :param ref: Reference data
+    :type ref: pandas.Series
+    :param target: Target data
+    :type target: pandas.Series
+    :param averaging_prd: Groups data by the period specified by period.
+
+            * 2T, 2 min for minutely average
+            * Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
+            * Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+            * Set period to 1MS for monthly average
+            * Set period to 1AS fo annual average
+
+    :type averaging_prd: str
     :return:
     """
     ref_overlap, target_overlap = tf._get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(), averaging_prd)
@@ -28,9 +39,6 @@ def get_coverage(ref, target, averaging_prd, aggregation_method_ref='mean', aggr
            tf.average_data_by_period(target_concurrent, averaging_prd, filter=False,
                                      coverage_threshold=0,
                                      aggregation_method=aggregation_method_target, return_coverage=True)), axis=1)
-
-    # return average_data_by_period(data, period, filter=False, return_coverage=True)[1]
-
 
 
 def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
