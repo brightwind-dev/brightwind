@@ -1,19 +1,12 @@
 import numpy as np
 import pandas as pd
+import math
 from utils import utils
 
 
 def _compute_wind_vector(wspd, wdir):
     """Returns north and east component of wind-vector"""
     return wspd*np.cos(wdir), wspd*np.sin(wdir)
-
-
-def degree_to_radian(degree):
-    return (degree /180.0) * np.pi
-
-
-def radian_to_degree(radian):
-    return (radian/np.pi) * 180.0
 
 
 def _convert_days_to_hours(prd):
@@ -169,17 +162,17 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
 
 def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.DataFrame, target_spd:pd.DataFrame,
                                           target_dir: pd.DataFrame, averaging_prd, coverage_threshold):
-    target_spd = target_spd.sort_index().dropna()
-    ref_N, ref_E= _compute_wind_vector(ref_spd.sort_index().dropna(), ref_dir.sort_index().dropna())
-    target_N, target_E = _compute_wind_vector(target_spd.sort_index().dropna(), target_dir.sort_index().dropna())
+    ref_N, ref_E= _compute_wind_vector(ref_spd.sort_index().dropna(), ref_dir.sort_index().dropna().map(math.radians))
+    target_N, target_E = _compute_wind_vector(target_spd.sort_index().dropna(), target_dir.sort_index().dropna().map(math.radians))
     ref_N_avgd, target_N_avgd = _preprocess_data_for_correlations(ref_N, target_N, averaging_prd=averaging_prd,
                                                                   coverage_threshold=coverage_threshold)
     ref_E_avgd, target_E_avgd = _preprocess_data_for_correlations(ref_E, target_E, averaging_prd=averaging_prd,
                                                                   coverage_threshold=coverage_threshold)
-    ref_dir_avgd = np.arctan2(ref_E_avgd, ref_N_avgd).map(radian_to_degree).map(utils._range_0_to_360)
-    target_dir_avgd = np.arctan2(target_E_avgd, target_N_avgd).map(radian_to_degree).map(utils._range_0_to_360)
+    ref_dir_avgd = np.arctan2(ref_E_avgd, ref_N_avgd).map(math.degrees).map(utils._range_0_to_360)
+    target_dir_avgd = np.arctan2(target_E_avgd, target_N_avgd).map(math.degrees).map(utils._range_0_to_360)
 
     return round(ref_dir_avgd.loc[:]), round(target_dir_avgd.loc[:])
+
 
 # def _dir_averager(spd_overlap, dir, averaging_prd, coverage_threshold):
 #     vec = pd.concat([spd_overlap, dir.apply(degree_to_radian)], axis=1, join='inner')
