@@ -8,7 +8,7 @@ from plot.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from analyse.frequency_analysis import get_binned_direction_series
-
+from analyse.analyse import calc_lt_ref_speed
 
 # def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold):
 #     """A wrapper function that calls other functions necessary for pre-processing the data"""
@@ -298,7 +298,7 @@ class SpeedSort(CorrelBase):
         self.sectors = sectors
         self.direction_bin_array = direction_bin_array
         if lt_ref_speed is None:
-            self.lt_ref_speed = tf.calc_lt_ref_speed(self.data['ref_spd'])
+            self.lt_ref_speed = calc_lt_ref_speed(self.data['ref_spd'])
         else:
             self.lt_ref_speed = lt_ref_speed
         self.cutoff = min(0.5 * self.lt_ref_speed, 4.0)
