@@ -9,6 +9,9 @@ from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from analyse.frequency_analysis import get_binned_direction_series
 from analyse.analyse import calc_lt_ref_speed
+from sklearn.svm import SVR as sklearn_SVR
+from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
+
 
 # def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold):
 #     """A wrapper function that calls other functions necessary for pre-processing the data"""
@@ -405,30 +408,47 @@ class SpeedSort(CorrelBase):
         if input_spd is None and input_dir is None:
             return pd.concat([self._predict(tf.average_data_by_period(self.ref.loc[:min(self.data.index)],
                                         self.averaging_prd, filter=False,return_coverage=False),
-                                tf.average_data_by_period(self.ref_dir.loc[:min(self.data.index)],self.averaging_prd,
-                                                          filter=False, return_coverage=False)),self.data['target_spd']], axis=0)
+                                tf.average_data_by_period(self.ref_dir.loc[:min(self.data.index)], self.averaging_prd,
+                                                          filter=False, return_coverage=False)), self.data['target_spd']], axis=0)
         else:
             return self._predict(input_spd, input_dir)
 
 
 class SVR(CorrelBase):
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, kernel='rbf', C=30, gamma=0.01, preprocess=True, **kwargs):
+    def __init__(self, ref, target, averaging_prd, coverage_threshold, bw_model=0, preprocess=True, **sklearn_args):
         CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
-        self.kernel = kernel
-        self.C = C
-        self.gamma = gamma
-        # self.kwargs  = **kwargs
+        bw_models = [{'kernel':'rbf','C':30,'gamma':0.01},{'kernel':'linear', 'C':10}]
+        self.model = sklearn_SVR(**{**bw_models[bw_model], **sklearn_args})
         self.params = 'not run yet'
 
     def __repr__(self):
         return 'Support Vector Regression Model '+str(self.params)
 
     def run(self):
-        from sklearn.svm import SVR
-        self.model = SVR(kernel=self.kernel, C=self.C, gamma=self.gamma)
-        self.model.fit()
+        if len(self.data['ref_spd'].values.shape)==1:
+            x = self.data['ref_spd'].values.reshape(-1,1)
+        else:
+            x = self.data['ref_spd'].values
+        self.model.fit(x, self.data['target_spd'].values.flatten())
         self.params = dict()
-        self.params["slope"] = self.data['target_spd'].mean()/self.data['ref_spd'].mean()
+        self.params['RMSE'] = -1 * sklearn_cross_val_score(self.model, x, self.data['target_spd'].values.flatten(),
+                                                   scoring='neg_mean_squared_error', cv=3)
+        self.params['MAE'] = -1 * sklearn_cross_val_score(self.model, x, self.data['target_spd'].values.flatten(),
+                                                  scoring='neg_mean_absolute_error', cv=3)
+        self.params['Explained Variance'] = -1 * sklearn_cross_val_score(self.model, x,
+                                                                 self.data['target_spd'].values.flatten(),
+                                                                 scoring='explained_variance', cv=3)
 
     def _predict(self, x):
-        return self.model.predict(x)
+        if isinstance(x, pd.Series):
+            X = x.values.reshape(-1,1)
+            return pd.DataFrame(data=self.model.predict(X), index=x.index)
+        elif isinstance(x, pd.DataFrame):
+            X = x.values
+            return pd.DataFrame(data=self.model.predict(X), index=x.index)
+        else:
+            if not len(x.shape) == 2:
+                raise ValueError("Expected shape of input data (num of data points, number of reference datasets), "
+                                 "but found ", x.shape)
+            else:
+                return self.model.predict(x)
