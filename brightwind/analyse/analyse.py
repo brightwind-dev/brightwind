@@ -53,7 +53,7 @@ def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
 
 def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: float):
     """
-    :rtype: np.float64:
+    :rtype: np.float64
     """
     return (ref_value*slope) + offset
 

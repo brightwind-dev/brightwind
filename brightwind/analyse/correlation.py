@@ -38,46 +38,6 @@ from analyse.frequency_analysis import get_binned_direction_series
 #                     target_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs]
 
 
-def _compute_wind_vector(wspd, wdir):
-    """Returns north and east component of wind-vector"""
-    return wspd*np.cos(wdir), wspd*np.sin(wdir)
-
-
-def degree_to_radian(degree):
-    return (degree /180.0) * np.pi
-
-
-def radian_to_degree(radian):
-    return (radian/np.pi) * 180.0
-
-
-def _dir_averager(spd_overlap, dir, averaging_prd, coverage_threshold):
-    vec = pd.concat([spd_overlap, dir.apply(degree_to_radian)], axis=1, join='inner')
-    vec.columns = ['spd', 'dir']
-    vec['N'], vec['E'] = _compute_wind_vector(vec['spd'], vec['dir'])
-    vec_N_avgd = tf.average_data_by_period(vec['N'], averaging_prd, filter=False, return_coverage=False)
-    vec_E_avgd = tf.average_data_by_period(vec['E'], averaging_prd, filter=False,return_coverage=False)
-    vec_dir_avgd = np.arctan2(vec_E_avgd.loc[:,vec_E_avgd.columns != 'Count'], vec_N_avgd.loc[:,vec_N_avgd.columns !=
-                                                    'Count']).applymap(radian_to_degree).applymap(utils._range_0_to_360)
-    vec_dir_avgd.loc[:] = round(vec_dir_avgd.loc[:])
-    vec_dir_avgd = pd.concat([vec_dir_avgd,vec_E_avgd['Count']], axis=1, join='inner')
-    return vec_dir_avgd
-
-
-def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.DataFrame, target_spd:pd.DataFrame,
-                                          target_dir: pd.DataFrame, averaging_prd, coverage_threshold):
-    ref_spd = ref_spd.sort_index().dropna()
-    target_spd = target_spd.sort_index().dropna()
-    ref_overlap, target_overlap = tf._get_overlapping_data(ref_spd, target_spd, averaging_prd)
-    ref_dir_avgd = _dir_averager(ref_overlap, ref_dir, averaging_prd, coverage_threshold)
-    target_dir_avgd = _dir_averager(target_overlap, target_dir, averaging_prd, coverage_threshold)
-    ref_dir_filtered_for_coverage = tf._filter_by_coverage_threshold(ref_dir, ref_dir_avgd, coverage_threshold)
-    target_dir_filtered_for_coverage = tf._filter_by_coverage_threshold(target_dir, target_dir_avgd, coverage_threshold)
-    common_idxs, data_pts = tf._common_idxs(ref_dir_filtered_for_coverage, target_dir_filtered_for_coverage)
-    return ref_dir_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs], \
-                    target_dir_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs]
-
-
 class CorrelBase:
 
     def __init__(self, ref, target, averaging_prd, coverage_threshold, ref_dir=None, target_dir=None, preprocess=True):
@@ -102,7 +62,7 @@ class CorrelBase:
         data = pd.concat(list(tf._preprocess_data_for_correlations(ref, target, averaging_prd,
                             coverage_threshold)), axis=1, join='inner')
         if ref_dir is not None and target_dir is not None:
-            data = pd.concat([data]+list(_preprocess_dir_data_for_correlations(ref, ref_dir, target, target_dir,
+            data = pd.concat([data]+list(tf._preprocess_dir_data_for_correlations(ref, ref_dir, target, target_dir,
                                                             averaging_prd, coverage_threshold)), axis=1, join='inner')
         return data
 
@@ -452,16 +412,23 @@ class SpeedSort(CorrelBase):
 
 
 class SVR(CorrelBase):
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=True):
-        from sklearn.svm import SVR
+    def __init__(self, ref, target, averaging_prd, coverage_threshold, kernel='rbf', C=30, gamma=0.01, preprocess=True, **kwargs):
         CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+        self.kernel = kernel
+        self.C = C
+        self.gamma = gamma
+        # self.kwargs  = **kwargs
         self.params = 'not run yet'
 
+    def __repr__(self):
+        return 'Support Vector Regression Model '+str(self.params)
+
     def run(self):
+        from sklearn.svm import SVR
+        self.model = SVR(kernel=self.kernel, C=self.C, gamma=self.gamma)
+        self.model.fit()
         self.params = dict()
         self.params["slope"] = self.data['target_spd'].mean()/self.data['ref_spd'].mean()
 
     def _predict(self, x):
-        def linear_function(x, slope):
-            return (x*slope)
-        return x.transform(linear_function, slope=self.params['slope'])
+        return self.model.predict(x)
