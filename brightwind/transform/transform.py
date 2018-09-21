@@ -147,10 +147,10 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
     from pandas.tseries.frequencies import to_offset
     ref_resolution = _get_data_resolution(ref_overlap.index)
     target_resolution = _get_data_resolution(target_overlap.index)
-    if ref_resolution > target_resolution:
+    if ref_resolution > target_resolution and (to_offset(ref_resolution)!= to_offset(averaging_prd)):
         target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution), filter=True,
                                                    coverage_threshold=1, aggregation_method=aggregation_method_target)
-    if ref_resolution < target_resolution:
+    if ref_resolution < target_resolution and (to_offset(target_resolution)!= to_offset(averaging_prd)):
         ref_overlap = average_data_by_period(ref_overlap, to_offset(target_resolution), filter=True,
                                                 coverage_threshold=1, aggregation_method=aggregation_method_ref)
     common_idxs, data_pts = _common_idxs(ref_overlap, target_overlap)

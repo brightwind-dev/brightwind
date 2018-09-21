@@ -311,9 +311,7 @@ class SpeedSort(CorrelBase):
         self._get_overall_veer()
         # for low ref_speed and high target_speed recalculate direction sector
         self._adjust_low_reference_speed_dir()
-        #round-off directions
-        self._round_off_directions()
-        # add direction sector
+
         self.ref_dir_bins = get_binned_direction_series(self.data['ref_dir'], sectors,
                                                     direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')
         self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
@@ -322,10 +320,6 @@ class SpeedSort(CorrelBase):
 
     def __repr__(self):
         return 'Speed Sort Model '+str(self.params)
-
-    def _round_off_directions(self):
-        self.data.loc[:, 'ref_dir'] = round(self.data.loc[:, 'ref_dir'])
-        self.data.loc[:, 'target_dir'] = round(self.data.loc[:, 'target_dir'])
 
     def _randomize_calm_periods(self):
         idxs = self.data[self.data['ref_spd'] < 1].index
