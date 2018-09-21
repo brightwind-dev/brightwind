@@ -34,8 +34,10 @@ def _get_data_resolution(data_idx):
     minimum_time_diff = time_diff_btw_timestamps.min()
     if minimum_time_diff != most_freq_time_diff:
         warnings.warn("Frequency of input "
-                      "data might not be determined correctly (mode does not "
-                      "match minimum time difference) mode: {0}  minimum time difference {1}".format(most_freq_time_diff,minimum_time_diff))
+                      "data might not be determined correctly (most frequent time difference between adjacent timestamps"
+                      " does not match minimum time difference) most frequent time difference: {0}  "
+                      "minimum time difference {1}. Using most frequent time difference as resolution"
+                      .format(pd.to_timedelta(most_freq_time_diff, unit='s'),minimum_time_diff))
     return pd.to_timedelta(most_freq_time_diff, unit='s')
 
 
