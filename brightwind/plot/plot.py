@@ -41,7 +41,8 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     fig2.set_figheight(size[1])
     plt.title(title)
     if predicted_y is not None:
-        plt.plot(x, predicted_y, 'k-')
+        plt.plot(x, predicted_y, 'k.')
+        plt.legend(['Predicted','Original'])
     plt.show()
 
 
