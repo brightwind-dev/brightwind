@@ -231,6 +231,8 @@ class MultipleLinearRegression(CorrelBase):
         else:
             return self._predict(ext_input)
 
+    def plot(self):
+        return "Cannot plot Multiple Linear Regression"
 
 class BulkSpeedRatio(CorrelBase):
     def __init__(self, ref, target, averaging_prd, coverage_threshold, cutoff=None, preprocess=True):

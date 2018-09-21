@@ -109,7 +109,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
     coverage = _get_coverage_series(data, grouper_obj)
 
     if filter:
-        grouped_data = grouped_data.loc[(coverage >= coverage_threshold)]
+        grouped_data = grouped_data[coverage >= coverage_threshold]
 
     if return_coverage:
         return grouped_data, coverage.rename('Coverage')
