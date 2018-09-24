@@ -36,7 +36,7 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     scat = fig2.add_subplot(111)
     scat.set_xlabel(x_label)
     scat.set_ylabel(y_label)
-    scat.scatter(x, y, marker = '.', color='#9ACD32')
+    scat.scatter(x, y, marker = '.', color='#9ACD32',alpha=0.8)
     fig2.set_figwidth(size[0])
     fig2.set_figheight(size[1])
     plt.title(title)

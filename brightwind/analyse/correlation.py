@@ -47,6 +47,7 @@ class CorrelBase:
         self.ref = ref
         self.ref_dir = ref_dir
         self.target = target
+        self.target_dir = target_dir
         self.averaging_prd = averaging_prd
         self.coverage_threshold = coverage_threshold
         self.preprocess = preprocess
@@ -409,6 +410,13 @@ class SpeedSort(CorrelBase):
         else:
             return self._predict(input_spd, input_dir)
 
+    def plot_wind_vane(self):
+        """Plots reference and target directions in a scatter plot"""
+
+        # _scatter_plot(self.ref_dir, self.target_dir,title='original data')
+        _scatter_plot(self.data['ref_dir'][(self.data['ref_dir']>self.cutoff) & (self.data['ref_dir']>self.cutoff)],
+                      self.data['target_dir'][(self.data['ref_dir']>self.cutoff) & (self.data['ref_dir']>self.cutoff)],
+                      x_label='Reference direction', y_label="Target direction")
 
 class SVR(CorrelBase):
     def __init__(self, ref, target, averaging_prd, coverage_threshold, bw_model=0, preprocess=True, **sklearn_args):
