@@ -232,6 +232,10 @@ class MultipleLinearRegression(CorrelBase):
         else:
             return self._predict(ext_input)
 
+    def get_r2(self):
+        return 1.0 - (sum((self.data['target_spd'] - self._predict(self.data.drop(['target_spd'], axis=1))) ** 2) / (
+            sum((self.data['target_spd'] - self.data['target_spd'].mean()) ** 2)))
+
     def plot(self):
         return "Cannot plot Multiple Linear Regression"
 
