@@ -7,8 +7,8 @@ from utils import utils
 from plot.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
-from analyse.frequency_analysis import get_binned_direction_series
-from analyse.analyse import calc_lt_ref_speed
+# from analyse.frequency_analysis import get_binned_direction_series
+from analyse.analyse import calc_lt_ref_speed, get_binned_direction_series
 from sklearn.svm import SVR as sklearn_SVR
 from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 
