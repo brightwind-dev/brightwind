@@ -31,7 +31,8 @@ def bw_colors(bw_color):
     return bw_color
 
 
-def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", title="", size=(10,10)):
+def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", title="", size=(10,10),
+                  prediction_marker='k-'):
     fig2 = plt.figure(111)
     scat = fig2.add_subplot(111)
     scat.set_xlabel(x_label)
@@ -41,7 +42,7 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     fig2.set_figheight(size[1])
     plt.title(title)
     if predicted_y is not None:
-        plt.plot(x, predicted_y, 'k.')
+        plt.plot(x, predicted_y, prediction_marker)
         plt.legend(['Predicted','Original'])
     plt.show()
 

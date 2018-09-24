@@ -80,26 +80,38 @@ def calc_lt_ref_speed(data: pd.DataFrame, date_from: str='', date_to: str=''):
     return mean_of_monthly_means(data).get_value(index=0, col='MOMM')
 
 
-def get_sector_ratio(data, speed_col_name_1, speed_col_name_2, direction_col_name):
-    """Accepts a dataframe table, 2 anemometer names, and one wind vane name and returns the speed ratio by sector
-    in a table.
-    :param data: dataframe of windspeed and direction data
-    :param speed_col_name_1: Anemometer 1 column name in dataframe. This is divisor series.
-    :param speed_col_name_2: Anemometer 2 column name in dataframe.
-    :param direction_col_name: Wind Vane column name in dataframe.
+def get_sector_ratio(wdspd_1, wdspd_2, direction, sectors=12):
+    """Accepts two speed series and one direction series and returns the speed ratio by sector
+    in a table
+    :param wdspd_1: First wind speed series. This is divisor series.
+    :type: wdspd_1: pandas.Series
+    :param wdpsd_2: Second wind speed series
+    :type: wdspd_1: pandas.Series
+    :param direction: Series of wind directions
+    :type direction: pandas.Series
     :returns Table of speed ratio by sector
     """
-    data = data[data[speed_col_name_2] > 3]
-    data = data[data[speed_col_name_1] > 3]
+    sec_rat = pd.concat([wdspd_1[wdspd_1 >3].rename('speed_1'), wdspd_2[wdspd_2>3].rename('speed_2'), direction.rename('dir')], axis=1,
+                        join='inner')
+    print(sec_rat)
+    # sec_rat = sec_rat[(sec_rat['speed_1'] > 3) & (sec_rat['speed_2'] > 3)]
+    print(sec_rat)
+    sec_rat['dir'] = sec_rat['dir'].mod(360)
+    sector_ratio = get_distribution_by_wind_sector(sec_rat['speed_2']/sec_rat['speed_1'], sec_rat['dir'],
+                                                   sectors= sectors, aggregation_method='mean', direction_bin_array=None,
+                                                   direction_bin_labels=None)
 
-    data[direction_col_name] = data[direction_col_name].mod(360)
+    # data = data[data[speed_col_name_2] > 3]
+    # data = data[data[speed_col_name_1] > 3]
 
-    data['Speedsector'] = data[speed_col_name_2] / data[speed_col_name_1]
-    sectorRatio = get_distribution_by_wind_sector(data['Speedsector'], data[direction_col_name], sectors=72,
-                                                  aggregation_method='mean',
-                                                  direction_bin_array=None, direction_bin_labels=None)
-    sectorRatio = sectorRatio.reset_index()
-    return sectorRatio
+    # data[direction_col_name] = data[direction_col_name].mod(360)
+    #
+    # data['Speedsector'] = data[speed_col_name_2] / data[speed_col_name_1]
+    # sectorRatio = get_distribution_by_wind_sector(data['Speedsector'], data[direction_col_name], sectors=72,
+    #                                               aggregation_method='mean',
+    #                                               direction_bin_array=None, direction_bin_labels=None)
+    # sectorRatio = sectorRatio.reset_index()
+    return sector_ratio
 
 
 def get_distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,

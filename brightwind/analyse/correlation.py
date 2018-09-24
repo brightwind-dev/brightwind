@@ -460,3 +460,9 @@ class SVR(CorrelBase):
                                  "but found ", x.shape)
             else:
                 return self.model.predict(x)
+
+
+    def plot(self, title=""):
+        """For plotting"""
+        _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
+                      self._predict(self.data['ref_spd']).values.flatten(), title=title, prediction_marker='k.')
