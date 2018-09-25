@@ -114,7 +114,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
         if isinstance(coverage, pd.DataFrame):
             coverage.columns = [col_name+"_Coverage" for col_name in coverage.columns]
         elif isinstance(coverage, pd.Series):
-            coverage = coverage.rename(coverage.name+'_Coverage')
+            coverage = coverage.rename(grouped_data.name+'_Coverage')
         else:
             raise TypeError("Coverage not calculated correctly. Coverage", coverage)
         return grouped_data, coverage
@@ -167,8 +167,11 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
             average_data_by_period(target_concurrent, averaging_prd, filter=False, coverage_threshold=0,
                                       aggregation_method=aggregation_method_target, return_coverage=True)), axis=1)
     else:
-        return average_data_by_period(ref_concurrent, averaging_prd, filter=True, coverage_threshold=coverage_threshold, aggregation_method=aggregation_method_ref), \
-           average_data_by_period(target_concurrent, averaging_prd, filter=True, coverage_threshold=coverage_threshold, aggregation_method=aggregation_method_target)
+        return average_data_by_period(ref_concurrent, averaging_prd, filter=True, coverage_threshold=coverage_threshold,
+                                      aggregation_method=aggregation_method_ref), \
+                                      average_data_by_period(target_concurrent, averaging_prd, filter=True,
+                                      coverage_threshold=coverage_threshold,
+                                      aggregation_method=aggregation_method_target)
 
 
 

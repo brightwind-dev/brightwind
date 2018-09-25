@@ -15,32 +15,23 @@ def get_concurrent_coverage(ref, target, averaging_prd, aggregation_method_ref='
             * 2T, 2 min for minutely average
             * Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
             * Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-            * Set period to 1MS for monthly average
+            * Set period to 1M for monthly average
             * Set period to 1AS fo annual average
 
     :type averaging_prd: str
-    :return:
+    :param aggregation_method_ref: (Optional) Calculates mean of the data for the given averaging_prd by default. Can be
+            changed to 'sum', 'std', 'max', 'min', etc. or a user defined function
+    :param aggregation_method_target: (Optional) Calculates mean of the data for the given averaging_prd by default.
+            Can be changed to 'sum', 'std', 'max', 'min', etc. or a user defined function
+    :return: A dataframe with concurrent coverage and resolution of the new data. The columns with coverage are named as
+            <column name>_Coverage
     """
-    ref_overlap, target_overlap = tf._get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(), averaging_prd)
-    from pandas.tseries.frequencies import to_offset
-    ref_resolution = tf._get_data_resolution(ref_overlap.index)
-    target_resolution = tf._get_data_resolution(target_overlap.index)
-    if ref_resolution > target_resolution:
-        target_overlap = tf.average_data_by_period(target_overlap, to_offset(ref_resolution), filter=True,
-                                                   coverage_threshold=1,aggregation_method=aggregation_method_target)
-    if ref_resolution < target_resolution:
-        ref_overlap = tf.average_data_by_period(ref_overlap, to_offset(target_resolution), filter=True,
-                                                coverage_threshold=1,aggregation_method=aggregation_method_ref)
-    common_idxs, data_pts = tf._common_idxs(ref_overlap, target_overlap)
-    ref_concurrent = ref_overlap.loc[common_idxs]
-    target_concurrent = target_overlap.loc[common_idxs]
-    return pd.concat([tf.average_data_by_period(ref_concurrent, averaging_prd, filter=False,
-                                         coverage_threshold=0,
-                                         aggregation_method=aggregation_method_ref)]+list(
-           tf.average_data_by_period(target_concurrent, averaging_prd, filter=False,
-                                     coverage_threshold=0,
-                                     aggregation_method=aggregation_method_target, return_coverage=True)), axis=1)
-
+    coverage_df = tf._preprocess_data_for_correlations(ref=ref, target=target, averaging_prd=averaging_prd, coverage_threshold=0,
+                                                aggregation_method_ref = aggregation_method_ref,
+                                                aggregation_method_target = aggregation_method_target,
+                                                get_coverage = True)
+    coverage_df.columns = ["Coverage" if "_Coverage" in col else col for col in coverage_df.columns ]
+    return coverage_df
 
 def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
 
@@ -278,25 +269,12 @@ def get_coverage(data, period='1M', aggregation_method='mean'):
     :param aggregation_method: (Optional) Calculates mean of the data for the given averaging_prd by default. Can be
             changed to 'sum', 'std', 'max', 'min', etc. or a user defined function
     :type aggregation_method: str
-    :return: A dataframe with coverage and resolution of the new data
+    :return: A dataframe with coverage and resolution of the new data. The columns with coverage are named as
+            <column name>_Coverage
     """
 
     return pd.concat(list(tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,
                                                     filter=False, return_coverage=True)),axis=1, join='outer')
-
-
-def get_monthly_means(data,time_col_name):
-    # Convert the timestamp column to a datetime variable in pandas
-    data[time_col_name] = pd.to_datetime(data[time_col_name])
-
-    # Group data by month and count number of values for each column for each month
-    data = data.set_index(time_col_name).groupby(pd.Grouper(freq='M')).mean()
-
-    # Now format the datetime index as MMM-YYYY
-    data = data.reset_index()
-    data[time_col_name] = data[time_col_name].apply(lambda x: x.strftime('%b-%Y'))
-    data = data.set_index(time_col_name)
-    return data
 
 
 def get_basic_stats(data,time_col_name):
@@ -414,6 +392,7 @@ def map_speed_bin(wdspd, bins):
     bin = bins[np.digitize([wdspd], bins, **kwargs)[0]]
     bin_lower = bins[np.digitize([wdspd], bins, **kwargs)[0]-1]
     return np.digitize([wdspd], bins, **kwargs)[0]-1.0
+
 
 def _get_direction_bin_dict(direction_bins,sectors):
     # Copy of Inders function, can be removed once this is integrated into main library
