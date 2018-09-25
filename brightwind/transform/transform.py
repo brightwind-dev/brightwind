@@ -114,7 +114,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
         if isinstance(coverage, pd.DataFrame):
             coverage.columns = [col_name+"_Coverage" for col_name in coverage.columns]
         elif isinstance(coverage, pd.Series):
-            coverage = coverage.rename('Coverage')
+            coverage = coverage.rename(coverage.name+'_Coverage')
         else:
             raise TypeError("Coverage not calculated correctly. Coverage", coverage)
         return grouped_data, coverage
@@ -147,7 +147,7 @@ def offset_wind_direction(dir: pd.Series, offset: float) -> pd.Series:
 
 
 def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
-                                      aggregation_method_ref='mean', aggregation_method_target='mean'):
+                                      aggregation_method_ref='mean', aggregation_method_target='mean', get_coverage=False):
     ref_overlap, target_overlap = _get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(), averaging_prd)
     from pandas.tseries.frequencies import to_offset
     ref_resolution = _get_data_resolution(ref_overlap.index)
@@ -161,8 +161,15 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
     common_idxs, data_pts = _common_idxs(ref_overlap, target_overlap)
     ref_concurrent = ref_overlap.loc[common_idxs]
     target_concurrent = target_overlap.loc[common_idxs]
-    return average_data_by_period(ref_concurrent, averaging_prd, filter=True, coverage_threshold=coverage_threshold, aggregation_method=aggregation_method_ref), \
+    if get_coverage:
+        return pd.concat([average_data_by_period(ref_concurrent, averaging_prd, filter=False, coverage_threshold=0,
+                                             aggregation_method=aggregation_method_ref)] + list(
+            average_data_by_period(target_concurrent, averaging_prd, filter=False, coverage_threshold=0,
+                                      aggregation_method=aggregation_method_target, return_coverage=True)), axis=1)
+    else:
+        return average_data_by_period(ref_concurrent, averaging_prd, filter=True, coverage_threshold=coverage_threshold, aggregation_method=aggregation_method_ref), \
            average_data_by_period(target_concurrent, averaging_prd, filter=True, coverage_threshold=coverage_threshold, aggregation_method=aggregation_method_target)
+
 
 
 def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.DataFrame, target_spd:pd.DataFrame,
