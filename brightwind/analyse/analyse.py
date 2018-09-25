@@ -277,30 +277,15 @@ def get_coverage(data, period='1M', aggregation_method='mean'):
                                                     filter=False, return_coverage=True)),axis=1, join='outer')
 
 
-def get_basic_stats(data,time_col_name):
-    #Get basic stats for dataframe, mean, max, min and count
-    data1 = data.describe().loc[['mean', 'max', 'min', 'count']]
-    data1 = data1.T
-    data1 = data1.reset_index()
-    data1 = data1.rename(columns={'index': 'Instrument'})
+def get_basic_stats(data):
+    """
+    Gives basic statistics like mean, standard deviation, count, etc. of data
 
-    #The describe function does not return the min, max, count and mean for the timestamp column.
-    #So we have calculated these separately here, and then added them back to the data1 above.
-    data[time_col_name] = pd.to_datetime(data[time_col_name])
-    Timestamp_min = data[time_col_name].min()
-    Timestamp_max = data[time_col_name].max()
-    Timestamp_mean = pd.Timedelta(Timestamp_max - Timestamp_min) / 2
-    Timestamp_mean = Timestamp_min + Timestamp_mean
-    Timestamp_count = data[time_col_name].count()
-
-    data = data1.append({'Instrument': time_col_name, 'mean': Timestamp_mean, 'max': Timestamp_max, 'min': Timestamp_min,
-                  'count': Timestamp_count}, ignore_index=True)
-    #After data is appended, then the Timestamp row has to be ordered to be the first row.
-    target_row = data.index.max()
-    idx = [target_row] + [i for i in range(len(data)) if i != target_row]
-    data = data.iloc[idx]
-    data = data.reset_index(drop=True)
-    return data
+    :param data: Meteorological data
+    :param data type: pandas.Series or pandas.DataFrame
+    :rtype: A dataframe or series containing statistics
+    """
+    return data.describe().T
 
 
 def get_TI_by_Speed(data,speed_col_name,std_col_name):
