@@ -3,7 +3,7 @@ import numpy as np
 from transform import transform as tf
 
 
-def get_coverage(ref, target, averaging_prd, aggregation_method_ref='mean', aggregation_method_target='mean'):
+def get_concurrent_coverage(ref, target, averaging_prd, aggregation_method_ref='mean', aggregation_method_target='mean'):
     """
     Accepts ref and target data and returns the coverage of concurrent data.
     :param ref: Reference data
@@ -260,7 +260,7 @@ def get_time_continuity_gaps(data):
     return continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
 
 
-def get_monthly_coverage(data, time_col_name,time_interval):
+def get_coverage(data, time_col_name, time_interval):
     #Convert the timestamp column to a datetime variable in pandas
     data[time_col_name] = pd.to_datetime(data[time_col_name])
 

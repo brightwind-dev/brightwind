@@ -91,9 +91,6 @@ class CorrelBase:
         return 1.0 - (sum((self.data['target_spd'] - self._predict(self.data['ref_spd'])) ** 2) / (
             sum((self.data['target_spd'] - self.data['target_spd'].mean()) ** 2)))
 
-    def get_coverage(self):
-        return 0
-
     def get_error_metrics(self):
         return 0
 
