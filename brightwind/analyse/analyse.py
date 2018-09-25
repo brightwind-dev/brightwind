@@ -43,7 +43,8 @@ def get_coverage(ref, target, averaging_prd, aggregation_method_ref='mean', aggr
 
 
 def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
-    """ Return series of mean of momthly means for each column in the dataframe with timestamp as the index.
+
+    """ Return series of mean of monthly means for each column in the dataframe with timestamp as the index.
         Calculate the monthly mean for each calendar month and then average the resulting 12 months.
     """
     monthly_df: pd.DataFrame = df.groupby(df.index.month).mean()
@@ -93,24 +94,10 @@ def get_sector_ratio(wdspd_1, wdspd_2, direction, sectors=12):
     """
     sec_rat = pd.concat([wdspd_1[wdspd_1 >3].rename('speed_1'), wdspd_2[wdspd_2>3].rename('speed_2'), direction.rename('dir')], axis=1,
                         join='inner')
-    print(sec_rat)
-    # sec_rat = sec_rat[(sec_rat['speed_1'] > 3) & (sec_rat['speed_2'] > 3)]
-    print(sec_rat)
     sec_rat['dir'] = sec_rat['dir'].mod(360)
     sector_ratio = get_distribution_by_wind_sector(sec_rat['speed_2']/sec_rat['speed_1'], sec_rat['dir'],
                                                    sectors= sectors, aggregation_method='mean', direction_bin_array=None,
                                                    direction_bin_labels=None)
-
-    # data = data[data[speed_col_name_2] > 3]
-    # data = data[data[speed_col_name_1] > 3]
-
-    # data[direction_col_name] = data[direction_col_name].mod(360)
-    #
-    # data['Speedsector'] = data[speed_col_name_2] / data[speed_col_name_1]
-    # sectorRatio = get_distribution_by_wind_sector(data['Speedsector'], data[direction_col_name], sectors=72,
-    #                                               aggregation_method='mean',
-    #                                               direction_bin_array=None, direction_bin_labels=None)
-    # sectorRatio = sectorRatio.reset_index()
     return sector_ratio
 
 
@@ -257,39 +244,20 @@ def get_freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 4
     return result
 
 
+def get_time_continuity_gaps(data):
+    """
+    Returns the gaps in timestamps for the data, that means that data isn't available for that period.
 
-def get_time_continuity(data, time_col_name, time_interval):
-    #Get time continuity is a function that sees if there are any gaps bigger than the time interval specified in the
-    #data, and brings back a table of values.
+    :param data: Data for checking continuity, timestamp must be the index
+    :type data: pandas.Series or pandas.DataFrame
+    :return: A dataframe with days lost and the start and end date between them
+    :rtype : pandas.DataFrame
 
-    #Note this first part of the function should be obselete, as the data should be preppred before it is used in
-    #mast analyse, with timestamp converted correctly to pandas dataframe. Month, and day can get mixed up creating
-    #multiple errors if this is not done correctly. The same fuction is used, but with parameters yearfirst or dayfirst
-    data[time_col_name] = pd.to_datetime(data[time_col_name])
-
-    #Next sort values by time, then re-index dataframe
-    data = data.sort_values(by=time_col_name)
-    data = data.reset_index()
-    data = data.drop(columns=['index'])
-    #Create a new column, if interval ok, column is True, if interval is not, column is false
-    data['Interval'] = (data[time_col_name].diff()[1:] == np.timedelta64(time_interval, 'm'))
-
-    #Where the column is False create a new dataframe, data_problems. Reset the index in this, and apply minus 1, then apply
-    #index again. This provides the index for the timestamp prior to the gap.
-    data_problems = data.loc[data['Interval'] == False]
-    data_problems = data_problems.reset_index()
-    data_problems['index'] = data_problems['index'] - 1
-    data_problems = data_problems.set_index('index')
-    data_problems['Timestamp before'] = data[time_col_name]
-
-    #Next calculate the days lost for each gap
-    data_problems['Days Lost'] = (data_problems[time_col_name] - data_problems['Timestamp before']) / np.timedelta64(1,'m')
-    data_problems['Days Lost'] = data_problems['Days Lost'] / (1440)
-
-    time_continuity = pd.DataFrame(
-        {'Start Date': data_problems['Timestamp before'], 'End Date': data_problems[time_col_name],
-         'Days Lost': data_problems['Days Lost']})
-    return time_continuity
+    """
+    indexes = data.dropna(how='all').index
+    continuity = pd.DataFrame({'Date To': indexes.values.flatten()[1:], 'Date From': indexes.values.flatten()[:-1]})
+    continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
+    return continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
 
 
 def get_monthly_coverage(data, time_col_name,time_interval):
