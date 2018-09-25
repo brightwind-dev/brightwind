@@ -260,23 +260,28 @@ def get_time_continuity_gaps(data):
     return continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
 
 
-def get_coverage(data, time_col_name, time_interval):
-    #Convert the timestamp column to a datetime variable in pandas
-    data[time_col_name] = pd.to_datetime(data[time_col_name])
+def get_coverage(data, period='1M', aggregation_method='mean'):
+    """
 
-    #Group data by month and count number of values for each column for each month
-    data = data.set_index(time_col_name).groupby(pd.Grouper(freq='M')).count()
+    :param data: Data to check the coverage of
+    :type data: pandas.Series or pandas.DataFrame
+    :param period: Groups data by the period specified by period.
 
-    #Divide column values by total records possible each month to return coverage
-    data['Divsor'] = (data.index.day * (24*60/time_interval))
-    data = data.loc[:,:].div(data['Divsor'],axis=0)
-    data = data.drop(columns=['Divsor'])
+            - 2T, 2 min for minutely average
+            - Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
+            - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+            - Set period to 1MS for monthly average
+            - Set period to 1AS fo annual average
 
-    #Now format the datetime index as MMM-YYYY
-    data = data.reset_index()
-    data[time_col_name] = data[time_col_name].apply(lambda x: x.strftime('%b-%Y'))
-    data = data.set_index(time_col_name)
-    return data
+    :type period: string or pandas.DateOffset
+    :param aggregation_method: (Optional) Calculates mean of the data for the given averaging_prd by default. Can be
+            changed to 'sum', 'std', 'max', 'min', etc. or a user defined function
+    :type aggregation_method: str
+    :return: A dataframe with coverage and resolution of the new data
+    """
+
+    return pd.concat(list(tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,
+                                                    filter=False, return_coverage=True)),axis=1, join='outer')
 
 
 def get_monthly_means(data,time_col_name):

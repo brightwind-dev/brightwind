@@ -111,7 +111,13 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
         grouped_data = grouped_data[coverage >= coverage_threshold]
 
     if return_coverage:
-        return grouped_data, coverage.rename('Coverage')
+        if isinstance(coverage, pd.DataFrame):
+            coverage.columns = [col_name+"_Coverage" for col_name in coverage.columns]
+        elif isinstance(coverage, pd.Series):
+            coverage = coverage.rename('Coverage')
+        else:
+            raise TypeError("Coverage not calculated correctly. Coverage", coverage)
+        return grouped_data, coverage
     else:
         return grouped_data
 
