@@ -262,6 +262,7 @@ def get_time_continuity_gaps(data):
 
 def get_coverage(data, period='1M', aggregation_method='mean'):
     """
+    Get the data coverage over the period specified
 
     :param data: Data to check the coverage of
     :type data: pandas.Series or pandas.DataFrame
