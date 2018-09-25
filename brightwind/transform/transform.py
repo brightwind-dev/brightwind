@@ -103,11 +103,8 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
             period = period+'S'
     grouper_obj = data.resample(period, axis=0, closed='left', label='left',base=0,
                                 convention='start', kind='timestamp')
-    if aggregation_method == 'mean':
-        grouped_data = grouper_obj.mean()
-    if aggregation_method == 'sum':
-        grouped_data = grouper_obj.sum()
 
+    grouped_data = grouper_obj.agg(aggregation_method)
     coverage = _get_coverage_series(data, grouper_obj)
 
     if filter:
@@ -174,29 +171,3 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
     target_dir_avgd = np.arctan2(target_E_avgd, target_N_avgd).map(math.degrees).map(utils._range_0_to_360)
 
     return round(ref_dir_avgd.loc[:]), round(target_dir_avgd.loc[:])
-
-
-# def _dir_averager(spd_overlap, dir, averaging_prd, coverage_threshold):
-#     vec = pd.concat([spd_overlap, dir.apply(degree_to_radian)], axis=1, join='inner')
-#     vec.columns = ['spd', 'dir']
-#     vec['N'], vec['E'] = _compute_wind_vector(vec['spd'], vec['dir'])
-#     vec_N_avgd = average_data_by_period(vec['N'], averaging_prd, filter=False, return_coverage=False)
-#     vec_E_avgd = average_data_by_period(vec['E'], averaging_prd, filter=False,return_coverage=False)
-#     vec_dir_avgd = np.arctan2(vec_E_avgd.loc[:,vec_E_avgd.columns], vec_N_avgd.loc[:,vec_N_avgd.columns]).applymap(radian_to_degree).applymap(utils._range_0_to_360)
-#     vec_dir_avgd.loc[:] = round(vec_dir_avgd.loc[:])
-#     vec_dir_avgd = pd.concat([vec_dir_avgd,vec_E_avgd['Count']], axis=1, join='inner')
-#     return vec_dir_avgd
-
-
-# def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold):
-#     """A wrapper function that calls other functions necessary for pre-processing the data"""
-#     ref = ref.sort_index().dropna()
-#     target = target.sort_index().dropna()
-#     ref_overlap, target_overlap = tf._get_overlapping_data(ref, target, averaging_prd)
-#     ref_overlap_avgd = tf.average_data_by_period(ref_overlap, averaging_prd)
-#     target_overlap_avgd = tf.average_data_by_period(target_overlap, averaging_prd)
-#     ref_filtered_for_coverage = tf._filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)
-#     target_filtered_for_coverage = tf._filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
-#     common_idxs, data_pts = tf._common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)
-#     return ref_filtered_for_coverage.drop(['Count', 'Coverage'], axis=1).loc[common_idxs], \
-#                     target_filtered_for_coverage.drop(['Count', 'Coverage'], axis=1).loc[common_idxs]
