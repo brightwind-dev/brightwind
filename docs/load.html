@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>load package &#8212; brightwind  documentation</title>
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="How to contribute?" href="how_to_contribute.html" />
+    <link rel="prev" title="API reference" href="API.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          brightwind</a>
+        <span class="navbar-text navbar-version pull-left"><b>1</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Structure.html">Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorials.html">Tutorials</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="API.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how_to_contribute.html">How to contribute?</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">load package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-load.load">load.load module</a></li>
+<li><a class="reference internal" href="#load-reanalysis-module">load.reanalysis module</a></li>
+<li><a class="reference internal" href="#module-load">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+              
+                
+  <li>
+    <a href="API.html" title="Previous Chapter: API reference"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; API reference</span>
+    </a>
+  </li>
+  <li>
+    <a href="how_to_contribute.html" title="Next Chapter: How to contribute?"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">How to contribute? &raquo;</span>
+    </a>
+  </li>
+              
+            
+            
+            
+            
+              <li class="hidden-sm">
+<div id="sourcelink">
+  <a href="_sources/load.rst.txt"
+     rel="nofollow">Source</a>
+</div></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+      <div class="col-md-3">
+        <div id="sidebar" class="bs-sidenav" role="complementary">
+  <li>
+    <a href="API.html" title="Previous Chapter: API reference"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; API reference</span>
+    </a>
+  </li>
+  <li>
+    <a href="how_to_contribute.html" title="Next Chapter: How to contribute?"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">How to contribute? &raquo;</span>
+    </a>
+  </li>
+<form action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+    <div class="col-md-9 content">
+      
+  <div class="section" id="load-package">
+<h1>load package<a class="headerlink" href="#load-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-load.load">
+<span id="load-load-module"></span><h2>load.load module<a class="headerlink" href="#module-load.load" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="load.load.calc_distance">
+<code class="descclassname">load.load.</code><code class="descname">calc_distance</code><span class="sig-paren">(</span><em>lat1</em>, <em>long1</em>, <em>lat2</em>, <em>long2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load/load.html#calc_distance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.load.calc_distance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="load.load.get_merra2_dataframe">
+<code class="descclassname">load.load.</code><code class="descname">get_merra2_dataframe</code><span class="sig-paren">(</span><em>lat: str</em>, <em>long: str</em>, <em>from_date: str</em>, <em>to_date: str</em><span class="sig-paren">)</span> &#x2192; load.load.reanalysis<a class="reference internal" href="_modules/load/load.html#get_merra2_dataframe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.load.get_merra2_dataframe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a reanalysis object containing the MERRA-2 data retrieved from the LightSail server through the api with the following parameters:
+latitude, longitude, data, source=MERRA2.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.load.get_merra2_nearest_nodes">
+<code class="descclassname">load.load.</code><code class="descname">get_merra2_nearest_nodes</code><span class="sig-paren">(</span><em>lat: str</em>, <em>long: str</em>, <em>from_date: str</em>, <em>to_date: str</em>, <em>nearest_4: bool = True</em><span class="sig-paren">)</span> &#x2192; typing.List[load.load.reanalysis]<a class="reference internal" href="_modules/load/load.html#get_merra2_nearest_nodes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.load.get_merra2_nearest_nodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of 4 reanalysis objects for 4 locations nearest to the one passed in parameters. A date range
+can also be used to get within a specified period.
+:param: lat: Latitude of the site
+:param: long: Longitude of the site
+:param: from_data: Start date for he dataset in format YYYY-MM-DD
+:param: to_date: End date for data in the format YYYY-MM-DD
+:param
+:returns: A list of reanalysis objects</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.load.get_merra2_save_csv">
+<code class="descclassname">load.load.</code><code class="descname">get_merra2_save_csv</code><span class="sig-paren">(</span><em>lat: str</em>, <em>long: str</em>, <em>from_date: str</em>, <em>to_date: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="_modules/load/load.html#get_merra2_save_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.load.get_merra2_save_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the filename when the MERRA-2 data is retrieved from the LightSail server through the api
+and saved to a csv file.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.load.load_timeseries">
+<code class="descclassname">load.load.</code><code class="descname">load_timeseries</code><span class="sig-paren">(</span><em>filepath</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load/load.html#load_timeseries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.load.load_timeseries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load timeseries data from a file into a dataframe. This currently supports ‘.csv’ and Excel files.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Location of the file containing the timeseries data</li>
+<li><strong>kwargs</strong> – All the kwargs from pandas.read_csv or pandas.read_excel can be passed to this function</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A dataframe with timestamps as index</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li>For csv files this is a wrapper around the pandas.read_csv function and so other kwargs can be passed through.
+The format of the csv file should be column headings in the first row with the timestamp column as the first
+column, however these can be over written by sending your own arguments.</li>
+<li>For Excel files this is a wrapper around the pandas.read_excel function and so other kwargs can be passed through.
+The format of the Excel file should be column headings in the first row with the timestamp column as the first
+column, however these can be over written by sending your own arguments.</li>
+<li>Will return NotImplementedError for file extensions not recognised.</li>
+<li>test-inder</li>
+</ul>
+</dd></dl>
+
+<dl class="class">
+<dt id="load.load.reanalysis">
+<em class="property">class </em><code class="descclassname">load.load.</code><code class="descname">reanalysis</code><span class="sig-paren">(</span><em>latitude</em>, <em>longitude</em>, <em>data</em>, <em>source</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load/load.html#reanalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.load.reanalysis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Object defining a reanalysis dataset</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>latitude</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – object.latitude gives the latitude of the location of dataset</li>
+<li><strong>longitude</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – object.longitude gives the longitude of the location of dataset</li>
+<li><strong>data</strong> (<em>pandas.DataFrame</em>) – object.data returns the data from the location</li>
+<li><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Source of the dataset like MERA, MERRA2, etc.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="load-reanalysis-module">
+<h2>load.reanalysis module<a class="headerlink" href="#load-reanalysis-module" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-load.reanalysis"></span><p>Retrieve MERRA-2 data from the merra-two api on the Lightsail instance where data is stored in a Cassandra table.
+The api used is the one which takes in the latitude, longitude, from date and to date. These variables need to be
+set at the start of the python file. The retrieved file will be placed in the same folder as this python file.</p>
+<dl class="function">
+<dt id="load.reanalysis.add_index">
+<code class="descclassname">load.reanalysis.</code><code class="descname">add_index</code><span class="sig-paren">(</span><em>df: pandas.core.frame.DataFrame</em><span class="sig-paren">)</span> &#x2192; pandas.core.frame.DataFrame<a class="reference internal" href="_modules/load/reanalysis.html#add_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.add_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dataframe with an Index column added to the dataframe provided.
+Index column will be an average of all the columns in a row.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.reanalysis.calc_distance">
+<code class="descclassname">load.reanalysis.</code><code class="descname">calc_distance</code><span class="sig-paren">(</span><em>lat1</em>, <em>long1</em>, <em>lat2</em>, <em>long2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load/reanalysis.html#calc_distance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.calc_distance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="load.reanalysis.extract_mera_grib_to_txt">
+<code class="descclassname">load.reanalysis.</code><code class="descname">extract_mera_grib_to_txt</code><span class="sig-paren">(</span><em>lat: str</em>, <em>long: str</em>, <em>height: int</em>, <em>dest_folder: str</em>, <em>mera_data_src: str</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load/reanalysis.html#extract_mera_grib_to_txt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.extract_mera_grib_to_txt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts MERA data from a GRIB format into text files for 4 nearest grid points. You need to run this function
+on a linux machine with grib_api installed (as grib_api currently works only on linux based machines).
+:param: lat : latitude of the site
+:param: long: longitude of the site (range of longitudes in MERA is from 0 to 360)
+:param: height: the height for which to extract u and v components for can be one of the following[10, 50, 100, 200]
+:param: dest_folder: path to the folder where extracted txt files are saved
+:param: mera_data_src: path to the folder containing MERA data
+Creates a folder with name Site_lat&lt;lat&gt;_long&lt;long&gt; in the dest_folder and extracts data in subfolders with names &lt;variable_subfolder&gt;_processed</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.reanalysis.get_mera_4nearest_dataframe">
+<code class="descclassname">load.reanalysis.</code><code class="descname">get_mera_4nearest_dataframe</code><span class="sig-paren">(</span><em>mera_txt_data_src: str</em>, <em>save_csv: bool = True</em><span class="sig-paren">)</span> &#x2192; list<a class="reference internal" href="_modules/load/reanalysis.html#get_mera_4nearest_dataframe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.get_mera_4nearest_dataframe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the extracted text files and returns a list of objects containing data and other attributes described below:
+:param: mera_txt_data_src: folder containing extracted MERA files for a site
+:returns: a list of 4 reanalysis objects with the following attributes:</p>
+<blockquote>
+<div>latitude, longitude, data, source</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.reanalysis.get_merra2_dataframe">
+<code class="descclassname">load.reanalysis.</code><code class="descname">get_merra2_dataframe</code><span class="sig-paren">(</span><em>lat: str</em>, <em>long: str</em>, <em>from_date: str</em>, <em>to_date: str</em><span class="sig-paren">)</span> &#x2192; load.reanalysis.reanalysis<a class="reference internal" href="_modules/load/reanalysis.html#get_merra2_dataframe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.get_merra2_dataframe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a reanalysis object containing the MERRA-2 data retrieved from the LightSail server through the api with the following parameters:
+latitude, longitude, data, source=MERRA2.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.reanalysis.get_merra2_nearest_nodes">
+<code class="descclassname">load.reanalysis.</code><code class="descname">get_merra2_nearest_nodes</code><span class="sig-paren">(</span><em>lat: str</em>, <em>long: str</em>, <em>from_date: str</em>, <em>to_date: str</em>, <em>nearest_4: bool = True</em><span class="sig-paren">)</span> &#x2192; typing.List[load.reanalysis.reanalysis]<a class="reference internal" href="_modules/load/reanalysis.html#get_merra2_nearest_nodes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.get_merra2_nearest_nodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of 4 reanalysis objects for 4 locations nearest to the one passed in parameters. A date range
+can also be used to get within a specified period.
+:param: lat: Latitude of the site
+:param: long: Longitude of the site
+:param: from_data: Start date for he dataset in format YYYY-MM-DD
+:param: to_date: End date for data in the format YYYY-MM-DD
+:param
+:returns: A list of reanalysis objects</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.reanalysis.get_merra2_save_csv">
+<code class="descclassname">load.reanalysis.</code><code class="descname">get_merra2_save_csv</code><span class="sig-paren">(</span><em>lat: str</em>, <em>long: str</em>, <em>from_date: str</em>, <em>to_date: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="_modules/load/reanalysis.html#get_merra2_save_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.get_merra2_save_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the filename when the MERRA-2 data is retrieved from the LightSail server through the api
+and saved to a csv file.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.reanalysis.import_merra2_from_brightwind_csv">
+<code class="descclassname">load.reanalysis.</code><code class="descname">import_merra2_from_brightwind_csv</code><span class="sig-paren">(</span><em>filename: str</em><span class="sig-paren">)</span> &#x2192; pandas.core.frame.DataFrame<a class="reference internal" href="_modules/load/reanalysis.html#import_merra2_from_brightwind_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.import_merra2_from_brightwind_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dataframe with the MERRA-2 data from the csv read and appended to it.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.reanalysis.mera_date_parser">
+<code class="descclassname">load.reanalysis.</code><code class="descname">mera_date_parser</code><span class="sig-paren">(</span><em>date: str</em>, <em>t: str</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load/reanalysis.html#mera_date_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.mera_date_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Date parser for MERA data. Can be passed to pandas.read_csv
+mars.date   mars.time
+19811101    0
+19811101    300</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.reanalysis.merra2_monthly_means_index_momm_to_csv">
+<code class="descclassname">load.reanalysis.</code><code class="descname">merra2_monthly_means_index_momm_to_csv</code><span class="sig-paren">(</span><em>nodes: typing.List[typing.Dict[str, str]], date_from: str, date_to: str, column: str = 'WS50m_ms'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load/reanalysis.html#merra2_monthly_means_index_momm_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.merra2_monthly_means_index_momm_to_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>gets MERRA-2 data for a number of nodes and exports the monthly means and mean of monthly means into csv
+files. The default column is the wind speed column but other columns can be specified.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.reanalysis.read_era5">
+<code class="descclassname">load.reanalysis.</code><code class="descname">read_era5</code><span class="sig-paren">(</span><em>date='2017-10-01'</em>, <em>area='55/-10/50/-5'</em>, <em>param='246.228'</em>, <em>target='test_function'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load/reanalysis.html#read_era5"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.read_era5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download grib files from ERA-5 dataset. For more information about the request see ERA-Interim and ERA-5 notes.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.reanalysis.read_grib">
+<code class="descclassname">load.reanalysis.</code><code class="descname">read_grib</code><span class="sig-paren">(</span><em>file_path='F:\\MERA_data\\u010'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load/reanalysis.html#read_grib"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.read_grib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads a grib file and returns the data as strings. Need eccodes (or gribapi) to be installed on the system</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="load.reanalysis.read_netcdf">
+<code class="descclassname">load.reanalysis.</code><code class="descname">read_netcdf</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/load/reanalysis.html#read_netcdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.read_netcdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read in a netCDF file and return a DataFrame.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="load.reanalysis.reanalysis">
+<em class="property">class </em><code class="descclassname">load.reanalysis.</code><code class="descname">reanalysis</code><span class="sig-paren">(</span><em>latitude</em>, <em>longitude</em>, <em>data</em>, <em>source</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load/reanalysis.html#reanalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#load.reanalysis.reanalysis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Class defining the attributes of data from a reference site MERA or MERRA2
+:param: latitude for storing latitude
+:param: longitude for storing longitude
+:param: data for storing Pandas dataframe containing data
+:param: source can be MERA or MERRA2</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-load">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-load" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2018, BrightWind Analysis.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

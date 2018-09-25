@@ -259,7 +259,7 @@
         <span class="k">return</span> <span class="mi">0</span>
 
 
-<div class="viewcode-block" id="OrdinaryLeastSquares"><a class="viewcode-back" href="../../analyse.html#analyse.correlation.OrdinaryLeastSquares">[docs]</a><span class="k">class</span> <span class="nc">OrdinaryLeastSquares</span><span class="p">(</span><span class="n">CorrelBase</span><span class="p">):</span>
+<div class="viewcode-block" id="OrdinaryLeastSquares"><a class="viewcode-back" href="../../API.html#analyse.correlation.OrdinaryLeastSquares">[docs]</a><span class="k">class</span> <span class="nc">OrdinaryLeastSquares</span><span class="p">(</span><span class="n">CorrelBase</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Accepts two dataframes with timestamps as indexes and averaging period.</span>
 
 <span class="sd">    :param ref_speed: Series containing reference speed as a column, timestamp as the index.</span>
@@ -285,7 +285,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="OrdinaryLeastSquares.linear_func"><a class="viewcode-back" href="../../analyse.html#analyse.correlation.OrdinaryLeastSquares.linear_func">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="OrdinaryLeastSquares.linear_func"><a class="viewcode-back" href="../../API.html#analyse.correlation.OrdinaryLeastSquares.linear_func">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">linear_func</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
 
@@ -297,7 +297,7 @@
     <span class="k">def</span> <span class="nf">__repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s1">&#39;Ordinary Least Squares Model&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="OrdinaryLeastSquares.run"><a class="viewcode-back" href="../../analyse.html#analyse.correlation.OrdinaryLeastSquares.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="OrdinaryLeastSquares.run"><a class="viewcode-back" href="../../API.html#analyse.correlation.OrdinaryLeastSquares.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">p</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="n">lstsq</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ref_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">**</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span>
                        <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;target_spd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()))[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
 
