@@ -33,6 +33,7 @@ def get_concurrent_coverage(ref, target, averaging_prd, aggregation_method_ref='
     coverage_df.columns = ["Coverage" if "_Coverage" in col else col for col in coverage_df.columns ]
     return coverage_df
 
+
 def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
 
     """ Return series of mean of monthly means for each column in the dataframe with timestamp as the index.
@@ -279,13 +280,14 @@ def get_coverage(data, period='1M', aggregation_method='mean'):
 
 def get_basic_stats(data):
     """
-    Gives basic statistics like mean, standard deviation, count, etc. of data
+    Gives basic statistics like mean, standard deviation, count, etc. of data,  excluding NaN values
 
     :param data: Meteorological data
     :param data type: pandas.Series or pandas.DataFrame
     :rtype: A dataframe or series containing statistics
     """
-    return data.describe().T
+
+    return data.describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
 
 
 def get_TI_by_Speed(data,speed_col_name,std_col_name):
