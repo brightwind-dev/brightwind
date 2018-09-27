@@ -305,7 +305,7 @@ def get_TI_by_speed(wdspd, wdspd_std, speed_bin_array=np.arange(-0.5, 41, 1), sp
     :param wdspd_std: Wind speed standard deviation data series
     :type wdspd_std: pandas.Series
     :param speed_bin_array: (Optional) Array of wind speeds where adjacent elements of array form a bin
-    :type speed_bin_labels: List or array
+    :type speed_bin_array: List or array
     :param speed_bin_labels: (Optional) Labels to use for speed bins, 0, 1, 2, 3 .. and so on by default
     :type speed_bin_labels: List, range or array
     :param percentile: The percentile representative of TI (see return for more information)
@@ -325,7 +325,7 @@ def get_TI_by_speed(wdspd, wdspd_std, speed_bin_array=np.arange(-0.5, 41, 1), sp
         wdspd = wdspd.iloc[:,0]
     if isinstance(wdspd_std, pd.DataFrame) and wdspd_std.shape[1]==1:
         wdspd_std = wdspd_std.iloc[:,0]
-    ti = pd.concat([wdspd.rename("wdspd"), wdspd_std.rename("wdspd_std")], axis=1, join='inner')
+    ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std')], axis=1, join='inner')
     ti['Turbulence_Intensity'] = ti['wdspd_std'] / ti['wdspd']
     ti_dist = pd.concat([get_distribution(var1_series=ti['Turbulence_Intensity'],
                                              var2_series=ti['wdspd'],
@@ -353,46 +353,53 @@ def get_TI_by_speed(wdspd, wdspd_std, speed_bin_array=np.arange(-0.5, 41, 1), sp
     return ti_dist.dropna(how='any')
 
 
-def get_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sectors,min_speed):
+def get_TI_by_sector(wdspd, wdspd_std, wddir, min_speed=0, sectors=12, direction_bin_array=None, direction_bin_labels=None):
+    """
+    Accepts a wind speed series, its standard deviation and a direction series, calculates turbulence intensity (TI)
+    and returns the distribution by of TI by sector
 
-    data = data.dropna(subset=[speed_col_name, std_col_name, direction_col_name])
-    data['Turbulence_Intensity'] = data[std_col_name] / data[speed_col_name]
+    :param wdspd: Wind speed data series
+    :type wdspd: pandas.Series
+    :param wdspd_std: Wind speed standard deviation data series
+    :type wdspd_std: pandas.Series
+    :param wddir: Wind direction series
+    :type wddir: pandas.Series
+    :param direction_bin_array: (Optional) Array of wind speeds where adjacent elements of array form a bin
+    :param direction_bin_array: (Optional) To change default behaviour of first sector centered at 0 assign an array of
+            bins to this
+    :param direction_bin_labels: (Optional) you can specify an array of labels to be used for the bins. uses string
+            labels of the format '30-90' by default
+    :return: TI distribution with columns names as:
 
-    #Reduce dataframe by excluding all values below Minimum Speed
-    data = data[data[speed_col_name] >= min_speed]
+            * Mean_TI (average TI for a speed bin),
+            * TI_Count ( number of data points in the bin),
 
-    #Here we take away half of the sector value from all of the direction column and if below zero we add 360.
-    #Essentially rotates values by the appropriate amount, then when you bin from zero up to 360, you are actually
-    #binning from half way through each sector, and get over the issue of having to add bins on either side of 360 degrees
-    data[direction_col_name] = data[direction_col_name] - (360 / (sectors * 2))
-    data.loc[data[direction_col_name] < 0, direction_col_name] += 360
+    :rtype: pandas.DataFrame
 
-    #Get Direction Bins, and then group data by bins while calculating mean TI and count the values
-    #Note that sectors in Mast Analysis sheet calculated differently, first sector is not divided on either side of 0.
-    #We have implemented sector division here.
+    """
+    if isinstance(wdspd, pd.DataFrame) and wdspd.shape[1]==1:
+        wdspd = wdspd.iloc[:,0]
+    if isinstance(wdspd_std, pd.DataFrame) and wdspd_std.shape[1]==1:
+        wdspd_std = wdspd_std.iloc[:,0]
+    if isinstance(wddir, pd.DataFrame) and wddir.shape[1]==1:
+        wddir = wddir.iloc[:,0]
+    ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std'), wddir.rename('wddir')], axis=1, join='inner')
+    ti = ti[ti['wdspd']>=min_speed]
+    ti['Turbulence_Intensity'] = ti['wdspd_std'] / ti['wdspd']
+    ti_dist = pd.concat([get_distribution_by_wind_sector(var_series=ti['Turbulence_Intensity'],
+                                             direction_series=ti['wddir'],
+                                             sectors=sectors, direction_bin_array=direction_bin_array,
+                                             direction_bin_labels=direction_bin_labels,
+                                             aggregation_method='mean').rename("Mean_TI"),
+                         get_distribution_by_wind_sector(var_series=ti['Turbulence_Intensity'],
+                                             direction_series=ti['wddir'],
+                                             sectors=sectors, direction_bin_array=direction_bin_array,
+                                                            direction_bin_labels=direction_bin_labels,
+                                             aggregation_method='count').rename("TI_Count")], axis=1, join='outer')
 
-    direction_bins = np.arange(0, 360 + (360 / sectors), 360 / sectors)
-    data = pd.concat([data, data.loc[:, direction_col_name].apply(map_direction_bin, sectors=sectors, bins=direction_bins).rename('Direction Bin')], axis=1)
+    ti_dist.index.rename('Direction Bin', inplace=True)
+    return ti_dist.dropna(how='all')
 
-    grouped = data.groupby(['Direction Bin'])
-    grouped1 = grouped['Turbulence_Intensity'].mean()
-    grouped2 = grouped['Turbulence_Intensity'].count()
-
-
-    result = pd.DataFrame({'Turbulence_Intensity_Avg': grouped1, 'Turbulence_Intensity_Count': grouped2})
-    result = result.reset_index()
-
-    #Convert direction bins to actual bins, i.e. to include 345-15 degrees, and drop 345-360 sector
-
-    direction_row = _get_direction_bin_dict(get_direction_bin_array(sectors), sectors)
-    new_bins = pd.Series(direction_row, name='bins', dtype='category')
-    new_bins = new_bins.reset_index()
-    result['Direction bin'] = new_bins['bins']
-    result = result[['Direction bin', 'Turbulence_Intensity_Avg', 'Turbulence_Intensity_Count']]
-    #Note results differ from Mast Analysis sheet when same binning used. Error was found to be associated with use of mod
-    #function in access. Mod is used to convert values that are above 360 degrees, back to nomrmal degrees.
-    #In practice, high unlikely any direction values will exceed 360 degrees. When this was removed, results matched exactly.
-    return result
 
 
 def get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name):

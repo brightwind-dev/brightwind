@@ -149,7 +149,14 @@ def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b
     plt.show()
 
 
-def plot_TI_by_Speed(speed_col_name,std_col_name):
+def plot_TI_by_speed(TI_by_speed, IEC_Class):
+    ####Refactoring needed as it relies on get_TI_by_speed. -Inder
+    """
+
+    :param TI_by_speed:
+    :param IEC_Class: By default IEC class 2005 is used for custom class pass a dataframe
+    :return: Plots turbulence intensity distribution by wind speed
+    """
 
     # IEC Class 2005
     # Note we have removed option to include IEC Class 1999 as no longer appropriate.
