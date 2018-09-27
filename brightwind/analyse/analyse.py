@@ -104,6 +104,10 @@ def get_distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41
     :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
     describe, a custom function, etc,computes frequency in percentages by default
     :returns A DataFrame/Series with bins as row indexes and columns with statistics chosen by aggregation_method"""
+    if isinstance(var1_series, pd.DataFrame) and var1_series.shape[1]==1:
+        var1_series = var1_series.iloc[:,0]
+    if isinstance(var2_series, pd.DataFrame) and var2_series.shape[1]==1:
+        var2_series = var2_series.iloc[:,0]
     var1_series = var1_series.dropna()
     var2_series = var2_series.dropna()
     var2_binned_series = pd.cut(var2_series, var2_bin_array, right=False, labels=var2_bin_labels).rename('variable_bin')
@@ -290,29 +294,63 @@ def get_basic_stats(data):
     return data.describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
 
 
-def get_TI_by_Speed(data,speed_col_name,std_col_name):
-    #Takes a dataframe, pulls the speed and standard deviation column.
-    #This is then binned by windspeed and the average TI and count of TI extracted.
+def get_TI_by_speed(wdspd, wdspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
+                    percentile=90):
+    """
+    Accepts a wind speed series and its standard deviation, calculates turbulence intensity (TI) and returns the
+    distribution by of TI by speed bins
 
-    data = data.dropna(subset=[speed_col_name, std_col_name])
-    data['Turbulence_Intensity'] = data[std_col_name] / data[speed_col_name]
-    speed_bins = np.arange(-0.5, 41, 1)
-    # data['bins'] = pd.cut(data[speed_col_name], speed_bins,right=False)
-    data = pd.concat([data, data.loc[:, speed_col_name].apply(map_speed_bin, bins=speed_bins).rename('bins')], axis=1)
-    max_bin = data['bins'].max()
-    grouped = data.groupby(['bins'])
-    grouped1 = grouped['Turbulence_Intensity'].mean()
-    grouped2 = grouped['Turbulence_Intensity'].count()
-    grouped3 = grouped[std_col_name].std()
-    grouped4 = grouped['Turbulence_Intensity'].quantile(.9)
-    speed_bins = np.arange(0, max_bin + 1, 1)
-    charTI = grouped1 + (grouped3 / grouped3.index)
-    TI = pd.DataFrame({str(speed_col_name) + '_TI_Avg': grouped1,
-                       str(speed_col_name) + '_TI_Count': grouped2, str(std_col_name) + '_SigmaSigma': grouped3,
-                       str(speed_col_name) + '_CharTI': charTI, str(speed_col_name) + '_RepTI': grouped4})
-    TI.at[0, str(speed_col_name) + '_CharTI'] = 0
-    TI = TI.reset_index()
-    return TI
+    :param wdspd: Wind speed data series
+    :type wdspd: pandas.Series
+    :param wdspd_std: Wind speed standard deviation data series
+    :type wdspd_std: pandas.Series
+    :param speed_bin_array: (Optional) Array of wind speeds where adjacent elements of array form a bin
+    :type speed_bin_labels: List or array
+    :param speed_bin_labels: (Optional) Labels to use for speed bins, 0, 1, 2, 3 .. and so on by default
+    :type speed_bin_labels: List, range or array
+    :param percentile: The percentile representative of TI (see return for more information)
+    :type percentile: float, int
+    :return: TI distribution with columns names as:
+
+            * Mean_TI (average TI for a speed bin),
+            * TI_Count ( number of data points in the bin),
+            * Rep_TI (Representative TI set at 90 percentile by default,
+            * TI_2Sigma (2 sigma TI),
+            * Char_TI (characteristic TI)
+    :rtype: pandas.DataFrame
+
+    """
+
+    if isinstance(wdspd, pd.DataFrame) and wdspd.shape[1]==1:
+        wdspd = wdspd.iloc[:,0]
+    if isinstance(wdspd_std, pd.DataFrame) and wdspd_std.shape[1]==1:
+        wdspd_std = wdspd_std.iloc[:,0]
+    ti = pd.concat([wdspd.rename("wdspd"), wdspd_std.rename("wdspd_std")], axis=1, join='inner')
+    ti['Turbulence_Intensity'] = ti['wdspd_std'] / ti['wdspd']
+    ti_dist = pd.concat([get_distribution(var1_series=ti['Turbulence_Intensity'],
+                                             var2_series=ti['wdspd'],
+                                             var2_bin_array=speed_bin_array,
+                                             var2_bin_labels=speed_bin_labels,
+                                             aggregation_method='mean').rename("Mean_TI"),
+                         get_distribution(var1_series=ti['Turbulence_Intensity'],
+                                             var2_series=ti['wdspd'],
+                                             var2_bin_array=speed_bin_array,
+                                             var2_bin_labels=speed_bin_labels,
+                                             aggregation_method='count').rename("TI_Count"),
+                         get_distribution(var1_series=ti['Turbulence_Intensity'],
+                                             var2_series=ti['wdspd'],
+                                             var2_bin_array=speed_bin_array,
+                                             var2_bin_labels=speed_bin_labels,
+                                             aggregation_method=lambda x: np.percentile(x, q=percentile)).rename("Rep_TI"),
+                         get_distribution(var1_series=ti['Turbulence_Intensity'],
+                                             var2_series=ti['wdspd'],
+                                             var2_bin_array=speed_bin_array,
+                                             var2_bin_labels=speed_bin_labels,
+                                             aggregation_method='std').rename("TI_2Sigma")], axis=1, join='inner')
+    ti_dist.loc[:,'Char_TI'] = ti_dist.loc[:,'Mean_TI'] + (ti_dist.loc[:,'TI_2Sigma'] / ti_dist.index)
+    ti_dist.loc[0, 'Char_TI'] = 0
+    ti_dist.index.rename('Speed Bin', inplace=True)
+    return ti_dist.dropna(how='any')
 
 
 def get_TI_by_sector(data,speed_col_name,std_col_name,direction_col_name,sectors,min_speed):

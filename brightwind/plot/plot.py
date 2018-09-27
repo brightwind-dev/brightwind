@@ -51,7 +51,7 @@ def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_gre
                                         bw_colors('dark_green_for_gradient'),bw_colors('darkgreen')],save_fig=False):
     from matplotlib.ticker import PercentFormatter
     fig = plt.figure(figsize=(15, 8))
-    ax = fig.add_axes([0.1, 0.1, 0.8,0.8])
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     ax.set_xlabel('Speed [m/s]')
     ax.set_ylabel('Frequency [%]')
     if isinstance(data.index[0], pd.Interval):
@@ -149,7 +149,7 @@ def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b
     plt.show()
 
 
-def plot_TI_by_Speed(data,speed_col_name,std_col_name):
+def plot_TI_by_Speed(speed_col_name,std_col_name):
 
     # IEC Class 2005
     # Note we have removed option to include IEC Class 1999 as no longer appropriate.
@@ -186,7 +186,7 @@ def plot_TI_by_Speed(data,speed_col_name,std_col_name):
     plt.show()
 
 
-def plot_TI_by_sector(data, speed_col_name,std_col_name,direction_col_name,sectors,min_speed):
+def plot_TI_by_sector(data, speed_col_name, std_col_name, direction_col_name, sectors, min_speed):
 
     # First we need to calculate the Turbulence Intensity by sector by calling the sector function.
     TI = freq_an.get_TI_by_sector(data, speed_col_name, std_col_name, direction_col_name, sectors, min_speed)
@@ -262,6 +262,8 @@ def plot_12x24_TI_Contours(data,time_col_name,speed_col_name,std_col_name):
 
 def plot_sector_ratio(data, speed_col_name_1, speed_col_name_2, direction_col_name, boom_dir_1=0, boom_dir_2=0,
                       booms=False):
+    ####Refactoring needed as it relies on get_sector_ration. -Inder
+
     """Accepts a dataframe table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
     by sector. Optionally can include anemometer boom directions also.
     :param data: dataframe of windspeed and direction data
