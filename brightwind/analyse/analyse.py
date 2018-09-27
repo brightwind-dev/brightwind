@@ -401,37 +401,16 @@ def get_TI_by_sector(wdspd, wdspd_std, wddir, min_speed=0, sectors=12, direction
     return ti_dist.dropna(how='all')
 
 
-
-def get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name):
-    #Get the 12 month x 24 hour matrix of turbulence intensity
-    data = data.dropna(subset=[time_col_name, speed_col_name, std_col_name])
-    data['Turbulence_Intensity'] = data.loc[:,std_col_name] / data.loc[:,speed_col_name]
-    data[time_col_name] = pd.to_datetime(data[time_col_name])
-
-    data['Month'] = data.loc[:,time_col_name].dt.month
-    data['Hour'] = data.loc[:,time_col_name].dt.hour
-
-    result = data.pivot_table(index='Hour', columns='Month', values='Turbulence_Intensity')
-    return result
-
-
-def map_speed_bin(wdspd, bins):
-    # Copy of Inders function, can be removed once this is integrated into main library
-    kwargs = {}
-    if wdspd == max(bins):
-        kwargs['right'] = True
-
-    bin = bins[np.digitize([wdspd], bins, **kwargs)[0]]
-    bin_lower = bins[np.digitize([wdspd], bins, **kwargs)[0]-1]
-    return np.digitize([wdspd], bins, **kwargs)[0]-1.0
-
-
-def _get_direction_bin_dict(direction_bins,sectors):
-    # Copy of Inders function, can be removed once this is integrated into main library
-    map = dict()
-    for i,lower_bound in enumerate(direction_bins[:sectors]):
-        if i==0:
-            map[i+1] = '{0}-{1}'.format(direction_bins[-2],direction_bins[1])
-        else:
-            map[i+1] = '{0}-{1}'.format(lower_bound,direction_bins[i+1])
-    return map
+def get_12x24(var_series,aggregation_method='mean'):
+    """
+    Accepts a variable series and returns 12x24 (months x hours) table for the variable.
+    :param var_series:
+    :param aggregation_method: 'mean' by default calculates mean of the variable passed. Can change it to
+            'sum', 'std', 'min', 'max', 'percentile' for sum, standard deviation, minimum, maximum, percentile
+             of the variable respectively. Can also pass a function.
+    :type aggregation_method: str or function
+    :return: A dataframe with hours as row labels and months as column labels.
+    """
+    table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
+                             var_series.index.to_series().dt.hour.rename('Hour')], axis=1,join='inner')
+    return table_12x24.pivot_table(index='Hour', columns='Month', values='Variable',aggfunc=aggregation_method)

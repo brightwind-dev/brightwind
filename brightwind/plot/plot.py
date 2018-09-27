@@ -253,6 +253,7 @@ def plot_monthly_means(data,time_col_name):
 
 
 def plot_12x24_TI_Contours(data,time_col_name,speed_col_name,std_col_name):
+    ####Refactoring needed as it relies on get_sector_ration. -Inder
     # Get Contour Plot of 12 month x 24 hour matrix of turbulence intensity
     result = freq_an.get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name)
     plt.figure(figsize=(15, 7.5))
