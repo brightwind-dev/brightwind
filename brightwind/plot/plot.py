@@ -72,6 +72,7 @@ def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_gre
     if save_fig:
         plt.savefig(save_fig)
     plt.show()
+    # return ax
 
 
 def plot_wind_rose(data, freq_table=False, direction_col_name=0, sectors=12):
@@ -89,15 +90,17 @@ def plot_wind_rose(data, freq_table=False, direction_col_name=0, sectors=12):
         result = data.sum(axis=0)
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
-    ax.set_theta_zero_location('N')
+    ax.\
+
+        set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0,360, 360.0/sectors))
     ax.set_rgrids(np.arange(0,101,10), labels=[str(i)+'%' for i in np.arange(0,101,10)],angle=0)
     ax.bar(np.arange(0,2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
     ax.set_title(str(direction_col_name)+' Wind Rose', loc='center')
-    plt.show()
-
+    # plt.show()
+    return plt
 
 def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b8dc6f','#9acd32','#7ba428', '#5c7b1e']):
     import matplotlib as mpl

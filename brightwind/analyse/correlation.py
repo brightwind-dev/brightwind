@@ -394,6 +394,7 @@ class SpeedSort(CorrelBase):
     def plot(self):
         for model in self.speed_model:
             self.speed_model[model].plot_model('Sector '+str(model))
+        self.plot_wind_vane()
 
     def _predict(self, x_spd, x_dir):
         x = pd.concat([x_spd.rename('spd'), get_binned_direction_series(x_dir, self.sectors, direction_bin_array=
