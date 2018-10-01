@@ -417,8 +417,8 @@ class SpeedSort(CorrelBase):
         """Plots reference and target directions in a scatter plot"""
 
         # _scatter_plot(self.ref_dir, self.target_dir,title='original data')
-        _scatter_plot(self.data['ref_dir'][(self.data['ref_dir']>self.cutoff) & (self.data['ref_dir']>self.cutoff)],
-                      self.data['target_dir'][(self.data['ref_dir']>self.cutoff) & (self.data['ref_dir']>self.cutoff)],
+        _scatter_plot(self.data['ref_dir'][(self.data['ref_spd']>self.cutoff) & (self.data['target_spd']>self.cutoff)],
+                      self.data['target_dir'][(self.data['ref_spd']>self.cutoff) & (self.data['target_spd']>self.cutoff)],
                       x_label='Reference direction', y_label="Target direction")
 
 class SVR(CorrelBase):

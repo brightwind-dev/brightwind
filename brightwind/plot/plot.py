@@ -69,9 +69,7 @@ def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_gre
                   interpolation='gaussian', extent=(bin-0.4, bin+0.4, 0, frequency), aspect='auto', zorder=3)
         ax.bar(bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
     ax.set_title('Wind Speed Frequency Distribution')
-
-    plt.show()
-    # return ax
+    return ax.get_figure()
 
 
 def plot_wind_rose(data, freq_table=False, direction_col_name=0, sectors=12):
@@ -252,7 +250,7 @@ def plot_monthly_means(data,time_col_name):
     plt.show()
 
 
-def plot_12x24_TI_Contours(data,time_col_name,speed_col_name,std_col_name):
+def plot_12x24_contours(data):
     ####Refactoring needed as it relies on get_sector_ration. -Inder
     # Get Contour Plot of 12 month x 24 hour matrix of turbulence intensity
     result = freq_an.get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name)
