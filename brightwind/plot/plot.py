@@ -37,7 +37,7 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     scat = fig2.add_subplot(111)
     scat.set_xlabel(x_label)
     scat.set_ylabel(y_label)
-    scat.scatter(x, y, marker = '.', color='#9ACD32',alpha=0.8)
+    scat.scatter(x, y, marker = '.', color='#9ACD32',alpha=0.5)
     fig2.set_figwidth(size[0])
     fig2.set_figheight(size[1])
     plt.title(title)
@@ -48,7 +48,7 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
 
 
 def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_green_for_gradient'),
-                                        bw_colors('dark_green_for_gradient'),bw_colors('darkgreen')],save_fig=False):
+                                        bw_colors('dark_green_for_gradient'),bw_colors('darkgreen')]):
     from matplotlib.ticker import PercentFormatter
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
@@ -69,8 +69,7 @@ def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_gre
                   interpolation='gaussian', extent=(bin-0.4, bin+0.4, 0, frequency), aspect='auto', zorder=3)
         ax.bar(bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
     ax.set_title('Wind Speed Frequency Distribution')
-    if save_fig:
-        plt.savefig(save_fig)
+
     plt.show()
     # return ax
 
