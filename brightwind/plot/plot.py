@@ -90,9 +90,7 @@ def plot_wind_rose(data, freq_table=False, direction_col_name=0, sectors=12):
         result = data.sum(axis=0)
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
-    ax.\
-
-        set_theta_zero_location('N')
+    ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0,360, 360.0/sectors))
     ax.set_rgrids(np.arange(0,101,10), labels=[str(i)+'%' for i in np.arange(0,101,10)],angle=0)
