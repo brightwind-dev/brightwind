@@ -96,9 +96,9 @@ def plot_wind_rose(data, freq_table=False, direction_col_name=0, sectors=12):
     ax.set_rgrids(np.arange(0,101,10), labels=[str(i)+'%' for i in np.arange(0,101,10)],angle=0)
     ax.bar(np.arange(0,2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
-    ax.set_title(str(direction_col_name)+' Wind Rose', loc='center')
-    # plt.show()
-    return plt
+    ax.set_title('Wind Rose', loc='center')
+    return ax.get_figure()
+
 
 def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b8dc6f','#9acd32','#7ba428', '#5c7b1e']):
     import matplotlib as mpl
@@ -147,7 +147,7 @@ def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b
                         mpl.patches.Patch(color=gradient_colors[4], label='13-15 m/s'),
                         mpl.patches.Patch(color=gradient_colors[5], label='15+ m/s')]
     ax.legend(handles=legend_patches)
-    plt.show()
+    return ax.get_figure()
 
 
 def plot_TI_by_speed(TI_by_speed, IEC_Class):
