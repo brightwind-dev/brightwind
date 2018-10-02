@@ -251,20 +251,20 @@ def plot_monthly_means(data,time_col_name):
     plt.show()
 
 
-def plot_12x24_contours(data):
+def plot_12x24_contours(data, title='Variable'):
     ####Refactoring needed as it relies on get_sector_ration. -Inder
     # Get Contour Plot of 12 month x 24 hour matrix of turbulence intensity
-    result = freq_an.get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name)
-    plt.figure(figsize=(15, 7.5))
-    x = plt.contourf(result, cmap="Greens")
+    # result = freq_an.get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name)
+    fig, ax = plt.subplots()
+    x = ax.contourf(data, cmap="Greens")
     cbar = plt.colorbar(x)
-    cbar.ax.set_ylabel('Turbulence Intensity')
-    plt.xlabel('Month of Year')
-    plt.ylabel('Hour of Day')
-    plt.xticks(np.arange(12), calendar.month_name[1:13])
-    plt.yticks(np.arange(0, 24, 1))
-    plt.title('Hourly Mean Turbulence Intensity by Calendar Month')
-    plt.show()
+    cbar.ax.set_ylabel(title)
+    ax.set_xlabel('Month of Year')
+    ax.set_ylabel('Hour of Day')
+    ax.set_xticks(np.arange(12), calendar.month_name[1:13])
+    ax.set_yticks(np.arange(0, 24, 1))
+    ax.set_title('Hourly Mean '+title+' Calendar Month')
+    return ax.get_figure()
 
 
 def plot_sector_ratio(data, speed_col_name_1, speed_col_name_2, direction_col_name, boom_dir_1=0, boom_dir_2=0,
