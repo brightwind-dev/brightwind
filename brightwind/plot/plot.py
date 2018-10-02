@@ -104,11 +104,11 @@ def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b
     if isinstance(table.index[0], pd.Interval):
         table.index = [i.mid for i in table.index]
     table_trans = table.T
-    table_binned = pd.concat([table_binned,table_trans.loc[:, 0:3].sum(axis=1).rename(3)],axis=1)
-    table_binned = pd.concat([table_binned,table_trans.loc[:, 4:6].sum(axis=1).rename(6)],axis=1)
-    table_binned = pd.concat([table_binned,table_trans.loc[:, 7:9].sum(axis=1).rename(9)],axis=1)
-    table_binned = pd.concat([table_binned,table_trans.loc[:, 10:12].sum(axis=1).rename(12)],axis=1)
-    table_binned = pd.concat([table_binned,table_trans.loc[:, 13:15].sum(axis=1).rename(15)],axis=1)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 0:3].sum(axis=1).rename(3)],axis=1)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 4:6].sum(axis=1).rename(6)],axis=1)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 7:9].sum(axis=1).rename(9)],axis=1)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 10:12].sum(axis=1).rename(12)],axis=1)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 13:15].sum(axis=1).rename(15)],axis=1)
     table_binned = pd.concat([table_binned, table_trans.loc[:, 16:].sum(axis=1).rename(18)], axis=1)
     table_binned = table_binned.T
     fig = plt.figure(figsize=(12, 12))
@@ -147,48 +147,44 @@ def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b
     return ax.get_figure()
 
 
-def plot_TI_by_speed(TI_by_speed, IEC_Class):
-    ####Refactoring needed as it relies on get_TI_by_speed. -Inder
+def plot_TI_by_speed(wdspd, wdspd_std, IEC_class=None, **kwargs):
     """
-
+    Plot turbulence intensity graphs alongside with IEC standards
     :param TI_by_speed:
-    :param IEC_Class: By default IEC class 2005 is used for custom class pass a dataframe
+    :param IEC_Class: By default IEC class 2005 is used for custom class pass a dataframe. Note we have removed
+            option to include IEC Class 1999 as no longer appropriate.
+            This may need to be placed in a separate function when updated IEC standard is released
     :return: Plots turbulence intensity distribution by wind speed
     """
 
     # IEC Class 2005
-    # Note we have removed option to include IEC Class 1999 as no longer appropriate.
-    # This may need to be placed in a separate function when updated IEC standard is released
+    #
+    if IEC_class is None:
+        IEC_class = pd.DataFrame(np.zeros([26, 4]), columns=['Windspeed', 'IEC Class A', 'IEC Class B', 'IEC Class C'])
+        for n in range(1, 26):
+            IEC_class.iloc[n, 0] = n
+            IEC_class.iloc[n, 1] = 0.16 * (0.75 + (5.6 / n))
+            IEC_class.iloc[n, 2] = 0.14 * (0.75 + (5.6 / n))
+            IEC_class.iloc[n, 3] = 0.12 * (0.75 + (5.6 / n))
 
-    columns = ['Windspeed', 'IEC Class A', 'IEC Class B', 'IEC Class C']
-    IEC_Class_2005 = pd.DataFrame(np.zeros([26, 4]), columns=columns)
-
-    for n in range(1, 26):
-        IEC_Class_2005.iloc[n, 0] = n
-        IEC_Class_2005.iloc[n, 1] = 0.16 * (0.75 + (5.6 / n))
-        IEC_Class_2005.iloc[n, 2] = 0.14 * (0.75 + (5.6 / n))
-        IEC_Class_2005.iloc[n, 3] = 0.12 * (0.75 + (5.6 / n))
-
-    # Get Average Turbulence Intensity and Representative Turbulence Intensity for the plot
-    TI = freq_an.get_TI_by_Speed(data, speed_col_name, std_col_name)
-    data['Turbulence_Intensity'] = data[std_col_name] / data[speed_col_name]
-
-    #Plot Figure
-    plt.figure(figsize=(15, 7.5))
-    plt.scatter([data[speed_col_name]], [data['Turbulence_Intensity']], color=bw_colors('green'), s=1, alpha=0.3)
-    plt.plot(TI.iloc[:, 0], TI.iloc[:, 1], color=bw_colors('darkgreen'))
-    plt.plot(TI.iloc[:, 0], TI.iloc[:, 5], color=bw_colors('redline'))
-    plt.plot(IEC_Class_2005.iloc[:, 0], IEC_Class_2005.iloc[:, 1], color=bw_colors('greyline'))
-    plt.plot(IEC_Class_2005.iloc[:, 0], IEC_Class_2005.iloc[:, 2], color=bw_colors('greyline'))
-    plt.plot(IEC_Class_2005.iloc[:, 0], IEC_Class_2005.iloc[:, 3], color=bw_colors('greyline'))
-    plt.axis([2, 25, 0, 0.6])
-    plt.xticks(np.arange(2, 26, 1))
-    plt.xlabel('Wind speed [m/s]')
-    plt.ylabel('Turbulence Intensity')
-    # plt.title('Turbulence Intensity by Windspeed for ' + str(speed_col))
-    plt.grid(True)
-    plt.legend()
-    plt.show()
+    TI = freq_an.get_TI_by_speed(wdspd, wdspd_std, **kwargs)
+    common_idxs = wdspd.index.intersection(wdspd_std.index)
+    fig, ax = plt.subplots()
+    ax.scatter(wdspd.loc[common_idxs], wdspd_std.loc[common_idxs]/wdspd.loc[common_idxs],
+               color=bw_colors('green'), alpha=0.3, marker='.')
+    ax.plot(TI.index.__array__(), TI.loc[:,'Mean_TI'].values, color=bw_colors('darkgreen'))[0].set_label('Mean_TI')
+    ax.plot(TI.index.__array__(), TI.loc[:,'Rep_TI'].values, color=bw_colors('redline'))[0].set_label('Rep_TI')
+    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 1], color=bw_colors('greyline'), linestyle='dashed')
+    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 2], color=bw_colors('greyline'), linestyle='dashdot')
+    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=bw_colors('greyline'), linestyle='dotted')
+    ax.set_xlim(2, 25)
+    ax.set_ylim(0, 0.6)
+    ax.set_xticks(np.arange(2, 26, 1))
+    ax.set_xlabel('Wind speed [m/s]')
+    ax.set_ylabel('Turbulence Intensity')
+    ax.grid(True)
+    ax.legend()
+    return ax.get_figure()
 
 
 def plot_TI_by_sector(data, speed_col_name, std_col_name, direction_col_name, sectors, min_speed):
