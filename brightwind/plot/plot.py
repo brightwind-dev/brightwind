@@ -3,6 +3,7 @@ import calendar
 import numpy as np
 import pandas as pd
 from analyse import analyse as freq_an
+from analyse import shear as sh
 
 plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\brightwind\brightwind\plot\bw.mplstyle')
 
@@ -334,4 +335,39 @@ def plot_sector_ratio(data, speed_col_name_1, speed_col_name_2, direction_col_na
 
     plt.legend(loc=8, framealpha=1)
 
+    plt.show()
+
+
+def plot_shear(wind_speeds, heights):
+    """
+    Show derivation and output (alpha value) of shear calculation function for a given timestep.
+    :param wind_speeds: List of wind speeds [m/s]
+    :param heights: List of heights [m above ground]. The position of the height in the list must be the same position in the list as its
+    corresponding wind speed value.
+    :return:
+        1) Log-log plot of speed and elevation data, including linear fit.
+        2) Speed and elevation data plotted on regular scale, showing power law fit resulting from alpha value
+    """
+
+    alpha, wind_speedsfit = sh.calc_shear(wind_speeds, heights, plot=True)
+
+    # PLOT INPUT AND MODELLED DATA ON LOG-LOG SCALE
+    heightstrend = np.linspace(0.1, max(heights) + 2, 100)  # create variable to define (interpolated) power law trend
+    plt.loglog(wind_speeds, heights, 'bo')  # plot input data on log log scale
+    plt.loglog(wind_speedsfit(heightstrend), heightstrend, 'k--')  # Show interpolated power law trend
+    plt.xlabel('Speed (m/s)')
+    plt.ylabel('Elevation (m)')
+    plt.legend(['Input data', 'Best fit line for power law (' r'$\alpha$ = %i)' % int(round(alpha))])
+    plt.grid(True)
+    plt.show()
+
+    # PLOT INPUT AND MODELLED DATA ON REGULAR SCALE
+    plt.plot(wind_speeds, heights, 'bo')  # plot input data
+    plt.plot(wind_speedsfit(heightstrend), heightstrend, 'k--')  # Show interpolated power law trend
+    plt.xlabel('Speed (m/s)')
+    plt.ylabel('Elevation (m)')
+    plt.legend(['Input data', 'Power law trend (' r'$\alpha$ = %i)' % int(round(alpha))])
+    plt.ylim(0, max(heights) + 2)
+    plt.xlim(0, max([max(wind_speeds), max(wind_speedsfit(heights))]) + 2)
+    plt.grid(True)
     plt.show()
