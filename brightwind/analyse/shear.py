@@ -10,4 +10,5 @@ def calc_shear(wind_speeds: List[float], heights: List[float]) -> float:
     :return: The shear value alpha.
     """
     alpha = 0.2  # replace with the calculation code.
+    "testing"
     return alpha
