@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from transform import transform as tf
+from utils import utils
 
 
 def get_concurrent_coverage(ref, target, averaging_prd, aggregation_method_ref='mean', aggregation_method_target='mean'):
@@ -118,14 +119,6 @@ def get_distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41
         return data.groupby(['variable_bin'])['data'].agg(aggregation_method)
 
 
-def get_direction_bin_array(sectors):
-    bin_start = 180.0/sectors
-    direction_bins = np.arange(bin_start, 360, 360.0/sectors)
-    direction_bins = np.insert(direction_bins, 0, 0)
-    direction_bins = np.append(direction_bins, 360)
-    return direction_bins
-
-
 def _get_direction_bin_labels(sectors, direction_bins, zero_centred=True):
     mapper = dict()
     for i, lower_bound in enumerate(direction_bins[:sectors]):
@@ -158,7 +151,7 @@ def get_binned_direction_series(direction_series, sectors, direction_bin_array=N
     is not specified
     """
     if direction_bin_array is None:
-        direction_bin_array = get_direction_bin_array(sectors)
+        direction_bin_array = utils.get_direction_bin_array(sectors)
     return direction_series.apply(map_direction_bin, bins=direction_bin_array, sectors=sectors)
 
 
@@ -182,7 +175,7 @@ def get_distribution_by_wind_sector(var_series, direction_series, sectors=12, ag
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
     if direction_bin_array is None:
-        direction_bin_array = get_direction_bin_array(sectors)
+        direction_bin_array = utils.get_direction_bin_array(sectors)
         zero_centered = True
     else:
         sectors = len(direction_bin_array)-1
@@ -221,7 +214,7 @@ def get_freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 4
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
     if direction_bin_array is None:
-        direction_bin_array = get_direction_bin_array(sectors)
+        direction_bin_array = utils.get_direction_bin_array(sectors)
         zero_centered = True
     else:
         sectors = len(direction_bin_array)-1
@@ -231,13 +224,13 @@ def get_freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 4
     var_binned_series = pd.cut(var_series, var_bin_array, right=False, labels=var_bin_labels).rename('variable_bin')
     direction_binned_series = get_binned_direction_series(direction_series, sectors, direction_bin_array).rename(
         'direction_bin')
-    data = pd.concat([var_series.rename('var_data'), var_binned_series,direction_binned_series],axis=1).dropna()
+    data = pd.concat([var_series.rename('var_data'), var_binned_series, direction_binned_series],axis=1).dropna()
     if freq_as_percentage:
         result = pd.crosstab(data.loc[:,'variable_bin'],data.loc[:,'direction_bin']) / len(data) *100.0
     else:
         result = pd.crosstab(data.loc[:, 'variable_bin'], data.loc[:, 'direction_bin'])
     result.columns = direction_bin_labels
-    return result
+    return result.sort_index()
 
 
 def get_time_continuity_gaps(data):
