@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import math
-from utils import utils
+from ..utils import utils
 
 
 def _compute_wind_vector(wspd, wdir):
@@ -68,7 +68,10 @@ def _common_idxs(reference, site):
 
 
 def _get_overlapping_data(df1, df2, period):
-    start = _round_timestamp_down_to_averaging_prd(_get_min_overlap_timestamp(df1.index, df2.index), period)
+    if isinstance(period, str):
+        start = _round_timestamp_down_to_averaging_prd(_get_min_overlap_timestamp(df1.index, df2.index), period)
+    else:
+        start = _get_min_overlap_timestamp(df1.index, df2.index)
     return df1[start:],df2[start:]
 
 
@@ -130,7 +133,7 @@ def scale_wind_speed(spd: pd.Series, scale_factor: float) ->pd.Series:
     if it is -0.8 the output would be (1-0.8) times the wind speed
     :return: Series or data frame with scaled wind speeds
     """
-    return spd*(1+scale_factor)
+    return spd*(scale_factor)
 
 
 def offset_wind_direction(dir: pd.Series, offset: float) -> pd.Series:
@@ -152,26 +155,32 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
     from pandas.tseries.frequencies import to_offset
     ref_resolution = _get_data_resolution(ref_overlap.index)
     target_resolution = _get_data_resolution(target_overlap.index)
-    if ref_resolution > target_resolution and (to_offset(ref_resolution)!= to_offset(averaging_prd)):
-        target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution), filter=True,
-                                                   coverage_threshold=1, aggregation_method=aggregation_method_target)
-    if ref_resolution < target_resolution and (to_offset(target_resolution)!= to_offset(averaging_prd)):
-        ref_overlap = average_data_by_period(ref_overlap, to_offset(target_resolution), filter=True,
-                                                coverage_threshold=1, aggregation_method=aggregation_method_ref)
-    common_idxs, data_pts = _common_idxs(ref_overlap, target_overlap)
-    ref_concurrent = ref_overlap.loc[common_idxs]
-    target_concurrent = target_overlap.loc[common_idxs]
+    if (to_offset(ref_resolution)!= to_offset(averaging_prd)) and (to_offset(target_resolution)!= to_offset(averaging_prd)):
+        if ref_resolution > target_resolution:
+            target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution), filter=True,
+                                                       coverage_threshold=1, aggregation_method=aggregation_method_target)
+        if ref_resolution < target_resolution:
+            ref_overlap = average_data_by_period(ref_overlap, to_offset(target_resolution), filter=True,
+                                                    coverage_threshold=1, aggregation_method=aggregation_method_ref)
+        common_idxs, data_pts = _common_idxs(ref_overlap, target_overlap)
+        ref_overlap = ref_overlap.loc[common_idxs]
+        target_overlap = target_overlap.loc[common_idxs]
+
     if get_coverage:
-        return pd.concat([average_data_by_period(ref_concurrent, averaging_prd, filter=False, coverage_threshold=0,
+        return pd.concat([average_data_by_period(ref_overlap, averaging_prd, filter=False, coverage_threshold=0,
                                              aggregation_method=aggregation_method_ref)] + list(
-            average_data_by_period(target_concurrent, averaging_prd, filter=False, coverage_threshold=0,
+            average_data_by_period(target_overlap, averaging_prd, filter=False, coverage_threshold=0,
                                       aggregation_method=aggregation_method_target, return_coverage=True)), axis=1)
     else:
-        return average_data_by_period(ref_concurrent, averaging_prd, filter=True, coverage_threshold=coverage_threshold,
+
+        ref_processed, target_processed = average_data_by_period(ref_overlap, averaging_prd, filter=True,
+                                                                coverage_threshold=coverage_threshold,
                                       aggregation_method=aggregation_method_ref), \
-                                      average_data_by_period(target_concurrent, averaging_prd, filter=True,
+                                      average_data_by_period(target_overlap, averaging_prd, filter=True,
                                       coverage_threshold=coverage_threshold,
                                       aggregation_method=aggregation_method_target)
+        concurrent_idxs, data_pts  = _common_idxs(ref_processed, target_processed)
+        return ref_processed.loc[concurrent_idxs], target_processed.loc[concurrent_idxs]
 
 
 
