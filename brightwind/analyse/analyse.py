@@ -275,7 +275,7 @@ def get_coverage(data, period='1M', aggregation_method='mean'):
                                                     filter=False, return_coverage=True)),axis=1, join='outer')
 
 
-def get_basic_stats(data):
+def basic_stats(data):
     """
     Gives basic statistics like mean, standard deviation, count, etc. of data,  excluding NaN values
 
@@ -283,8 +283,10 @@ def get_basic_stats(data):
     :param data type: pandas.Series or pandas.DataFrame
     :rtype: A dataframe or series containing statistics
     """
-
-    return data.describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
+    if isinstance(data, pd.DataFrame):
+        return data.describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
+    else:
+        return data.to_frame().describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
 
 
 def get_TI_by_speed(wdspd, wdspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
