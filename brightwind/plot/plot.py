@@ -2,8 +2,10 @@ import matplotlib.pyplot as plt
 import calendar
 import numpy as np
 import pandas as pd
-from analyse import analyse as freq_an
-from analyse import shear as sh
+from ..analyse import analyse as freq_an
+from ..analyse import shear as sh
+from ..utils import utils
+from ..transform import transform
 
 plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\brightwind\brightwind\plot\bw.mplstyle')
 
@@ -73,19 +75,16 @@ def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_gre
     return ax.get_figure()
 
 
-def plot_wind_rose(data, freq_table=False, direction_col_name=0, sectors=12):
-    """Plot a wind rose from a direction data or a frequency table.
+def plot_wind_rose(ext_data, freq_table=False):
     """
-    if not freq_table:
-        data = data.dropna(subset=[direction_col_name])
-        data.loc[:, 'direction_bin'] = data[direction_col_name].apply(freq_an.map_direction_bin,
-                                                                      bins=freq_an.get_direction_bin_array(sectors))
-        result = data['direction_bin'].value_counts() / len(data['direction_bin']) * 100.0
-        result.loc[1] += result.loc[sectors+1]
-        result = result.drop(sectors+1, axis=0).sort_index()
-    else:
+    Plot a wind rose from a direction data or a frequency table.
+    """
+    data = ext_data.copy()
+    if freq_table:
         sectors = data.shape[1]
-        result = data.sum(axis=0)
+    else:
+        sectors = data.shape[0]
+    result = data.sum(axis=0)
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
     ax.set_theta_zero_location('N')
@@ -98,7 +97,8 @@ def plot_wind_rose(data, freq_table=False, direction_col_name=0, sectors=12):
     return ax.get_figure()
 
 
-def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b8dc6f','#9acd32','#7ba428', '#5c7b1e']):
+def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea','#d6ebad','#b8dc6f','#9acd32','#7ba428', '#5c7b1e']):
+    table = freq_table.copy()
     import matplotlib as mpl
     sectors=len(table.columns)
     table_binned=pd.DataFrame()
@@ -117,9 +117,9 @@ def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0,360,360.0/sectors), zorder=2)
-    ax.set_rgrids(np.linspace(0, max(table.sum(axis=0))+2.0,10),labels=[ '%.0f' % round(i)+'%' for i in
-                                                    np.linspace(0, max(table.sum(axis=0))+2.0, 10)], angle=0, zorder=2)
-    direction_bins = freq_an.get_direction_bin_array(sectors)[1:-2]
+    ax.set_rgrids(np.linspace(0.1, max(table.sum(axis=0))+2.0,10),labels=[ '%.0f' % round(i)+'%' for i in
+                                                    np.linspace(0.1, max(table.sum(axis=0))+2.0, 10)], angle=0, zorder=2)
+    direction_bins = utils.get_direction_bin_array(sectors)[1:-2]
     direction_bins = np.insert(direction_bins,0,direction_bins[-2])
     ax.set_ylim(0, max(table.sum(axis=0))+3.0)
     angular_width = 2*np.pi/sectors - (np.pi/180)  # Leaving 1 degree gap
@@ -135,7 +135,7 @@ def plot_wind_rose_with_gradient(table, gradient_colors=['#f5faea','#d6ebad','#b
         for speed_bin,frequency in zip(table_binned.index,table_binned[column]):
             color = _choose_color(speed_bin)
             patch = mpl.patches.Rectangle((angular_pos, radial_pos), angular_width, frequency, facecolor=color,
-                                          edgecolor='#5c7b1e', linewidth=0.3, zorder=5)
+                                          edgecolor='#5c7b1e', linewidth=0.3, zorder=3)
             ax.add_patch(patch)
             radial_pos += frequency
     legend_patches = [mpl.patches.Patch(color=gradient_colors[0], label='0-3 m/s'),
@@ -188,19 +188,16 @@ def plot_TI_by_speed(wdspd, wdspd_std, IEC_class=None, **kwargs):
     return ax.get_figure()
 
 
-def plot_TI_by_sector(data, speed_col_name, std_col_name, direction_col_name, sectors, min_speed):
+def plot_TI_by_sector(wdspd, wdspd_std, wddir, sectors=12, **kwargs):
 
     # First we need to calculate the Turbulence Intensity by sector by calling the sector function.
-    TI = freq_an.get_TI_by_sector(data, speed_col_name, std_col_name, direction_col_name, sectors, min_speed)
-
+    TI = freq_an.get_TI_by_sector(wdspd, wdspd_std, wddir, sectors=sectors, **kwargs)
     # Next we convert the Median bin degree to radians for plotting
     TI['Polar degrees'] = np.radians(TI.index * (360 / sectors))
-
     # To complete the plot, we need to copy the first row and append a new last row.
-    TI.loc[-1] = TI.loc[0, :]
-
+    TI.loc[-1,:] = TI.loc[0, :]
     # Set Figure size, define it as polar, set north, set number of sectors to be displayed
-    fig = plt.figure(figsize=(9, 9))
+    fig, ax = plt.subplots()
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
@@ -211,7 +208,7 @@ def plot_TI_by_sector(data, speed_col_name, std_col_name, direction_col_name, se
     TI['Turbulence Intensity Average by sector'] = TI['Turbulence_Intensity_Avg']
 
     # Plot the Average turbulence Intensity and assign a title to the graph
-    ax.plot(TI['Polar degrees'], TI['Turbulence Intensity Average by sector'], c=bw_colors('green'), linewidth=4)
+    ax.plot(TI['Polar degrees'], TI['Mean_TI'], c=bw_colors('green'), linewidth=4)
     plt.title('Turbulence Intensity by Direction')
 
     # Set the max extent of the polar plot to be the max average sector turbulence + 0.1
@@ -219,36 +216,33 @@ def plot_TI_by_sector(data, speed_col_name, std_col_name, direction_col_name, se
     ax.set_ylim(0, maxlevel)
 
     # Add in comment at bottom of graph about what anemometer and wind vane are used.
-    ax.annotate('*Plot generated using Anemometer ' + speed_col_name + ' and Wind Vane ' + direction_col_name,
-                xy=(120, 10), xycoords='figure pixels')
+    # ax.annotate('*Plot generated using Anemometer ' + speed_col_name + ' and Wind Vane ' + direction_col_name,
+    #             xy=(120, 10), xycoords='figure pixels')
 
     # Finally produce a scatter plot of all of the Turbulence Intensity data points
-    data['Turbulence Intensity by datapoint'] = data[std_col_name] / data[speed_col_name]
-    data['Polar degrees'] = np.radians(data[direction_col_name])
-    ax.scatter(data['Polar degrees'], data['Turbulence Intensity by datapoint'], c=bw_colors('asphault'), alpha=0.3, s=1)
-    plt.legend(loc=8, framealpha=1)
-    plt.show()
+    # data['Turbulence Intensity by datapoint'] = data[std_col_name] / data[speed_col_name]
+    # data['Polar degrees'] = np.radians(data[direction_col_name])
+    common_idxs = wdspd.index.intersection(wdspd_std.index).intersection(wddir.index)
+    ax.scatter(np.radians(wddir.loc[common_idxs]), wdspd_std.loc[common_idxs]/wdspd.loc[common_idxs],
+               c=bw_colors('asphault'), alpha=0.3, s=1)
+    ax.legend(loc=8, framealpha=1)
+    return ax.get_figure()
 
 
-def plot_monthly_means(data,time_col_name):
-    # Get table of monthly means from data passed
-    data = freq_an.get_monthly_means(data, time_col_name)
+def plot_monthly_means(columns):
+    if not isinstance(columns, list):
+        columns = [columns]
+    data = transform.average_data_by_period(pd.concat(columns, axis=1, join='outer'), period='1MS')
+    fig, ax = plt.subplots()
+    for i in range(0, len(data.columns)):
+        ax.plot(data.index.__array__(), data.iloc[:, i].values)
+    ax.set_ylabel('Wind speed [m/s]')
+    ax.legend(data.columns)
+    return ax.get_figure()
 
-    # Make Timestamp its own column and not an index
-    data = data.reset_index()
-
-    # Setup figure for plotting, then plot all columns in dataframe
-    plt.figure(figsize=(15, 7.5))
-    for i in range(1, len(data.columns)):
-        plt.plot(data.iloc[:, 0], data.iloc[:, i])
-    plt.ylabel('Wind speed [m/s]')
-    plt.xticks(rotation=90)
-    plt.legend()
-    plt.show()
 
 
 def plot_12x24_contours(data, title='Variable'):
-    ####Refactoring needed as it relies on get_sector_ration. -Inder
     # Get Contour Plot of 12 month x 24 hour matrix of turbulence intensity
     # result = freq_an.get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name)
     fig, ax = plt.subplots()
@@ -280,7 +274,7 @@ def plot_sector_ratio(data, speed_col_name_1, speed_col_name_2, direction_col_na
     """
 
     # Get Speed Ratio table
-    SectorRatio = freq_an.get_sector_ratio(data, speed_col_name_1, speed_col_name_2, direction_col_name)
+    SectorRatio = freq_an.get_sector_ratio(data[speed_col_name_1], data[speed_col_name_2], data[direction_col_name])
 
     # Convert Speed Ratio table bins into polar coordinates
     SectorRatio['Polar degrees'] = np.radians(SectorRatio.index * (360 / 72))

@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-from transform import transform as tf
-from utils import utils
+from ..transform import transform as tf
+from ..utils import utils
 
 
 def get_concurrent_coverage(ref, target, averaging_prd, aggregation_method_ref='mean', aggregation_method_target='mean'):
@@ -53,7 +53,7 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
-def calc_lt_ref_speed(data: pd.DataFrame, date_from: str='', date_to: str=''):
+def calc_momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
     """Calculates and returns long term reference speed. Accepts a dataframe
     with timestamps as index column and another column with wind-speed. You can also specify
     date_from and date_to to calculate the long term reference speed for only that period.
@@ -62,6 +62,8 @@ def calc_lt_ref_speed(data: pd.DataFrame, date_from: str='', date_to: str=''):
     :param: date_to: End date as string in format YYYY-MM-DD
     :returns: Long term reference speed
     """
+    if isinstance(data, pd.DataFrame):
+        data = data.iloc[:, 0]
     import datetime
     if (isinstance(date_from, datetime.date) or isinstance(date_from, datetime.datetime))\
         and (isinstance(date_to,datetime.date) or isinstance(date_to, datetime.datetime)):
@@ -271,8 +273,8 @@ def get_coverage(data, period='1M', aggregation_method='mean'):
             <column name>_Coverage
     """
 
-    return pd.concat(list(tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,
-                                                    filter=False, return_coverage=True)),axis=1, join='outer')
+    return tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,
+                                                    filter=False, return_coverage=True)[1]
 
 
 def basic_stats(data):

@@ -2,13 +2,13 @@ import pandas as pd
 import numpy as np
 
 from typing import List, Dict
-from transform import transform as tf
-from utils import utils
-from plot.plot import _scatter_plot
+from ..transform import transform as tf
+from ..utils import utils
+from ..plot.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 # from analyse.frequency_analysis import get_binned_direction_series
-from analyse.analyse import calc_lt_ref_speed, get_binned_direction_series
+from ..analyse.analyse import calc_momm, get_binned_direction_series
 from sklearn.svm import SVR as sklearn_SVR
 from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 
@@ -237,28 +237,34 @@ class MultipleLinearRegression(CorrelBase):
         return "Cannot plot Multiple Linear Regression"
 
 
-class BulkSpeedRatio(CorrelBase):
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, cutoff=None, preprocess=True):
-        CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+class SimpleSpeedRatio(CorrelBase):
+    def __init__(self, ref, target, preprocess=True):
+        from pandas.tseries.frequencies import to_offset
+        ref_resolution, target_resolution = tf._get_data_resolution(ref.index), tf._get_data_resolution(target.index)
+        if ref_resolution > target_resolution:
+            averaging_prd = to_offset(ref_resolution)
+        else:
+            averaging_prd = to_offset(target_resolution)
+        CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold=0, preprocess=preprocess)
         self.params = 'not run yet'
-        self.cutoff = cutoff
-        self._filter()      #Filter low wind speeds
+        # self.cutoff = cutoff
+        # self._filter()      #Filter low wind speeds
 
     def __repr__(self):
         return 'Multiple Linear Regression Model' + str(self.params)
 
-    def _filter(self):
-        if self.cutoff is not None:
-            self.data = self.data[(self.data['ref_spd'] >= self.cutoff) & (self.data['target_spd'] >= self.cutoff)]
+    # def _filter(self):
+    #     if self.cutoff is not None:
+    #         self.data = self.data[(self.data['ref_spd'] >= self.cutoff) & (self.data['target_spd'] >= self.cutoff)]
 
     def run(self):
         self.params = dict()
-        self.params["slope"] = self.data['target_spd'].mean()/self.data['ref_spd'].mean()
+        self.params["ratio"] = self.data['target_spd'].mean()/self.data['ref_spd'].mean()
 
     def _predict(self, x):
         def linear_function(x, slope):
             return (x*slope)
-        return x.transform(linear_function, slope=self.params['slope'])
+        return x.transform(linear_function, slope=self.params['ratio'])
 
 
 class SpeedSort(CorrelBase):
@@ -299,14 +305,14 @@ class SpeedSort(CorrelBase):
             _scatter_plot(sorted(self.sector_ref.values.flatten()), sorted(self.sector_target.values.flatten()),
                           sorted(self.sector_predict(self.sector_ref).values.flatten()),title=title, size=(7,7))
 
-    def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold, sectors=12,
+    def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold=0.9, sectors=12,
                  direction_bin_array=None, lt_ref_speed=None, preprocess=True):
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
                                                                         target_dir=target_dir, preprocess=preprocess)
         self.sectors = sectors
         self.direction_bin_array = direction_bin_array
         if lt_ref_speed is None:
-            self.lt_ref_speed = calc_lt_ref_speed(self.data['ref_spd'])
+            self.lt_ref_speed = calc_momm(self.data['ref_spd'])
         else:
             self.lt_ref_speed = lt_ref_speed
         self.cutoff = min(0.5 * self.lt_ref_speed, 4.0)
