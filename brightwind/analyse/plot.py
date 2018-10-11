@@ -186,43 +186,20 @@ def plot_TI_by_speed(wdspd, wdspd_std, ti, IEC_class=None):
     return ax.get_figure()
 
 
-def plot_TI_by_sector(wdspd, wdspd_std, wddir, sectors=12, **kwargs):
-
-    # First we need to calculate the Turbulence Intensity by sector by calling the sector function.
-    TI = freq_an.get_TI_by_sector(wdspd, wdspd_std, wddir, sectors=sectors, **kwargs)
-    # Next we convert the Median bin degree to radians for plotting
-    TI['Polar degrees'] = np.radians(TI.index * (360 / sectors))
+def plot_TI_by_sector(turbulence, wddir, ti):
+    ti['Polar degrees'] = np.radians(utils._get_dir_sector_mid_pts(ti.index))
     # To complete the plot, we need to copy the first row and append a new last row.
-    TI.loc[-1,:] = TI.loc[0, :]
-    # Set Figure size, define it as polar, set north, set number of sectors to be displayed
-    fig, ax = plt.subplots()
+    ti.iloc[-1,:] = ti.iloc[0, :]
+    fig, ax = plt.subplots(111, subplot_kw=dict(projection='polar'))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.arange(0, 360, 360.0 / sectors))
-    ax.tick_params(axis='y',labelsize=15)
-    # ,grid_color='white',labelcolor='white
-    # Convert name of Turbulence Intensity Avg Column so it will read well in legend.
-    TI['Turbulence Intensity Average by sector'] = TI['Turbulence_Intensity_Avg']
-
-    # Plot the Average turbulence Intensity and assign a title to the graph
-    ax.plot(TI['Polar degrees'], TI['Mean_TI'], c=bw_colors('green'), linewidth=4)
-    plt.title('Turbulence Intensity by Direction')
-
-    # Set the max extent of the polar plot to be the max average sector turbulence + 0.1
-    maxlevel = TI['Turbulence_Intensity_Avg'].max() + 0.1
+    ax.set_thetagrids(utils._get_dir_sector_mid_pts(ti.index))
+    ax.plot(ti['Polar degrees'], ti['Mean_TI'], c=bw_colors('green'), linewidth=4)
+    ax.set_title('Turbulence Intensity by Direction')
+    maxlevel = ti['Mean_TI'].max() + 0.1
     ax.set_ylim(0, maxlevel)
-
-    # Add in comment at bottom of graph about what anemometer and wind vane are used.
-    # ax.annotate('*Plot generated using Anemometer ' + speed_col_name + ' and Wind Vane ' + direction_col_name,
-    #             xy=(120, 10), xycoords='figure pixels')
-
-    # Finally produce a scatter plot of all of the Turbulence Intensity data points
-    # data['Turbulence Intensity by datapoint'] = data[std_col_name] / data[speed_col_name]
-    # data['Polar degrees'] = np.radians(data[direction_col_name])
-    common_idxs = wdspd.index.intersection(wdspd_std.index).intersection(wddir.index)
-    ax.scatter(np.radians(wddir.loc[common_idxs]), wdspd_std.loc[common_idxs]/wdspd.loc[common_idxs],
-               c=bw_colors('asphault'), alpha=0.3, s=1)
+    ax.scatter(np.radians(wddir), turbulence, c=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
 
@@ -259,112 +236,112 @@ def plot_12x24_contours(tab_12x24, title='Variable'):
     ax.set_title('Hourly Mean '+title+' Calendar Month')
     return ax.get_figure()
 
+#
+# def plot_sector_ratio(data, speed_col_name_1, speed_col_name_2, direction_col_name, boom_dir_1=0, boom_dir_2=0,
+#                       booms=False):
+#     ####Refactoring needed as it relies on get_sector_ration. -Inder
+#
+#     """Accepts a dataframe table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
+#     by sector. Optionally can include anemometer boom directions also.
+#     :param data: dataframe of windspeed and direction data
+#     :param speed_col_name_1: Anemometer 1 column name in dataframe. This is divisor series.
+#     :param speed_col_name_2: Anemometer 2 column name in dataframe.
+#     :param direction_col_name: Wind Vane column name in dataframe.
+#     :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to 0.
+#     :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to 0.
+#     :param booms: Boolean function. True if you want booms displayed on chart, False if not. Default False.
+#     :returns A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
+#     """
+#
+#     # Get Speed Ratio table
+#     SectorRatio = freq_an.get_sector_ratio(data[speed_col_name_1], data[speed_col_name_2], data[direction_col_name])
+#
+#     # Convert Speed Ratio table bins into polar coordinates
+#     SectorRatio['Polar degrees'] = np.radians(SectorRatio.index * (360 / 72))
+#
+#     # Copy first line to last line so polar plot completes full circle.
+#     SectorRatio.loc[-1] = SectorRatio.loc[0, :]
+#
+#     # Setup polar plot
+#     fig = plt.figure(figsize=(9, 9))
+#     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
+#     ax.set_theta_zero_location('N')
+#     ax.set_theta_direction(-1)
+#     ax.set_thetagrids(np.arange(0, 360, 360.0 / 72))
+#     ax.tick_params(axis='y', labelsize=15)
+#
+#     # Rename column headings, as Sector Speed Ratio Average needs to show up in legend
+#     SectorRatio.columns = ['index', 'Sector Speed Ratio Average', 'Polar degrees']
+#
+#     # Plot Sector Speed Ratio average and give chart a title
+#     ax.plot(SectorRatio['Polar degrees'], SectorRatio['Sector Speed Ratio Average'], c=bw_colors('green'), linewidth=4)
+#     plt.title('Speed Ratio by Direction')
+#
+#     # Get max and min levels and set chart axes
+#     maxlevel = SectorRatio['Sector Speed Ratio Average'].max() + 0.05
+#     minlevel = SectorRatio['Sector Speed Ratio Average'].min() - 0.1
+#     ax.set_ylim(minlevel, maxlevel)
+#
+#     # Add boom dimensions to chart, if required
+#     if booms == True:
+#
+#         boom_dir_1 = np.radians(boom_dir_1)
+#         boom_dir_2 = np.radians(boom_dir_2)
+#
+#         width = np.pi / 72
+#         radii = maxlevel
+#
+#         ax.bar(boom_dir_1, radii, width=width, bottom=minlevel, color='orange')
+#         ax.bar(boom_dir_2, radii, width=width, bottom=minlevel, color='yellow')
+#
+#         ax.annotate(
+#             '*Plot generated using ' + speed_col_name_2 + ' (yellow boom) divided by ' + speed_col_name_1 + ' (orange boom)',
+#             xy=(20, 10), xycoords='figure pixels')
+#
+#     else:
+#         ax.annotate('*Plot generated using ' + speed_col_name_2 + ' divided by ' + speed_col_name_1,
+#                     xy=(20, 10), xycoords='figure pixels')
+#
+#     # Finally produce a scatter plot of all of the Speed Ratio data points
+#     data['Speed Ratio by datapoint'] = data[speed_col_name_2] / data[speed_col_name_1]
+#     data['Polar degrees'] = np.radians(data[direction_col_name])
+#     ax.scatter(data['Polar degrees'], data['Speed Ratio by datapoint'], c=bw_colors('asphault'), alpha=0.3, s=1)
+#
+#     plt.legend(loc=8, framealpha=1)
+#
+#     plt.show()
 
-def plot_sector_ratio(data, speed_col_name_1, speed_col_name_2, direction_col_name, boom_dir_1=0, boom_dir_2=0,
-                      booms=False):
-    ####Refactoring needed as it relies on get_sector_ration. -Inder
 
-    """Accepts a dataframe table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
-    by sector. Optionally can include anemometer boom directions also.
-    :param data: dataframe of windspeed and direction data
-    :param speed_col_name_1: Anemometer 1 column name in dataframe. This is divisor series.
-    :param speed_col_name_2: Anemometer 2 column name in dataframe.
-    :param direction_col_name: Wind Vane column name in dataframe.
-    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to 0.
-    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to 0.
-    :param booms: Boolean function. True if you want booms displayed on chart, False if not. Default False.
-    :returns A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
-    """
-
-    # Get Speed Ratio table
-    SectorRatio = freq_an.get_sector_ratio(data[speed_col_name_1], data[speed_col_name_2], data[direction_col_name])
-
-    # Convert Speed Ratio table bins into polar coordinates
-    SectorRatio['Polar degrees'] = np.radians(SectorRatio.index * (360 / 72))
-
-    # Copy first line to last line so polar plot completes full circle.
-    SectorRatio.loc[-1] = SectorRatio.loc[0, :]
-
-    # Setup polar plot
-    fig = plt.figure(figsize=(9, 9))
-    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
-    ax.set_theta_zero_location('N')
-    ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.arange(0, 360, 360.0 / 72))
-    ax.tick_params(axis='y', labelsize=15)
-
-    # Rename column headings, as Sector Speed Ratio Average needs to show up in legend
-    SectorRatio.columns = ['index', 'Sector Speed Ratio Average', 'Polar degrees']
-
-    # Plot Sector Speed Ratio average and give chart a title
-    ax.plot(SectorRatio['Polar degrees'], SectorRatio['Sector Speed Ratio Average'], c=bw_colors('green'), linewidth=4)
-    plt.title('Speed Ratio by Direction')
-
-    # Get max and min levels and set chart axes
-    maxlevel = SectorRatio['Sector Speed Ratio Average'].max() + 0.05
-    minlevel = SectorRatio['Sector Speed Ratio Average'].min() - 0.1
-    ax.set_ylim(minlevel, maxlevel)
-
-    # Add boom dimensions to chart, if required
-    if booms == True:
-
-        boom_dir_1 = np.radians(boom_dir_1)
-        boom_dir_2 = np.radians(boom_dir_2)
-
-        width = np.pi / 72
-        radii = maxlevel
-
-        ax.bar(boom_dir_1, radii, width=width, bottom=minlevel, color='orange')
-        ax.bar(boom_dir_2, radii, width=width, bottom=minlevel, color='yellow')
-
-        ax.annotate(
-            '*Plot generated using ' + speed_col_name_2 + ' (yellow boom) divided by ' + speed_col_name_1 + ' (orange boom)',
-            xy=(20, 10), xycoords='figure pixels')
-
-    else:
-        ax.annotate('*Plot generated using ' + speed_col_name_2 + ' divided by ' + speed_col_name_1,
-                    xy=(20, 10), xycoords='figure pixels')
-
-    # Finally produce a scatter plot of all of the Speed Ratio data points
-    data['Speed Ratio by datapoint'] = data[speed_col_name_2] / data[speed_col_name_1]
-    data['Polar degrees'] = np.radians(data[direction_col_name])
-    ax.scatter(data['Polar degrees'], data['Speed Ratio by datapoint'], c=bw_colors('asphault'), alpha=0.3, s=1)
-
-    plt.legend(loc=8, framealpha=1)
-
-    plt.show()
-
-
-def plot_shear(wind_speeds, heights):
-    """
-    Show derivation and output (alpha value) of shear calculation function for a given timestep.
-    :param wind_speeds: List of wind speeds [m/s]
-    :param heights: List of heights [m above ground]. The position of the height in the list must be the same position in the list as its
-    corresponding wind speed value.
-    :return:
-        1) Log-log plot of speed and elevation data, including linear fit.
-        2) Speed and elevation data plotted on regular scale, showing power law fit resulting from alpha value
-    """
-
-    alpha, wind_speedsfit = sh.calc_shear(wind_speeds, heights, plot=True)
-
-    # PLOT INPUT AND MODELLED DATA ON LOG-LOG SCALE
-    heightstrend = np.linspace(0.1, max(heights) + 2, 100)  # create variable to define (interpolated) power law trend
-    plt.loglog(wind_speeds, heights, 'bo')  # plot input data on log log scale
-    plt.loglog(wind_speedsfit(heightstrend), heightstrend, 'k--')  # Show interpolated power law trend
-    plt.xlabel('Speed (m/s)')
-    plt.ylabel('Elevation (m)')
-    plt.legend(['Input data', 'Best fit line for power law (' r'$\alpha$ = %i)' % int(round(alpha))])
-    plt.grid(True)
-    plt.show()
-
-    # PLOT INPUT AND MODELLED DATA ON REGULAR SCALE
-    plt.plot(wind_speeds, heights, 'bo')  # plot input data
-    plt.plot(wind_speedsfit(heightstrend), heightstrend, 'k--')  # Show interpolated power law trend
-    plt.xlabel('Speed (m/s)')
-    plt.ylabel('Elevation (m)')
-    plt.legend(['Input data', 'Power law trend (' r'$\alpha$ = %i)' % int(round(alpha))])
-    plt.ylim(0, max(heights) + 2)
-    plt.xlim(0, max([max(wind_speeds), max(wind_speedsfit(heights))]) + 2)
-    plt.grid(True)
-    plt.show()
+# def plot_shear(wind_speeds, heights):
+#     """
+#     Show derivation and output (alpha value) of shear calculation function for a given timestep.
+#     :param wind_speeds: List of wind speeds [m/s]
+#     :param heights: List of heights [m above ground]. The position of the height in the list must be the same position in the list as its
+#     corresponding wind speed value.
+#     :return:
+#         1) Log-log plot of speed and elevation data, including linear fit.
+#         2) Speed and elevation data plotted on regular scale, showing power law fit resulting from alpha value
+#     """
+#
+#     alpha, wind_speedsfit = sh.calc_shear(wind_speeds, heights, plot=True)
+#
+#     # PLOT INPUT AND MODELLED DATA ON LOG-LOG SCALE
+#     heightstrend = np.linspace(0.1, max(heights) + 2, 100)  # create variable to define (interpolated) power law trend
+#     plt.loglog(wind_speeds, heights, 'bo')  # plot input data on log log scale
+#     plt.loglog(wind_speedsfit(heightstrend), heightstrend, 'k--')  # Show interpolated power law trend
+#     plt.xlabel('Speed (m/s)')
+#     plt.ylabel('Elevation (m)')
+#     plt.legend(['Input data', 'Best fit line for power law (' r'$\alpha$ = %i)' % int(round(alpha))])
+#     plt.grid(True)
+#     plt.show()
+#
+#     # PLOT INPUT AND MODELLED DATA ON REGULAR SCALE
+#     plt.plot(wind_speeds, heights, 'bo')  # plot input data
+#     plt.plot(wind_speedsfit(heightstrend), heightstrend, 'k--')  # Show interpolated power law trend
+#     plt.xlabel('Speed (m/s)')
+#     plt.ylabel('Elevation (m)')
+#     plt.legend(['Input data', 'Power law trend (' r'$\alpha$ = %i)' % int(round(alpha))])
+#     plt.ylim(0, max(heights) + 2)
+#     plt.xlim(0, max([max(wind_speeds), max(wind_speedsfit(heights))]) + 2)
+#     plt.grid(True)
+#     plt.show()

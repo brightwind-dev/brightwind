@@ -324,7 +324,6 @@ class TI:
         ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std')], axis=1, join='inner')
         return ti['wdspd_std'] / ti['wdspd']
 
-
     def by_speed(wdspd, wdspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
                  percentile=90, IEC_class=None, return_data=False):
         """
@@ -385,9 +384,8 @@ class TI:
         else:
             return plt.plot_TI_by_speed(wdspd, wdspd_std, ti_dist, IEC_class=IEC_class)
 
-
     def by_sector(wdspd, wdspd_std, wddir, min_speed=0, sectors=12, direction_bin_array=None,
-                  direction_bin_labels=None):
+                  direction_bin_labels=None, return_data=False):
         """
         Accepts a wind speed series, its standard deviation and a direction series, calculates turbulence intensity (TI)
         and returns the distribution by of TI by sector
@@ -428,8 +426,10 @@ class TI:
                             join='outer')
 
         ti_dist.index.rename('Direction Bin', inplace=True)
-        return ti_dist.dropna(how='all')
-
+        if return_data:
+            return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wddir'], ti_dist), ti_dist.dropna(how='all')
+        else:
+            return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wddir'], ti_dist)
 
     def gen_12x24(wdspd, wdspd_std, return_data=False):
         tab_12x24 = get_12x24(TI.calc(wdspd, wdspd_std))
