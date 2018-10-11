@@ -8,7 +8,7 @@ from ..plot.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 # from analyse.frequency_analysis import get_binned_direction_series
-from ..analyse.analyse import calc_momm, get_binned_direction_series
+from ..analyse.analyse import momm, get_binned_direction_series
 from sklearn.svm import SVR as sklearn_SVR
 from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 
@@ -312,7 +312,7 @@ class SpeedSort(CorrelBase):
         self.sectors = sectors
         self.direction_bin_array = direction_bin_array
         if lt_ref_speed is None:
-            self.lt_ref_speed = calc_momm(self.data['ref_spd'])
+            self.lt_ref_speed = momm(self.data['ref_spd']).values[0][0]
         else:
             self.lt_ref_speed = lt_ref_speed
         self.cutoff = min(0.5 * self.lt_ref_speed, 4.0)

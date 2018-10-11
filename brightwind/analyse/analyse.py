@@ -35,17 +35,6 @@ def get_concurrent_coverage(ref, target, averaging_prd, aggregation_method_ref='
     return coverage_df
 
 
-def mean_of_monthly_means(df: pd.DataFrame) -> pd.DataFrame:
-
-    """ Return series of mean of monthly means for each column in the dataframe with timestamp as the index.
-        Calculate the monthly mean for each calendar month and then average the resulting 12 months.
-    """
-    monthly_df: pd.DataFrame = df.groupby(df.index.month).mean()
-    momm_series: pd.Series = monthly_df.mean()
-    momm_df: pd.DataFrame = pd.DataFrame([momm_series], columns=['MOMM'])
-    return momm_df
-
-
 def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: float):
     """
     :rtype: np.float64
@@ -53,7 +42,36 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
-def calc_momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
+def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
+
+    """ Return a dataframe of mean of monthly means for each column in the dataframe with timestamp as the index.
+        Calculate the monthly mean for each calendar month and then average the resulting 12 months.
+    """
+    monthly_df: pd.DataFrame = df.groupby(df.index.month).mean().mean().to_frame()
+    monthly_df.columns = ['MOMM']
+    return monthly_df
+
+
+def _slice_data(data, date_from: str='', date_to: str=''):
+    """
+    Returns the slice of data between the two date ranges,
+    Date format: YYYY-MM-DD
+    """
+    import datetime
+    if (isinstance(date_from, datetime.date) or isinstance(date_from, datetime.datetime))\
+        and (isinstance(date_to,datetime.date) or isinstance(date_to, datetime.datetime)):
+        sliced_data = data.loc[date_from:date_to, :]
+    elif date_from and date_to:
+        import datetime as dt
+        date_from = dt.datetime.strptime(date_from[:10], "%Y-%m-%d")
+        date_to = dt.datetime.strptime(date_to[:10], "%Y-%m-%d")
+        sliced_data = data.loc[date_from:date_to, :]
+    else:
+        return data
+    return sliced_data
+
+
+def momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
     """Calculates and returns long term reference speed. Accepts a dataframe
     with timestamps as index column and another column with wind-speed. You can also specify
     date_from and date_to to calculate the long term reference speed for only that period.
@@ -62,18 +80,12 @@ def calc_momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
     :param: date_to: End date as string in format YYYY-MM-DD
     :returns: Long term reference speed
     """
-    if isinstance(data, pd.DataFrame):
-        data = data.iloc[:, 0]
-    import datetime
-    if (isinstance(date_from, datetime.date) or isinstance(date_from, datetime.datetime))\
-        and (isinstance(date_to,datetime.date) or isinstance(date_to, datetime.datetime)):
-        data = data.loc[date_from:date_to, :]
-    elif date_from and date_to:
-        import datetime as dt
-        date_from = dt.datetime.strptime(date_from[:10], "%Y-%m-%d")
-        date_to = dt.datetime.strptime(date_to[:10], "%Y-%m-%d")
-        data = data.loc[date_from:date_to, :]
-    return mean_of_monthly_means(data).get_value(index=0, col='MOMM')
+    if isinstance(data, pd.Series):
+        momm_data = data.to_frame()
+    else:
+        momm_data = data.copy()
+    sliced_data = _slice_data(momm_data, date_from, date_to)
+    return _mean_of_monthly_means_basic_method(sliced_data)
 
 
 def get_sector_ratio(wdspd_1, wdspd_2, direction, sectors=12):
