@@ -303,113 +303,6 @@ def basic_stats(data):
         return data.to_frame().describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
 
 
-def get_TI_by_speed(wdspd, wdspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
-                    percentile=90):
-    """
-    Accepts a wind speed series and its standard deviation, calculates turbulence intensity (TI) and returns the
-    distribution by of TI by speed bins
-
-    :param wdspd: Wind speed data series
-    :type wdspd: pandas.Series
-    :param wdspd_std: Wind speed standard deviation data series
-    :type wdspd_std: pandas.Series
-    :param speed_bin_array: (Optional) Array of wind speeds where adjacent elements of array form a bin
-    :type speed_bin_array: List or array
-    :param speed_bin_labels: (Optional) Labels to use for speed bins, 0, 1, 2, 3 .. and so on by default
-    :type speed_bin_labels: List, range or array
-    :param percentile: The percentile representative of TI (see return for more information)
-    :type percentile: float, int
-    :return: TI distribution with columns names as:
-
-            * Mean_TI (average TI for a speed bin),
-            * TI_Count ( number of data points in the bin),
-            * Rep_TI (Representative TI set at 90 percentile by default,
-            * TI_2Sigma (2 sigma TI),
-            * Char_TI (characteristic TI)
-    :rtype: pandas.DataFrame
-
-    """
-
-    if isinstance(wdspd, pd.DataFrame) and wdspd.shape[1]==1:
-        wdspd = wdspd.iloc[:,0]
-    if isinstance(wdspd_std, pd.DataFrame) and wdspd_std.shape[1]==1:
-        wdspd_std = wdspd_std.iloc[:,0]
-    ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std')], axis=1, join='inner')
-    ti['Turbulence_Intensity'] = ti['wdspd_std'] / ti['wdspd']
-    ti_dist = pd.concat([get_distribution(var1_series=ti['Turbulence_Intensity'],
-                                             var2_series=ti['wdspd'],
-                                             var2_bin_array=speed_bin_array,
-                                             var2_bin_labels=speed_bin_labels,
-                                             aggregation_method='mean').rename("Mean_TI"),
-                         get_distribution(var1_series=ti['Turbulence_Intensity'],
-                                             var2_series=ti['wdspd'],
-                                             var2_bin_array=speed_bin_array,
-                                             var2_bin_labels=speed_bin_labels,
-                                             aggregation_method='count').rename("TI_Count"),
-                         get_distribution(var1_series=ti['Turbulence_Intensity'],
-                                             var2_series=ti['wdspd'],
-                                             var2_bin_array=speed_bin_array,
-                                             var2_bin_labels=speed_bin_labels,
-                                             aggregation_method=lambda x: np.percentile(x, q=percentile)).rename("Rep_TI"),
-                         get_distribution(var1_series=ti['Turbulence_Intensity'],
-                                             var2_series=ti['wdspd'],
-                                             var2_bin_array=speed_bin_array,
-                                             var2_bin_labels=speed_bin_labels,
-                                             aggregation_method='std').rename("TI_2Sigma")], axis=1, join='inner')
-    ti_dist.loc[:,'Char_TI'] = ti_dist.loc[:,'Mean_TI'] + (ti_dist.loc[:,'TI_2Sigma'] / ti_dist.index)
-    ti_dist.loc[0, 'Char_TI'] = 0
-    ti_dist.index.rename('Speed Bin', inplace=True)
-    return ti_dist.dropna(how='any')
-
-
-def get_TI_by_sector(wdspd, wdspd_std, wddir, min_speed=0, sectors=12, direction_bin_array=None, direction_bin_labels=None):
-    """
-    Accepts a wind speed series, its standard deviation and a direction series, calculates turbulence intensity (TI)
-    and returns the distribution by of TI by sector
-
-    :param wdspd: Wind speed data series
-    :type wdspd: pandas.Series
-    :param wdspd_std: Wind speed standard deviation data series
-    :type wdspd_std: pandas.Series
-    :param wddir: Wind direction series
-    :type wddir: pandas.Series
-    :param direction_bin_array: (Optional) Array of wind speeds where adjacent elements of array form a bin
-    :param direction_bin_array: (Optional) To change default behaviour of first sector centered at 0 assign an array of
-            bins to this
-    :param direction_bin_labels: (Optional) you can specify an array of labels to be used for the bins. uses string
-            labels of the format '30-90' by default
-    :return: TI distribution with columns names as:
-
-            * Mean_TI (average TI for a speed bin),
-            * TI_Count ( number of data points in the bin),
-
-    :rtype: pandas.DataFrame
-
-    """
-    if isinstance(wdspd, pd.DataFrame) and wdspd.shape[1]==1:
-        wdspd = wdspd.iloc[:,0]
-    if isinstance(wdspd_std, pd.DataFrame) and wdspd_std.shape[1]==1:
-        wdspd_std = wdspd_std.iloc[:,0]
-    if isinstance(wddir, pd.DataFrame) and wddir.shape[1]==1:
-        wddir = wddir.iloc[:,0]
-    ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std'), wddir.rename('wddir')], axis=1, join='inner')
-    ti = ti[ti['wdspd']>=min_speed]
-    ti['Turbulence_Intensity'] = ti['wdspd_std'] / ti['wdspd']
-    ti_dist = pd.concat([get_distribution_by_wind_sector(var_series=ti['Turbulence_Intensity'],
-                                             direction_series=ti['wddir'],
-                                             sectors=sectors, direction_bin_array=direction_bin_array,
-                                             direction_bin_labels=direction_bin_labels,
-                                             aggregation_method='mean').rename("Mean_TI"),
-                         get_distribution_by_wind_sector(var_series=ti['Turbulence_Intensity'],
-                                             direction_series=ti['wddir'],
-                                             sectors=sectors, direction_bin_array=direction_bin_array,
-                                                            direction_bin_labels=direction_bin_labels,
-                                             aggregation_method='count').rename("TI_Count")], axis=1, join='outer')
-
-    ti_dist.index.rename('Direction Bin', inplace=True)
-    return ti_dist.dropna(how='all')
-
-
 def get_12x24(var_series,aggregation_method='mean'):
     """
     Accepts a variable series and returns 12x24 (months x hours) table for the variable.
@@ -423,3 +316,117 @@ def get_12x24(var_series,aggregation_method='mean'):
     table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
                              var_series.index.to_series().dt.hour.rename('Hour')], axis=1,join='inner')
     return table_12x24.pivot_table(index='Hour', columns='Month', values='Variable',aggfunc=aggregation_method)
+
+
+class TI:
+
+    def calc(wdspd, wdspd_std):
+        ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std')], axis=1, join='inner')
+        return ti['wdspd_std'] / ti['wdspd']
+
+
+    def by_speed(wdspd, wdspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
+                 percentile=90, return_data=False):
+        """
+        Accepts a wind speed series and its standard deviation, calculates turbulence intensity (TI) and returns the
+        distribution by of TI by speed bins
+
+        :param wdspd: Wind speed data series
+        :type wdspd: pandas.Series
+        :param wdspd_std: Wind speed standard deviation data series
+        :type wdspd_std: pandas.Series
+        :param speed_bin_array: (Optional) Array of wind speeds where adjacent elements of array form a bin
+        :type speed_bin_array: List or array
+        :param speed_bin_labels: (Optional) Labels to use for speed bins, 0, 1, 2, 3 .. and so on by default
+        :type speed_bin_labels: List, range or array
+        :param percentile: The percentile representative of TI (see return for more information)
+        :type percentile: float, int
+        :return: TI distribution with columns names as:
+
+                * Mean_TI (average TI for a speed bin),
+                * TI_Count ( number of data points in the bin),
+                * Rep_TI (Representative TI set at 90 percentile by default,
+                * TI_2Sigma (2 sigma TI),
+                * Char_TI (characteristic TI)
+        :rtype: pandas.DataFrame
+
+        """
+        ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std')], axis=1, join='inner')
+        ti['Turbulence_Intensity'] = TI.calc(ti['wdspd'], ti['wdspd_std'])
+        ti_dist = pd.concat([get_distribution(var1_series=ti['Turbulence_Intensity'],
+                                              var2_series=ti['wdspd'],
+                                              var2_bin_array=speed_bin_array,
+                                              var2_bin_labels=speed_bin_labels,
+                                              aggregation_method='mean').rename("Mean_TI"),
+                             get_distribution(var1_series=ti['Turbulence_Intensity'],
+                                              var2_series=ti['wdspd'],
+                                              var2_bin_array=speed_bin_array,
+                                              var2_bin_labels=speed_bin_labels,
+                                              aggregation_method='count').rename("TI_Count"),
+                             get_distribution(var1_series=ti['Turbulence_Intensity'],
+                                              var2_series=ti['wdspd'],
+                                              var2_bin_array=speed_bin_array,
+                                              var2_bin_labels=speed_bin_labels,
+                                              aggregation_method=lambda x: np.percentile(x, q=percentile)).rename(
+                                 "Rep_TI"),
+                             get_distribution(var1_series=ti['Turbulence_Intensity'],
+                                              var2_series=ti['wdspd'],
+                                              var2_bin_array=speed_bin_array,
+                                              var2_bin_labels=speed_bin_labels,
+                                              aggregation_method='std').rename("TI_2Sigma")], axis=1, join='inner')
+        ti_dist.loc[:, 'Char_TI'] = ti_dist.loc[:, 'Mean_TI'] + (ti_dist.loc[:, 'TI_2Sigma'] / ti_dist.index)
+        ti_dist.loc[0, 'Char_TI'] = 0
+        ti_dist.index.rename('Speed Bin', inplace=True)
+        if return_data:
+            return plot_figure(), ti_dist.dropna(how='any')
+        else:
+            return plot_figure()
+
+
+    def by_sector(wdspd, wdspd_std, wddir, min_speed=0, sectors=12, direction_bin_array=None,
+                  direction_bin_labels=None):
+        """
+        Accepts a wind speed series, its standard deviation and a direction series, calculates turbulence intensity (TI)
+        and returns the distribution by of TI by sector
+
+        :param wdspd: Wind speed data series
+        :type wdspd: pandas.Series
+        :param wdspd_std: Wind speed standard deviation data series
+        :type wdspd_std: pandas.Series
+        :param wddir: Wind direction series
+        :type wddir: pandas.Series
+        :param direction_bin_array: (Optional) Array of wind speeds where adjacent elements of array form a bin
+        :param direction_bin_array: (Optional) To change default behaviour of first sector centered at 0 assign an array of
+                bins to this
+        :param direction_bin_labels: (Optional) you can specify an array of labels to be used for the bins. uses string
+                labels of the format '30-90' by default
+        :return: TI distribution with columns names as:
+
+                * Mean_TI (average TI for a speed bin),
+                * TI_Count ( number of data points in the bin),
+
+        :rtype: pandas.DataFrame
+
+        """
+        ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std'), wddir.rename('wddir')], axis=1,
+                       join='inner')
+        ti = ti[ti['wdspd'] >= min_speed]
+        ti['Turbulence_Intensity'] = TI.calc(ti['wdspd'], ti['wdspd_std'])
+        ti_dist = pd.concat([get_distribution_by_wind_sector(var_series=ti['Turbulence_Intensity'],
+                                                             direction_series=ti['wddir'],
+                                                             sectors=sectors, direction_bin_array=direction_bin_array,
+                                                             direction_bin_labels=direction_bin_labels,
+                                                             aggregation_method='mean').rename("Mean_TI"),
+                             get_distribution_by_wind_sector(var_series=ti['Turbulence_Intensity'],
+                                                             direction_series=ti['wddir'],
+                                                             sectors=sectors, direction_bin_array=direction_bin_array,
+                                                             direction_bin_labels=direction_bin_labels,
+                                                             aggregation_method='count').rename("TI_Count")], axis=1,
+                            join='outer')
+
+        ti_dist.index.rename('Direction Bin', inplace=True)
+        return ti_dist.dropna(how='all')
+
+
+    def gen_12x24(wdspd, wdspd_std):
+        return get_12x24(TI.calc(wdspd, wdspd_std))
