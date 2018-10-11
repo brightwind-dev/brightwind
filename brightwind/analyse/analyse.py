@@ -431,5 +431,9 @@ class TI:
         return ti_dist.dropna(how='all')
 
 
-    def gen_12x24(wdspd, wdspd_std):
-        return get_12x24(TI.calc(wdspd, wdspd_std))
+    def gen_12x24(wdspd, wdspd_std, return_data=False):
+        tab_12x24 = get_12x24(TI.calc(wdspd, wdspd_std))
+        if return_data:
+            return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity'), tab_12x24
+        else:
+            return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity')

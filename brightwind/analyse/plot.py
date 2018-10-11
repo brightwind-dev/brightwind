@@ -240,11 +240,16 @@ def plot_monthly_means(columns):
 
 
 
-def plot_12x24_contours(data, title='Variable'):
-    # Get Contour Plot of 12 month x 24 hour matrix of turbulence intensity
-    # result = freq_an.get_12x24_TI_matrix(data,time_col_name,speed_col_name,std_col_name)
+def plot_12x24_contours(tab_12x24, title='Variable'):
+    """
+    Get Contour Plot of 12 month x 24 hour matrix of turbulence intensity
+    :param tab_12x24: Dataframe returned from get_12x24() in analyse
+    :param title: Title of the plot
+    :return: 12x24 figure
+    """
+
     fig, ax = plt.subplots()
-    x = ax.contourf(data, cmap="Greens")
+    x = ax.contourf(tab_12x24, cmap="Greens")
     cbar = plt.colorbar(x)
     cbar.ax.set_ylabel(title)
     ax.set_xlabel('Month of Year')
