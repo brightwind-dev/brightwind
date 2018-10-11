@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from ..transform import transform as tf
 from ..utils import utils
-
+from ..analyse import plot as plt
 
 def get_concurrent_coverage(ref, target, averaging_prd, aggregation_method_ref='mean', aggregation_method_target='mean'):
     """
@@ -326,7 +326,7 @@ class TI:
 
 
     def by_speed(wdspd, wdspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
-                 percentile=90, return_data=False):
+                 percentile=90, IEC_class=None, return_data=False):
         """
         Accepts a wind speed series and its standard deviation, calculates turbulence intensity (TI) and returns the
         distribution by of TI by speed bins
@@ -341,6 +341,9 @@ class TI:
         :type speed_bin_labels: List, range or array
         :param percentile: The percentile representative of TI (see return for more information)
         :type percentile: float, int
+        :param IEC_Class: By default IEC class 2005 is used for custom class pass a dataframe. Note we have removed
+                option to include IEC Class 1999 as no longer appropriate.
+                This may need to be placed in a separate function when updated IEC standard is released
         :return: TI distribution with columns names as:
 
                 * Mean_TI (average TI for a speed bin),
@@ -378,9 +381,9 @@ class TI:
         ti_dist.loc[0, 'Char_TI'] = 0
         ti_dist.index.rename('Speed Bin', inplace=True)
         if return_data:
-            return plot_figure(), ti_dist.dropna(how='any')
+            return plt.plot_TI_by_speed(wdspd, wdspd_std, ti_dist, IEC_class=IEC_class), ti_dist.dropna(how='any')
         else:
-            return plot_figure()
+            return plt.plot_TI_by_speed(wdspd, wdspd_std, ti_dist, IEC_class=IEC_class)
 
 
     def by_sector(wdspd, wdspd_std, wddir, min_speed=0, sectors=12, direction_bin_array=None,

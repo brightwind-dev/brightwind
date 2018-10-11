@@ -2,12 +2,12 @@ import matplotlib.pyplot as plt
 import calendar
 import numpy as np
 import pandas as pd
-from ..analyse import analyse as freq_an
-from ..analyse import shear as sh
-from ..utils import utils
-from ..transform import transform
+# from ..analyse import analyse as freq_an
+# from ..analyse import shear as sh
+from brightwind.utils import utils
+from brightwind.transform import transform
 
-plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\brightwind\brightwind\plot\bw.mplstyle')
+plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\brightwind\brightwind\analyse\bw.mplstyle')
 
 
 def bw_colors(bw_color):
@@ -148,10 +148,10 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea','#d6ebad
     return ax.get_figure()
 
 
-def plot_TI_by_speed(wdspd, wdspd_std, IEC_class=None, **kwargs):
+def plot_TI_by_speed(wdspd, wdspd_std, ti, IEC_class=None):
     """
     Plot turbulence intensity graphs alongside with IEC standards
-    :param TI_by_speed:
+    :param ti: Dataframe returned from TI.by_speed() in analyse
     :param IEC_Class: By default IEC class 2005 is used for custom class pass a dataframe. Note we have removed
             option to include IEC Class 1999 as no longer appropriate.
             This may need to be placed in a separate function when updated IEC standard is released
@@ -159,7 +159,7 @@ def plot_TI_by_speed(wdspd, wdspd_std, IEC_class=None, **kwargs):
     """
 
     # IEC Class 2005
-    #
+
     if IEC_class is None:
         IEC_class = pd.DataFrame(np.zeros([26, 4]), columns=['Windspeed', 'IEC Class A', 'IEC Class B', 'IEC Class C'])
         for n in range(1, 26):
@@ -167,14 +167,12 @@ def plot_TI_by_speed(wdspd, wdspd_std, IEC_class=None, **kwargs):
             IEC_class.iloc[n, 1] = 0.16 * (0.75 + (5.6 / n))
             IEC_class.iloc[n, 2] = 0.14 * (0.75 + (5.6 / n))
             IEC_class.iloc[n, 3] = 0.12 * (0.75 + (5.6 / n))
-
-    TI = freq_an.get_TI_by_speed(wdspd, wdspd_std, **kwargs)
     common_idxs = wdspd.index.intersection(wdspd_std.index)
     fig, ax = plt.subplots()
     ax.scatter(wdspd.loc[common_idxs], wdspd_std.loc[common_idxs]/wdspd.loc[common_idxs],
                color=bw_colors('green'), alpha=0.3, marker='.')
-    ax.plot(TI.index.__array__(), TI.loc[:,'Mean_TI'].values, color=bw_colors('darkgreen'))[0].set_label('Mean_TI')
-    ax.plot(TI.index.__array__(), TI.loc[:,'Rep_TI'].values, color=bw_colors('redline'))[0].set_label('Rep_TI')
+    ax.plot(ti.index.__array__(), ti.loc[:,'Mean_TI'].values, color=bw_colors('darkgreen'))[0].set_label('Mean_TI')
+    ax.plot(ti.index.__array__(), ti.loc[:,'Rep_TI'].values, color=bw_colors('redline'))[0].set_label('Rep_TI')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 1], color=bw_colors('greyline'), linestyle='dashed')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 2], color=bw_colors('greyline'), linestyle='dashdot')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=bw_colors('greyline'), linestyle='dotted')

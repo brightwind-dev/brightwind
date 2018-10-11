@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
 
-from typing import List, Dict
+from typing import List
 from ..transform import transform as tf
 from ..utils import utils
-from ..plot.plot import _scatter_plot
+from ..analyse.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 # from analyse.frequency_analysis import get_binned_direction_series
