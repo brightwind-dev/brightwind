@@ -150,6 +150,7 @@ def offset_wind_direction(dir, offset: float) -> pd.Series:
     else:
         return dir.to_frame().add(offset).applymap(utils._range_0_to_360)
 
+
 def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
                                       aggregation_method_ref='mean', aggregation_method_target='mean', get_coverage=False):
     ref_overlap, target_overlap = _get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(), averaging_prd)
@@ -182,7 +183,6 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
                                       aggregation_method=aggregation_method_target)
         concurrent_idxs, data_pts  = _common_idxs(ref_processed, target_processed)
         return ref_processed.loc[concurrent_idxs], target_processed.loc[concurrent_idxs]
-
 
 
 def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.DataFrame, target_spd:pd.DataFrame,

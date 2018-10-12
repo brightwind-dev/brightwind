@@ -4,7 +4,8 @@ from ..transform import transform as tf
 from ..utils import utils
 from ..analyse import plot as plt
 
-def get_concurrent_coverage(ref, target, averaging_prd, aggregation_method_ref='mean', aggregation_method_target='mean'):
+
+def concurrent_coverage(ref, target, averaging_prd, aggregation_method_ref='mean', aggregation_method_target='mean'):
     """
     Accepts ref and target data and returns the coverage of concurrent data.
     :param ref: Reference data
@@ -88,6 +89,28 @@ def momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
     return _mean_of_monthly_means_basic_method(sliced_data)
 
 
+def _get_direction_bin_labels(sectors, direction_bins, zero_centred=True):
+    mapper = dict()
+    for i, lower_bound in enumerate(direction_bins[:sectors]):
+        if i == 0 and zero_centred:
+            mapper[i+1] = '{0}-{1}'.format(direction_bins[-2], direction_bins[1])
+        else:
+            mapper[i+1] = '{0}-{1}'.format(lower_bound, direction_bins[i+1])
+    return mapper.values()
+
+
+def _map_direction_bin(wdir, bins, sectors):
+    kwargs = {}
+    if wdir == max(bins):
+        kwargs['right'] = True
+    else:
+        kwargs['right'] = False
+    bin_num = np.digitize([wdir], bins, **kwargs)[0]
+    if bin_num == sectors+1:
+        bin_num = 1
+    return bin_num
+
+
 def get_distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
                      aggregation_method='%frequency'):
     """Accepts 2 series of same/different variables and computes the distribution of first variable with respect to
@@ -113,26 +136,16 @@ def get_distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41
         return data.groupby(['variable_bin'])['data'].agg(aggregation_method)
 
 
-def _get_direction_bin_labels(sectors, direction_bins, zero_centred=True):
-    mapper = dict()
-    for i, lower_bound in enumerate(direction_bins[:sectors]):
-        if i == 0 and zero_centred:
-            mapper[i+1] = '{0}-{1}'.format(direction_bins[-2], direction_bins[1])
-        else:
-            mapper[i+1] = '{0}-{1}'.format(lower_bound, direction_bins[i+1])
-    return mapper.values()
-
-
-def map_direction_bin(wdir, bins, sectors):
-    kwargs = {}
-    if wdir == max(bins):
-        kwargs['right'] = True
-    else:
-        kwargs['right'] = False
-    bin_num = np.digitize([wdir], bins, **kwargs)[0]
-    if bin_num == sectors+1:
-        bin_num = 1
-    return bin_num
+def distribution_by_wind_speed(wdspd, return_data=False):
+    """Accepts 2 series of same/different variables and computes the distribution of first variable with respect to
+    the bins of another variable.
+    :param wdspd: Series of the variable whose distribution we need to find
+    """
+    freq_dist = get_distribution(wdspd, wdspd, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
+                     aggregation_method='%frequency')
+    if return_data:
+        return plt.plot_freq_distribution(freq_dist), freq_dist
+    return plt.plot_freq_distribution(freq_dist)
 
 
 def get_binned_direction_series(direction_series, sectors, direction_bin_array=None):
@@ -146,10 +159,10 @@ def get_binned_direction_series(direction_series, sectors, direction_bin_array=N
     """
     if direction_bin_array is None:
         direction_bin_array = utils.get_direction_bin_array(sectors)
-    return direction_series.apply(map_direction_bin, bins=direction_bin_array, sectors=sectors)
+    return direction_series.apply(_map_direction_bin, bins=direction_bin_array, sectors=sectors)
 
 
-def get_distribution_by_wind_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
+def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
                                     direction_bin_array=None, direction_bin_labels=None):
     """Accepts a series of a variable and  wind direction. Computes the distribution of first variable with respect to
     wind direction sectors
@@ -187,8 +200,8 @@ def get_distribution_by_wind_sector(var_series, direction_series, sectors=12, ag
     return result
 
 
-def get_freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), sectors=12, var_bin_labels=None,
-                   direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True):
+def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), sectors=12, var_bin_labels=None,
+                   direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, return_data=False):
     """Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
     direction are binned
     :param var_series: Series of variable to be binned
@@ -224,10 +237,14 @@ def get_freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 4
     else:
         result = pd.crosstab(data.loc[:, 'variable_bin'], data.loc[:, 'direction_bin'])
     result.columns = direction_bin_labels
-    return result.sort_index()
+    result =  result.sort_index()
+    if return_data:
+        return plt.plot_wind_rose_with_gradient(result), result
+    else:
+        return plt.plot_wind_rose_with_gradient(result)
 
 
-def get_time_continuity_gaps(data):
+def time_continuity_gaps(data):
     """
     Returns the gaps in timestamps for the data, that means that data isn't available for that period.
 
@@ -243,7 +260,7 @@ def get_time_continuity_gaps(data):
     return continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
 
 
-def get_coverage(data, period='1M', aggregation_method='mean'):
+def coverage(data, period='1M', aggregation_method='mean'):
     """
     Get the data coverage over the period specified
 
@@ -392,12 +409,12 @@ class TI:
                        join='inner')
         ti = ti[ti['wdspd'] >= min_speed]
         ti['Turbulence_Intensity'] = TI.calc(ti['wdspd'], ti['wdspd_std'])
-        ti_dist = pd.concat([get_distribution_by_wind_sector(var_series=ti['Turbulence_Intensity'],
+        ti_dist = pd.concat([distribution_by_dir_sector(var_series=ti['Turbulence_Intensity'],
                                                              direction_series=ti['wddir'],
                                                              sectors=sectors, direction_bin_array=direction_bin_array,
                                                              direction_bin_labels=direction_bin_labels,
                                                              aggregation_method='mean').rename("Mean_TI"),
-                             get_distribution_by_wind_sector(var_series=ti['Turbulence_Intensity'],
+                             distribution_by_dir_sector(var_series=ti['Turbulence_Intensity'],
                                                              direction_series=ti['wddir'],
                                                              sectors=sectors, direction_bin_array=direction_bin_array,
                                                              direction_bin_labels=direction_bin_labels,
@@ -440,7 +457,7 @@ class SectorRatio:
         """
         sec_rat = SectorRatio.calc(wdspd_1, wdspd_2)
         common_idxs = sec_rat.index.intersection(wddir.index)
-        sec_rat_dist = get_distribution_by_wind_sector(sec_rat.loc[common_idxs], wddir.loc[common_idxs], sectors=sectors,
+        sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wddir.loc[common_idxs], sectors=sectors,
                                                        aggregation_method='mean', direction_bin_array=direction_bin_array,
                                                        direction_bin_labels=None).rename('Mean_Sector_Ratio').to_frame()
 
