@@ -1,6 +1,6 @@
-from .load import load
+from .load.load import *
 from .analyse import correlation as correl
-from .analyse import analyse
-from .transform import transform
-from .export import export
+from .analyse.analyse import *
+from .transform.transform import *
+from .export.export import *
 from brightwind.analyse import plot
