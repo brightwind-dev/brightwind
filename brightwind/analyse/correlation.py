@@ -43,18 +43,18 @@ from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 
 class CorrelBase:
 
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, ref_dir=None, target_dir=None, preprocess=True):
-        self.ref = ref
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=None, target_dir=None, preprocess=True):
+        self.ref_spd = ref_spd
         self.ref_dir = ref_dir
-        self.target = target
+        self.target_spd = target_spd
         self.target_dir = target_dir
         self.averaging_prd = averaging_prd
         self.coverage_threshold = coverage_threshold
         self.preprocess = preprocess
         if preprocess:
-            self.data = CorrelBase._averager(ref, target, averaging_prd, coverage_threshold, ref_dir, target_dir)
+            self.data = CorrelBase._averager(ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir)
         else:
-            self.data = pd.concat([ref, target, ref_dir, target_dir], axis=1, join='inner')
+            self.data = pd.concat([ref_spd, target_spd, ref_dir, target_dir], axis=1, join='inner')
         if ref_dir is None and target_dir is None:
             self.data.columns = ['ref_spd', 'target_spd']
         else:
@@ -62,11 +62,11 @@ class CorrelBase:
         self.num_data_pts = len(self.data)
 
     @staticmethod
-    def _averager(ref, target, averaging_prd, coverage_threshold, ref_dir, target_dir):
-        data = pd.concat(list(tf._preprocess_data_for_correlations(ref, target, averaging_prd,
+    def _averager(ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir):
+        data = pd.concat(list(tf._preprocess_data_for_correlations(ref_spd, target_spd, averaging_prd,
                             coverage_threshold)), axis=1, join='inner')
         if ref_dir is not None and target_dir is not None:
-            data = pd.concat([data]+list(tf._preprocess_dir_data_for_correlations(ref, ref_dir, target, target_dir,
+            data = pd.concat([data]+list(tf._preprocess_dir_data_for_correlations(ref_spd, ref_dir, target_spd, target_dir,
                                                             averaging_prd, coverage_threshold)), axis=1, join='inner')
         return data
 
@@ -81,7 +81,7 @@ class CorrelBase:
 
     def synthesize(self, ext_input=None):
         if ext_input is None:
-            return pd.concat([self._predict(tf.average_data_by_period(self.ref.loc[:min(self.data.index)],
+            return pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
                             self.averaging_prd, filter=False, return_coverage=False)),self.data['target_spd']],axis=0)
         else:
             return self._predict(ext_input)
@@ -98,10 +98,10 @@ class CorrelBase:
 class OrdinaryLeastSquares(CorrelBase):
     """Accepts two dataframes with timestamps as indexes and averaging period.
 
-    :param ref_speed: Series containing reference speed as a column, timestamp as the index.
-    :type ref_speed: pandas.Series
-    :param target_speed: Dataframe containing target speed as a column, timestamp as the index.
-    :type target_speed: pandas.Series
+    :param ref_spd: Series containing reference speed as a column, timestamp as the index.
+    :type ref_spd: pandas.Series
+    :param target_spd: Dataframe containing target speed as a column, timestamp as the index.
+    :type target_spd: pandas.Series
     :param averaging_prd: Groups data by the period specified by period.
 
             - 2T, 2 min for minutely average
@@ -125,9 +125,9 @@ class OrdinaryLeastSquares(CorrelBase):
     def linear_func(p, x):
         return (p[0] * x) + p[1]
 
-    def __init__(self, ref, target, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
+    def __init__(self, ref_spd, target_spd, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
 
-        CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, preprocess=preprocess)
         self.params = 'not run yet'
 
     def __repr(self):
@@ -148,8 +148,8 @@ class OrdinaryLeastSquares(CorrelBase):
 class OrthogonalLeastSquares(CorrelBase):
     """Accepts two series with timestamps as indexes and averaging period.
 
-    :param ref: Series containing reference speed as a column, timestamp as the index
-    :param target: Series containing target speed as a column, timestamp as the index
+    :param ref_spd: Series containing reference speed as a column, timestamp as the index
+    :param target_spd: Series containing target speed as a column, timestamp as the index
     :param averaging_prd: Groups data by the period specified by period.
 
             * 2T, 2 min for minutely average
@@ -166,9 +166,9 @@ class OrthogonalLeastSquares(CorrelBase):
     def linear_func(p, x):
         return p[0] * x + p[1]
 
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, preprocess= True):
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, preprocess= True):
 
-        CorrelBase.__init__(self,ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+        CorrelBase.__init__(self,ref_spd, target_spd, averaging_prd, coverage_threshold, preprocess=preprocess)
         self.params = 'not run yet'
 
     def __repr__(self):
@@ -191,18 +191,18 @@ class OrthogonalLeastSquares(CorrelBase):
 
 
 class MultipleLinearRegression(CorrelBase):
-    def __init__(self, ref: List, target, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
-        self.ref = pd.concat(ref, axis=1, join='inner')
-        self.target = target
+    def __init__(self, ref_spd: List, target_spd, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
+        self.ref_spd = pd.concat(ref_spd, axis=1, join='inner')
+        self.target_spd = target_spd
         self.averaging_prd = averaging_prd
         self.coverage_threshold = coverage_threshold
         self.preprocess = preprocess
         if preprocess:
-            self.data = pd.concat(list(tf._preprocess_data_for_correlations(self.ref, self.target, averaging_prd,
+            self.data = pd.concat(list(tf._preprocess_data_for_correlations(self.ref_spd, self.target_spd, averaging_prd,
                             coverage_threshold)), axis=1, join='inner')
         else:
-            self.data = pd.concat(list(self.ref, self.target), axis=1, join='inner')
-        self.data.columns = ['ref_spd_'+str(i+1) for i in range(0,len(self.ref.columns))]+['target_spd']
+            self.data = pd.concat(list(self.ref_spd, self.target_spd), axis=1, join='inner')
+        self.data.columns = ['ref_spd_'+str(i+1) for i in range(0,len(self.ref_spd.columns))]+['target_spd']
         self.data = self.data.dropna()
         self.params = 'not run yet'
 
@@ -224,7 +224,7 @@ class MultipleLinearRegression(CorrelBase):
 
     def synthesize(self, ext_input=None):
         if ext_input is None:
-            return pd.concat([self._predict(tf.average_data_by_period(self.ref.loc[:min(self.data.index)],
+            return pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
                             self.averaging_prd, filter=False, return_coverage=False)),self.data['target_spd']],axis=0)
         else:
             return self._predict(ext_input)
@@ -238,14 +238,14 @@ class MultipleLinearRegression(CorrelBase):
 
 
 class SimpleSpeedRatio(CorrelBase):
-    def __init__(self, ref, target, preprocess=True):
+    def __init__(self, ref_spd, target_spd, preprocess=True):
         from pandas.tseries.frequencies import to_offset
-        ref_resolution, target_resolution = tf._get_data_resolution(ref.index), tf._get_data_resolution(target.index)
+        ref_resolution, target_resolution = tf._get_data_resolution(ref_spd.index), tf._get_data_resolution(target_spd.index)
         if ref_resolution > target_resolution:
             averaging_prd = to_offset(ref_resolution)
         else:
             averaging_prd = to_offset(target_resolution)
-        CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold=0, preprocess=preprocess)
+        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0, preprocess=preprocess)
         self.params = 'not run yet'
         # self.cutoff = cutoff
         # self._filter()      #Filter low wind speeds
@@ -270,9 +270,9 @@ class SimpleSpeedRatio(CorrelBase):
 class SpeedSort(CorrelBase):
 
     class SectorSpeedModel:
-        def __init__(self, ref, target, lt_ref_speed=None):
-            self.sector_ref = ref
-            self.sector_target = target
+        def __init__(self, ref_spd, target_spd, lt_ref_speed=None):
+            self.sector_ref = ref_spd
+            self.sector_target = target_spd
             self.cutoff = min(0.5 * lt_ref_speed, 4.0)
             x_data = sorted([wdspd for wdspd in self.sector_ref.values.flatten()])
             y_data = sorted([wdspd for wdspd in self.sector_target.values.flatten()])
@@ -380,7 +380,7 @@ class SpeedSort(CorrelBase):
         self.speed_model = dict()
         for sector, group in self.data.groupby(['ref_dir_bin']):
             print('Processing sector:', sector)
-            self.speed_model[sector] = SpeedSort.SectorSpeedModel(ref=group['ref_spd'], target=group['target_spd'],
+            self.speed_model[sector] = SpeedSort.SectorSpeedModel(ref_spd=group['ref_spd'], target_spd=group['target_spd'],
                                                         lt_ref_speed=self.lt_ref_speed)
             self.params[sector] = {'slope':self.speed_model[sector].params['slope'],
                                    'offset':self.speed_model[sector].params['offset'],
@@ -412,7 +412,7 @@ class SpeedSort(CorrelBase):
 
     def synthesize(self, input_spd=None, input_dir=None):
         if input_spd is None and input_dir is None:
-            return pd.concat([self._predict(tf.average_data_by_period(self.ref.loc[:min(self.data.index)],
+            return pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
                                         self.averaging_prd, filter=False,return_coverage=False),
                                 tf.average_data_by_period(self.ref_dir.loc[:min(self.data.index)], self.averaging_prd,
                                                           filter=False, return_coverage=False)), self.data['target_spd']], axis=0)
@@ -428,8 +428,8 @@ class SpeedSort(CorrelBase):
                       x_label='Reference direction', y_label="Target direction")
 
 class SVR(CorrelBase):
-    def __init__(self, ref, target, averaging_prd, coverage_threshold, bw_model=0, preprocess=True, **sklearn_args):
-        CorrelBase.__init__(self, ref, target, averaging_prd, coverage_threshold, preprocess=preprocess)
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, bw_model=0, preprocess=True, **sklearn_args):
+        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, preprocess=preprocess)
         bw_models = [{'kernel':'rbf','C':30,'gamma':0.01},{'kernel':'linear', 'C':10}]
         self.model = sklearn_SVR(**{**bw_models[bw_model], **sklearn_args})
         self.params = 'not run yet'
