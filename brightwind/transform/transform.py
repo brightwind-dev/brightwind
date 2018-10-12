@@ -125,7 +125,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
         return grouped_data
 
 
-def scale_wind_speed(spd: pd.Series, scale_factor: float) ->pd.Series:
+def scale_wind_speed(spd, scale_factor: float) ->pd.Series:
     """
     Scales wind speed by the scale_factor
     :param spd: Series or data frame or a single value of wind speed to scale
@@ -136,7 +136,7 @@ def scale_wind_speed(spd: pd.Series, scale_factor: float) ->pd.Series:
     return spd*(scale_factor)
 
 
-def offset_wind_direction(dir: pd.Series, offset: float) -> pd.Series:
+def offset_wind_direction(dir, offset: float) -> pd.Series:
     """
     Add/ subtract offset from wind direction. Keeps the ranges between 0 to 360
     :param dir: Series or data frame or a single direction to offset
@@ -145,9 +145,10 @@ def offset_wind_direction(dir: pd.Series, offset: float) -> pd.Series:
     """
     if isinstance(dir, float):
         return utils._range_0_to_360(dir + offset)
+    elif isinstance(dir, pd.DataFrame):
+        return dir.add(offset).applymap(utils._range_0_to_360)
     else:
-        return (dir + offset).apply(utils._range_0_to_360)
-
+        return dir.to_frame().add(offset).applymap(utils._range_0_to_360)
 
 def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
                                       aggregation_method_ref='mean', aggregation_method_target='mean', get_coverage=False):
