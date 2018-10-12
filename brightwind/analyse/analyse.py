@@ -88,26 +88,6 @@ def momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
     return _mean_of_monthly_means_basic_method(sliced_data)
 
 
-def get_sector_ratio(wdspd_1, wdspd_2, direction, sectors=12):
-    """Accepts two speed series and one direction series and returns the speed ratio by sector
-    in a table
-    :param wdspd_1: First wind speed series. This is divisor series.
-    :type: wdspd_1: pandas.Series
-    :param wdpsd_2: Second wind speed series
-    :type: wdspd_1: pandas.Series
-    :param direction: Series of wind directions
-    :type direction: pandas.Series
-    :returns Table of speed ratio by sector
-    """
-    sec_rat = pd.concat([wdspd_1[wdspd_1 >3].rename('speed_1'), wdspd_2[wdspd_2>3].rename('speed_2'), direction.rename('dir')], axis=1,
-                        join='inner')
-    sec_rat['dir'] = sec_rat['dir'].mod(360)
-    sector_ratio = get_distribution_by_wind_sector(sec_rat['speed_2']/sec_rat['speed_1'], sec_rat['dir'],
-                                                   sectors= sectors, aggregation_method='mean', direction_bin_array=None,
-                                                   direction_bin_labels=None)
-    return sector_ratio
-
-
 def get_distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
                      aggregation_method='%frequency'):
     """Accepts 2 series of same/different variables and computes the distribution of first variable with respect to
@@ -381,8 +361,7 @@ class TI:
         ti_dist.index.rename('Speed Bin', inplace=True)
         if return_data:
             return plt.plot_TI_by_speed(wdspd, wdspd_std, ti_dist, IEC_class=IEC_class), ti_dist.dropna(how='any')
-        else:
-            return plt.plot_TI_by_speed(wdspd, wdspd_std, ti_dist, IEC_class=IEC_class)
+        return plt.plot_TI_by_speed(wdspd, wdspd_std, ti_dist, IEC_class=IEC_class)
 
     def by_sector(wdspd, wdspd_std, wddir, min_speed=0, sectors=12, direction_bin_array=None,
                   direction_bin_labels=None, return_data=False):
@@ -435,5 +414,38 @@ class TI:
         tab_12x24 = get_12x24(TI.calc(wdspd, wdspd_std))
         if return_data:
             return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity'), tab_12x24
-        else:
-            return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity')
+        return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity')
+
+
+class SectorRatio:
+
+    def calc(wdspd_1, wdspd_2):
+        sec_rat = pd.concat([wdspd_1[wdspd_1 > 3].rename('speed_1'), wdspd_2[wdspd_2 > 3].rename('speed_2')], axis=1, join='inner')
+        return sec_rat['speed_2']/sec_rat['speed_1']
+
+    def by_sector(wdspd_1, wdspd_2, wddir, sectors=12, direction_bin_array=None,
+                  boom_dir_1=0, boom_dir_2=0, booms=False, return_data=False):
+        """Accepts two speed series and one direction series and returns the speed ratio by sector
+        in a table
+        :param wdspd_1: First wind speed series. This is divisor series.
+        :type: wdspd_1: pandas.Series
+        :param wdpsd_2: Second wind speed series
+        :type: wdspd_1: pandas.Series
+        :param direction: Series of wind directions
+        :type direction: pandas.Series
+        :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to 0.
+        :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to 0.
+        :param booms: Boolean function. True if you want booms displayed on chart, False if not. Default False.
+        :returns A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
+        """
+        sec_rat = SectorRatio.calc(wdspd_1, wdspd_2)
+        common_idxs = sec_rat.index.intersection(wddir.index)
+        sec_rat_dist = get_distribution_by_wind_sector(sec_rat.loc[common_idxs], wddir.loc[common_idxs], sectors=sectors,
+                                                       aggregation_method='mean', direction_bin_array=direction_bin_array,
+                                                       direction_bin_labels=None).rename('Mean_Sector_Ratio').to_frame()
+
+        if return_data:
+            return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wddir.loc[common_idxs],
+                                         sec_rat_dist, boom_dir_1=0, boom_dir_2=0, booms=False), sec_rat_dist
+        return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wddir.loc[common_idxs], sec_rat_dist,
+                                     boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2, booms=booms)
