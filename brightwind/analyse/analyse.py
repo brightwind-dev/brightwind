@@ -151,7 +151,7 @@ def distribution_by_wind_speed(wdspd, return_data=False):
     return plt.plot_freq_distribution(freq_dist)
 
 
-def get_binned_direction_series(direction_series, sectors, direction_bin_array=None):
+def _binned_direction_series(direction_series, sectors, direction_bin_array=None):
     """ Accepts a series with wind directions and number of sectors  you want to divide.
     :param  direction_series: Series of directions to bin
     :param  sectors: number of direction sectors
@@ -192,7 +192,7 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
         zero_centered = False
     if direction_bin_labels is None:
         direction_bin_labels = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
-    direction_binned_series = get_binned_direction_series(direction_series, sectors, direction_bin_array)\
+    direction_binned_series = _binned_direction_series(direction_series, sectors, direction_bin_array)\
         .rename('direction_bin')
     data = pd.concat([var_series.rename('data'), direction_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
@@ -232,7 +232,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     if direction_bin_labels is None:
         direction_bin_labels = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
     var_binned_series = pd.cut(var_series, var_bin_array, right=False, labels=var_bin_labels).rename('variable_bin')
-    direction_binned_series = get_binned_direction_series(direction_series, sectors, direction_bin_array).rename(
+    direction_binned_series = _binned_direction_series(direction_series, sectors, direction_bin_array).rename(
         'direction_bin')
     data = pd.concat([var_series.rename('var_data'), var_binned_series, direction_binned_series],axis=1).dropna()
     if freq_as_percentage:

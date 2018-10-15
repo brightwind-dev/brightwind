@@ -8,7 +8,7 @@ from ..analyse.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 # from analyse.frequency_analysis import get_binned_direction_series
-from ..analyse.analyse import momm, get_binned_direction_series
+from ..analyse.analyse import momm, _binned_direction_series
 from sklearn.svm import SVR as sklearn_SVR
 from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 
@@ -339,7 +339,7 @@ class SpeedSort(CorrelBase):
         # for low ref_speed and high target_speed recalculate direction sector
         self._adjust_low_reference_speed_dir()
 
-        self.ref_dir_bins = get_binned_direction_series(self.data['ref_dir'], sectors,
+        self.ref_dir_bins = _binned_direction_series(self.data['ref_dir'], sectors,
                                                     direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')
         self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
         self.data = self.data.dropna()
@@ -420,7 +420,7 @@ class SpeedSort(CorrelBase):
         self.plot_wind_vane()
 
     def _predict(self, x_spd, x_dir):
-        x = pd.concat([x_spd.rename('spd'), get_binned_direction_series(x_dir, self.sectors, direction_bin_array=
+        x = pd.concat([x_spd.rename('spd'), _binned_direction_series(x_dir, self.sectors, direction_bin_array=
                                                 self.direction_bin_array).rename('ref_dir_bin')], axis=1, join='inner')
         prediction = pd.DataFrame()
         for sector, data in x.groupby(['ref_dir_bin']):
