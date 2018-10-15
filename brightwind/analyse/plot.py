@@ -121,12 +121,11 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea','#d6ebad
     direction_bins = np.insert(direction_bins,0,direction_bins[-2])
     ax.set_ylim(0, max(table.sum(axis=0))+3.0)
     angular_width = 2*np.pi/sectors - (np.pi/180)  # Leaving 1 degree gap
-
+    ax.bar(0, 1, alpha=0)
     def _choose_color(speed_bin):
         colors = gradient_colors
         bins = [0, 3.5, 6.5, 9.5, 12.5, 15.5, 18.5, 41]
         return colors[np.digitize([speed_bin], bins)[0]-1]
-
     for column in table_binned:
         radial_pos = 0.0
         angular_pos = (np.pi / 180.0) * float(column.split('-')[0])
