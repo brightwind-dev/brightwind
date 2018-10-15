@@ -86,7 +86,10 @@ def momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
     else:
         momm_data = data.copy()
     sliced_data = _slice_data(momm_data, date_from, date_to)
-    return _mean_of_monthly_means_basic_method(sliced_data)
+    output = _mean_of_monthly_means_basic_method(sliced_data)
+    if output.shape == (1,1):
+        return output.values[0][0]
+    return output
 
 
 def _get_direction_bin_labels(sectors, direction_bins, zero_centred=True):

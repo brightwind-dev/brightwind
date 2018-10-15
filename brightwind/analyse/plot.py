@@ -34,20 +34,18 @@ def bw_colors(bw_color):
     return bw_color
 
 
-def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", title="", size=(10,10),
-                  prediction_marker='k-'):
-    fig2 = plt.figure(111)
-    scat = fig2.add_subplot(111)
-    scat.set_xlabel(x_label)
-    scat.set_ylabel(y_label)
-    scat.scatter(x, y, marker = '.', color='#9ACD32',alpha=0.5)
-    fig2.set_figwidth(size[0])
-    fig2.set_figheight(size[1])
-    plt.title(title)
+def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", title="", prediction_marker='k-'):
+    fig, ax = plt.subplots()
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.scatter(x, y, marker = '.', color='#9ACD32',alpha=0.5)
+    # fig.set_figwidth(size[0])
+    # fig.set_figheight(size[1])
+    ax.set_title(title)
     if predicted_y is not None:
-        plt.plot(x, predicted_y, prediction_marker)
-        plt.legend(['Predicted','Original'])
-    plt.show()
+        ax.plot(x, predicted_y, prediction_marker)
+        ax.legend(['Predicted','Original'])
+    return ax.get_figure()
 
 
 def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_green_for_gradient'),

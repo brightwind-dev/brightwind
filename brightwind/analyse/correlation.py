@@ -35,7 +35,8 @@ from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 #     ref_overlap_avgd = tf.average_data_by_period(ref_overlap, averaging_prd)
 #     target_overlap_avgd = tf.average_data_by_period(target_overlap, averaging_prd, aggregation_method='sum')
 #     ref_filtered_for_coverage = tf._filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)
-#     target_filtered_for_coverage = tf._filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
+#     target_filtered_for_coverage = t
+# f._filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
 #     common_idxs, data_pts = tf._common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)
 #     return ref_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs], \
 #                     target_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs]
@@ -76,15 +77,21 @@ class CorrelBase:
 
     def plot(self, title=""):
         """For plotting"""
-        _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
+        return _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
                    self._predict(self.data['ref_spd']).values.flatten(), title=title)
 
     def synthesize(self, ext_input=None):
         if ext_input is None:
-            return pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
+            output = pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
                             self.averaging_prd, filter=False, return_coverage=False)),self.data['target_spd']],axis=0)
         else:
-            return self._predict(ext_input)
+            output = self._predict(ext_input)
+        if isinstance(output, pd.Series):
+            return output.to_frame(name=self.target_spd.name+"_Synthesized")
+        else:
+            output.columns = [self.target_spd.name + "_Synthesized"]
+            return output
+
 
     def get_r2(self):
         """Returns the r2 score of the model"""
@@ -139,6 +146,8 @@ class OrdinaryLeastSquares(CorrelBase):
 
         self.params = {'slope':p[0],'offset': p[1]}
         self.params['r2'] = self.get_r2()
+        self.params['Num data points'] = self.num_data_pts
+        self.show_params()
 
     def _predict(self, x):
         def linear_function(x, slope, offset):
@@ -183,7 +192,9 @@ class OrthogonalLeastSquares(CorrelBase):
         self.out = self._model.run()
         self.params = {'slope':self.out.beta[0], 'offset':self.out.beta[1]}
         self.params['r2'] = self.get_r2()
+        self.params['Num data points'] = self.num_data_pts
         print("Model output:", self.out.pprint())
+        self.show_params()
 
     def _predict(self, x):
         def linear_func_inverted(x, p):
@@ -214,6 +225,7 @@ class MultipleLinearRegression(CorrelBase):
         p, res = lstsq(np.column_stack((self.data.iloc[:,:len(self.data.columns)-1].values,
                                         np.ones(len(self.data)))), self.data['target_spd'].values.flatten())[0:2]
         self.params = {'slope':p[:-1],'offset': p[-1]}
+        self.show_params()
 
     def show_params(self):
         print(self.params)
@@ -261,6 +273,7 @@ class SimpleSpeedRatio(CorrelBase):
     def run(self):
         self.params = dict()
         self.params["ratio"] = self.data['target_spd'].mean()/self.data['ref_spd'].mean()
+        self.show_params()
 
     def _predict(self, x):
         def linear_function(x, slope):
@@ -295,7 +308,7 @@ class SpeedSort(CorrelBase):
             self.params = dict()
             self.params['slope'] = (ymean2 - ymean1) / (xmean2 - xmean1)
             self.params['offset'] = ymean1 - (xmean1 * self.params['slope'])
-            print(self.params)
+            # print(self.params)
 
         def sector_predict(self, x):
             def linear_function(x, slope, offset):
@@ -313,7 +326,7 @@ class SpeedSort(CorrelBase):
         self.sectors = sectors
         self.direction_bin_array = direction_bin_array
         if lt_ref_speed is None:
-            self.lt_ref_speed = momm(self.data['ref_spd']).values[0][0]
+            self.lt_ref_speed = momm(self.data['ref_spd'])
         else:
             self.lt_ref_speed = lt_ref_speed
         self.cutoff = min(0.5 * self.lt_ref_speed, 4.0)
@@ -377,10 +390,10 @@ class SpeedSort(CorrelBase):
         self.params['Ref_veer_cutoff'] = self.ref_veer_cutoff
         self.params['Target_veer_cutoff'] = self.target_veer_cutoff
         self.params['Overall_average_veer'] = self.overall_veer
-        print(self.params)
+        # print(self.params)
         self.speed_model = dict()
         for sector, group in self.data.groupby(['ref_dir_bin']):
-            print('Processing sector:', sector)
+            # print('Processing sector:', sector)
             self.speed_model[sector] = SpeedSort.SectorSpeedModel(ref_spd=group['ref_spd'], target_spd=group['target_spd'],
                                                         lt_ref_speed=self.lt_ref_speed)
             self.params[sector] = {'slope':self.speed_model[sector].params['slope'],
@@ -389,6 +402,7 @@ class SpeedSort(CorrelBase):
                                    'num_pts_for_speed_fit': self.speed_model[sector].data_pts,
                                    'num_total_pts': min(group.count())}
             self.params[sector].update(self._avg_veer(group))
+        self.show_params()
 
     def get_result_table(self):
         result = pd.DataFrame()
@@ -413,12 +427,14 @@ class SpeedSort(CorrelBase):
 
     def synthesize(self, input_spd=None, input_dir=None):
         if input_spd is None and input_dir is None:
-            return pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
+            output = pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
                                         self.averaging_prd, filter=False,return_coverage=False),
                                 tf.average_data_by_period(self.ref_dir.loc[:min(self.data.index)], self.averaging_prd,
                                                           filter=False, return_coverage=False)), self.data['target_spd']], axis=0)
         else:
-            return self._predict(input_spd, input_dir)
+            output = self._predict(input_spd, input_dir)
+        output.columns =[self.target_spd.name+"_Synthesized"]
+        return output
 
     def plot_wind_vane(self):
         """Plots reference and target directions in a scatter plot"""
@@ -453,6 +469,7 @@ class SVR(CorrelBase):
         self.params['Explained Variance'] = -1 * sklearn_cross_val_score(self.model, x,
                                                                  self.data['target_spd'].values.flatten(),
                                                                  scoring='explained_variance', cv=3)
+        self.show_params()
 
     def _predict(self, x):
         if isinstance(x, pd.Series):
