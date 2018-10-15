@@ -303,7 +303,7 @@ def basic_stats(data):
         return data.to_frame().describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
 
 
-def get_12x24(var_series,aggregation_method='mean'):
+def twelve_by_24(var_series,aggregation_method='mean'):
     """
     Accepts a variable series and returns 12x24 (months x hours) table for the variable.
     :param var_series:
@@ -430,8 +430,8 @@ class TI:
         else:
             return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wddir'], ti_dist)
 
-    def gen_12x24(wdspd, wdspd_std, return_data=False):
-        tab_12x24 = get_12x24(TI.calc(wdspd, wdspd_std))
+    def twelve_by_24(wdspd, wdspd_std, return_data=False):
+        tab_12x24 = twelve_by_24(TI.calc(wdspd, wdspd_std))
         if return_data:
             return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity'), tab_12x24
         return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity')
