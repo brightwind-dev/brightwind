@@ -145,6 +145,7 @@ class OrdinaryLeastSquares(CorrelBase):
             return (x*slope) + offset
         return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
 
+
 class OrthogonalLeastSquares(CorrelBase):
     """Accepts two series with timestamps as indexes and averaging period.
 
@@ -166,7 +167,7 @@ class OrthogonalLeastSquares(CorrelBase):
     def linear_func(p, x):
         return p[0] * x + p[1]
 
-    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, preprocess= True):
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9, preprocess= True):
 
         CorrelBase.__init__(self,ref_spd, target_spd, averaging_prd, coverage_threshold, preprocess=preprocess)
         self.params = 'not run yet'
@@ -427,6 +428,7 @@ class SpeedSort(CorrelBase):
                       self.data['target_dir'][(self.data['ref_spd']>self.cutoff) & (self.data['target_spd']>self.cutoff)],
                       x_label='Reference direction', y_label="Target direction")
 
+
 class SVR(CorrelBase):
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, bw_model=0, preprocess=True, **sklearn_args):
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, preprocess=preprocess)
@@ -465,7 +467,6 @@ class SVR(CorrelBase):
                                  "but found ", x.shape)
             else:
                 return self.model.predict(x)
-
 
     def plot(self, title=""):
         """For plotting"""
