@@ -21,13 +21,10 @@ def calc_shear(wind_speeds: List[float], heights: List[float], plot=False) -> fl
     logheights = np.log(heights)  # take log of elevations
     logwind_speeds = np.log(wind_speeds)  # take log of speeds
     coeffs = np.polyfit(logheights, logwind_speeds, deg=1)  # get coefficients of linear best fit to log distribution
+
     poly = np.poly1d(coeffs)
     wind_speedsfit = lambda heights: np.exp(poly(np.log(heights)))  # characterise values of v along log best fit
     alpha = 1 / ((np.log(wind_speedsfit(heights[-1]) / wind_speedsfit(heights[0]))) / (np.log(heights[-1] / heights[0])))  # derive alpha based on (reciprocal of)
     # gradient defined by the 2 outer points on the log best fit
-
-    if plot:
-        return alpha, wind_speedsfit
-    else:
-        return alpha
+    return coeffs[0]
 

@@ -469,3 +469,65 @@ class SectorRatio:
                                          sec_rat_dist, boom_dir_1=0, boom_dir_2=0, booms=False), sec_rat_dist
         return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wddir.loc[common_idxs], sec_rat_dist,
                                      boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2, booms=booms)
+
+
+class Shear:
+
+    def calc(wdspds, heights, min_speed=3, return_data=False):
+        shear = wdspds[(wdspds > min_speed).all(axis=1)].apply(calc_shear, heights=heights, axis=1)
+        if return_data:
+            return 0, shear
+        return 0
+
+    def by_sector(wdspds, heights, wddir, sectors=12, min_speed=3, direction_bin_array=None, direction_bin_labels=None,
+                  return_data=False):
+        common_idxs = wdspds.index.intersection(wddir.index)
+        shear = Shear.calc(wdspds.loc[common_idxs], heights, min_speed=min_speed, return_data=True)[1]
+        shear_dist = pd.concat([distribution_by_dir_sector(var_series=shear,
+                                                             direction_series=wddir.loc[common_idxs],
+                                                             sectors=sectors, direction_bin_array=direction_bin_array,
+                                                             direction_bin_labels=direction_bin_labels,
+                                                             aggregation_method='mean').rename("Mean_Shear"),
+                             distribution_by_dir_sector(var_series=shear,
+                                                             direction_series=wddir.loc[common_idxs],
+                                                             sectors=sectors, direction_bin_array=direction_bin_array,
+                                                             direction_bin_labels=direction_bin_labels,
+                                                             aggregation_method='count').rename("Shear_Count")], axis=1,
+                            join='outer')
+        shear_dist.index.rename('Direction Bin', inplace=True)
+        if return_data:
+            return plt.plot_shear_by_sector(shear, wddir.loc[shear.index.intersection(wddir.index)], shear_dist), shear_dist
+        else:
+            return plt.plot_shear_by_sector(shear, wddir.loc[shear.index.intersection(wddir.index)], shear_dist)
+
+    def twelve_by_24(wdspds, heights, min_speed=3, return_data=False):
+        tab_12x24 = twelve_by_24(Shear.calc(wdspds, heights, min_speed=min_speed, return_data=True)[1])
+        if return_data:
+            return plt.plot_12x24_contours(tab_12x24, title='Shear'), tab_12x24
+        return plt.plot_12x24_contours(tab_12x24, title='Shear')
+
+    def scale(alpha, wdspd, height, height_to_scale_to):
+        scale_factor = (height_to_scale_to/ height)**alpha
+        return wdspd*scale_factor
+
+
+def calc_shear(wind_speeds, heights) -> float:
+    """
+    Derive the best fit power law exponent (as 1/alpha) from a given time-step of speed data at 2 or more elevations
+    :param wind_speeds: List of wind speeds [m/s]
+    :param heights: List of heights [m above ground]. The position of the height in the list must be the same position in the list as its
+    corresponding wind speed value.
+    :return: The shear value (alpha), as the inverse exponent of the best fit power law, based on the form: (v1/v2) = (z1/z2)^(1/alpha)
+
+    METHODOLOGY:
+        Derive natural log of elevation and speed data sets
+        Derive coefficients of linear best fit along log-log distribution
+        Characterise new distribution of speed values based on linear best fit
+        Derive 'alpha' based on gradient of first and last best fit points (function works for 2 or more points)
+        Return alpha value
+    """
+
+    logheights = np.log(heights)  # take log of elevations
+    logwind_speeds = np.log(wind_speeds)  # take log of speeds
+    coeffs = np.polyfit(logheights, logwind_speeds, deg=1)  # get coefficients of linear best fit to log distribution
+    return coeffs[0]

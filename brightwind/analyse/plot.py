@@ -199,6 +199,22 @@ def plot_TI_by_sector(turbulence, wddir, ti):
     return ax.get_figure()
 
 
+def plot_shear_by_sector(shear, wddir, shear_dist):
+    radians = np.radians(utils._get_dir_sector_mid_pts(shear_dist.index))
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
+    ax.set_theta_zero_location('N')
+    ax.set_theta_direction(-1)
+    ax.set_thetagrids(utils._get_dir_sector_mid_pts(shear_dist.index))
+    ax.plot(np.append(radians,radians[0]), shear_dist.append(shear_dist.iloc[0])['Mean_Shear'], c=bw_colors('green'), linewidth=4)
+    ax.set_title('Shear by Direction')
+    maxlevel = shear_dist['Mean_Shear'].max() + 0.05
+    ax.set_ylim(0, maxlevel)
+    ax.scatter(np.radians(wddir), shear, c=bw_colors('asphault'), alpha=0.3, s=1)
+    ax.legend(loc=8, framealpha=1)
+    return ax.get_figure()
+
+
 def plot_monthly_means(columns):
     if not isinstance(columns, list):
         columns = [columns]
@@ -271,6 +287,10 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, boom_dir_1=0, boom_dir_2
     ax.scatter(np.radians(wddir), sec_ratio, c=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
+
+
+def plot_shear(alpha):
+    heights = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 
 
 # def plot_shear(wind_speeds, heights):
