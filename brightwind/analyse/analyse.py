@@ -114,7 +114,7 @@ def _map_direction_bin(wdir, bins, sectors):
     return bin_num
 
 
-def get_distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
+def distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
                      aggregation_method='%frequency'):
     """Accepts 2 series of same/different variables and computes the distribution of first variable with respect to
     the bins of another variable.
@@ -144,7 +144,7 @@ def distribution_by_wind_speed(wdspd, return_data=False):
     the bins of another variable.
     :param wdspd: Series of the variable whose distribution we need to find
     """
-    freq_dist = get_distribution(wdspd, wdspd, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
+    freq_dist = distribution(wdspd, wdspd, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
                      aggregation_method='%frequency')
     if return_data:
         return plt.plot_freq_distribution(freq_dist), freq_dist
@@ -355,23 +355,23 @@ class TI:
         """
         ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std')], axis=1, join='inner')
         ti['Turbulence_Intensity'] = TI.calc(ti['wdspd'], ti['wdspd_std'])
-        ti_dist = pd.concat([get_distribution(var1_series=ti['Turbulence_Intensity'],
+        ti_dist = pd.concat([distribution(var1_series=ti['Turbulence_Intensity'],
                                               var2_series=ti['wdspd'],
                                               var2_bin_array=speed_bin_array,
                                               var2_bin_labels=speed_bin_labels,
                                               aggregation_method='mean').rename("Mean_TI"),
-                             get_distribution(var1_series=ti['Turbulence_Intensity'],
+                             distribution(var1_series=ti['Turbulence_Intensity'],
                                               var2_series=ti['wdspd'],
                                               var2_bin_array=speed_bin_array,
                                               var2_bin_labels=speed_bin_labels,
                                               aggregation_method='count').rename("TI_Count"),
-                             get_distribution(var1_series=ti['Turbulence_Intensity'],
+                             distribution(var1_series=ti['Turbulence_Intensity'],
                                               var2_series=ti['wdspd'],
                                               var2_bin_array=speed_bin_array,
                                               var2_bin_labels=speed_bin_labels,
                                               aggregation_method=lambda x: np.percentile(x, q=percentile)).rename(
                                  "Rep_TI"),
-                             get_distribution(var1_series=ti['Turbulence_Intensity'],
+                             distribution(var1_series=ti['Turbulence_Intensity'],
                                               var2_series=ti['wdspd'],
                                               var2_bin_array=speed_bin_array,
                                               var2_bin_labels=speed_bin_labels,
