@@ -73,7 +73,8 @@ class CorrelBase:
 
     def show_params(self):
         "Show the dictionary of parameters"
-        print(self.params)
+        import pprint
+        pprint.pprint(self.params)
 
     def plot(self, title=""):
         """For plotting"""
@@ -193,7 +194,7 @@ class OrthogonalLeastSquares(CorrelBase):
         self.params = {'slope':self.out.beta[0], 'offset':self.out.beta[1]}
         self.params['r2'] = self.get_r2()
         self.params['Num data points'] = self.num_data_pts
-        print("Model output:", self.out.pprint())
+        # print("Model output:", self.out.pprint())
         self.show_params()
 
     def _predict(self, x):
@@ -228,7 +229,8 @@ class MultipleLinearRegression(CorrelBase):
         self.show_params()
 
     def show_params(self):
-        print(self.params)
+        import pprint
+        pprint.pprint(self.params)
 
     def _predict(self, x):
         def linear_function(x, slope, offset):
