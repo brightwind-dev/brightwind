@@ -38,7 +38,7 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     fig, ax = plt.subplots()
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
-    ax.scatter(x, y, marker = '.', color='#9ACD32',alpha=0.5)
+    ax.scatter(x, y, marker = '.', color='#9ACD32', alpha=0.5)
     # fig.set_figwidth(size[0])
     # fig.set_figheight(size[1])
     ax.set_title(title)
@@ -75,7 +75,7 @@ def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_gre
 
 def plot_wind_rose(ext_data, freq_table=False):
     """
-    Plot a wind rose from a direction data or a frequency table.
+    Plot a wind rose from a frequency table.
     """
     data = ext_data.copy()
     if freq_table:
@@ -84,11 +84,11 @@ def plot_wind_rose(ext_data, freq_table=False):
         sectors = data.shape[0]
     result = data.sum(axis=0)
     fig = plt.figure(figsize=(12, 12))
-    ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0,360, 360.0/sectors))
-    ax.set_rgrids(np.arange(0,101,10), labels=[str(i)+'%' for i in np.arange(0,101,10)],angle=0)
+    ax.set_rgrids(np.arange(0,101,10), labels=[str(i)+'%' for i in np.arange(0, 101, 10)],angle=0)
     ax.bar(np.arange(0,2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
     ax.set_title('Wind Rose', loc='center')
@@ -199,16 +199,17 @@ def plot_TI_by_sector(turbulence, wddir, ti):
     return ax.get_figure()
 
 
+
 def plot_shear_by_sector(shear, wddir, shear_dist):
     radians = np.radians(utils._get_dir_sector_mid_pts(shear_dist.index))
     fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(shear_dist.index))
     ax.plot(np.append(radians,radians[0]), shear_dist.append(shear_dist.iloc[0])['Mean_Shear'], c=bw_colors('green'), linewidth=4)
     ax.set_title('Shear by Direction')
-    maxlevel = shear_dist['Mean_Shear'].max() + 0.05
+    maxlevel = shear_dist['Mean_Shear'].max() + 0.1
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wddir), shear, c=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
@@ -244,7 +245,7 @@ def plot_12x24_contours(tab_12x24, title='Variable'):
     ax.set_ylabel('Hour of Day')
     ax.set_xticks(np.arange(12), calendar.month_name[1:13])
     ax.set_yticks(np.arange(0, 24, 1))
-    ax.set_title('Hourly Mean '+title+' Calendar Month')
+    # ax.set_title('Hourly Mean '+title+' Calendar Month')
     return ax.get_figure()
 
 
@@ -261,7 +262,7 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, boom_dir_1=0, boom_dir_2
     """
     radians = np.radians(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
     fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
@@ -289,8 +290,20 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, boom_dir_1=0, boom_dir_2
     return ax.get_figure()
 
 
-def plot_shear(alpha):
-    heights = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+def plot_shear(avg_alpha, avg_c, wdspds, heights):
+    plot_heights = np.linspace(0, 100, num=100)
+    speeds = avg_c*(plot_heights**avg_alpha)
+    fig, ax = plt.subplots()
+    ax.set_xlabel('Speed (m/s)')
+    ax.set_ylabel('Elevation (m)')
+    ax.plot(speeds, plot_heights,'-', color='#9ACD32')
+    ax.scatter(wdspds, heights, marker='o', color=bw_colors('asphault'))
+    ax.grid()
+    ax.set_xlim(0, max(speeds)+1)
+    ax.set_ylim(0, max(plot_heights)+10)
+    # ax.set_title("Shear Profile")
+    return ax.get_figure()
+
 
 
 # def plot_shear(wind_speeds, heights):

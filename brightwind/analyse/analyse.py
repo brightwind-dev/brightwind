@@ -472,17 +472,18 @@ class SectorRatio:
 
 
 class Shear:
-
-    def calc(wdspds, heights, min_speed=3, return_data=False):
-        shear = wdspds[(wdspds > min_speed).all(axis=1)].apply(calc_shear, heights=heights, axis=1)
-        if return_data:
-            return 0, shear
-        return 0
+    def power_law(wdspds, heights, min_speed=3, return_alpha=False):
+        wdspds = wdspds.dropna()
+        mean_wdspds = wdspds[(wdspds > min_speed).all(axis=1)].mean()#.apply(_calc_shear, heights=heights, return_coeff=True,axis=1)
+        alpha, c = _calc_shear(mean_wdspds.values, heights, return_coeff=True)
+        if return_alpha:
+            return plt.plot_shear(alpha, c, mean_wdspds.values, heights), alpha
+        return plt.plot_shear(alpha, c, mean_wdspds.values, heights)
 
     def by_sector(wdspds, heights, wddir, sectors=12, min_speed=3, direction_bin_array=None, direction_bin_labels=None,
                   return_data=False):
         common_idxs = wdspds.index.intersection(wddir.index)
-        shear = Shear.calc(wdspds.loc[common_idxs], heights, min_speed=min_speed, return_data=True)[1]
+        shear = wdspds[(wdspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights,axis=1).loc[common_idxs]
         shear_dist = pd.concat([distribution_by_dir_sector(var_series=shear,
                                                              direction_series=wddir.loc[common_idxs],
                                                              sectors=sectors, direction_bin_array=direction_bin_array,
@@ -501,7 +502,7 @@ class Shear:
             return plt.plot_shear_by_sector(shear, wddir.loc[shear.index.intersection(wddir.index)], shear_dist)
 
     def twelve_by_24(wdspds, heights, min_speed=3, return_data=False):
-        tab_12x24 = twelve_by_24(Shear.calc(wdspds, heights, min_speed=min_speed, return_data=True)[1])
+        tab_12x24 = twelve_by_24(wdspds[(wdspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights, axis=1))
         if return_data:
             return plt.plot_12x24_contours(tab_12x24, title='Shear'), tab_12x24
         return plt.plot_12x24_contours(tab_12x24, title='Shear')
@@ -511,7 +512,7 @@ class Shear:
         return wdspd*scale_factor
 
 
-def calc_shear(wind_speeds, heights) -> float:
+def _calc_shear(wind_speeds, heights, return_coeff=False) -> float:
     """
     Derive the best fit power law exponent (as 1/alpha) from a given time-step of speed data at 2 or more elevations
     :param wind_speeds: List of wind speeds [m/s]
@@ -530,4 +531,6 @@ def calc_shear(wind_speeds, heights) -> float:
     logheights = np.log(heights)  # take log of elevations
     logwind_speeds = np.log(wind_speeds)  # take log of speeds
     coeffs = np.polyfit(logheights, logwind_speeds, deg=1)  # get coefficients of linear best fit to log distribution
+    if return_coeff:
+        return coeffs[0], np.exp(coeffs[1])
     return coeffs[0]
