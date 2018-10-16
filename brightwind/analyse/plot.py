@@ -34,6 +34,20 @@ def bw_colors(bw_color):
     return bw_color
 
 
+def plot_timeseries(data, date_to='', date_from=''):
+    """
+    Plots timeseries data
+    :param data: Dataframe to plot
+    :param date_to: Start date used for plotting in yyyy-mm-dd format
+    :type date_to: str
+    :param date_from: End date used for plotting in yyyy-mm-dd format
+    :type date_from: str
+    :return: Timeseries plot
+    """
+    sliced_data = utils._slice_data(data, date_to, date_from)
+    return sliced_data.plot().get_figure()
+
+
 def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", title="", prediction_marker='k-'):
     fig, ax = plt.subplots()
     ax.set_xlabel(x_label)
@@ -214,16 +228,6 @@ def plot_shear_by_sector(shear, wddir, shear_dist):
     ax.scatter(np.radians(wddir), shear, c=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
-
-
-def plot_monthly_means(data):
-    fig, ax = plt.subplots()
-    for i in range(0, len(data.columns)):
-        ax.plot(data.index.__array__(), data.iloc[:, i].values)
-    ax.set_ylabel('Wind speed [m/s]')
-    ax.legend(data.columns)
-    return ax.get_figure()
-
 
 
 def plot_12x24_contours(tab_12x24, title='Variable'):

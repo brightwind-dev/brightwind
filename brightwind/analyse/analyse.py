@@ -48,8 +48,8 @@ def monthly_means(wdspds, return_data=False):
         wdspds = [wdspds]
     data = tf.average_data_by_period(pd.concat(wdspds, axis=1, join='outer'), period='1MS')
     if return_data:
-        return plt.plot_monthly_means(data), data
-    return plt.plot_monthly_means(data)
+        return plt.plot_timeseries(data), data
+    return plt.plot_timeseries(data)
 
 
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
@@ -60,25 +60,6 @@ def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
     monthly_df: pd.DataFrame = df.groupby(df.index.month).mean().mean().to_frame()
     monthly_df.columns = ['MOMM']
     return monthly_df
-
-
-def _slice_data(data, date_from: str='', date_to: str=''):
-    """
-    Returns the slice of data between the two date ranges,
-    Date format: YYYY-MM-DD
-    """
-    import datetime
-    if (isinstance(date_from, datetime.date) or isinstance(date_from, datetime.datetime))\
-        and (isinstance(date_to,datetime.date) or isinstance(date_to, datetime.datetime)):
-        sliced_data = data.loc[date_from:date_to, :]
-    elif date_from and date_to:
-        import datetime as dt
-        date_from = dt.datetime.strptime(date_from[:10], "%Y-%m-%d")
-        date_to = dt.datetime.strptime(date_to[:10], "%Y-%m-%d")
-        sliced_data = data.loc[date_from:date_to, :]
-    else:
-        return data
-    return sliced_data
 
 
 def momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
@@ -94,7 +75,7 @@ def momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
         momm_data = data.to_frame()
     else:
         momm_data = data.copy()
-    sliced_data = _slice_data(momm_data, date_from, date_to)
+    sliced_data = utils._slice_data(momm_data, date_from, date_to)
     output = _mean_of_monthly_means_basic_method(sliced_data)
     if output.shape == (1,1):
         return output.values[0][0]
