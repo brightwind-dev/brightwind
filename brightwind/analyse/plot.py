@@ -216,10 +216,7 @@ def plot_shear_by_sector(shear, wddir, shear_dist):
     return ax.get_figure()
 
 
-def plot_monthly_means(columns):
-    if not isinstance(columns, list):
-        columns = [columns]
-    data = transform.average_data_by_period(pd.concat(columns, axis=1, join='outer'), period='1MS')
+def plot_monthly_means(data):
     fig, ax = plt.subplots()
     for i in range(0, len(data.columns)):
         ax.plot(data.index.__array__(), data.iloc[:, i].values)

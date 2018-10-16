@@ -43,6 +43,15 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
+def monthly_means(wdspds, return_data=False):
+    if not isinstance(wdspds, list):
+        wdspds = [wdspds]
+    data = tf.average_data_by_period(pd.concat(wdspds, axis=1, join='outer'), period='1MS')
+    if return_data:
+        return plt.plot_monthly_means(data), data
+    return plt.plot_monthly_means(data)
+
+
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
 
     """ Return a dataframe of mean of monthly means for each column in the dataframe with timestamp as the index.
