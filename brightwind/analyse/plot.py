@@ -291,6 +291,14 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, boom_dir_1=0, boom_dir_2
 
 def plot_shear(alpha):
     heights = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    fig, ax = plt.subplots()
+    ax.set_xlabel('Speed (m/s)')
+    ax.set_ylabel('Elevation (m)')
+    ax.plot(wind_speedsfit(heightstrend), heightstrend, 'k--')  # Show interpolated power law trend
+    plt.legend(['Input data', 'Power law trend (' r'$\alpha$ = %i)' % int(round(alpha))])
+    plt.ylim(0, max(heights) + 2)
+    plt.xlim(0, max([max(wind_speeds), max(wind_speedsfit(heights))]) + 2)
+    return ax.get_figure()
 
 
 # def plot_shear(wind_speeds, heights):
