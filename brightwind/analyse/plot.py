@@ -250,15 +250,14 @@ def plot_12x24_contours(tab_12x24, title='Variable'):
     return ax.get_figure()
 
 
-def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, boom_dir_1=0, boom_dir_2=0,
-                      booms=False):
+def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1):
     """Accepts a dataframe table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
     by sector. Optionally can include anemometer boom directions also.
     :param sec_rat: A series of sector ratios
     :param sec_ratio_dist: Dataframe from SectorRation.by_speed()
     :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to 0.
     :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to 0.
-    :param booms: Boolean function. True if you want booms displayed on chart, False if not. Default False.
+    :param col_names: A list of strings containing column names of wind speeds
     :returns A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
     """
     radians = np.radians(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
@@ -274,17 +273,20 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, boom_dir_1=0, boom_dir_2
     minlevel = sec_ratio_dist['Mean_Sector_Ratio'].min() - 0.1
     ax.set_ylim(minlevel, maxlevel)
     # Add boom dimensions to chart, if required
-    if booms == True:
-
+    width = np.pi / 72
+    radii = maxlevel
+    ctr=0
+    if boom_dir_1 >= 0 and boom_dir_1<360 :
         boom_dir_1 = np.radians(boom_dir_1)
-        boom_dir_2 = np.radians(boom_dir_2)
-
-        width = np.pi / 72
-        radii = maxlevel
-
         ax.bar(boom_dir_1, radii, width=width, bottom=minlevel, color='orange')
+        ctr += 1
+    if boom_dir_2>=0 and boom_dir_2<360:
+        boom_dir_2 = np.radians(boom_dir_2)
         ax.bar(boom_dir_2, radii, width=width, bottom=minlevel, color='yellow')
-        ax.annotate('*Plot generated using wind speed 1 (yellow boom) divided by wind speed 2 (orange boom)',
+        ctr += 1
+
+    if ctr == 2:
+        ax.annotate('*Plot generated using '+col_names[1]+' (yellow boom) divided by'+ col_names[0]+' (orange boom)',
             xy=(20, 10), xycoords='figure pixels')
     ax.scatter(np.radians(wddir), sec_ratio, c=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)

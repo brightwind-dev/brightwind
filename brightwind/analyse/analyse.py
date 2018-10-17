@@ -437,7 +437,7 @@ class SectorRatio:
         return sec_rat['speed_2']/sec_rat['speed_1']
 
     def by_sector(wdspd_1, wdspd_2, wddir, sectors=12, direction_bin_array=None,
-                  boom_dir_1=0, boom_dir_2=0, booms=False, return_data=False):
+                  boom_dir_1=-1, boom_dir_2=-1, return_data=False):
         """Accepts two speed series and one direction series and returns the speed ratio by sector
         in a table
         :param wdspd_1: First wind speed series. This is divisor series.
@@ -446,9 +446,8 @@ class SectorRatio:
         :type: wdspd_1: pandas.Series
         :param direction: Series of wind directions
         :type direction: pandas.Series
-        :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to 0.
-        :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to 0.
-        :param booms: Boolean function. True if you want booms displayed on chart, False if not. Default False.
+        :param boom_dir_1: Boom direction in degrees of speed_col_name_1.
+        :param boom_dir_2: Boom direction in degrees of speed_col_name_2.
         :returns A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
         """
         sec_rat = SectorRatio.calc(wdspd_1, wdspd_2)
@@ -459,9 +458,11 @@ class SectorRatio:
 
         if return_data:
             return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wddir.loc[common_idxs],
-                                         sec_rat_dist, boom_dir_1=0, boom_dir_2=0, booms=False), sec_rat_dist
+                                         sec_rat_dist,[wdspd_1.name,wdspd_2.name],
+                                         boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2), sec_rat_dist
         return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wddir.loc[common_idxs], sec_rat_dist,
-                                     boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2, booms=booms)
+                                     [wdspd_1.name, wdspd_2.name],
+                                     boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2)
 
 
 class Shear:
