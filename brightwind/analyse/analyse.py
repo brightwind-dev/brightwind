@@ -293,7 +293,7 @@ def basic_stats(data):
         return data.to_frame().describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
 
 
-def twelve_by_24(var_series,aggregation_method='mean'):
+def twelve_by_24(var_series,aggregation_method='mean', return_data=False):
     """
     Accepts a variable series and returns 12x24 (months x hours) table for the variable.
     :param var_series:
@@ -305,7 +305,10 @@ def twelve_by_24(var_series,aggregation_method='mean'):
     """
     table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
                              var_series.index.to_series().dt.hour.rename('Hour')], axis=1,join='inner')
-    return table_12x24.pivot_table(index='Hour', columns='Month', values='Variable',aggfunc=aggregation_method)
+    if return_data:
+        return plt.plot_12x24_contours(table_12x24.pivot_table(index='Hour', columns='Month', values='Variable',aggfunc=aggregation_method)), \
+               table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
+    return plt.plot_12x24_contours(table_12x24.pivot_table(index='Hour', columns='Month', values='Variable',aggfunc=aggregation_method))
 
 
 class TI:
@@ -421,7 +424,7 @@ class TI:
             return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wddir'], ti_dist)
 
     def twelve_by_24(wdspd, wdspd_std, return_data=False):
-        tab_12x24 = twelve_by_24(TI.calc(wdspd, wdspd_std))
+        tab_12x24 = twelve_by_24(TI.calc(wdspd, wdspd_std), return_data=True)[1]
         if return_data:
             return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity'), tab_12x24
         return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity')
@@ -492,7 +495,8 @@ class Shear:
             return plt.plot_shear_by_sector(shear, wddir.loc[shear.index.intersection(wddir.index)], shear_dist)
 
     def twelve_by_24(wdspds, heights, min_speed=3, return_data=False):
-        tab_12x24 = twelve_by_24(wdspds[(wdspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights, axis=1))
+        tab_12x24 = twelve_by_24(wdspds[(wdspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights, axis=1),
+                                 return_data=True)[1]
         if return_data:
             return plt.plot_12x24_contours(tab_12x24, title='Shear'), tab_12x24
         return plt.plot_12x24_contours(tab_12x24, title='Shear')
