@@ -314,7 +314,7 @@ def twelve_by_24(var_series,aggregation_method='mean', return_data=False):
 class TI:
 
     def calc(wdspd, wdspd_std):
-        ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std')], axis=1, join='inner')
+        ti = pd.concat([wdspd[wdspd > 3].rename('wdspd'), wdspd_std.rename('wdspd_std')], axis=1, join='inner')
         return ti['wdspd_std'] / ti['wdspd']
 
     def by_speed(wdspd, wdspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),

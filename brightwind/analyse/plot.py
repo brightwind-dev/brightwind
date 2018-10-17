@@ -187,7 +187,7 @@ def plot_TI_by_speed(wdspd, wdspd_std, ti, IEC_class=None):
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 1], color=bw_colors('greyline'), linestyle='dashed')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 2], color=bw_colors('greyline'), linestyle='dashdot')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=bw_colors('greyline'), linestyle='dotted')
-    ax.set_xlim(2, 25)
+    ax.set_xlim(3, 25)
     ax.set_ylim(0, 0.6)
     ax.set_xticks(np.arange(2, 26, 1))
     ax.set_xlabel('Wind speed [m/s]')
