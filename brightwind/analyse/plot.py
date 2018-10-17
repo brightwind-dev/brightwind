@@ -55,7 +55,7 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     ax.scatter(x, y, marker = '.', color='#9ACD32', alpha=0.5)
     # fig.set_figwidth(size[0])
     # fig.set_figheight(size[1])
-    ax.set_title(title)
+    # ax.set_title(title)
     if predicted_y is not None:
         ax.plot(x, predicted_y, prediction_marker)
         ax.legend(['Predicted','Original'])
@@ -83,7 +83,7 @@ def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_gre
         ax.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
                   interpolation='gaussian', extent=(bin-0.4, bin+0.4, 0, frequency), aspect='auto', zorder=3)
         ax.bar(bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
-    ax.set_title('Wind Speed Frequency Distribution')
+    # ax.set_title('Wind Speed Frequency Distribution')
     return ax.get_figure()
 
 
@@ -105,7 +105,7 @@ def plot_wind_rose(ext_data, freq_table=False):
     ax.set_rgrids(np.arange(0,101,10), labels=[str(i)+'%' for i in np.arange(0, 101, 10)],angle=0)
     ax.bar(np.arange(0,2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
-    ax.set_title('Wind Rose', loc='center')
+    # ax.set_title('Wind Rose', loc='center')
     return ax.get_figure()
 
 
@@ -189,7 +189,7 @@ def plot_TI_by_speed(wdspd, wdspd_std, ti, IEC_class=None):
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=bw_colors('greyline'), linestyle='dotted')
     ax.set_xlim(3, 25)
     ax.set_ylim(0, 0.6)
-    ax.set_xticks(np.arange(2, 26, 1))
+    ax.set_xticks(np.arange(3, 26, 1))
     ax.set_xlabel('Wind speed [m/s]')
     ax.set_ylabel('Turbulence Intensity')
     ax.grid(True)
@@ -205,7 +205,7 @@ def plot_TI_by_sector(turbulence, wddir, ti):
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(ti.index))
     ax.plot(np.append(radians,radians[0]), ti.append(ti.iloc[0])['Mean_TI'], c=bw_colors('green'), linewidth=4)
-    ax.set_title('Turbulence Intensity by Direction')
+    # ax.set_title('Turbulence Intensity by Direction')
     maxlevel = ti['Mean_TI'].max() + 0.1
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wddir), turbulence, c=bw_colors('asphault'), alpha=0.3, s=1)
@@ -222,7 +222,7 @@ def plot_shear_by_sector(shear, wddir, shear_dist):
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(shear_dist.index))
     ax.plot(np.append(radians,radians[0]), shear_dist.append(shear_dist.iloc[0])['Mean_Shear'], c=bw_colors('green'), linewidth=4)
-    ax.set_title('Shear by Direction')
+    # ax.set_title('Shear by Direction')
     maxlevel = shear_dist['Mean_Shear'].max() + 0.1
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wddir), shear, c=bw_colors('asphault'), alpha=0.3, s=1)
@@ -267,7 +267,7 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, col_names, boom_dir_1=-1
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
     ax.plot(np.append(radians,radians[0]), sec_ratio_dist['Mean_Sector_Ratio'].append(sec_ratio_dist.iloc[0]), c=bw_colors('green'), linewidth=4)
-    plt.title('Speed Ratio by Direction')
+    # plt.title('Speed Ratio by Direction')
     # Get max and min levels and set chart axes
     maxlevel = sec_ratio_dist['Mean_Sector_Ratio'].max() + 0.05
     minlevel = sec_ratio_dist['Mean_Sector_Ratio'].min() - 0.1
