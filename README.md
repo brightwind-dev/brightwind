@@ -1,4 +1,4 @@
-# Brightwind
+# brightwind
 --------------
 
 <p align="center">
@@ -7,10 +7,32 @@
 
 
 
-Brightwind’s open source python library provides wind analysts with easy to use methods for working with meteorological data. It supports loading of meteorological data, analysing it in various ways including correlations, frequency tables etc., also tools for transforming the data including averaging, filtering, etc. are available. The library also exports files which can be used in other softwares like .tab files
+Brightwind’s open source python library provides wind analysts with easy to use methods for working with
+meteorological data. It supports loading of meteorological data, analysing it in various ways including
+correlations, frequency tables etc., also tools for transforming the data including averaging, filtering,
+etc. are available. The library also exports files which can be used in other softwares like .tab files
 
 ---
-#### Sphinx-docs
+### Install
+From the command prompt, navigate to the root folder of the brightwind repository where you can find the setup.py file and run:
+```
+C:\...\brightwind> pip install -e .
+```
+Don't forget the dot at the end. This command will install the package using pip.
+
+---
+### Usage
+```
+import brightwind as bw
+
+data = bw.load_timeseries('C:\...\file_with_data.csv')
+bw.basic_stats(data)
+```
+
+
+
+---
+### Sphinx-docs
 ##### setting up
 
 From Anaconda prompt navigate to brightwind/sphinx-docs
