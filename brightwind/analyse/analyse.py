@@ -233,8 +233,11 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         result = pd.crosstab(data.loc[:,'variable_bin'],data.loc[:,'direction_bin']) / len(data) *100.0
     else:
         result = pd.crosstab(data.loc[:, 'variable_bin'], data.loc[:, 'direction_bin'])
+    for i in range(1, sectors+1):
+        if not i in result.columns:
+            result.insert(i, i, 0.0)
     result.columns = direction_bin_labels
-    result =  result.sort_index()
+    result = result.sort_index()
     if return_data:
         return plt.plot_wind_rose_with_gradient(result), result
     else:
