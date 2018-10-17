@@ -1,3 +1,5 @@
+__all__ = ['plot_timeseries']
+
 import matplotlib.pyplot as plt
 import calendar
 import numpy as np

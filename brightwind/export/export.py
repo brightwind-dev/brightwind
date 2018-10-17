@@ -1,3 +1,5 @@
+__all__ = ['export_tab_file']
+
 def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
     """Export a WaSP tab file from get_freq_table() function"""
     local_freq_tab = freq_tab.copy()

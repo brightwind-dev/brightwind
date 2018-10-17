@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def _range_0_to_360(dir):
     if dir < 0:
         return dir+360
