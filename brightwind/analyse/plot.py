@@ -241,7 +241,7 @@ def plot_12x24_contours(tab_12x24, title='Variable'):
     """
 
     fig, ax = plt.subplots()
-    x = ax.contourf(tab_12x24, cmap="Greens")
+    x = ax.contourf(tab_12x24, cmap="YlGn")#"Greens")
     cbar = plt.colorbar(x)
     cbar.ax.set_ylabel(title)
     ax.set_xlabel('Month of Year')
