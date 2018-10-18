@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import calendar
 import numpy as np
 import pandas as pd
+import math
 # from ..analyse import analyse as freq_an
 # from ..analyse import shear as sh
 from brightwind.utils import utils
@@ -240,8 +241,15 @@ def plot_12x24_contours(tab_12x24, title='Variable'):
     :return: 12x24 figure
     """
 
+    max_v = math.ceil(tab_12x24.max().max() * 100) / 100
+    min_v = math.floor(tab_12x24.min().min() * 100) / 100
+    step = (max_v - min_v) / 8
+    levels = np.arange(min_v, max_v + step, step).round(2)
     fig, ax = plt.subplots()
-    x = ax.contourf(tab_12x24, cmap="YlGn")#"Greens")
+    # x = ax.contourf(tab_12x24, cmap="Greens")
+    x = ax.contourf(tab_12x24, colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32',
+                                       '#8ab92d', '#7ba428', '#6b9023'],
+                    levels=levels)
     cbar = plt.colorbar(x)
     cbar.ax.set_ylabel(title)
     ax.set_xlabel('Month of Year')
