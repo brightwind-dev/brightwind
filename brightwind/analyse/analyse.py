@@ -443,7 +443,7 @@ class SectorRatio:
         sec_rat = pd.concat([wdspd_1[wdspd_1 > 3].rename('speed_1'), wdspd_2[wdspd_2 > 3].rename('speed_2')], axis=1, join='inner')
         return sec_rat['speed_2']/sec_rat['speed_1']
 
-    def by_sector(wdspd_1, wdspd_2, wddir, sectors=12, direction_bin_array=None,
+    def by_sector(wdspd_1, wdspd_2, wddir, sectors=72, direction_bin_array=None,
                   boom_dir_1=-1, boom_dir_2=-1, return_data=False):
         """Accepts two speed series and one direction series and returns the speed ratio by sector
         in a table
