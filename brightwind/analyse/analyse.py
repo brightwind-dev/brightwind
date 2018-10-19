@@ -510,7 +510,7 @@ class Shear:
         return plt.plot_12x24_contours(tab_12x24, title='Shear')
 
     def scale(alpha, wdspd, height, height_to_scale_to):
-        scale_factor = (height_to_scale_to/ height)**alpha
+        scale_factor = (height_to_scale_to / height)**alpha
         return wdspd*scale_factor
 
 
