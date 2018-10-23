@@ -43,7 +43,8 @@ from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 
 class CorrelBase:
 
-    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=None, target_dir=None, preprocess=True):
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=None,
+                 target_dir=None, preprocess=True):
         self.ref_spd = ref_spd
         self.ref_dir = ref_dir
         self.target_spd = target_spd
@@ -52,7 +53,8 @@ class CorrelBase:
         self.coverage_threshold = coverage_threshold
         self.preprocess = preprocess
         if preprocess:
-            self.data = CorrelBase._averager(ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir)
+            self.data = CorrelBase._averager(ref_spd, target_spd, averaging_prd, coverage_threshold,
+                                             ref_dir, target_dir)
         else:
             self.data = pd.concat([ref_spd, target_spd, ref_dir, target_dir], axis=1, join='inner')
         if ref_dir is None and target_dir is None:
@@ -66,8 +68,9 @@ class CorrelBase:
         data = pd.concat(list(tf._preprocess_data_for_correlations(ref_spd, target_spd, averaging_prd,
                             coverage_threshold)), axis=1, join='inner')
         if ref_dir is not None and target_dir is not None:
-            data = pd.concat([data]+list(tf._preprocess_dir_data_for_correlations(ref_spd, ref_dir, target_spd, target_dir,
-                                                            averaging_prd, coverage_threshold)), axis=1, join='inner')
+            data = pd.concat([data]+list(tf._preprocess_dir_data_for_correlations(ref_spd, ref_dir, target_spd,
+                                                                                  target_dir, averaging_prd,
+                                                                                  coverage_threshold)), axis=1, join='inner')
         return data
 
     def show_params(self):
@@ -91,7 +94,6 @@ class CorrelBase:
         else:
             output.columns = [self.target_spd.name + "_Synthesized"]
             return output
-
 
     def get_r2(self):
         """Returns the r2 score of the model"""

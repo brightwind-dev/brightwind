@@ -1,12 +1,13 @@
 import numpy as np
 
-def _range_0_to_360(dir):
-    if dir < 0:
-        return dir+360
-    elif dir > 360:
-        return dir % 360
+
+def _range_0_to_360(direction):
+    if direction < 0:
+        return direction+360
+    elif direction > 360:
+        return direction % 360
     else:
-        return dir
+        return direction
 
 
 def get_direction_bin_array(sectors):
@@ -22,12 +23,12 @@ def _get_dir_sector_mid_pts(sector_idx):
     mid points for that sector of type float
     """
     sectors = [idx.split('-') for idx in sector_idx]
-    sector_mid_pts=[]
+    sector_mid_pts = []
     for sector in sectors:
         sector[0] = float(sector[0])
         sector[1] = float(sector[1])
-        if sector[0]>sector[1]:
-            mid_pt = ((360.0 + sector[0]+sector[1])/2.0) %360
+        if sector[0] > sector[1]:
+            mid_pt = ((360.0 + sector[0]+sector[1])/2.0) % 360
         else:
             mid_pt = 0.5*(sector[0]+sector[1])
         sector_mid_pts.append(mid_pt)
@@ -40,8 +41,8 @@ def _slice_data(data, date_from: str='', date_to: str=''):
     Date format: YYYY-MM-DD
     """
     import datetime
-    if (isinstance(date_from, datetime.date) or isinstance(date_from, datetime.datetime))\
-        and (isinstance(date_to,datetime.date) or isinstance(date_to, datetime.datetime)):
+    if (isinstance(date_from, datetime.date) or isinstance(date_from, datetime.datetime)) \
+            and (isinstance(date_to, datetime.date) or isinstance(date_to, datetime.datetime)):
         sliced_data = data.loc[date_from:date_to, :]
     elif date_from and date_to:
         import datetime as dt
