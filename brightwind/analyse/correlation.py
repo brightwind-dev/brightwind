@@ -421,11 +421,16 @@ class SpeedSort(CorrelBase):
         self.plot_wind_vane()
 
     def _predict(self, x_spd, x_dir):
-        x = pd.concat([x_spd.rename('spd'), _binned_direction_series(x_dir, self.sectors, direction_bin_array=
+        x = pd.concat([x_spd.dropna().rename('spd'), _binned_direction_series(x_dir.dropna(), self.sectors, direction_bin_array=
                                                 self.direction_bin_array).rename('ref_dir_bin')], axis=1, join='inner')
         prediction = pd.DataFrame()
+        first=True
         for sector, data in x.groupby(['ref_dir_bin']):
-            prediction.append(self.speed_model[sector].sector_predict(data['spd']))
+            if first == True:
+                first=False
+                prediction = self.speed_model[sector].sector_predict(data['spd'])
+            else:
+                prediction = pd.concat([prediction, self.speed_model[sector].sector_predict(data['spd']) ], axis=0)
         return prediction.sort_index()
 
     def synthesize(self, input_spd=None, input_dir=None):
@@ -436,7 +441,7 @@ class SpeedSort(CorrelBase):
                                                           filter=False, return_coverage=False)), self.data['target_spd']], axis=0)
         else:
             output = self._predict(input_spd, input_dir)
-        output.columns =[self.target_spd.name+"_Synthesized"]
+        # output.columns =[self.target_spd.name+"_Synthesized"]
         return output
 
     def plot_wind_vane(self):
@@ -492,3 +497,4 @@ class SVR(CorrelBase):
         """For plotting"""
         _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
                       self._predict(self.data['ref_spd']).values.flatten(), title=title, prediction_marker='k.')
+0
