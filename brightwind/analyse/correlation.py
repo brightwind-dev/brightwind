@@ -84,9 +84,14 @@ class CorrelBase:
                    self._predict(self.data['ref_spd']).values.flatten(), title=title)
 
     def synthesize(self, ext_input=None):
+        ### This will give eroneous result when the averagingperiod is not a whole number such that ref and target does
+        ### bot get aligned -Inder
         if ext_input is None:
-            output = pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
-                            self.averaging_prd, filter=False, return_coverage=False)),self.data['target_spd']],axis=0)
+            output = self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
+                                                    self.averaging_prd, filter=False, return_coverage=False))
+            common_idxs = output.index.intersection(self.data.target_spd.index)
+            output.loc[common_idxs] = self.data.target_spd.to_frame()
+
         else:
             output = self._predict(ext_input)
         if isinstance(output, pd.Series):
@@ -434,14 +439,18 @@ class SpeedSort(CorrelBase):
         return prediction.sort_index()
 
     def synthesize(self, input_spd=None, input_dir=None):
+        ### This will give eroneous result when the averagingperiod is not a whole number such that ref and target does
+        ### bot get aligned -Inder
         if input_spd is None and input_dir is None:
-            output = pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
-                                        self.averaging_prd, filter=False,return_coverage=False),
+            output = self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
+                                        self.averaging_prd, filter=False, return_coverage=False),
                                 tf.average_data_by_period(self.ref_dir.loc[:min(self.data.index)], self.averaging_prd,
-                                                          filter=False, return_coverage=False)), self.data['target_spd']], axis=0)
+                                                          filter=False, return_coverage=False))
+            common_idxs = output.index.intersection(self.data.target_spd.index)
+            output.loc[common_idxs] = self.data.target_spd.to_frame()
         else:
             output = self._predict(input_spd, input_dir)
-        # output.columns =[self.target_spd.name+"_Synthesized"]
+        output.columns =[self.target_spd.name+"_Synthesized"]
         return output
 
     def plot_wind_vane(self):
@@ -497,4 +506,3 @@ class SVR(CorrelBase):
         """For plotting"""
         _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
                       self._predict(self.data['ref_spd']).values.flatten(), title=title, prediction_marker='k.')
-0
