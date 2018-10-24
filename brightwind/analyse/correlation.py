@@ -87,7 +87,7 @@ class CorrelBase:
         ### This will give eroneous result when the averagingperiod is not a whole number such that ref and target does
         ### bot get aligned -Inder
         if ext_input is None:
-            output = self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
+            output = self._predict(tf.average_data_by_period(self.ref_spd,
                                                     self.averaging_prd, filter=False, return_coverage=False))
             common_idxs = output.index.intersection(self.data.target_spd.index)
             output.loc[common_idxs] = self.data.target_spd.to_frame()
@@ -442,9 +442,9 @@ class SpeedSort(CorrelBase):
         ### This will give eroneous result when the averagingperiod is not a whole number such that ref and target does
         ### bot get aligned -Inder
         if input_spd is None and input_dir is None:
-            output = self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
+            output = self._predict(tf.average_data_by_period(self.ref_spd,
                                         self.averaging_prd, filter=False, return_coverage=False),
-                                tf.average_data_by_period(self.ref_dir.loc[:min(self.data.index)], self.averaging_prd,
+                                tf.average_data_by_period(self.ref_dir, self.averaging_prd,
                                                           filter=False, return_coverage=False))
             common_idxs = output.index.intersection(self.data.target_spd.index)
             output.loc[common_idxs] = self.data.target_spd.to_frame()
@@ -457,8 +457,8 @@ class SpeedSort(CorrelBase):
         """Plots reference and target directions in a scatter plot"""
 
         # _scatter_plot(self.ref_dir, self.target_dir,title='original data')
-        _scatter_plot(self.data['ref_dir'][(self.data['ref_spd']>self.cutoff) & (self.data['target_spd']>self.cutoff)],
-                      self.data['target_dir'][(self.data['ref_spd']>self.cutoff) & (self.data['target_spd']>self.cutoff)],
+        _scatter_plot(self.data['ref_dir'][(self.data['ref_spd']>self.cutoff) & (self.data['target_spd'] > self.cutoff)],
+                      self.data['target_dir'][(self.data['ref_spd']>self.cutoff) & (self.data['target_spd'] > self.cutoff)],
                       x_label='Reference direction', y_label="Target direction")
 
 
