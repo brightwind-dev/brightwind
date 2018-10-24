@@ -89,8 +89,7 @@ class CorrelBase:
         if ext_input is None:
             output = self._predict(tf.average_data_by_period(self.ref_spd,
                                                     self.averaging_prd, filter=False, return_coverage=False))
-            common_idxs = output.index.intersection(self.data.target_spd.index)
-            output.loc[common_idxs] = self.data.target_spd.to_frame()
+            output = self.data.target_spd.combine_first(output)
 
         else:
             output = self._predict(ext_input)
@@ -325,7 +324,7 @@ class SpeedSort(CorrelBase):
 
         def plot_model(self, title):
             _scatter_plot(sorted(self.sector_ref.values.flatten()), sorted(self.sector_target.values.flatten()),
-                          sorted(self.sector_predict(self.sector_ref).values.flatten()),title=title, size=(7,7))
+                          sorted(self.sector_predict(self.sector_ref).values.flatten()),title=title)
 
     def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold=0.9, sectors=12,
                  direction_bin_array=None, lt_ref_speed=None, preprocess=True):
@@ -446,8 +445,7 @@ class SpeedSort(CorrelBase):
                                         self.averaging_prd, filter=False, return_coverage=False),
                                 tf.average_data_by_period(self.ref_dir, self.averaging_prd,
                                                           filter=False, return_coverage=False))
-            common_idxs = output.index.intersection(self.data.target_spd.index)
-            output.loc[common_idxs] = self.data.target_spd.to_frame()
+            output = self.data.target_spd.combine_first(output)
         else:
             output = self._predict(input_spd, input_dir)
         output.columns =[self.target_spd.name+"_Synthesized"]
