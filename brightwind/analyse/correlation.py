@@ -89,7 +89,8 @@ class CorrelBase:
         if ext_input is None:
             output = self._predict(tf.average_data_by_period(self.ref_spd,
                                                     self.averaging_prd, filter=False, return_coverage=False))
-            output = self.data.target_spd.combine_first(output)
+            output = tf.average_data_by_period(self.target_spd, self.averaging_prd, filter=False,
+                                               return_coverage=False).combine_first(output)
 
         else:
             output = self._predict(ext_input)
@@ -445,7 +446,8 @@ class SpeedSort(CorrelBase):
                                         self.averaging_prd, filter=False, return_coverage=False),
                                 tf.average_data_by_period(self.ref_dir, self.averaging_prd,
                                                           filter=False, return_coverage=False))
-            output = self.data.target_spd.combine_first(output)
+            output = tf.average_data_by_period(self.target_spd, self.averaging_prd, filter=False,
+                                               return_coverage=False).combine_first(output)
         else:
             output = self._predict(input_spd, input_dir)
         output.columns =[self.target_spd.name+"_Synthesized"]
