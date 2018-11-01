@@ -153,6 +153,42 @@ def offset_wind_direction(dir, offset: float) -> pd.Series:
         return dir.to_frame().add(offset).applymap(utils._range_0_to_360)
 
 
+# def selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2, angular_span):
+
+#     df = pd.Series()
+#     angular_span = angular_span/2
+#     boom1_lower = (boom_dir1 - angular_span +360)%360
+#     boom1_higher = (boom_dir1 + angular_span +360)%360
+#     boom2_lower = (boom_dir2 - angular_span+360)%360
+#     boom2_higher = (boom_dir2 + angular_span +360)%360
+
+#     for i, row in wspd1.iteritems():
+#         if wdir[i] >= boom1_lower and wdir[i]<= boom1_higher:
+#             if np.isnan(row) == True:
+#                 df[i] = wspd2[i]
+#             else:
+#                 df[i] = row
+#         elif wdir[i] >= boom2_lower and wdir[i]<=boom2_higher:
+#             if np.isnan(wspd2[i])==True:
+#                 df[i] = row
+#             else:
+#                 df[i] = wspd2[i]
+#         else:
+#             if np.isnan(row) == True:
+#                 df[i] = wspd2[i]
+#             elif np.isnan(wspd2[i])==True:
+#                 df[i] = row
+#             else:
+#                 df[i] = (row +wspd2[i])/2
+
+#     return df
+
+
+# Clean_synth['Spd_120m_SelAvg'] = selective_avg(Clean_synth.Vaisala_120_avg, Clean_synth.FirstClass_120_avg_Synthesized,
+#                                                Clean_synth.FirstClass_120_dir,
+#                                                boom_dir1=135, boom_dir2=315, angular_span=60)
+
+
 def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
                                       aggregation_method_ref='mean', aggregation_method_target='mean', get_coverage=False):
     ref_overlap, target_overlap = _get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(), averaging_prd)

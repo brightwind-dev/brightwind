@@ -74,7 +74,7 @@ class CorrelBase:
         return data
 
     def show_params(self):
-        "Show the dictionary of parameters"
+        """Show the dictionary of parameters"""
         import pprint
         pprint.pprint(self.params)
 
@@ -84,8 +84,8 @@ class CorrelBase:
                    self._predict(self.data['ref_spd']).values.flatten(), title=title)
 
     def synthesize(self, ext_input=None):
-        ### This will give eroneous result when the averagingperiod is not a whole number such that ref and target does
-        ### bot get aligned -Inder
+        # This will give eroneous result when the averagingperiod is not a whole number such that ref and target does
+        # bot get aligned -Inder
         if ext_input is None:
             output = self._predict(tf.average_data_by_period(self.ref_spd,
                                                     self.averaging_prd, filter=False, return_coverage=False))
