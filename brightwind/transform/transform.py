@@ -89,7 +89,8 @@ def _get_coverage_series(data, grouper_obj):
     return coverage
 
 
-def average_data_by_period(data: pd.Series, period, aggregation_method='mean', filter=False, coverage_threshold=1, return_coverage=False) -> pd.DataFrame:
+def average_data_by_period(data: pd.Series, period, aggregation_method='mean', filter_by_coverage_threshold=False,
+                           coverage_threshold=1, return_coverage=False) -> pd.DataFrame:
     """Averages the data by the time period specified by period.
     Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
     Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
@@ -106,13 +107,15 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
             period = _convert_weeks_to_hours(period)
         if period[-1] == 'M':
             period = period+'S'
+        if period[-1] == 'Y':
+            raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
     grouper_obj = data.resample(period, axis=0, closed='left', label='left',base=0,
                                 convention='start', kind='timestamp')
 
     grouped_data = grouper_obj.agg(aggregation_method)
     coverage = _get_coverage_series(data, grouper_obj)
 
-    if filter:
+    if filter_by_coverage_threshold:
         grouped_data = grouped_data[coverage >= coverage_threshold]
 
     if return_coverage:
