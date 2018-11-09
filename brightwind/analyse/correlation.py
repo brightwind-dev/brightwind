@@ -81,7 +81,7 @@ class CorrelBase:
     def plot(self, title=""):
         """For plotting"""
         return _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
-                   self._predict(self.data['ref_spd']).values.flatten(), title=title)
+                             self._predict(self.data['ref_spd']).values.flatten(), title=title)
 
     def synthesize(self, ext_input=None):
         # This will give eroneous result when the averagingperiod is not a whole number such that ref and target does
@@ -226,7 +226,7 @@ class MultipleLinearRegression(CorrelBase):
         self.params = 'not run yet'
 
     def __repr__(self):
-        return 'Multiple Linear Regression Model' + str(self.params)
+        return 'Multiple Linear Regression Model ' + str(self.params)
 
     def run(self):
         p, res = lstsq(np.column_stack((self.data.iloc[:,:len(self.data.columns)-1].values,
@@ -272,7 +272,7 @@ class SimpleSpeedRatio(CorrelBase):
         # self._filter()      #Filter low wind speeds
 
     def __repr__(self):
-        return 'Multiple Linear Regression Model' + str(self.params)
+        return 'Simple Speed Ratio Model ' + str(self.params)
 
     # def _filter(self):
     #     if self.cutoff is not None:
@@ -473,8 +473,8 @@ class SVR(CorrelBase):
         return 'Support Vector Regression Model '+str(self.params)
 
     def run(self):
-        if len(self.data['ref_spd'].values.shape)==1:
-            x = self.data['ref_spd'].values.reshape(-1,1)
+        if len(self.data['ref_spd'].values.shape) == 1:
+            x = self.data['ref_spd'].values.reshape(-1, 1)
         else:
             x = self.data['ref_spd'].values
         self.model.fit(x, self.data['target_spd'].values.flatten())
