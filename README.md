@@ -5,12 +5,16 @@
   <img src="https://user-images.githubusercontent.com/23189856/45693728-a171bc80-bb55-11e8-90a1-e5257b07efc0.jpg" height="600" width="800">
 </p>
 
+<br>
 
+The brightwind library aims to empower wind resource analysts and establish a common industry standard toolset.
 
-Brightwind’s open source python library provides wind analysts with easy to use methods for working with
-meteorological data. It supports loading of meteorological data, analysing it in various ways including
-correlations, frequency tables etc., also tools for transforming the data including averaging, filtering,
-etc. are available. The library also exports files which can be used in other softwares like .tab files
+Brightwind’s open source python library provides wind analysts with easy to use tools for working with
+meteorological data. It supports loading of meteorological data, averaging, filtering, plotting, correlations, shear analysis,
+long term adjustments, etc. The library can export a resulting long term adjusted tab file to be used in
+other software. The code for these tools is fully open and transparent to enable community validation and bring the industry forward.
+
+<br>
 
 ---
 ### Install
@@ -19,20 +23,41 @@ From the command prompt, navigate to the root folder of the brightwind repositor
 C:\...\brightwind> pip install -e .
 ```
 Don't forget the dot at the end. This command will install the package using pip.
+<br>
 
 ---
 ### Usage
-```
+```python
 import brightwind as bw
 
 data = bw.load_timeseries('C:\...\file_with_data.csv')
+print(data)
+```
+```python
 bw.basic_stats(data)
 ```
+<br>
+
+---
+### Test datasets
+---
+A test dataset is included in this repository and is used to test functions in the code. The source of the dataset is:
+1. Offshore-CREYAP-2-Data-pack*  It is an offshore met mast along with MERRA data as a long term reference.
+
+| Dataset          | Source           | Notes  |
+| ---------------- |:-------------:| -----:|
+| Offshore-CREYAP-2| [Offshore-CREYAP-2-Data-pack](http://www.ewea.org/events/workshops/past-workshops/resource-assessment-2015/offshore-creyap-part-ii/) | Two offshore met masts with MERRA data. |
+|     |       |    |
+|     |       |    |
 
 
+
+
+<br>
 
 ---
 ### Sphinx-docs
+---
 ##### setting up
 
 From Anaconda prompt navigate to brightwind/sphinx-docs
@@ -53,3 +78,6 @@ If already set up then simply run
 ```
 make html
 ```
+<br>
+
+---
