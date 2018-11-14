@@ -40,9 +40,9 @@ bw.basic_stats(data)
 
 ---
 ### Test datasets
----
 A test dataset is included in this repository and is used to test functions in the code. The source of the dataset is:
-1. Offshore-CREYAP-2-Data-pack*  It is an offshore met mast along with MERRA data as a long term reference.
+
+<br>
 
 | Dataset          | Source           | Notes  |
 | ---------------- |:-------------:| -----:|
@@ -57,7 +57,6 @@ A test dataset is included in this repository and is used to test functions in t
 
 ---
 ### Sphinx-docs
----
 ##### setting up
 
 From Anaconda prompt navigate to brightwind/sphinx-docs
