@@ -283,7 +283,7 @@ def coverage(data, period='1M', aggregation_method='mean'):
     """
 
     return tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,
-                                                    filter=False, return_coverage=True)[1]
+                                     filter_by_coverage_threshold=False, return_coverage=True)[1]
 
 
 def basic_stats(data):

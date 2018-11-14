@@ -87,9 +87,10 @@ class CorrelBase:
         # This will give eroneous result when the averagingperiod is not a whole number such that ref and target does
         # bot get aligned -Inder
         if ext_input is None:
-            output = self._predict(tf.average_data_by_period(self.ref_spd,
-                                                    self.averaging_prd, filter=False, return_coverage=False))
-            output = tf.average_data_by_period(self.target_spd, self.averaging_prd, filter=False,
+            output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
+                                                             filter_by_coverage_threshold=False,
+                                                             return_coverage=False))
+            output = tf.average_data_by_period(self.target_spd, self.averaging_prd, filter_by_coverage_threshold=False,
                                                return_coverage=False).combine_first(output)
 
         else:
@@ -246,7 +247,10 @@ class MultipleLinearRegression(CorrelBase):
     def synthesize(self, ext_input=None):
         if ext_input is None:
             return pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
-                            self.averaging_prd, filter=False, return_coverage=False)),self.data['target_spd']],axis=0)
+                                                                      self.averaging_prd,
+                                                                      filter_by_coverage_threshold=False,
+                                                                      return_coverage=False)),
+                              self.data['target_spd']],axis=0)
         else:
             return self._predict(ext_input)
 
@@ -442,11 +446,11 @@ class SpeedSort(CorrelBase):
         ### This will give eroneous result when the averagingperiod is not a whole number such that ref and target does
         ### bot get aligned -Inder
         if input_spd is None and input_dir is None:
-            output = self._predict(tf.average_data_by_period(self.ref_spd,
-                                        self.averaging_prd, filter=False, return_coverage=False),
-                                tf.average_data_by_period(self.ref_dir, self.averaging_prd,
-                                                          filter=False, return_coverage=False))
-            output = tf.average_data_by_period(self.target_spd, self.averaging_prd, filter=False,
+            output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
+                                                             filter_by_coverage_threshold=False, return_coverage=False),
+                                   tf.average_data_by_period(self.ref_dir, self.averaging_prd,
+                                                             filter_by_coverage_threshold=False, return_coverage=False))
+            output = tf.average_data_by_period(self.target_spd, self.averaging_prd, filter_by_coverage_threshold=False,
                                                return_coverage=False).combine_first(output)
         else:
             output = self._predict(input_spd, input_dir)

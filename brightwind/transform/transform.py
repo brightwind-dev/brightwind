@@ -200,28 +200,33 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
     target_resolution = _get_data_resolution(target_overlap.index)
     if (to_offset(ref_resolution)!= to_offset(averaging_prd)) and (to_offset(target_resolution)!= to_offset(averaging_prd)):
         if ref_resolution > target_resolution:
-            target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution), filter=True,
-                                                       coverage_threshold=1, aggregation_method=aggregation_method_target)
+            target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution),
+                                                    filter_by_coverage_threshold=True, coverage_threshold=1,
+                                                    aggregation_method=aggregation_method_target)
         if ref_resolution < target_resolution:
-            ref_overlap = average_data_by_period(ref_overlap, to_offset(target_resolution), filter=True,
-                                                    coverage_threshold=1, aggregation_method=aggregation_method_ref)
+            ref_overlap = average_data_by_period(ref_overlap, to_offset(target_resolution),
+                                                 filter_by_coverage_threshold=True, coverage_threshold=1,
+                                                 aggregation_method=aggregation_method_ref)
         common_idxs, data_pts = _common_idxs(ref_overlap, target_overlap)
         ref_overlap = ref_overlap.loc[common_idxs]
         target_overlap = target_overlap.loc[common_idxs]
 
     if get_coverage:
-        return pd.concat([average_data_by_period(ref_overlap, averaging_prd, filter=False, coverage_threshold=0,
-                                             aggregation_method=aggregation_method_ref)] + list(
-            average_data_by_period(target_overlap, averaging_prd, filter=False, coverage_threshold=0,
-                                      aggregation_method=aggregation_method_target, return_coverage=True)), axis=1)
+        return pd.concat([average_data_by_period(ref_overlap, averaging_prd, filter_by_coverage_threshold=False,
+                                                 coverage_threshold=0, aggregation_method=aggregation_method_ref)] +
+                         list(average_data_by_period(target_overlap, averaging_prd, filter_by_coverage_threshold=False,
+                                                     coverage_threshold=0, aggregation_method=aggregation_method_target,
+                                                     return_coverage=True)), axis=1)
     else:
 
-        ref_processed, target_processed = average_data_by_period(ref_overlap, averaging_prd, filter=True,
-                                                                coverage_threshold=coverage_threshold,
-                                      aggregation_method=aggregation_method_ref), \
-                                      average_data_by_period(target_overlap, averaging_prd, filter=True,
-                                      coverage_threshold=coverage_threshold,
-                                      aggregation_method=aggregation_method_target)
+        ref_processed, target_processed = average_data_by_period(ref_overlap, averaging_prd,
+                                                                 filter_by_coverage_threshold=True,
+                                                                 coverage_threshold=coverage_threshold,
+                                                                 aggregation_method=aggregation_method_ref), \
+                                          average_data_by_period(target_overlap, averaging_prd,
+                                                                 filter_by_coverage_threshold=True,
+                                                                 coverage_threshold=coverage_threshold,
+                                                                 aggregation_method=aggregation_method_target)
         concurrent_idxs, data_pts  = _common_idxs(ref_processed, target_processed)
         return ref_processed.loc[concurrent_idxs], target_processed.loc[concurrent_idxs]
 
