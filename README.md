@@ -44,10 +44,9 @@ A test dataset is included in this repository and is used to test functions in t
 
 <br>
 
-| Dataset          | Source           | Notes  |
-| ---------------- |:-------------:| -----:|
-| Offshore-CREYAP-2| [Offshore-CREYAP-2-Data-pack](http://www.ewea.org/events/workshops/past-workshops/resource-assessment-2015/offshore-creyap-part-ii/) | Two offshore met masts with MERRA data. |
-|     |       |    |
+| Dataset            | Source           | Notes  |
+|:------------------ |:-------------|:-----|
+| Offshore-CREYAP-2  | [Offshore-CREYAP-2-Data-pack](http://www.ewea.org/events/workshops/past-workshops/resource-assessment-2015/offshore-creyap-part-ii/) | Two offshore met masts with MERRA data. |
 |     |       |    |
 
 
