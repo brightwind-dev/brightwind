@@ -14,7 +14,6 @@ def _compute_wind_vector(wspd, wdir):
 def _convert_days_to_hours(prd):
     return str(int(prd[:-1])*24)+'H'
 
-
 def _convert_weeks_to_hours(prd):
     return str(int(prd[:-1])*24*7)+'H'
 

@@ -10,8 +10,7 @@ import math
 from brightwind.utils import utils
 from brightwind.transform import transform
 
-plt.style.use(r'C:\Dropbox (brightwind)\RTD\repos-hadley\brightwind\brightwind\analyse\bw.mplstyle')
-
+plt.style.use(r'..\bw.mplstyle')
 
 def bw_colors(bw_color):
     # Define color scheme to be used across graphs, and tables.
