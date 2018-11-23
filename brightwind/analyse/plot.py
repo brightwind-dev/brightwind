@@ -7,8 +7,10 @@ import pandas as pd
 import math
 from brightwind.utils import utils
 from brightwind.transform import transform
+import os
 
-plt.style.use(r'..\bw.mplstyle')
+plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
+
 
 def bw_colors(bw_color):
     # Define color scheme to be used across graphs, and tables.
