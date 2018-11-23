@@ -5,8 +5,6 @@ import calendar
 import numpy as np
 import pandas as pd
 import math
-# from ..analyse import analyse as freq_an
-# from ..analyse import shear as sh
 from brightwind.utils import utils
 from brightwind.transform import transform
 
