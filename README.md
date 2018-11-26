@@ -23,6 +23,8 @@ From the command prompt, navigate to the root folder of the brightwind repositor
 C:\...\brightwind> pip install -e .
 ```
 Don't forget the dot at the end. This command will install the package using pip.
+
+Requires Python version 3.6.
 <br>
 
 ---
