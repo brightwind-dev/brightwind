@@ -32,7 +32,7 @@ Requires Python version 3.6.
 ```python
 import brightwind as bw
 
-data = bw.load_timeseries('C:\...\file_with_data.csv')
+data = bw.load_csv('C:\...\file_with_data.csv')
 print(data)
 ```
 ```python
