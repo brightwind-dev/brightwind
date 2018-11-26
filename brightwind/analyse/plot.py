@@ -36,17 +36,17 @@ def bw_colors(bw_color):
     return bw_color
 
 
-def plot_timeseries(data, date_to='', date_from=''):
+def plot_timeseries(data, date_from='', date_to=''):
     """
     Plots timeseries data
     :param data: Dataframe to plot
-    :param date_to: Start date used for plotting in yyyy-mm-dd format
-    :type date_to: str
-    :param date_from: End date used for plotting in yyyy-mm-dd format
+    :param date_from: Start date used for plotting in yyyy-mm-dd format
     :type date_from: str
+    :param date_to: End date used for plotting in yyyy-mm-dd format
+    :type date_to: str
     :return: Timeseries plot
     """
-    sliced_data = utils._slice_data(data, date_to, date_from)
+    sliced_data = utils._slice_data(data, date_from, date_to)
     return sliced_data.plot().get_figure()
 
 
@@ -304,7 +304,7 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, col_names, boom_dir_1=-1
 
 
 def plot_shear(avg_alpha, avg_c, wdspds, heights):
-    plot_heights = np.linspace(0, 100, num=100)
+    plot_heights = np.linspace(0, max(heights), num=100)
     speeds = avg_c*(plot_heights**avg_alpha)
     fig, ax = plt.subplots()
     ax.set_xlabel('Speed (m/s)')
