@@ -7,7 +7,7 @@ setup(
               'brightwind.transform'],
     url='https://github.com/brightwindanalysis/brightwind.git',
     license='MIT',
-    author='BrightWind',
+    author='BrightWind Ltd',
     author_email='inder@brightwindanalysis',
     description='Scripts for wind-analysts'
 )

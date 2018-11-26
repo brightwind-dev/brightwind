@@ -255,7 +255,7 @@ def time_continuity_gaps(data):
 
     """
     indexes = data.dropna(how='all').index
-    continuity = pd.DataFrame({'Date To': indexes.values.flatten()[1:], 'Date From': indexes.values.flatten()[:-1]})
+    continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1], 'Date To': indexes.values.flatten()[1:]})
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
     return continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
 
