@@ -12,7 +12,12 @@ The brightwind library aims to empower wind resource analysts and establish a co
 Brightwind’s open source python library provides wind analysts with easy to use tools for working with
 meteorological data. It supports loading of meteorological data, averaging, filtering, plotting, correlations, shear analysis,
 long term adjustments, etc. The library can export a resulting long term adjusted tab file to be used in
-other software. The code for these tools is fully open and transparent to enable community validation and bring the industry forward.
+other software.
+
+The library is licensed under the GNU Lesser General Public License v3.0. It is the intention to allow commercial
+products or services to be built on top of this library but any modifications to the library itself should be kept
+open-sourced. Keeping this open-sourced will ensure that the library becomes the de facto library used by wind analysts,
+establishing a common, standard industry wide toolset for wind data processing .
 
 <br>
 

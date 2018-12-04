@@ -1,4 +1,21 @@
+#     brightwind is a library that provides wind analysts with easy to use tools for working with meteorological data.
+#     Copyright (C) 2018 Stephen Holleran, Inder Preet
+#
+#     This program is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU Lesser General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU Lesser General Public License for more details.
+#
+#     You should have received a copy of the GNU Lesser General Public License
+#     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 __all__ = ['export_tab_file']
+
 
 def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
     """Export a WaSP tab file from get_freq_table() function"""

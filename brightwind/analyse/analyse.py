@@ -1,12 +1,28 @@
-__all__ = ['concurrent_coverage','monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
-           'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage','basic_stats',
-           'twelve_by_24','TI', 'SectorRatio','Shear']
+#     brightwind is a library that provides wind analysts with easy to use tools for working with meteorological data.
+#     Copyright (C) 2018 Stephen Holleran, Inder Preet
+#
+#     This program is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU Lesser General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU Lesser General Public License for more details.
+#
+#     You should have received a copy of the GNU Lesser General Public License
+#     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pandas as pd
 import numpy as np
 from ..transform import transform as tf
 from ..utils import utils
 from ..analyse import plot as plt
+
+__all__ = ['concurrent_coverage','monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
+           'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage','basic_stats',
+           'twelve_by_24','TI', 'SectorRatio','Shear']
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_ref='mean', aggregation_method_target='mean'):
