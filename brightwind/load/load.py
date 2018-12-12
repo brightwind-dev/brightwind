@@ -370,7 +370,7 @@ class Reanalysis:
         self.source = source
 
 
-def _get_brightdata(dataset, lat, long, nearest, from_date, to_date):
+def _get_brightdata(dataset, lat, long, nearest, from_date, to_date, username, password):
     """
     Get era5 data from the brightdata platform and format it for use.
     :param lat:
@@ -382,7 +382,7 @@ def _get_brightdata(dataset, lat, long, nearest, from_date, to_date):
     """
     base_url = 'http://18.203.134.224/api'
     # base_url = 'http://localhost:5000/api'
-    response = requests.get(base_url, params={
+    response = requests.get(base_url,  auth=(username, password), params={
         'dataset': dataset,
         'latitude': lat,
         'longitude': long,
