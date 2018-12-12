@@ -1,0 +1,7 @@
+pandas     == 0.21.0
+numpy      == 1.13.3
+sklearn    ==
+boto3
+ecmwfapi
+netCDF4
+
