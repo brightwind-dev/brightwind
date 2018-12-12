@@ -402,6 +402,8 @@ def _get_brightdata(dataset, lat, long, nearest, from_date, to_date):
     try:
         json_response = response.json()
     except Exception:
+        if response.status_code == 401:
+            raise Exception('Please check your BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD are correct.')
         raise Exception('something is wrong with the server.')
     reanalysis_list = []
 
