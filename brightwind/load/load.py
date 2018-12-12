@@ -370,7 +370,15 @@ class Reanalysis:
         self.source = source
 
 
-def _get_brightdata(dataset, lat, long, nearest, from_date, to_date, username, password):
+def _get_brightdata_credentials():
+    if 'BRIGHTDATA_USERNAME' not in os.environ:
+        raise Exception('BRIGHTDATA_USERNAME environmental variable is not set.')
+    if 'BRIGHTDATA_PASSWORD' not in os.environ:
+        raise Exception('BRIGHTDATA_PASSWORD environmental variable is not set.')
+    return os.getenv('BRIGHTDATA_USERNAME'), os.getenv('BRIGHTDATA_PASSWORD')
+
+
+def _get_brightdata(dataset, lat, long, nearest, from_date, to_date):
     """
     Get era5 data from the brightdata platform and format it for use.
     :param lat:
@@ -380,6 +388,7 @@ def _get_brightdata(dataset, lat, long, nearest, from_date, to_date, username, p
     :param to_date:
     :return:
     """
+    username, password = _get_brightdata_credentials()
     base_url = 'http://18.203.134.224/api'
     # base_url = 'http://localhost:5000/api'
     response = requests.get(base_url,  auth=(username, password), params={
@@ -433,6 +442,12 @@ def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None):
     :type to_date: str
     :return: a list of Reanalysis objects in order of closest distance to the requested lat, long.
     :rtype: List(Reanalysis)
+
+    To use load_brightdata the BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD environmental variables need to be set. In
+    Windows this can be done by running the command prompt in Administrator mode and running:
+
+    >>> setx BRIGHTDATA_USERNAME "username"
+    >>> setx BRIGHTDATA_PASSWORD "password"
 
     **Example usage**
     ::
