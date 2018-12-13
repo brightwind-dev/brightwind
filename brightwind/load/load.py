@@ -389,8 +389,8 @@ def _get_brightdata(dataset, lat, long, nearest, from_date, to_date):
     :return:
     """
     username, password = _get_brightdata_credentials()
-    base_url = 'http://18.203.134.224/api'
-    # base_url = 'http://localhost:5000/api'
+    base_url = 'http://api.brightwindanalysis.com/brightdata'
+    # base_url = 'http://localhost:5000'
     response = requests.get(base_url,  auth=(username, password), params={
         'dataset': dataset,
         'latitude': lat,
