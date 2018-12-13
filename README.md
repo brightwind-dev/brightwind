@@ -1,13 +1,15 @@
 # brightwind
 --------------
 
+The brightwind library aims to empower wind resource analysts and establish a common industry standard toolset.
+<br><br>
+
 <p align="center">
   <img src="https://user-images.githubusercontent.com/23189856/45693728-a171bc80-bb55-11e8-90a1-e5257b07efc0.jpg" height="600" width="800">
 </p>
 
 <br>
 
-The brightwind library aims to empower wind resource analysts and establish a common industry standard toolset.
 
 Brightwind’s open source python library provides wind analysts with easy to use tools for working with
 meteorological data. It supports loading of meteorological data, averaging, filtering, plotting, correlations, shear analysis,
@@ -29,7 +31,7 @@ C:\...\brightwind> pip install -e .
 ```
 Don't forget the dot at the end. This command will install the package using pip.
 
-Requires Python version 3.6.
+Requires Python version 3.6 or later.
 <br>
 
 ---
@@ -37,7 +39,7 @@ Requires Python version 3.6.
 ```python
 import brightwind as bw
 
-data = bw.load_csv('C:\...\file_with_data.csv')
+data = bw.load_csv(r'C:\...\file_with_data.csv')
 print(data)
 ```
 ```python
