@@ -135,12 +135,12 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea','#d6ebad
     if isinstance(table.index[0], pd.Interval):
         table.index = [i.mid for i in table.index]
     table_trans = table.T
-    table_binned = pd.concat([table_binned, table_trans.loc[:, 0:3].sum(axis=1).rename(3)],axis=1)
-    table_binned = pd.concat([table_binned, table_trans.loc[:, 4:6].sum(axis=1).rename(6)],axis=1)
-    table_binned = pd.concat([table_binned, table_trans.loc[:, 7:9].sum(axis=1).rename(9)],axis=1)
-    table_binned = pd.concat([table_binned, table_trans.loc[:, 10:12].sum(axis=1).rename(12)],axis=1)
-    table_binned = pd.concat([table_binned, table_trans.loc[:, 13:15].sum(axis=1).rename(15)],axis=1)
-    table_binned = pd.concat([table_binned, table_trans.loc[:, 16:].sum(axis=1).rename(18)], axis=1)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 0:3].sum(axis=1).rename(3)], axis=1, sort=True)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 4:6].sum(axis=1).rename(6)], axis=1, sort=True)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 7:9].sum(axis=1).rename(9)], axis=1, sort=True)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 10:12].sum(axis=1).rename(12)], axis=1, sort=True)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 13:15].sum(axis=1).rename(15)], axis=1, sort=True)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 16:].sum(axis=1).rename(18)], axis=1, sort=True)
     table_binned = table_binned.T
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
