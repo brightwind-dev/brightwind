@@ -20,7 +20,6 @@ import numpy as np
 import pandas as pd
 import math
 from brightwind.utils import utils
-from brightwind.transform import transform
 import os
 
 __all__ = ['plot_timeseries']
@@ -70,18 +69,19 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     fig, ax = plt.subplots()
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
-    ax.scatter(x, y, marker = '.', color='#9ACD32', alpha=0.5)
+    ax.scatter(x, y, marker='.', color='#9ACD32', alpha=0.5)
     # fig.set_figwidth(size[0])
     # fig.set_figheight(size[1])
     # ax.set_title(title)
     if predicted_y is not None:
         ax.plot(x, predicted_y, prediction_marker)
-        ax.legend(['Predicted','Original'])
+        ax.legend(['Predicted', 'Original'])
     return ax.get_figure()
 
 
 def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_green_for_gradient'),
-                                        bw_colors('dark_green_for_gradient'),bw_colors('darkgreen')]):
+                                                            bw_colors('dark_green_for_gradient'),
+                                                            bw_colors('darkgreen')]):
     from matplotlib.ticker import PercentFormatter
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
@@ -97,7 +97,7 @@ def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_gre
     ax.yaxis.set_major_formatter(PercentFormatter())
     ax.grid(b=True, axis='y', zorder=0)
     # ax.bar(result.index, result.values,facecolor='#9ACD32',edgecolor=['#6C9023' for i in range(len(result))],zorder=3)
-    for frequency, bin in zip(data,x_data):
+    for frequency, bin in zip(data, x_data):
         ax.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
                   interpolation='gaussian', extent=(bin-0.4, bin+0.4, 0, frequency), aspect='auto', zorder=3)
         ax.bar(bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
@@ -119,19 +119,20 @@ def plot_wind_rose(ext_data, freq_table=False):
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.arange(0,360, 360.0/sectors))
-    ax.set_rgrids(np.arange(0,101,10), labels=[str(i)+'%' for i in np.arange(0, 101, 10)],angle=0)
-    ax.bar(np.arange(0,2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
+    ax.set_thetagrids(np.arange(0, 360, 360.0/sectors))
+    ax.set_rgrids(np.arange(0, 101, 10), labels=[str(i)+'%' for i in np.arange(0, 101, 10)], angle=0)
+    ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
     # ax.set_title('Wind Rose', loc='center')
     return ax.get_figure()
 
 
-def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea','#d6ebad','#b8dc6f','#9acd32','#7ba428', '#5c7b1e']):
+def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6ebad', '#b8dc6f',
+                                                              '#9acd32', '#7ba428', '#5c7b1e']):
     table = freq_table.copy()
     import matplotlib as mpl
-    sectors=len(table.columns)
-    table_binned=pd.DataFrame()
+    sectors = len(table.columns)
+    table_binned = pd.DataFrame()
     if isinstance(table.index[0], pd.Interval):
         table.index = [i.mid for i in table.index]
     table_trans = table.T
@@ -143,14 +144,15 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea','#d6ebad
     table_binned = pd.concat([table_binned, table_trans.loc[:, 16:].sum(axis=1).rename(18)], axis=1, sort=True)
     table_binned = table_binned.T
     fig = plt.figure(figsize=(12, 12))
-    ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.arange(0,360,360.0/sectors), zorder=2)
-    ax.set_rgrids(np.linspace(0.1, max(table.sum(axis=0))+2.0,10),labels=[ '%.0f' % round(i)+'%' for i in
-                                                    np.linspace(0.1, max(table.sum(axis=0))+2.0, 10)], angle=0, zorder=2)
+    ax.set_thetagrids(np.arange(0, 360, 360.0/sectors), zorder=2)
+    ax.set_rgrids(np.linspace(0.1, max(table.sum(axis=0))+2.0, 10),
+                  labels=['%.0f' % round(i)+'%' for i in np.linspace(0.1, max(table.sum(axis=0))+2.0, 10)],
+                  angle=0, zorder=2)
     direction_bins = utils.get_direction_bin_array(sectors)[1:-2]
-    direction_bins = np.insert(direction_bins,0,direction_bins[-2])
+    direction_bins = np.insert(direction_bins, 0, direction_bins[-2])
     ax.set_ylim(0, max(table.sum(axis=0))+3.0)
     angular_width = 2*np.pi/sectors - (np.pi/180)  # Leaving 1 degree gap
     ax.bar(0, 1, alpha=0)
@@ -162,18 +164,18 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea','#d6ebad
     for column in table_binned:
         radial_pos = 0.0
         angular_pos = (np.pi / 180.0) * float(column.split('-')[0])
-        for speed_bin,frequency in zip(table_binned.index,table_binned[column]):
+        for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
             color = _choose_color(speed_bin)
             patch = mpl.patches.Rectangle((angular_pos, radial_pos), angular_width, frequency, facecolor=color,
                                           edgecolor='#5c7b1e', linewidth=0.3, zorder=3)
             ax.add_patch(patch)
             radial_pos += frequency
     legend_patches = [mpl.patches.Patch(color=gradient_colors[0], label='0-3 m/s'),
-                        mpl.patches.Patch(color=gradient_colors[1], label='4-6 m/s'),
-                        mpl.patches.Patch(color=gradient_colors[2], label='7-9 m/s'),
-                        mpl.patches.Patch(color=gradient_colors[3], label='10-12 m/s'),
-                        mpl.patches.Patch(color=gradient_colors[4], label='13-15 m/s'),
-                        mpl.patches.Patch(color=gradient_colors[5], label='15+ m/s')]
+                      mpl.patches.Patch(color=gradient_colors[1], label='4-6 m/s'),
+                      mpl.patches.Patch(color=gradient_colors[2], label='7-9 m/s'),
+                      mpl.patches.Patch(color=gradient_colors[3], label='10-12 m/s'),
+                      mpl.patches.Patch(color=gradient_colors[4], label='13-15 m/s'),
+                      mpl.patches.Patch(color=gradient_colors[5], label='15+ m/s')]
     ax.legend(handles=legend_patches)
     return ax.get_figure()
 
@@ -181,10 +183,12 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea','#d6ebad
 def plot_TI_by_speed(wdspd, wdspd_std, ti, IEC_class=None):
     """
     Plot turbulence intensity graphs alongside with IEC standards
+    :param wdspd:
+    :param wdspd_std:
     :param ti: Dataframe returned from TI.by_speed() in analyse
-    :param IEC_Class: By default IEC class 2005 is used for custom class pass a dataframe. Note we have removed
-            option to include IEC Class 1999 as no longer appropriate.
-            This may need to be placed in a separate function when updated IEC standard is released
+    :param IEC_class: By default IEC class 2005 is used for custom class pass a dataframe. Note we have removed
+        option to include IEC Class 1999 as no longer appropriate.
+        This may need to be placed in a separate function when updated IEC standard is released
     :return: Plots turbulence intensity distribution by wind speed
     """
 
@@ -201,8 +205,8 @@ def plot_TI_by_speed(wdspd, wdspd_std, ti, IEC_class=None):
     fig, ax = plt.subplots()
     ax.scatter(wdspd.loc[common_idxs], wdspd_std.loc[common_idxs]/wdspd.loc[common_idxs],
                color=bw_colors('green'), alpha=0.3, marker='.')
-    ax.plot(ti.index.__array__(), ti.loc[:,'Mean_TI'].values, color=bw_colors('darkgreen'))[0].set_label('Mean_TI')
-    ax.plot(ti.index.__array__(), ti.loc[:,'Rep_TI'].values, color=bw_colors('redline'))[0].set_label('Rep_TI')
+    ax.plot(ti.index.__array__(), ti.loc[:, 'Mean_TI'].values, color=bw_colors('darkgreen'))[0].set_label('Mean_TI')
+    ax.plot(ti.index.__array__(), ti.loc[:, 'Rep_TI'].values, color=bw_colors('redline'))[0].set_label('Rep_TI')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 1], color=bw_colors('greyline'), linestyle='dashed')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 2], color=bw_colors('greyline'), linestyle='dashdot')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=bw_colors('greyline'), linestyle='dotted')
@@ -219,11 +223,11 @@ def plot_TI_by_speed(wdspd, wdspd_std, ti, IEC_class=None):
 def plot_TI_by_sector(turbulence, wddir, ti):
     radians = np.radians(utils._get_dir_sector_mid_pts(ti.index))
     fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_axes([0.1, 0.1, 0.8,0.8], polar=True)
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(ti.index))
-    ax.plot(np.append(radians,radians[0]), ti.append(ti.iloc[0])['Mean_TI'], c=bw_colors('green'), linewidth=4)
+    ax.plot(np.append(radians, radians[0]), ti.append(ti.iloc[0])['Mean_TI'], c=bw_colors('green'), linewidth=4)
     # ax.set_title('Turbulence Intensity by Direction')
     maxlevel = ti['Mean_TI'].max() + 0.1
     ax.set_ylim(0, maxlevel)
@@ -240,7 +244,8 @@ def plot_shear_by_sector(shear, wddir, shear_dist):
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(shear_dist.index))
-    ax.plot(np.append(radians,radians[0]), shear_dist.append(shear_dist.iloc[0])['Mean_Shear'], c=bw_colors('green'), linewidth=4)
+    ax.plot(np.append(radians, radians[0]), shear_dist.append(shear_dist.iloc[0])['Mean_Shear'],
+            c=bw_colors('green'), linewidth=4)
     # ax.set_title('Shear by Direction')
     maxlevel = shear_dist['Mean_Shear'].max() + 0.1
     ax.set_ylim(0, maxlevel)
@@ -277,9 +282,11 @@ def plot_12x24_contours(tab_12x24, title='Variable'):
 
 
 def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1):
-    """Accepts a dataframe table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
+    """
+    Accepts a dataframe table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
     by sector. Optionally can include anemometer boom directions also.
-    :param sec_rat: A series of sector ratios
+    :param sec_ratio:
+    :param wddir:
     :param sec_ratio_dist: Dataframe from SectorRation.by_speed()
     :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to 0.
     :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to 0.
@@ -292,7 +299,8 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, col_names, boom_dir_1=-1
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
-    ax.plot(np.append(radians,radians[0]), sec_ratio_dist['Mean_Sector_Ratio'].append(sec_ratio_dist.iloc[0]), c=bw_colors('green'), linewidth=4)
+    ax.plot(np.append(radians, radians[0]), sec_ratio_dist['Mean_Sector_Ratio'].append(sec_ratio_dist.iloc[0]),
+            c=bw_colors('green'), linewidth=4)
     # plt.title('Speed Ratio by Direction')
     # Get max and min levels and set chart axes
     maxlevel = sec_ratio_dist['Mean_Sector_Ratio'].max() + 0.05
@@ -301,19 +309,19 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, col_names, boom_dir_1=-1
     # Add boom dimensions to chart, if required
     width = np.pi / 108
     radii = maxlevel
-    ctr=0
-    if boom_dir_1 >= 0 and boom_dir_1<360 :
+    ctr = 0
+    if boom_dir_1 >= 0 and boom_dir_1 < 360:
         boom_dir_1 = np.radians(boom_dir_1)
         ax.bar(boom_dir_1, radii, width=width, bottom=minlevel, color='#659CEF')
         ctr += 1
-    if boom_dir_2>=0 and boom_dir_2<360:
+    if boom_dir_2 >= 0 and boom_dir_2 < 360:
         boom_dir_2 = np.radians(boom_dir_2)
         ax.bar(boom_dir_2, radii, width=width, bottom=minlevel, color='#DCF600')
         ctr += 1
 
     if ctr == 2:
-        ax.annotate('*Plot generated using '+col_names[1]+' (yellow green boom) divided by'+ col_names[0]+' (blue boom)',
-            xy=(20, 10), xycoords='figure pixels')
+        ax.annotate('*Plot generated using ' + col_names[1] + ' (yellow green boom) divided by' + col_names[0] +
+                    ' (blue boom)', xy=(20, 10), xycoords='figure pixels')
     ax.scatter(np.radians(wddir), sec_ratio, c=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
@@ -325,7 +333,7 @@ def plot_shear(avg_alpha, avg_c, wdspds, heights):
     fig, ax = plt.subplots()
     ax.set_xlabel('Speed (m/s)')
     ax.set_ylabel('Elevation (m)')
-    ax.plot(speeds, plot_heights,'-', color='#9ACD32')
+    ax.plot(speeds, plot_heights, '-', color='#9ACD32')
     ax.scatter(wdspds, heights, marker='o', color=bw_colors('asphault'))
     ax.grid()
     ax.set_xlim(0, max(speeds)+1)
@@ -334,12 +342,12 @@ def plot_shear(avg_alpha, avg_c, wdspds, heights):
     return ax.get_figure()
 
 
-
 # def plot_shear(wind_speeds, heights):
 #     """
 #     Show derivation and output (alpha value) of shear calculation function for a given timestep.
 #     :param wind_speeds: List of wind speeds [m/s]
-#     :param heights: List of heights [m above ground]. The position of the height in the list must be the same position in the list as its
+#     :param heights: List of heights [m above ground]. The position of the height in the list must be the same
+# position in the list as its
 #     corresponding wind speed value.
 #     :return:
 #         1) Log-log plot of speed and elevation data, including linear fit.
