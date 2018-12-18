@@ -18,7 +18,16 @@ __all__ = ['export_tab_file']
 
 
 def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
-    """Export a WaSP tab file from get_freq_table() function"""
+    """
+    Export a WaSP tab file from get_freq_table() function
+    :param freq_tab:
+    :param name:
+    :param lat:
+    :param long:
+    :param height:
+    :param dir_offset:
+    :return:
+    """
     local_freq_tab = freq_tab.copy()
     lat = float(lat)
     long = float(long)
@@ -31,7 +40,7 @@ def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
     freq_sum = local_freq_tab.sum(axis=0)
     local_freq_tab.index = [interval.right for interval in local_freq_tab.index]
 
-    tab_string = str(name)+"\n "+"{:.2f}".format(lat)+" "+"{:.2f}".format(long)+" "+"{:.2f}".format(height)+"\n "+\
+    tab_string = str(name)+"\n "+"{:.2f}".format(lat)+" "+"{:.2f}".format(long)+" "+"{:.2f}".format(height)+"\n " + \
                  "{:.2f}".format(sectors)+" "+"{:.2f}".format(speed_interval)+" "+"{:.2f}".format(dir_offset)+"\n "
     tab_string += " ".join("{:.2f}".format(percent) for percent in freq_sum.values)+"\n"
     for column in local_freq_tab.columns:
