@@ -5,4 +5,3 @@ from .analyse.plot import *
 from .transform.transform import *
 from .export.export import *
 from . import datasets
-# from brightwind.analyse import plot
