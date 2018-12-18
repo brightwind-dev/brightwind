@@ -19,53 +19,60 @@ import pandas as pd
 import math
 from ..utils import utils
 
-__all__ = ['average_data_by_period','scale_wind_speed', 'offset_wind_direction']
+__all__ = ['average_data_by_period', 'scale_wind_speed', 'offset_wind_direction']
 
 
 def _compute_wind_vector(wspd, wdir):
-    """Returns north and east component of wind-vector"""
+    """
+    Returns north and east component of wind-vector
+    """
     return wspd*np.cos(wdir), wspd*np.sin(wdir)
 
 
 def _convert_days_to_hours(prd):
     return str(int(prd[:-1])*24)+'H'
 
+
 def _convert_weeks_to_hours(prd):
     return str(int(prd[:-1])*24*7)+'H'
 
 
-def _get_min_overlap_timestamp( df1_timestamps, df2_timestamps):
-    """Get the minimum overlapping timestamp from two series"""
-    if df1_timestamps.max()\
-            <df2_timestamps.min() or df1_timestamps.min()>df2_timestamps.max():
-        raise IndexError("No overlapping data. Ranges: {0} to {1}  and {2} to {3}"\
-                         .format(df1_timestamps.min(),df1_timestamps.max(),df2_timestamps.min(),df2_timestamps.max()),)
+def _get_min_overlap_timestamp(df1_timestamps, df2_timestamps):
+    """
+    Get the minimum overlapping timestamp from two series
+    """
+    if df1_timestamps.max() < df2_timestamps.min() or df1_timestamps.min() > df2_timestamps.max():
+        raise IndexError("No overlapping data. Ranges: {0} to {1}  and {2} to {3}"
+                         .format(df1_timestamps.min(), df1_timestamps.max(),
+                                 df2_timestamps.min(), df2_timestamps.max()), )
     return max(df1_timestamps.min(), df2_timestamps.min())
 
 
 def _get_data_resolution(data_idx):
-    """Get the frequency of data i.e. the most common time interval between timestamps. Returns a timedelta object"""
+    """
+    Get the frequency of data i.e. the most common time interval between timestamps. Returns a timedelta object
+    """
     import warnings
     time_diff_btw_timestamps = data_idx.to_series().diff()
     most_freq_time_diff = time_diff_btw_timestamps.mode().values[0]
     minimum_time_diff = time_diff_btw_timestamps.min()
     if minimum_time_diff != most_freq_time_diff:
-        warnings.warn("Frequency of input "
-                      "data might not be determined correctly (most frequent time difference between adjacent timestamps"
+        warnings.warn("Frequency of input data might not be determined correctly (most frequent time "
+                      "difference between adjacent timestamps"
                       " does not match minimum time difference) most frequent time difference: {0}  "
                       "minimum time difference {1}. Using most frequent time difference as resolution"
-                      .format(pd.to_timedelta(most_freq_time_diff, unit='s'),minimum_time_diff))
+                      .format(pd.to_timedelta(most_freq_time_diff, unit='s'), minimum_time_diff))
     return pd.to_timedelta(most_freq_time_diff, unit='s')
 
 
 def _round_timestamp_down_to_averaging_prd(timestamp, period):
     if period[-3:] == 'min':
         return '{year}-{month}-{day} {hour}:00:00'.format(year=timestamp.year, month=timestamp.month,
-                                                             day=timestamp.day, hour=timestamp.hour)
-    elif period[-1] == 'H' or period[-1]=='D' or period[-1]=='W':
-        return '{year}-{month}-{day}'.format(year=timestamp.year,month=timestamp.month, day=timestamp.day,
+                                                          day=timestamp.day, hour=timestamp.hour)
+    elif period[-1] == 'H' or period[-1] == 'D' or period[-1] == 'W':
+        return '{year}-{month}-{day}'.format(year=timestamp.year, month=timestamp.month, day=timestamp.day,
                                              hour=timestamp.hour)
-    elif period[-1] == 'M' or period[-2:]=='MS':
+    elif period[-1] == 'M' or period[-2:] == 'MS':
         return '{year}-{month}'.format(year=timestamp.year, month=timestamp.month)
     elif period[-2:] == 'AS' or period[-1:] == 'A':
         return '{year}'.format(year=timestamp.year)
@@ -73,11 +80,12 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
         print("Warning: Averaging period not identified returning default timestamps")
         return '{year}-{month}-{day} {hour}:{minute}:{second}'.format(year=timestamp.year, month=timestamp.month,
                                                                       day=timestamp.day, hour=timestamp.hour,
-                                                                      minute=timestamp.minute,second=timestamp.second)
+                                                                      minute=timestamp.minute, second=timestamp.second)
 
 
 def _common_idxs(reference, site):
-    """Finds overlapping indexes from two dataframes.
+    """
+    Finds overlapping indexes from two dataframes.
     Coverage is 1 if whole site data is covered. Also returns the number data points
     """
     common = reference.index.intersection(site.index)
@@ -89,11 +97,13 @@ def _get_overlapping_data(df1, df2, period):
         start = _round_timestamp_down_to_averaging_prd(_get_min_overlap_timestamp(df1.index, df2.index), period)
     else:
         start = _get_min_overlap_timestamp(df1.index, df2.index)
-    return df1[start:],df2[start:]
+    return df1[start:], df2[start:]
 
 
 def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
-    """For a given resolution of data finds the maximum number of data points in the averaging period"""
+    """
+    For a given resolution of data finds the maximum number of data points in the averaging period
+    """
     max_pts = (averaged_data_index.to_series().diff().shift(-1)) / _get_data_resolution(data_index)
     max_pts[-1] = ((averaged_data_index[-1] + 1) - averaged_data_index[-1]) / _get_data_resolution(data_index)
     return max_pts
@@ -106,7 +116,8 @@ def _get_coverage_series(data, grouper_obj):
 
 def average_data_by_period(data: pd.Series, period, aggregation_method='mean', filter_by_coverage_threshold=False,
                            coverage_threshold=1, return_coverage=False) -> pd.DataFrame:
-    """Averages the data by the time period specified by period.
+    """
+    Averages the data by the time period specified by period.
     Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
     Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
     Set period to 1M for monthly average
@@ -124,7 +135,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
             period = period+'S'
         if period[-1] == 'Y':
             raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
-    grouper_obj = data.resample(period, axis=0, closed='left', label='left',base=0,
+    grouper_obj = data.resample(period, axis=0, closed='left', label='left', base=0,
                                 convention='start', kind='timestamp')
 
     grouped_data = grouper_obj.agg(aggregation_method)
@@ -153,22 +164,22 @@ def scale_wind_speed(spd, scale_factor: float) ->pd.Series:
     if it is -0.8 the output would be (1-0.8) times the wind speed
     :return: Series or data frame with scaled wind speeds
     """
-    return spd*(scale_factor)
+    return spd * scale_factor
 
 
-def offset_wind_direction(dir, offset: float) -> pd.Series:
+def offset_wind_direction(wdir, offset: float) -> pd.Series:
     """
     Add/ subtract offset from wind direction. Keeps the ranges between 0 to 360
-    :param dir: Series or data frame or a single direction to offset
+    :param wdir: Series or data frame or a single direction to offset
     :param offset: Offset in degrees can be negative or positive
     :return: Series or data frame with offsetted directions
     """
-    if isinstance(dir, float):
-        return utils._range_0_to_360(dir + offset)
-    elif isinstance(dir, pd.DataFrame):
-        return dir.add(offset).applymap(utils._range_0_to_360)
+    if isinstance(wdir, float):
+        return utils._range_0_to_360(wdir + offset)
+    elif isinstance(wdir, pd.DataFrame):
+        return wdir.add(offset).applymap(utils._range_0_to_360)
     else:
-        return dir.to_frame().add(offset).applymap(utils._range_0_to_360)
+        return wdir.to_frame().add(offset).applymap(utils._range_0_to_360)
 
 
 # def selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2, angular_span):
@@ -202,18 +213,22 @@ def offset_wind_direction(dir, offset: float) -> pd.Series:
 #     return df
 
 
-# Clean_synth['Spd_120m_SelAvg'] = selective_avg(Clean_synth.Vaisala_120_avg, Clean_synth.FirstClass_120_avg_Synthesized,
+# Clean_synth['Spd_120m_SelAvg'] = selective_avg(Clean_synth.Vaisala_120_avg,
+#                                                Clean_synth.FirstClass_120_avg_Synthesized,
 #                                                Clean_synth.FirstClass_120_dir,
 #                                                boom_dir1=135, boom_dir2=315, angular_span=60)
 
 
 def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
-                                      aggregation_method_ref='mean', aggregation_method_target='mean', get_coverage=False):
-    ref_overlap, target_overlap = _get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(), averaging_prd)
+                                      aggregation_method_ref='mean', aggregation_method_target='mean',
+                                      get_coverage=False):
+    ref_overlap, target_overlap = _get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(),
+                                                        averaging_prd)
     from pandas.tseries.frequencies import to_offset
     ref_resolution = _get_data_resolution(ref_overlap.index)
     target_resolution = _get_data_resolution(target_overlap.index)
-    if (to_offset(ref_resolution)!= to_offset(averaging_prd)) and (to_offset(target_resolution)!= to_offset(averaging_prd)):
+    if (to_offset(ref_resolution) != to_offset(averaging_prd)) and \
+            (to_offset(target_resolution) != to_offset(averaging_prd)):
         if ref_resolution > target_resolution:
             target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution),
                                                     filter_by_coverage_threshold=True, coverage_threshold=1,
@@ -231,9 +246,9 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
                                                  coverage_threshold=0, aggregation_method=aggregation_method_ref)] +
                          list(average_data_by_period(target_overlap, averaging_prd, filter_by_coverage_threshold=False,
                                                      coverage_threshold=0, aggregation_method=aggregation_method_target,
-                                                     return_coverage=True)), axis=1)
+                                                     return_coverage=True)),
+                         axis=1)
     else:
-
         ref_processed, target_processed = average_data_by_period(ref_overlap, averaging_prd,
                                                                  filter_by_coverage_threshold=True,
                                                                  coverage_threshold=coverage_threshold,
@@ -242,14 +257,15 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
                                                                  filter_by_coverage_threshold=True,
                                                                  coverage_threshold=coverage_threshold,
                                                                  aggregation_method=aggregation_method_target)
-        concurrent_idxs, data_pts  = _common_idxs(ref_processed, target_processed)
+        concurrent_idxs, data_pts = _common_idxs(ref_processed, target_processed)
         return ref_processed.loc[concurrent_idxs], target_processed.loc[concurrent_idxs]
 
 
-def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.DataFrame, target_spd:pd.DataFrame,
+def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.DataFrame, target_spd: pd.DataFrame,
                                           target_dir: pd.DataFrame, averaging_prd, coverage_threshold):
     ref_N, ref_E= _compute_wind_vector(ref_spd.sort_index().dropna(), ref_dir.sort_index().dropna().map(math.radians))
-    target_N, target_E = _compute_wind_vector(target_spd.sort_index().dropna(), target_dir.sort_index().dropna().map(math.radians))
+    target_N, target_E = _compute_wind_vector(target_spd.sort_index().dropna(),
+                                              target_dir.sort_index().dropna().map(math.radians))
     ref_N_avgd, target_N_avgd = _preprocess_data_for_correlations(ref_N, target_N, averaging_prd=averaging_prd,
                                                                   coverage_threshold=coverage_threshold)
     ref_E_avgd, target_E_avgd = _preprocess_data_for_correlations(ref_E, target_E, averaging_prd=averaging_prd,
