@@ -75,7 +75,13 @@ A test dataset is included in this repository and is used to test functions in t
 | CREYAP Pt II       | [CREYAP-Pt-2](http://www.ewea.org/events/workshops/past-workshops/resource-assessment-2015/offshore-creyap-part-ii/)      | Onshore 50m met mast from the CREYAP Pt II along with additional MERRA-2 reference data  |
 
 
+<br>
 
+---
+### Contributing
+If you wish to be involved or find out more please contact stephen@brightwindanalysis.com.
+
+Most contributors use the PyCharm IDE and follow the built in PyCharm code style.
 
 <br>
 
