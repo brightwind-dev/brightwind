@@ -6,7 +6,7 @@ SPHINXOPTS    =
 SPHINXBUILD   = python -msphinx
 SPHINXPROJ    = brightwind
 SOURCEDIR     = source
-BUILDDIR      = build
+BUILDDIR      = ../../brightwind-docs
 
 # Put it first so that "make" without argument is like "make help".
 help:

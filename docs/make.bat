@@ -8,7 +8,7 @@ if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=python -msphinx
 )
 set SOURCEDIR=source
-set BUILDDIR=../docs
+set BUILDDIR=../../brightwind-docs
 set SPHINXPROJ=brightwind
 
 if "%1" == "" goto help
