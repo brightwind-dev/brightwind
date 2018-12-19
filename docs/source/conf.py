@@ -21,7 +21,7 @@ import os
 import sys
 import sphinx_bootstrap_theme
 path= os.getcwd()
-sys.path.insert(0, path.replace('sphinx-docs\source','brightwind'))
+sys.path.insert(0, path.replace('docs\source','brightwind'))
 
 
 # -- General configuration ------------------------------------------------
@@ -111,7 +111,7 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 
-html_static_path = [path.replace('sphinx-docs\source','docs\_static')]
+html_static_path = [path.replace('docs\source','docs\_static')]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
