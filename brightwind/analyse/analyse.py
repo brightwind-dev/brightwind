@@ -62,6 +62,31 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
 
 
 def monthly_means(wdspds, return_data=False):
+    """
+    Plots means for calendar months in a timeseries plot. Input can be a series or a dataframe. Can
+    also return data of monthly means with a plot.
+    :param wdspds: A timeseries to find monthly means of. Can have multiple cloumns
+    :type : Series or dataframe
+    :param return_data: To return data of monthly means alongwith the plot.
+    :type : bool
+    :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
+    the first element is plot and second is data pertaining to monthly means.
+
+       **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.shell_flats_80m_csv)
+
+        mon_mean = bw.monthly_means(data, return_data=True)[1]
+        print("Monthly means plot for all the columns:")
+        print(mon_mean[0])
+        print("Monthly means data for all the columns:")
+        print(mon_mean[1])
+
+        #For a single column only
+        bw.monthly_means(data.WS80mWS425NW_Avg)
+
+    """
     if not isinstance(wdspds, list):
         wdspds = [wdspds]
     data = tf.average_data_by_period(pd.concat(wdspds, axis=1, join='outer'), period='1MS')
