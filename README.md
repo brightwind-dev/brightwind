@@ -1,7 +1,5 @@
 # brightwind
 --------------
-Documentation website (work in progress): https://brightwind-dev.github.io/brightwind-docs/
-<br>
 
 The brightwind python library aims to empower wind resource analysts and
 establish a common industry standard toolset.
@@ -32,6 +30,10 @@ library but any modifications to the library itself should be kept open-sourced.
 Keeping this open-sourced will ensure that the library becomes the de facto
 library used by wind analysts, establishing a common, standard industry wide
 toolset for wind data processing .
+
+<br>
+
+Documentation website (work in progress): https://brightwind-dev.github.io/brightwind-docs/
 
 <br>
 
