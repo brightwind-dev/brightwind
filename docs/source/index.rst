@@ -4,8 +4,8 @@
    contain the root `toctree` directive.
 
 .. image:: Brightwind_Logo_Main.png
-	:scale: 30 %
-	:align: center
+   :scale: 30 %
+   :align: center
 
 **Brightwind's open source python library provides wind analysts with easy to use methods for working with meteorological data.
 It supports loading of meteorological data, analysing it in various ways including correlations, frequency tables etc., also
@@ -17,10 +17,10 @@ Contents
 ==================
 	
 .. toctree::
-	:maxdepth: 2
-	
-	Structure
-	Tutorials
-	API
-	how_to_contribute
+   :maxdepth: 2
+
+   Demos
+   Structure
+   API
+   how_to_contribute
 
