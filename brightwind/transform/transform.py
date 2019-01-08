@@ -19,7 +19,7 @@ import pandas as pd
 import math
 from ..utils import utils
 
-__all__ = ['average_data_by_period', 'scale_wind_speed', 'offset_wind_direction']
+__all__ = ['average_data_by_period', 'adjust_slope_offset', 'scale_wind_speed', 'offset_wind_direction']
 
 
 def _compute_wind_vector(wspd, wdir):
@@ -156,7 +156,48 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
         return grouped_data
 
 
-def scale_wind_speed(spd, scale_factor: float) ->pd.Series:
+def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offset):
+    """
+    Adjust a wind speed that already has a slope and offset applied with a new slope and offset.
+    Can take either a single wind speed value or a pandas dataframe/series.
+    :param wspd: The wind speed value or series to be adjusted.
+    :type wspd: float or pd.DataFrame
+    :param current_slope: The current slope that was applied to create the wind speed.
+    :type current_slope: float
+    :param current_offset: The current offset that was applied to create the wind speed.
+    :type current_offset: float
+    :param new_slope: The new desired slope to adjust the wind speed by.
+    :type new_slope: float
+    :param new_offset: The new desired offset to adjust the wind speed by.
+    :type new_offset: float
+    :return: The adjusted wind speed as a single value or pandas dataframe.
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        df['Spd80mS_adj'] = bw.adjust_slope_offset(df.Spd80mS, 0.044, 0.235, 0.04365, 0.236)
+        df[['Spd80mS', 'Spd80mS_adj']]
+
+    """
+    try:
+        return new_slope * ((wspd - current_offset) / current_slope) + new_offset
+    except TypeError as type_error:
+        for arg_value in [current_slope, current_offset, new_slope, new_offset]:
+            if not utils.is_float_or_int(arg_value):
+                raise TypeError("argument '" + str(arg_value) + "' is not of data type number")
+        if not utils.is_float_or_int(wspd):
+            if type(wspd) == pd.DataFrame and (wspd.dtypes == object)[0]:
+                raise TypeError('some values in the DataFrame are not of data type number')
+            elif type(wspd) == pd.Series and (wspd.dtypes == object):
+                raise TypeError('some values in the Series are not of data type number')
+            raise TypeError('wspd argument is not of data type number')
+        raise type_error
+    except Exception as error:
+        raise error
+
+
+def scale_wind_speed(spd, scale_factor: float) -> pd.Series:
     """
     Scales wind speed by the scale_factor
     :param spd: Series or data frame or a single value of wind speed to scale

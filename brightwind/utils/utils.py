@@ -68,3 +68,17 @@ def _slice_data(data, date_from: str='', date_to: str=''):
     else:
         return data
     return sliced_data
+
+
+def is_float_or_int(value):
+    """
+    Returns True if the value is a float or an int, False otherwise.
+    :param value:
+    :return:
+    """
+    if type(value) is float:
+        return True
+    elif type(value) is int:
+        return True
+    else:
+        return False
