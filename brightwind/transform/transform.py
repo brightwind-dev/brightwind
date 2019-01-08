@@ -184,11 +184,13 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
         return new_slope * ((wspd - current_offset) / current_slope) + new_offset
     except TypeError as type_error:
         for arg_value in [current_slope, current_offset, new_slope, new_offset]:
-            if type(arg_value) is not float:
+            if not utils.is_float_or_int(arg_value):
                 raise TypeError("argument '" + str(arg_value) + "' is not of data type number")
-        if type(wspd) is not int or type(wspd) is not float:
+        if not utils.is_float_or_int(wspd):
             if type(wspd) == pd.DataFrame and (wspd.dtypes == object)[0]:
                 raise TypeError('some values in the DataFrame are not of data type number')
+            elif type(wspd) == pd.Series and (wspd.dtypes == object):
+                raise TypeError('some values in the Series are not of data type number')
             raise TypeError('wspd argument is not of data type number')
         raise type_error
     except Exception as error:
