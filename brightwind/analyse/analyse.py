@@ -239,6 +239,11 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
         result = data.groupby(['direction_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
     else:
         result = data.groupby(['direction_bin'])['data'].agg(aggregation_method)
+
+    for i in range(1, sectors+1):
+        if not (i in result.index):
+            result[i] = 0.0
+    result = result.sort_index()
     result.index = direction_bin_labels
     return result
 

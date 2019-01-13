@@ -316,11 +316,11 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, col_names, boom_dir_1=-1
     width = np.pi / 108
     radii = maxlevel
     ctr = 0
-    if boom_dir_1 >= 0 and boom_dir_1 < 360:
+    if boom_dir_1 >= 0:
         boom_dir_1 = np.radians(boom_dir_1)
         ax.bar(boom_dir_1, radii, width=width, bottom=minlevel, color='#659CEF')
         ctr += 1
-    if boom_dir_2 >= 0 and boom_dir_2 < 360:
+    if boom_dir_2 >= 0:
         boom_dir_2 = np.radians(boom_dir_2)
         ax.bar(boom_dir_2, radii, width=width, bottom=minlevel, color='#DCF600')
         ctr += 1
@@ -329,7 +329,6 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, col_names, boom_dir_1=-1
         ax.annotate('*Plot generated using ' + col_names[1] + ' (yellow green boom) divided by' + col_names[0] +
                     ' (blue boom)', xy=(20, 10), xycoords='figure pixels')
     ax.scatter(np.radians(wddir), sec_ratio, c=bw_colors('asphault'), alpha=0.3, s=1)
-    ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
 
 
