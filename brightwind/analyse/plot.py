@@ -128,7 +128,7 @@ def plot_wind_rose(ext_data, freq_table=False):
 
 
 def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6ebad', '#b8dc6f',
-                                                              '#9acd32', '#7ba428', '#5c7b1e']):
+                                                              '#9acd32', '#7ba428', '#5c7b1e'], percent_symbol=True):
     table = freq_table.copy()
     import matplotlib as mpl
     sectors = len(table.columns)
@@ -148,8 +148,12 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6eba
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0, 360, 360.0/sectors), zorder=2)
+    if percent_symbol:
+        symbol = '%'
+    else:
+        symbol = ' '
     ax.set_rgrids(np.linspace(0.1, max(table.sum(axis=0))+2.0, 10),
-                  labels=['%.0f' % round(i)+'%' for i in np.linspace(0.1, max(table.sum(axis=0))+2.0, 10)],
+                  labels=['%.0f' % round(i)+symbol for i in np.linspace(0.1, max(table.sum(axis=0))+2.0, 10)],
                   angle=0, zorder=2)
     direction_bins = utils.get_direction_bin_array(sectors)[1:-2]
     direction_bins = np.insert(direction_bins, 0, direction_bins[-2])
@@ -227,13 +231,15 @@ def plot_TI_by_sector(turbulence, wddir, ti):
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(ti.index))
-    ax.plot(np.append(radians, radians[0]), ti.append(ti.iloc[0])['Mean_TI'], c=bw_colors('green'), linewidth=4)
-    # ax.set_title('Turbulence Intensity by Direction')
+    ax.plot(np.append(radians, radians[0]), ti.append(ti.iloc[0])['Mean_TI'], c=bw_colors('green'), linewidth=4,
+            figure=fig)
     maxlevel = ti['Mean_TI'].max() + 0.1
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wddir), turbulence, c=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
+
+
 
 
 
@@ -310,11 +316,11 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, col_names, boom_dir_1=-1
     width = np.pi / 108
     radii = maxlevel
     ctr = 0
-    if boom_dir_1 >= 0 and boom_dir_1 < 360:
+    if boom_dir_1 >= 0:
         boom_dir_1 = np.radians(boom_dir_1)
         ax.bar(boom_dir_1, radii, width=width, bottom=minlevel, color='#659CEF')
         ctr += 1
-    if boom_dir_2 >= 0 and boom_dir_2 < 360:
+    if boom_dir_2 >= 0:
         boom_dir_2 = np.radians(boom_dir_2)
         ax.bar(boom_dir_2, radii, width=width, bottom=minlevel, color='#DCF600')
         ctr += 1
@@ -323,7 +329,6 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, col_names, boom_dir_1=-1
         ax.annotate('*Plot generated using ' + col_names[1] + ' (yellow green boom) divided by' + col_names[0] +
                     ' (blue boom)', xy=(20, 10), xycoords='figure pixels')
     ax.scatter(np.radians(wddir), sec_ratio, c=bw_colors('asphault'), alpha=0.3, s=1)
-    ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
 
 
