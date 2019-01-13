@@ -161,7 +161,7 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
     Adjust a wind speed that already has a slope and offset applied with a new slope and offset.
     Can take either a single wind speed value or a pandas dataframe/series.
     :param wspd: The wind speed value or series to be adjusted.
-    :type wspd: float or pd.DataFrame
+    :type wspd: float or pd.DataFrame or pd.Series
     :param current_slope: The current slope that was applied to create the wind speed.
     :type current_slope: float
     :param current_offset: The current offset that was applied to create the wind speed.
@@ -171,6 +171,13 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
     :param new_offset: The new desired offset to adjust the wind speed by.
     :type new_offset: float
     :return: The adjusted wind speed as a single value or pandas dataframe.
+
+    The new wind speed is calculated by equating the old and new y=mx+c equations around x and then solving for
+    the new wind speed.
+
+    y2 = m2*x + c2   and   y1 = m1*x + c1
+
+    y2 = m2*(y1 - c1)/m1 + c2
 
     **Example usage**
     ::
