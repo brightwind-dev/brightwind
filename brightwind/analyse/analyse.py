@@ -61,13 +61,15 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
-def monthly_means(wdspds, return_data=False):
+def monthly_means(wdspds, return_data=False, return_coverage=False):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a dataframe. Can
     also return data of monthly means with a plot.
     :param wdspds: A timeseries to find monthly means of. Can have multiple cloumns
     :type : Series or dataframe
     :param return_data: To return data of monthly means alongwith the plot.
+    :type : bool
+    :param return_coverge: To return monthly converage alongwith the data
     :type : bool
     :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
     the first element is plot and second is data pertaining to monthly means.
@@ -90,8 +92,11 @@ def monthly_means(wdspds, return_data=False):
     if not isinstance(wdspds, list):
         wdspds = [wdspds]
     data = tf.average_data_by_period(pd.concat(wdspds, axis=1, join='outer'), period='1MS')
-    if return_data:
+    if return_data and not return_coverage:
         return plt.plot_timeseries(data), data
+    if return_coverage and return_coverage:
+        return plt.plot_timeseries(data), \
+               pd.concat([data, coverage(data, period='1M', aggregation_method='mean')], axis=1)
     return plt.plot_timeseries(data)
 
 
