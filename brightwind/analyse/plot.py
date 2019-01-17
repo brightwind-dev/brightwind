@@ -21,8 +21,13 @@ import pandas as pd
 import math
 from brightwind.utils import utils
 import os
+import matplotlib as mpl
 
 __all__ = ['plot_timeseries']
+
+if 'Gotham Rounded' in \
+        [mpl.font_manager.FontProperties(fname=i).get_name() for i in mpl.font_manager.findSystemFonts()]:
+    mpl.rcParams['font.family'] = 'Gotham Rounded'
 
 plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
