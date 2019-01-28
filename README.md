@@ -93,7 +93,7 @@ Most contributors use the PyCharm IDE and follow the built in PyCharm code style
 ### Sphinx-docs
 ###### setting up Sphinx-docs
 
-From Anaconda prompt navigate to brightwind/sphinx-docs
+Currently we used Sphinx to automate documentation. Download sphinx-bootstrap-theme using the following command:
 
 ```
 pip install sphinx-bootstrap-theme
@@ -111,6 +111,8 @@ If already set up then simply run
 ```
 make html
 ```
+
+The documentation is hosted using github pages and there is a separate repo brightwind-docs to host files for the webpage. To know how to set up the repos to contribute to the documentations, see README for brightwind-docs.
 <br>
 
 ---
