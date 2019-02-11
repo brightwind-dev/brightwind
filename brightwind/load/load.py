@@ -20,6 +20,7 @@ from typing import List, Dict
 import errno
 import os
 import shutil
+import json
 
 __all__ = ['load_csv', 'load_campbell_scientific', 'load_excel', 'load_brightdata']
 
@@ -413,7 +414,7 @@ def _get_brightdata(dataset, lat, long, nearest, from_date, to_date):
             temp_reanalysis.latitude = node['latitude']
             temp_reanalysis.longitude = node['longitude']
             temp_reanalysis.source = dataset
-            temp_reanalysis.data = pd.read_json(node['data'], orient='index')
+            temp_reanalysis.data = pd.read_json(json.dumps(node['data']), orient='index')
         except Exception as error:
             if 'errors' in node:
                 raise TypeError(json_response)
