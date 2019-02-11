@@ -354,11 +354,26 @@ def coverage(data, period='1M', aggregation_method='mean'):
 
 def basic_stats(data):
     """
-    Gives basic statistics like mean, standard deviation, count, etc. of data,  excluding NaN values
+    Gives basic statistical measures of the data, the dataframe returned includes the following columns
 
-    :param data: Meteorological data
+    - count, number of data points available for each column of the data
+    - mean, mean of each column of data
+    - std, standard deviation of each column of data
+    - min, minimum value of each column of data
+    - max, maximum value of each column of data
+
+    :param data: It can be a dataframe containing meteorological data or a series of some variable like wind speed,
+    direction, temperature, etc.
     :type data: pandas.Series or pandas.DataFrame
-    :rtype: A dataframe or series containing statistics
+    :rtype: A dataframe with columns count, mean, std, min amd max.
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        bw.basic_stats(data)
+        bw.basic_stats(data['Gust_Max_1'])
+
     """
     if isinstance(data, pd.DataFrame):
         return data.describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
