@@ -7,8 +7,6 @@
  /_.___/_/  /_/\__, /_/ /_/\__/ |__/|__/_/_/ /_/\__,_/
               /____/
  ```
-<br>
-
 --------------
 
 The brightwind python library aims to empower wind resource analysts and
