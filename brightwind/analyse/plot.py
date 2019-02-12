@@ -29,6 +29,8 @@ try:
     if 'Gotham Rounded' in \
             [mpl.font_manager.FontProperties(fname=i).get_name() for i in mpl.font_manager.findSystemFonts()]:
         mpl.rcParams['font.family'] = 'Gotham Rounded'
+except Exception as ex:
+    raise 'Found exception when checking installed fonts. {}'.format(str(ex))
 
 plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
