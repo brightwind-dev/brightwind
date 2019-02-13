@@ -1,7 +1,7 @@
 import pytest
-from ..analyse.analyse import monthly_means, SectorRatio, basic_stats
+from brightwind.analyse.analyse import monthly_means, SectorRatio, basic_stats
 
-from ..load.load import load_csv
+from brightwind.load.load import load_csv
 import brightwind.datasets
 
 def test_monthly_means():

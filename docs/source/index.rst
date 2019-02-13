@@ -20,7 +20,7 @@ Contents
    :maxdepth: 2
 
    Demos
-   Structure
+   Tutorials
    API
    how_to_contribute
 

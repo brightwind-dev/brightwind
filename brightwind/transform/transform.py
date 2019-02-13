@@ -17,7 +17,7 @@
 import numpy as np
 import pandas as pd
 import math
-from ..utils import utils
+from brightwind.utils import utils
 
 __all__ = ['average_data_by_period', 'adjust_slope_offset', 'scale_wind_speed', 'offset_wind_direction']
 
@@ -160,6 +160,7 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
     """
     Adjust a wind speed that already has a slope and offset applied with a new slope and offset.
     Can take either a single wind speed value or a pandas dataframe/series.
+
     :param wspd: The wind speed value or series to be adjusted.
     :type wspd: float or pd.DataFrame or pd.Series
     :param current_slope: The current slope that was applied to create the wind speed.
@@ -207,10 +208,12 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
 def scale_wind_speed(spd, scale_factor: float) -> pd.Series:
     """
     Scales wind speed by the scale_factor
+
     :param spd: Series or data frame or a single value of wind speed to scale
     :param scale_factor: Scaling factor in decimal, if scaling factor is 0.8 output would be (1+0.8) times wind speed,
     if it is -0.8 the output would be (1-0.8) times the wind speed
     :return: Series or data frame with scaled wind speeds
+
     """
     return spd * scale_factor
 

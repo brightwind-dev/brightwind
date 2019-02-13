@@ -1,7 +1,7 @@
-analyse
-=======
+brightwind
+==========
 
 .. toctree::
    :maxdepth: 4
 
-   analyse
+   brightwind

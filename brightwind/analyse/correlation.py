@@ -17,12 +17,12 @@
 import pandas as pd
 import numpy as np
 from typing import List
-from ..transform import transform as tf
-from ..utils import utils
-from ..analyse.plot import _scatter_plot
+from brightwind.transform import transform as tf
+from brightwind.utils import utils
+from brightwind.analyse.plot import _scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
-from ..analyse.analyse import momm, _binned_direction_series
+from brightwind.analyse.analyse import momm, _binned_direction_series
 from sklearn.svm import SVR as sklearn_SVR
 from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 
@@ -145,7 +145,6 @@ class OrdinaryLeastSquares(CorrelBase):
     :type coverage_threshold: float
     :param preprocess: To average and check for coverage before correlating
     :type preprocess: bool
-
     :returns: An object representing ordinary least squares fit model
 
 
@@ -191,9 +190,9 @@ class OrthogonalLeastSquares(CorrelBase):
             * Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
             * Set period to 1MS for monthly average
             * Set period to 1AS fo annual average
+
     :param coverage_threshold: Minimum coverage to include for correlation
     :param preprocess: To average and check for coverage before correlating
-
     :returns: Returns an object representing the model
 
     """
@@ -484,7 +483,9 @@ class SpeedSort(CorrelBase):
         return output
 
     def plot_wind_vane(self):
-        """Plots reference and target directions in a scatter plot"""
+        """
+        Plots reference and target directions in a scatter plot
+        """
 
         # _scatter_plot(self.ref_dir, self.target_dir,title='original data')
         _scatter_plot(

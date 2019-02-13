@@ -1,13 +1,13 @@
-load package
-============
+brightwind.load package
+=======================
 
 Submodules
 ----------
 
-load.load module
-----------------
+brightwind.load.load module
+---------------------------
 
-.. automodule:: load.load
+.. automodule:: brightwind.load.load
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ load.load module
 Module contents
 ---------------
 
-.. automodule:: load
+.. automodule:: brightwind.load
     :members:
     :undoc-members:
     :show-inheritance:

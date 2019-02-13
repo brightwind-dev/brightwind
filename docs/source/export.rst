@@ -1,13 +1,13 @@
-load package
-============
+export package
+==============
 
 Submodules
 ----------
 
-load.load module
-----------------
+export.export module
+--------------------
 
-.. automodule:: load.load
+.. automodule:: export.export
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ load.load module
 Module contents
 ---------------
 
-.. automodule:: load
+.. automodule:: export
     :members:
     :undoc-members:
     :show-inheritance:

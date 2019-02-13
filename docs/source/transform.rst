@@ -1,13 +1,13 @@
-load package
-============
+transform package
+=================
 
 Submodules
 ----------
 
-load.load module
-----------------
+transform.transform module
+--------------------------
 
-.. automodule:: load.load
+.. automodule:: transform.transform
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ load.load module
 Module contents
 ---------------
 
-.. automodule:: load
+.. automodule:: transform
     :members:
     :undoc-members:
     :show-inheritance:

@@ -16,9 +16,9 @@
 
 import pandas as pd
 import numpy as np
-from ..transform import transform as tf
-from ..utils import utils
-from ..analyse import plot as plt
+from brightwind.transform import transform as tf
+from brightwind.utils import utils
+from brightwind.analyse import plot as plt
 
 __all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
            'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage', 'basic_stats',
@@ -28,6 +28,7 @@ __all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'dist
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
     """
     Accepts ref and target data and returns the coverage of concurrent data.
+
     :param ref: Reference data
     :type ref: pandas.Series
     :param target: Target data
@@ -45,6 +46,7 @@ def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='m
             Can be changed to 'sum', 'std', 'max', 'min', etc. or a user defined function
     :return: A dataframe with concurrent coverage and resolution of the new data. The columns with coverage are named as
             <column name>_Coverage
+
     """
     coverage_df = tf._preprocess_data_for_correlations(ref=ref, target=target, averaging_prd=averaging_prd,
                                                        coverage_threshold=0,
@@ -65,16 +67,17 @@ def monthly_means(wdspds, return_data=False, return_coverage=False):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a dataframe. Can
     also return data of monthly means with a plot.
-    :param wdspds: A timeseries to find monthly means of. Can have multiple columns
-    :type : Series or dataframe
-    :param return_data: To return data of monthly means along with the plot.
-    :type : bool
-    :param return_coverage: To return monthly coverage along with the data and plot.
-    :type : bool
-    :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
-    the first element is plot and second is data pertaining to monthly means.
 
-       **Example usage**
+    :param wdspds: A timeseries to find monthly means of. Can have multiple columns
+    :type wdspds: Series or dataframe
+    :param return_data: To return data of monthly means along with the plot.
+    :type return_data: bool
+    :param return_coverage: To return monthly coverage along with the data and plot.
+    :type return_coverage: bool
+    :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
+        the first element is plot and second is data pertaining to monthly means.
+
+    **Example usage**
     ::
         import brightwind as bw
         data = bw.load_csv(bw.shell_flats_80m_csv)
@@ -85,11 +88,9 @@ def monthly_means(wdspds, return_data=False, return_coverage=False):
         print("Monthly means plot for all the columns:")
         monthly_means_plot
 
-    ::
         # For a single column only
         bw.monthly_means(data.WS80mWS425NW_Avg)
 
-    ::
         # Return coverage
         monthly_means_plot, monthly_means = bw.monthly_means(data, return_coverage=True)
         monthly_means
@@ -122,10 +123,12 @@ def momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
     Calculates and returns long term reference speed. Accepts a dataframe
     with timestamps as index column and another column with wind-speed. You can also specify
     date_from and date_to to calculate the long term reference speed for only that period.
-    :param: data: Pandas dataframe with timestamp as index and a column with wind-speed
-    :param: date_from: Start date as string in format YYYY-MM-DD
-    :param: date_to: End date as string in format YYYY-MM-DD
+
+    :param data: Pandas dataframe with timestamp as index and a column with wind-speed
+    :param date_from: Start date as string in format YYYY-MM-DD
+    :param date_to: End date as string in format YYYY-MM-DD
     :returns: Long term reference speed
+
     """
     if isinstance(data, pd.Series):
         momm_data = data.to_frame()
@@ -165,13 +168,16 @@ def distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41, 1)
     """
     Accepts 2 series of same/different variables and computes the distribution of first variable with respect to
     the bins of another variable.
+
     :param var1_series: Series of the variable whose distribution we need to find
     :param var2_series: Series of the variable which we want to bin
     :param var2_bin_array: Array of numbers where adjacent elements of array form a bin
     :param var2_bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default
     :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
-    describe, a custom function, etc,computes frequency in percentages by default
-    :returns A DataFrame/Series with bins as row indexes and columns with statistics chosen by aggregation_method"""
+        describe, a custom function, etc,computes frequency in percentages by default
+    :returns: A DataFrame/Series with bins as row indexes and columns with statistics chosen by aggregation_method
+
+    """
     if isinstance(var1_series, pd.DataFrame) and var1_series.shape[1] == 1:
         var1_series = var1_series.iloc[:, 0]
     if isinstance(var2_series, pd.DataFrame) and var2_series.shape[1] == 1:
@@ -190,9 +196,11 @@ def distribution_by_wind_speed(wdspd, return_data=False):
     """
     Accepts 2 series of same/different variables and computes the distribution of first variable with respect to
     the bins of another variable.
+
     :param wdspd: Series of the variable whose distribution we need to find
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
+
     """
     freq_dist = distribution(wdspd, wdspd, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
                              aggregation_method='%frequency')
@@ -204,12 +212,14 @@ def distribution_by_wind_speed(wdspd, return_data=False):
 def _binned_direction_series(direction_series, sectors, direction_bin_array=None):
     """
     Accepts a series with wind directions and number of sectors  you want to divide.
+
     :param  direction_series: Series of directions to bin
     :param  sectors: number of direction sectors
     :param direction_bin_array: An optional parameter, if you want custom direction bins pass an array
                         of the bins. If nto specified direction_bins will be centered around 0
-    :returns  A series with direction-bins, bins centered around 0 degree by default if direction_bin_array
+    :returns: A series with direction-bins, bins centered around 0 degree by default if direction_bin_array
     is not specified
+
     """
     if direction_bin_array is None:
         direction_bin_array = utils.get_direction_bin_array(sectors)
@@ -221,6 +231,7 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
     """
     Accepts a series of a variable and  wind direction. Computes the distribution of first variable with respect to
     wind direction sectors
+
     :param var_series: Series of the variable whose distribution we need to find
     :param direction_series: Series of wind directions between [0-360]
     :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that
@@ -231,8 +242,9 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
             bins to this
     :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
             labels of the format '30-90' by default
-    :returns A dataframe/series with wind direction sector as row indexes and columns with statistics chosen by
+    :returns: A dataframe/series with wind direction sector as row indexes and columns with statistics chosen by
             aggregation_method
+
     """
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
@@ -265,6 +277,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     """
     Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
     direction are binned
+
     :param var_series: Series of variable to be binned
     :param direction_series: Series of wind directions between [0-360]
     :param var_bin_array: Array of numbers where adjacent elements of array form a bin
@@ -272,14 +285,15 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
             behaviour specify direction_bin_array
     :param var_bin_labels: Optional, an array of labels to use for variable bins
     :param direction_bin_array: Optional, to change default behaviour of first sector centered at 0 assign an array of
-    bins to this
+        bins to this
     :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
-    labels of the format '30-90' by default
+        labels of the format '30-90' by default
     :param freq_as_percentage: Optional, True by default. Returns the frequency as percentages. To return just the
-    count, set to False
+        count, set to False
     :param return_data:  Set to True if you want the data returned.
     :type return_data: bool
-    :returns A DataFrame with row indexes as variable bins and columns as wind direction bins.
+    :returns: A DataFrame with row indexes as variable bins and columns as wind direction bins.
+
     """
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
@@ -317,7 +331,7 @@ def time_continuity_gaps(data):
     :param data: Data for checking continuity, timestamp must be the index
     :type data: pandas.Series or pandas.DataFrame
     :return: A dataframe with days lost and the start and end date between them
-    :rtype : pandas.DataFrame
+    :rtype: pandas.DataFrame
 
     """
     indexes = data.dropna(how='all').index
@@ -346,6 +360,7 @@ def coverage(data, period='1M', aggregation_method='mean'):
     :type aggregation_method: str
     :return: A dataframe with coverage and resolution of the new data. The columns with coverage are named as
             <column name>_Coverage
+
     """
 
     return tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,
@@ -363,7 +378,7 @@ def basic_stats(data):
     - max, maximum value of each column of data
 
     :param data: It can be a dataframe containing meteorological data or a series of some variable like wind speed,
-    direction, temperature, etc.
+        direction, temperature, etc.
     :type data: pandas.Series or pandas.DataFrame
     :rtype: A dataframe with columns count, mean, std, min amd max.
 
@@ -384,6 +399,7 @@ def basic_stats(data):
 def twelve_by_24(var_series, aggregation_method='mean', return_data=False):
     """
     Accepts a variable series and returns 12x24 (months x hours) table for the variable.
+
     :param var_series:
     :param aggregation_method: 'mean' by default calculates mean of the variable passed. Can change it to
             'sum', 'std', 'min', 'max', 'percentile' for sum, standard deviation, minimum, maximum, percentile
@@ -392,6 +408,7 @@ def twelve_by_24(var_series, aggregation_method='mean', return_data=False):
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
     :return: A dataframe with hours as row labels and months as column labels.
+
     """
     table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
                              var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
@@ -437,6 +454,7 @@ class TI:
                 * Rep_TI (Representative TI set at 90 percentile by default,
                 * TI_2Sigma (2 sigma TI),
                 * Char_TI (characteristic TI)
+
         :rtype: pandas.DataFrame
 
         """
@@ -494,8 +512,10 @@ class TI:
         :return: TI distribution with columns names as:
 
                 * Mean_TI (average TI for a speed bin),
-                * TI_Count ( number of data points in the bin),
+                * TI_Count ( number of data points in the bin)
+
         :rtype: pandas.DataFrame
+
         """
         ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std'), wddir.rename('wddir')], axis=1,
                        join='inner')
@@ -538,6 +558,7 @@ class SectorRatio:
         """
         Accepts two speed series and one direction series and returns the speed ratio by sector
         in a table
+
         :param wdspd_1: First wind speed series. This is divisor series.
         :type: wdspd_1: pandas.Series
         :param wdspd_2: Second wind speed series
@@ -551,7 +572,8 @@ class SectorRatio:
         :param boom_dir_2: Boom direction in degrees of speed_col_name_2.
         :param return_data:  Set to True if you want the data returned.
         :type return_data: bool
-        :returns A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
+        :returns: A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
+
         """
         sec_rat = SectorRatio.calc(wdspd_1, wdspd_2)
         common_idxs = sec_rat.index.intersection(wddir.index)
@@ -614,6 +636,7 @@ class Shear:
 def _calc_shear(wind_speeds, heights, return_coeff=False) -> (np.array, float):
     """
     Derive the best fit power law exponent (as 1/alpha) from a given time-step of speed data at 2 or more elevations
+
     :param wind_speeds: List of wind speeds [m/s]
     :param heights: List of heights [m above ground]. The position of the height in the list must be the same position
         in the list as its
@@ -627,6 +650,7 @@ def _calc_shear(wind_speeds, heights, return_coeff=False) -> (np.array, float):
         Characterise new distribution of speed values based on linear best fit
         Derive 'alpha' based on gradient of first and last best fit points (function works for 2 or more points)
         Return alpha value
+
     """
 
     logheights = np.log(heights)  # take log of elevations

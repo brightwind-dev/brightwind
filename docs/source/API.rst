@@ -4,23 +4,14 @@
 
 API reference
 =============
+
 .. toctree::
-	:maxdepth: 1
+    :maxdepth: 1
 
-	:caption: Contents:
-    load
-	OrdinaryLeastSquares
-	OrthogonalLeastSquares
-	
-.. autoclass:: analyse.correlation.OrdinaryLeastSquares
-    :inherited-members:
-	:skip: analyse.correlation.OrdinaryLeastSquares.linear_func
-	:members:  
-    :undoc-members:
-    :show-inheritance:
+    brightwind.analyse
+    brightwind.datasets
+    brightwind.export
+    brightwind.load
+    brightwind.transform
+    brightwind.utils
 
-.. autoclass:: analyse.correlation.OrthogonalLeastSquares
-    :inherited-members:
-	:members:  
-    :undoc-members:
-    :show-inheritance:
