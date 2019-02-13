@@ -21,8 +21,10 @@ import pandas as pd
 import math
 from brightwind.utils import utils
 import os
+import matplotlib as mpl
 
 __all__ = ['plot_timeseries']
+
 
 plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
