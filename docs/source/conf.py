@@ -20,14 +20,12 @@
 import os
 import sys
 import sphinx_bootstrap_theme
+import recommonmark
+from recommonmark.transform import AutoStructify
 path= os.getcwd()
-print(path)
 sys.path.insert(0, path.replace('docs\source','brightwind'))
-sys.path.insert(1, path.replace('docs\source','brightwind\\analyse'))
-sys.path.insert(1, path.replace('docs\source','brightwind\\load'))
-sys.path.insert(1, path.replace('docs\source','brightwind\\transform'))
-sys.path.insert(1, path.replace('docs\source','brightwind\\export'))
-sys.path.insert(1, path.replace('docs\source',''))
+
+
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -46,7 +44,8 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
-	'nbsphinx']
+	'nbsphinx',
+    'm2r']
 
 #For including base class methods in derived classes
 autoclass_content = 'both'
@@ -56,9 +55,12 @@ templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-#
-# source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+
+# source_parsers = {
+#    '.md': 'recommonmark.parser.CommonMarkParser',
+# }
+source_suffix = ['.rst', '.md']
+#source_suffix = '.rst'
 
 # The master toctree document.
 master_doc = 'index'
@@ -73,7 +75,7 @@ author = 'BrightWind Analysis'
 # built documents.
 #
 # The short X.Y version.
-version = '1'
+version = '0.1.0'
 # The full version, including alpha/beta/rc tags.
 release = ''
 
@@ -109,7 +111,16 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+'navbar_pagenav': False,
+'source_link_position': "remove",
+'navbar_links': [
+        ("Home", "index"),
+        ("Tutorials", "Tutorials"),
+        ("API", "API"),
+        ("Community", "Community"),
+    ]
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
