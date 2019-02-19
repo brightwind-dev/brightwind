@@ -112,7 +112,7 @@ pip install nbsphinx --user
 ```
 If a module file has not yet been created this will need to be done e.g.
 ```
-sphinx-apidoc -f -o source/ ../brightwind/load
+sphinx-autosummary API.rst
 ```
 ###### running
 If already set up then simply run
