@@ -20,8 +20,6 @@
 import os
 import sys
 import sphinx_bootstrap_theme
-import recommonmark
-from recommonmark.transform import AutoStructify
 path= os.getcwd()
 sys.path.insert(0, path.replace('docs\source','brightwind'))
 
@@ -35,17 +33,19 @@ sys.path.insert(0, path.replace('docs\source','brightwind'))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
-	'nbsphinx',
-    'm2r']
+
+extensions = ['sphinx.ext.autosummary',
+              'sphinx.ext.autodoc',
+            'sphinx.ext.doctest',
+            'sphinx.ext.intersphinx',
+            'sphinx.ext.todo',
+            'sphinx.ext.coverage',
+            'sphinx.ext.mathjax',
+            'sphinx.ext.ifconfig',
+            'sphinx.ext.viewcode',
+            'sphinx.ext.githubpages',
+            'nbsphinx',
+            'm2r']
 
 #For including base class methods in derived classes
 autoclass_content = 'both'
@@ -53,6 +53,7 @@ autoclass_content = 'both'
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
+autosummary_generate = True
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 
@@ -75,6 +76,7 @@ author = 'BrightWind Analysis'
 # built documents.
 #
 # The short X.Y version.
+import brightwind
 version = '0.1.0'
 # The full version, including alpha/beta/rc tags.
 release = ''
@@ -114,19 +116,21 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 html_theme_options = {
 'navbar_pagenav': False,
 'source_link_position': "remove",
+'navbar_sidebarrel': False,
 'navbar_links': [
         ("Home", "index"),
         ("Tutorials", "Tutorials"),
         ("API", "API"),
         ("Community", "Community"),
     ]
+
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 
-html_static_path = [path.replace('docs\source','docs\_static')]
+html_static_path = [path.replace('docs\source', 'docs\_static')]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -134,12 +138,10 @@ html_static_path = [path.replace('docs\source','docs\_static')]
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
 html_sidebars = {
-    '**': [
-        #'relations.html',  # needs 'show_related': True theme option to display
-        #'searchbox.html'
-    ]
+   'API': ['globaltoc.html', 'localtoc.html', 'relations.html'],
+   'index': [],
+    '**':['relations.html']
 }
-
 
 # -- Options for HTMLHelp output ------------------------------------------
 
