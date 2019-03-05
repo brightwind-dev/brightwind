@@ -326,17 +326,31 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
 
 def time_continuity_gaps(data):
     """
-    Returns the gaps in timestamps for the data, that means that data isn't available for that period.
+    Returns the start and end timestamps of missing data periods. Also days lost.
+
+    A missing data period is one where data is not available for some consecutive timestamps. This breaks
+    time continuity of the data. The function returns a dataframe where the first column is the starting timestamp
+    of the missing period and the second column is the end date of the missing period. An additional column also shows
+    how many days of data were lost in a missing period.
+
 
     :param data: Data for checking continuity, timestamp must be the index
     :type data: pandas.Series or pandas.DataFrame
     :return: A dataframe with days lost and the start and end date between them
     :rtype: pandas.DataFrame
 
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.shell_flats_80m_csv)
+        bw.time_continuity_gaps(data['WS70mA100NW_Avg'])
+
     """
+
     indexes = data.dropna(how='all').index
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1], 'Date To': indexes.values.flatten()[1:]})
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
+    #Remove indexes where no days are lost before returning
     return continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
 
 
