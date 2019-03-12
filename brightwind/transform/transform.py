@@ -66,7 +66,7 @@ def _get_data_resolution(data_idx):
     ::
         import brightwind as bw
         df = bw.load_campbell_scientific(bw.datasets.demo_site_data)
-        resolution = bw._get_data_resolution(df.Spd80mS)
+        resolution = bw._get_data_resolution(df.Spd80mS.index)
         #To check the number of seconds in resolution
         print(resolution.seconds)
 
