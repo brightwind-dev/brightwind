@@ -19,7 +19,8 @@ import pandas as pd
 import math
 from brightwind.utils import utils
 
-__all__ = ['average_data_by_period', 'adjust_slope_offset', 'scale_wind_speed', 'offset_wind_direction']
+__all__ = ['average_data_by_period', 'adjust_slope_offset', 'scale_wind_speed', 'offset_wind_direction',
+           '_get_data_resolution']
 
 
 def _compute_wind_vector(wspd, wdir):
@@ -50,8 +51,28 @@ def _get_min_overlap_timestamp(df1_timestamps, df2_timestamps):
 
 def _get_data_resolution(data_idx):
     """
-    Get the frequency of data i.e. the most common time interval between timestamps. Returns a timedelta object
+    Get the frequency of data i.e. the most common time interval between timestamps.
+
+    The algorithm finds the most common time difference between consecutive time stamps and returns the
+    most common time stamp. Also checks the most common time difference and the minimum time difference. If they
+    do not match it shows a warning. It is suggested to manually look at the data if such a warning is shown.
+
+    :param data_idx: Indexes of the dataframe or series
+    :type data_idx: pandas.DataFrame.index or pandas.Series.index
+    :return: A time delta object which represents the time difference between consecutive timestamps.
+    :rtype: pandas.Timedelta
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        resolution = bw._get_data_resolution(df.Spd80mS.index)
+        #To check the number of seconds in resolution
+        print(resolution.seconds)
+
+
     """
+
     import warnings
     time_diff_btw_timestamps = data_idx.to_series().diff()
     most_freq_time_diff = time_diff_btw_timestamps.mode().values[0]

@@ -62,3 +62,19 @@ def test_adjust_slope_offset_arg_wndspd_series_str():
     with pytest.raises(TypeError) as except_info:
         bw.adjust_slope_offset(pd.Series([2, 3, '4', 5]), current_slope, current_offset, new_slope, new_offset)
     assert str(except_info.value) == "some values in the Series are not of data type number"
+
+def test_get_data_resolution():
+    import warnings
+    series1 = bw.load_campbell_scientific(bw.datasets.demo_site_data)['Spd80mS'].index
+    assert bw._get_data_resolution(series1).seconds == 600
+
+    series2 = pd.date_range('2010-01-01', periods=150, freq='H')
+    assert bw._get_data_resolution(series2).seconds == 3600
+
+    #hourly series with one instance where difference between adjacent timestamps is 10 min
+    series3 = pd.date_range('2010-04-15', '2010-05-01', freq='H').union(pd.date_range('2010-05-01 00:10:00', periods=20,
+                                                                                    freq='H'))
+    with warnings.catch_warnings(record=True) as w:
+        assert bw._get_data_resolution(series3).seconds == 3600
+        assert len(w) == 1
+
