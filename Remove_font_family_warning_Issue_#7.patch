@@ -1,0 +1,16 @@
+Index: brightwind/analyse/plot.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- brightwind/analyse/plot.py	(revision 2b42320538c3a846ebff83ab9ab3ba494743393c)
++++ brightwind/analyse/plot.py	(date 1552655885246)
+@@ -34,7 +34,7 @@
+     raise 'Found exception when checking installed fonts. {}'.format(str(ex))
+     
+ 
+-plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
++#plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
+ 
+ 
+ def bw_colors(bw_color):
