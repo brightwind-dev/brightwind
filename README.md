@@ -1,4 +1,12 @@
-# brightwind
+--------------
+```
+     __         _       __    __           _           __
+    / /_  _____(_)___  / /_  / /__      __(_)___  ___ / /
+   / __ \/ ___/ / __ \/ __ \/ __/ | /| / / / __ \/ __  /
+  / /_/ / /  / / /_/ / / / / /_ | |/ |/ / / / / / /_/ /
+ /_.___/_/  /_/\__, /_/ /_/\__/ |__/|__/_/_/ /_/\__,_/
+              /____/
+ ```
 --------------
 
 The brightwind python library aims to empower wind resource analysts and
@@ -93,7 +101,7 @@ Most contributors use the PyCharm IDE and follow the built in PyCharm code style
 ### Sphinx-docs
 ###### setting up Sphinx-docs
 
-From Anaconda prompt navigate to brightwind/sphinx-docs
+Currently we used Sphinx to automate documentation. Download sphinx-bootstrap-theme using the following command:
 
 ```
 pip install sphinx-bootstrap-theme
@@ -104,13 +112,15 @@ pip install nbsphinx --user
 ```
 If a module file has not yet been created this will need to be done e.g.
 ```
-sphinx-doc -f -o source/ ../brightwind/load
+sphinx-autogen -o  generated source\API.rst
 ```
 ###### running
 If already set up then simply run
 ```
 make html
 ```
+
+The documentation is hosted using github pages and there is a separate repo brightwind-docs to host files for the webpage. To know how to set up the repos to contribute to the documentations, see README for brightwind-docs.
 <br>
 
 ---

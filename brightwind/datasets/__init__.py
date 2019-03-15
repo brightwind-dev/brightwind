@@ -1,12 +1,12 @@
 """
 Example datasets that can be used with the library.
 
-Usage:
-import brightwind as bw
-
-shell_flats_80m_csv = bw.load_csv(bw.datasets.shell_flats_80m_csv)
-shell_flats_50m_csv = bw.load_csv(bw.datasets.shell_flats_50m_csv)
-shell_flats_merra = bw.load_csv(bw.datasets.shell_flats_merra)
+**Example usage**
+::
+    import brightwind as bw
+    shell_flats_80m_csv = bw.load_csv(bw.datasets.shell_flats_80m_csv)
+    shell_flats_50m_csv = bw.load_csv(bw.datasets.shell_flats_50m_csv)
+    shell_flats_merra = bw.load_csv(bw.datasets.shell_flats_merra)
 
 """
 import os

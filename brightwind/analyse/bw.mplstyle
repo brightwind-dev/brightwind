@@ -8,7 +8,7 @@
 grid.color : a0a0a0
 axes.edgecolor : 2e3743
 figure.figsize : 13, 9
-#font.family : Gotham Rounded
+font.family : Gotham Rounded
 axes.labelsize : 18
 axes.titlesize : 18
 legend.fontsize : 12

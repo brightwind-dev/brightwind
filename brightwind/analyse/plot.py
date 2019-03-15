@@ -25,12 +25,14 @@ import matplotlib as mpl
 
 __all__ = ['plot_timeseries']
 
+
 try:
     if 'Gotham Rounded' in \
             [mpl.font_manager.FontProperties(fname=i).get_name() for i in mpl.font_manager.findSystemFonts()]:
         mpl.rcParams['font.family'] = 'Gotham Rounded'
 except Exception as ex:
     raise 'Found exception when checking installed fonts. {}'.format(str(ex))
+    
 
 plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
@@ -62,12 +64,14 @@ def bw_colors(bw_color):
 def plot_timeseries(data, date_from='', date_to=''):
     """
     Plots timeseries data
+
     :param data: Dataframe to plot
     :param date_from: Start date used for plotting in yyyy-mm-dd format
     :type date_from: str
     :param date_to: End date used for plotting in yyyy-mm-dd format
     :type date_to: str
     :return: Timeseries plot
+
     """
     sliced_data = utils._slice_data(data, date_from, date_to)
     return sliced_data.plot().get_figure()

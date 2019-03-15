@@ -21,9 +21,13 @@ import os
 import sys
 import sphinx_bootstrap_theme
 path= os.getcwd()
+print(path)
 sys.path.insert(0, path.replace('docs\source','brightwind'))
-
-
+sys.path.insert(1, path.replace('docs\source','brightwind\\analyse'))
+sys.path.insert(1, path.replace('docs\source','brightwind\\load'))
+sys.path.insert(1, path.replace('docs\source','brightwind\\transform'))
+sys.path.insert(1, path.replace('docs\source','brightwind\\export'))
+sys.path.insert(1, path.replace('docs\source',''))
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.

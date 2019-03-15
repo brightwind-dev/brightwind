@@ -1,5 +1,5 @@
 import pytest
-from ..load.load import load_csv
+from brightwind.load.load import load_csv
 import brightwind.datasets
 
 

@@ -1,7 +1,7 @@
 import pytest
-from ..analyse.analyse import monthly_means, SectorRatio
+from brightwind.analyse.analyse import monthly_means, SectorRatio, basic_stats, time_continuity_gaps
 
-from ..load.load import load_csv
+from brightwind.load.load import load_csv
 import brightwind.datasets
 
 def test_monthly_means():
@@ -20,3 +20,23 @@ def test_sector_ratio_by_sector():
     SectorRatio.by_sector(data['WS70mA100NW_Avg'], data['WS70mA100SE_Avg'], data['WD50mW200PNW_VAvg'],
                           sectors = 72, boom_dir_1 = 315, boom_dir_2 = 135,return_data=True)[1]
     assert True
+
+def test_basic_stats():
+    data = load_csv(brightwind.datasets.shell_flats_80m_csv)
+    basic_stats(data)
+    bs2 = basic_stats(data['WS70mA100NW_Avg'])
+    assert (bs2['count']==58874.0).bool() and((bs2['mean']-9.169382)<1e-6).bool() and ((bs2['std']-4.932851)<1e-6).bool()\
+           and (bs2['max']==27.66).bool() and (bs2['min']==0.0).bool()
+
+def test_time_continuity_gaps():
+    import pandas as pd
+    data = load_csv(brightwind.datasets.shell_flats_80m_csv)
+    gaps = time_continuity_gaps(data['WS70mA100NW_Avg'][:400])
+    assert gaps.iloc[0, 0] == pd.Timestamp('2011-07-16 17:50:00')
+    assert gaps.iloc[0, 1] == pd.Timestamp('2011-07-16 18:10:00')
+    assert gaps.iloc[1, 0] == pd.Timestamp('2011-07-16 23:00:00')
+    assert gaps.iloc[1, 1] == pd.Timestamp('2011-07-16 23:20:00')
+    assert abs(gaps.iloc[0, 2] - 0.01388) < 1e-5
+    assert abs(gaps.iloc[1, 2] - 0.01388) < 1e-5
+
+

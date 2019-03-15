@@ -4,16 +4,29 @@ analyse package
 Submodules
 ----------
 
-analyse\.correlation module
----------------------------
+analyse.analyse module
+----------------------
 
-.. autoclass:: analyse.correlation.OrdinaryLeastSquares
-    :inherited-members:
-	:skip: analyse.correlation.OrdinaryLeastSquares.linear_func
-	:members:  
+.. automodule:: analyse.analyse
+    :members:
     :undoc-members:
     :show-inheritance:
 
+analyse.correlation module
+--------------------------
+
+.. automodule:: analyse.correlation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+analyse.plot module
+-------------------
+
+.. automodule:: analyse.plot
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 
 Module contents
