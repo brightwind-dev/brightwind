@@ -34,7 +34,7 @@ except Exception as ex:
     raise 'Found exception when checking installed fonts. {}'.format(str(ex))
     
 
-plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
+#plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
 
 def bw_colors(bw_color):
