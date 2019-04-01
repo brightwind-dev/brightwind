@@ -3,6 +3,7 @@ from brightwind.analyse.analyse import monthly_means, SectorRatio, basic_stats, 
 
 from brightwind.load.load import load_csv
 import brightwind.datasets
+import brightwind as bw
 
 def test_monthly_means():
     #Load data
@@ -39,4 +40,12 @@ def test_time_continuity_gaps():
     assert abs(gaps.iloc[0, 2] - 0.01388) < 1e-5
     assert abs(gaps.iloc[1, 2] - 0.01388) < 1e-5
 
+def test_coverage():
+    data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
 
+    # hourly coverage
+    data_hourly = bw.coverage(data.Spd80mN, period='1H')
+    # monthly_coverage
+    data_hourly = bw.coverage(data.Spd80mN, period='1M')
+    # monthly_coverage of variance
+    data_hourly = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')

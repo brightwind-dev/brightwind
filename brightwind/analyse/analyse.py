@@ -363,6 +363,10 @@ def coverage(data, period='1M', aggregation_method='mean'):
     """
     Get the data coverage over the period specified
 
+    Coverage is defined as the ratio of number of data points present in the period and the maximum number of
+    data points that a period should have depending on the resolution of data (wind data is usually of 10 minutes
+    resolution). It is a wrapper around the function average_data_by_period
+
     :param data: Data to check the coverage of
     :type data: pandas.Series or pandas.DataFrame
     :param period: Groups data by the period specified by period.
@@ -374,12 +378,31 @@ def coverage(data, period='1M', aggregation_method='mean'):
             - Set period to 1AS fo annual average
 
     :type period: string or pandas.DateOffset
-    :param aggregation_method: (Optional) Calculates mean of the data for the given averaging_prd by default. Can be
-            changed to 'sum', 'std', 'max', 'min', etc. or a user defined function
+    :param aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also use
+        `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product, summation,
+        standard deviation, variance, maximum and minimum respectively.
     :type aggregation_method: str
     :return: A dataframe with coverage and resolution of the new data. The columns with coverage are named as
             <column name>_Coverage
 
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+
+        #To find hourly coverage
+        data_hourly = bw.coverage(data.Spd80mN, period='1H')
+
+        #To find monthly_coverage
+        data_hourly = bw.coverage(data.Spd80mN, period='1M')
+
+        #To find monthly_coverage of variance
+        data_hourly = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')
+
+
+    See Also
+    --------
+    bw.average_data_by_period
     """
 
     return tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,

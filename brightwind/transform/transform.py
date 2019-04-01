@@ -139,12 +139,62 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
                            coverage_threshold=1, return_coverage=False) -> pd.DataFrame:
     """
     Averages the data by the time period specified by period.
-    Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
-    Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-    Set period to 1M for monthly average
-    Set period to 1AS for annual taking start of the year as the date
-    For minutes use 10min, 20 min, etc.
-    Can be a DateOffset object too
+
+    Aggregates the data by the aggregation_method specified, by default averages the data to the period specified. Can
+    be used to find hourly, daily, weekly, etc. averages or sums. Can also return coverage and filter the returned data
+    by coverage.
+
+    :param data: Data to find average or aggregate of
+    :type data: pandas.Series
+    :param period: Groups data by the period specified here. The following formats are supported
+
+            - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
+            - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+            - Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
+            - Set period to 1W for a weekly average, 3W for three hourly average, similarly 2W, 4W etc.
+            - Set period to 1M for monthly average
+            - Set period to 1AS fo annual average
+            - Can be a DateOffset object too
+
+    :type period: str or pandas.DateOffset
+    :param aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also use
+        `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product, summation,
+        standard deviation, variance, maximum and minimum respectively.
+    :type aggregation_method: str
+    :param filter_by_coverage_threshold: It removes the time periods where the coverage is below coverage_threshold.
+        Coverage is defined as the ratio of number of data points present in the period and the maximum number of
+        data points that a period should have depending on the resolution of data (wind data is usually of 10 minutes
+        resolution). Default is False
+    :type filter_by_coverage_threshold: bool
+    :param coverage_threshold: It should be greater than 0 and less than or equal to 1. for definition of coverage see
+        filter_by_coverage_threshold. Default is 1 i.e. if any timestamp is missing for that period remove that period.
+    :type coverage_threshold: float
+    :param return_coverage: If True appends and additional column in the dataframe returned with coverage calculated for
+        each period. The columns with coverage are named as <column name>_Coverage
+    :type return_coverage: bool
+    :returns: A DataFrame with data aggregated with the specified aggregation_method (mena by default). Additionally it
+        can be filtered based on coverage and a coverage column can also be appended.
+    :rtype: DataFrame
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+
+        #To find hourly averages
+        data_hourly = bw.average_data_by_period(data.Spd80mN, period='1H')
+
+        #To find monthly averages
+        data_monthly = bw.average_data_by_period(data.Spd80mN, period='1M')
+
+        #To filter months where half of the data is missing
+        data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M',
+            filter_by_coverage_threshold=True, coverage_threshold=0.5)
+
+        #To check the coverage for all months
+        data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M',  return_coverage=True)
+
+
     """
     data = data.sort_index()
     if isinstance(period, str):
