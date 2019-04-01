@@ -140,7 +140,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
     """
     Averages the data by the time period specified by period.
 
-    Aggregates the data by the aggregation_method specified, by default averages the data to the period specified. Can
+    Aggregates data by the aggregation_method specified, by default averages the to the period specified. Can
     be used to find hourly, daily, weekly, etc. averages or sums. Can also return coverage and filter the returned data
     by coverage.
 
@@ -150,8 +150,8 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
 
             - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
             - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-            - Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
-            - Set period to 1W for a weekly average, 3W for three hourly average, similarly 2W, 4W etc.
+            - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
+            - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
             - Set period to 1M for monthly average
             - Set period to 1AS fo annual average
             - Can be a DateOffset object too
@@ -163,16 +163,17 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
     :type aggregation_method: str
     :param filter_by_coverage_threshold: It removes the time periods where the coverage is below coverage_threshold.
         Coverage is defined as the ratio of number of data points present in the period and the maximum number of
-        data points that a period should have depending on the resolution of data (wind data is usually of 10 minutes
-        resolution). Default is False
+        data points that a period should have. Example, for 10 minute data resolution and a period of 1 hour the
+        maximum number of data points in one period is 6. But if the number if data points available is only 3 for that
+        hour the coverage is 3/6=0.5
     :type filter_by_coverage_threshold: bool
-    :param coverage_threshold: It should be greater than 0 and less than or equal to 1. for definition of coverage see
-        filter_by_coverage_threshold. Default is 1 i.e. if any timestamp is missing for that period remove that period.
+    :param coverage_threshold: It should be greater than 0 and less than or equal to 1. For definition of coverage see
+        filter_by_coverage_threshold. Default is 1 i.e. if any timestamp is missing for that period, remove that period.
     :type coverage_threshold: float
-    :param return_coverage: If True appends and additional column in the dataframe returned with coverage calculated for
+    :param return_coverage: If True appends and additional column in the DataFrame returned, with coverage calculated for
         each period. The columns with coverage are named as <column name>_Coverage
     :type return_coverage: bool
-    :returns: A DataFrame with data aggregated with the specified aggregation_method (mena by default). Additionally it
+    :returns: A DataFrame with data aggregated with the specified aggregation_method (mean by default). Additionally it
         can be filtered based on coverage and a coverage column can also be appended.
     :rtype: DataFrame
 
@@ -196,6 +197,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
 
 
     """
+
     data = data.sort_index()
     if isinstance(period, str):
         if period[-1] == 'D':
