@@ -73,7 +73,11 @@ def plot_timeseries(data, date_from='', date_to=''):
     :return: Timeseries plot
 
     """
-    sliced_data = utils._slice_data(data, date_from, date_to)
+    if isinstance(data, pd.Series):
+        data_to_slice = data.copy(deep=False).to_frame()
+    else:
+        data_to_slice = data.copy()
+    sliced_data = utils._slice_data(data_to_slice, date_from, date_to)
     return sliced_data.plot().get_figure()
 
 
