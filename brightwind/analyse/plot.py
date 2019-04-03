@@ -65,7 +65,7 @@ def plot_timeseries(data, date_from='', date_to=''):
     """
     Plots timeseries data
 
-    :param data: Dataframe to plot
+    :param data: DataFrame to plot
     :param date_from: Start date used for plotting in yyyy-mm-dd format
     :type date_from: str
     :param date_to: End date used for plotting in yyyy-mm-dd format
@@ -200,13 +200,13 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6eba
     return ax.get_figure()
 
 
-def plot_TI_by_speed(wdspd, wdspd_std, ti, IEC_class=None):
+def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
     """
     Plot turbulence intensity graphs alongside with IEC standards
     :param wdspd:
     :param wdspd_std:
-    :param ti: Dataframe returned from TI.by_speed() in analyse
-    :param IEC_class: By default IEC class 2005 is used for custom class pass a dataframe. Note we have removed
+    :param ti: DataFrame returned from TI.by_speed() in analyse
+    :param IEC_class: By default IEC class 2005 is used for custom class pass a DataFrame. Note we have removed
         option to include IEC Class 1999 as no longer appropriate.
         This may need to be placed in a separate function when updated IEC standard is released
     :return: Plots turbulence intensity distribution by wind speed
@@ -221,9 +221,9 @@ def plot_TI_by_speed(wdspd, wdspd_std, ti, IEC_class=None):
             IEC_class.iloc[n, 1] = 0.16 * (0.75 + (5.6 / n))
             IEC_class.iloc[n, 2] = 0.14 * (0.75 + (5.6 / n))
             IEC_class.iloc[n, 3] = 0.12 * (0.75 + (5.6 / n))
-    common_idxs = wdspd.index.intersection(wdspd_std.index)
+    common_idxs = wspd.index.intersection(wspd_std.index)
     fig, ax = plt.subplots()
-    ax.scatter(wdspd.loc[common_idxs], wdspd_std.loc[common_idxs]/wdspd.loc[common_idxs],
+    ax.scatter(wspd.loc[common_idxs], wspd_std.loc[common_idxs]/wspd.loc[common_idxs],
                color=bw_colors('green'), alpha=0.3, marker='.')
     ax.plot(ti.index.__array__(), ti.loc[:, 'Mean_TI'].values, color=bw_colors('darkgreen'))[0].set_label('Mean_TI')
     ax.plot(ti.index.__array__(), ti.loc[:, 'Rep_TI'].values, color=bw_colors('redline'))[0].set_label('Rep_TI')
@@ -240,7 +240,7 @@ def plot_TI_by_speed(wdspd, wdspd_std, ti, IEC_class=None):
     return ax.get_figure()
 
 
-def plot_TI_by_sector(turbulence, wddir, ti):
+def plot_TI_by_sector(turbulence, wdir, ti):
     radians = np.radians(utils._get_dir_sector_mid_pts(ti.index))
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
@@ -251,7 +251,7 @@ def plot_TI_by_sector(turbulence, wddir, ti):
             figure=fig)
     maxlevel = ti['Mean_TI'].max() + 0.1
     ax.set_ylim(0, maxlevel)
-    ax.scatter(np.radians(wddir), turbulence, c=bw_colors('asphault'), alpha=0.3, s=1)
+    ax.scatter(np.radians(wdir), turbulence, c=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
 
@@ -259,7 +259,7 @@ def plot_TI_by_sector(turbulence, wddir, ti):
 
 
 
-def plot_shear_by_sector(shear, wddir, shear_dist):
+def plot_shear_by_sector(shear, wdir, shear_dist):
     radians = np.radians(utils._get_dir_sector_mid_pts(shear_dist.index))
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
@@ -271,7 +271,7 @@ def plot_shear_by_sector(shear, wddir, shear_dist):
     # ax.set_title('Shear by Direction')
     maxlevel = shear_dist['Mean_Shear'].max() + 0.1
     ax.set_ylim(0, maxlevel)
-    ax.scatter(np.radians(wddir), shear, c=bw_colors('asphault'), alpha=0.3, s=1)
+    ax.scatter(np.radians(wdir), shear, c=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
 
@@ -279,7 +279,7 @@ def plot_shear_by_sector(shear, wddir, shear_dist):
 def plot_12x24_contours(tab_12x24, title='Variable'):
     """
     Get Contour Plot of 12 month x 24 hour matrix of turbulence intensity
-    :param tab_12x24: Dataframe returned from get_12x24() in analyse
+    :param tab_12x24: DataFrame returned from get_12x24() in analyse
     :param title: Title of the plot
     :return: 12x24 figure
     """
@@ -303,13 +303,13 @@ def plot_12x24_contours(tab_12x24, title='Variable'):
     return ax.get_figure()
 
 
-def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1):
+def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1):
     """
-    Accepts a dataframe table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
+    Accepts a DataFrame table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
     by sector. Optionally can include anemometer boom directions also.
     :param sec_ratio:
-    :param wddir:
-    :param sec_ratio_dist: Dataframe from SectorRation.by_speed()
+    :param wdir:
+    :param sec_ratio_dist: DataFrame from SectorRation.by_speed()
     :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to 0.
     :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to 0.
     :param col_names: A list of strings containing column names of wind speeds
@@ -344,18 +344,18 @@ def plot_sector_ratio(sec_ratio, wddir, sec_ratio_dist, col_names, boom_dir_1=-1
     if ctr == 2:
         ax.annotate('*Plot generated using ' + col_names[1] + ' (yellow green boom) divided by' + col_names[0] +
                     ' (blue boom)', xy=(20, 10), xycoords='figure pixels')
-    ax.scatter(np.radians(wddir), sec_ratio, c=bw_colors('asphault'), alpha=0.3, s=1)
+    ax.scatter(np.radians(wdir), sec_ratio, c=bw_colors('asphault'), alpha=0.3, s=1)
     return ax.get_figure()
 
 
-def plot_shear(avg_alpha, avg_c, wdspds, heights):
+def plot_shear(avg_alpha, avg_c, wspds, heights):
     plot_heights = np.linspace(0, max(heights), num=100)
     speeds = avg_c*(plot_heights**avg_alpha)
     fig, ax = plt.subplots()
     ax.set_xlabel('Speed (m/s)')
     ax.set_ylabel('Elevation (m)')
     ax.plot(speeds, plot_heights, '-', color='#9ACD32')
-    ax.scatter(wdspds, heights, marker='o', color=bw_colors('asphault'))
+    ax.scatter(wspds, heights, marker='o', color=bw_colors('asphault'))
     ax.grid()
     ax.set_xlim(0, max(speeds)+1)
     ax.set_ylim(0, max(plot_heights)+10)

@@ -28,7 +28,7 @@ __all__ = ['load_csv', 'load_campbell_scientific', 'load_excel', 'load_brightdat
 def _list_files(folder_path, file_type):
     """
     Return a list of file names retrieved from a folder filtering for a specific list of file types. This will walk
-    through all subfolders.
+    through all sub-folders.
 
     :param folder_path: The path to the folder to search through.
     :type folder_path: str
@@ -52,19 +52,19 @@ def _list_files(folder_path, file_type):
 
 def _assemble_df_from_folder(source_folder, file_type, function_to_get_df, print_progress=False, **kwargs):
     """
-    Assemble a dataframe from from multiple data files scattered in subfolders filtering for a
+    Assemble a DataFrame from from multiple data files scattered in subfolders filtering for a
     specific list of file types and reading those files with a specific function.
 
     :param source_folder: Is the main folder to search through.
     :type source_folder: str
     :param file_type: Is a list of file extensions to filter for e.g. ['.csv', '.txt']
     :type file_type: List[str]
-    :param function_to_get_df: The function to call to read each data file into a dataframe.
+    :param function_to_get_df: The function to call to read each data file into a DataFrame.
     :type function_to_get_df: python function
     :param print_progress: If you want print out statements of the files been processed set to true. Default is False.
     :type print_progress: bool, default False
     :param kwargs: All the kwargs that can be passed to this function.
-    :return: A dataframe with timestamps as it's index
+    :return: A DataFrame with timestamps as it's index
     :rtype: pandas.DataFrame
     """
     files_list = _list_files(source_folder, file_type)
@@ -102,7 +102,7 @@ def _pandas_read_csv(filepath, **kwargs):
     :param filepath: The file to read.
     :type filepath: str
     :param kwargs: Extra key word arguments to be applied.
-    :return: A pandas dataframe.
+    :return: A pandas DataFrame.
     :rtype: pandas.DataFrame
     """
     try:
@@ -115,7 +115,7 @@ def _pandas_read_csv(filepath, **kwargs):
 
 def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=False, **kwargs):
     """
-    Load timeseries data from a csv file, or group of files in a folder, into a dataframe.
+    Load timeseries data from a csv file, or group of files in a folder, into a DataFrame.
     The format of the csv file should be column headings in the first row with the timestamp column as the first
     column, however these can be over written by sending your own arguments as this is a wrapper around the
     pandas.read_csv function. The pandas.read_csv documentation can be found at:
@@ -128,10 +128,10 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Fa
     :param print_progress: If you want to print out statements of the file been processed set to True. Default is False.
     :type print_progress: bool, default False
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
-    :return: A dataframe with timestamps as it's index.
+    :return: A DataFrame with timestamps as it's index.
     :rtype: pandas.DataFrame
 
-    When assembling files from folders into a single dataframe with timestamp as the index it automatically checks for
+    When assembling files from folders into a single DataFrame with timestamp as the index it automatically checks for
     duplicates and throws an error if any found.
 
     **Example usage**
@@ -166,7 +166,7 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Fa
 def load_campbell_scientific(filepath_or_folder, print_progress=False, **kwargs):
     """
     Load timeseries data from Campbell Scientific CR1000 formatted file, or group of files in a folder, into a
-    dataframe. If the file format is slightly different your own key word arguments can be sent as this is a wrapper
+    DataFrame. If the file format is slightly different your own key word arguments can be sent as this is a wrapper
     around the pandas.read_csv function. The pandas.read_csv documentation can be found at:
     https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html
 
@@ -175,10 +175,10 @@ def load_campbell_scientific(filepath_or_folder, print_progress=False, **kwargs)
     :param print_progress: If you want to print out statements of the file been processed set to True. Default is False.
     :type print_progress: bool, default False
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
-    :return: A dataframe with timestamps as it's index
+    :return: A DataFrame with timestamps as it's index
     :rtype: pandas.DataFrame
 
-    When assembling files from folders into a single dataframe with timestamp as the index it automatically checks for
+    When assembling files from folders into a single DataFrame with timestamp as the index it automatically checks for
     duplicates and throws an error if any found.
 
     **Example usage**
@@ -210,7 +210,7 @@ def _pandas_read_excel(filepath, **kwargs):
     :param filepath: The file to read.
     :type filepath: str
     :param kwargs: Extra key word arguments to be applied.
-    :return: A pandas dataframe
+    :return: A pandas DataFrame
     :rtype: pandas.DataFrame
     """
     try:
@@ -223,7 +223,7 @@ def _pandas_read_excel(filepath, **kwargs):
 
 def load_excel(filepath_or_folder, search_by_file_type=['.xlsx'], print_progress=False, sheet_name=0, **kwargs):
     """
-    Load timeseries data from an Excel file, or group of files in a folder, into a dataframe.
+    Load timeseries data from an Excel file, or group of files in a folder, into a DataFrame.
     The format of the Excel file should be column headings in the first row with the timestamp column as the first
     column, however these can be over written by sending your own arguments as this is a wrapper around the
     pandas.read_excel function. The pandas.read_excel documentation can be found at:
@@ -238,10 +238,10 @@ def load_excel(filepath_or_folder, search_by_file_type=['.xlsx'], print_progress
     :param sheet_name: The Excel file sheet name you want to read from.
     :type sheet_name: string, int, mixed list of strings/ints, or None, default 0
     :param kwargs: All the kwargs from pandas.read_excel can be passed to this function.
-    :return: A dataframe with timestamps as it's index.
+    :return: A DataFrame with timestamps as it's index.
     :rtype: pandas.DataFrame
 
-    When assembling files from folders into a single dataframe with timestamp as the index it automatically checks for
+    When assembling files from folders into a single DataFrame with timestamp as the index it automatically checks for
     duplicates and throws an error if any found.
 
     **Example usage**
