@@ -99,7 +99,7 @@ class CorrelBase:
                              self._predict(self.data['ref_spd']).values.flatten(), title=title)
 
     def synthesize(self, ext_input=None):
-        # This will give eroneous result when the averagingperiod is not a whole number such that ref and target does
+        # This will give erroneous result when the averaging period is not a whole number such that ref and target does
         # bot get aligned -Inder
         if ext_input is None:
             output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
@@ -126,11 +126,11 @@ class CorrelBase:
 
 
 class OrdinaryLeastSquares(CorrelBase):
-    """Accepts two dataframes with timestamps as indexes and averaging period.
+    """Accepts two DataFrames with timestamps as indexes and averaging period.
 
     :param ref_spd: Series containing reference speed as a column, timestamp as the index.
     :type ref_spd: pandas.Series
-    :param target_spd: Dataframe containing target speed as a column, timestamp as the index.
+    :param target_spd: DataFrame containing target speed as a column, timestamp as the index.
     :type target_spd: pandas.Series
     :param averaging_prd: Groups data by the period specified by period.
 
@@ -468,7 +468,7 @@ class SpeedSort(CorrelBase):
         return prediction.sort_index()
 
     def synthesize(self, input_spd=None, input_dir=None):
-        # This will give eroneous result when the averagingperiod is not a whole number such that ref and target does
+        # This will give erroneous result when the averagingperiod is not a whole number such that ref and target does
         # bot get aligned -Inder
         if input_spd is None and input_dir is None:
             output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,

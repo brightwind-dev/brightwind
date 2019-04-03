@@ -45,7 +45,7 @@ def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='m
     :type averaging_prd: str
     :param aggregation_method_target: (Optional) Calculates mean of the data for the given averaging_prd by default.
             Can be changed to 'sum', 'std', 'max', 'min', etc. or a user defined function
-    :return: A dataframe with concurrent coverage and resolution of the new data. The columns with coverage are named as
+    :return: A DataFrame with concurrent coverage and resolution of the new data. The columns with coverage are named as
             <column name>_Coverage
 
     """
@@ -64,13 +64,13 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
-def monthly_means(wdspds, return_data=False, return_coverage=False):
+def monthly_means(data, return_data=False, return_coverage=False):
     """
-    Plots means for calendar months in a timeseries plot. Input can be a series or a dataframe. Can
+    Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
 
-    :param wdspds: A timeseries to find monthly means of. Can have multiple columns
-    :type wdspds: Series or dataframe
+    :param data: A timeseries to find monthly means of. Can have multiple columns
+    :type data: Series or DataFrame
     :param return_data: To return data of monthly means along with the plot.
     :type return_data: bool
     :param return_coverage: To return monthly coverage along with the data and plot.
@@ -100,18 +100,18 @@ def monthly_means(wdspds, return_data=False, return_coverage=False):
     # if not isinstance(wdspds, list):
     #     wdspds = [wdspds]
     # data = tf.average_data_by_period(pd.concat(wdspds, axis=1, join='outer'), period='1MS')
-    data = tf.average_data_by_period(wdspds, period='1MS')
+    df = tf.average_data_by_period(data, period='1MS')
     if return_data and not return_coverage:
-        return plt.plot_timeseries(data), data
+        return plt.plot_timeseries(df), df
     if return_coverage:
-        return plt.plot_timeseries(data), \
-               pd.concat([data, coverage(wdspds, period='1M', aggregation_method='mean')], axis=1)
+        return plt.plot_timeseries(df), \
+               pd.concat([df, coverage(data, period='1M', aggregation_method='mean')], axis=1)
     return plt.plot_timeseries(data)
 
 
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Return a dataframe of mean of monthly means for each column in the dataframe with timestamp as the index.
+    Return a DataFrame of mean of monthly means for each column in the DataFrame with timestamp as the index.
     Calculate the monthly mean for each calendar month and then average the resulting 12 months.
     """
     monthly_df: pd.DataFrame = df.groupby(df.index.month).mean().mean().to_frame()
@@ -121,11 +121,11 @@ def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
 
 def momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
     """
-    Calculates and returns long term reference speed. Accepts a dataframe
+    Calculates and returns long term reference speed. Accepts a DataFrame
     with timestamps as index column and another column with wind-speed. You can also specify
     date_from and date_to to calculate the long term reference speed for only that period.
 
-    :param data: Pandas dataframe with timestamp as index and a column with wind-speed
+    :param data: Pandas DataFrame with timestamp as index and a column with wind-speed
     :param date_from: Start date as string in format YYYY-MM-DD
     :param date_to: End date as string in format YYYY-MM-DD
     :returns: Long term reference speed
@@ -193,17 +193,17 @@ def distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41, 1)
         return data.groupby(['variable_bin'])['data'].agg(aggregation_method)
 
 
-def distribution_by_wind_speed(wdspd, return_data=False):
+def distribution_by_wind_speed(wspd, return_data=False):
     """
     Accepts 2 series of same/different variables and computes the distribution of first variable with respect to
     the bins of another variable.
 
-    :param wdspd: Series of the variable whose distribution we need to find
+    :param wspd: Series of the variable whose distribution we need to find
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
 
     """
-    freq_dist = distribution(wdspd, wdspd, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
+    freq_dist = distribution(wspd, wspd, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
                              aggregation_method='%frequency')
     if return_data:
         return plt.plot_freq_distribution(freq_dist), freq_dist
@@ -243,7 +243,7 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
             bins to this
     :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
             labels of the format '30-90' by default
-    :returns: A dataframe/series with wind direction sector as row indexes and columns with statistics chosen by
+    :returns: A DataFrame/series with wind direction sector as row indexes and columns with statistics chosen by
             aggregation_method
 
     """
@@ -333,7 +333,7 @@ def time_continuity_gaps(data):
     time continuity of the data. The function calculates the sampling period (resolution) of the data by
     finding the most common time difference between consecutive timestamps. Then it searches where the time
     difference between consecutive timestamps does not match the sampling period, this is the missing data period.
-    It returns a dataframe where the first column is the starting timestamp of the missing period and the second
+    It returns a DataFrame where the first column is the starting timestamp of the missing period and the second
     column is the end date of the missing period. An additional column also shows how many days of data were lost
     in a missing period.
 
@@ -377,7 +377,7 @@ def coverage(data, period='1M', aggregation_method='mean'):
     :param aggregation_method: (Optional) Calculates mean of the data for the given averaging_prd by default. Can be
             changed to 'sum', 'std', 'max', 'min', etc. or a user defined function
     :type aggregation_method: str
-    :return: A dataframe with coverage and resolution of the new data. The columns with coverage are named as
+    :return: A DataFrame with coverage and resolution of the new data. The columns with coverage are named as
             <column name>_Coverage
 
     """
@@ -388,7 +388,7 @@ def coverage(data, period='1M', aggregation_method='mean'):
 
 def basic_stats(data):
     """
-    Gives basic statistical measures of the data, the dataframe returned includes the following columns
+    Gives basic statistical measures of the data, the DataFrame returned includes the following columns
 
     - count, number of data points available for each column of the data
     - mean, mean of each column of data
@@ -396,10 +396,10 @@ def basic_stats(data):
     - min, minimum value of each column of data
     - max, maximum value of each column of data
 
-    :param data: It can be a dataframe containing meteorological data or a series of some variable like wind speed,
+    :param data: It can be a DataFrame containing meteorological data or a series of some variable like wind speed,
         direction, temperature, etc.
     :type data: pandas.Series or pandas.DataFrame
-    :rtype: A dataframe with columns count, mean, std, min amd max.
+    :rtype: A DataFrame with columns count, mean, std, min amd max.
 
     **Example usage**
     ::
@@ -426,7 +426,7 @@ def twelve_by_24(var_series, aggregation_method='mean', return_data=False):
     :type aggregation_method: str or function
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
-    :return: A dataframe with hours as row labels and months as column labels.
+    :return: A DataFrame with hours as row labels and months as column labels.
 
     """
     table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
@@ -441,27 +441,27 @@ def twelve_by_24(var_series, aggregation_method='mean', return_data=False):
 
 class TI:
 
-    def calc(wdspd, wdspd_std):
-        ti = pd.concat([wdspd[wdspd > 3].rename('wdspd'), wdspd_std.rename('wdspd_std')], axis=1, join='inner')
-        return ti['wdspd_std'] / ti['wdspd']
+    def calc(wspd, wspd_std):
+        ti = pd.concat([wspd[wspd > 3].rename('wdspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
+        return ti['wspd_std'] / ti['wdpd']
 
-    def by_speed(wdspd, wdspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
+    def by_speed(wspd, wspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
                  percentile=90, IEC_class=None, return_data=False):
         """
         Accepts a wind speed series and its standard deviation, calculates turbulence intensity (TI) and returns the
         distribution by of TI by speed bins
 
-        :param wdspd: Wind speed data series
-        :type wdspd: pandas.Series
-        :param wdspd_std: Wind speed standard deviation data series
-        :type wdspd_std: pandas.Series
+        :param wspd: Wind speed data series
+        :type wspd: pandas.Series
+        :param wspd_std: Wind speed standard deviation data series
+        :type wspd_std: pandas.Series
         :param speed_bin_array: (Optional) Array of wind speeds where adjacent elements of array form a bin
         :type speed_bin_array: List or array
         :param speed_bin_labels: (Optional) Labels to use for speed bins, 0, 1, 2, 3 .. and so on by default
         :type speed_bin_labels: List, range or array
         :param percentile: The percentile representative of TI (see return for more information)
         :type percentile: float, int
-        :param IEC_class: By default IEC class 2005 is used for custom class pass a dataframe. Note we have removed
+        :param IEC_class: By default IEC class 2005 is used for custom class pass a DataFrame. Note we have removed
                 option to include IEC Class 1999 as no longer appropriate.
                 This may need to be placed in a separate function when updated IEC standard is released
         :param return_data: Set to True if you want the data returned.
@@ -477,24 +477,24 @@ class TI:
         :rtype: pandas.DataFrame
 
         """
-        ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std')], axis=1, join='inner')
+        ti = pd.concat([wspd.rename('wdspd'), wspd_std.rename('wdspd_std')], axis=1, join='inner')
         ti['Turbulence_Intensity'] = TI.calc(ti['wdspd'], ti['wdspd_std'])
         ti_dist = pd.concat([
-            distribution(var1_series=ti['Turbulence_Intensity'], var2_series=ti['wdspd'],
+            distribution(var1_series=ti['Turbulence_Intensity'], var2_series=ti['wspd'],
                          var2_bin_array=speed_bin_array, var2_bin_labels=speed_bin_labels,
                          aggregation_method='mean').rename("Mean_TI"),
             distribution(var1_series=ti['Turbulence_Intensity'],
-                         var2_series=ti['wdspd'],
+                         var2_series=ti['wspd'],
                          var2_bin_array=speed_bin_array,
                          var2_bin_labels=speed_bin_labels,
                          aggregation_method='count').rename("TI_Count"),
             distribution(var1_series=ti['Turbulence_Intensity'],
-                         var2_series=ti['wdspd'],
+                         var2_series=ti['wspd'],
                          var2_bin_array=speed_bin_array,
                          var2_bin_labels=speed_bin_labels,
                          aggregation_method=lambda x: np.percentile(x, q=percentile)).rename("Rep_TI"),
             distribution(var1_series=ti['Turbulence_Intensity'],
-                         var2_series=ti['wdspd'],
+                         var2_series=ti['wspd'],
                          var2_bin_array=speed_bin_array,
                          var2_bin_labels=speed_bin_labels,
                          aggregation_method='std').rename("TI_2Sigma")], axis=1, join='inner')
@@ -502,21 +502,21 @@ class TI:
         ti_dist.loc[0, 'Char_TI'] = 0
         ti_dist.index.rename('Speed Bin', inplace=True)
         if return_data:
-            return plt.plot_TI_by_speed(wdspd, wdspd_std, ti_dist, IEC_class=IEC_class), ti_dist.dropna(how='any')
-        return plt.plot_TI_by_speed(wdspd, wdspd_std, ti_dist, IEC_class=IEC_class)
+            return plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class), ti_dist.dropna(how='any')
+        return plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class)
 
-    def by_sector(wdspd, wdspd_std, wddir, min_speed=0, sectors=12, direction_bin_array=None,
+    def by_sector(wspd, wspd_std, wdir, min_speed=0, sectors=12, direction_bin_array=None,
                   direction_bin_labels=None, return_data=False):
         """
         Accepts a wind speed series, its standard deviation and a direction series, calculates turbulence intensity (TI)
         and returns the distribution by of TI by sector
 
-        :param wdspd: Wind speed data series
-        :type wdspd: pandas.Series
-        :param wdspd_std: Wind speed standard deviation data series
-        :type wdspd_std: pandas.Series
-        :param wddir: Wind direction series
-        :type wddir: pandas.Series
+        :param wspd: Wind speed data series
+        :type wspd: pandas.Series
+        :param wspd_std: Wind speed standard deviation data series
+        :type wspd_std: pandas.Series
+        :param wdir: Wind direction series
+        :type wdir: pandas.Series
         :param min_speed: Set the minimum wind speed.
         :type min_speed: float
         :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
@@ -536,30 +536,30 @@ class TI:
         :rtype: pandas.DataFrame
 
         """
-        ti = pd.concat([wdspd.rename('wdspd'), wdspd_std.rename('wdspd_std'), wddir.rename('wddir')], axis=1,
+        ti = pd.concat([wspd.rename('wdspd'), wspd_std.rename('wdspd_std'), wdir.rename('wddir')], axis=1,
                        join='inner')
-        ti = ti[ti['wdspd'] >= min_speed]
-        ti['Turbulence_Intensity'] = TI.calc(ti['wdspd'], ti['wdspd_std'])
+        ti = ti[ti['wspd'] >= min_speed]
+        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
         ti_dist = pd.concat([
             distribution_by_dir_sector(var_series=ti['Turbulence_Intensity'],
-                                       direction_series=ti['wddir'],
+                                       direction_series=ti['wdir'],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
                                        aggregation_method='mean').rename("Mean_TI"),
             distribution_by_dir_sector(var_series=ti['Turbulence_Intensity'],
-                                       direction_series=ti['wddir'],
+                                       direction_series=ti['wdir'],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
                                        aggregation_method='count').rename("TI_Count")], axis=1, join='outer')
 
         ti_dist.index.rename('Direction Bin', inplace=True)
         if return_data:
-            return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wddir'], ti_dist), ti_dist.dropna(how='all')
+            return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist), ti_dist.dropna(how='all')
         else:
-            return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wddir'], ti_dist)
+            return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
 
-    def twelve_by_24(wdspd, wdspd_std, return_data=False):
-        tab_12x24 = twelve_by_24(TI.calc(wdspd, wdspd_std), return_data=True)[1]
+    def twelve_by_24(wspd, wspd_std, return_data=False):
+        tab_12x24 = twelve_by_24(TI.calc(wspd, wspd_std), return_data=True)[1]
         if return_data:
             return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity'), tab_12x24
         return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity')
@@ -567,23 +567,23 @@ class TI:
 
 class SectorRatio:
 
-    def calc(wdspd_1, wdspd_2):
-        sec_rat = pd.concat([wdspd_1[wdspd_1 > 3].rename('speed_1'), wdspd_2[wdspd_2 > 3].rename('speed_2')],
+    def calc(wspd_1, wspd_2):
+        sec_rat = pd.concat([wspd_1[wspd_1 > 3].rename('speed_1'), wspd_2[wspd_2 > 3].rename('speed_2')],
                             axis=1, join='inner')
         return sec_rat['speed_2']/sec_rat['speed_1']
 
-    def by_sector(wdspd_1, wdspd_2, wddir, sectors=72, direction_bin_array=None,
+    def by_sector(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None,
                   boom_dir_1=-1, boom_dir_2=-1, return_data=False):
         """
         Accepts two speed series and one direction series and returns the speed ratio by sector
         in a table
 
-        :param wdspd_1: First wind speed series. This is divisor series.
-        :type: wdspd_1: pandas.Series
-        :param wdspd_2: Second wind speed series
-        :type: wdspd_2: pandas.Series
-        :param wddir: Series of wind directions
-        :type wddir: pandas.Series
+        :param wspd_1: First wind speed series. This is divisor series.
+        :type: wspd_1: pandas.Series
+        :param wspd_2: Second wind speed series
+        :type: wspd_2: pandas.Series
+        :param wdir: Series of wind directions
+        :type wdir: pandas.Series
         :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
         :type sectors: int
         :param direction_bin_array:
@@ -594,69 +594,69 @@ class SectorRatio:
         :returns: A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
 
         """
-        sec_rat = SectorRatio.calc(wdspd_1, wdspd_2)
-        common_idxs = sec_rat.index.intersection(wddir.index)
-        sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wddir.loc[common_idxs], sectors=sectors,
+        sec_rat = SectorRatio.calc(wspd_1, wspd_2)
+        common_idxs = sec_rat.index.intersection(wdir.index)
+        sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
                                                   aggregation_method='mean', direction_bin_array=direction_bin_array,
                                                   direction_bin_labels=None).rename('Mean_Sector_Ratio').to_frame()
 
         if return_data:
-            return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wddir.loc[common_idxs],
-                                         sec_rat_dist, [wdspd_1.name, wdspd_2.name],
+            return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs],
+                                         sec_rat_dist, [wspd_1.name, wspd_2.name],
                                          boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2), sec_rat_dist
-        return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wddir.loc[common_idxs], sec_rat_dist,
-                                     [wdspd_1.name, wdspd_2.name],
+        return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sec_rat_dist,
+                                     [wspd_1.name, wspd_2.name],
                                      boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2)
 
 
 class Shear:
-    def power_law(wdspds, heights, min_speed=3, return_alpha=False):
-        wdspds = wdspds.dropna()
-        mean_wdspds = wdspds[(wdspds > min_speed).all(axis=1)].mean()
-        alpha, c = _calc_shear(mean_wdspds.values, heights, return_coeff=True)
+    def power_law(wspds, heights, min_speed=3, return_alpha=False):
+        wspds = wspds.dropna()
+        mean_wspds = wspds[(wspds > min_speed).all(axis=1)].mean()
+        alpha, c = _calc_shear(mean_wspds.values, heights, return_coeff=True)
         if return_alpha:
-            return plt.plot_shear(alpha, c, mean_wdspds.values, heights), alpha
-        return plt.plot_shear(alpha, c, mean_wdspds.values, heights)
+            return plt.plot_shear(alpha, c, mean_wspds.values, heights), alpha
+        return plt.plot_shear(alpha, c, mean_wspds.values, heights)
 
-    def by_sector(wdspds, heights, wddir, sectors=12, min_speed=3, direction_bin_array=None, direction_bin_labels=None,
+    def by_sector(wspds, heights, wdir, sectors=12, min_speed=3, direction_bin_array=None, direction_bin_labels=None,
                   return_data=False):
-        common_idxs = wdspds.index.intersection(wddir.index)
-        shear = wdspds[(wdspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights,axis=1).loc[common_idxs]
+        common_idxs = wspds.index.intersection(wdir.index)
+        shear = wspds[(wspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights, axis=1).loc[common_idxs]
         shear_dist = pd.concat([
             distribution_by_dir_sector(var_series=shear,
-                                       direction_series=wddir.loc[common_idxs],
+                                       direction_series=wdir.loc[common_idxs],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
                                        aggregation_method='mean').rename("Mean_Shear"),
             distribution_by_dir_sector(var_series=shear,
-                                       direction_series=wddir.loc[common_idxs],
+                                       direction_series=wdir.loc[common_idxs],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
                                        aggregation_method='count').rename("Shear_Count")], axis=1, join='outer')
         shear_dist.index.rename('Direction Bin', inplace=True)
         if return_data:
-            return plt.plot_shear_by_sector(shear, wddir.loc[shear.index.intersection(wddir.index)], shear_dist), \
+            return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist), \
                    shear_dist
         else:
-            return plt.plot_shear_by_sector(shear, wddir.loc[shear.index.intersection(wddir.index)], shear_dist)
+            return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
 
-    def twelve_by_24(wdspds, heights, min_speed=3, return_data=False):
-        tab_12x24 = twelve_by_24(wdspds[(wdspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights, axis=1),
+    def twelve_by_24(wspds, heights, min_speed=3, return_data=False):
+        tab_12x24 = twelve_by_24(wspds[(wspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights, axis=1),
                                  return_data=True)[1]
         if return_data:
             return plt.plot_12x24_contours(tab_12x24, title='Shear'), tab_12x24
         return plt.plot_12x24_contours(tab_12x24, title='Shear')
 
-    def scale(alpha, wdspd, height, height_to_scale_to):
+    def scale(alpha, wspd, height, height_to_scale_to):
         scale_factor = (height_to_scale_to / height)**alpha
-        return wdspd*scale_factor
+        return wspd*scale_factor
 
 
-def _calc_shear(wind_speeds, heights, return_coeff=False) -> (np.array, float):
+def _calc_shear(wspds, heights, return_coeff=False) -> (np.array, float):
     """
     Derive the best fit power law exponent (as 1/alpha) from a given time-step of speed data at 2 or more elevations
 
-    :param wind_speeds: List of wind speeds [m/s]
+    :param wspds: List of wind speeds [m/s]
     :param heights: List of heights [m above ground]. The position of the height in the list must be the same position
         in the list as its
     corresponding wind speed value.
@@ -673,8 +673,8 @@ def _calc_shear(wind_speeds, heights, return_coeff=False) -> (np.array, float):
     """
 
     logheights = np.log(heights)  # take log of elevations
-    logwind_speeds = np.log(wind_speeds)  # take log of speeds
-    coeffs = np.polyfit(logheights, logwind_speeds, deg=1)  # get coefficients of linear best fit to log distribution
+    logwspds = np.log(wspds)  # take log of speeds
+    coeffs = np.polyfit(logheights, logwspds, deg=1)  # get coefficients of linear best fit to log distribution
     if return_coeff:
         return coeffs[0], np.exp(coeffs[1])
     return coeffs[0]
