@@ -73,7 +73,8 @@ def monthly_means(data, return_data=False, return_coverage=False):
     :type data: Series or DataFrame
     :param return_data: To return data of monthly means along with the plot.
     :type return_data: bool
-    :param return_coverage: To return monthly coverage along with the data and plot.
+    :param return_coverage: To return monthly coverage along with the data and plot. Also plots the coverage on the
+        same graph if only a single series was passed to data.
     :type return_coverage: bool
     :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
         the first element is plot and second is data pertaining to monthly means.
@@ -93,20 +94,17 @@ def monthly_means(data, return_data=False, return_coverage=False):
         bw.monthly_means(data.WS80mWS425NW_Avg)
 
         # Return coverage
-        monthly_means_plot, monthly_means = bw.monthly_means(data, return_coverage=True)
-        monthly_means
+        monthly_means_plot, monthly_means = bw.monthly_means(data.WS80mWS425NW_Avg, return_coverage=True)
+        monthly_means_plot
 
     """
-    # if not isinstance(wdspds, list):
-    #     wdspds = [wdspds]
-    # data = tf.average_data_by_period(pd.concat(wdspds, axis=1, join='outer'), period='1MS')
-    df = tf.average_data_by_period(data, period='1MS')
+
+    df, covrg = tf.average_data_by_period(data, period='1MS',return_coverage=True)
     if return_data and not return_coverage:
-        return plt.plot_monthly_means(df, False), df
+        return plt.plot_monthly_means(df), df
     if return_coverage:
-        data_with_coverage = pd.concat([df, coverage(data, period='1M', aggregation_method='mean')], axis=1)
-        return plt.plot_timeseries(data_with_coverage, True), data_with_coverage
-    return plt.plot_monthly_means(df, False)
+        return plt.plot_monthly_means(df, covrg),  pd.concat([df, covrg], axis=1)
+    return plt.plot_monthly_means(df)
 
 
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
