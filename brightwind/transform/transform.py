@@ -174,7 +174,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
         each period. The columns with coverage are named as <column name>_Coverage
     :type return_coverage: bool
     :returns: A DataFrame with data aggregated with the specified aggregation_method (mean by default). Additionally it
-        can be filtered based on coverage and a coverage column can also be appended.
+        could be filtered based on coverage and have a coverage column depending on the parameters.
     :rtype: DataFrame
 
     **Example usage**

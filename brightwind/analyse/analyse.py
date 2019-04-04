@@ -385,7 +385,8 @@ def coverage(data, period='1M', aggregation_method='mean'):
         `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product, summation,
         standard deviation, variance, maximum and minimum respectively.
     :type aggregation_method: str
-    :return: A DataFrame with coverage and resolution of the new data. The columns with coverage are named as
+    :return: A DataFrame with data aggregated with the specified aggregation_method (mean by default) and coverage.
+            The columns with coverage are named as
             <column name>_Coverage
 
     **Example usage**
