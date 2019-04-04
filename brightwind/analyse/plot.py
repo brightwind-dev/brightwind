@@ -64,7 +64,6 @@ def bw_colors(bw_color):
 def plot_monthly_means(data, coverage=None):
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-
     if len(data.shape)>1:
         ax.plot(data, '-D')
         ax.legend(data.columns)
@@ -91,6 +90,7 @@ def plot_monthly_means(data, coverage=None):
             ax2.yaxis.set_label_position("right")
             return ax2.get_figure()
     return ax.get_figure()
+
 
 def plot_timeseries(data, date_from='', date_to=''):
     """
