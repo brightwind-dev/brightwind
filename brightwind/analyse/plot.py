@@ -23,7 +23,7 @@ from brightwind.utils import utils
 import os
 import matplotlib as mpl
 
-__all__ = ['plot_timeseries']
+__all__ = ['plot_timeseries', 'plot_freq_distribution']
 
 
 try:
@@ -60,6 +60,38 @@ def bw_colors(bw_color):
     bw_color[:] = [x / 255.0 for x in bw_color]
     return bw_color
 
+
+def plot_monthly_means(data, coverage=False):
+    fig = plt.figure(figsize=(15, 8))
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+    cols = data.columns
+    if len(cols) > 1:
+        for i in cols:
+            if '_Coverage' in i:
+                coverage_col = i
+    else:
+        ax.plot(data, '-D', color=bw_colors('asphault'), legend=True)
+    ax.legend()
+    if coverage:
+        import matplotlib.dates as mdates
+        ax2 = ax.twinx()
+
+        plot_colors = [bw_colors('light_green_for_gradient'), bw_colors('dark_green_for_gradient'),
+                       bw_colors('darkgreen')]
+        for month, coverage in zip(data.index, data.Spd80mS_Coverage.values):
+            ax2.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
+                       interpolation='gaussian', extent=(mdates.date2num(month - pd.Timedelta('10days')),
+                                                         mdates.date2num(month + pd.Timedelta('10days')),
+                                                         0, coverage), aspect='auto', zorder=1)
+            ax2.bar(mdates.date2num(month), coverage, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=0)
+
+        ax.set_zorder(3)
+        ax.patch.set_visible(False)
+        ax2.set_ylabel('coverage')
+        ax2.yaxis.tick_right()
+        ax2.yaxis.set_label_position("right")
+        return ax2.get_figure()
+    return ax.get_figure()
 
 def plot_timeseries(data, date_from='', date_to=''):
     """

@@ -102,11 +102,11 @@ def monthly_means(data, return_data=False, return_coverage=False):
     # data = tf.average_data_by_period(pd.concat(wdspds, axis=1, join='outer'), period='1MS')
     df = tf.average_data_by_period(data, period='1MS')
     if return_data and not return_coverage:
-        return plt.plot_timeseries(df), df
+        return plt.plot_monthly_means(df, False), df
     if return_coverage:
-        return plt.plot_timeseries(df), \
-               pd.concat([df, coverage(data, period='1M', aggregation_method='mean')], axis=1)
-    return plt.plot_timeseries(data)
+        data_with_coverage = pd.concat([df, coverage(data, period='1M', aggregation_method='mean')], axis=1)
+        return plt.plot_timeseries(data_with_coverage, True), data_with_coverage
+    return plt.plot_monthly_means(df, False)
 
 
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
