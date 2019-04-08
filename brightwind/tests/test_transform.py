@@ -78,3 +78,5 @@ def test_get_data_resolution():
         assert bw._get_data_resolution(series3).seconds == 3600
         assert len(w) == 1
 
+def test_offset_timestamps():
+    series1 = bw.load_campbell_scientific(bw.datasets.demo_site_data)['Spd80mS'].index

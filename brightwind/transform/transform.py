@@ -344,5 +344,24 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
                                                                   coverage_threshold=coverage_threshold)
     ref_dir_avgd = np.arctan2(ref_E_avgd, ref_N_avgd).map(math.degrees).map(utils._range_0_to_360)
     target_dir_avgd = np.arctan2(target_E_avgd, target_N_avgd).map(math.degrees).map(utils._range_0_to_360)
-
     return round(ref_dir_avgd.loc[:]), round(target_dir_avgd.loc[:])
+
+
+def offset_timestamps(timestamps, offset, date_from=None, date_to=None):
+    """
+    :param timestamps: Series or DataFrame of timestamps
+    :param date_from: Start date as string in format YYYY-MM-DD
+    :param date_to: End date as string in format YYYY-MM-DD
+
+    """
+    if isinstance(timestamps, pd.Series):
+        tmstmps = timestamps.to_frame()
+    else:
+        tmstmps = timestamps.copy()
+    sliced_data = utils._slice_data(tmstmps, date_from, date_to)
+
+    return None
+
+
+
+
