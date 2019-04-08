@@ -78,22 +78,24 @@ def test_get_data_resolution():
         assert bw._get_data_resolution(series3).seconds == 3600
         assert len(w) == 1
 
+
 def test_offset_timestamps():
     series1 = bw.load_campbell_scientific(bw.datasets.demo_site_data)#['Spd80mS']
 
-    #sending index with no start end
-    bw.offset_timestamps(series1.index)
+    # sending index with no start end
+    bw.offset_timestamps(series1.index, offset='90min')
 
     # sending index with start end
-    #how to merge back
+    bw.offset_timestamps(series1.index, offset='5min', date_from='2016-08-13', date_to='2017-05-20')
 
     # sending data-series with datetime index
+    bw.offset_timestamps(series1.Spd80mN, offset='15min')
 
-    #sending data-series with datetime index with start end
+    # sending data-series with datetime index with start end
+    bw.offset_timestamps(series1.Spd80mN, offset='-1H', date_from='2016-02-13', date_to='2017-08-14')
 
-    #sending data-frame with datetime index
+    # sending data-frame with datetime index
+    bw.offset_timestamps(series1, offset='1D')
 
     # sending data-frame with datetime index with start end
-
-
-    #
+    bw.offset_timestamps(series1, offset='-1M', date_from= '2016-08-13', date_to='2017-05-20')
