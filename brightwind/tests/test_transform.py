@@ -79,4 +79,21 @@ def test_get_data_resolution():
         assert len(w) == 1
 
 def test_offset_timestamps():
-    series1 = bw.load_campbell_scientific(bw.datasets.demo_site_data)['Spd80mS'].index
+    series1 = bw.load_campbell_scientific(bw.datasets.demo_site_data)#['Spd80mS']
+
+    #sending index with no start end
+    bw.offset_timestamps(series1.index)
+
+    # sending index with start end
+    #how to merge back
+
+    # sending data-series with datetime index
+
+    #sending data-series with datetime index with start end
+
+    #sending data-frame with datetime index
+
+    # sending data-frame with datetime index with start end
+
+
+    #

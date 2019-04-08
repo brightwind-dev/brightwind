@@ -20,7 +20,7 @@ import math
 from brightwind.utils import utils
 
 __all__ = ['average_data_by_period', 'adjust_slope_offset', 'scale_wind_speed', 'offset_wind_direction',
-           '_get_data_resolution']
+           '_get_data_resolution', 'offset_timestamps']
 
 
 def _compute_wind_vector(wspd, wdir):
@@ -350,17 +350,34 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
 def offset_timestamps(timestamps, offset, date_from=None, date_to=None):
     """
     :param timestamps: Series or DataFrame of timestamps
+    :param offset: A string specifying the time to offset the time-series.
+
+            - Set offset to 10min to add 10 minutes to each timestamp, -10min to subtract 10 minutes and so on
+                for 4min, 20min, etc.
+            - Set offset to 1H to add 1 hour to each timestamp and -1H to subtract and so on for 5H, 6H, etc.
+            - Set offset to 1D to add a day and -1D to subtract and so on for 5D, 7D, 15D, etc.
+            - Set offset to 1W to add a week and -1W to subtract from each timestamp and so on for 2W, 4W, etc.
+            - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on for 2M, 3M, etc.
+            - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on for 2Y, 3Y, etc.
+    :type offset: str
     :param date_from: Start date as string in format YYYY-MM-DD
+    :type date_from: str
     :param date_to: End date as string in format YYYY-MM-DD
+    :param date_to: str
 
     """
+    if isinstance(timestamps, pd.DatetimeIndex):
+        sliced_data = utils._slice_data(timestamps, date_from, date_to)
+        return sliced_data + pd.Timedelta(offset)
+
     if isinstance(timestamps, pd.Series):
         tmstmps = timestamps.to_frame()
     else:
         tmstmps = timestamps.copy()
     sliced_data = utils._slice_data(tmstmps, date_from, date_to)
+    sliced_data.index + pd.Timedelta(offset)
 
-    return None
+    return sliced_data
 
 
 
