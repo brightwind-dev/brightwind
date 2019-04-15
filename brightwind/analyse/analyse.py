@@ -361,25 +361,51 @@ def time_continuity_gaps(data):
 
 def coverage(data, period='1M', aggregation_method='mean'):
     """
-    Get the data coverage over the period specified
+    Get the data coverage over the period specified.
 
-    :param data: Data to check the coverage of
-    :type data: pandas.Series or pandas.DataFrame
-    :param period: Groups data by the period specified by period.
+    Coverage is defined as the ratio of number of data points present in the period and the maximum number of
+    data points that a period should have. Example, for 10 minute data resolution and a period of 1 hour the
+    maximum number of data points in one period is 6. But if the number if data points available is only 3 for that
+    hour the coverage is 3/6=0.5 . For more details see average_data_by_period as this function is a wrapper around it.
 
-            - 2T, 2 min for minutely average
-            - Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
+    :param data: Data to find average or aggregate of
+    :type data: pandas.Series
+    :param period: Groups data by the period specified here. The following formats are supported
+
+            - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
             - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-            - Set period to 1MS for monthly average
+            - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
+            - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
+            - Set period to 1M for monthly average
             - Set period to 1AS fo annual average
+            - Can be a DateOffset object too
 
-    :type period: string or pandas.DateOffset
-    :param aggregation_method: (Optional) Calculates mean of the data for the given averaging_prd by default. Can be
-            changed to 'sum', 'std', 'max', 'min', etc. or a user defined function
+    :type period: str or pandas.DateOffset
+    :param aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also use
+        `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product, summation,
+        standard deviation, variance, maximum and minimum respectively.
     :type aggregation_method: str
-    :return: A DataFrame with coverage and resolution of the new data. The columns with coverage are named as
-            <column name>_Coverage
+    :return: A DataFrame with data aggregated with the specified aggregation_method (mean by default) and coverage.
+            The columns with coverage are named as <column name>_Coverage
 
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+
+        #To find hourly coverage
+        data_hourly = bw.coverage(data.Spd80mN, period='1H')
+
+        #To find monthly_coverage
+        data_hourly = bw.coverage(data.Spd80mN, period='1M')
+
+        #To find monthly_coverage of variance
+        data_hourly = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')
+
+
+    See Also
+    --------
+    bw.average_data_by_period
     """
 
     return tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,
