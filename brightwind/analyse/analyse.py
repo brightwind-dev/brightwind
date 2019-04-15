@@ -415,7 +415,7 @@ def basic_stats(data):
         return data.to_frame().describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
 
 
-def twelve_by_24(var_series, aggregation_method='mean', return_data=False):
+def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_name=None):
     """
     Accepts a variable series and returns 12x24 (months x hours) table for the variable.
 
@@ -426,6 +426,8 @@ def twelve_by_24(var_series, aggregation_method='mean', return_data=False):
     :type aggregation_method: str or function
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
+    :param var_name: Name and units of the variable to appear on the plot
+    :type var_name: str
     :return: A DataFrame with hours as row labels and months as column labels.
 
     """
@@ -433,10 +435,12 @@ def twelve_by_24(var_series, aggregation_method='mean', return_data=False):
                              var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
     if return_data:
         return plt.plot_12x24_contours(
-            table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)), \
+            table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method),
+               title=var_name),\
                table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
     return plt.plot_12x24_contours(
-        table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method))
+        table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method),
+        title=var_name)
 
 
 class TI:
@@ -558,11 +562,11 @@ class TI:
         else:
             return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
 
-    def twelve_by_24(wspd, wspd_std, return_data=False):
+    def twelve_by_24(wspd, wspd_std, return_data=False, var_name='Turbulence Intensity'):
         tab_12x24 = twelve_by_24(TI.calc(wspd, wspd_std), return_data=True)[1]
         if return_data:
-            return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity'), tab_12x24
-        return plt.plot_12x24_contours(tab_12x24, title='Turbulence Intensity')
+            return plt.plot_12x24_contours(tab_12x24, title=var_name), tab_12x24
+        return plt.plot_12x24_contours(tab_12x24, title=var_name)
 
 
 class SectorRatio:
@@ -640,12 +644,12 @@ class Shear:
         else:
             return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
 
-    def twelve_by_24(wspds, heights, min_speed=3, return_data=False):
+    def twelve_by_24(wspds, heights, min_speed=3, return_data=False, var_name='Shear'):
         tab_12x24 = twelve_by_24(wspds[(wspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights, axis=1),
                                  return_data=True)[1]
         if return_data:
-            return plt.plot_12x24_contours(tab_12x24, title='Shear'), tab_12x24
-        return plt.plot_12x24_contours(tab_12x24, title='Shear')
+            return plt.plot_12x24_contours(tab_12x24, title=var_name), tab_12x24
+        return plt.plot_12x24_contours(tab_12x24, title=var_name)
 
     def scale(alpha, wspd, height, height_to_scale_to):
         scale_factor = (height_to_scale_to / height)**alpha
