@@ -374,10 +374,6 @@ def offset_timestamps(timestamps, offset, date_from=None, date_to=None):
             or isinstance(timestamps, pd.DatetimeIndex):
         return timestamps + pd.Timedelta(offset)
 
-    # if isinstance(timestamps, pd.DatetimeIndex):
-    #     sliced_data = utils._slice_data(timestamps, date_from, date_to)
-    #     return sliced_data + pd.Timedelta(offset)
-
     if isinstance(timestamps, pd.Series) or isinstance(timestamps, pd.DataFrame):
         if not isinstance(timestamps.index, pd.DatetimeIndex):
             raise TypeError('Input must have datetime index')
@@ -385,6 +381,10 @@ def offset_timestamps(timestamps, offset, date_from=None, date_to=None):
             new_df = timestamps.copy(deep=False)
             new_df.index = timestamps.index + pd.Timedelta(offset)
             return new_df
+
+    # if isinstance(timestamps, pd.DatetimeIndex):
+    #     sliced_data = utils._slice_data(timestamps, date_from, date_to)
+    #     return sliced_data + pd.Timedelta(offset)
 
 
 
