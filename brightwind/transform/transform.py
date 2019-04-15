@@ -57,7 +57,7 @@ def _get_data_resolution(data_idx):
     most common time stamp. Also checks the most common time difference and the minimum time difference. If they
     do not match it shows a warning. It is suggested to manually look at the data if such a warning is shown.
 
-    :param data_idx: Indexes of the dataframe or series
+    :param data_idx: Indexes of the DataFrame or series
     :type data_idx: pandas.DataFrame.index or pandas.Series.index
     :return: A time delta object which represents the time difference between consecutive timestamps.
     :rtype: pandas.Timedelta
@@ -106,7 +106,7 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
 
 def _common_idxs(reference, site):
     """
-    Finds overlapping indexes from two dataframes.
+    Finds overlapping indexes from two DataFrames.
     Coverage is 1 if whole site data is covered. Also returns the number data points
     """
     common = reference.index.intersection(site.index)
@@ -232,7 +232,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
 def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offset):
     """
     Adjust a wind speed that already has a slope and offset applied with a new slope and offset.
-    Can take either a single wind speed value or a pandas dataframe/series.
+    Can take either a single wind speed value or a pandas DataFrame/series.
 
     :param wspd: The wind speed value or series to be adjusted.
     :type wspd: float or pd.DataFrame or pd.Series
@@ -244,7 +244,7 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
     :type new_slope: float
     :param new_offset: The new desired offset to adjust the wind speed by.
     :type new_offset: float
-    :return: The adjusted wind speed as a single value or pandas dataframe.
+    :return: The adjusted wind speed as a single value or pandas DataFrame.
 
     The new wind speed is calculated by equating the old and new y=mx+c equations around x and then solving for
     the new wind speed.
