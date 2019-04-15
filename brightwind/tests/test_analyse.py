@@ -3,6 +3,7 @@ from brightwind.analyse.analyse import monthly_means, SectorRatio, basic_stats, 
 
 from brightwind.load.load import load_csv
 import brightwind.datasets
+import brightwind as bw
 
 def test_monthly_means():
     #Load data
@@ -39,4 +40,12 @@ def test_time_continuity_gaps():
     assert abs(gaps.iloc[0, 2] - 0.01388) < 1e-5
     assert abs(gaps.iloc[1, 2] - 0.01388) < 1e-5
 
+def test_TI_twelve_by_24():
+    df = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+    bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd)
+    bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, return_data=True)
+    bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, return_data=True, var_name='Speed 60 m N m/s')
+    bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, var_name='Speed 60 m N m/s')
+    bw.TI.twelve_by_24(df.Spd40mN, df.Spd40mNStd)
+    assert 1==1
 
