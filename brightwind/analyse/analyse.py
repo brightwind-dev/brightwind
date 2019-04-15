@@ -415,7 +415,7 @@ def basic_stats(data):
         return data.to_frame().describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
 
 
-def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_name=None):
+def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_name=''):
     """
     Accepts a variable series and returns 12x24 (months x hours) table for the variable.
 
@@ -447,7 +447,7 @@ class TI:
 
     def calc(wspd, wspd_std):
         ti = pd.concat([wspd[wspd > 3].rename('wdspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
-        return ti['wspd_std'] / ti['wdpd']
+        return ti['wspd_std'] / ti['wdspd']
 
     def by_speed(wspd, wspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
                  percentile=90, IEC_class=None, return_data=False):
