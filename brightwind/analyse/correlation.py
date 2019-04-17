@@ -357,6 +357,8 @@ class SpeedSort(CorrelBase):
                             target_dir=target_dir, preprocess=preprocess)
         self.sectors = sectors
         self.direction_bin_array = direction_bin_array
+        if direction_bin_array is not None:
+            self.sectors = len(direction_bin_array)-1
         if lt_ref_speed is None:
             self.lt_ref_speed = momm(self.data['ref_spd'])
         else:
@@ -452,6 +454,26 @@ class SpeedSort(CorrelBase):
             self.speed_model[model].plot_model('Sector ' + str(model))
         self.plot_wind_vane()
 
+    def _predict_dir(self, x_dir):
+        sec_veer = []
+        for i in range(1, self.sectors+1):
+            sec_veer.append(self.params[i]['average_veer'])
+        #Add additional entry for first sector
+        sec_veer.append(self.params[1]['average_veer'])
+        if self.direction_bin_array is None:
+            veer_bins = [i*(360/self.sectors) for i in range(0, self.sectors+1)]
+        else:
+            veer_bins = [self.direction_bin_array[i]+self.direction_bin_array[i+1]/2.0
+                         for i in range(0, len(self.direction_bin_array)-1)]
+        x = pd.concat([x_dir.dropna().rename('dir'), _binned_direction_series(x_dir.dropna(), self.sectors,
+                       direction_bin_array=veer_bins).rename('veer_bin')], axis=1, join='inner')
+        x['sec_mid_pt'] = [veer_bins[i-1] for i in x['veer_bin']]
+        x['ratio'] = (x['dir'] - x['sec_mid_pt'])/(360.0/self.sectors)
+        x['sec_veer'] = [sec_veer[i - 1] for i in x['veer_bin']]
+        x['multiply_factor'] = [sec_veer[i]-sec_veer[i-1] for i in x['veer_bin']]
+        x['adjustment'] = x['dir'] + x['sec_veer'] + (x['ratio']*x['multiply_factor'])
+        return (x['dir']+x['adjustment']).sort_index()
+
     def _predict(self, x_spd, x_dir):
         x = pd.concat([x_spd.dropna().rename('spd'),
                        _binned_direction_series(x_dir.dropna(), self.sectors,
@@ -465,10 +487,11 @@ class SpeedSort(CorrelBase):
                 prediction = self.speed_model[sector].sector_predict(data['spd'])
             else:
                 prediction = pd.concat([prediction, self.speed_model[sector].sector_predict(data['spd'])], axis=0)
+
         return prediction.sort_index()
 
     def synthesize(self, input_spd=None, input_dir=None):
-        # This will give erroneous result when the averagingperiod is not a whole number such that ref and target does
+        # This will give erroneous result when the averaging period is not a whole number such that ref and target does
         # bot get aligned -Inder
         if input_spd is None and input_dir is None:
             output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
@@ -477,10 +500,15 @@ class SpeedSort(CorrelBase):
                                                              filter_by_coverage_threshold=False, return_coverage=False))
             output = tf.average_data_by_period(self.target_spd, self.averaging_prd, filter_by_coverage_threshold=False,
                                                return_coverage=False).combine_first(output)
+            dir_output = self._predict_dir(tf.average_data_by_period(self.ref_dir, self.averaging_prd,
+                                                        filter_by_coverage_threshold=False, return_coverage=False))
+
         else:
             output = self._predict(input_spd, input_dir)
-        output.columns = [self.target_spd.name + "_Synthesized"]
-        return output
+            dir_output = self._predict_dir(input_dir)
+        # output.columns = [self.target_spd.name + "_Synthesized"]
+        return pd.concat([output.rename(self.target_spd.name + "_Synthesized"),
+                          dir_output.rename(self.target_dir.name+"_Synthesized")], axis=1, join='inner')
 
     def plot_wind_vane(self):
         """
