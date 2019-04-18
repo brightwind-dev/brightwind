@@ -106,7 +106,7 @@ def monthly_means(data, return_data=False, return_coverage=False):
     if return_coverage:
         return plt.plot_timeseries(df), \
                pd.concat([df, coverage(data, period='1M', aggregation_method='mean')], axis=1)
-    return plt.plot_timeseries(data)
+    return plt.plot_timeseries(df)
 
 
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
