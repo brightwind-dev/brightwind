@@ -25,6 +25,7 @@ from scipy.linalg import lstsq
 from brightwind.analyse.analyse import momm, _binned_direction_series
 from sklearn.svm import SVR as sklearn_SVR
 from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
+from brightwind.utils import utils
 
 
 # def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold):
@@ -472,7 +473,7 @@ class SpeedSort(CorrelBase):
         x['sec_veer'] = [sec_veer[i - 1] for i in x['veer_bin']]
         x['multiply_factor'] = [sec_veer[i]-sec_veer[i-1] for i in x['veer_bin']]
         x['adjustment'] = x['dir'] + x['sec_veer'] + (x['ratio']*x['multiply_factor'])
-        return (x['dir']+x['adjustment']).sort_index()
+        return (x['dir']+x['adjustment']).sort_index().apply(utils._range_0_to_360)
 
     def _predict(self, x_spd, x_dir):
         x = pd.concat([x_spd.dropna().rename('spd'),
@@ -505,6 +506,7 @@ class SpeedSort(CorrelBase):
 
         else:
             output = self._predict(input_spd, input_dir)
+            output[output < 0] = 0
             dir_output = self._predict_dir(input_dir)
         # output.columns = [self.target_spd.name + "_Synthesized"]
         return pd.concat([output.rename(self.target_spd.name + "_Synthesized"),
