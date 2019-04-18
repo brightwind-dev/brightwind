@@ -506,11 +506,11 @@ class SpeedSort(CorrelBase):
 
         else:
             output = self._predict(input_spd, input_dir)
-            output[output < 0] = 0
             dir_output = self._predict_dir(input_dir)
-        # output.columns = [self.target_spd.name + "_Synthesized"]
+        output[output < 0] = 0
         return pd.concat([output.rename(self.target_spd.name + "_Synthesized"),
                           dir_output.rename(self.target_dir.name+"_Synthesized")], axis=1, join='inner')
+
 
     def plot_wind_vane(self):
         """
