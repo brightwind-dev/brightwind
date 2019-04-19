@@ -61,16 +61,23 @@ def bw_colors(bw_color):
     return bw_color
 
 
-def plot_monthly_means(data, coverage=None):
+def plot_monthly_means(data, coverage=None, ylbl=''):
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-    if len(data.shape)>1:
+    if len(data.shape) > 1:
         ax.plot(data, '-D')
-        ax.legend(data.columns)
+        ax.legend(list(data.columns))
     else:
         ax.plot(data, '-D', color=bw_colors('asphault'))
+        print(type(data.name))
+        ax.legend([data.name])
+    ax.set_ylabel(ylbl)
     if coverage is not None:
-        if len(coverage.shape)==1:
+        plot_coverage = True
+        if len(coverage.shape) > 1:
+            if coverage.shape[1] > 1:
+                plot_coverage = False
+        if plot_coverage:
             import matplotlib.dates as mdates
             ax2 = ax.twinx()
 

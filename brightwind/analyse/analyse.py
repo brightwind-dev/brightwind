@@ -64,7 +64,7 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
-def monthly_means(data, return_data=False, return_coverage=False):
+def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]'):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
@@ -76,6 +76,8 @@ def monthly_means(data, return_data=False, return_coverage=False):
     :param return_coverage: To return monthly coverage along with the data and plot. Also plots the coverage on the
         same graph if only a single series was passed to data.
     :type return_coverage: bool
+    :param ylabel: Label for the y-axis, Wind speed [m/s] by default
+    :type   ylabel: str
     :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
         the first element is plot and second is data pertaining to monthly means.
 
@@ -99,12 +101,12 @@ def monthly_means(data, return_data=False, return_coverage=False):
 
     """
 
-    df, covrg = tf.average_data_by_period(data, period='1MS',return_coverage=True)
+    df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True)
     if return_data and not return_coverage:
-        return plt.plot_monthly_means(df), df
+        return plt.plot_monthly_means(df, ylbl=ylabel), df
     if return_coverage:
-        return plt.plot_monthly_means(df, covrg),  pd.concat([df, covrg], axis=1)
-    return plt.plot_monthly_means(df)
+        return plt.plot_monthly_means(df, covrg, ylbl=ylabel),  pd.concat([df, covrg], axis=1)
+    return plt.plot_monthly_means(df, ylbl=ylabel)
 
 
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
