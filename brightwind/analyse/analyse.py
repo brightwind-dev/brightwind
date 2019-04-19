@@ -369,7 +369,7 @@ def coverage(data, period='1M', aggregation_method='mean'):
     hour the coverage is 3/6=0.5 . For more details see average_data_by_period as this function is a wrapper around it.
 
     :param data: Data to find average or aggregate of
-    :type data: pandas.Series
+    :type data: pandas.Series or pandas.DataFrame
     :param period: Groups data by the period specified here. The following formats are supported
 
             - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
@@ -396,11 +396,14 @@ def coverage(data, period='1M', aggregation_method='mean'):
         #To find hourly coverage
         data_hourly = bw.coverage(data.Spd80mN, period='1H')
 
+        #To find hourly coverage for multiple columns
+        data_hourly_multiple = bw.coverage(data[['Spd80mS','Spd60mN']], period='1H')
+
         #To find monthly_coverage
-        data_hourly = bw.coverage(data.Spd80mN, period='1M')
+        data_monthly = bw.coverage(data.Spd80mN, period='1M')
 
         #To find monthly_coverage of variance
-        data_hourly = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')
+        data_monthly_var = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')
 
 
     See Also
