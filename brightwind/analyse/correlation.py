@@ -472,7 +472,7 @@ class SpeedSort(CorrelBase):
         x['ratio'] = (x['dir'] - x['sec_mid_pt'])/(360.0/self.sectors)
         x['sec_veer'] = [sec_veer[i - 1] for i in x['veer_bin']]
         x['multiply_factor'] = [sec_veer[i]-sec_veer[i-1] for i in x['veer_bin']]
-        x['adjustment'] = x['dir'] + x['sec_veer'] + (x['ratio']*x['multiply_factor'])
+        x['adjustment'] = x['sec_veer'] + (x['ratio']*x['multiply_factor'])
         return (x['dir']+x['adjustment']).sort_index().apply(utils._range_0_to_360)
 
     def _predict(self, x_spd, x_dir):
