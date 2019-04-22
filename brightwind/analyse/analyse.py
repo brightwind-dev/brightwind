@@ -224,7 +224,7 @@ def _binned_direction_series(direction_series, sectors, direction_bin_array=None
     """
     if direction_bin_array is None:
         direction_bin_array = utils.get_direction_bin_array(sectors)
-    return direction_series.apply(_map_direction_bin, bins=direction_bin_array, sectors=sectors)
+    return direction_series.dropna().apply(_map_direction_bin, bins=direction_bin_array, sectors=sectors)
 
 
 def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
