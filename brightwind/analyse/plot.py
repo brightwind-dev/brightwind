@@ -89,9 +89,12 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
                                                              0, coverage), aspect='auto', zorder=1)
                 ax2.bar(mdates.date2num(month), coverage, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=0)
 
+            ax2.set_ylim(0, 1)
+            ax.set_ylim(bottom=0)
+            ax.set_xlim(data.index[0]-pd.Timedelta('20days'), data.index[-1]+pd.Timedelta('20days'))
             ax.set_zorder(3)
             ax.patch.set_visible(False)
-            ax2.set_ylabel('coverage')
+            ax2.set_ylabel('Coverage[-]')
             ax2.yaxis.tick_right()
             ax2.yaxis.set_label_position("right")
             return ax2.get_figure()
