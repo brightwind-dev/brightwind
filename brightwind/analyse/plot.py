@@ -69,7 +69,6 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
         ax.legend(list(data.columns))
     else:
         ax.plot(data, '-D', color=bw_colors('asphault'))
-        print(type(data.name))
         ax.legend([data.name])
     ax.set_ylabel(ylbl)
     if coverage is not None:
