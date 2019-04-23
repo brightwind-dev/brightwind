@@ -17,6 +17,8 @@
 
 import numpy as np
 
+_all__ = ['_slice_data']
+
 
 def _range_0_to_360(direction):
     if direction < 0:

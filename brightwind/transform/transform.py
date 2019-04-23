@@ -347,7 +347,7 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
     return round(ref_dir_avgd.loc[:]), round(target_dir_avgd.loc[:])
 
 
-def offset_timestamps(timestamps, offset, date_from=None, date_to=None):
+def offset_timestamps(timestamps, offset, date_from=None, date_to=None, overwrite=False):
     """
     :param timestamps: Series or DataFrame of timestamps
     :param offset: A string specifying the time to offset the time-series.
@@ -363,28 +363,38 @@ def offset_timestamps(timestamps, offset, date_from=None, date_to=None):
     :param date_from: Start date as string in format YYYY-MM-DD
     :type date_from: str
     :param date_to: End date as string in format YYYY-MM-DD
-    :param date_to: str
+    :type date_to: str
+    :param overwrite: Change to True to overwrite the old timestamps if they are same outside of the slice of data
+        you want to offset. False by default.
+    :type overwrite: bool
 
     """
     import datetime
+    import datetime as dt
+    date_from = dt.datetime.strptime(date_from[:10], "%Y-%m-%d")
+    date_to = dt.datetime.strptime(date_to[:10], "%Y-%m-%d")
 
+    # utils._slice_data does not work in datetimeindex
     if isinstance(timestamps, pd.Timestamp) or isinstance(timestamps, datetime.date)\
             or isinstance(timestamps, datetime.time)\
-            or isinstance(timestamps, datetime.datetime)\
-            or isinstance(timestamps, pd.DatetimeIndex):
+            or isinstance(timestamps, datetime.datetime):
         return timestamps + pd.Timedelta(offset)
 
+    if isinstance(timestamps, pd.DatetimeIndex):
+        #slice
+        #overwrite
+        return None
+
     if isinstance(timestamps, pd.Series) or isinstance(timestamps, pd.DataFrame):
+
         if not isinstance(timestamps.index, pd.DatetimeIndex):
             raise TypeError('Input must have datetime index')
         else:
             new_df = timestamps.copy(deep=False)
             new_df.index = timestamps.index + pd.Timedelta(offset)
-            return new_df
-
-    # if isinstance(timestamps, pd.DatetimeIndex):
-    #     sliced_data = utils._slice_data(timestamps, date_from, date_to)
-    #     return sliced_data + pd.Timedelta(offset)
+            # slice
+            # overwrite
+            return None
 
 
 
