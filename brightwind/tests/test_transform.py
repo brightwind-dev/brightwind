@@ -86,16 +86,30 @@ def test_offset_timestamps():
     bw.offset_timestamps(series1.index, offset='90min')
 
     # sending index with start end
-    bw.offset_timestamps(series1.index, offset='5min', date_from='2016-08-13', date_to='2017-05-20')
+    op = bw.offset_timestamps(series1.index, offset='2min', date_from='2016-01-01 00:10:00')
+    assert op[0] == pd.to_datetime('2016-01-01 00:00:00')
+    assert op[1] == pd.to_datetime('2016-01-01 00:12:00')
 
-    # sending data-series with datetime index
-    bw.offset_timestamps(series1.Spd80mN, offset='15min')
+    op = bw.offset_timestamps(series1.index, '2min', date_to='2016-01-01 00:30:00')
+    assert op[3] == pd.to_datetime('2016-01-01 00:32:00')
+    assert op[4] == pd.to_datetime('2016-01-01 00:40:00')
 
-    # sending data-series with datetime index with start end
-    bw.offset_timestamps(series1.Spd80mN, offset='-1H', date_from='2016-02-13', date_to='2017-08-14')
+    op = bw.offset_timestamps(series1.index, '3min', date_from='2016-01-01 00:10:00', date_to='2016-01-01 00:30:00')
+    assert op[0] == pd.to_datetime('2016-01-01 00:00:00')
+    assert op[1] == pd.to_datetime('2016-01-01 00:13:00')
+    assert op[5] == pd.to_datetime('2016-01-01 00:50:00')
 
-    # sending data-frame with datetime index
-    bw.offset_timestamps(series1, offset='1D')
-
-    # sending data-frame with datetime index with start end
-    bw.offset_timestamps(series1, offset='-1M', date_from= '2016-08-13', date_to='2017-05-20')
+    op = bw.offset_timestamps(series1.index, '10min', date_from='2016-01-01 00:10:00', date_to='2016-01-01 00:30:00')
+    assert op[0] == series1.index[0]
+    assert op[1] == series1.index[2]
+    # # sending data-series with datetime index
+    # bw.offset_timestamps(series1.Spd80mN, offset='15min')
+    #
+    # # sending data-series with datetime index with start end
+    # bw.offset_timestamps(series1.Spd80mN, offset='-1H', date_from='2016-02-13', date_to='2017-08-14')
+    #
+    # # sending data-frame with datetime index
+    # bw.offset_timestamps(series1, offset='1D')
+    #
+    # # sending data-frame with datetime index with start end
+    # bw.offset_timestamps(series1, offset='-1M', date_from= '2016-08-13', date_to='2017-05-20')

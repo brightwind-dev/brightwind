@@ -360,30 +360,38 @@ def offset_timestamps(timestamps, offset, date_from=None, date_to=None, overwrit
             - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on for 2M, 3M, etc.
             - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on for 2Y, 3Y, etc.
     :type offset: str
-    :param date_from: Start date as string in format YYYY-MM-DD
-    :type date_from: str
-    :param date_to: End date as string in format YYYY-MM-DD
-    :type date_to: str
+    :param date_from: Start date as string, datetime object or dictionary
+    :type date_from: str, datetime, dict
+    :param date_to: End date as string, datetime object or dictionary
+    :type date_to: str, datetime, dict
     :param overwrite: Change to True to overwrite the old timestamps if they are same outside of the slice of data
         you want to offset. False by default.
     :type overwrite: bool
 
     """
     import datetime
-    import datetime as dt
-    date_from = dt.datetime.strptime(date_from[:10], "%Y-%m-%d")
-    date_to = dt.datetime.strptime(date_to[:10], "%Y-%m-%d")
+    date_from = pd.to_datetime(date_from)
+    date_to = pd.to_datetime(date_to)
 
-    # utils._slice_data does not work in datetimeindex
     if isinstance(timestamps, pd.Timestamp) or isinstance(timestamps, datetime.date)\
             or isinstance(timestamps, datetime.time)\
             or isinstance(timestamps, datetime.datetime):
         return timestamps + pd.Timedelta(offset)
 
     if isinstance(timestamps, pd.DatetimeIndex):
-        #slice
-        #overwrite
-        return None
+        original = pd.to_datetime(timestamps.values)
+
+        if pd.isnull(date_from):
+            date_from = timestamps[0]
+
+        if pd.isnull(date_to):
+            date_to = timestamps[-1]
+
+        shifted_slice = original[(original >= date_from) & (original <= date_to)] + pd.Timedelta(offset)
+        shifted = original[original < date_from].append(shifted_slice)
+        shifted = shifted.append(original[original > date_to])
+        shifted = shifted.drop_duplicates().sort_values()
+        return pd.DatetimeIndex(shifted)
 
     if isinstance(timestamps, pd.Series) or isinstance(timestamps, pd.DataFrame):
 
@@ -392,6 +400,7 @@ def offset_timestamps(timestamps, offset, date_from=None, date_to=None, overwrit
         else:
             new_df = timestamps.copy(deep=False)
             new_df.index = timestamps.index + pd.Timedelta(offset)
+
             # slice
             # overwrite
             return None
