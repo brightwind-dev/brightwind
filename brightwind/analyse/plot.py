@@ -344,7 +344,7 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     if ctr == 2:
         ax.annotate('*Plot generated using ' + col_names[1] + ' (yellow green boom) divided by' + col_names[0] +
                     ' (blue boom)', xy=(20, 10), xycoords='figure pixels')
-    ax.scatter(np.radians(wdir), sec_ratio, c=bw_colors('asphault'), alpha=0.3, s=1)
+    ax.scatter(np.radians(wdir), sec_ratio, color=bw_colors('asphault'), alpha=0.3, s=1)
     return ax.get_figure()
 
 
