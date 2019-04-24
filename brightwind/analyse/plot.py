@@ -99,6 +99,8 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
             ax.set_ylim(bottom=0)
             ax.set_xlim(data.index[0]-pd.Timedelta('20days'), data.index[-1]+pd.Timedelta('20days'))
             ax.set_zorder(3)
+            ax2.yaxis.grid(True)
+            ax2.set_axisbelow(True)
             ax.patch.set_visible(False)
             ax2.set_ylabel('Coverage [-]')
             ax2.yaxis.tick_right()
