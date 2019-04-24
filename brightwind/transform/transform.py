@@ -398,12 +398,30 @@ def offset_timestamps(timestamps, offset, date_from=None, date_to=None, overwrit
         if not isinstance(timestamps.index, pd.DatetimeIndex):
             raise TypeError('Input must have datetime index')
         else:
-            new_df = timestamps.copy(deep=False)
-            new_df.index = timestamps.index + pd.Timedelta(offset)
+            original = pd.to_datetime(timestamps.index.values)
+            df_copy = timestamps.copy(deep=False)
+            if pd.isnull(date_from):
+                date_from = timestamps.index[0]
 
-            # slice
-            # overwrite
-            return None
+            if pd.isnull(date_to):
+                date_to = timestamps.index[-1]
+
+            shifted_slice = original[(original >= date_from) & (original <= date_to)] + pd.Timedelta(offset)
+            intersection_front = original[(original < date_from)].intersection(shifted_slice)
+            intersection_back = original[(original > date_to)].intersection(shifted_slice)
+            if overwrite:
+                df_copy = df_copy.drop(intersection_front, axis=0)
+                df_copy = df_copy.drop(intersection_back, axis=0)
+                sec1 = original[original < date_from].remove(intersection_front)
+                sec2 = original[original > date_to].remove(intersection_back)
+                shifted = (sec1.append(shifted_slice)).append(sec2)
+            else:
+                df_copy = df_copy.drop(intersection_front - pd.Timedelta(offset), axis=0)
+                df_copy = df_copy.drop(intersection_back - pd.Timedelta(offset), axis=0)
+                sec_mid = shifted_slice.remove(intersection_front).remove(intersection_back)
+                shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original > date_to)])
+            df_copy.index = shifted
+            return df_copy.sort_index()
 
 
 
