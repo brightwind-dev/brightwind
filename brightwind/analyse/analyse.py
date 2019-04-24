@@ -64,7 +64,7 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
-def monthly_means(data, return_data=False, return_coverage=False):
+def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]'):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
@@ -73,8 +73,11 @@ def monthly_means(data, return_data=False, return_coverage=False):
     :type data: Series or DataFrame
     :param return_data: To return data of monthly means along with the plot.
     :type return_data: bool
-    :param return_coverage: To return monthly coverage along with the data and plot.
+    :param return_coverage: To return monthly coverage along with the data and plot. Also plots the coverage on the
+        same graph if only a single series was passed to data.
     :type return_coverage: bool
+    :param ylabel: Label for the y-axis, Wind speed [m/s] by default
+    :type   ylabel: str
     :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
         the first element is plot and second is data pertaining to monthly means.
 
@@ -93,20 +96,18 @@ def monthly_means(data, return_data=False, return_coverage=False):
         bw.monthly_means(data.WS80mWS425NW_Avg)
 
         # Return coverage
-        monthly_means_plot, monthly_means = bw.monthly_means(data, return_coverage=True)
-        monthly_means
+        monthly_means_plot, monthly_means = bw.monthly_means(data.WS80mWS425NW_Avg, return_coverage=True)
+        monthly_means_plot
 
     """
-    # if not isinstance(wdspds, list):
-    #     wdspds = [wdspds]
-    # data = tf.average_data_by_period(pd.concat(wdspds, axis=1, join='outer'), period='1MS')
-    df = tf.average_data_by_period(data, period='1MS')
+
+    df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True)
     if return_data and not return_coverage:
-        return plt.plot_timeseries(df), df
+        return plt.plot_monthly_means(df, ylbl=ylabel), df
     if return_coverage:
-        return plt.plot_timeseries(df), \
-               pd.concat([df, coverage(data, period='1M', aggregation_method='mean')], axis=1)
-    return plt.plot_timeseries(df)
+        return plt.plot_monthly_means(df, covrg, ylbl=ylabel),  pd.concat([df, covrg], axis=1)
+    return plt.plot_monthly_means(df, ylbl=ylabel)
+
 
 
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
