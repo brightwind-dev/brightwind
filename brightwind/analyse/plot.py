@@ -71,6 +71,12 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
         ax.plot(data, '-D', color=bw_colors('asphault'))
         ax.legend([data.name])
     ax.set_ylabel(ylbl)
+
+    from matplotlib.dates import DateFormatter
+    ax.set_xticks(data.index)
+    ax.xaxis.set_major_formatter(DateFormatter("%b %Y"))
+    fig.autofmt_xdate(rotation=20, ha='center')
+
     if coverage is not None:
         plot_coverage = True
         if len(coverage.shape) > 1:
@@ -94,7 +100,7 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
             ax.set_xlim(data.index[0]-pd.Timedelta('20days'), data.index[-1]+pd.Timedelta('20days'))
             ax.set_zorder(3)
             ax.patch.set_visible(False)
-            ax2.set_ylabel('Coverage[-]')
+            ax2.set_ylabel('Coverage [-]')
             ax2.yaxis.tick_right()
             ax2.yaxis.set_label_position("right")
             return ax2.get_figure()
