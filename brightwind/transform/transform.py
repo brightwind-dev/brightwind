@@ -368,7 +368,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
     :param overwrite: Change to True to overwrite the old timestamps if they are same outside of the slice of data
         you want to offset. False by default.
     :type overwrite: bool
-    :returns : Offseted DateTimeIndex/Series/DataFrame, same format is input data
+    :returns : Offsetted DateTimeIndex/Series/DataFrame, same format is input data
 
      **Example usage**
     ::
