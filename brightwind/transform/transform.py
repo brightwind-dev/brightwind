@@ -135,8 +135,8 @@ def _get_coverage_series(data, grouper_obj):
     return coverage
 
 
-def average_data_by_period(data: pd.Series, period, aggregation_method='mean', filter_by_coverage_threshold=False,
-                           coverage_threshold=1, return_coverage=False) -> pd.DataFrame:
+def average_data_by_period(data: pd.Series, period, aggregation_method='mean', coverage_threshold=None,
+                           return_coverage=False) -> pd.DataFrame:
     """
     Averages the data by the time period specified by period.
 
@@ -161,14 +161,12 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
         `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product, summation,
         standard deviation, variance, maximum and minimum respectively.
     :type aggregation_method: str
-    :param filter_by_coverage_threshold: It removes the time periods where the coverage is below coverage_threshold.
-        Coverage is defined as the ratio of number of data points present in the period and the maximum number of
+    :param coverage_threshold: Coverage is defined as the ratio of number of data points present in the period and the maximum number of
         data points that a period should have. Example, for 10 minute data resolution and a period of 1 hour the
         maximum number of data points in one period is 6. But if the number if data points available is only 3 for that
-        hour the coverage is 3/6=0.5
-    :type filter_by_coverage_threshold: bool
-    :param coverage_threshold: It should be greater than 0 and less than or equal to 1. For definition of coverage see
-        filter_by_coverage_threshold. Default is 1 i.e. if any timestamp is missing for that period, remove that period.
+        hour the coverage is 3/6=0.5 It should be greater than 0 and less than or equal to 1. None by default. If it is
+        None or 0 data is not filtered, otherwise time periods where coverage is less than the coverage_threshold are
+        removed.
     :type coverage_threshold: float
     :param return_coverage: If True appends and additional column in the DataFrame returned, with coverage calculated for
         each period. The columns with coverage are named as <column name>_Coverage
@@ -189,14 +187,21 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
         data_monthly = bw.average_data_by_period(data.Spd80mN, period='1M')
 
         #To filter months where half of the data is missing
-        data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M',
-            filter_by_coverage_threshold=True, coverage_threshold=0.5)
+        data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M', coverage_threshold=0.5)
 
         #To check the coverage for all months
         data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M',  return_coverage=True)
 
 
     """
+    if coverage_threshold is None or coverage_threshold == 0:
+        coverage_threshold = 0
+        filter_by_coverage_threshold = False
+    else:
+        filter_by_coverage_threshold = True
+
+    if coverage_threshold < 0 or coverage_threshold > 1:
+        raise TypeError("Invalid coverage_threshold, should be between 0 and 1, both ends inclusive")
 
     data = data.sort_index()
     if isinstance(period, str):
@@ -355,30 +360,28 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
             (to_offset(target_resolution) != to_offset(averaging_prd)):
         if ref_resolution > target_resolution:
             target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution),
-                                                    filter_by_coverage_threshold=True, coverage_threshold=1,
+                                                    coverage_threshold=1,
                                                     aggregation_method=aggregation_method_target)
         if ref_resolution < target_resolution:
             ref_overlap = average_data_by_period(ref_overlap, to_offset(target_resolution),
-                                                 filter_by_coverage_threshold=True, coverage_threshold=1,
+                                                 coverage_threshold=1,
                                                  aggregation_method=aggregation_method_ref)
         common_idxs, data_pts = _common_idxs(ref_overlap, target_overlap)
         ref_overlap = ref_overlap.loc[common_idxs]
         target_overlap = target_overlap.loc[common_idxs]
 
     if get_coverage:
-        return pd.concat([average_data_by_period(ref_overlap, averaging_prd, filter_by_coverage_threshold=False,
+        return pd.concat([average_data_by_period(ref_overlap, averaging_prd,
                                                  coverage_threshold=0, aggregation_method=aggregation_method_ref)] +
-                         list(average_data_by_period(target_overlap, averaging_prd, filter_by_coverage_threshold=False,
+                         list(average_data_by_period(target_overlap, averaging_prd,
                                                      coverage_threshold=0, aggregation_method=aggregation_method_target,
                                                      return_coverage=True)),
                          axis=1)
     else:
         ref_processed, target_processed = average_data_by_period(ref_overlap, averaging_prd,
-                                                                 filter_by_coverage_threshold=True,
                                                                  coverage_threshold=coverage_threshold,
                                                                  aggregation_method=aggregation_method_ref), \
                                           average_data_by_period(target_overlap, averaging_prd,
-                                                                 filter_by_coverage_threshold=True,
                                                                  coverage_threshold=coverage_threshold,
                                                                  aggregation_method=aggregation_method_target)
         concurrent_idxs, data_pts = _common_idxs(ref_processed, target_processed)

@@ -103,9 +103,8 @@ class CorrelBase:
         # bot get aligned -Inder
         if ext_input is None:
             output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
-                                                             filter_by_coverage_threshold=False,
                                                              return_coverage=False))
-            output = tf.average_data_by_period(self.target_spd, self.averaging_prd, filter_by_coverage_threshold=False,
+            output = tf.average_data_by_period(self.target_spd, self.averaging_prd,
                                                return_coverage=False).combine_first(output)
 
         else:
@@ -266,7 +265,6 @@ class MultipleLinearRegression(CorrelBase):
         if ext_input is None:
             return pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
                                                                       self.averaging_prd,
-                                                                      filter_by_coverage_threshold=False,
                                                                       return_coverage=False)),
                               self.data['target_spd']], axis=0)
         else:
@@ -472,10 +470,10 @@ class SpeedSort(CorrelBase):
         # bot get aligned -Inder
         if input_spd is None and input_dir is None:
             output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
-                                                             filter_by_coverage_threshold=False, return_coverage=False),
+                                                             return_coverage=False),
                                    tf.average_data_by_period(self.ref_dir, self.averaging_prd,
-                                                             filter_by_coverage_threshold=False, return_coverage=False))
-            output = tf.average_data_by_period(self.target_spd, self.averaging_prd, filter_by_coverage_threshold=False,
+                                                             return_coverage=False))
+            output = tf.average_data_by_period(self.target_spd, self.averaging_prd,
                                                return_coverage=False).combine_first(output)
         else:
             output = self._predict(input_spd, input_dir)
