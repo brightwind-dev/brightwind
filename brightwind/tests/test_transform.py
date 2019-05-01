@@ -102,14 +102,41 @@ def test_offset_timestamps():
     op = bw.offset_timestamps(series1.index, '10min', date_from='2016-01-01 00:10:00', date_to='2016-01-01 00:30:00')
     assert op[0] == series1.index[0]
     assert op[1] == series1.index[2]
-    # # sending data-series with datetime index
-    # bw.offset_timestamps(series1.Spd80mN, offset='15min')
-    #
-    # # sending data-series with datetime index with start end
-    # bw.offset_timestamps(series1.Spd80mN, offset='-1H', date_from='2016-02-13', date_to='2017-08-14')
-    #
-    # # sending data-frame with datetime index
-    # bw.offset_timestamps(series1, offset='1D')
-    #
-    # # sending data-frame with datetime index with start end
-    # bw.offset_timestamps(series1, offset='-1M', date_from= '2016-08-13', date_to='2017-05-20')
+
+    # sending DataFrame with datetime index
+    op = bw.offset_timestamps(series1, offset='-10min', date_from='2016-01-01 00:20:00')
+    assert (op.iloc[1] == series1.iloc[1]).all()
+    assert len(op)+1 == len(series1)
+    assert (op.loc['2016-01-01 00:40:00'] == series1.loc['2016-01-01 00:50:00']).all()
+
+    op = bw.offset_timestamps(series1, offset='-10min', date_from='2016-01-01 00:20:00', overwrite=True)
+    assert (op.loc['2016-01-01 00:10:00'] == series1.loc['2016-01-01 00:20:00']).all()
+
+    op = bw.offset_timestamps(series1, '10min', date_from='2016-01-01 00:10:00', date_to='2016-01-01 00:30:00')
+    assert (op.loc['2016-01-01 00:20:00'] == series1.loc['2016-01-01 00:10:00']).all()
+    assert (op.loc['2016-01-01 00:40:00'] == series1.loc['2016-01-01 00:40:00']).all()
+    assert len(op) + 1 == len(series1)
+
+    op = bw.offset_timestamps(series1, '10min', date_from='2016-01-01 00:10:00', date_to='2016-01-01 00:30:00',
+                              overwrite=True)
+    assert (op.loc['2016-01-01 00:40:00'] == series1.loc['2016-01-01 00:30:00']).all()
+    assert len(op) + 1 == len(series1)
+
+    # sending Series with datetime index
+    op = bw.offset_timestamps(series1.Spd60mN, offset='-10min', date_from='2016-01-01 00:20:00')
+    assert (op.iloc[1] == series1.Spd60mN.iloc[1]).all()
+    assert len(op)+1 == len(series1.Spd60mN)
+    assert (op.loc['2016-01-01 00:40:00'] == series1.Spd60mN.loc['2016-01-01 00:50:00']).all()
+
+    op = bw.offset_timestamps(series1.Spd60mN, offset='-10min', date_from='2016-01-01 00:20:00', overwrite=True)
+    assert (op.loc['2016-01-01 00:10:00'] == series1.Spd60mN.loc['2016-01-01 00:20:00']).all()
+
+    op = bw.offset_timestamps(series1.Spd60mN, '10min', date_from='2016-01-01 00:10:00', date_to='2016-01-01 00:30:00')
+    assert (op.loc['2016-01-01 00:20:00'] == series1.Spd60mN.loc['2016-01-01 00:10:00']).all()
+    assert (op.loc['2016-01-01 00:40:00'] == series1.Spd60mN.loc['2016-01-01 00:40:00']).all()
+    assert len(op) + 1 == len(series1.Spd60mN)
+
+    op = bw.offset_timestamps(series1.Spd60mN, '10min', date_from='2016-01-01 00:10:00', date_to='2016-01-01 00:30:00',
+                              overwrite=True)
+    assert (op.loc['2016-01-01 00:40:00'] == series1.Spd60mN.loc['2016-01-01 00:30:00']).all()
+    assert len(op) + 1 == len(series1.Spd60mN)

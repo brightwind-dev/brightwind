@@ -347,9 +347,10 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
     return round(ref_dir_avgd.loc[:]), round(target_dir_avgd.loc[:])
 
 
-def offset_timestamps(timestamps, offset, date_from=None, date_to=None, overwrite=False):
+def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=False):
     """
-    :param timestamps: Series or DataFrame of timestamps
+    :param data: DateTimeIndex or Series/DataFrame with DateTimeIndex
+    :type data: pandas.DateTimeIndex, pandas.Series, pandas.DataFrame
     :param offset: A string specifying the time to offset the time-series.
 
             - Set offset to 10min to add 10 minutes to each timestamp, -10min to subtract 10 minutes and so on
@@ -360,32 +361,52 @@ def offset_timestamps(timestamps, offset, date_from=None, date_to=None, overwrit
             - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on for 2M, 3M, etc.
             - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on for 2Y, 3Y, etc.
     :type offset: str
-    :param date_from: Start date as string, datetime object or dictionary
+    :param date_from: (Optional) Start date as string, datetime object or dictionary
     :type date_from: str, datetime, dict
-    :param date_to: End date as string, datetime object or dictionary
+    :param date_to: (Optional) End date as string, datetime object or dictionary
     :type date_to: str, datetime, dict
     :param overwrite: Change to True to overwrite the old timestamps if they are same outside of the slice of data
         you want to offset. False by default.
     :type overwrite: bool
+    :returns : Offseted DateTimeIndex/Series/DataFrame, same format is input data
+
+     **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+
+        #To decrease 10 minutes within a given date range and overwrite the original data
+        op1 = bw.offset_timestamps(data, offset='-10min', date_from='2016-01-01 00:20:00',
+            date_from='2016-01-01 01:40:00', overwrite=True)
+
+        #To decrease 10 minutes within a given date range not overwriting the original data
+        op2 = bw.offset_timestamps(data, offset='-10min', date_from='2016-01-01 00:20:00',
+            date_from='2016-01-01 01:40:00')
+
+        #Can accept Series or index as input
+        op3 = bw.offset_timestamps(data.Spd80mS, offset='-10min', date_from='2016-01-01 00:20:00')
+
+        op4 = bw.offset_timestamps(data.index, offset='-10min', date_from='2016-01-01 00:20:00',
+            date_from='2016-01-01 01:40:00')
 
     """
     import datetime
     date_from = pd.to_datetime(date_from)
     date_to = pd.to_datetime(date_to)
 
-    if isinstance(timestamps, pd.Timestamp) or isinstance(timestamps, datetime.date)\
-            or isinstance(timestamps, datetime.time)\
-            or isinstance(timestamps, datetime.datetime):
-        return timestamps + pd.Timedelta(offset)
+    if isinstance(data, pd.Timestamp) or isinstance(data, datetime.date)\
+            or isinstance(data, datetime.time)\
+            or isinstance(data, datetime.datetime):
+        return data + pd.Timedelta(offset)
 
-    if isinstance(timestamps, pd.DatetimeIndex):
-        original = pd.to_datetime(timestamps.values)
+    if isinstance(data, pd.DatetimeIndex):
+        original = pd.to_datetime(data.values)
 
         if pd.isnull(date_from):
-            date_from = timestamps[0]
+            date_from = data[0]
 
         if pd.isnull(date_to):
-            date_to = timestamps[-1]
+            date_to = data[-1]
 
         shifted_slice = original[(original >= date_from) & (original <= date_to)] + pd.Timedelta(offset)
         shifted = original[original < date_from].append(shifted_slice)
@@ -393,18 +414,18 @@ def offset_timestamps(timestamps, offset, date_from=None, date_to=None, overwrit
         shifted = shifted.drop_duplicates().sort_values()
         return pd.DatetimeIndex(shifted)
 
-    if isinstance(timestamps, pd.Series) or isinstance(timestamps, pd.DataFrame):
+    if isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
 
-        if not isinstance(timestamps.index, pd.DatetimeIndex):
+        if not isinstance(data.index, pd.DatetimeIndex):
             raise TypeError('Input must have datetime index')
         else:
-            original = pd.to_datetime(timestamps.index.values)
-            df_copy = timestamps.copy(deep=False)
+            original = pd.to_datetime(data.index.values)
+            df_copy = data.copy(deep=False)
             if pd.isnull(date_from):
-                date_from = timestamps.index[0]
+                date_from = data.index[0]
 
             if pd.isnull(date_to):
-                date_to = timestamps.index[-1]
+                date_to = data.index[-1]
 
             shifted_slice = original[(original >= date_from) & (original <= date_to)] + pd.Timedelta(offset)
             intersection_front = original[(original < date_from)].intersection(shifted_slice)
@@ -412,13 +433,13 @@ def offset_timestamps(timestamps, offset, date_from=None, date_to=None, overwrit
             if overwrite:
                 df_copy = df_copy.drop(intersection_front, axis=0)
                 df_copy = df_copy.drop(intersection_back, axis=0)
-                sec1 = original[original < date_from].remove(intersection_front)
-                sec2 = original[original > date_to].remove(intersection_back)
+                sec1 = original[original < date_from].drop(intersection_front)
+                sec2 = original[original > date_to].drop(intersection_back)
                 shifted = (sec1.append(shifted_slice)).append(sec2)
             else:
                 df_copy = df_copy.drop(intersection_front - pd.Timedelta(offset), axis=0)
                 df_copy = df_copy.drop(intersection_back - pd.Timedelta(offset), axis=0)
-                sec_mid = shifted_slice.remove(intersection_front).remove(intersection_back)
+                sec_mid = shifted_slice.drop(intersection_front).drop(intersection_back)
                 shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original > date_to)])
             df_copy.index = shifted
             return df_copy.sort_index()
