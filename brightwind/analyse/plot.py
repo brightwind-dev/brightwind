@@ -337,7 +337,6 @@ def plot_12x24_contours(tab_12x24, title='Variable'):
     step = (max_v - min_v) / 8
     levels = np.arange(min_v, max_v + step, step)#.round(2)
     fig, ax = plt.subplots()
-    # x = ax.contourf(tab_12x24, cmap="Greens")
     x = ax.contourf(tab_12x24, colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32',
                                        '#8ab92d', '#7ba428', '#6b9023'],
                     levels=levels)

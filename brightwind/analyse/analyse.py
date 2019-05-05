@@ -448,7 +448,6 @@ def basic_stats(data):
 def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_name=''):
     """
     Accepts a variable series and returns 12x24 (months x hours) table for the variable.
-
     :param var_series:
     :param aggregation_method: 'mean' by default calculates mean of the variable passed. Can change it to
             'sum', 'std', 'min', 'max', 'percentile' for sum, standard deviation, minimum, maximum, percentile
@@ -463,14 +462,12 @@ def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_n
     """
     table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
                              var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
+
+    pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
     if return_data:
-        return plt.plot_12x24_contours(
-            table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method),
-               title=var_name),\
-               table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
-    return plt.plot_12x24_contours(
-        table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method),
-        title=var_name)
+        return plt.plot_12x24_contours(pvt_tbl, title=var_name),\
+               pvt_tbl
+    return plt.plot_12x24_contours(pvt_tbl, title=var_name)
 
 
 class TI:
@@ -593,10 +590,10 @@ class TI:
             return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
 
     def twelve_by_24(wspd, wspd_std, return_data=False, var_name='Turbulence Intensity'):
-        tab_12x24 = twelve_by_24(TI.calc(wspd, wspd_std), return_data=True)[1]
+        tab_12x24, graph = twelve_by_24(TI.calc(wspd, wspd_std), return_data=True, var_name=var_name)
         if return_data:
-            return plt.plot_12x24_contours(tab_12x24, title=var_name), tab_12x24
-        return plt.plot_12x24_contours(tab_12x24, title=var_name)
+            return tab_12x24, graph
+        return graph
 
 
 class SectorRatio:
