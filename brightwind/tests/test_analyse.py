@@ -12,7 +12,6 @@ def test_monthly_means():
                                                                           'WS50mA100NW_Avg','WS50mA100SE_Avg',
                                                                           'WS20mA100CB1_Avg','WS20mA100CB2_Avg']],
                         return_data=True)
-    monthly_means(load_csv(brightwind.dathttps://github.com/brightwind-dev/brightwind/pull/51/conflict?name=brightwind%252Ftests%252Ftest_analyse.py&ancestor_oid=327cb3af2fe06cb245669ae2d57c2484eed00991&base_oid=baa2a6ac676b4b08cce0fa48dc7903946a8ba49f&head_oid=4ec3529abbc2e330c2ba35e05a8227690d956273asets.shell_flats_80m_csv).WS80mWS425NW_Avg)
     monthly_means(load_csv(brightwind.datasets.shell_flats_80m_csv).WS80mWS425NW_Avg, return_data=True)
     assert True
 
@@ -59,3 +58,8 @@ def test_coverage():
     data_hourly = bw.coverage(data.Spd80mN, period='1M')
     # monthly_coverage of variance
     data_hourly = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')
+
+def test_calc_air_density():
+    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    air_density = bw.calc_air_density(data.T2m, data.P2m)
+    assert air_density==1.178

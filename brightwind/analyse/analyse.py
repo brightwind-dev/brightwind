@@ -23,7 +23,7 @@ from brightwind.analyse import plot as plt
 
 __all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
            'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage', 'basic_stats',
-           'twelve_by_24', 'TI', 'SectorRatio', 'Shear']
+           'twelve_by_24', 'TI', 'SectorRatio', 'Shear', 'calc_air_density']
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
@@ -709,3 +709,39 @@ def _calc_shear(wspds, heights, return_coeff=False) -> (np.array, float):
     if return_coeff:
         return coeffs[0], np.exp(coeffs[1])
     return coeffs[0]
+
+
+def calc_air_density(temperature, pressure, elevationRef = 50, elevationSite = 130, lapseRate = -0.113, R = 286.9):
+    """
+    Calculates air density at a site.
+
+    :param temperature: Temperature values in degree Celsius
+    :type temperature: pandas.Series or pandas.DataFrame
+    :param pressure: Pressure values
+    :type pressure: pandas.Series or pandas.DataFrame
+    :param elevationRef:
+    :type elevationRef: Floating point value (decimal number)
+    :param elevationSite:
+    :type elevationSite: Floating point values (decimal number)
+    :param lapseRate: Air density lapse rate kg/m^3/km, default is -0.113
+    :type lapseRate: Floating point value (decimal number)
+    :param R: Specific gas constant for humid air J/(kg.K), default is 286.9
+    :type R:  Floating point value (decimal number)
+    :return: Air density
+    :rtype: float
+
+        **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        air_density = bw.calc_air_density(data.T2m, data.P2m)
+
+
+    """
+    temp = momm(temperature)
+    pressure = momm(pressure)
+    temp_K = temp + 273.15  # to convert deg C to Kelvin.
+    pressure = pressure * 100
+    refAirDensity = pressure / (R * temp_K)
+    siteAirDensity = round(refAirDensity + (((elevationSite - elevationRef) / 1000) * lapseRate), 3)
+    return siteAirDensity
