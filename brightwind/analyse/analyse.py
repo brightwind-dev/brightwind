@@ -392,7 +392,7 @@ def coverage(data, period='1M', aggregation_method='mean'):
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
         #To find hourly coverage
         data_hourly = bw.coverage(data.Spd80mN, period='1H')
@@ -434,7 +434,7 @@ def basic_stats(data):
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
         bw.basic_stats(data)
         bw.basic_stats(data['Gust_Max_1'])
 

@@ -65,7 +65,7 @@ def _get_data_resolution(data_idx):
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
         resolution = bw._get_data_resolution(df.Spd80mS.index)
         #To check the number of seconds in resolution
         print(resolution.seconds)
@@ -180,7 +180,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
         #To find hourly averages
         data_hourly = bw.average_data_by_period(data.Spd80mN, period='1H')
@@ -256,7 +256,7 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
         df['Spd80mS_adj'] = bw.adjust_slope_offset(df.Spd80mS, 0.044, 0.235, 0.04365, 0.236)
         df[['Spd80mS', 'Spd80mS_adj']]
 

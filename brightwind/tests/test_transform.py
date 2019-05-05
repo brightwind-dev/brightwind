@@ -65,7 +65,7 @@ def test_adjust_slope_offset_arg_wndspd_series_str():
 
 def test_get_data_resolution():
     import warnings
-    series1 = bw.load_campbell_scientific(bw.datasets.demo_site_data)['Spd80mS'].index
+    series1 = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)['Spd80mS'].index
     assert bw._get_data_resolution(series1).seconds == 600
 
     series2 = pd.date_range('2010-01-01', periods=150, freq='H')
@@ -79,7 +79,7 @@ def test_get_data_resolution():
         assert len(w) == 1
 
 def test_average_data_by_period():
-    data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
     #hourly averages
     bw.average_data_by_period(data.Spd80mN, period='1H')
