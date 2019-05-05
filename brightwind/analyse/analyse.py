@@ -64,7 +64,7 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
-def monthly_means(data, return_data=False, return_coverage=False):
+def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]'):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
@@ -73,8 +73,11 @@ def monthly_means(data, return_data=False, return_coverage=False):
     :type data: Series or DataFrame
     :param return_data: To return data of monthly means along with the plot.
     :type return_data: bool
-    :param return_coverage: To return monthly coverage along with the data and plot.
+    :param return_coverage: To return monthly coverage along with the data and plot. Also plots the coverage on the
+        same graph if only a single series was passed to data.
     :type return_coverage: bool
+    :param ylabel: Label for the y-axis, Wind speed [m/s] by default
+    :type   ylabel: str
     :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
         the first element is plot and second is data pertaining to monthly means.
 
@@ -93,20 +96,18 @@ def monthly_means(data, return_data=False, return_coverage=False):
         bw.monthly_means(data.WS80mWS425NW_Avg)
 
         # Return coverage
-        monthly_means_plot, monthly_means = bw.monthly_means(data, return_coverage=True)
-        monthly_means
+        monthly_means_plot, monthly_means = bw.monthly_means(data.WS80mWS425NW_Avg, return_coverage=True)
+        monthly_means_plot
 
     """
-    # if not isinstance(wdspds, list):
-    #     wdspds = [wdspds]
-    # data = tf.average_data_by_period(pd.concat(wdspds, axis=1, join='outer'), period='1MS')
-    df = tf.average_data_by_period(data, period='1MS')
+
+    df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True)
     if return_data and not return_coverage:
-        return plt.plot_timeseries(df), df
+        return plt.plot_monthly_means(df, ylbl=ylabel), df
     if return_coverage:
-        return plt.plot_timeseries(df), \
-               pd.concat([df, coverage(data, period='1M', aggregation_method='mean')], axis=1)
-    return plt.plot_timeseries(data)
+        return plt.plot_monthly_means(df, covrg, ylbl=ylabel),  pd.concat([df, covrg], axis=1)
+    return plt.plot_monthly_means(df, ylbl=ylabel)
+
 
 
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
@@ -224,7 +225,7 @@ def _binned_direction_series(direction_series, sectors, direction_bin_array=None
     """
     if direction_bin_array is None:
         direction_bin_array = utils.get_direction_bin_array(sectors)
-    return direction_series.apply(_map_direction_bin, bins=direction_bin_array, sectors=sectors)
+    return direction_series.dropna().apply(_map_direction_bin, bins=direction_bin_array, sectors=sectors)
 
 
 def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
@@ -361,25 +362,54 @@ def time_continuity_gaps(data):
 
 def coverage(data, period='1M', aggregation_method='mean'):
     """
-    Get the data coverage over the period specified
+    Get the data coverage over the period specified.
 
-    :param data: Data to check the coverage of
+    Coverage is defined as the ratio of number of data points present in the period and the maximum number of
+    data points that a period should have. Example, for 10 minute data resolution and a period of 1 hour the
+    maximum number of data points in one period is 6. But if the number if data points available is only 3 for that
+    hour the coverage is 3/6=0.5 . For more details see average_data_by_period as this function is a wrapper around it.
+
+    :param data: Data to find average or aggregate of
     :type data: pandas.Series or pandas.DataFrame
-    :param period: Groups data by the period specified by period.
+    :param period: Groups data by the period specified here. The following formats are supported
 
-            - 2T, 2 min for minutely average
-            - Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
+            - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
             - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-            - Set period to 1MS for monthly average
+            - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
+            - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
+            - Set period to 1M for monthly average
             - Set period to 1AS fo annual average
+            - Can be a DateOffset object too
 
-    :type period: string or pandas.DateOffset
-    :param aggregation_method: (Optional) Calculates mean of the data for the given averaging_prd by default. Can be
-            changed to 'sum', 'std', 'max', 'min', etc. or a user defined function
+    :type period: str or pandas.DateOffset
+    :param aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also use
+        `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product, summation,
+        standard deviation, variance, maximum and minimum respectively.
     :type aggregation_method: str
-    :return: A DataFrame with coverage and resolution of the new data. The columns with coverage are named as
-            <column name>_Coverage
+    :return: A DataFrame with data aggregated with the specified aggregation_method (mean by default) and coverage.
+            The columns with coverage are named as <column name>_Coverage
 
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+
+        #To find hourly coverage
+        data_hourly = bw.coverage(data.Spd80mN, period='1H')
+
+        #To find hourly coverage for multiple columns
+        data_hourly_multiple = bw.coverage(data[['Spd80mS','Spd60mN']], period='1H')
+
+        #To find monthly_coverage
+        data_monthly = bw.coverage(data.Spd80mN, period='1M')
+
+        #To find monthly_coverage of variance
+        data_monthly_var = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')
+
+
+    See Also
+    --------
+    bw.average_data_by_period
     """
 
     return tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,

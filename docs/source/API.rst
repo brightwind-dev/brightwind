@@ -1,17 +1,88 @@
 .. _api_ref:
 
-.. currentmodule:: brightwind
 
 API reference
 =============
 
-.. toctree::
-    :maxdepth: 1
+Datasets
+---------
 
-    brightwind.analyse
-    brightwind.datasets
-    brightwind.export
-    brightwind.load
-    brightwind.transform
-    brightwind.utils
+.. currentmodule:: brightwind.datasets
+
+.. autosummary::
+    :toctree:
+
+    datasets_available
+
+Load
+-----
+
+.. currentmodule:: brightwind.load.load
+
+.. autosummary::
+    :toctree:
+
+    load_csv
+    load_campbell_scientific
+    load_excel
+    load_brightdata
+
+Analyse
+---------
+
+.. currentmodule:: brightwind.analyse.analyse
+
+.. autosummary::
+    :toctree:
+
+    concurrent_coverage
+    monthly_means
+    momm
+    distribution
+    distribution_by_wind_speed
+    distribution_by_dir_sector
+    freq_table
+    time_continuity_gaps
+    coverage
+    basic_stats
+    twelve_by_24
+    TI
+    SectorRatio
+    Shear
+
+.. currentmodule:: brightwind.analyse.plot
+
+.. autosummary::
+    :toctree:
+
+    plot_timeseries
+
+
+Correlation
+------------
+
+.. currentmodule:: brightwind.analyse.correlation
+
+.. autosummary::
+    :toctree:
+
+    OrdinaryLeastSquares
+    OrthogonalLeastSquares
+    MultipleLinearRegression
+    SimpleSpeedRatio
+    SpeedSort
+    SVR
+
+Transform
+-----------
+
+.. currentmodule:: brightwind.transform.transform
+
+.. autosummary::
+    :toctree:
+
+    average_data_by_period
+    adjust_slope_offset
+    scale_wind_speed
+    offset_wind_direction
 
