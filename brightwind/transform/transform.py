@@ -349,6 +349,8 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
 
 def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=False):
     """
+    Offset timestamps by a certain time period
+
     :param data: DateTimeIndex or Series/DataFrame with DateTimeIndex
     :type data: pandas.DateTimeIndex, pandas.Series, pandas.DataFrame
     :param offset: A string specifying the time to offset the time-series.
@@ -361,12 +363,12 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on for 2M, 3M, etc.
             - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on for 2Y, 3Y, etc.
     :type offset: str
-    :param date_from: (Optional) Start date as string, datetime object or dictionary
+    :param date_from: (Optional) The timestamp from input data where to start offsetting from.
     :type date_from: str, datetime, dict
-    :param date_to: (Optional) End date as string, datetime object or dictionary
+    :param date_to: (Optional) The timestamp from input data where to end offsetting.
     :type date_to: str, datetime, dict
-    :param overwrite: Change to True to overwrite the old timestamps if they are same outside of the slice of data
-        you want to offset. False by default.
+    :param overwrite: Change to True to overwrite the unadjusted timestamps if they are same outside of the slice of
+        data you want to offset. False by default.
     :type overwrite: bool
     :returns : Offsetted DateTimeIndex/Series/DataFrame, same format is input data
 
@@ -376,7 +378,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
         data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
 
         #To decrease 10 minutes within a given date range and overwrite the original data
-        op1 = bw.offset_timestamps(data, offset='-10min', date_from='2016-01-01 00:20:00',
+        op1 = bw.offset_timestamps(data, offset='1H', date_from='2016-01-01 00:20:00',
             date_from='2016-01-01 01:40:00', overwrite=True)
 
         #To decrease 10 minutes within a given date range not overwriting the original data
@@ -384,7 +386,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             date_from='2016-01-01 01:40:00')
 
         #Can accept Series or index as input
-        op3 = bw.offset_timestamps(data.Spd80mS, offset='-10min', date_from='2016-01-01 00:20:00')
+        op3 = bw.offset_timestamps(data.Spd80mS, offset='1D', date_from='2016-01-01 00:20:00')
 
         op4 = bw.offset_timestamps(data.index, offset='-10min', date_from='2016-01-01 00:20:00',
             date_from='2016-01-01 01:40:00')
