@@ -85,4 +85,5 @@ Transform
     adjust_slope_offset
     scale_wind_speed
     offset_wind_direction
-
+    _get_data_resolution
+    offset_timestamps
