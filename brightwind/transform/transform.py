@@ -379,16 +379,21 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
         #To decrease 10 minutes within a given date range and overwrite the original data
         op1 = bw.offset_timestamps(data, offset='1H', date_from='2016-01-01 00:20:00',
-            date_from='2016-01-01 01:40:00', overwrite=True)
+            date_to='2016-01-01 01:40:00', overwrite=True)
 
         #To decrease 10 minutes within a given date range not overwriting the original data
         op2 = bw.offset_timestamps(data, offset='-10min', date_from='2016-01-01 00:20:00',
-            date_from='2016-01-01 01:40:00')
+            date_to='2016-01-01 01:40:00')
 
         #Can accept Series or index as input
         op3 = bw.offset_timestamps(data.Spd80mS, offset='1D', date_from='2016-01-01 00:20:00')
 
         op4 = bw.offset_timestamps(data.index, offset='-10min', date_from='2016-01-01 00:20:00',
+            date_from='2016-01-01 01:40:00')
+
+        #Can also except decimal values for offset, like 3.5H for 3 hours and 30 minutes
+
+        op5 = bw.offset_timestamps(data.index, offset='3.5H', date_from='2016-01-01 00:20:00',
             date_from='2016-01-01 01:40:00')
 
     """
