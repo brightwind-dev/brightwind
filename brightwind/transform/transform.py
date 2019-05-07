@@ -135,7 +135,7 @@ def _get_coverage_series(data, grouper_obj):
     return coverage
 
 
-def average_data_by_period(data: pd.Series, period, aggregation_method='mean', coverage_threshold=None,
+def average_data_by_period(data, period, aggregation_method='mean', coverage_threshold=None,
                            return_coverage=False) -> pd.DataFrame:
     """
     Averages the data by the time period specified by period.
@@ -413,6 +413,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             - Set offset to 1W to add a week and -1W to subtract from each timestamp and so on for 2W, 4W, etc.
             - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on for 2M, 3M, etc.
             - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on for 2Y, 3Y, etc.
+
     :type offset: str
     :param date_from: (Optional) The timestamp from input data where to start offsetting from.
     :type date_from: str, datetime, dict
@@ -423,7 +424,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
     :type overwrite: bool
     :returns : Offsetted DateTimeIndex/Series/DataFrame, same format is input data
 
-     **Example usage**
+    **Example usage**
     ::
         import brightwind as bw
         data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
