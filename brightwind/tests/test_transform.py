@@ -140,7 +140,7 @@ def test_offset_timestamps():
                               overwrite=True)
     assert (op.loc['2016-01-01 00:40:00'] == series1.Spd60mN.loc['2016-01-01 00:30:00']).all()
     assert len(op) + 1 == len(series1.Spd60mN)
-=======
+
 def test_average_data_by_period():
     data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
