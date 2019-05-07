@@ -65,7 +65,7 @@ def test_adjust_slope_offset_arg_wndspd_series_str():
 
 def test_get_data_resolution():
     import warnings
-    series1 = bw.load_campbell_scientific(bw.datasets.demo_site_data)['Spd80mS'].index
+    series1 = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)['Spd80mS'].index
     assert bw._get_data_resolution(series1).seconds == 600
 
     series2 = pd.date_range('2010-01-01', periods=150, freq='H')
@@ -78,7 +78,7 @@ def test_get_data_resolution():
         assert bw._get_data_resolution(series3).seconds == 3600
         assert len(w) == 1
 
-
+        
 def test_offset_timestamps():
     series1 = bw.load_campbell_scientific(bw.datasets.demo_site_data)#['Spd80mS']
 
@@ -140,3 +140,39 @@ def test_offset_timestamps():
                               overwrite=True)
     assert (op.loc['2016-01-01 00:40:00'] == series1.Spd60mN.loc['2016-01-01 00:30:00']).all()
     assert len(op) + 1 == len(series1.Spd60mN)
+=======
+def test_average_data_by_period():
+    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+    #hourly averages
+    bw.average_data_by_period(data.Spd80mN, period='1H')
+    #hourly average with coverage filtering
+    bw.average_data_by_period(data.Spd80mN, period='1H', filter_by_coverage_threshold=True, coverage_threshold=0.9)
+    bw.average_data_by_period(data.Spd80mN, period='1H', filter_by_coverage_threshold=True, coverage_threshold=1)
+    #return coverage with filtering
+    bw.average_data_by_period(data.Spd80mN, period='1H', filter_by_coverage_threshold=True, coverage_threshold=0.9,
+                              return_coverage=True)
+    # return coverage without filtering
+    bw.average_data_by_period(data.Spd80mN, period='1H', return_coverage=True)
+
+    #monthly averages
+    bw.average_data_by_period(data.Spd80mN, period='1M')
+    #hourly average with coverage filtering
+    bw.average_data_by_period(data.Spd80mN, period='1M', filter_by_coverage_threshold=True, coverage_threshold=0.9)
+    bw.average_data_by_period(data.Spd80mN, period='1M', filter_by_coverage_threshold=True, coverage_threshold=1)
+    #return coverage with filtering
+    bw.average_data_by_period(data.Spd80mN, period='1M', filter_by_coverage_threshold=True, coverage_threshold=0.9,
+                              return_coverage=True)
+    # return coverage without filtering
+    bw.average_data_by_period(data.Spd80mN, period='1M', return_coverage=True)
+
+    #weekly averages
+    bw.average_data_by_period(data.Spd80mN, period='2W')
+    #hourly average with coverage filtering
+    bw.average_data_by_period(data.Spd80mN, period='2W', filter_by_coverage_threshold=True, coverage_threshold=0.9)
+    bw.average_data_by_period(data.Spd80mN, period='2W', filter_by_coverage_threshold=True, coverage_threshold=1)
+    #return coverage with filtering
+    bw.average_data_by_period(data.Spd80mN, period='2W', filter_by_coverage_threshold=True, coverage_threshold=0.9,
+                              return_coverage=True)
+    # return coverage without filtering
+    bw.average_data_by_period(data.Spd80mN, period='2W', return_coverage=True)

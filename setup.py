@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='brightwind',
-    version='0.0.1',
+    version='0.1.0',
     packages=['brightwind', 'brightwind.load', 'brightwind.utils', 'brightwind.export', 'brightwind.analyse',
               'brightwind.transform'],
     url='https://github.com/brightwind-dev/brightwind.git',
