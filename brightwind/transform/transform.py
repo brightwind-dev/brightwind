@@ -194,7 +194,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', c
 
 
     """
-    if coverage_threshold is None or coverage_threshold == 0:
+    if coverage_threshold is None:
         coverage_threshold = 0
 
     if coverage_threshold < 0 or coverage_threshold > 1:
@@ -225,7 +225,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', c
             coverage = coverage.rename(grouped_data.name+'_Coverage')
         else:
             raise TypeError("Coverage not calculated correctly. Coverage", coverage)
-        return grouped_data, coverage
+        return grouped_data, coverage[coverage >= coverage_threshold]
     else:
         return grouped_data
 
