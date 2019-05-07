@@ -140,9 +140,9 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', c
     """
     Averages the data by the time period specified by period.
 
-    Aggregates data by the aggregation_method specified, by default averages the to the period specified. Can
-    be used to find hourly, daily, weekly, etc. averages or sums. Can also return coverage and filter the returned data
-    by coverage.
+    Aggregates data by the aggregation_method specified, by default this function averages the data to the period 
+    specified. Can be used to find hourly, daily, weekly, etc. averages or sums. Can also return coverage and 
+    filter the returned data by coverage.
 
     :param data: Data to find average or aggregate of
     :type data: pandas.Series
@@ -161,15 +161,15 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', c
         `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product, summation,
         standard deviation, variance, maximum and minimum respectively.
     :type aggregation_method: str
-    :param coverage_threshold: Coverage is defined as the ratio of number of data points present in the period and the maximum number of
-        data points that a period should have. Example, for 10 minute data resolution and a period of 1 hour the
-        maximum number of data points in one period is 6. But if the number if data points available is only 3 for that
-        hour the coverage is 3/6=0.5 It should be greater than 0 and less than or equal to 1. None by default. If it is
-        None or 0 data is not filtered, otherwise time periods where coverage is less than the coverage_threshold are
-        removed.
+    :param coverage_threshold: Coverage is defined as the ratio of number of data points present in the period and the 
+        maximum number of data points that a period should have. Example, for 10 minute data resolution and a period of 
+        1 hour, the maximum number of data points in one period is 6. But if the number if data points available is only
+        3 for that hour the coverage is 3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to 
+        None by default. If it is None or 0, data is not filtered. Otherwise periods are removed where coverage is less 
+        than the coverage_threshold are removed.
     :type coverage_threshold: float
-    :param return_coverage: If True appends and additional column in the DataFrame returned, with coverage calculated for
-        each period. The columns with coverage are named as <column name>_Coverage
+    :param return_coverage: If True appends and additional column in the DataFrame returned, with coverage calculated
+        for each period. The columns with coverage are named as <column name>_Coverage
     :type return_coverage: bool
     :returns: A DataFrame with data aggregated with the specified aggregation_method (mean by default). Additionally it
         could be filtered based on coverage and have a coverage column depending on the parameters.
@@ -190,15 +190,12 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', c
         data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M', coverage_threshold=0.5)
 
         #To check the coverage for all months
-        data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M',  return_coverage=True)
+        data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M', return_coverage=True)
 
 
     """
     if coverage_threshold is None or coverage_threshold == 0:
         coverage_threshold = 0
-        filter_by_coverage_threshold = False
-    else:
-        filter_by_coverage_threshold = True
 
     if coverage_threshold < 0 or coverage_threshold > 1:
         raise TypeError("Invalid coverage_threshold, should be between 0 and 1, both ends inclusive")
@@ -219,8 +216,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', c
     grouped_data = grouper_obj.agg(aggregation_method)
     coverage = _get_coverage_series(data, grouper_obj)
 
-    if filter_by_coverage_threshold:
-        grouped_data = grouped_data[coverage >= coverage_threshold]
+    grouped_data = grouped_data[coverage >= coverage_threshold]
 
     if return_coverage:
         if isinstance(coverage, pd.DataFrame):
