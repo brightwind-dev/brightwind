@@ -310,8 +310,8 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     :param sec_ratio:
     :param wdir:
     :param sec_ratio_dist: DataFrame from SectorRation.by_speed()
-    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to 0.
-    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to 0.
+    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to -1.
+    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1.
     :param col_names: A list of strings containing column names of wind speeds
     :returns A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
     """
@@ -335,15 +335,20 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     if boom_dir_1 >= 0:
         boom_dir_1 = np.radians(boom_dir_1)
         ax.bar(boom_dir_1, radii, width=width, bottom=minlevel, color='#659CEF')
+        annot = col_names[1] + ' (top mount)  divided by ' + col_names[0] + ' (blue boom)'
         ctr += 1
     if boom_dir_2 >= 0:
         boom_dir_2 = np.radians(boom_dir_2)
         ax.bar(boom_dir_2, radii, width=width, bottom=minlevel, color='#DCF600')
+        annot = col_names[1] +' (yellow green boom) divided by ' + col_names[0] +' (top mount)'
         ctr += 1
+
+    if ctr == 1:
+        ax.annotate('*Plot generated using ' + annot, xy=(0.17, 0.035), xycoords='figure fraction')
 
     if ctr == 2:
         ax.annotate('*Plot generated using ' + col_names[1] + ' (yellow green boom) divided by' + col_names[0] +
-                    ' (blue boom)', xy=(0.17, 0.01), xycoords='figure fraction')
+                    ' (blue boom)', xy=(0.17, 0.035), xycoords='figure fraction')
     ax.scatter(np.radians(wdir), sec_ratio, color=bw_colors('asphault'), alpha=0.3, s=1)
     return ax.get_figure()
 
