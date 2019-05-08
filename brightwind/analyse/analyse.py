@@ -619,9 +619,9 @@ class SectorRatio:
         :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
         :type sectors: int
         :param direction_bin_array: (Optional) Array of numbers where adjacent elements of array form a bin.
-        :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to -1.
+        :param boom_dir_1: Boom direction in degrees of wspd_1. If top mounted leave default as -1.
         :type boom_dir_1: float
-        :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1.
+        :param boom_dir_2: Boom direction in degrees of wspd_2. If top mounted leave default as -1.
         :type boom_dir_2: float
         :param return_data:  Set to True if you want the data returned.
         :type return_data: bool
@@ -634,13 +634,13 @@ class SectorRatio:
             data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
 
             #For plotting both booms
-            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir = df.Dir38mS, boom_dir_2=340, boom_dir_2=160)
+            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS, boom_dir_2=340, boom_dir_2=160)
 
             #For plotting no booms
-            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir = df.Dir38mS)
+            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS)
 
             #If one boom is top mounted, say Spd40mN
-            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir = df.Dir38mS, boom_dir_2= 160)
+            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS, boom_dir_2=160)
 
         """
         sec_rat = SectorRatio.calc(wspd_1, wspd_2)
