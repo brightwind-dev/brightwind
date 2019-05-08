@@ -711,23 +711,26 @@ def _calc_shear(wspds, heights, return_coeff=False) -> (np.array, float):
     return coeffs[0]
 
 
-def calc_air_density(temperature, pressure, elevationRef = 50, elevationSite = 130, lapseRate = -0.113, R = 286.9):
+def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=None, lapse_rate=-0.113,
+                     specific_gas_constant=286.9):
     """
-    Calculates air density at a site.
+    Calculates air density for a given temperature and pressure and extrapolates that to the site if both reference
+    and site elevations are given.
 
     :param temperature: Temperature values in degree Celsius
-    :type temperature: pandas.Series or pandas.DataFrame
-    :param pressure: Pressure values
-    :type pressure: pandas.Series or pandas.DataFrame
-    :param elevationRef:
-    :type elevationRef: Floating point value (decimal number)
-    :param elevationSite:
-    :type elevationSite: Floating point values (decimal number)
-    :param lapseRate: Air density lapse rate kg/m^3/km, default is -0.113
-    :type lapseRate: Floating point value (decimal number)
-    :param R: Specific gas constant for humid air J/(kg.K), default is 286.9
-    :type R:  Floating point value (decimal number)
-    :return: Air density
+    :type temperature: float or pandas.Series or pandas.DataFrame
+    :param pressure: Pressure values in hectopascal, hPa, (1,013.25 hPa = 101,325 Pa = 101.325 kPa =
+                    1 atm = 1013.25 mbar)
+    :type pressure: float or pandas.Series or pandas.DataFrame
+    :param elevation_ref: Elevation, in meters, of the reference temperature and pressure location.
+    :type elevation_ref: Floating point value (decimal number)
+    :param elevation_site: Elevation, in meters, of the site location to calculate air density for.
+    :type elevation_site: Floating point values (decimal number)
+    :param lapse_rate: Air density lapse rate kg/m^3/km, default is -0.113
+    :type lapse_rate: Floating point value (decimal number)
+    :param specific_gas_constant: Specific gas constant, R, for humid air J/(kg.K), default is 286.9
+    :type specific_gas_constant:  Floating point value (decimal number)
+    :return: Air density in kg/m^3
     :rtype: float
 
         **Example usage**
@@ -738,10 +741,11 @@ def calc_air_density(temperature, pressure, elevationRef = 50, elevationSite = 1
 
 
     """
-    temp = momm(temperature)
-    pressure = momm(pressure)
-    temp_K = temp + 273.15  # to convert deg C to Kelvin.
-    pressure = pressure * 100
-    refAirDensity = pressure / (R * temp_K)
-    siteAirDensity = round(refAirDensity + (((elevationSite - elevationRef) / 1000) * lapseRate), 3)
-    return siteAirDensity
+    # temp = momm(temperature)
+    # pressure = momm(pressure)
+    temp = temperature
+    temp_kelvin = temp + 273.15     # to convert deg C to Kelvin.
+    pressure = pressure * 100       # to convert hPa to Pa
+    ref_air_density = pressure / (specific_gas_constant * temp_kelvin)
+    site_air_density = round(ref_air_density + (((elevation_site - elevation_ref) / 1000) * lapse_rate), 3)
+    return site_air_density
