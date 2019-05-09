@@ -113,7 +113,57 @@ def _pandas_read_csv(filepath, **kwargs):
         raise error
 
 
-def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=False, **kwargs):
+def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=True, **kwargs):
+    """
+    Load timeseries data from a csv file, or group of files in a folder, into a DataFrame.
+    The format of the csv file should be column headings in the first row with the timestamp column as the first
+    column, however these can be over written by sending your own arguments as this is a wrapper around the
+    pandas.read_csv function. The pandas.read_csv documentation can be found at:
+    https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html
+
+    :param filepath_or_folder: Location of the file folder containing the timeseries data.
+    :type filepath_or_folder: str
+    :param search_by_file_type: Is a list of file extensions to search for e.g. ['.csv', '.txt'] if a folder is sent.
+    :type search_by_file_type: List[str], default .csv
+    :param print_progress: If you want to print out statements of the file been processed set to True. Default is True.
+    :type print_progress: bool, default True
+    :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
+    :return: A DataFrame with timestamps as it's index.
+    :rtype: pandas.DataFrame
+
+    When assembling files from folders into a single DataFrame with timestamp as the index it automatically checks for
+    duplicates and throws an error if any found.
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        filepath = r'C:\\some\\folder\\some_data2.csv'
+        df = bw.load_csv(filepath)
+        print(df)
+
+    To load a group of files from a folder other than a .csv file type::
+
+        folder = r'C:\\some\\folder\\with\\txt\\files'
+        df = bw.load_csv(folder, search_by_file_type=['.txt'], print_progress=True)
+
+    If you want to load something that is different from a standard file where the column headings are not in the first
+    row, the pandas.read_csv key word arguments (kwargs) can be used::
+
+        filepath = r'C:\\some\\folder\\some_data_with_column_headings_on_second_line.csv'
+        df = bw.load_csv(filepath, skiprows=[0])
+    """
+
+    is_file = _is_file(filepath_or_folder)
+    fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True}
+    merged_fn_args = {**fn_arguments, **kwargs}
+    if is_file:
+        return _pandas_read_csv(filepath_or_folder, **merged_fn_args)
+    elif not is_file:
+        return _assemble_df_from_folder(filepath_or_folder, search_by_file_type, _pandas_read_csv, print_progress,
+                                        **merged_fn_args)
+
+
+def load_windographer(filepath_or_folder, search_by_file_type=['.txt'], print_progress=True, **kwargs):
     """
     Load timeseries data from a csv file, or group of files in a folder, into a DataFrame.
     The format of the csv file should be column headings in the first row with the timestamp column as the first
@@ -163,7 +213,7 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Fa
                                         **merged_fn_args)
 
 
-def load_campbell_scientific(filepath_or_folder, print_progress=False, **kwargs):
+def load_campbell_scientific(filepath_or_folder, print_progress=True, **kwargs):
     """
     Load timeseries data from Campbell Scientific CR1000 formatted file, or group of files in a folder, into a
     DataFrame. If the file format is slightly different your own key word arguments can be sent as this is a wrapper
@@ -172,8 +222,8 @@ def load_campbell_scientific(filepath_or_folder, print_progress=False, **kwargs)
 
     :param filepath_or_folder: Location of the file folder containing the timeseries data.
     :type filepath_or_folder: str
-    :param print_progress: If you want to print out statements of the file been processed set to True. Default is False.
-    :type print_progress: bool, default False
+    :param print_progress: If you want to print out statements of the file been processed set to True. Default is True.
+    :type print_progress: bool, default True
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame with timestamps as it's index
     :rtype: pandas.DataFrame
@@ -221,7 +271,7 @@ def _pandas_read_excel(filepath, **kwargs):
         raise error
 
 
-def load_excel(filepath_or_folder, search_by_file_type=['.xlsx'], print_progress=False, sheet_name=0, **kwargs):
+def load_excel(filepath_or_folder, search_by_file_type=['.xlsx'], print_progress=True, sheet_name=0, **kwargs):
     """
     Load timeseries data from an Excel file, or group of files in a folder, into a DataFrame.
     The format of the Excel file should be column headings in the first row with the timestamp column as the first
@@ -233,8 +283,8 @@ def load_excel(filepath_or_folder, search_by_file_type=['.xlsx'], print_progress
     :type filepath_or_folder: str
     :param search_by_file_type: Is a list of file extensions to search for e.g. ['.xlsx'] if a folder is sent.
     :type search_by_file_type: List[str], default .xlsx
-    :param print_progress: If you want to print out statements of the file been processed set to True. Default is False.
-    :type print_progress: bool, default False
+    :param print_progress: If you want to print out statements of the file been processed set to True. Default is True.
+    :type print_progress: bool, default True
     :param sheet_name: The Excel file sheet name you want to read from.
     :type sheet_name: string, int, mixed list of strings/ints, or None, default 0
     :param kwargs: All the kwargs from pandas.read_excel can be passed to this function.
@@ -295,7 +345,7 @@ def _assemble_files_to_folder(source_folder, destination_folder, file_type, prin
 
     """
     files_list = _list_files(source_folder, file_type)
-    x: int = 0
+    x = 0
     for file in files_list:
         filename = os.path.split(file)[1]
         filepath = os.path.split(file)[0]
