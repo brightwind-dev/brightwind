@@ -51,6 +51,7 @@ def test_TI_twelve_by_24():
     bw.TI.twelve_by_24(df.Spd40mN, df.Spd40mNStd)
     assert 1 == 1
 
+
 def test_coverage():
     data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
@@ -63,7 +64,17 @@ def test_coverage():
 
 
 def test_calc_air_density():
+    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    bw.calc_air_density(data.T2m, data.P2m)
+    bw.calc_air_density(data.T2m, data.P2m, elevation_ref=0, elevation_site=200)
+
+    with pytest.raises(TypeError) as except_info:
+        bw.calc_air_density(15, 1013, elevation_site=200)
+    assert str(except_info.value) == 'elevation_ref should be a number'
+    with pytest.raises(TypeError) as except_info:
+        bw.calc_air_density(15, 1013, elevation_ref=200)
+    assert str(except_info.value) == 'elevation_site should be a number'
     assert abs(bw.calc_air_density(15, 1013) - 1.225) < 1e-3
-    assert abs(bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200)- 1.203) < 1e-3
+    assert abs(bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200) - 1.203) < 1e-3
     assert (abs(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])) -
                pd.Series([1.225, 1.208, 1.326, 1.059])) < 1e-3).all()

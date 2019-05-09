@@ -736,8 +736,17 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         **Example usage**
     ::
         import brightwind as bw
+
+        #For a series of air densities
         data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
         air_density = bw.calc_air_density(data.T2m, data.P2m)
+
+        #For a single value
+        bw.calc_air_density(15, 1013)
+
+        #For a single value with ref and site elevation
+        bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200)
+
 
 
     """
@@ -746,8 +755,13 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
     temp_kelvin = temp + 273.15     # to convert deg C to Kelvin.
     pressure = pressure * 100       # to convert hPa to Pa
     ref_air_density = pressure / (specific_gas_constant * temp_kelvin)
+
     if elevation_ref is not None and elevation_site is not None:
         site_air_density = round(ref_air_density + (((elevation_site - elevation_ref) / 1000) * lapse_rate), 3)
         return site_air_density
+    elif elevation_site is None and elevation_ref is not None:
+        raise TypeError('elevation_site should be a number')
+    elif elevation_site is not None and elevation_ref is None:
+        raise TypeError('elevation_ref should be a number')
     else:
         return ref_air_density
