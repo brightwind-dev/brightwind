@@ -174,3 +174,11 @@ def test_average_data_by_period():
     bw.average_data_by_period(data.Spd80mN, period='2W', coverage_threshold=0.9, return_coverage=True)
     # return coverage without filtering
     bw.average_data_by_period(data.Spd80mN, period='2W', return_coverage=True)
+
+
+def test_freq_table():
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    temp_rose, temp_freq_tab = bw.freq_table(df.T2m, df.Dir78mS, var_bin_array=[-10, 0, 10, 20],
+                                             var_bin_labels=['low', 'mid', 'high'],
+                                             return_data=True)
+    assert 1==1
