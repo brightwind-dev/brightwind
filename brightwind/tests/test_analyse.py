@@ -4,6 +4,8 @@ from brightwind.analyse.analyse import monthly_means, SectorRatio, basic_stats, 
 from brightwind.load.load import load_csv
 import brightwind.datasets
 import brightwind as bw
+import pandas as pd
+
 
 def test_monthly_means():
     #Load data
@@ -41,16 +43,16 @@ def test_time_continuity_gaps():
 
 
 def test_TI_twelve_by_24():
-    df = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd)
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, return_data=True)
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, return_data=True, var_name='Speed 60 m N m/s')
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, var_name='Speed 60 m N m/s')
     bw.TI.twelve_by_24(df.Spd40mN, df.Spd40mNStd)
-    assert 1==1
+    assert 1 == 1
 
 def test_coverage():
-    data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
     # hourly coverage
     data_hourly = bw.coverage(data.Spd80mN, period='1H')
@@ -59,7 +61,9 @@ def test_coverage():
     # monthly_coverage of variance
     data_hourly = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')
 
+
 def test_calc_air_density():
-    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
-    air_density = bw.calc_air_density(data.T2m, data.P2m)
-    assert air_density==1.178
+    assert abs(bw.calc_air_density(15, 1013) - 1.225) < 1e-3
+    assert abs(bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200)- 1.203) < 1e-3
+    assert (abs(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])) -
+               pd.Series([1.225, 1.208, 1.326, 1.059])) < 1e-3).all()
