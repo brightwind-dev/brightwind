@@ -15,14 +15,18 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pandas as pd
+import numpy as np
 import requests
 from typing import List, Dict
 import errno
 import os
 import shutil
 import json
+from io import StringIO
+import warnings
 
-__all__ = ['load_csv', 'load_campbell_scientific', 'load_excel', 'load_brightdata']
+
+__all__ = ['load_csv', 'load_campbell_scientific', 'load_windographer_txt', 'load_excel', 'load_brightdata']
 
 
 def _list_files(folder_path, file_type):
@@ -100,7 +104,7 @@ def _pandas_read_csv(filepath, **kwargs):
     """
     Wrapper function around the Pandas read_csv function.
     :param filepath: The file to read.
-    :type filepath: str
+    :type filepath: str, StringIO
     :param kwargs: Extra key word arguments to be applied.
     :return: A pandas DataFrame.
     :rtype: pandas.DataFrame
@@ -163,54 +167,67 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
                                         **merged_fn_args)
 
 
-def load_windographer(filepath_or_folder, search_by_file_type=['.txt'], print_progress=True, **kwargs):
+def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
     """
-    Load timeseries data from a csv file, or group of files in a folder, into a DataFrame.
-    The format of the csv file should be column headings in the first row with the timestamp column as the first
-    column, however these can be over written by sending your own arguments as this is a wrapper around the
-    pandas.read_csv function. The pandas.read_csv documentation can be found at:
-    https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html
+    Load a Windographer .txt data file exported fom the Windographer software into a DataFrame.
 
-    :param filepath_or_folder: Location of the file folder containing the timeseries data.
-    :type filepath_or_folder: str
-    :param search_by_file_type: Is a list of file extensions to search for e.g. ['.csv', '.txt'] if a folder is sent.
-    :type search_by_file_type: List[str], default .csv
-    :param print_progress: If you want to print out statements of the file been processed set to True. Default is False.
-    :type print_progress: bool, default False
+    - If flagged data was filtered out during the export from Windographer these can be replaced to work with Pandas.
+    - If delimiter other than 'tab' is used during export you can specify 'comma', 'space' or user specific.
+    - Once the file has been loaded into the DataFrame if the last column name contains 'Unnamed' it is removed. This is
+      due to Windographer inserting an extra delimiter at the end of the column headings.
+
+    :param filepath: Location of the file containing the Windographer timeseries data.
+    :type filepath: str
+    :param delimiter: Column delimiter or separator used to export the data from Windographer. These can be 'tab',
+                      'comma', 'space' or user specified.
+    :type delimiter: str, default 'tab'
+    :param flag_text: This is the 'missing data point' text used during export if flagged data was filtered.
+    :type flag_text: str, float
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame with timestamps as it's index.
     :rtype: pandas.DataFrame
 
-    When assembling files from folders into a single DataFrame with timestamp as the index it automatically checks for
-    duplicates and throws an error if any found.
-
     **Example usage**
     ::
         import brightwind as bw
-        filepath = r'C:\\some\\folder\\some_data2.csv'
-        df = bw.load_csv(filepath)
+        filepath = r'C:\\some\\folder\\some_windographer.txt'
+        df = bw.load_windographer_txt(filepath)
         print(df)
 
-    To load a group of files from a folder other than a .csv file type::
+    To load a file with delimiter and flagged text other than defaults::
 
-        folder = r'C:\\some\\folder\\with\\txt\\files'
-        df = bw.load_csv(folder, search_by_file_type=['.txt'], print_progress=True)
+        folder = r'C:\\some\\folder\\some_windographer.txt'
+        df = bw.load_windographer_txt(filepath, delimiter=';', flag_text='***')
 
-    If you want to load something that is different from a standard file where the column headings are not in the first
-    row, the pandas.read_csv key word arguments (kwargs) can be used::
-
-        filepath = r'C:\\some\\folder\\some_data_with_column_headings_on_second_line.csv'
-        df = bw.load_csv(filepath, skiprows=[0])
     """
 
-    is_file = _is_file(filepath_or_folder)
-    fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True}
-    merged_fn_args = {**fn_arguments, **kwargs}
+    is_file = _is_file(filepath)
     if is_file:
-        return _pandas_read_csv(filepath_or_folder, **merged_fn_args)
+        # Need to replace the flag text before loading into the DataFrame as this text could be a string or a number
+        # and Pandas will throw and warning msg if data types in a column are mixed setting the column as string.
+        with open(filepath, 'r') as file:
+            file_contents = file.read().replace(str(flag_text), '')
+        if 'Windographer' not in file_contents:
+            warnings.warn("\nFile doesn't seem to be a Windographer file. This may load the data unexpectedly.",
+                          Warning)
+        separators = [
+            {'delimiter': 'tab', 'fn_argument': '\t'},
+            {'delimiter': 'comma', 'fn_argument': ','},
+            {'delimiter': 'space', 'fn_argument': ' '},
+            {'delimiter': delimiter, 'fn_argument': delimiter}
+        ]
+        for separator in separators:
+            if delimiter == separator['delimiter']:
+                delimiter = separator['fn_argument']
+        fn_arguments = {'skiprows': 12, 'delimiter': delimiter,
+                        'header': 0, 'index_col': 0, 'parse_dates': True}
+        merged_fn_args = {**fn_arguments, **kwargs}
+        df = _pandas_read_csv(StringIO(file_contents), **merged_fn_args)
+        if len(df.columns) > 0 and 'Unnamed' in df.columns[-1]:
+            df.drop(df.columns[-1], axis=1, inplace=True)
+        return df
     elif not is_file:
-        return _assemble_df_from_folder(filepath_or_folder, search_by_file_type, _pandas_read_csv, print_progress,
-                                        **merged_fn_args)
+        raise FileNotFoundError("File path seems to be a folder. Please load a single Windographer .txt data file.")
 
 
 def load_campbell_scientific(filepath_or_folder, print_progress=True, **kwargs):
