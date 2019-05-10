@@ -15,9 +15,8 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pandas as pd
-import numpy as np
 import requests
-from typing import List, Dict
+from typing import List
 import errno
 import os
 import shutil
@@ -448,7 +447,7 @@ def _get_brightdata_credentials():
 
 def _get_brightdata(dataset, lat, long, nearest, from_date, to_date):
     """
-    Get era5 data from the brightdata platform and format it for use.
+    Get merra2 or era5 data from the brightdata platform and format it for use.
     :param lat:
     :param long:
     :param nearest:
