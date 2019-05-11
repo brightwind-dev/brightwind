@@ -15,6 +15,8 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pandas as pd
+import numpy as np
+import datetime
 import requests
 from typing import List
 import errno
@@ -545,3 +547,33 @@ def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None):
                 raise error
 
     raise NotImplementedError('dataset not identified.')
+
+
+def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop'):
+    cleaning_df = _pandas_read_csv(filepath)
+    # Issue when date format is DD-MM-YYYY and the MM is 12 or less.
+    cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name])
+    cleaning_df[date_to_col_name] = pd.to_datetime(cleaning_df[date_to_col_name])
+    return cleaning_df
+
+
+def apply_cleaning(data, cleaning_file, sensor_col_name='Sensor',  all_sensors_descriptor='All',
+                   date_from_col_name='Start', date_to_col_name='Stop', replacement_text='NaN'):
+    cleaning_df = load_cleaning_file(cleaning_file, date_from_col_name, date_to_col_name)
+    for k in range(0, len(cleaning_df)):
+        for col in data.columns:
+            if cleaning_df[sensor_col_name][k] in col:
+                if not pd.isnull(cleaning_df[date_from_col_name][k]):
+                    date_from = cleaning_df[date_from_col_name][k]
+                else:
+                    date_from = datetime.datetime(1900, 1, 1)
+                if not pd.isnull(cleaning_df[date_to_col_name][k]):
+                    date_to = cleaning_df[date_to_col_name][k]
+                else:
+                    date_to = datetime.datetime.today()
+                if replacement_text == 'NaN':
+                    replacement_text = np.nan
+                pd.options.mode.chained_assignment = None
+                data[col][date_from:date_to] = replacement_text
+                pd.options.mode.chained_assignment = 'warn'
+    return data
