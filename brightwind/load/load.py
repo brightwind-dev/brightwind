@@ -16,13 +16,16 @@
 
 import pandas as pd
 import requests
-from typing import List, Dict
+from typing import List
 import errno
 import os
 import shutil
 import json
+from io import StringIO
+import warnings
 
-__all__ = ['load_csv', 'load_campbell_scientific', 'load_excel', 'load_brightdata']
+
+__all__ = ['load_csv', 'load_campbell_scientific', 'load_windographer_txt', 'load_excel', 'load_brightdata']
 
 
 def _list_files(folder_path, file_type):
@@ -100,7 +103,7 @@ def _pandas_read_csv(filepath, **kwargs):
     """
     Wrapper function around the Pandas read_csv function.
     :param filepath: The file to read.
-    :type filepath: str
+    :type filepath: str, StringIO
     :param kwargs: Extra key word arguments to be applied.
     :return: A pandas DataFrame.
     :rtype: pandas.DataFrame
@@ -113,7 +116,7 @@ def _pandas_read_csv(filepath, **kwargs):
         raise error
 
 
-def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=False, **kwargs):
+def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=True, **kwargs):
     """
     Load timeseries data from a csv file, or group of files in a folder, into a DataFrame.
     The format of the csv file should be column headings in the first row with the timestamp column as the first
@@ -125,8 +128,8 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Fa
     :type filepath_or_folder: str
     :param search_by_file_type: Is a list of file extensions to search for e.g. ['.csv', '.txt'] if a folder is sent.
     :type search_by_file_type: List[str], default .csv
-    :param print_progress: If you want to print out statements of the file been processed set to True. Default is False.
-    :type print_progress: bool, default False
+    :param print_progress: If you want to print out statements of the file been processed set to True. Default is True.
+    :type print_progress: bool, default True
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame with timestamps as it's index.
     :rtype: pandas.DataFrame
@@ -163,7 +166,70 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Fa
                                         **merged_fn_args)
 
 
-def load_campbell_scientific(filepath_or_folder, print_progress=False, **kwargs):
+def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
+    """
+    Load a Windographer .txt data file exported fom the Windographer software into a DataFrame.
+
+    - If flagged data was filtered out during the export from Windographer these can be replaced to work with Pandas.
+    - If delimiter other than 'tab' is used during export you can specify 'comma', 'space' or user specific.
+    - Once the file has been loaded into the DataFrame if the last column name contains 'Unnamed' it is removed. This is
+      due to Windographer inserting an extra delimiter at the end of the column headings.
+
+    :param filepath: Location of the file containing the Windographer timeseries data.
+    :type filepath: str
+    :param delimiter: Column delimiter or separator used to export the data from Windographer. These can be 'tab',
+                      'comma', 'space' or user specified.
+    :type delimiter: str, default 'tab'
+    :param flag_text: This is the 'missing data point' text used during export if flagged data was filtered.
+    :type flag_text: str, float
+    :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
+    :return: A DataFrame with timestamps as it's index.
+    :rtype: pandas.DataFrame
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        filepath = r'C:\\some\\folder\\some_windographer.txt'
+        df = bw.load_windographer_txt(filepath)
+        print(df)
+
+    To load a file with delimiter and flagged text other than defaults::
+
+        folder = r'C:\\some\\folder\\some_windographer.txt'
+        df = bw.load_windographer_txt(filepath, delimiter=';', flag_text='***')
+
+    """
+
+    is_file = _is_file(filepath)
+    if is_file:
+        # Need to replace the flag text before loading into the DataFrame as this text could be a string or a number
+        # and Pandas will throw and warning msg if data types in a column are mixed setting the column as string.
+        with open(filepath, 'r') as file:
+            file_contents = file.read().replace(str(flag_text), '')
+        if 'Windographer' not in file_contents:
+            warnings.warn("\nFile doesn't seem to be a Windographer file. This may load the data unexpectedly.",
+                          Warning)
+        separators = [
+            {'delimiter': 'tab', 'fn_argument': '\t'},
+            {'delimiter': 'comma', 'fn_argument': ','},
+            {'delimiter': 'space', 'fn_argument': ' '},
+            {'delimiter': delimiter, 'fn_argument': delimiter}
+        ]
+        for separator in separators:
+            if delimiter == separator['delimiter']:
+                delimiter = separator['fn_argument']
+        fn_arguments = {'skiprows': 12, 'delimiter': delimiter,
+                        'header': 0, 'index_col': 0, 'parse_dates': True}
+        merged_fn_args = {**fn_arguments, **kwargs}
+        df = _pandas_read_csv(StringIO(file_contents), **merged_fn_args)
+        if len(df.columns) > 0 and 'Unnamed' in df.columns[-1]:
+            df.drop(df.columns[-1], axis=1, inplace=True)
+        return df
+    elif not is_file:
+        raise FileNotFoundError("File path seems to be a folder. Please load a single Windographer .txt data file.")
+
+
+def load_campbell_scientific(filepath_or_folder, print_progress=True, **kwargs):
     """
     Load timeseries data from Campbell Scientific CR1000 formatted file, or group of files in a folder, into a
     DataFrame. If the file format is slightly different your own key word arguments can be sent as this is a wrapper
@@ -172,8 +238,8 @@ def load_campbell_scientific(filepath_or_folder, print_progress=False, **kwargs)
 
     :param filepath_or_folder: Location of the file folder containing the timeseries data.
     :type filepath_or_folder: str
-    :param print_progress: If you want to print out statements of the file been processed set to True. Default is False.
-    :type print_progress: bool, default False
+    :param print_progress: If you want to print out statements of the file been processed set to True. Default is True.
+    :type print_progress: bool, default True
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame with timestamps as it's index
     :rtype: pandas.DataFrame
@@ -221,7 +287,7 @@ def _pandas_read_excel(filepath, **kwargs):
         raise error
 
 
-def load_excel(filepath_or_folder, search_by_file_type=['.xlsx'], print_progress=False, sheet_name=0, **kwargs):
+def load_excel(filepath_or_folder, search_by_file_type=['.xlsx'], print_progress=True, sheet_name=0, **kwargs):
     """
     Load timeseries data from an Excel file, or group of files in a folder, into a DataFrame.
     The format of the Excel file should be column headings in the first row with the timestamp column as the first
@@ -233,8 +299,8 @@ def load_excel(filepath_or_folder, search_by_file_type=['.xlsx'], print_progress
     :type filepath_or_folder: str
     :param search_by_file_type: Is a list of file extensions to search for e.g. ['.xlsx'] if a folder is sent.
     :type search_by_file_type: List[str], default .xlsx
-    :param print_progress: If you want to print out statements of the file been processed set to True. Default is False.
-    :type print_progress: bool, default False
+    :param print_progress: If you want to print out statements of the file been processed set to True. Default is True.
+    :type print_progress: bool, default True
     :param sheet_name: The Excel file sheet name you want to read from.
     :type sheet_name: string, int, mixed list of strings/ints, or None, default 0
     :param kwargs: All the kwargs from pandas.read_excel can be passed to this function.
@@ -295,7 +361,7 @@ def _assemble_files_to_folder(source_folder, destination_folder, file_type, prin
 
     """
     files_list = _list_files(source_folder, file_type)
-    x: int = 0
+    x = 0
     for file in files_list:
         filename = os.path.split(file)[1]
         filepath = os.path.split(file)[0]
@@ -381,7 +447,7 @@ def _get_brightdata_credentials():
 
 def _get_brightdata(dataset, lat, long, nearest, from_date, to_date):
     """
-    Get era5 data from the brightdata platform and format it for use.
+    Get merra2 or era5 data from the brightdata platform and format it for use.
     :param lat:
     :param long:
     :param nearest:
