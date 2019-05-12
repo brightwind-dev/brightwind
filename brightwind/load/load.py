@@ -549,6 +549,14 @@ def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None):
     raise NotImplementedError('dataset not identified.')
 
 
+def _if_null_max_the_date(date_from, date_to):
+    if pd.isnull(date_from):
+        date_from = datetime.datetime(1900, 1, 1)
+    if pd.isnull(date_to):
+        date_to = datetime.datetime.today()
+    return date_from, date_to
+
+
 def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop'):
     cleaning_df = _pandas_read_csv(filepath)
     # Issue when date format is DD-MM-YYYY and the MM is 12 or less.
@@ -563,22 +571,14 @@ def apply_cleaning(data, cleaning_file, sensor_col_name='Sensor',  all_sensors_d
     if replacement_text == 'NaN':
         replacement_text = np.nan
     for k in range(0, len(cleaning_df)):
-        if not pd.isnull(cleaning_df[date_from_col_name][k]):
-            date_from = cleaning_df[date_from_col_name][k]
-        else:
-            date_from = datetime.datetime(1900, 1, 1)
-        if not pd.isnull(cleaning_df[date_to_col_name][k]):
-            date_to = cleaning_df[date_to_col_name][k]
-        else:
-            date_to = datetime.datetime.today()
+        date_from, date_to = _if_null_max_the_date(cleaning_df[date_from_col_name][k], cleaning_df[date_to_col_name][k])
+
+        pd.options.mode.chained_assignment = None
         if cleaning_df[sensor_col_name][k] == all_sensors_descriptor:
-            pd.options.mode.chained_assignment = None
             data.loc[date_from:date_to, data.columns] = replacement_text
-            pd.options.mode.chained_assignment = 'warn'
         else:
             for col in data.columns:
                 if cleaning_df[sensor_col_name][k] in col:
-                    pd.options.mode.chained_assignment = None
                     data[col][date_from:date_to] = replacement_text
-                    pd.options.mode.chained_assignment = 'warn'
+        pd.options.mode.chained_assignment = 'warn'
     return data
