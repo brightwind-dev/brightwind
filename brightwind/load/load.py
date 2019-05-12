@@ -560,20 +560,25 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
 def apply_cleaning(data, cleaning_file, sensor_col_name='Sensor',  all_sensors_descriptor='All',
                    date_from_col_name='Start', date_to_col_name='Stop', replacement_text='NaN'):
     cleaning_df = load_cleaning_file(cleaning_file, date_from_col_name, date_to_col_name)
+    if replacement_text == 'NaN':
+        replacement_text = np.nan
     for k in range(0, len(cleaning_df)):
-        for col in data.columns:
-            if cleaning_df[sensor_col_name][k] in col:
-                if not pd.isnull(cleaning_df[date_from_col_name][k]):
-                    date_from = cleaning_df[date_from_col_name][k]
-                else:
-                    date_from = datetime.datetime(1900, 1, 1)
-                if not pd.isnull(cleaning_df[date_to_col_name][k]):
-                    date_to = cleaning_df[date_to_col_name][k]
-                else:
-                    date_to = datetime.datetime.today()
-                if replacement_text == 'NaN':
-                    replacement_text = np.nan
-                pd.options.mode.chained_assignment = None
-                data[col][date_from:date_to] = replacement_text
-                pd.options.mode.chained_assignment = 'warn'
+        if not pd.isnull(cleaning_df[date_from_col_name][k]):
+            date_from = cleaning_df[date_from_col_name][k]
+        else:
+            date_from = datetime.datetime(1900, 1, 1)
+        if not pd.isnull(cleaning_df[date_to_col_name][k]):
+            date_to = cleaning_df[date_to_col_name][k]
+        else:
+            date_to = datetime.datetime.today()
+        if cleaning_df[sensor_col_name][k] == all_sensors_descriptor:
+            pd.options.mode.chained_assignment = None
+            data.loc[date_from:date_to, data.columns] = replacement_text
+            pd.options.mode.chained_assignment = 'warn'
+        else:
+            for col in data.columns:
+                if cleaning_df[sensor_col_name][k] in col:
+                    pd.options.mode.chained_assignment = None
+                    data[col][date_from:date_to] = replacement_text
+                    pd.options.mode.chained_assignment = 'warn'
     return data
