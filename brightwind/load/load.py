@@ -174,6 +174,7 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
     - If delimiter other than 'tab' is used during export you can specify 'comma', 'space' or user specific.
     - Once the file has been loaded into the DataFrame if the last column name contains 'Unnamed' it is removed. This is
       due to Windographer inserting an extra delimiter at the end of the column headings.
+    - The function finds the line number of 'Date/Time' to know when the data starts. It ignores the header.
 
     :param filepath: Location of the file containing the Windographer timeseries data.
     :type filepath: str
@@ -209,6 +210,11 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
         if 'Windographer' not in file_contents:
             warnings.warn("\nFile doesn't seem to be a Windographer file. This may load the data unexpectedly.",
                           Warning)
+        number_of_header_rows_to_skip = 12
+        for index, line in enumerate(file_contents.split('\n')):
+            if 'Date/Time' in line:
+                number_of_header_rows_to_skip = index
+                break
         separators = [
             {'delimiter': 'tab', 'fn_argument': '\t'},
             {'delimiter': 'comma', 'fn_argument': ','},
@@ -218,7 +224,7 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
         for separator in separators:
             if delimiter == separator['delimiter']:
                 delimiter = separator['fn_argument']
-        fn_arguments = {'skiprows': 12, 'delimiter': delimiter,
+        fn_arguments = {'skiprows': number_of_header_rows_to_skip, 'delimiter': delimiter,
                         'header': 0, 'index_col': 0, 'parse_dates': True}
         merged_fn_args = {**fn_arguments, **kwargs}
         df = _pandas_read_csv(StringIO(file_contents), **merged_fn_args)
