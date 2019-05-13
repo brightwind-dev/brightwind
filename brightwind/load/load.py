@@ -15,6 +15,8 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pandas as pd
+import numpy as np
+import datetime
 import requests
 from typing import List
 import errno
@@ -551,3 +553,117 @@ def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None):
                 raise error
 
     raise NotImplementedError('dataset not identified.')
+
+
+def _if_null_max_the_date(date_from, date_to):
+    if pd.isnull(date_from):
+        date_from = datetime.datetime(1900, 1, 1)
+    if pd.isnull(date_to):
+        date_to = datetime.datetime.today()
+    return date_from, date_to
+
+
+def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop', **kwargs):
+    """
+    Load a cleaning file which contains a list of sensor names with corresponding periods of flagged data.
+    This file is a simple comma separated file with the sensor name along with the start and end timestamps for the
+    flagged period. There may be other columns in the file however these will be ignores.  E.g.:
+    | Sensor |      Start          |       Stop
+    ----------------------------------------------------
+    | Spd80m | 2018-10-23 12:30:00 | 2018-10-25 14:20:00
+    | Dir78m | 2018-12-23 02:40:00 |
+
+    :param filepath:  File path of the file which contains the the list of sensor names along with the start and
+           end timestamps of the periods that are flagged.
+    :type filepath: str
+    :param date_from_col_name: The column name of the date_from or the start date of the period to be cleaned.
+    :type date_from_col_name: str
+    :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
+    :type date_to_col_name: str
+    :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
+    :return: A DataFrame where each row contains the sensor name and the start and end timestamps of the flagged data.
+    :rtype: pandas.DataFrame
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        cleaning_file = r'C:\\some\\folder\\cleaning_file.csv'
+        cleaning_df = bw.load_cleaning_file(cleaning_file)
+        print(cleaning_df)
+
+    """
+    cleaning_df = _pandas_read_csv(filepath, **kwargs)
+    # Issue when date format is DD-MM-YYYY and the MM is 12 or less.
+    cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name])
+    cleaning_df[date_to_col_name] = pd.to_datetime(cleaning_df[date_to_col_name])
+    return cleaning_df
+
+
+def apply_cleaning(data, cleaning_file_or_df, sensor_col_name='Sensor', date_from_col_name='Start',
+                   date_to_col_name='Stop', all_sensors_descriptor='All', replacement_text='NaN'):
+    """
+    Apply cleaning to a DataFrame using predetermined flagged periods for each sensor listed in a cleaning file.
+    The flagged data will be replaced with NaN values which then do not appear in any plots or effect calculations.
+
+    This file is a simple comma separated file with the sensor name along with the start and end timestamps for the
+    flagged period. There may be other columns in the file however these will be ignores.  E.g.:
+    | Sensor |      Start          |       Stop
+    ----------------------------------------------------
+    | Spd80m | 2018-10-23 12:30:00 | 2018-10-25 14:20:00
+    | Dir78m | 2018-12-23 02:40:00 |
+
+    :param data: Data to be cleaned.
+    :type data: pandas.DataFrame
+    :param cleaning_file_or_df: File path of the csv file or a pandas DataFrame which contains the the list of sensor
+                                names along with the start and end timestamps of the periods that are flagged.
+    :type cleaning_file_or_df: str, pd.DataFrame
+    :param sensor_col_name: The column name which contains the list of sensor names that have flagged periods.
+    :type sensor_col_name: str
+    :param date_from_col_name: The column name of the date_from or the start date of the period to be cleaned.
+    :type date_from_col_name: str
+    :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
+    :type date_to_col_name: str
+    :param all_sensors_descriptor: A text descriptor that represents ALL sensors in the DataFrame.
+    :type all_sensors_descriptor: str
+    :param replacement_text:
+    :type replacement_text: str
+    :return: DataFrame with the flagged data removed.
+    :rtype: pandas.DataFrame
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        cleaning_file = r'C:\\some\\folder\\cleaning_file.csv'
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        data = bw.apply_cleaning(data, cleaning_file)
+        print(data)
+
+    To apply cleaning where the cleaning file has column names other than defaults::
+
+        cleaning_file = r'C:\\some\\folder\\cleaning_file.csv'
+        data = bw.apply_cleaning(data, cleaning_file, sensor_col_name='Data column',
+                                 date_from_col_name='Start Time', date_to_col_name='Stop Time')
+
+    """
+    if isinstance(cleaning_file_or_df, str):
+        cleaning_df = load_cleaning_file(cleaning_file_or_df, date_from_col_name, date_to_col_name)
+    elif isinstance(cleaning_file_or_df, pd.DataFrame):
+        cleaning_df = cleaning_file_or_df
+    else:
+        return TypeError("Can't recognise the cleaning_file_or_df. Please make sure it is a file path or a DataFrame.")
+
+    if replacement_text == 'NaN':
+        replacement_text = np.nan
+
+    for k in range(0, len(cleaning_df)):
+        date_from, date_to = _if_null_max_the_date(cleaning_df[date_from_col_name][k], cleaning_df[date_to_col_name][k])
+
+        pd.options.mode.chained_assignment = None
+        if cleaning_df[sensor_col_name][k] == all_sensors_descriptor:
+            data.loc[date_from:date_to, data.columns] = replacement_text
+        else:
+            for col in data.columns:
+                if cleaning_df[sensor_col_name][k] in col:
+                    data[col][date_from:date_to] = replacement_text
+        pd.options.mode.chained_assignment = 'warn'
+    return data
