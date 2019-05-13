@@ -558,6 +558,19 @@ def _if_null_max_the_date(date_from, date_to):
 
 
 def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop'):
+    """
+    Load a cleaning file which contains list of sensor names with corresponding periods of flagged data.
+
+    :param filepath:  File path of the file which contains the the list of sensor names along with the start and
+           end timestamps of the periods that are flagged.
+    :type filepath: str
+    :param date_from_col_name: The column name of the date_from or the start date of the period to be cleaned.
+    :type date_from_col_name: str
+    :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
+    :type date_to_col_name: str
+    :return: A DataFrame where each row contains the sensor name and the start and end timestamps of the flagged data.
+    :rtype: pandas.DataFrame
+    """
     cleaning_df = _pandas_read_csv(filepath)
     # Issue when date format is DD-MM-YYYY and the MM is 12 or less.
     cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name])
@@ -565,8 +578,29 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
     return cleaning_df
 
 
-def apply_cleaning(data, cleaning_file, sensor_col_name='Sensor',  all_sensors_descriptor='All',
-                   date_from_col_name='Start', date_to_col_name='Stop', replacement_text='NaN'):
+def apply_cleaning(data, cleaning_file, sensor_col_name='Sensor', date_from_col_name='Start', date_to_col_name='Stop',
+                   all_sensors_descriptor='All', replacement_text='NaN'):
+    """
+    Apply cleaning to a DataFrame using predetermined flagged periods for each sensor contained in a file.
+
+    :param data: Data to be cleaned.
+    :type data: pandas.DataFrame
+    :param cleaning_file: File path of the file which contains the the list of sensor names along with the start and
+           end timestamps of the periods that are flagged.
+    :type cleaning_file: str
+    :param sensor_col_name: The column name which contains the list of sensor names that have flagged periods.
+    :type sensor_col_name: str
+    :param date_from_col_name: The column name of the date_from or the start date of the period to be cleaned.
+    :type date_from_col_name: str
+    :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
+    :type date_to_col_name: str
+    :param all_sensors_descriptor: A text descriptor that represents ALL sensors in the DataFrame.
+    :type all_sensors_descriptor: str
+    :param replacement_text:
+    :type replacement_text: str
+    :return: DataFrame with the flagged data removed.
+    :rtype: pandas.DataFrame
+    """
     cleaning_df = load_cleaning_file(cleaning_file, date_from_col_name, date_to_col_name)
     if replacement_text == 'NaN':
         replacement_text = np.nan
