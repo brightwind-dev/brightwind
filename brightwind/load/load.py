@@ -27,7 +27,8 @@ from io import StringIO
 import warnings
 
 
-__all__ = ['load_csv', 'load_campbell_scientific', 'load_windographer_txt', 'load_excel', 'load_brightdata']
+__all__ = ['load_csv', 'load_campbell_scientific', 'load_windographer_txt', 'load_excel', 'load_brightdata',
+           'load_cleaning_file', 'apply_cleaning', 'apply_cleaning_windographer']
 
 
 def _list_files(folder_path, file_type):
@@ -666,4 +667,28 @@ def apply_cleaning(data, cleaning_file_or_df, sensor_col_name='Sensor', date_fro
                 if cleaning_df[sensor_col_name][k] in col:
                     data[col][date_from:date_to] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
+    return data
+
+
+def apply_cleaning_windographer(data, windog_cleaning_file, flags_not_to_clean=['Synthesized'], replacement_text='NaN'):
+    """"""
+    sensor_col_name = 'Data Column'
+    flag_col_name = 'Flag Name'
+    date_from_col_name = 'Start Time'
+    date_to_col_name = 'End Time'
+    cleaning_df = load_cleaning_file(windog_cleaning_file, date_from_col_name, date_to_col_name, sep='\t')
+
+    if replacement_text == 'NaN':
+        replacement_text = np.nan
+
+    for k in range(0, len(cleaning_df)):
+        date_from, date_to = _if_null_max_the_date(cleaning_df[date_from_col_name][k], cleaning_df[date_to_col_name][k])
+
+        pd.options.mode.chained_assignment = None
+        for col in data.columns:
+            if cleaning_df[sensor_col_name][k] in col:
+                if cleaning_df[flag_col_name][k] not in flags_not_to_clean:
+                    data[col][date_from:date_to] = replacement_text
+        pd.options.mode.chained_assignment = 'warn'
+
     return data
