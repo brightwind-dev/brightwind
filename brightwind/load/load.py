@@ -688,7 +688,7 @@ def apply_cleaning_windographer(data, windog_cleaning_file, flags_not_to_clean=[
         for col in data.columns:
             if cleaning_df[sensor_col_name][k] in col:
                 if cleaning_df[flag_col_name][k] not in flags_not_to_clean:
-                    data[col][date_from:date_to] = replacement_text
+                    data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
     return data
