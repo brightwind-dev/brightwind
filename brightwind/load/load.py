@@ -130,7 +130,7 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
     :param filepath_or_folder: Location of the file folder containing the timeseries data.
     :type filepath_or_folder: str
     :param search_by_file_type: Is a list of file extensions to search for e.g. ['.csv', '.txt'] if a folder is sent.
-    :type search_by_file_type: List[str], default .csv
+    :type search_by_file_type: List[str], default ['.csv']
     :param print_progress: If you want to print out statements of the file been processed set to True. Default is True.
     :type print_progress: bool, default True
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
@@ -578,9 +578,9 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
            end timestamps of the periods that are flagged.
     :type filepath: str
     :param date_from_col_name: The column name of the date_from or the start date of the period to be cleaned.
-    :type date_from_col_name: str
+    :type date_from_col_name: str, default 'Start'
     :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
-    :type date_to_col_name: str
+    :type date_to_col_name: str, default 'Stop'
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame where each row contains the sensor name and the start and end timestamps of the flagged data.
     :rtype: pandas.DataFrame
@@ -615,19 +615,19 @@ def apply_cleaning(data, cleaning_file_or_df, sensor_col_name='Sensor', date_fro
 
     :param data: Data to be cleaned.
     :type data: pandas.DataFrame
-    :param cleaning_file_or_df: File path of the csv file or a pandas DataFrame which contains the the list of sensor
+    :param cleaning_file_or_df: File path of the csv file or a pandas DataFrame which contains the list of sensor
                                 names along with the start and end timestamps of the periods that are flagged.
     :type cleaning_file_or_df: str, pd.DataFrame
     :param sensor_col_name: The column name which contains the list of sensor names that have flagged periods.
-    :type sensor_col_name: str
+    :type sensor_col_name: str, default 'Sensor'
     :param date_from_col_name: The column name of the date_from or the start date of the period to be cleaned.
-    :type date_from_col_name: str
+    :type date_from_col_name: str, default 'Start'
     :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
-    :type date_to_col_name: str
+    :type date_to_col_name: str, default 'Stop'
     :param all_sensors_descriptor: A text descriptor that represents ALL sensors in the DataFrame.
-    :type all_sensors_descriptor: str
-    :param replacement_text:
-    :type replacement_text: str
+    :type all_sensors_descriptor: str, default 'All'
+    :param replacement_text: Text used to replace the flagged data.
+    :type replacement_text: str, default 'NaN'
     :return: DataFrame with the flagged data removed.
     :rtype: pandas.DataFrame
 
@@ -670,8 +670,40 @@ def apply_cleaning(data, cleaning_file_or_df, sensor_col_name='Sensor', date_fro
     return data
 
 
-def apply_cleaning_windographer(data, windog_cleaning_file, flags_not_to_clean=['Synthesized'], replacement_text='NaN'):
-    """"""
+def apply_cleaning_windographer(data, windog_cleaning_file, flags_to_exclude=['Synthesized'], replacement_text='NaN'):
+    """
+    Apply cleaning to a DataFrame using the Windographer flagging log file after Windographer was used to clean and
+    filter the data.
+    The flagged data will be replaced with NaN values which then do not appear in any plots or effect calculations.
+
+    :param data: Data to be cleaned.
+    :type data: pandas.DataFrame
+    :param windog_cleaning_file: File path of the Windographer flagging log file which contains the list of sensor
+                                 names along with the start and end timestamps of the periods that are flagged.
+    :type windog_cleaning_file: str
+    :param flags_to_exclude: List of flags you do not want to use to clean the data e.g. Synthesized.
+    :type flags_to_exclude: List[str], default ['Synthesized']
+    :param replacement_text: Text used to replace the flagged data.
+    :type replacement_text: str, default 'NaN'
+    :return: DataFrame with the flagged data removed.
+    :rtype: pandas.DataFrame
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        windog_cleaning_file = r'C:\\some\\folder\\windog_cleaning_file.txt'
+        data = bw.apply_cleaning_windographer(data, windog_cleaning_file)
+        print(data)
+
+    Apply cleaning where you do not want the flag 'Tower shading' to be used::
+
+        cleaning_file = r'C:\\some\\folder\\cleaning_file.csv'
+        data = bw.apply_cleaning_windographer(data, windog_cleaning_file,
+                                              flags_to_exclude=['Synthesized', 'Tower shading'],)
+        print(data)
+
+    """
     sensor_col_name = 'Data Column'
     flag_col_name = 'Flag Name'
     date_from_col_name = 'Start Time'
@@ -687,7 +719,7 @@ def apply_cleaning_windographer(data, windog_cleaning_file, flags_not_to_clean=[
         pd.options.mode.chained_assignment = None
         for col in data.columns:
             if cleaning_df[sensor_col_name][k] in col:
-                if cleaning_df[flag_col_name][k] not in flags_not_to_clean:
+                if cleaning_df[flag_col_name][k] not in flags_to_exclude:
                     data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
