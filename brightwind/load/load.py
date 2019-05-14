@@ -661,11 +661,11 @@ def apply_cleaning(data, cleaning_file_or_df, sensor_col_name='Sensor', date_fro
 
         pd.options.mode.chained_assignment = None
         if cleaning_df[sensor_col_name][k] == all_sensors_descriptor:
-            data.loc[date_from:date_to, data.columns] = replacement_text
+            data.loc[(data.index >= date_from) & (data.index < date_to), data.columns] = replacement_text
         else:
             for col in data.columns:
                 if cleaning_df[sensor_col_name][k] in col:
-                    data[col][date_from:date_to] = replacement_text
+                    data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
     return data
 
