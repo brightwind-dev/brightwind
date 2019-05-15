@@ -23,7 +23,7 @@ from brightwind.utils import utils
 import os
 import matplotlib as mpl
 
-__all__ = ['plot_timeseries', 'plot_freq_distribution']
+__all__ = ['plot_timeseries']
 
 
 try:
@@ -59,53 +59,6 @@ def bw_colors(bw_color):
         bw_color = [156, 197, 55]
     bw_color[:] = [x / 255.0 for x in bw_color]
     return bw_color
-
-
-def plot_monthly_means(data, coverage=None, ylbl=''):
-    fig = plt.figure(figsize=(15, 8))
-    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-    if len(data.shape) > 1:
-        ax.plot(data, '-D')
-        ax.legend(list(data.columns))
-    else:
-        ax.plot(data, '-D', color=bw_colors('asphault'))
-        ax.legend([data.name])
-    ax.set_ylabel(ylbl)
-
-    from matplotlib.dates import DateFormatter
-    ax.set_xticks(data.index)
-    ax.xaxis.set_major_formatter(DateFormatter("%b %Y"))
-    fig.autofmt_xdate(rotation=20, ha='center')
-
-    if coverage is not None:
-        plot_coverage = True
-        if len(coverage.shape) > 1:
-            if coverage.shape[1] > 1:
-                plot_coverage = False
-        if plot_coverage:
-            import matplotlib.dates as mdates
-            ax2 = ax.twinx()
-
-            plot_colors = [bw_colors('light_green_for_gradient'), bw_colors('dark_green_for_gradient'),
-                           bw_colors('darkgreen')]
-            for month, coverage in zip(coverage.index, coverage.values):
-                ax2.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
-                           interpolation='gaussian', extent=(mdates.date2num(month - pd.Timedelta('10days')),
-                                                             mdates.date2num(month + pd.Timedelta('10days')),
-                                                             0, coverage), aspect='auto', zorder=1)
-                ax2.bar(mdates.date2num(month), coverage, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=0)
-            ax2.set_ylim(0, 1)
-            ax.set_ylim(bottom=0)
-            ax.set_xlim(data.index[0]-pd.Timedelta('20days'), data.index[-1]+pd.Timedelta('20days'))
-            ax.set_zorder(3)
-            ax2.yaxis.grid(True)
-            ax2.set_axisbelow(True)
-            ax.patch.set_visible(False)
-            ax2.set_ylabel('Coverage [-]')
-            ax2.yaxis.tick_right()
-            ax2.yaxis.set_label_position("right")
-            return ax2.get_figure()
-    return ax.get_figure()
 
 
 def plot_timeseries(data, date_from='', date_to=''):
@@ -334,8 +287,9 @@ def plot_12x24_contours(tab_12x24, title='Variable'):
     max_v = math.ceil(tab_12x24.max().max() * 100) / 100
     min_v = math.floor(tab_12x24.min().min() * 100) / 100
     step = (max_v - min_v) / 8
-    levels = np.arange(min_v, max_v + step, step)#.round(2)
+    levels = np.arange(min_v, max_v + step, step).round(2)
     fig, ax = plt.subplots()
+    # x = ax.contourf(tab_12x24, cmap="Greens")
     x = ax.contourf(tab_12x24, colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32',
                                        '#8ab92d', '#7ba428', '#6b9023'],
                     levels=levels)
@@ -356,10 +310,10 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     :param sec_ratio:
     :param wdir:
     :param sec_ratio_dist: DataFrame from SectorRation.by_speed()
-    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to 0.
-    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to 0.
+    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to -1.
+    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1.
     :param col_names: A list of strings containing column names of wind speeds
-    :returns A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
+    :returns A speed ratio plot showing average speed ratio by sector and scatter of individual data points.
     """
     radians = np.radians(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
     fig = plt.figure(figsize=(10, 10))
@@ -371,26 +325,32 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
             c=bw_colors('green'), linewidth=4)
     # plt.title('Speed Ratio by Direction')
     # Get max and min levels and set chart axes
-    maxlevel = sec_ratio_dist['Mean_Sector_Ratio'].max() + 0.05
-    minlevel = sec_ratio_dist['Mean_Sector_Ratio'].min() - 0.1
-    ax.set_ylim(minlevel, maxlevel)
+    max_level = sec_ratio_dist['Mean_Sector_Ratio'].max() + 0.05
+    min_level = sec_ratio_dist['Mean_Sector_Ratio'].min() - 0.1
+    ax.set_ylim(min_level, max_level)
     # Add boom dimensions to chart, if required
     width = np.pi / 108
-    radii = maxlevel
-    ctr = 0
+    radii = max_level
+    annotate = False
+    annotation_text = '* Plot generated using '
     if boom_dir_1 >= 0:
         boom_dir_1 = np.radians(boom_dir_1)
-        ax.bar(boom_dir_1, radii, width=width, bottom=minlevel, color='#659CEF')
-        ctr += 1
+        ax.bar(boom_dir_1, radii, width=width, bottom=min_level, color='#659CEF')
+        if boom_dir_2 == -1:
+            annotation_text += col_names[1] + ' (top mounted) divided by ' + col_names[0] + ' (blue boom)'
+            annotate = True
     if boom_dir_2 >= 0:
         boom_dir_2 = np.radians(boom_dir_2)
-        ax.bar(boom_dir_2, radii, width=width, bottom=minlevel, color='#DCF600')
-        ctr += 1
-
-    if ctr == 2:
-        ax.annotate('*Plot generated using ' + col_names[1] + ' (yellow green boom) divided by' + col_names[0] +
-                    ' (blue boom)', xy=(20, 10), xycoords='figure pixels')
-    ax.scatter(np.radians(wdir), sec_ratio, c=bw_colors('asphault'), alpha=0.3, s=1)
+        ax.bar(boom_dir_2, radii, width=width, bottom=min_level, color='#DCF600')
+        if boom_dir_1 == -1:
+            annotation_text += col_names[1] + ' (yellow green boom) divided by ' + col_names[0] + ' (top mounted)'
+            annotate = True
+    if boom_dir_2 >= 0 and boom_dir_1 >= 0:
+        annotation_text += col_names[1] + ' (yellow green boom) divided by ' + col_names[0] + ' (blue boom)'
+        annotate = True
+    if annotate:
+        ax.annotate(annotation_text, xy=(0.5, 0.035), xycoords='figure fraction', horizontalalignment='center')
+    ax.scatter(np.radians(wdir), sec_ratio, color=bw_colors('asphault'), alpha=0.3, s=1)
     return ax.get_figure()
 
 
