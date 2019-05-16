@@ -19,14 +19,27 @@ __all__ = ['export_tab_file']
 
 def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
     """
-    Export a WaSP tab file from get_freq_table() function
-    :param freq_tab:
-    :param name:
-    :param lat:
-    :param long:
-    :param height:
-    :param dir_offset:
-    :return:
+    Export a WaSP tab file from freq_table() function
+
+    :param freq_tab: Tab file
+    :param name: Name of the file or location
+    :param lat: Latitude of the site location
+    :type lat: float
+    :param long: Longitude of the site location
+    :type long: float
+    :param height: Height of the device, default is 0.0
+    :type height: float
+    :param dir_offset: Direction offset, default 0.0
+    :type dir_offset: float
+    :return: Creates a windographer file with the name specified by name
+
+    **Exampe Usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
+        bw.export_tab_file(tab, name='campbell_tab_file', lat=10, long=10)
+
     """
     local_freq_tab = freq_tab.copy()
     lat = float(lat)
