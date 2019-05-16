@@ -473,8 +473,8 @@ def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_n
 class TI:
 
     def calc(wspd, wspd_std):
-        ti = pd.concat([wspd[wspd > 3].rename('wdspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
-        return ti['wspd_std'] / ti['wdspd']
+        ti = pd.concat([wspd[wspd > 3].rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
+        return ti['wspd_std'] / ti['wspd']
 
     def by_speed(wspd, wspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
                  percentile=90, IEC_class=None, return_data=False):
@@ -508,8 +508,8 @@ class TI:
         :rtype: pandas.DataFrame
 
         """
-        ti = pd.concat([wspd.rename('wdspd'), wspd_std.rename('wdspd_std')], axis=1, join='inner')
-        ti['Turbulence_Intensity'] = TI.calc(ti['wdspd'], ti['wdspd_std'])
+        ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
+        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
         ti_dist = pd.concat([
             distribution(var1_series=ti['Turbulence_Intensity'], var2_series=ti['wspd'],
                          var2_bin_array=speed_bin_array, var2_bin_labels=speed_bin_labels,
@@ -567,7 +567,7 @@ class TI:
         :rtype: pandas.DataFrame
 
         """
-        ti = pd.concat([wspd.rename('wdspd'), wspd_std.rename('wdspd_std'), wdir.rename('wddir')], axis=1,
+        ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std'), wdir.rename('wdir')], axis=1,
                        join='inner')
         ti = ti[ti['wspd'] >= min_speed]
         ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
