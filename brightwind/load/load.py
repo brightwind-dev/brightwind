@@ -193,7 +193,7 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
     **Example usage**
     ::
         import brightwind as bw
-        filepath = r'C:\\some\\folder\\some_windographer.txt'
+        filepath = r'C:\\some\\folder\\brightwind\\datasets\\demo\\windographer_demo_site_data.txt'
         df = bw.load_windographer_txt(filepath)
         print(df)
 
