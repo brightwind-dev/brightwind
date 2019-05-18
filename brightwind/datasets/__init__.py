@@ -2,7 +2,7 @@
 import os
 
 __all__ = ['demo_campbell_scientific_site_data', 'demo_merra2_NW', 'demo_merra2_NE', 'demo_merra2_SE', 'demo_merra2_SW',
-           'shell_flats_80m_csv', 'shell_flats_50m_csv', 'shell_flats_merra']
+           'shell_flats_80m_csv', 'shell_flats_50m_csv', 'shell_flats_merra', 'demo_windographer_site_data']
 
 shell_flats_80m_csv = os.path.join(os.path.dirname(__file__), 'offshore-CREYAP-2-data-pack', 'Shell_Flats_1_80mHAT.csv')
 shell_flats_50m_csv = os.path.join(os.path.dirname(__file__), 'offshore-CREYAP-2-data-pack', 'Shell_Flats_2_50mHAT.csv')
@@ -14,6 +14,7 @@ demo_merra2_NW = os.path.join(os.path.dirname(__file__), 'demo', 'MERRA-2_NW_200
 demo_merra2_NE = os.path.join(os.path.dirname(__file__), 'demo', 'MERRA-2_NE_2000-01-01_2017-06-30.csv')
 demo_merra2_SE = os.path.join(os.path.dirname(__file__), 'demo', 'MERRA-2_SE_2000-01-01_2017-06-30.csv')
 demo_merra2_SW = os.path.join(os.path.dirname(__file__), 'demo', 'MERRA-2_SW_2000-01-01_2017-06-30.csv')
+demo_windographer_site_data = os.path.join(os.path.dirname(__file__), 'demo', 'windographer_demo_site_data.txt')
 
 
 def datasets_available():
@@ -32,6 +33,7 @@ def datasets_available():
         shell_flats_50m_csv = bw.load_csv(bw.datasets.shell_flats_50m_csv)
         shell_flats_merra = bw.load_csv(bw.datasets.shell_flats_merra)
         demo_data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        demo_windog_data = bw.load_windographer_txt(bw.datasets.demo_windographer_site_data)
 
     """
 

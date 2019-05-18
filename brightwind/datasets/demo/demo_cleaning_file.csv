@@ -1,0 +1,5 @@
+Sensor,Start,Stop,Days lost,Reason
+All,2016-01-01 00:00:00,2016-01-01 00:40:00,,Installation
+Spd60mS,2016-05-15 19:50,2016-07-28 14:10,,Invalid
+Dir58mS,2016-12-29 23:50,2018-02-09 21:30,,Invalid
+Spd40mN,2017-02-09 21:30,2018-02-09 21:30,,Invalid

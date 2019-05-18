@@ -1,0 +1,5 @@
+Data Column	Flag Name	Start Time	End Time	Time Steps
+Spd60mS	Invalid	2016-05-15 19:50	2016-07-28 14:10	?
+Spd80mN	Synthesized	2017-02-15 19:50	2017-08-03 14:10	?
+Dir58mS	Invalid	2016-12-29 23:50	2018-02-09 21:30	?
+Spd40mN	Invalid	2017-02-09 21:30	2018-02-09 21:30	?
