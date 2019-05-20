@@ -1,5 +1,7 @@
 import pytest
 import brightwind as bw
+import pandas as pd
+
 
 def test_monthly_means():
     #Load data
@@ -8,7 +10,6 @@ def test_monthly_means():
                                                                           'WS50mA100NW_Avg','WS50mA100SE_Avg',
                                                                           'WS20mA100CB1_Avg','WS20mA100CB2_Avg']],
                         return_data=True)
-    # monthly_means(load_csv(brightwind.dathttps://github.com/brightwind-dev/brightwind/pull/51/conflict?name=brightwind%252Ftests%252Ftest_analyse.py&ancestor_oid=327cb3af2fe06cb245669ae2d57c2484eed00991&base_oid=baa2a6ac676b4b08cce0fa48dc7903946a8ba49f&head_oid=4ec3529abbc2e330c2ba35e05a8227690d956273asets.shell_flats_80m_csv).WS80mWS425NW_Avg)
     bw.monthly_means(bw.load_csv(bw.datasets.shell_flats_80m_csv).WS80mWS425NW_Avg, return_data=True)
     assert True
 
@@ -44,7 +45,8 @@ def test_TI_twelve_by_24():
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, return_data=True, var_name='Speed 60 m N m/s')
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, var_name='Speed 60 m N m/s')
     bw.TI.twelve_by_24(df.Spd40mN, df.Spd40mNStd)
-    assert 1==1
+    assert 1 == 1
+
 
 def test_coverage():
     data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
@@ -55,3 +57,20 @@ def test_coverage():
     data_hourly = bw.coverage(data.Spd80mN, period='1M')
     # monthly_coverage of variance
     data_hourly = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')
+
+
+def test_calc_air_density():
+    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    bw.calc_air_density(data.T2m, data.P2m)
+    bw.calc_air_density(data.T2m, data.P2m, elevation_ref=0, elevation_site=200)
+
+    with pytest.raises(TypeError) as except_info:
+        bw.calc_air_density(15, 1013, elevation_site=200)
+    assert str(except_info.value) == 'elevation_ref should be a number'
+    with pytest.raises(TypeError) as except_info:
+        bw.calc_air_density(15, 1013, elevation_ref=200)
+    assert str(except_info.value) == 'elevation_site should be a number'
+    assert abs(bw.calc_air_density(15, 1013) - 1.225) < 1e-3
+    assert abs(bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200) - 1.203) < 1e-3
+    assert (abs(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])) -
+               pd.Series([1.225, 1.208, 1.326, 1.059])) < 1e-3).all()
