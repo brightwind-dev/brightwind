@@ -20,7 +20,7 @@ import math
 from brightwind.utils import utils
 
 __all__ = ['average_data_by_period', 'adjust_slope_offset', 'scale_wind_speed', 'offset_wind_direction',
-           '_get_data_resolution']
+           '_get_data_resolution', 'offset_timestamps']
 
 
 def _compute_wind_vector(wspd, wdir):
@@ -65,7 +65,7 @@ def _get_data_resolution(data_idx):
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
         resolution = bw._get_data_resolution(df.Spd80mS.index)
         #To check the number of seconds in resolution
         print(resolution.seconds)
@@ -135,14 +135,14 @@ def _get_coverage_series(data, grouper_obj):
     return coverage
 
 
-def average_data_by_period(data: pd.Series, period, aggregation_method='mean', filter_by_coverage_threshold=False,
-                           coverage_threshold=1, return_coverage=False) -> pd.DataFrame:
+def average_data_by_period(data, period, aggregation_method='mean', coverage_threshold=None,
+                           return_coverage=False) -> pd.DataFrame:
     """
     Averages the data by the time period specified by period.
 
-    Aggregates data by the aggregation_method specified, by default averages the to the period specified. Can
-    be used to find hourly, daily, weekly, etc. averages or sums. Can also return coverage and filter the returned data
-    by coverage.
+    Aggregates data by the aggregation_method specified, by default this function averages the data to the period 
+    specified. Can be used to find hourly, daily, weekly, etc. averages or sums. Can also return coverage and 
+    filter the returned data by coverage.
 
     :param data: Data to find average or aggregate of
     :type data: pandas.Series
@@ -161,17 +161,15 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
         `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product, summation,
         standard deviation, variance, maximum and minimum respectively.
     :type aggregation_method: str
-    :param filter_by_coverage_threshold: It removes the time periods where the coverage is below coverage_threshold.
-        Coverage is defined as the ratio of number of data points present in the period and the maximum number of
-        data points that a period should have. Example, for 10 minute data resolution and a period of 1 hour the
-        maximum number of data points in one period is 6. But if the number if data points available is only 3 for that
-        hour the coverage is 3/6=0.5
-    :type filter_by_coverage_threshold: bool
-    :param coverage_threshold: It should be greater than 0 and less than or equal to 1. For definition of coverage see
-        filter_by_coverage_threshold. Default is 1 i.e. if any timestamp is missing for that period, remove that period.
+    :param coverage_threshold: Coverage is defined as the ratio of number of data points present in the period and the 
+        maximum number of data points that a period should have. Example, for 10 minute data resolution and a period of 
+        1 hour, the maximum number of data points in one period is 6. But if the number if data points available is only
+        3 for that hour the coverage is 3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to 
+        None by default. If it is None or 0, data is not filtered. Otherwise periods are removed where coverage is less 
+        than the coverage_threshold are removed.
     :type coverage_threshold: float
-    :param return_coverage: If True appends and additional column in the DataFrame returned, with coverage calculated for
-        each period. The columns with coverage are named as <column name>_Coverage
+    :param return_coverage: If True appends and additional column in the DataFrame returned, with coverage calculated
+        for each period. The columns with coverage are named as <column name>_Coverage
     :type return_coverage: bool
     :returns: A DataFrame with data aggregated with the specified aggregation_method (mean by default). Additionally it
         could be filtered based on coverage and have a coverage column depending on the parameters.
@@ -180,7 +178,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
         #To find hourly averages
         data_hourly = bw.average_data_by_period(data.Spd80mN, period='1H')
@@ -189,14 +187,18 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
         data_monthly = bw.average_data_by_period(data.Spd80mN, period='1M')
 
         #To filter months where half of the data is missing
-        data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M',
-            filter_by_coverage_threshold=True, coverage_threshold=0.5)
+        data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M', coverage_threshold=0.5)
 
         #To check the coverage for all months
-        data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M',  return_coverage=True)
+        data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M', return_coverage=True)
 
 
     """
+    if coverage_threshold is None:
+        coverage_threshold = 0
+
+    if coverage_threshold < 0 or coverage_threshold > 1:
+        raise TypeError("Invalid coverage_threshold, should be between 0 and 1, both ends inclusive")
 
     data = data.sort_index()
     if isinstance(period, str):
@@ -214,8 +216,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
     grouped_data = grouper_obj.agg(aggregation_method)
     coverage = _get_coverage_series(data, grouper_obj)
 
-    if filter_by_coverage_threshold:
-        grouped_data = grouped_data[coverage >= coverage_threshold]
+    grouped_data = grouped_data[coverage >= coverage_threshold]
 
     if return_coverage:
         if isinstance(coverage, pd.DataFrame):
@@ -224,7 +225,7 @@ def average_data_by_period(data: pd.Series, period, aggregation_method='mean', f
             coverage = coverage.rename(grouped_data.name+'_Coverage')
         else:
             raise TypeError("Coverage not calculated correctly. Coverage", coverage)
-        return grouped_data, coverage
+        return grouped_data, coverage[coverage >= coverage_threshold]
     else:
         return grouped_data
 
@@ -256,7 +257,7 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
         df['Spd80mS_adj'] = bw.adjust_slope_offset(df.Spd80mS, 0.044, 0.235, 0.04365, 0.236)
         df[['Spd80mS', 'Spd80mS_adj']]
 
@@ -355,30 +356,28 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
             (to_offset(target_resolution) != to_offset(averaging_prd)):
         if ref_resolution > target_resolution:
             target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution),
-                                                    filter_by_coverage_threshold=True, coverage_threshold=1,
+                                                    coverage_threshold=1,
                                                     aggregation_method=aggregation_method_target)
         if ref_resolution < target_resolution:
             ref_overlap = average_data_by_period(ref_overlap, to_offset(target_resolution),
-                                                 filter_by_coverage_threshold=True, coverage_threshold=1,
+                                                 coverage_threshold=1,
                                                  aggregation_method=aggregation_method_ref)
         common_idxs, data_pts = _common_idxs(ref_overlap, target_overlap)
         ref_overlap = ref_overlap.loc[common_idxs]
         target_overlap = target_overlap.loc[common_idxs]
 
     if get_coverage:
-        return pd.concat([average_data_by_period(ref_overlap, averaging_prd, filter_by_coverage_threshold=False,
+        return pd.concat([average_data_by_period(ref_overlap, averaging_prd,
                                                  coverage_threshold=0, aggregation_method=aggregation_method_ref)] +
-                         list(average_data_by_period(target_overlap, averaging_prd, filter_by_coverage_threshold=False,
+                         list(average_data_by_period(target_overlap, averaging_prd,
                                                      coverage_threshold=0, aggregation_method=aggregation_method_target,
                                                      return_coverage=True)),
                          axis=1)
     else:
         ref_processed, target_processed = average_data_by_period(ref_overlap, averaging_prd,
-                                                                 filter_by_coverage_threshold=True,
                                                                  coverage_threshold=coverage_threshold,
                                                                  aggregation_method=aggregation_method_ref), \
                                           average_data_by_period(target_overlap, averaging_prd,
-                                                                 filter_by_coverage_threshold=True,
                                                                  coverage_threshold=coverage_threshold,
                                                                  aggregation_method=aggregation_method_target)
         concurrent_idxs, data_pts = _common_idxs(ref_processed, target_processed)
@@ -396,5 +395,113 @@ def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.Dat
                                                                   coverage_threshold=coverage_threshold)
     ref_dir_avgd = np.arctan2(ref_E_avgd, ref_N_avgd).map(math.degrees).map(utils._range_0_to_360)
     target_dir_avgd = np.arctan2(target_E_avgd, target_N_avgd).map(math.degrees).map(utils._range_0_to_360)
-
     return round(ref_dir_avgd.loc[:]), round(target_dir_avgd.loc[:])
+
+
+def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=False):
+    """
+    Offset timestamps by a certain time period
+
+    :param data: DateTimeIndex or Series/DataFrame with DateTimeIndex
+    :type data: pandas.DateTimeIndex, pandas.Series, pandas.DataFrame
+    :param offset: A string specifying the time to offset the time-series.
+
+            - Set offset to 10min to add 10 minutes to each timestamp, -10min to subtract 10 minutes and so on
+                for 4min, 20min, etc.
+            - Set offset to 1H to add 1 hour to each timestamp and -1H to subtract and so on for 5H, 6H, etc.
+            - Set offset to 1D to add a day and -1D to subtract and so on for 5D, 7D, 15D, etc.
+            - Set offset to 1W to add a week and -1W to subtract from each timestamp and so on for 2W, 4W, etc.
+            - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on for 2M, 3M, etc.
+            - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on for 2Y, 3Y, etc.
+
+    :type offset: str
+    :param date_from: (Optional) The timestamp from input data where to start offsetting from.
+    :type date_from: str, datetime, dict
+    :param date_to: (Optional) The timestamp from input data where to end offsetting.
+    :type date_to: str, datetime, dict
+    :param overwrite: Change to True to overwrite the unadjusted timestamps if they are same outside of the slice of
+        data you want to offset. False by default.
+    :type overwrite: bool
+    :returns: Offsetted DateTimeIndex/Series/DataFrame, same format is input data
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+
+        #To decrease 10 minutes within a given date range and overwrite the original data
+        op1 = bw.offset_timestamps(data, offset='1H', date_from='2016-01-01 00:20:00',
+            date_to='2016-01-01 01:40:00', overwrite=True)
+
+        #To decrease 10 minutes within a given date range not overwriting the original data
+        op2 = bw.offset_timestamps(data, offset='-10min', date_from='2016-01-01 00:20:00',
+            date_to='2016-01-01 01:40:00')
+
+        #Can accept Series or index as input
+        op3 = bw.offset_timestamps(data.Spd80mS, offset='1D', date_from='2016-01-01 00:20:00')
+
+        op4 = bw.offset_timestamps(data.index, offset='-10min', date_from='2016-01-01 00:20:00',
+            date_from='2016-01-01 01:40:00')
+
+        #Can also except decimal values for offset, like 3.5H for 3 hours and 30 minutes
+
+        op5 = bw.offset_timestamps(data.index, offset='3.5H', date_from='2016-01-01 00:20:00',
+            date_from='2016-01-01 01:40:00')
+
+    """
+    import datetime
+    date_from = pd.to_datetime(date_from)
+    date_to = pd.to_datetime(date_to)
+
+    if isinstance(data, pd.Timestamp) or isinstance(data, datetime.date)\
+            or isinstance(data, datetime.time)\
+            or isinstance(data, datetime.datetime):
+        return data + pd.Timedelta(offset)
+
+    if isinstance(data, pd.DatetimeIndex):
+        original = pd.to_datetime(data.values)
+
+        if pd.isnull(date_from):
+            date_from = data[0]
+
+        if pd.isnull(date_to):
+            date_to = data[-1]
+
+        shifted_slice = original[(original >= date_from) & (original <= date_to)] + pd.Timedelta(offset)
+        shifted = original[original < date_from].append(shifted_slice)
+        shifted = shifted.append(original[original > date_to])
+        shifted = shifted.drop_duplicates().sort_values()
+        return pd.DatetimeIndex(shifted)
+
+    if isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
+
+        if not isinstance(data.index, pd.DatetimeIndex):
+            raise TypeError('Input must have datetime index')
+        else:
+            original = pd.to_datetime(data.index.values)
+            df_copy = data.copy(deep=False)
+            if pd.isnull(date_from):
+                date_from = data.index[0]
+
+            if pd.isnull(date_to):
+                date_to = data.index[-1]
+
+            shifted_slice = original[(original >= date_from) & (original <= date_to)] + pd.Timedelta(offset)
+            intersection_front = original[(original < date_from)].intersection(shifted_slice)
+            intersection_back = original[(original > date_to)].intersection(shifted_slice)
+            if overwrite:
+                df_copy = df_copy.drop(intersection_front, axis=0)
+                df_copy = df_copy.drop(intersection_back, axis=0)
+                sec1 = original[original < date_from].drop(intersection_front)
+                sec2 = original[original > date_to].drop(intersection_back)
+                shifted = (sec1.append(shifted_slice)).append(sec2)
+            else:
+                df_copy = df_copy.drop(intersection_front - pd.Timedelta(offset), axis=0)
+                df_copy = df_copy.drop(intersection_back - pd.Timedelta(offset), axis=0)
+                sec_mid = shifted_slice.drop(intersection_front).drop(intersection_back)
+                shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original > date_to)])
+            df_copy.index = shifted
+            return df_copy.sort_index()
+
+
+
