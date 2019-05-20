@@ -307,13 +307,21 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     """
     Accepts a DataFrame table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
     by sector. Optionally can include anemometer boom directions also.
-    :param sec_ratio:
-    :param wdir:
-    :param sec_ratio_dist: DataFrame from SectorRation.by_speed()
+    :param sec_ratio: Series of sector_ratios
+    :type sec_ratio: pandas.Series
+    :param wdir: Direction series
+    :type wdir: pandas.Series
+    :param sec_ratio_dist: DataFrame from SectorRatio.by_sector()
+    :type sec_ratio_dist; pandas.Series
     :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to -1.
+    :type boom_dir_1: float
     :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1.
-    :param col_names: A list of strings containing column names of wind speeds
+    :type boom_dir_2: float
+    :param col_names: A list of strings containing column names of wind speeds, first string is divisor and second is
+        dividend
+    :type col_names: list(str)
     :returns A speed ratio plot showing average speed ratio by sector and scatter of individual data points.
+
     """
     radians = np.radians(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
     fig = plt.figure(figsize=(10, 10))

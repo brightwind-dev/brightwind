@@ -612,7 +612,7 @@ class SectorRatio:
 
         :param wspd_1: First wind speed series. This is divisor series.
         :type: wspd_1: pandas.Series
-        :param wspd_2: Second wind speed series
+        :param wspd_2: Second wind speed series, dividend
         :type: wspd_2: pandas.Series
         :param wdir: Series of wind directions
         :type wdir: pandas.Series
@@ -641,6 +641,10 @@ class SectorRatio:
 
             #If one boom is top mounted, say Spd40mN
             bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS, boom_dir_2=160)
+
+            #To use your custom direction bins, for example (0-45), (45-135), (135-180), (180-220), (220-360)
+            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir = df.Dir38mS,
+                direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=160, boom_dir_2=340)
 
         """
         sec_rat = SectorRatio.calc(wspd_1, wspd_2)
