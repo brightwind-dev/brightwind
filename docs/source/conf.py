@@ -20,6 +20,8 @@
 import os
 import sys
 import sphinx_bootstrap_theme
+import datetime
+
 path= os.getcwd()
 sys.path.insert(0, path.replace('docs\source','brightwind'))
 
@@ -68,7 +70,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'brightwind'
-copyright = '2018, BrightWind Analysis'
+copyright = str(datetime.datetime.now().year)+', BrightWind Analysis'
 author = 'BrightWind Analysis'
 
 # The version info for the project you're documenting, acts as replacement for

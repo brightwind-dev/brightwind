@@ -23,7 +23,7 @@ from brightwind.analyse import plot as plt
 
 __all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
            'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage', 'basic_stats',
-           'twelve_by_24', 'TI', 'SectorRatio', 'Shear']
+           'twelve_by_24', 'TI', 'SectorRatio', 'Shear', 'calc_air_density']
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
@@ -64,7 +64,7 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
-def monthly_means(data, return_data=False, return_coverage=False):
+def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]'):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
@@ -73,8 +73,11 @@ def monthly_means(data, return_data=False, return_coverage=False):
     :type data: Series or DataFrame
     :param return_data: To return data of monthly means along with the plot.
     :type return_data: bool
-    :param return_coverage: To return monthly coverage along with the data and plot.
+    :param return_coverage: To return monthly coverage along with the data and plot. Also plots the coverage on the
+        same graph if only a single series was passed to data.
     :type return_coverage: bool
+    :param ylabel: Label for the y-axis, Wind speed [m/s] by default
+    :type   ylabel: str
     :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
         the first element is plot and second is data pertaining to monthly means.
 
@@ -93,20 +96,18 @@ def monthly_means(data, return_data=False, return_coverage=False):
         bw.monthly_means(data.WS80mWS425NW_Avg)
 
         # Return coverage
-        monthly_means_plot, monthly_means = bw.monthly_means(data, return_coverage=True)
-        monthly_means
+        monthly_means_plot, monthly_means = bw.monthly_means(data.WS80mWS425NW_Avg, return_coverage=True)
+        monthly_means_plot
 
     """
-    # if not isinstance(wdspds, list):
-    #     wdspds = [wdspds]
-    # data = tf.average_data_by_period(pd.concat(wdspds, axis=1, join='outer'), period='1MS')
-    df = tf.average_data_by_period(data, period='1MS')
+
+    df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True)
     if return_data and not return_coverage:
-        return plt.plot_timeseries(df), df
+        return plt.plot_monthly_means(df, ylbl=ylabel), df
     if return_coverage:
-        return plt.plot_timeseries(df), \
-               pd.concat([df, coverage(data, period='1M', aggregation_method='mean')], axis=1)
-    return plt.plot_timeseries(df)
+        return plt.plot_monthly_means(df, covrg, ylbl=ylabel),  pd.concat([df, covrg], axis=1)
+    return plt.plot_monthly_means(df, ylbl=ylabel)
+
 
 
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
@@ -224,7 +225,7 @@ def _binned_direction_series(direction_series, sectors, direction_bin_array=None
     """
     if direction_bin_array is None:
         direction_bin_array = utils.get_direction_bin_array(sectors)
-    return direction_series.apply(_map_direction_bin, bins=direction_bin_array, sectors=sectors)
+    return direction_series.dropna().apply(_map_direction_bin, bins=direction_bin_array, sectors=sectors)
 
 
 def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
@@ -391,7 +392,7 @@ def coverage(data, period='1M', aggregation_method='mean'):
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
         #To find hourly coverage
         data_hourly = bw.coverage(data.Spd80mN, period='1H')
@@ -412,7 +413,7 @@ def coverage(data, period='1M', aggregation_method='mean'):
     """
 
     return tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,
-                                     filter_by_coverage_threshold=False, return_coverage=True)[1]
+                                     return_coverage=True)[1]
 
 
 def basic_stats(data):
@@ -433,7 +434,7 @@ def basic_stats(data):
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
         bw.basic_stats(data)
         bw.basic_stats(data['Gust_Max_1'])
 
@@ -447,7 +448,6 @@ def basic_stats(data):
 def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_name=''):
     """
     Accepts a variable series and returns 12x24 (months x hours) table for the variable.
-
     :param var_series:
     :param aggregation_method: 'mean' by default calculates mean of the variable passed. Can change it to
             'sum', 'std', 'min', 'max', 'percentile' for sum, standard deviation, minimum, maximum, percentile
@@ -462,21 +462,19 @@ def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_n
     """
     table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
                              var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
+
+    pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
     if return_data:
-        return plt.plot_12x24_contours(
-            table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method),
-               title=var_name),\
-               table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
-    return plt.plot_12x24_contours(
-        table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method),
-        title=var_name)
+        return plt.plot_12x24_contours(pvt_tbl, title=var_name),\
+               pvt_tbl
+    return plt.plot_12x24_contours(pvt_tbl, title=var_name)
 
 
 class TI:
 
     def calc(wspd, wspd_std):
-        ti = pd.concat([wspd[wspd > 3].rename('wdspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
-        return ti['wspd_std'] / ti['wdspd']
+        ti = pd.concat([wspd[wspd > 3].rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
+        return ti['wspd_std'] / ti['wspd']
 
     def by_speed(wspd, wspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
                  percentile=90, IEC_class=None, return_data=False):
@@ -510,8 +508,8 @@ class TI:
         :rtype: pandas.DataFrame
 
         """
-        ti = pd.concat([wspd.rename('wdspd'), wspd_std.rename('wdspd_std')], axis=1, join='inner')
-        ti['Turbulence_Intensity'] = TI.calc(ti['wdspd'], ti['wdspd_std'])
+        ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
+        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
         ti_dist = pd.concat([
             distribution(var1_series=ti['Turbulence_Intensity'], var2_series=ti['wspd'],
                          var2_bin_array=speed_bin_array, var2_bin_labels=speed_bin_labels,
@@ -569,7 +567,7 @@ class TI:
         :rtype: pandas.DataFrame
 
         """
-        ti = pd.concat([wspd.rename('wdspd'), wspd_std.rename('wdspd_std'), wdir.rename('wddir')], axis=1,
+        ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std'), wdir.rename('wdir')], axis=1,
                        join='inner')
         ti = ti[ti['wspd'] >= min_speed]
         ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
@@ -592,10 +590,10 @@ class TI:
             return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
 
     def twelve_by_24(wspd, wspd_std, return_data=False, var_name='Turbulence Intensity'):
-        tab_12x24 = twelve_by_24(TI.calc(wspd, wspd_std), return_data=True)[1]
+        tab_12x24, graph = twelve_by_24(TI.calc(wspd, wspd_std), return_data=True, var_name=var_name)
         if return_data:
-            return plt.plot_12x24_contours(tab_12x24, title=var_name), tab_12x24
-        return plt.plot_12x24_contours(tab_12x24, title=var_name)
+            return tab_12x24, graph
+        return graph
 
 
 class SectorRatio:
@@ -731,3 +729,59 @@ def _calc_shear(wspds, heights, return_coeff=False) -> (np.array, float):
     if return_coeff:
         return coeffs[0], np.exp(coeffs[1])
     return coeffs[0]
+
+
+def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=None, lapse_rate=-0.113,
+                     specific_gas_constant=286.9):
+    """
+    Calculates air density for a given temperature and pressure and extrapolates that to the site if both reference
+    and site elevations are given.
+
+    :param temperature: Temperature values in degree Celsius
+    :type temperature: float or pandas.Series or pandas.DataFrame
+    :param pressure: Pressure values in hectopascal, hPa, (1,013.25 hPa = 101,325 Pa = 101.325 kPa =
+                    1 atm = 1013.25 mbar)
+    :type pressure: float or pandas.Series or pandas.DataFrame
+    :param elevation_ref: Elevation, in meters, of the reference temperature and pressure location.
+    :type elevation_ref: Floating point value (decimal number)
+    :param elevation_site: Elevation, in meters, of the site location to calculate air density for.
+    :type elevation_site: Floating point values (decimal number)
+    :param lapse_rate: Air density lapse rate kg/m^3/km, default is -0.113
+    :type lapse_rate: Floating point value (decimal number)
+    :param specific_gas_constant: Specific gas constant, R, for humid air J/(kg.K), default is 286.9
+    :type specific_gas_constant:  Floating point value (decimal number)
+    :return: Air density in kg/m^3
+    :rtype: float or pandas.Series depending on the input
+
+        **Example usage**
+    ::
+        import brightwind as bw
+
+        #For a series of air densities
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        air_density = bw.calc_air_density(data.T2m, data.P2m)
+
+        #For a single value
+        bw.calc_air_density(15, 1013)
+
+        #For a single value with ref and site elevation
+        bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200)
+
+
+
+    """
+
+    temp = temperature
+    temp_kelvin = temp + 273.15     # to convert deg C to Kelvin.
+    pressure = pressure * 100       # to convert hPa to Pa
+    ref_air_density = pressure / (specific_gas_constant * temp_kelvin)
+
+    if elevation_ref is not None and elevation_site is not None:
+        site_air_density = round(ref_air_density + (((elevation_site - elevation_ref) / 1000) * lapse_rate), 3)
+        return site_air_density
+    elif elevation_site is None and elevation_ref is not None:
+        raise TypeError('elevation_site should be a number')
+    elif elevation_site is not None and elevation_ref is None:
+        raise TypeError('elevation_ref should be a number')
+    else:
+        return ref_air_density
