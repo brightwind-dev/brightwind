@@ -219,10 +219,10 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6eba
     ax.set_rgrids(np.linspace(0.1, max(table.sum(axis=0))+2.0, 10),
                   labels=['%.0f' % round(i)+symbol for i in np.linspace(0.1, max(table.sum(axis=0))+2.0, 10)],
                   angle=0, zorder=2)
-    direction_bins = utils.get_direction_bin_array(sectors)[1:-2]
-    direction_bins = np.insert(direction_bins, 0, direction_bins[-2])
+    # direction_bins = utils.get_direction_bin_array(sectors)[1:-2]
+    # direction_bins = np.insert(direction_bins, 0, direction_bins[-2])
     ax.set_ylim(0, max(table.sum(axis=0))+3.0)
-    angular_width = 2*np.pi/sectors - (np.pi/180)  # Leaving 1 degree gap
+    # angular_width = 2*np.pi/sectors - (np.pi/180)  # Leaving 1 degree gap
     ax.bar(0, 1, alpha=0)
 
     def _choose_color(speed_bin):
@@ -231,11 +231,13 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6eba
         return colors[np.digitize([speed_bin], bins)[0]-1]
     for column in table_binned:
         radial_pos = 0.0
-        angular_pos = (np.pi / 180.0) * float(column.split('-')[0])
+        angular_pos_start = (np.pi / 180.0) * float(column.split('-')[0])
+        angular_pos_end = (np.pi / 180.0) * float(column.split('-')[-1])
+        angular_width = angular_pos_end - angular_pos_start - (np.pi / 180)# Leaving 1 degree gap
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
             color = _choose_color(speed_bin)
-            patch = mpl.patches.Rectangle((angular_pos, radial_pos), angular_width, frequency, facecolor=color,
-                                          edgecolor='#5c7b1e', linewidth=0.3, zorder=3)
+            patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width ,
+                                          frequency, facecolor=color, edgecolor='#5c7b1e', linewidth=0.3, zorder=3)
             ax.add_patch(patch)
             radial_pos += frequency
     legend_patches = [mpl.patches.Patch(color=gradient_colors[0], label='0-3 m/s'),

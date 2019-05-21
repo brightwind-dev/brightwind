@@ -55,3 +55,18 @@ def test_coverage():
     data_hourly = bw.coverage(data.Spd80mN, period='1M')
     # monthly_coverage of variance
     data_hourly = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')
+    assert True
+
+def test_freq_table():
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+    graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
+
+    # Calling with user defined dir_bin labels BUGGY
+    graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, direction_bin_array=[0, 90, 160, 210, 360],
+                           direction_bin_labels=['lowest','lower','mid','high'], return_data=True)
+    assert (tab.columns==['lowest','lower','mid','high']).all()
+    #Calling with user defined var_bin labels BUGGY
+    # graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, var_bin_array=[0, 10, 15, 50],
+    #                            var_bin_labels=['low', 'mid', 'high'], return_data=True)
+

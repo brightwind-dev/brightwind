@@ -296,6 +296,16 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     :type return_data: bool
     :returns: A DataFrame with row indexes as variable bins and columns as wind direction bins.
 
+    **Example usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+        #Create a frequency table with user defined direction bins (0-90), (90-130), (130-200), (200-360) with labels
+        # 'northerly','easterly','southerly','westerly' respectively
+        rose, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, direction_bin_array=[0,90,130,200,360],
+                           direction_bin_labels=['northerly','easterly','southerly','westerly'], return_data=True)
+
     """
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
@@ -318,12 +328,20 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     for i in range(1, sectors+1):
         if not (i in result.columns):
             result.insert(i-1, i, 0.0)
-    result.columns = direction_bin_labels
+
+    result.columns = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
     result = result.sort_index()
+
+    #Creating a graph before renaming the direction labels, to help identify sectors while plotting
+    graph = plt.plot_wind_rose_with_gradient(result, percent_symbol=freq_as_percentage)
+
+    if direction_bin_labels is not None:
+        result.columns = direction_bin_labels
+
     if return_data:
-        return plt.plot_wind_rose_with_gradient(result, percent_symbol=freq_as_percentage), result
+        return graph, result
     else:
-        return plt.plot_wind_rose_with_gradient(result, percent_symbol=freq_as_percentage)
+        return graph
 
 
 def time_continuity_gaps(data):
