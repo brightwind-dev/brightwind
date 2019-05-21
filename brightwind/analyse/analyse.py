@@ -606,23 +606,43 @@ class SectorRatio:
     def by_sector(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None,
                   boom_dir_1=-1, boom_dir_2=-1, return_data=False):
         """
-        Accepts two speed series and one direction series and returns the speed ratio by sector
-        in a table
+        Accepts two speed series and one direction series and returns the speed ratio by sector in a table
 
         :param wspd_1: First wind speed series. This is divisor series.
         :type: wspd_1: pandas.Series
-        :param wspd_2: Second wind speed series
+        :param wspd_2: Second wind speed series, dividend
         :type: wspd_2: pandas.Series
         :param wdir: Series of wind directions
         :type wdir: pandas.Series
         :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
         :type sectors: int
-        :param direction_bin_array:
-        :param boom_dir_1: Boom direction in degrees of speed_col_name_1.
-        :param boom_dir_2: Boom direction in degrees of speed_col_name_2.
+        :param direction_bin_array: (Optional) Array of numbers where adjacent elements of array form a bin.
+        :param boom_dir_1: Boom direction in degrees of wspd_1. If top mounted leave default as -1.
+        :type boom_dir_1: float
+        :param boom_dir_2: Boom direction in degrees of wspd_2. If top mounted leave default as -1.
+        :type boom_dir_2: float
         :param return_data:  Set to True if you want the data returned.
         :type return_data: bool
-        :returns: A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
+        :returns: A speed ratio plot showing average speed ratio by sector and scatter of individual data points. If
+            only a single boom_dir is specified the other boom is assumed to be top mounted.
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
+
+            #For plotting both booms
+            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS, boom_dir_2=340, boom_dir_2=160)
+
+            #For plotting no booms
+            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS)
+
+            #If one boom is top mounted, say Spd40mN
+            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS, boom_dir_2=160)
+
+            #To use your custom direction bins, for example (0-45), (45-135), (135-180), (180-220), (220-360)
+            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir = df.Dir38mS,
+                direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=160, boom_dir_2=340)
 
         """
         sec_rat = SectorRatio.calc(wspd_1, wspd_2)

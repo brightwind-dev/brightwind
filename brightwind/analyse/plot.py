@@ -354,13 +354,21 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     """
     Accepts a DataFrame table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
     by sector. Optionally can include anemometer boom directions also.
-    :param sec_ratio:
-    :param wdir:
-    :param sec_ratio_dist: DataFrame from SectorRation.by_speed()
-    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to 0.
-    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to 0.
-    :param col_names: A list of strings containing column names of wind speeds
-    :returns A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
+    :param sec_ratio: Series of sector_ratios
+    :type sec_ratio: pandas.Series
+    :param wdir: Direction series
+    :type wdir: pandas.Series
+    :param sec_ratio_dist: DataFrame from SectorRatio.by_sector()
+    :type sec_ratio_dist; pandas.Series
+    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to -1.
+    :type boom_dir_1: float
+    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1.
+    :type boom_dir_2: float
+    :param col_names: A list of strings containing column names of wind speeds, first string is divisor and second is
+        dividend
+    :type col_names: list(str)
+    :returns A speed ratio plot showing average speed ratio by sector and scatter of individual data points.
+
     """
     radians = np.radians(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
     fig = plt.figure(figsize=(10, 10))
@@ -372,25 +380,31 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
             color=bw_colors('green'), linewidth=4)
     # plt.title('Speed Ratio by Direction')
     # Get max and min levels and set chart axes
-    maxlevel = sec_ratio_dist['Mean_Sector_Ratio'].max() + 0.05
-    minlevel = sec_ratio_dist['Mean_Sector_Ratio'].min() - 0.1
-    ax.set_ylim(minlevel, maxlevel)
+    max_level = sec_ratio_dist['Mean_Sector_Ratio'].max() + 0.05
+    min_level = sec_ratio_dist['Mean_Sector_Ratio'].min() - 0.1
+    ax.set_ylim(min_level, max_level)
     # Add boom dimensions to chart, if required
     width = np.pi / 108
-    radii = maxlevel
-    ctr = 0
+    radii = max_level
+    annotate = False
+    annotation_text = '* Plot generated using '
     if boom_dir_1 >= 0:
         boom_dir_1 = np.radians(boom_dir_1)
-        ax.bar(boom_dir_1, radii, width=width, bottom=minlevel, color='#659CEF')
-        ctr += 1
+        ax.bar(boom_dir_1, radii, width=width, bottom=min_level, color='#659CEF')
+        if boom_dir_2 == -1:
+            annotation_text += col_names[1] + ' (top mounted) divided by ' + col_names[0] + ' (blue boom)'
+            annotate = True
     if boom_dir_2 >= 0:
         boom_dir_2 = np.radians(boom_dir_2)
-        ax.bar(boom_dir_2, radii, width=width, bottom=minlevel, color='#DCF600')
-        ctr += 1
-
-    if ctr == 2:
-        ax.annotate('*Plot generated using ' + col_names[1] + ' (yellow green boom) divided by' + col_names[0] +
-                    ' (blue boom)', xy=(20, 10), xycoords='figure pixels')
+        ax.bar(boom_dir_2, radii, width=width, bottom=min_level, color='#DCF600')
+        if boom_dir_1 == -1:
+            annotation_text += col_names[1] + ' (yellow green boom) divided by ' + col_names[0] + ' (top mounted)'
+            annotate = True
+    if boom_dir_2 >= 0 and boom_dir_1 >= 0:
+        annotation_text += col_names[1] + ' (yellow green boom) divided by ' + col_names[0] + ' (blue boom)'
+        annotate = True
+    if annotate:
+        ax.annotate(annotation_text, xy=(0.5, 0.035), xycoords='figure fraction', horizontalalignment='center')
     ax.scatter(np.radians(wdir), sec_ratio, color=bw_colors('asphault'), alpha=0.3, s=1)
     return ax.get_figure()
 
