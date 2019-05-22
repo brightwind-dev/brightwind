@@ -23,7 +23,7 @@ from brightwind.utils import utils
 import os
 import matplotlib as mpl
 
-__all__ = ['plot_timeseries', 'plot_freq_distribution']
+__all__ = ['plot_timeseries', 'plot_freq_distribution', 'plot_wind_rose', 'plot_wind_rose_with_gradient']
 
 
 try:
@@ -229,7 +229,12 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6eba
         radial_pos = 0.0
         angular_pos_start = (np.pi / 180.0) * float(column.split('-')[0])
         angular_pos_end = (np.pi / 180.0) * float(column.split('-')[-1])
-        angular_width = angular_pos_end - angular_pos_start - (np.pi / 180) # Leaving 1 degree gap
+
+        #Check for sectors with 0 degrees within the sector
+        if angular_pos_end > angular_pos_start:
+            angular_width = angular_pos_end - angular_pos_start - (np.pi / 180) # Leaving 1 degree gap
+        else:
+            angular_width = 2*np.pi - angular_pos_end + angular_pos_start - (np.pi / 180)
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
             color = _choose_color(speed_bin)
             patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,
@@ -267,7 +272,6 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True,
             bin_labels.append(str(table.index[rows_to_sum[i]].left) + ' - ' + str(table.index[rows_to_sum[i+1]].left))
             to_concat = table_trans.iloc[:, rows_to_sum[i]:rows_to_sum[i + 1]].sum(axis=1).rename(i)
         # print(bin_labels)
-
         table_binned = pd.concat([table_binned, to_concat], axis=1, sort=True)
     table_binned = table_binned.T
 
@@ -275,8 +279,8 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True,
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-
     ax.set_thetagrids(np.arange(0, 360, 360.0 / sectors), zorder=2)
+
     if percent_symbol:
         symbol = '%'
     else:
@@ -286,12 +290,15 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True,
                   angle=0, zorder=2)
     ax.set_ylim(0, max(table.sum(axis=0)) + 3.0)
     ax.bar(0, 1, alpha=0)
-
     for column in table_binned:
         radial_pos = 0.0
         angular_pos_start = (np.pi / 180.0) * float(column.split('-')[0])
         angular_pos_end = (np.pi / 180.0) * float(column.split('-')[-1])
-        angular_width = angular_pos_end - angular_pos_start - (np.pi / 180) # Leaving 1 degree gap
+        #Check for sectors with 0 degrees within the sector
+        if angular_pos_end > angular_pos_start:
+            angular_width = angular_pos_end - angular_pos_start - (np.pi / 180) # Leaving 1 degree gap
+        else:
+            angular_width = 2*np.pi - angular_pos_start + angular_pos_end - (np.pi / 180)
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
             patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,
                                           frequency, facecolor=gradient_colors[speed_bin], edgecolor='#5c7b1e',
