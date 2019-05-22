@@ -275,7 +275,8 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
 
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), sectors=12, var_bin_labels=None,
-               direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, return_data=False):
+               direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, plot_bins=None,
+               plot_labels=None, return_data=False):
     """
     Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
     direction are binned
@@ -333,7 +334,8 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     result = result.sort_index()
 
     #Creating a graph before renaming the direction labels, to help identify sectors while plotting
-    graph = plt.plot_wind_rose_with_gradient(result, percent_symbol=freq_as_percentage)
+    graph = plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
+                                             percent_symbol=freq_as_percentage)
 
     if direction_bin_labels is not None:
         result.columns = direction_bin_labels

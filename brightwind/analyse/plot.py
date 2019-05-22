@@ -251,12 +251,22 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6eba
     return ax.get_figure()
 
 
-def plot_rose_with_gradient(freq_table, percent_symbol=True,
+def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plot_labels=None,
                             gradient_colors=['#f5faea', '#d6ebad', '#b8dc6f', '#9acd32', '#7ba428', '#5c7b1e']):
     # ['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s']):
     table = freq_table.copy()
     sectors = len(table.columns)
     table_trans = table.T
+    if plot_bins is not None:
+        rows_to_sum = [0]
+        intervals = [pd.Interval(plot_bins[i], plot_bins[i+1], closed=table.index[0].closed)
+                     for i in range(len(plot_bins)-1)]
+        for i in intervals:
+            for row_num in range(len(table.index)):
+                if table.index[row_num].overlaps(i):
+                    to_append = row_num
+            rows_to_sum.append(to_append)
+
     if len(table.index) > 6:
         rows_to_sum = [int(i) for i in np.linspace(0, len(table.index)-1, 6)]
     else:
@@ -305,8 +315,9 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True,
                                           linewidth=0.3, zorder=3)
             ax.add_patch(patch)
             radial_pos += frequency
-    legend_patches = [mpl.patches.Patch(color=gradient_colors[i], label=bin_labels[i]) for i in range(len(bin_labels))]
-    ax.legend(handles=legend_patches)
+    if plot_labels is None:
+        plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=bin_labels[i]) for i in range(len(bin_labels))]
+    ax.legend(handles=plot_labels)
     return ax.get_figure()
 
 
