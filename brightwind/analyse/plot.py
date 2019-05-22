@@ -194,7 +194,6 @@ def plot_wind_rose(ext_data, freq_table=False):
 def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6ebad', '#b8dc6f',
                                                               '#9acd32', '#7ba428', '#5c7b1e'], percent_symbol=True):
     table = freq_table.copy()
-    import matplotlib as mpl
     sectors = len(table.columns)
     table_binned = pd.DataFrame()
     if isinstance(table.index[0], pd.Interval):
@@ -219,10 +218,7 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6eba
     ax.set_rgrids(np.linspace(0.1, max(table.sum(axis=0))+2.0, 10),
                   labels=['%.0f' % round(i)+symbol for i in np.linspace(0.1, max(table.sum(axis=0))+2.0, 10)],
                   angle=0, zorder=2)
-    # direction_bins = utils.get_direction_bin_array(sectors)[1:-2]
-    # direction_bins = np.insert(direction_bins, 0, direction_bins[-2])
     ax.set_ylim(0, max(table.sum(axis=0))+3.0)
-    # angular_width = 2*np.pi/sectors - (np.pi/180)  # Leaving 1 degree gap
     ax.bar(0, 1, alpha=0)
 
     def _choose_color(speed_bin):
@@ -233,10 +229,10 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6eba
         radial_pos = 0.0
         angular_pos_start = (np.pi / 180.0) * float(column.split('-')[0])
         angular_pos_end = (np.pi / 180.0) * float(column.split('-')[-1])
-        angular_width = angular_pos_end - angular_pos_start - (np.pi / 180)# Leaving 1 degree gap
+        angular_width = angular_pos_end - angular_pos_start - (np.pi / 180) # Leaving 1 degree gap
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
             color = _choose_color(speed_bin)
-            patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width ,
+            patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,
                                           frequency, facecolor=color, edgecolor='#5c7b1e', linewidth=0.3, zorder=3)
             ax.add_patch(patch)
             radial_pos += frequency
@@ -246,6 +242,63 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6eba
                       mpl.patches.Patch(color=gradient_colors[3], label='10-12 m/s'),
                       mpl.patches.Patch(color=gradient_colors[4], label='13-15 m/s'),
                       mpl.patches.Patch(color=gradient_colors[5], label='15+ m/s')]
+    ax.legend(handles=legend_patches)
+    return ax.get_figure()
+
+
+def plot_rose_with_gradient(freq_table, percent_symbol=True,
+                            gradient_colors=['#f5faea', '#d6ebad', '#b8dc6f', '#9acd32', '#7ba428', '#5c7b1e']):
+    # ['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s']):
+    table = freq_table.copy()
+    sectors = len(table.columns)
+    table_trans = table.T
+    if len(table.index) > 6:
+        rows_to_sum = [int(i) for i in np.linspace(0, len(table.index)-1, 6)]
+    else:
+        rows_to_sum = range(len(table.index))
+    # print(rows_to_sum)
+    table_binned = pd.DataFrame()
+    bin_labels = []
+    for i in range(len(rows_to_sum)):
+        if i == len(rows_to_sum)-1:
+            bin_labels.append(str(table.index[rows_to_sum[i-1]].right) + ' - ' + str(table.index[rows_to_sum[i]].right))
+            to_concat = table_trans.iloc[:, rows_to_sum[i-1]:rows_to_sum[i]].sum(axis=1).rename(i)
+        else:
+            bin_labels.append(str(table.index[rows_to_sum[i]].left) + ' - ' + str(table.index[rows_to_sum[i+1]].left))
+            to_concat = table_trans.iloc[:, rows_to_sum[i]:rows_to_sum[i + 1]].sum(axis=1).rename(i)
+        # print(bin_labels)
+
+        table_binned = pd.concat([table_binned, to_concat], axis=1, sort=True)
+    table_binned = table_binned.T
+
+    fig = plt.figure(figsize=(12, 12))
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
+    ax.set_theta_zero_location('N')
+    ax.set_theta_direction(-1)
+
+    ax.set_thetagrids(np.arange(0, 360, 360.0 / sectors), zorder=2)
+    if percent_symbol:
+        symbol = '%'
+    else:
+        symbol = ' '
+    ax.set_rgrids(np.linspace(0.1, max(table.sum(axis=0)) + 2.0, 10),
+                  labels=['%.0f' % round(i) + symbol for i in np.linspace(0.1, max(table.sum(axis=0)) + 2.0, 10)],
+                  angle=0, zorder=2)
+    ax.set_ylim(0, max(table.sum(axis=0)) + 3.0)
+    ax.bar(0, 1, alpha=0)
+
+    for column in table_binned:
+        radial_pos = 0.0
+        angular_pos_start = (np.pi / 180.0) * float(column.split('-')[0])
+        angular_pos_end = (np.pi / 180.0) * float(column.split('-')[-1])
+        angular_width = angular_pos_end - angular_pos_start - (np.pi / 180) # Leaving 1 degree gap
+        for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
+            patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,
+                                          frequency, facecolor=gradient_colors[speed_bin], edgecolor='#5c7b1e',
+                                          linewidth=0.3, zorder=3)
+            ax.add_patch(patch)
+            radial_pos += frequency
+    legend_patches = [mpl.patches.Patch(color=gradient_colors[i], label=bin_labels[i]) for i in range(len(bin_labels))]
     ax.legend(handles=legend_patches)
     return ax.get_figure()
 

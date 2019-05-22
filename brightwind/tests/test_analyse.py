@@ -66,6 +66,7 @@ def test_freq_table():
     graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, direction_bin_array=[0, 90, 160, 210, 360],
                            direction_bin_labels=['lowest','lower','mid','high'], return_data=True)
     assert (tab.columns==['lowest','lower','mid','high']).all()
+
     #Calling with user defined var_bin labels BUGGY
     # graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, var_bin_array=[0, 10, 15, 50],
     #                            var_bin_labels=['low', 'mid', 'high'], return_data=True)
