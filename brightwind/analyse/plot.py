@@ -234,7 +234,7 @@ def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6eba
         if angular_pos_end > angular_pos_start:
             angular_width = angular_pos_end - angular_pos_start - (np.pi / 180) # Leaving 1 degree gap
         else:
-            angular_width = 2*np.pi - angular_pos_end + angular_pos_start - (np.pi / 180)
+            angular_width = 2 * np.pi - angular_pos_start + angular_pos_end - (np.pi / 180)
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
             color = _choose_color(speed_bin)
             patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,

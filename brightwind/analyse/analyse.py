@@ -333,7 +333,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     result = result.sort_index()
 
     #Creating a graph before renaming the direction labels, to help identify sectors while plotting
-    graph = plt.plot_rose_with_gradient(result, percent_symbol=freq_as_percentage)
+    graph = plt.plot_wind_rose_with_gradient(result, percent_symbol=freq_as_percentage)
 
     if direction_bin_labels is not None:
         result.columns = direction_bin_labels
