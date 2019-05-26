@@ -274,7 +274,7 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
     return result
 
 
-def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), sectors=12, var_bin_labels=None,
+def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
                direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, plot_bins=None,
                plot_labels=None, return_data=False):
     """
@@ -282,30 +282,62 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     direction are binned
 
     :param var_series: Series of variable to be binned
+    :type var_series: pandas.Series
     :param direction_series: Series of wind directions between [0-360]
-    :param var_bin_array: Array of numbers where adjacent elements of array form a bin
+    :type direction_series: pandas.Series
+    :param var_bin_array: List of numbers where adjacent elements of array form a bin. For instance, for bins
+        [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]
+    :type var_bin_array: list
+    :param var_bin_labels: Optional, an array of labels to use for variable bins
+    :type var_bin_labels: list
     :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that
             behaviour specify direction_bin_array
-    :param var_bin_labels: Optional, an array of labels to use for variable bins
-    :param direction_bin_array: Optional, to change default behaviour of first sector centered at 0 assign an array of
-        bins to this
+    :type sectors: int
+    :param direction_bin_array: To add custom bins for direction sectors. For instance, for direction bins [0,120),
+        [120, 215), [215, 360) the list would be [0, 120, 215, 360]
+    :type direction_bin_array: list
     :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
         labels of the format '30-90' by default
+    :type direction_bin_labels: list(float), list(str)
     :param freq_as_percentage: Optional, True by default. Returns the frequency as percentages. To return just the
         count, set to False
-    :param return_data:  Set to True if you want the data returned.
+    :type freq_as_percentage: bool
+    :param return_data:  Set to True if you want to return the frequency table too.
     :type return_data: bool
-    :returns: A DataFrame with row indexes as variable bins and columns as wind direction bins.
-
+    :param plot_bins: (Optional) Bins to use for gradient in the rose. Different bins will be plotted with different
+        color. Chooses six bins to plot by default.
+    :type plot_bins: list
+    :param plot_labels: (Optional) Labels to use for different colors in the rose. By default chooses the end points of
+        bin
+    :type plot_labels: list(str), list(float)
+    :returns: A wind rose plot with gradients in the rose. Also returns a frequency table if return_data is True
+    :rtype: plot or tuple(plot, pandas.DataFrame)
     **Example usage**
     ::
         import brightwind as bw
         df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
-        #Create a frequency table with user defined direction bins (0-90), (90-130), (130-200), (200-360) with labels
-        # 'northerly','easterly','southerly','westerly' respectively
+        #Simple use
+        rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
+
+        #To use 3 bins for wind speed [0,8), [8, 14), [14, 41) and label them as ['low', 'mid', 'high']. Can be used for
+        #variabes other than wind speed too
+        rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, var_bin_array=[0,8,14,41],
+            var_bin_labels=['low', 'mid', 'high'], return_data=True)
+
+
+        #Use custom direction bins
+        rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, direction_bin_array=[0,90,130,200,360],
+                           direction_bin_labels=['northerly','easterly','southerly','westerly'], return_data=True)
+
+
+        #Can also combine custom direction and variable_bins
         rose, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, direction_bin_array=[0,90,130,200,360],
                            direction_bin_labels=['northerly','easterly','southerly','westerly'], return_data=True)
+
+        #For classic wind rose plot use the following plot_bins and plot_labels
+        tab = bw.freq_table(df.Spd40mN, df.Dir38mS, plot_bins=[0,3,6,9,12,15,41],
+            plot_labels=['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s'], return_data=True)
 
     """
     var_series = var_series.dropna()

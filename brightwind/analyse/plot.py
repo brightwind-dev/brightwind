@@ -23,7 +23,7 @@ from brightwind.utils import utils
 import os
 import matplotlib as mpl
 
-__all__ = ['plot_timeseries', 'plot_freq_distribution', 'plot_wind_rose', 'plot_wind_rose_with_gradient']
+__all__ = ['plot_timeseries', 'plot_freq_distribution', 'plot_wind_rose']
 
 
 try:
@@ -191,66 +191,6 @@ def plot_wind_rose(ext_data, freq_table=False):
     return ax.get_figure()
 
 
-def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6ebad', '#b8dc6f',
-                                                              '#9acd32', '#7ba428', '#5c7b1e'], percent_symbol=True):
-    table = freq_table.copy()
-    sectors = len(table.columns)
-    table_binned = pd.DataFrame()
-    if isinstance(table.index[0], pd.Interval):
-        table.index = [i.mid for i in table.index]
-    table_trans = table.T
-    table_binned = pd.concat([table_binned, table_trans.loc[:, 0:3].sum(axis=1).rename(3)], axis=1, sort=True)
-    table_binned = pd.concat([table_binned, table_trans.loc[:, 4:6].sum(axis=1).rename(6)], axis=1, sort=True)
-    table_binned = pd.concat([table_binned, table_trans.loc[:, 7:9].sum(axis=1).rename(9)], axis=1, sort=True)
-    table_binned = pd.concat([table_binned, table_trans.loc[:, 10:12].sum(axis=1).rename(12)], axis=1, sort=True)
-    table_binned = pd.concat([table_binned, table_trans.loc[:, 13:15].sum(axis=1).rename(15)], axis=1, sort=True)
-    table_binned = pd.concat([table_binned, table_trans.loc[:, 16:].sum(axis=1).rename(18)], axis=1, sort=True)
-    table_binned = table_binned.T
-    fig = plt.figure(figsize=(12, 12))
-    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
-    ax.set_theta_zero_location('N')
-    ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.arange(0, 360, 360.0/sectors), zorder=2)
-    if percent_symbol:
-        symbol = '%'
-    else:
-        symbol = ' '
-    ax.set_rgrids(np.linspace(0.1, max(table.sum(axis=0))+2.0, 10),
-                  labels=['%.0f' % round(i)+symbol for i in np.linspace(0.1, max(table.sum(axis=0))+2.0, 10)],
-                  angle=0, zorder=2)
-    ax.set_ylim(0, max(table.sum(axis=0))+3.0)
-    ax.bar(0, 1, alpha=0)
-
-    def _choose_color(speed_bin):
-        colors = gradient_colors
-        bins = [0, 3.5, 6.5, 9.5, 12.5, 15.5, 18.5, 41]
-        return colors[np.digitize([speed_bin], bins)[0]-1]
-    for column in table_binned:
-        radial_pos = 0.0
-        angular_pos_start = (np.pi / 180.0) * float(column.split('-')[0])
-        angular_pos_end = (np.pi / 180.0) * float(column.split('-')[-1])
-
-        #Check for sectors with 0 degrees within the sector
-        if angular_pos_end > angular_pos_start:
-            angular_width = angular_pos_end - angular_pos_start - (np.pi / 180) # Leaving 1 degree gap
-        else:
-            angular_width = 2 * np.pi - angular_pos_start + angular_pos_end - (np.pi / 180)
-        for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
-            color = _choose_color(speed_bin)
-            patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,
-                                          frequency, facecolor=color, edgecolor='#5c7b1e', linewidth=0.3, zorder=3)
-            ax.add_patch(patch)
-            radial_pos += frequency
-    legend_patches = [mpl.patches.Patch(color=gradient_colors[0], label='0-3 m/s'),
-                      mpl.patches.Patch(color=gradient_colors[1], label='4-6 m/s'),
-                      mpl.patches.Patch(color=gradient_colors[2], label='7-9 m/s'),
-                      mpl.patches.Patch(color=gradient_colors[3], label='10-12 m/s'),
-                      mpl.patches.Patch(color=gradient_colors[4], label='13-15 m/s'),
-                      mpl.patches.Patch(color=gradient_colors[5], label='15+ m/s')]
-    ax.legend(handles=legend_patches)
-    return ax.get_figure()
-
-
 def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plot_labels=None,
                             gradient_colors=['#f5faea', '#d6ebad', '#b8dc6f', '#9acd32', '#7ba428', '#5c7b1e']):
     # ['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s']):
@@ -258,35 +198,37 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     sectors = len(table.columns)
     table_trans = table.T
     if plot_bins is not None:
-        rows_to_sum = [0]
+        rows_to_sum = []
         intervals = [pd.Interval(plot_bins[i], plot_bins[i+1], closed=table.index[0].closed)
                      for i in range(len(plot_bins)-1)]
-        for i in intervals:
-            for row_num in range(len(table.index)):
-                if table.index[row_num].overlaps(i):
-                    to_append = row_num
-            rows_to_sum.append(to_append)
-
+        for interval in intervals:
+            row_group = []
+            for var_bin, pos in zip(table.index, range(len(table.index))):
+                if var_bin.overlaps(interval):
+                    row_group.append(pos)
+            rows_to_sum.append(row_group)
     else:
         if len(table.index) > 6:
-            rows_to_sum = [int(i) for i in np.linspace(0, len(table.index)-1, 6)]
+            rows_to_sum = []
+            num_rows = len(table.index)//6
+            ctr = 0
+            while ctr < len(table.index)-(len(table.index) % 6):
+                rows_to_sum.append(list(range(ctr, ctr+num_rows)))
+                ctr += num_rows
+            rows_to_sum[-1].extend(list(range(len(table.index)-(len(table.index) % 6), len(table.index))))
+
         else:
-            rows_to_sum = range(len(table.index))
-    # print(rows_to_sum)
+            rows_to_sum = [[i] for i in range(len(table.index))]
+
     table_binned = pd.DataFrame()
     bin_labels = []
-    for i in range(len(rows_to_sum)):
-        if i == len(rows_to_sum)-1:
-            bin_labels.append(str(table.index[rows_to_sum[i-1]].right) + ' - ' + str(table.index[rows_to_sum[i]].right))
-            to_concat = table_trans.iloc[:, rows_to_sum[i-1]:rows_to_sum[i]].sum(axis=1).rename(i)
-        else:
-            bin_labels.append(str(table.index[rows_to_sum[i]].left) + ' - ' + str(table.index[rows_to_sum[i+1]].left))
-            to_concat = table_trans.iloc[:, rows_to_sum[i]:rows_to_sum[i + 1]].sum(axis=1).rename(i)
-        # print(bin_labels)
+    group = 0
+    for i in rows_to_sum:
+        bin_labels.append(str(table.index[i[0]].left) + ' - ' + str(table.index[i[-1]].right))
+        to_concat = table_trans.iloc[:, i].sum(axis=1).rename(group)
+        group += 1
         table_binned = pd.concat([table_binned, to_concat], axis=1, sort=True)
     table_binned = table_binned.T
-    # return table_binned
-
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
@@ -317,8 +259,11 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
                                           linewidth=0.3, zorder=3)
             ax.add_patch(patch)
             radial_pos += frequency
+
     if plot_labels is None:
         plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=bin_labels[i]) for i in range(len(bin_labels))]
+    else:
+        plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=plot_labels[i]) for i in range(len(plot_labels))]
     ax.legend(handles=plot_labels)
     return ax.get_figure()
 
