@@ -318,7 +318,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         zero_centered = False
     if direction_bin_labels is None:
         direction_bin_labels = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
-    var_binned_series = pd.cut(var_series, var_bin_array, right=False, labels=var_bin_labels).rename('variable_bin')
+    var_binned_series = pd.cut(var_series, var_bin_array, right=False).rename('variable_bin')
     direction_binned_series = _binned_direction_series(direction_series, sectors, direction_bin_array).rename(
         'direction_bin')
     data = pd.concat([var_series.rename('var_data'), var_binned_series, direction_binned_series], axis=1).dropna()
@@ -339,6 +339,8 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
 
     if direction_bin_labels is not None:
         result.columns = direction_bin_labels
+    if var_bin_labels is not None:
+        result.index = var_bin_labels
 
     # return result
     if return_data:

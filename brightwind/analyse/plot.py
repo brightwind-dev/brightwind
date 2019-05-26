@@ -267,10 +267,11 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
                     to_append = row_num
             rows_to_sum.append(to_append)
 
-    if len(table.index) > 6:
-        rows_to_sum = [int(i) for i in np.linspace(0, len(table.index)-1, 6)]
     else:
-        rows_to_sum = range(len(table.index))
+        if len(table.index) > 6:
+            rows_to_sum = [int(i) for i in np.linspace(0, len(table.index)-1, 6)]
+        else:
+            rows_to_sum = range(len(table.index))
     # print(rows_to_sum)
     table_binned = pd.DataFrame()
     bin_labels = []
@@ -284,6 +285,7 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
         # print(bin_labels)
         table_binned = pd.concat([table_binned, to_concat], axis=1, sort=True)
     table_binned = table_binned.T
+    # return table_binned
 
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
