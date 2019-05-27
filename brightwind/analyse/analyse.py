@@ -228,6 +228,20 @@ def _binned_direction_series(direction_series, sectors, direction_bin_array=None
     return direction_series.dropna().apply(_map_direction_bin, bins=direction_bin_array, sectors=sectors)
 
 
+def _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels):
+    if direction_bin_array is None:
+        direction_bin_array = utils.get_direction_bin_array(sectors)
+        zero_centered = True
+    else:
+        sectors = len(direction_bin_array)-1
+        zero_centered = False
+    if direction_bin_labels is None:
+        direction_bin_labels = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
+    direction_binned_series = _binned_direction_series(direction_series, sectors, direction_bin_array)\
+        .rename('direction_bin')
+    return direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered
+
+
 def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
                                direction_bin_array=None, direction_bin_labels=None):
     """
@@ -250,16 +264,8 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
     """
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
-    if direction_bin_array is None:
-        direction_bin_array = utils.get_direction_bin_array(sectors)
-        zero_centered = True
-    else:
-        sectors = len(direction_bin_array)-1
-        zero_centered = False
-    if direction_bin_labels is None:
-        direction_bin_labels = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
-    direction_binned_series = _binned_direction_series(direction_series, sectors, direction_bin_array)\
-        .rename('direction_bin')
+    direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
+        _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
     data = pd.concat([var_series.rename('data'), direction_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
         result = data.groupby(['direction_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
@@ -275,8 +281,9 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
 
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
-               direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, plot_bins=None,
-               plot_labels=None, return_data=False):
+               direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True,
+               plot_bins=[0, 3, 6, 9, 12, 15, 41],
+               plot_labels=['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s'], return_data=False):
     """
     Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
     direction are binned
@@ -291,10 +298,10 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     :param var_bin_labels: Optional, an array of labels to use for variable bins
     :type var_bin_labels: list
     :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that
-            behaviour specify direction_bin_array
+            behaviour specify direction_bin_array, it overwrites sectors
     :type sectors: int
-    :param direction_bin_array: To add custom bins for direction sectors. For instance, for direction bins [0,120),
-        [120, 215), [215, 360) the list would be [0, 120, 215, 360]
+    :param direction_bin_array: To add custom bins for direction sectors, overwrites sectors. For instance,
+        for direction bins [0,120), [120, 215), [215, 360) the list would be [0, 120, 215, 360]
     :type direction_bin_array: list
     :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
         labels of the format '30-90' by default
@@ -342,17 +349,10 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     """
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
-    if direction_bin_array is None:
-        direction_bin_array = utils.get_direction_bin_array(sectors)
-        zero_centered = True
-    else:
-        sectors = len(direction_bin_array)-1
-        zero_centered = False
-    if direction_bin_labels is None:
-        direction_bin_labels = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
+    direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
+        _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
+
     var_binned_series = pd.cut(var_series, var_bin_array, right=False).rename('variable_bin')
-    direction_binned_series = _binned_direction_series(direction_series, sectors, direction_bin_array).rename(
-        'direction_bin')
     data = pd.concat([var_series.rename('var_data'), var_binned_series, direction_binned_series], axis=1).dropna()
     if freq_as_percentage:
         result = pd.crosstab(data.loc[:, 'variable_bin'], data.loc[:, 'direction_bin']) / len(data) * 100.0
