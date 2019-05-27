@@ -304,9 +304,6 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     return ax.get_figure()
 
 
-
-
-
 def plot_shear_by_sector(shear, wdir, shear_dist):
     radians = np.radians(utils._get_dir_sector_mid_pts(shear_dist.index))
     fig = plt.figure(figsize=(10, 10))
@@ -336,7 +333,7 @@ def plot_12x24_contours(tab_12x24, title='Variable'):
     min_v = math.floor(tab_12x24.min().min() * 100) / 100
     step = (max_v - min_v) / 8
     levels = np.arange(min_v, max_v + step, step)#.round(2)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(14, 10))
     x = ax.contourf(tab_12x24, colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32',
                                        '#8ab92d', '#7ba428', '#6b9023'],
                     levels=levels)
@@ -346,7 +343,7 @@ def plot_12x24_contours(tab_12x24, title='Variable'):
     ax.set_ylabel('Hour of Day')
     ax.set_xticks(np.arange(12), calendar.month_name[1:13])
     ax.set_yticks(np.arange(0, 24, 1))
-    # ax.set_title('Hourly Mean '+title+' Calendar Month')
+    ax.set_title('Hourly Mean '+title+' Calendar Month')
     return ax.get_figure()
 
 

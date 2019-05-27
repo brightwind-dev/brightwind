@@ -445,19 +445,35 @@ def basic_stats(data):
         return data.to_frame().describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
 
 
-def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_name=''):
+def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_name_label=''):
     """
-    Accepts a variable series and returns 12x24 (months x hours) table for the variable.
-    :param var_series:
-    :param aggregation_method: 'mean' by default calculates mean of the variable passed. Can change it to
+    Accepts a variable series and returns a plot of 12x24 (months x hours) table for the variable.
+    :param var_series: Variable to compute 12x24 for
+    :type var_series: pandas.Series
+    :param aggregation_method: 'mean' by default, calculates mean of the variable passed. Can change it to
             'sum', 'std', 'min', 'max', 'percentile' for sum, standard deviation, minimum, maximum, percentile
              of the variable respectively. Can also pass a function.
     :type aggregation_method: str or function
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
-    :param var_name: Name and units of the variable to appear on the plot
-    :type var_name: str
-    :return: A DataFrame with hours as row labels and months as column labels.
+    :param var_name_label: (Optional) Title to appear on the plot, can be name and unit of the variable
+    :type var_name_label: str
+    :param return_data: If True returns 12x24 table along with the plot
+    :type return_data: bool
+    :return: A plot with gradients showing , also a 12x24 table with hours as row labels and months as column labels
+        when return_data is True
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+        # For 12x24 table of means
+        graph, table12x24 = bw.twelve_by_24(df.Spd40mN, var_name_label='wind speed', return_data = True)
+
+        # For 12x24 table of sums
+        graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method='sum')
+
 
     """
     table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
@@ -465,9 +481,9 @@ def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_n
 
     pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
     if return_data:
-        return plt.plot_12x24_contours(pvt_tbl, title=var_name),\
+        return plt.plot_12x24_contours(pvt_tbl, title=var_name_label),\
                pvt_tbl
-    return plt.plot_12x24_contours(pvt_tbl, title=var_name)
+    return plt.plot_12x24_contours(pvt_tbl, title=var_name_label)
 
 
 class TI:
@@ -589,8 +605,8 @@ class TI:
         else:
             return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
 
-    def twelve_by_24(wspd, wspd_std, return_data=False, var_name='Turbulence Intensity'):
-        tab_12x24, graph = twelve_by_24(TI.calc(wspd, wspd_std), return_data=True, var_name=var_name)
+    def twelve_by_24(wspd, wspd_std, return_data=False, var_name_label='Turbulence Intensity'):
+        tab_12x24, graph = twelve_by_24(TI.calc(wspd, wspd_std), return_data=True, var_name_label=var_name_label)
         if return_data:
             return tab_12x24, graph
         return graph
@@ -671,12 +687,12 @@ class Shear:
         else:
             return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
 
-    def twelve_by_24(wspds, heights, min_speed=3, return_data=False, var_name='Shear'):
+    def twelve_by_24(wspds, heights, min_speed=3, return_data=False, var_name_label='Shear'):
         tab_12x24 = twelve_by_24(wspds[(wspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights, axis=1),
                                  return_data=True)[1]
         if return_data:
-            return plt.plot_12x24_contours(tab_12x24, title=var_name), tab_12x24
-        return plt.plot_12x24_contours(tab_12x24, title=var_name)
+            return plt.plot_12x24_contours(tab_12x24, var_name_label=var_name_label), tab_12x24
+        return plt.plot_12x24_contours(tab_12x24, var_name_label=var_name_label)
 
     def scale(alpha, wspd, height, height_to_scale_to):
         scale_factor = (height_to_scale_to / height)**alpha
