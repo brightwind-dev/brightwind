@@ -114,11 +114,30 @@ def plot_timeseries(data, date_from='', date_to=''):
     Plots timeseries data
 
     :param data: DataFrame to plot
-    :param date_from: Start date used for plotting in yyyy-mm-dd format
+    :param date_from: Start date used for plotting, if not specified the first timestamp of data is considered. Should
+        be in yyyy-mm-dd format
     :type date_from: str
-    :param date_to: End date used for plotting in yyyy-mm-dd format
+    :param date_to: End date used for plotting, if not specified last timestamp of data is considered. Should
+        be in yyyy-mm-dd format
     :type date_to: str
     :return: Timeseries plot
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+
+        #To plot few variables
+        figure = bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']])
+
+        #To set a start date
+        figure = bw.plot_timeseries(data.Spd40mN, date_from='2016-01-14')
+
+        #To set an end date
+        figure = bw.plot_timeseries(data.Spd40mN, date_to='2016-01-21')
+
+        #For specifying a slice
+        figure = bw.plot_timeseries(data.Spd40mN, date_from='2016-01-21', date_to='2016-02-28')
 
     """
     if isinstance(data, pd.Series):
