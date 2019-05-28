@@ -61,8 +61,8 @@ def _slice_data(data, date_from: str='', date_to: str=''):
     Date format: YYYY-MM-DD
     """
     import datetime
-    date_from = pd.to_datetime(date_from)#, format="%Y-%m-%d")
-    date_to = pd.to_datetime(date_to)#, format="%Y-%m-%d")
+    date_from = pd.to_datetime(date_from, format="%Y-%m-%d")
+    date_to = pd.to_datetime(date_to, format="%Y-%m-%d")
 
     if pd.isnull(date_from):
         date_from = data.index[0]
