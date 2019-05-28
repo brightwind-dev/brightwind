@@ -445,20 +445,19 @@ def basic_stats(data):
         return data.to_frame().describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
 
 
-def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_name_label=''):
+def twelve_by_24(var_series, aggregation_method='mean', var_name_label='', return_data=False):
     """
-    Accepts a variable series and returns a plot of 12x24 (months x hours) table for the variable.
+    Accepts a variable series and returns a plot of 12x24 (12 months x 24 hours) for the 'mean' of the variable with
+    the table of data as an optional return. The aggregation_method 'mean' can be can be changed as outlined below.
     :param var_series: Variable to compute 12x24 for
     :type var_series: pandas.Series
     :param aggregation_method: 'mean' by default, calculates mean of the variable passed. Can change it to
-            'sum', 'std', 'min', 'max', 'percentile' for sum, standard deviation, minimum, maximum, percentile
-             of the variable respectively. Can also pass a function.
+            'sum', 'std', 'min', 'max', 'count' for sum, standard deviation, minimum, maximum, count of the variable
+            respectively. Can also pass a function.
     :type aggregation_method: str or function
-    :param return_data: Set to True if you want the data returned.
-    :type return_data: bool
     :param var_name_label: (Optional) Title to appear on the plot, can be name and unit of the variable
     :type var_name_label: str
-    :param return_data: If True returns 12x24 table along with the plot
+    :param return_data: Set to True if you want the data returned.
     :type return_data: bool
     :return: A plot with gradients showing , also a 12x24 table with hours as row labels and months as column labels
         when return_data is True
@@ -474,11 +473,15 @@ def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_n
         # For 12x24 table of sums
         graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method='sum')
 
+        #For a custom aggregation_method
+        def custom_agg(x):
+            return x.mean()+(2*x.std())
+
+        graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method=custom_agg, return_data=True)
 
     """
     table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
                              var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
-
     pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
     if return_data:
         return plt.plot_12x24_contours(pvt_tbl, title=var_name_label),\

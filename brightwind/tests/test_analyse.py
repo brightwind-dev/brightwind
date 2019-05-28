@@ -41,6 +41,10 @@ def test_twelve_by_24():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
     graph, table12x24 = bw.twelve_by_24(df.Spd40mN, var_name_label='wind speed', return_data=True)
     graph = bw.twelve_by_24(df.PrcpTot, aggregation_method='sum')
+    def custom_agg(x):
+        return x.mean() + (2 * x.std())
+    graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method=custom_agg, return_data=True)
+
     assert True
 
 def test_TI_twelve_by_24():
