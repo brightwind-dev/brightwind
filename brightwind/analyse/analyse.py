@@ -23,7 +23,7 @@ from brightwind.analyse import plot as plt
 
 __all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
            'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage', 'basic_stats',
-           'twelve_by_24', 'TI', 'SectorRatio', 'Shear']
+           'twelve_by_24', 'TI', 'SectorRatio', 'Shear', 'calc_air_density']
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
@@ -606,23 +606,43 @@ class SectorRatio:
     def by_sector(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None,
                   boom_dir_1=-1, boom_dir_2=-1, return_data=False):
         """
-        Accepts two speed series and one direction series and returns the speed ratio by sector
-        in a table
+        Accepts two speed series and one direction series and returns the speed ratio by sector in a table
 
         :param wspd_1: First wind speed series. This is divisor series.
         :type: wspd_1: pandas.Series
-        :param wspd_2: Second wind speed series
+        :param wspd_2: Second wind speed series, dividend
         :type: wspd_2: pandas.Series
         :param wdir: Series of wind directions
         :type wdir: pandas.Series
         :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
         :type sectors: int
-        :param direction_bin_array:
-        :param boom_dir_1: Boom direction in degrees of speed_col_name_1.
-        :param boom_dir_2: Boom direction in degrees of speed_col_name_2.
+        :param direction_bin_array: (Optional) Array of numbers where adjacent elements of array form a bin.
+        :param boom_dir_1: Boom direction in degrees of wspd_1. If top mounted leave default as -1.
+        :type boom_dir_1: float
+        :param boom_dir_2: Boom direction in degrees of wspd_2. If top mounted leave default as -1.
+        :type boom_dir_2: float
         :param return_data:  Set to True if you want the data returned.
         :type return_data: bool
-        :returns: A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
+        :returns: A speed ratio plot showing average speed ratio by sector and scatter of individual data points. If
+            only a single boom_dir is specified the other boom is assumed to be top mounted.
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
+
+            #For plotting both booms
+            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS, boom_dir_2=340, boom_dir_2=160)
+
+            #For plotting no booms
+            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS)
+
+            #If one boom is top mounted, say Spd40mN
+            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS, boom_dir_2=160)
+
+            #To use your custom direction bins, for example (0-45), (45-135), (135-180), (180-220), (220-360)
+            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir = df.Dir38mS,
+                direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=160, boom_dir_2=340)
 
         """
         sec_rat = SectorRatio.calc(wspd_1, wspd_2)
@@ -709,3 +729,59 @@ def _calc_shear(wspds, heights, return_coeff=False) -> (np.array, float):
     if return_coeff:
         return coeffs[0], np.exp(coeffs[1])
     return coeffs[0]
+
+
+def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=None, lapse_rate=-0.113,
+                     specific_gas_constant=286.9):
+    """
+    Calculates air density for a given temperature and pressure and extrapolates that to the site if both reference
+    and site elevations are given.
+
+    :param temperature: Temperature values in degree Celsius
+    :type temperature: float or pandas.Series or pandas.DataFrame
+    :param pressure: Pressure values in hectopascal, hPa, (1,013.25 hPa = 101,325 Pa = 101.325 kPa =
+                    1 atm = 1013.25 mbar)
+    :type pressure: float or pandas.Series or pandas.DataFrame
+    :param elevation_ref: Elevation, in meters, of the reference temperature and pressure location.
+    :type elevation_ref: Floating point value (decimal number)
+    :param elevation_site: Elevation, in meters, of the site location to calculate air density for.
+    :type elevation_site: Floating point values (decimal number)
+    :param lapse_rate: Air density lapse rate kg/m^3/km, default is -0.113
+    :type lapse_rate: Floating point value (decimal number)
+    :param specific_gas_constant: Specific gas constant, R, for humid air J/(kg.K), default is 286.9
+    :type specific_gas_constant:  Floating point value (decimal number)
+    :return: Air density in kg/m^3
+    :rtype: float or pandas.Series depending on the input
+
+        **Example usage**
+    ::
+        import brightwind as bw
+
+        #For a series of air densities
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        air_density = bw.calc_air_density(data.T2m, data.P2m)
+
+        #For a single value
+        bw.calc_air_density(15, 1013)
+
+        #For a single value with ref and site elevation
+        bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200)
+
+
+
+    """
+
+    temp = temperature
+    temp_kelvin = temp + 273.15     # to convert deg C to Kelvin.
+    pressure = pressure * 100       # to convert hPa to Pa
+    ref_air_density = pressure / (specific_gas_constant * temp_kelvin)
+
+    if elevation_ref is not None and elevation_site is not None:
+        site_air_density = round(ref_air_density + (((elevation_site - elevation_ref) / 1000) * lapse_rate), 3)
+        return site_air_density
+    elif elevation_site is None and elevation_ref is not None:
+        raise TypeError('elevation_site should be a number')
+    elif elevation_site is not None and elevation_ref is None:
+        raise TypeError('elevation_ref should be a number')
+    else:
+        return ref_air_density
