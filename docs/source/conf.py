@@ -124,6 +124,7 @@ html_theme_options = {
         ("Tutorials", "Tutorials"),
         ("API", "API"),
         ("Community", "Community"),
+
     ]
 
 }
@@ -140,9 +141,9 @@ html_static_path = [path.replace('docs\source', 'docs\_static')]
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
 html_sidebars = {
-   'API': ['globaltoc.html', 'localtoc.html', 'relations.html'],
+   'API': ['localtoc.html'],
    'index': [],
-    '**':['relations.html']
+    '**':['global.html']
 }
 
 # -- Options for HTMLHelp output ------------------------------------------
