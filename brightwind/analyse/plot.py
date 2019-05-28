@@ -23,7 +23,7 @@ from brightwind.utils import utils
 import os
 import matplotlib as mpl
 
-__all__ = ['plot_timeseries', 'plot_freq_distribution', 'plot_wind_rose']
+__all__ = ['plot_timeseries', 'plot_freq_distribution', 'plot_rose']
 
 
 try:
@@ -169,16 +169,12 @@ def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_gre
     return ax.get_figure()
 
 
-def plot_wind_rose(ext_data, freq_table=False):
+def plot_rose(ext_data):
     """
-    Plot a wind rose from a frequency table.
+    Plot a wind rose from data by distribution_by_dir_sector
     """
-    data = ext_data.copy()
-    if freq_table:
-        sectors = data.shape[1]
-    else:
-        sectors = data.shape[0]
-    result = data.sum(axis=0)
+    result = ext_data.copy(deep=False)
+    sectors = len(result)
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')

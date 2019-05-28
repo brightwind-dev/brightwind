@@ -243,7 +243,7 @@ def _get_direction_binned_series(sectors, direction_series, direction_bin_array,
 
 
 def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
-                               direction_bin_array=None, direction_bin_labels=None):
+                               direction_bin_array=None, direction_bin_labels=None, return_data=False):
     """
     Accepts a series of a variable and  wind direction. Computes the distribution of first variable with respect to
     wind direction sectors
@@ -251,15 +251,33 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
     :param var_series: Series of the variable whose distribution we need to find
     :param direction_series: Series of wind directions between [0-360]
     :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that
-            behaviour specify direction_bin_array
+            behaviour specify direction_bin_array, which overwrites sectors
     :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
             describe, a custom function, etc. Computes frequency in percentages by default
     :param direction_bin_array: Optional, to change default behaviour of first sector centered at 0 assign an array of
             bins to this
     :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
-            labels of the format '30-90' by default
+            labels of the format '30-90' by default, overwrites sectors
     :returns: A DataFrame/series with wind direction sector as row indexes and columns with statistics chosen by
             aggregation_method
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+        rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS, return_data=True)
+
+        #For using custom bins
+        rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS,
+                                direction_bin_array=[0,90,130,200,360],
+                                direction_bin_labels=['northerly','easterly','southerly','westerly'],
+                                return_data=True)
+
+        #For measuring standard deviation in a sector rather than frequency in percentage (default)
+        rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std',
+            return_data=True)
+
 
     """
     var_series = var_series.dropna()
@@ -277,7 +295,10 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
             result[i] = 0.0
     result = result.sort_index()
     result.index = direction_bin_labels
-    return result
+    if return_data:
+        return plt.plot_rose(result), result
+    else:
+        return plt.plot_rose(result)
 
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
@@ -319,6 +340,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     :type plot_labels: list(str), list(float)
     :returns: A wind rose plot with gradients in the rose. Also returns a frequency table if return_data is True
     :rtype: plot or tuple(plot, pandas.DataFrame)
+
     **Example usage**
     ::
         import brightwind as bw
@@ -631,12 +653,13 @@ class TI:
                                        direction_series=ti['wdir'],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
-                                       aggregation_method='mean').rename("Mean_TI"),
+                                       aggregation_method='mean', return_data=True)[-1].rename("Mean_TI"),
             distribution_by_dir_sector(var_series=ti['Turbulence_Intensity'],
                                        direction_series=ti['wdir'],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
-                                       aggregation_method='count').rename("TI_Count")], axis=1, join='outer')
+                                       aggregation_method='count', return_data=True)[-1].rename("TI_Count")], axis=1,
+            join='outer')
 
         ti_dist.index.rename('Direction Bin', inplace=True)
         if return_data:
@@ -684,7 +707,8 @@ class SectorRatio:
         common_idxs = sec_rat.index.intersection(wdir.index)
         sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
                                                   aggregation_method='mean', direction_bin_array=direction_bin_array,
-                                                  direction_bin_labels=None).rename('Mean_Sector_Ratio').to_frame()
+                                                  direction_bin_labels=None, return_data=True)[-1].rename\
+                                                    ('Mean_Sector_Ratio').to_frame()
 
         if return_data:
             return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs],
@@ -713,12 +737,12 @@ class Shear:
                                        direction_series=wdir.loc[common_idxs],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
-                                       aggregation_method='mean').rename("Mean_Shear"),
+                                       aggregation_method='mean', return_data=True)[-1].rename("Mean_Shear"),
             distribution_by_dir_sector(var_series=shear,
                                        direction_series=wdir.loc[common_idxs],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
-                                       aggregation_method='count').rename("Shear_Count")], axis=1, join='outer')
+                                       aggregation_method='count', return_data=True)[-1].rename("Shear_Count")], axis=1, join='outer')
         shear_dist.index.rename('Direction Bin', inplace=True)
         if return_data:
             return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist), \
