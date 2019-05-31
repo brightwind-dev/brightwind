@@ -14,7 +14,7 @@
 #     You should have received a copy of the GNU Lesser General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = ['export_tab_file']
+__all__ = ['export_tab_file','export_to_csv']
 
 
 def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
@@ -61,3 +61,27 @@ def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
     tab_string += local_freq_tab.to_string(header=False, float_format='%.2f', na_rep=0.00)
     with open(str(name)+".tab", "w") as file:
         file.write(tab_string)
+
+
+def export_to_csv(data,file_path,**kwargs):
+    """
+    Export a DataFrame or series to a CSV file. The pandas.to_csv documentation can be found at
+    https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html
+
+    :param data: Dataframe or Series
+    :type data: panda.Dataframe or pandas.Series
+    :param file_path: str
+
+    **Example usage**
+        ::
+        import brightwind as bw
+        df = bw.load_csv(r'C:\\some\\folder\\some_CR1000_data.csv')
+        file_path = r'C:\\some\\folder\\new_some_CR1000_data.csv'
+        bw.export_to_csv(df,file_path)
+
+    """
+
+    data.to_csv(file_path, **kwargs)
+
+
+
