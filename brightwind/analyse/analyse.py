@@ -452,8 +452,8 @@ def twelve_by_24(var_series, aggregation_method='mean', var_name_label='', retur
     :param var_series: Variable to compute 12x24 for
     :type var_series: pandas.Series
     :param aggregation_method: 'mean' by default, calculates mean of the variable passed. Can change it to
-            'sum', 'std', 'min', 'max', 'count' for sum, standard deviation, minimum, maximum, count of the variable
-            respectively. Can also pass a function.
+            'sum', 'std', 'min', 'max', 'count', '%frequency', for sum, standard deviation, minimum, maximum, count,
+            frequency as percentage of the variable respectively. Can also pass a function.
     :type aggregation_method: str or function
     :param var_name_label: (Optional) Title to appear on the plot, can be name and unit of the variable
     :type var_name_label: str
@@ -480,9 +480,15 @@ def twelve_by_24(var_series, aggregation_method='mean', var_name_label='', retur
         graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method=custom_agg, return_data=True)
 
     """
+    percentage = False
+    if aggregation_method == '%frequency':
+        aggregation_method = 'count'
+        percentage = True
     table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
                              var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
     pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
+    if percentage:
+        pvt_tbl = (pvt_tbl / (pvt_tbl.sum().sum())) * 100
     if return_data:
         return plt.plot_12x24_contours(pvt_tbl, title=var_name_label),\
                pvt_tbl
