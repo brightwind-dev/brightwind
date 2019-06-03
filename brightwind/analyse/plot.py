@@ -321,29 +321,24 @@ def plot_shear_by_sector(shear, wdir, shear_dist):
     return ax.get_figure()
 
 
-def plot_12x24_contours(tab_12x24, title='Variable'):
+def plot_12x24_contours(tab_12x24, title=('Variable', 'mean')):
     """
     Get Contour Plot of 12 month x 24 hour matrix of turbulence intensity
     :param tab_12x24: DataFrame returned from get_12x24() in analyse
     :param title: Title of the plot
     :return: 12x24 figure
     """
-
-    max_v = math.ceil(tab_12x24.max().max() * 100) / 100
-    min_v = math.floor(tab_12x24.min().min() * 100) / 100
-    step = (max_v - min_v) / 8
-    levels = np.arange(min_v, max_v + step, step)#.round(2)
     fig, ax = plt.subplots(figsize=(14, 10))
     x = ax.contourf(tab_12x24, colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32',
                                        '#8ab92d', '#7ba428', '#6b9023'],
-                    levels=levels)
+                    levels=7)
     cbar = plt.colorbar(x)
-    cbar.ax.set_ylabel(title)
+    cbar.ax.set_ylabel(title[1])
     ax.set_xlabel('Month of Year')
     ax.set_ylabel('Hour of Day')
     ax.set_xticks(np.arange(12), calendar.month_name[1:13])
     ax.set_yticks(np.arange(0, 24, 1))
-    ax.set_title('Hourly Mean '+title+' Calendar Month')
+    ax.set_title('Hourly '+title[1]+' '+title[0]+' Calendar Month')
     return ax.get_figure()
 
 
