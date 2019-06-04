@@ -67,32 +67,35 @@ def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
         file.write(tab_string)
 
 
-def export_to_csv(data, file_path, filename ='brightwindexport',**kwargs):
+def export_to_csv(data, file_path, file_name ='brightwindexport',**kwargs):
     """
     Export a DataFrame or series to a CSV file. The pandas.to_csv documentation can be found at
     https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html
 
     :param data: Dataframe or Series
     :type data: panda.Dataframe or pandas.Series
-    :param filename: specify a filen name, including '.csv' or use the default 'brightwindexport.csv'
-    :param file_path: str
+    :param file_name: The file name under which the CSV will be saved, or use the default 'brightwindexport'
+    :type file_name: str
+    :param file_path: the directroy where the CSV will be saved
+    :type file_path: str
     :return exports a CSV file to a location of the user's choosing
     **Example usage**
         ::
         import brightwind as bw
         df = bw.load_csv(r'C:\\some\\folder\\some_CR1000_data.csv')
         file_path = r'C:\\some\\folder\\'
-        bw.export_to_csv(df,file_path, filename = 'BrightwindCalculations' )
+        bw.export_to_csv(df,file_path, file_name = 'BrightwindCalculations' )
 
     """
-
+    # Check if the proposed destination folder exists
     folder_present = os.path.isdir(file_path,**kwargs)
-        #git test
-       # if no files by the name are present, export to CSV
+
+
     if folder_present :
-        filename = filename + ".csv"
-        pathfile = os.path.normpath(os.path.join(file_path, filename))
+        file_name = file_name + ".csv"
+        pathfile = os.path.normpath(os.path.join(file_path, file_name))
         files_present = os.path.isfile(pathfile,**kwargs)
+        # if no files by the name are present, export to CSV
         if not files_present:
             data.to_csv(pathfile,**kwargs)
 
@@ -109,7 +112,8 @@ def export_to_csv(data, file_path, filename ='brightwindexport',**kwargs):
                 print( "Not a valid input. Data is NOT saved!\n")
 
     else :
-        raise FileNotFoundError("Destination folder doesn't seem to exist.")
+        # If the proposed folder is not present return an error
+        raise FileNotFoundError("The destination folder doesn't seem to exist.")
 
 
 
