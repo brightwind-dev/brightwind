@@ -362,11 +362,13 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
 
         #Can also combine custom direction and variable_bins
         rose, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, direction_bin_array=[0,90,130,200,360],
-                           direction_bin_labels=['northerly','easterly','southerly','westerly'], return_data=True)
+                           direction_bin_labels=['northerly','easterly','southerly','westerly'], plot_bins=None,
+                           plot_labels=None, return_data=True)
 
         #For classic wind rose plot use the following plot_bins and plot_labels
         tab = bw.freq_table(df.Spd40mN, df.Dir38mS, plot_bins=[0,3,6,9,12,15,41],
-            plot_labels=['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s'], return_data=True)
+            plot_labels=['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s'], plot_bins=None,
+            plot_labels=None, return_data=True)
 
     """
     var_series = var_series.dropna()
