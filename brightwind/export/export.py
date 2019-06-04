@@ -14,7 +14,11 @@
 #     You should have received a copy of the GNU Lesser General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
+import sys
+
 __all__ = ['export_tab_file','export_to_csv']
+
 
 
 def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
@@ -63,15 +67,15 @@ def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
         file.write(tab_string)
 
 
-def export_to_csv(data,file_path,**kwargs):
+def export_to_csv(data, file_path, filename ='brightwindexport',**kwargs):
     """
     Export a DataFrame or series to a CSV file. The pandas.to_csv documentation can be found at
     https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html
 
     :param data: Dataframe or Series
     :type data: panda.Dataframe or pandas.Series
+    :param filename: specify a filen name, including '.csv' or use the default 'brightwindexport.csv'
     :param file_path: str
-
     **Example usage**
         ::
         import brightwind as bw
@@ -81,7 +85,30 @@ def export_to_csv(data,file_path,**kwargs):
 
     """
 
-    data.to_csv(file_path, **kwargs)
+    #filename = [x for x in globals() if globals()[x] is data][0]
+    filename = filename + ".csv"
+    pathfile = os.path.normpath(os.path.join(file_path,filename))
+
+    files_present = os.path.isfile(pathfile)
+    #git test
+   # if no files by the name are present, export to CSV
+    if not files_present:
+        data.to_csv(pathfile)
+
+    # if a file by the chosen name is present, confirm overwrite or specify a new name
+    else:
+        overwrite = input("WARNING: " + pathfile + " already exists! Do you want to overwrite <y/n>? \n ")
+        if overwrite == 'y':
+            data.to_csv(pathfile)
+        elif overwrite == 'n':
+            new_filename = input("Type new filename: \n ")
+            pathfile = os.path.normpath(os.path.join(file_path, new_filename))
+            data.to_csv(pathfile)
+        else:
+            print( "Not a valid input. Data is NOT saved!\n")
+
+
+
 
 
 
