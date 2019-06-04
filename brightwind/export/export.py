@@ -15,7 +15,7 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
-import sys
+
 
 __all__ = ['export_tab_file','export_to_csv']
 
@@ -76,37 +76,40 @@ def export_to_csv(data, file_path, filename ='brightwindexport',**kwargs):
     :type data: panda.Dataframe or pandas.Series
     :param filename: specify a filen name, including '.csv' or use the default 'brightwindexport.csv'
     :param file_path: str
+    :return exports a CSV file to a location of the user's choosing
     **Example usage**
         ::
         import brightwind as bw
         df = bw.load_csv(r'C:\\some\\folder\\some_CR1000_data.csv')
-        file_path = r'C:\\some\\folder\\new_some_CR1000_data.csv'
-        bw.export_to_csv(df,file_path)
+        file_path = r'C:\\some\\folder\\'
+        bw.export_to_csv(df,file_path, filename = 'BrightwindCalculations' )
 
     """
 
-    #filename = [x for x in globals() if globals()[x] is data][0]
-    filename = filename + ".csv"
-    pathfile = os.path.normpath(os.path.join(file_path,filename))
+    folder_present = os.path.isdir(file_path,**kwargs)
+        #git test
+       # if no files by the name are present, export to CSV
+    if folder_present :
+        filename = filename + ".csv"
+        pathfile = os.path.normpath(os.path.join(file_path, filename))
+        files_present = os.path.isfile(pathfile,**kwargs)
+        if not files_present:
+            data.to_csv(pathfile,**kwargs)
 
-    files_present = os.path.isfile(pathfile)
-    #git test
-   # if no files by the name are present, export to CSV
-    if not files_present:
-        data.to_csv(pathfile)
-
-    # if a file by the chosen name is present, confirm overwrite or specify a new name
-    else:
-        overwrite = input("WARNING: " + pathfile + " already exists! Do you want to overwrite <y/n>? \n ")
-        if overwrite == 'y':
-            data.to_csv(pathfile)
-        elif overwrite == 'n':
-            new_filename = input("Type new filename: \n ")
-            pathfile = os.path.normpath(os.path.join(file_path, new_filename))
-            data.to_csv(pathfile)
+        # if a file by the chosen name is present, confirm overwrite or specify a new name
         else:
-            print( "Not a valid input. Data is NOT saved!\n")
+            overwrite = input("WARNING: " + pathfile + " already exists! Do you want to overwrite <y/n>? \n ")
+            if overwrite == 'y':
+                data.to_csv(pathfile,**kwargs)
+            elif overwrite == 'n':
+                new_filename = input("Type new filename: \n ")
+                pathfile = os.path.normpath(os.path.join(file_path, new_filename))
+                data.to_csv(pathfile,**kwargs)
+            else:
+                print( "Not a valid input. Data is NOT saved!\n")
 
+    else :
+        raise FileNotFoundError("Destination folder doesn't seem to exist.")
 
 
 
