@@ -88,10 +88,12 @@ def test_freq_table():
                         return_data=True)
     #Calling with user defined var_bin labels
     graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, var_bin_array=[0, 10, 15, 50],
-                               var_bin_labels=['low', 'mid', 'high'], return_data=True)
+                               var_bin_labels=['low', 'mid', 'high'], plot_bins=None, plot_labels=None,
+                               return_data=True)
 
     tab = bw.freq_table(df.Spd40mN, df.Dir38mS, var_bin_array=[0, 8, 14, 41], var_bin_labels=['low', 'mid', 'high'],
                         direction_bin_array=[0, 90, 130, 200, 360],
                         direction_bin_labels=['northerly', 'easterly', 'southerly', 'westerly'],
-                        return_data=True)  # var_bin_labels=['operating','shutdow','dangerous'],
+                        plot_bins=None, plot_labels=None, return_data=True)
+                        # var_bin_labels=['operating','shutdow','dangerous'],
 

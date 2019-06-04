@@ -197,11 +197,14 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
         rows_to_sum = []
         intervals = [pd.Interval(plot_bins[i], plot_bins[i+1], closed=table.index[0].closed)
                      for i in range(len(plot_bins)-1)]
+        bin_assigned = []
         for interval in intervals:
             row_group = []
             for var_bin, pos in zip(table.index, range(len(table.index))):
-                if var_bin.overlaps(interval):
+                if var_bin.overlaps(interval) and not (pos in bin_assigned):
+                    bin_assigned.append(pos)
                     row_group.append(pos)
+            # print(bin_assigned)
             rows_to_sum.append(row_group)
     else:
         if len(table.index) > 6:
@@ -225,6 +228,8 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
         group += 1
         table_binned = pd.concat([table_binned, to_concat], axis=1, sort=True)
     table_binned = table_binned.T
+    # print(rows_to_sum)
+    # return table_binned
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
