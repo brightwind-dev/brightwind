@@ -165,29 +165,59 @@ def _map_direction_bin(wdir, bins, sectors):
     return bin_num
 
 
-def distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
+def distribution(var_series, var_to_bin_series=None, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None,
                  aggregation_method='%frequency'):
     """
-    Accepts 2 series of same/different variables and computes the distribution of first variable with respect to
-    the bins of another variable.
+    Accepts a variable and computes the distribution of the variable with itself as per the bins specified. Can
+    also pass another variable for finding distribution with respect to another variable.
 
-    :param var1_series: Series of the variable whose distribution we need to find
-    :param var2_series: Series of the variable which we want to bin
-    :param var2_bin_array: Array of numbers where adjacent elements of array form a bin
-    :param var2_bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default
+    :param var_series: Time-series of the variable whose distribution we need to find
+    :type var_series: pandas.Series
+    :param var_to_bin_series: (optional) Times-series of the variable which we want to bin, in case you want another
+        variable for binning
+    :type var_to_bin_series: pandas.Series
+    :param var_bin_array: Array of numbers where adjacent elements of array form a bin
+    :type var_bin_array: list
+    :param var_bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default
+    :type var_bin_labels: list
     :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
         describe, a custom function, etc,computes frequency in percentages by default
+    :type aggregation_method: str or function
     :returns: A DataFrame/Series with bins as row indexes and columns with statistics chosen by aggregation_method
 
+    **Example usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+        #For distribution of %frequency of wind speeds
+        dist = bw.distribution(df.Spd40mN, var_bin_array=[0, 8, 12, 21], var_bin_labels=['normal', 'gale', 'storm'])
+
+        #For distribution of mean temperature
+        temp_dist = bw.distribution(df.T2m, var_bin_array=[-10, 4, 12, 18, 30], aggregation_method='mean')
+
+        #For custom aggregation function
+        def custom_agg(x):
+            return x.mean()+(2*x.std())
+        temp_dist = bw.distribution(df.T2m, var_bin_array=[-10, 4, 12, 18, 30], aggregation_method=custom_agg)
+
+        #For distribution of mean wind speeds with respect to temperature
+        spd_dist = bw.distribution(df.Spd40mN, var_to_bin_series=df.T2m,
+            var_bin_array=[-10, 4, 12, 18, 30],
+                var_bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
+
+
     """
-    if isinstance(var1_series, pd.DataFrame) and var1_series.shape[1] == 1:
-        var1_series = var1_series.iloc[:, 0]
-    if isinstance(var2_series, pd.DataFrame) and var2_series.shape[1] == 1:
-        var2_series = var2_series.iloc[:, 0]
-    var1_series = var1_series.dropna()
-    var2_series = var2_series.dropna()
-    var2_binned_series = pd.cut(var2_series, var2_bin_array, right=False, labels=var2_bin_labels).rename('variable_bin')
-    data = pd.concat([var1_series.rename('data'), var2_binned_series], join='inner', axis=1)
+    if var_to_bin_series is None:
+        var_to_bin_series = var_series.copy(deep=False)
+    if isinstance(var_series, pd.DataFrame) and var_series.shape[1] == 1:
+        var_series = var_series.iloc[:, 0]
+    if isinstance(var_to_bin_series, pd.DataFrame) and var_to_bin_series.shape[1] == 1:
+        var_to_bin_series = var_to_bin_series.iloc[:, 0]
+    var_series = var_series.dropna()
+    var_to_bin_series = var_to_bin_series.dropna()
+    var_binned_series = pd.cut(var_to_bin_series, var_bin_array, right=False, labels=var_bin_labels).rename('variable_bin')
+    data = pd.concat([var_series.rename('data'), var_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
         return data.groupby(['variable_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
     else:

@@ -1,6 +1,7 @@
 import pytest
 import brightwind as bw
 
+
 def test_monthly_means():
     #Load data
     bw.monthly_means(bw.load_csv(bw.datasets.shell_flats_80m_csv))
@@ -12,11 +13,13 @@ def test_monthly_means():
     bw.monthly_means(bw.load_csv(bw.datasets.shell_flats_80m_csv).WS80mWS425NW_Avg, return_data=True)
     assert True
 
+
 def test_sector_ratio_by_sector():
     data = bw.load_csv(bw.datasets.shell_flats_80m_csv)
     bw.SectorRatio.by_sector(data['WS70mA100NW_Avg'], data['WS70mA100SE_Avg'], data['WD50mW200PNW_VAvg'],
                           sectors = 72, boom_dir_1 = 315, boom_dir_2 = 135,return_data=True)[1]
     assert True
+
 
 def test_basic_stats():
     data = bw.load_csv(bw.datasets.shell_flats_80m_csv)
@@ -24,6 +27,7 @@ def test_basic_stats():
     bs2 = bw.basic_stats(data['WS70mA100NW_Avg'])
     assert (bs2['count']==58874.0).bool() and((bs2['mean']-9.169382)<1e-6).bool() and ((bs2['std']-4.932851)<1e-6).bool()\
            and (bs2['max']==27.66).bool() and (bs2['min'] == 0.0).bool()
+
 
 def test_time_continuity_gaps():
     import pandas as pd
@@ -37,6 +41,7 @@ def test_time_continuity_gaps():
     assert abs(gaps.iloc[1, 2] - 0.01388) < 1e-5
 
 
+
 def test_TI_twelve_by_24():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd)
@@ -45,6 +50,7 @@ def test_TI_twelve_by_24():
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, var_name='Speed 60 m N m/s')
     bw.TI.twelve_by_24(df.Spd40mN, df.Spd40mNStd)
     assert 1==1
+
 
 def test_coverage():
     data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
@@ -73,6 +79,7 @@ def test_distribution_by_dir_sector():
     rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std',
                                                        return_data=True)
 
+
 def test_freq_table():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
@@ -96,4 +103,24 @@ def test_freq_table():
                         direction_bin_labels=['northerly', 'easterly', 'southerly', 'westerly'],
                         plot_bins=None, plot_labels=None, return_data=True)
                         # var_bin_labels=['operating','shutdow','dangerous'],
+
+def test_distribution():
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+    # For distribution of %frequency of wind speeds
+    dist = bw.distribution(df.Spd40mN, var_bin_array=[0, 8, 12, 21], var_bin_labels=['normal', 'gale', 'storm'])
+
+    # For distribution of mean temperature
+    temp_dist = bw.distribution(df.T2m, var_bin_array=[-10, 4, 12, 18, 30], aggregation_method='mean')
+
+    # For custom aggregation function
+    def custom_agg(x):
+        return x.mean() + (2 * x.std())
+
+    temp_dist = bw.distribution(df.T2m, var_bin_array=[-10, 4, 12, 18, 30], aggregation_method=custom_agg)
+
+    # For distribution of mean wind speeds with respect to temperature
+    spd_dist = bw.distribution(df.Spd40mN, var_to_bin_series=df.T2m,
+                               var_bin_array=[-10, 4, 12, 18, 30],
+                               var_bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
 
