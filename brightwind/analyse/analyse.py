@@ -454,7 +454,7 @@ def twelve_by_24(var_series, aggregation_method='mean', var_name_label='', retur
     :param aggregation_method: 'mean' by default, calculates mean of the variable passed. Can change it to
             'sum', 'std', 'min', 'max', for sum, standard deviation, minimum, maximum. Can also pass a function.
     :type aggregation_method: str or function
-    :param var_name_label: (Optional) Title to appear on the plot, can be name and unit of the variable
+    :param var_name_label: (Optional) Label to appear on the plot, can be name and unit of the variable
     :type var_name_label: str
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
@@ -467,7 +467,7 @@ def twelve_by_24(var_series, aggregation_method='mean', var_name_label='', retur
         df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
         # For 12x24 table of means
-        graph, table12x24 = bw.twelve_by_24(df.Spd40mN, var_name_label='wind speed', return_data = True)
+        graph, table12x24 = bw.twelve_by_24(df.Spd40mN, var_name_label='wind speed [m/s]', return_data = True)
 
         # For 12x24 table of sums
         graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method='sum')
@@ -479,19 +479,16 @@ def twelve_by_24(var_series, aggregation_method='mean', var_name_label='', retur
         graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method=custom_agg, return_data=True)
 
     """
+    var_name_label = var_series.name if var_name_label == "" else var_name_label
     table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
                              var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
-    # if aggregation_method == '%frequency':
-    #     pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc='count')
-    #     pvt_tbl = (pvt_tbl / (pvt_tbl.sum().sum())) * 100
-    # else:
     pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
     if return_data:
-        return plt.plot_12x24_contours(pvt_tbl, title=(var_name_label, aggregation_method)),\
+        return plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method)),\
                pvt_tbl
-    return plt.plot_12x24_contours(pvt_tbl, title=(var_name_label, aggregation_method))
+    return plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method))
 
 
 class TI:
