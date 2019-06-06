@@ -78,7 +78,9 @@ def export_to_csv(data, file_path, file_name ='brightwindexport',**kwargs):
     :type file_name: str
     :param file_path: the directory where the CSV will be saved
     :type file_path: str
+    :param kwargs: All the kwargs that can be passed to this function.
     :return exports a CSV file to a location of the user's choosing
+
     **Example usage**
         ::
         import brightwind as bw
