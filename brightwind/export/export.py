@@ -15,7 +15,7 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
-
+import pandas as pd
 
 __all__ = ['export_tab_file','export_to_csv']
 
@@ -69,14 +69,14 @@ def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
 
 def export_to_csv(data, file_path, file_name ='brightwindexport',**kwargs):
     """
-    Export a DataFrame or series to a CSV file. The pandas.to_csv documentation can be found at
+    Export a DataFrame, Series or Array to a .CSV file. The pandas.to_csv documentation can be found at
     https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html
 
     :param data: Dataframe or Series
     :type data: panda.Dataframe or pandas.Series
     :param file_name: The file name under which the CSV will be saved, or use the default 'brightwindexport'
     :type file_name: str
-    :param file_path: the directroy where the CSV will be saved
+    :param file_path: the directory where the CSV will be saved
     :type file_path: str
     :return exports a CSV file to a location of the user's choosing
     **Example usage**
@@ -88,30 +88,38 @@ def export_to_csv(data, file_path, file_name ='brightwindexport',**kwargs):
 
     """
     # Check if the proposed destination folder exists
-    folder_present = os.path.isdir(file_path,**kwargs)
+    folder_present = os.path.isdir(file_path, **kwargs)
 
-
-    if folder_present :
+    if folder_present:
         file_name = file_name + ".csv"
         pathfile = os.path.normpath(os.path.join(file_path, file_name))
-        files_present = os.path.isfile(pathfile,**kwargs)
+        files_present = os.path.isfile(pathfile, **kwargs)
         # if no files by the name are present, export to CSV
         if not files_present:
-            data.to_csv(pathfile,**kwargs)
+            if isinstance(data, (pd.DataFrame,pd.Series)):
+                data.to_csv(pathfile,**kwargs)
+            else:
+                pd.DataFrame(data).to_csv(pathfile, **kwargs)
 
         # if a file by the chosen name is present, confirm overwrite or specify a new name
         else:
             overwrite = input("WARNING: " + pathfile + " already exists! Do you want to overwrite <y/n>? \n ")
             if overwrite == 'y':
-                data.to_csv(pathfile,**kwargs)
+                if isinstance(data, (pd.DataFrame, pd.Series)):
+                    data.to_csv(pathfile, **kwargs)
+                else:
+                    pd.DataFrame(data).to_csv(pathfile,**kwargs)
             elif overwrite == 'n':
-                new_filename = input("Type new filename: \n ")
+                new_filename = input("Type new filename: \n ") + ".csv"
                 pathfile = os.path.normpath(os.path.join(file_path, new_filename))
-                data.to_csv(pathfile,**kwargs)
+                if isinstance(data, (pd.DataFrame, pd.Series)):
+                    data.to_csv(pathfile, **kwargs)
+                else:
+                    pd.DataFrame(data).to_csv(pathfile, **kwargs)
             else:
                 print( "Not a valid input. Data is NOT saved!\n")
 
-    else :
+    else:
         # If the proposed folder is not present return an error
         raise FileNotFoundError("The destination folder doesn't seem to exist.")
 
