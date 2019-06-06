@@ -76,7 +76,7 @@ def export_to_csv(data, file_path, file_name ='brightwindexport',**kwargs):
     :type data: panda.Dataframe or pandas.Series
     :param file_name: The file name under which the CSV will be saved, or use the default 'brightwindexport'
     :type file_name: str
-    :param file_path: the directroy where the CSV will be saved
+    :param file_path: the directory where the CSV will be saved
     :type file_path: str
     :return exports a CSV file to a location of the user's choosing
     **Example usage**
