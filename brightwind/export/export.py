@@ -116,6 +116,6 @@ def export_to_csv(data, file_path, file_name ='brightwindexport',**kwargs):
         raise FileNotFoundError("The destination folder doesn't seem to exist.")
 
 
-
-
-
+"""""
+checking how merging works
+"""""
