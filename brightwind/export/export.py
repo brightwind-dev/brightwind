@@ -71,10 +71,9 @@ def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
 
 
 
-def export_csv(data, file_name=None, folder_path=None, **kwargs):
+def export_csv(data, file_name=None, file_path=None, **kwargs):
     """
-    Export a DataFrame, Series or Array to a .CSV file. This is a wrapper around the pandas.to_csv function.
-    Documentation can be found at
+    Export a DataFrame, Series or Array to a .csv file or a .tab. The pandas.to_csv documentation can be found at
     https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html
 
     :param data: Dataframe, Series or Array
@@ -82,11 +81,10 @@ def export_csv(data, file_name=None, folder_path=None, **kwargs):
     :param file_name: The file name under which the CSV will be saved, or use the default,
            i.e '2019-06-07_brightwind_csv_export.csv'
     :type file_name: str
-    :param folder_path: the directory where the CSV will be saved
-    :type folder_path: str
-    :param kwargs: All the kwargs that can be passed to the pandas.to_csv function.
-    :return exports a CSV file to a location of the user's choosing
-
+    :param file_path: the directory where the CSV will be saved, default is the working directory
+    :type file_path: str
+    :param kwargs: All the kwargs that can be passed to pandas.to_csv.
+    :return exports a .csv or .tab file
 
     **Example usage**
     ::
@@ -105,11 +103,6 @@ def export_csv(data, file_name=None, folder_path=None, **kwargs):
 
     """
 
-
-    # Check if the proposed destination folder exists
-    folder_present = os.path.isdir(folder_path)
-
-
     if file_name is None:
         if 'sep' in kwargs and kwargs['sep'] == '\t':
             file_name = str(datetime.datetime.now().strftime("%Y-%m-%d")) + '_brightwind_tab_export.tab'
@@ -127,35 +120,11 @@ def export_csv(data, file_name=None, folder_path=None, **kwargs):
 
     folder_present = os.path.isdir(file_path)
     if folder_present:
-
-        file_name = file_name + ".csv"
-        pathfile = os.path.normpath(os.path.join(folder_path, file_name))
-        files_present = os.path.isfile(pathfile)
-        # if no files by the name are present, export to CSV
-        if not files_present:
-            if isinstance(data, (pd.DataFrame, pd.Series)):
-                data.to_csv(pathfile, **kwargs)
-            else:
-                pd.DataFrame(data).to_csv(pathfile, **kwargs)
-
-        # if a file by the chosen name is present, confirm overwrite or specify a new name
+        pathfile = os.path.normpath(os.path.join(file_path, file_name))
+        if isinstance(data, (pd.DataFrame, pd.Series)):
+            data.to_csv(pathfile, **kwargs)
         else:
-            overwrite = input("WARNING: " + pathfile + " already exists! Do you want to overwrite <y/n>? \n ")
-            if overwrite == 'y':
-                if isinstance(data, (pd.DataFrame, pd.Series)):
-                    data.to_csv(pathfile, **kwargs)
-                else:
-                    pd.DataFrame(data).to_csv(pathfile,**kwargs)
-            elif overwrite == 'n':
-                new_filename = input("Type new filename: \n ") + ".csv"
-                pathfile = os.path.normpath(os.path.join(folder_path, new_filename))
-                if isinstance(data, (pd.DataFrame, pd.Series)):
-                    data.to_csv(pathfile, **kwargs)
-                else:
-                    pd.DataFrame(data).to_csv(pathfile, **kwargs)
-            else:
-                print( "Not a valid input. Data is NOT saved!\n")
-
+            pd.DataFrame(data).to_csv(pathfile, **kwargs)
     else:
         # If the proposed folder is not present return an error
         raise FileNotFoundError("The destination folder doesn't seem to exist.")
