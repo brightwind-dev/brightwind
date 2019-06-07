@@ -16,9 +16,9 @@
 
 import os
 import pandas as pd
+import datetime
 
-__all__ = ['export_tab_file','export_to_csv']
-
+__all__ = ['export_tab_file', 'export_csv']
 
 
 def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
@@ -67,63 +67,60 @@ def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
         file.write(tab_string)
 
 
-def export_to_csv(data, file_path, file_name ='brightwindexport',**kwargs):
+def export_csv(data, file_name=None, file_path=None, **kwargs):
     """
-    Export a DataFrame, Series or Array to a .CSV file. The pandas.to_csv documentation can be found at
+    Export a DataFrame, Series or Array to a .csv file or a .tab. The pandas.to_csv documentation can be found at
     https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html
 
-    :param data: Dataframe or Series
+    :param data: Dataframe, Series or Array
     :type data: panda.Dataframe or pandas.Series, array or list-like objects
-    :param file_name: The file name under which the CSV will be saved, or use the default 'brightwindexport'
+    :param file_name: The file name under which the CSV will be saved, or use the default,
+           i.e '2019-06-07_brightwind_csv_export.csv'
     :type file_name: str
-    :param file_path: the directory where the CSV will be saved
+    :param file_path: the directory where the CSV will be saved, default is the working directory
     :type file_path: str
-    :param kwargs: All the kwargs that can be passed to this function.
-    :return exports a CSV file to a location of the user's choosing
+    :param kwargs: All the kwargs that can be passed to pandas.to_csv.
+    :return exports a .csv or .tab file
 
     **Example usage**
-        ::
+    ::
         import brightwind as bw
         df = bw.load_csv(r'C:\\some\\folder\\some_CR1000_data.csv')
         file_path = r'C:\\some\\folder\\'
-        bw.export_to_csv(df,file_path, file_name = 'BrightwindCalculations' )
+
+        # to export a .csv file with a specified name to a specific folder
+        bw.export_to_csv(df, file_name = 'BrightwindCalculations', file_path)
+
+        # to export a .csv file using default settings (to the working directory using a default name)
+        bw.export_to_csv(df)
+
+        # to export a .tab file using default settings
+        bw.export_to_csv(df, sep='\t')
 
     """
-    # Check if the proposed destination folder exists
-    folder_present = os.path.isdir(file_path, **kwargs)
 
-    if folder_present:
-        file_name = file_name + ".csv"
-        pathfile = os.path.normpath(os.path.join(file_path, file_name))
-        files_present = os.path.isfile(pathfile, **kwargs)
-        # if no files by the name are present, export to CSV
-        if not files_present:
-            if isinstance(data, (pd.DataFrame,pd.Series)):
-                data.to_csv(pathfile,**kwargs)
-            else:
-                pd.DataFrame(data).to_csv(pathfile, **kwargs)
-
-        # if a file by the chosen name is present, confirm overwrite or specify a new name
+    if file_name is None:
+        if 'sep' in kwargs and kwargs['sep'] == '\t':
+            file_name = str(datetime.datetime.now().strftime("%Y-%m-%d")) + '_brightwind_tab_export.tab'
         else:
-            overwrite = input("WARNING: " + pathfile + " already exists! Do you want to overwrite <y/n>? \n ")
-            if overwrite == 'y':
-                if isinstance(data, (pd.DataFrame, pd.Series)):
-                    data.to_csv(pathfile, **kwargs)
-                else:
-                    pd.DataFrame(data).to_csv(pathfile,**kwargs)
-            elif overwrite == 'n':
-                new_filename = input("Type new filename: \n ") + ".csv"
-                pathfile = os.path.normpath(os.path.join(file_path, new_filename))
-                if isinstance(data, (pd.DataFrame, pd.Series)):
-                    data.to_csv(pathfile, **kwargs)
-                else:
-                    pd.DataFrame(data).to_csv(pathfile, **kwargs)
-            else:
-                print( "Not a valid input. Data is NOT saved!\n")
+            file_name = str(datetime.datetime.now().strftime("%Y-%m-%d")) + '_brightwind_csv_export.csv'
 
+    if "." not in file_name:
+        if 'sep' in kwargs and kwargs['sep'] == '\t':
+            file_name = file_name + '.tab'
+        else:
+            file_name = file_name + '.csv'
+
+    if file_path is None:
+        file_path = os.getcwd()
+
+    folder_present = os.path.isdir(file_path)
+    if folder_present:
+        pathfile = os.path.normpath(os.path.join(file_path, file_name))
+        if isinstance(data, (pd.DataFrame, pd.Series)):
+            data.to_csv(pathfile, **kwargs)
+        else:
+            pd.DataFrame(data).to_csv(pathfile, **kwargs)
     else:
         # If the proposed folder is not present return an error
         raise FileNotFoundError("The destination folder doesn't seem to exist.")
-
-
-
