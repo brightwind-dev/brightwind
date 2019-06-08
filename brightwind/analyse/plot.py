@@ -329,9 +329,10 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean')):
     :return: 12x24 figure
     """
     fig, ax = plt.subplots(figsize=(14, 10))
-    x = ax.contourf(tab_12x24, colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32',
-                                       '#8ab92d', '#7ba428', '#6b9023'],
-                    levels=7)
+    levels = np.linspace(tab_12x24.min().min(), tab_12x24.max().max(), num=9)
+    x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, levels=levels,
+                    colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32', '#8ab92d',
+                                                 '#7ba428', '#6b9023'])
     cbar = plt.colorbar(x)
     cbar.ax.set_ylabel(label[1].capitalize() + " of " + label[0])
     ax.set_xlabel('Month of Year')

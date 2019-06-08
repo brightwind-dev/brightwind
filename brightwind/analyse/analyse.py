@@ -445,7 +445,7 @@ def basic_stats(data):
         return data.to_frame().describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
 
 
-def twelve_by_24(var_series, aggregation_method='mean', var_name_label='', return_data=False):
+def twelve_by_24(var_series, aggregation_method='mean', var_name_label=None, return_data=False):
     """
     Accepts a variable series and returns a plot of 12x24 (12 months x 24 hours) for the 'mean' of the variable with
     the table of data as an optional return. The aggregation_method 'mean' can be can be changed as outlined below.
@@ -479,7 +479,11 @@ def twelve_by_24(var_series, aggregation_method='mean', var_name_label='', retur
         graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method=custom_agg, return_data=True)
 
     """
-    var_name_label = var_series.name if var_name_label == "" else var_name_label
+
+    if isinstance(var_series, pd.DataFrame):
+        var_series = var_series[var_series.columns[0]]
+    if isinstance(var_series, pd.Series) and var_name_label is None:
+        var_name_label = var_series.name
     table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
                              var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
     pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
