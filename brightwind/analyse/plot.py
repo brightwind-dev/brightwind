@@ -336,8 +336,9 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean')):
     cbar.ax.set_ylabel(label[1].capitalize() + " of " + label[0])
     ax.set_xlabel('Month of Year')
     ax.set_ylabel('Hour of Day')
-    ax.set_xticks(np.arange(12), calendar.month_abbr[1:13])
-    ax.set_xticklabels(calendar.month_abbr[1:13:2])
+    months = calendar.month_abbr[1:13]
+    ax.set_xticks(tab_12x24.columns)
+    ax.set_xticklabels([months[i-1] for i in tab_12x24.columns])
     ax.set_yticks(np.arange(0, 24, 1))
     return ax.get_figure()
 
