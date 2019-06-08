@@ -41,12 +41,22 @@ def test_time_continuity_gaps():
     assert abs(gaps.iloc[1, 2] - 0.01388) < 1e-5
 
 
+def test_twelve_by_24():
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    graph, table12x24 = bw.twelve_by_24(df.Spd40mN, var_name_label='wind speed', return_data=True)
+    graph = bw.twelve_by_24(df.PrcpTot, aggregation_method='sum')
+    def custom_agg(x):
+        return x.mean() + (2 * x.std())
+    graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method=custom_agg, return_data=True)
+
+    assert True
+
 def test_TI_twelve_by_24():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd)
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, return_data=True)
-    bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, return_data=True, var_name='Speed 60 m N m/s')
-    bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, var_name='Speed 60 m N m/s')
+    bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, return_data=True, var_name_label='Speed 60 m N m/s')
+    bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, var_name_label='Speed 60 m N m/s')
     bw.TI.twelve_by_24(df.Spd40mN, df.Spd40mNStd)
     assert 1 == 1
 

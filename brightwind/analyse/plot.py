@@ -323,9 +323,6 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     return ax.get_figure()
 
 
-
-
-
 def plot_shear_by_sector(shear, wdir, shear_dist):
     radians = np.radians(utils._get_dir_sector_mid_pts(shear_dist.index))
     fig = plt.figure(figsize=(10, 10))
@@ -343,29 +340,25 @@ def plot_shear_by_sector(shear, wdir, shear_dist):
     return ax.get_figure()
 
 
-def plot_12x24_contours(tab_12x24, title='Variable'):
+def plot_12x24_contours(tab_12x24, label=('Variable', 'mean')):
     """
-    Get Contour Plot of 12 month x 24 hour matrix of turbulence intensity
+    Get Contour Plot of 12 month x 24 hour matrix of variable
     :param tab_12x24: DataFrame returned from get_12x24() in analyse
-    :param title: Title of the plot
+    :param label: Label of the colour bar on the plot.
     :return: 12x24 figure
     """
-
-    max_v = math.ceil(tab_12x24.max().max() * 100) / 100
-    min_v = math.floor(tab_12x24.min().min() * 100) / 100
-    step = (max_v - min_v) / 8
-    levels = np.arange(min_v, max_v + step, step)#.round(2)
-    fig, ax = plt.subplots()
-    x = ax.contourf(tab_12x24, colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32',
-                                       '#8ab92d', '#7ba428', '#6b9023'],
-                    levels=levels)
+    fig, ax = plt.subplots(figsize=(14, 10))
+    levels = np.linspace(tab_12x24.min().min(), tab_12x24.max().max(), num=9)
+    x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, levels=levels,
+                    colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32', '#8ab92d', '#7ba428', '#6b9023'])
     cbar = plt.colorbar(x)
-    cbar.ax.set_ylabel(title)
+    cbar.ax.set_ylabel(label[1].capitalize() + " of " + label[0])
     ax.set_xlabel('Month of Year')
     ax.set_ylabel('Hour of Day')
-    ax.set_xticks(np.arange(12), calendar.month_name[1:13])
+    month_names= calendar.month_abbr[1:13]
+    ax.set_xticks(tab_12x24.columns)
+    ax.set_xticklabels([month_names[i-1] for i in tab_12x24.columns])
     ax.set_yticks(np.arange(0, 24, 1))
-    # ax.set_title('Hourly Mean '+title+' Calendar Month')
     return ax.get_figure()
 
 
