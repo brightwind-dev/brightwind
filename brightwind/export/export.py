@@ -19,7 +19,7 @@ import pandas as pd
 import datetime
 import re
 
-__all__ = ['export_tab_file','export_csv']
+__all__ = ['export_tab_file', 'export_csv']
 
 
 def export_tab_file(freq_tab, height, lat, long, file_name=None, file_path=None, dir_offset=0.0):
@@ -75,9 +75,18 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, file_path=None,
     sectors = len(local_freq_tab.columns)
     freq_sum = local_freq_tab.sum(axis=0)
     local_freq_tab.index = [interval.right for interval in local_freq_tab.index]
-    tab_string = str(file_name_print) + "\n" + "{:.2f}".format(lat) + " " + "{:.2f}".format(
-        long) + " " + "{:.2f}".format(height) + "\n" \
-                 + str(sectors) + " " + "{:.2f}".format(speed_interval) + " " + "{:.2f}".format(dir_offset) + "\n"
+
+    sumwind = local_freq_tab.sum(axis=1, skipna=True)
+    midbinwindspeeds = local_freq_tab.index.to_series()
+    meanwindspeed = (sum(sumwind * midbinwindspeeds)) / sum(sumwind)
+    currenttimedate = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    version = '0.1.0'  # __bw.__version__ - to be changed for 'pip' install
+
+    tab_string = "{0}  created using BrightWind library  version {1} at {2} Mean Wind Speed: {3} m/s \n{4} {5} {6}\n " \
+                 "{7}"  " {8} {9}\n ".format(str(file_name_print), version, str(currenttimedate),
+                                             "{:.2f}".format(meanwindspeed),  "{:.2f}".format(lat),
+                                             "{:.2f}".format(long), "{:.2f}".format(height), str(sectors),
+                                             "{:.2f}".format(speed_interval), "{:.2f}".format(dir_offset))
     tab_string += " ".join("{:.2f}".format(percent) for percent in freq_sum.values) + "\n"
 
     for column in local_freq_tab.columns:
@@ -88,7 +97,6 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, file_path=None,
 
     with open(str(path_file), "w") as file:
         file.write(tab_string_strip)
-
 
 
 def export_csv(data, file_name=None, folder_path=None, **kwargs):
