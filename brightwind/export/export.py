@@ -17,57 +17,77 @@
 import os
 import pandas as pd
 import datetime
-
+import re
 
 __all__ = ['export_tab_file','export_csv']
 
 
-
-
-def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
+def export_tab_file(freq_tab, height, lat, long, file_name=None, file_path=None, dir_offset=0.0):
     """
     Export a WaSP tab file from freq_table() function
 
     :param freq_tab: Tab file
-    :param name: Name of the file or location
+    :param height: Height of the device in meters
+    :type height: float
     :param lat: Latitude of the site location
     :type lat: float
     :param long: Longitude of the site location
     :type long: float
-    :param height: Height of the device, default is 0.0
-    :type height: float
+    :param file_name: Name of the file or location
+    :param file_name: str
+    :param file_path: Path of destination folder, default is the current working folder
+    :type file_path: str
     :param dir_offset: Direction offset, default 0.0
     :type dir_offset: float
-    :return: Creates a windographer file with the name specified by name
+    :return: Creates a windographer file
 
-    **Exampe Usage**
+    **Example Usage**
     ::
         import brightwind as bw
         df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
         graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
-        bw.export_tab_file(tab, name='campbell_tab_file', lat=10, long=10)
+        bw.export_tab_file(tab, 100, l0, 10, file_name='campbell_tab_file', file_path=r'C:\...\brightwind')
 
     """
+
+    if file_name is None:
+        file_name = str(datetime.datetime.now().strftime("%Y-%m-%d")) + '_brightwind_tab_export.tab'
+
+    if file_path is None:
+        file_path = os.getcwd()
+
+    if '.tab' not in file_name:
+        file_name = file_name + '.tab'
+
+    file_name_print = os.path.splitext(file_name)[0]
+    path_file = os.path.join(file_path, file_name)
+
     local_freq_tab = freq_tab.copy()
     lat = float(lat)
     long = float(long)
     speed_interval = {interval.right - interval.left for interval in local_freq_tab.index}
-    if len(speed_interval)is not 1:
+
+    if len(speed_interval) is not 1:
         import warnings
         warnings.warn("All speed bins not of equal lengths")
+
     speed_interval = speed_interval.pop()
     sectors = len(local_freq_tab.columns)
     freq_sum = local_freq_tab.sum(axis=0)
     local_freq_tab.index = [interval.right for interval in local_freq_tab.index]
+    tab_string = str(file_name_print) + "\n" + "{:.2f}".format(lat) + " " + "{:.2f}".format(
+        long) + " " + "{:.2f}".format(height) + "\n" \
+                 + str(sectors) + " " + "{:.2f}".format(speed_interval) + " " + "{:.2f}".format(dir_offset) + "\n"
+    tab_string += " ".join("{:.2f}".format(percent) for percent in freq_sum.values) + "\n"
 
-    tab_string = str(name)+"\n "+"{:.2f}".format(lat)+" "+"{:.2f}".format(long)+" "+"{:.2f}".format(height)+"\n " + \
-                 "{:.2f}".format(sectors)+" "+"{:.2f}".format(speed_interval)+" "+"{:.2f}".format(dir_offset)+"\n "
-    tab_string += " ".join("{:.2f}".format(percent) for percent in freq_sum.values)+"\n"
     for column in local_freq_tab.columns:
         local_freq_tab[column] = (local_freq_tab[column] / sum(local_freq_tab[column])) * 1000.0
+
     tab_string += local_freq_tab.to_string(header=False, float_format='%.2f', na_rep=0.00)
-    with open(str(name)+".tab", "w") as file:
-        file.write(tab_string)
+    tab_string_strip = re.sub(' +', ' ', tab_string)
+
+    with open(str(path_file), "w") as file:
+        file.write(tab_string_strip)
 
 
 
