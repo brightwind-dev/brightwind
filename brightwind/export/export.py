@@ -14,7 +14,14 @@
 #     You should have received a copy of the GNU Lesser General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = ['export_tab_file']
+import os
+import pandas as pd
+import datetime
+
+
+__all__ = ['export_tab_file','export_csv']
+
+
 
 
 def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
@@ -61,3 +68,55 @@ def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
     tab_string += local_freq_tab.to_string(header=False, float_format='%.2f', na_rep=0.00)
     with open(str(name)+".tab", "w") as file:
         file.write(tab_string)
+
+
+
+def export_csv(data, file_name=None, folder_path=None, **kwargs):
+    """
+    Export a DataFrame, Series or Array to a .csv file or a .tab. The pandas.to_csv documentation can be found at
+    https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html
+
+    :param data: Dataframe, Series or Array
+    :type data: panda.Dataframe or pandas.Series, array or list-like objects
+    :param file_name: The file name under which the CSV will be saved, or use the default,
+           i.e '2019-06-07_brightwind_csv_export.csv'
+    :type file_name: str
+    :param folder_path: The directory where the CSV will be saved, default is the working directory
+    :type folder_path: str
+    :param kwargs: All the kwargs that can be passed to pandas.to_csv.
+    :return exports a .csv or .tab file
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        folder = r'C:\\some\\folder\\'
+
+        # to export a .csv file with a specified name to a specific folder
+        bw.export_csv(df, file_name='brightwind_calculations', folder_path=folder)
+
+        # to export a .csv file using default settings (to the working directory using a default name)
+        bw.export_csv(df)
+
+        # to export a .tab file
+        bw.export_csv(df, file_name='file_exported.tab', sep='\t')
+
+    """
+    if file_name is None:
+        file_name = str(datetime.datetime.now().strftime("%Y-%m-%d")) + '_brightwind_csv_export.csv'
+
+    if "." not in file_name:
+        file_name = file_name + '.csv'
+
+    if folder_path is None:
+        folder_path = os.getcwd()
+
+    if os.path.isdir(folder_path):
+        file_path = os.path.normpath(os.path.join(folder_path, file_name))
+        if isinstance(data, (pd.DataFrame, pd.Series)):
+            data.to_csv(file_path, **kwargs)
+        else:
+            pd.DataFrame(data).to_csv(file_path, header=None, index=None, **kwargs)
+    else:
+        raise NotADirectoryError("The destination folder doesn't seem to exist.")
+    print('Export successful.')
