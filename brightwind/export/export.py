@@ -116,7 +116,7 @@ def export_csv(data, file_name=None, folder_path=None, **kwargs):
         if isinstance(data, (pd.DataFrame, pd.Series)):
             data.to_csv(file_path, **kwargs)
         else:
-            pd.DataFrame(data).to_csv(file_path, **kwargs)
+            pd.DataFrame(data).to_csv(file_path, header=None, index=None, **kwargs)
     else:
         raise NotADirectoryError("The destination folder doesn't seem to exist.")
     print('Export successful.')
