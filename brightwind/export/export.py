@@ -17,58 +17,104 @@
 import os
 import pandas as pd
 import datetime
+import re
+
+__all__ = ['export_tab_file', 'export_csv']
 
 
-__all__ = ['export_tab_file','export_csv']
-
-
-
-
-def export_tab_file(freq_tab, name, lat, long, height=0.0, dir_offset=0.0):
+def _calc_mean_speed_of_freq_tab(freq_tab):
     """
-    Export a WaSP tab file from freq_table() function
+    Calculate the mean wind speed derived from a frequency table.
 
-    :param freq_tab: Tab file
-    :param name: Name of the file or location
-    :param lat: Latitude of the site location
-    :type lat: float
-    :param long: Longitude of the site location
-    :type long: float
-    :param height: Height of the device, default is 0.0
+    :param freq_tab: Frequency distribution by wind speed and direction sector. Data output from the bw.freq_table().
+    :return:
+    """
+    local_freq_tab = freq_tab.copy()
+    local_freq_tab.index = {(interval.right + interval.left)/2 for interval in local_freq_tab.index}
+    sum_winds_for_all_sectors = local_freq_tab.sum(axis=1, skipna=True)
+    mid_bin_wind_speed = local_freq_tab.index.to_series()
+    mean_wind_speed = (sum(sum_winds_for_all_sectors * mid_bin_wind_speed)) / sum(sum_winds_for_all_sectors)
+    return mean_wind_speed
+
+
+def export_tab_file(freq_tab, height, lat, long, file_name=None, folder_path=None, dir_offset=0.0):
+    """
+    Export a WaSP tab file using the output from the freq_table() function.
+
+    :param freq_tab: Frequency distribution by wind speed and direction sector. Data output from the bw.freq_table().
+    :param height: Height that the freq table represents in meters.
     :type height: float
-    :param dir_offset: Direction offset, default 0.0
+    :param lat: Latitude of the measurement location.
+    :type lat: float
+    :param long: Longitude of the measurement location.
+    :type long: float
+    :param file_name: The file name under which the tab file will be saved, or use the default,
+           i.e '2019-06-07_brightwind_tab_export.tab'
+    :type file_name: str
+    :param folder_path: The directory where the tab file will be saved, default is the working directory.
+    :type folder_path: str
+    :param dir_offset: Direction offset, default 0.0.
     :type dir_offset: float
-    :return: Creates a windographer file with the name specified by name
+    :return: Creates a WAsP frequency tab file which can be used in the WAsP, WindFarmer and openWind software.
 
-    **Exampe Usage**
+    **Example Usage**
     ::
         import brightwind as bw
         df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
-        graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
-        bw.export_tab_file(tab, name='campbell_tab_file', lat=10, long=10)
+        wind_rose, freq_tab = bw.freq_table(df.Spd80mN, df.Dir78mS, return_data=True)
+        bw.export_tab_file(freq_tab, 80, 54.2, -7.6, file_name='campbell_tab_file', folder_path=r'C:\\some\\folder\\')
 
     """
-    local_freq_tab = freq_tab.copy()
+
+    if file_name is None:
+        file_name = str(datetime.datetime.now().strftime("%Y-%m-%d")) + '_brightwind_tab_export.tab'
+
+    if folder_path is None:
+        folder_path = os.getcwd()
+
+    if '.tab' not in file_name:
+        file_name = file_name + '.tab'
+
+    file_name_print = os.path.splitext(file_name)[0]
+    file_path = os.path.join(folder_path, file_name)
+
     lat = float(lat)
     long = float(long)
+
+    local_freq_tab = freq_tab.copy()
+
     speed_interval = {interval.right - interval.left for interval in local_freq_tab.index}
-    if len(speed_interval)is not 1:
+    if len(speed_interval) is not 1:
         import warnings
         warnings.warn("All speed bins not of equal lengths")
     speed_interval = speed_interval.pop()
-    sectors = len(local_freq_tab.columns)
-    freq_sum = local_freq_tab.sum(axis=0)
+
     local_freq_tab.index = [interval.right for interval in local_freq_tab.index]
 
-    tab_string = str(name)+"\n "+"{:.2f}".format(lat)+" "+"{:.2f}".format(long)+" "+"{:.2f}".format(height)+"\n " + \
-                 "{:.2f}".format(sectors)+" "+"{:.2f}".format(speed_interval)+" "+"{:.2f}".format(dir_offset)+"\n "
-    tab_string += " ".join("{:.2f}".format(percent) for percent in freq_sum.values)+"\n"
+    mean_wind_speed = _calc_mean_speed_of_freq_tab(freq_tab)
+    current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    version = '0.1.0'  # __bw.__version__ # to be changed for 'pip' install
+    sectors = len(local_freq_tab.columns)
+
+    tab_string = "{0} created using brightwind version {1} at {2}. Mean wind speed for tab file is: {3} m/s." \
+                 "\n{4} {5} {6}\n " \
+                 "{7} {8} {9}\n ".format(str(file_name_print), version, str(current_timestamp),
+                                         "{:.3f}".format(mean_wind_speed),
+                                         "{:.2f}".format(lat), "{:.2f}".format(long), "{:.2f}".format(height),
+                                         str(sectors), "{:.2f}".format(speed_interval), "{:.2f}".format(dir_offset))
+
+    sum_of_sectors = local_freq_tab.sum(axis=0)
+    tab_string += " ".join("{:.2f}".format(sector_percent) for sector_percent in sum_of_sectors.values) + "\n"
+
     for column in local_freq_tab.columns:
         local_freq_tab[column] = (local_freq_tab[column] / sum(local_freq_tab[column])) * 1000.0
-    tab_string += local_freq_tab.to_string(header=False, float_format='%.2f', na_rep=0.00)
-    with open(str(name)+".tab", "w") as file:
-        file.write(tab_string)
 
+    tab_string += local_freq_tab.to_string(header=False, float_format='%.2f', na_rep=0.00)
+    tab_string_strip = re.sub(' +', ' ', tab_string)
+
+    with open(str(file_path), "w") as file:
+        file.write(tab_string_strip)
+    print('Export of tab file successful.')
 
 
 def export_csv(data, file_name=None, folder_path=None, **kwargs):
@@ -119,4 +165,4 @@ def export_csv(data, file_name=None, folder_path=None, **kwargs):
             pd.DataFrame(data).to_csv(file_path, header=None, index=None, **kwargs)
     else:
         raise NotADirectoryError("The destination folder doesn't seem to exist.")
-    print('Export successful.')
+    print('Export fo csv successful.')
