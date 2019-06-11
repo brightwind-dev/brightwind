@@ -143,9 +143,9 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     return ax.get_figure()
 
 
-def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_green_for_gradient'),
-                                                            bw_colors('dark_green_for_gradient'),
-                                                            bw_colors('darkgreen')]):
+def plot_freq_distribution(data, plot_colors=[bw_colors('light_green_for_gradient'),
+                                                        bw_colors('dark_green_for_gradient'),
+                                                        bw_colors('darkgreen')]):
     from matplotlib.ticker import PercentFormatter
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
@@ -156,16 +156,14 @@ def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_gre
     else:
         x_data = data.index
     ax.set_xticks(x_data)
-    ax.set_xlim(-0.5, max_speed+0.5)
+    ax.set_xlim(-0.5, max(x_data)+0.5)
     ax.set_ylim(0, max(data)+5)
     ax.yaxis.set_major_formatter(PercentFormatter())
     ax.grid(b=True, axis='y', zorder=0)
-    # ax.bar(result.index, result.values,facecolor='#9ACD32',edgecolor=['#6C9023' for i in range(len(result))],zorder=3)
-    for frequency, bin in zip(data, x_data):
+    for frequency, ws_bin in zip(data, x_data):
         ax.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
-                  interpolation='gaussian', extent=(bin-0.4, bin+0.4, 0, frequency), aspect='auto', zorder=3)
-        ax.bar(bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
-    # ax.set_title('Wind Speed Frequency Distribution')
+                  interpolation='gaussian', extent=(ws_bin-0.4, ws_bin+0.4, 0, frequency), aspect='auto', zorder=3)
+        ax.bar(ws_bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
     return ax.get_figure()
 
 
@@ -323,9 +321,6 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     ax.scatter(np.radians(wdir), turbulence, c=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
-
-
-
 
 
 def plot_shear_by_sector(shear, wdir, shear_dist):

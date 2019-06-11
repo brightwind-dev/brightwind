@@ -109,7 +109,6 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     return plt.plot_monthly_means(df, ylbl=ylabel)
 
 
-
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
     """
     Return a DataFrame of mean of monthly means for each column in the DataFrame with timestamp as the index.
@@ -177,9 +176,9 @@ def distribution(var_series, var_to_bin_series=None, var_bin_array=np.arange(-0.
         variable for binning
     :type var_to_bin_series: pandas.Series
     :param var_bin_array: Array of numbers where adjacent elements of array form a bin
-    :type var_bin_array: list
+    :type var_bin_array: list, array
     :param var_bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default
-    :type var_bin_labels: list
+    :type var_bin_labels: list, array, None
     :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
         describe, a custom function, etc,computes frequency in percentages by default
     :type aggregation_method: str or function
@@ -206,7 +205,6 @@ def distribution(var_series, var_to_bin_series=None, var_bin_array=np.arange(-0.
             var_bin_array=[-10, 4, 12, 18, 30],
                 var_bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
 
-
     """
     if var_to_bin_series is None:
         var_to_bin_series = var_series.copy(deep=False)
@@ -216,7 +214,8 @@ def distribution(var_series, var_to_bin_series=None, var_bin_array=np.arange(-0.
         var_to_bin_series = var_to_bin_series.iloc[:, 0]
     var_series = var_series.dropna()
     var_to_bin_series = var_to_bin_series.dropna()
-    var_binned_series = pd.cut(var_to_bin_series, var_bin_array, right=False, labels=var_bin_labels).rename('variable_bin')
+    var_binned_series = pd.cut(var_to_bin_series, var_bin_array, right=False,
+                               labels=var_bin_labels).rename('variable_bin')
     data = pd.concat([var_series.rename('data'), var_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
         return data.groupby(['variable_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
@@ -224,17 +223,27 @@ def distribution(var_series, var_to_bin_series=None, var_bin_array=np.arange(-0.
         return data.groupby(['variable_bin'])['data'].agg(aggregation_method)
 
 
-def distribution_by_wind_speed(wspd, return_data=False):
+def distribution_by_wind_speed(wspd, max_speed=30, return_data=False):
     """
-    Accepts 2 series of same/different variables and computes the distribution of first variable with respect to
-    the bins of another variable.
+    Accepts a wind speed time series and computes it's frequency distribution. That is, how often does the wind
+    blow within each wind speed bin.
 
-    :param wspd: Series of the variable whose distribution we need to find
+    :param wspd: Time series of the wind speed variable whose distribution we need to find.
+    :type wspd: pd.Series
+    :param max_speed: Max wind speed to consider, default of 30 m/s.
+    :type max_speed: int
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
 
+    **Example usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+        freq_dist_plot, freq_dist = bw.distribution_by_wind_speed(df.Spd80mN, return_data=True)
+
     """
-    freq_dist = distribution(wspd, wspd, var2_bin_array=np.arange(-0.5, 41, 1), var2_bin_labels=None,
+    freq_dist = distribution(wspd, wspd, var_bin_array=np.arange(-0.5, max_speed+1, 1), var_bin_labels=None,
                              aggregation_method='%frequency')
     if return_data:
         return plt.plot_freq_distribution(freq_dist), freq_dist
@@ -307,7 +316,6 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
         #For measuring standard deviation in a sector rather than frequency in percentage (default)
         rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std',
             return_data=True)
-
 
     """
     var_series = var_series.dropna()
