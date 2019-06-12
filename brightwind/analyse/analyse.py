@@ -165,7 +165,7 @@ def _map_direction_bin(wdir, bins, sectors):
 
 
 def distribution(var_series, var_to_bin_series=None, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None,
-                 aggregation_method='%frequency'):
+                 aggregation_method='%frequency', return_data=False):
     """
     Accepts a variable and computes the distribution of the variable with itself as per the bins specified. Can
     also pass another variable for finding distribution with respect to another variable.
@@ -180,8 +180,10 @@ def distribution(var_series, var_to_bin_series=None, var_bin_array=np.arange(-0.
     :param var_bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default
     :type var_bin_labels: list, array, None
     :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
-        describe, a custom function, etc,computes frequency in percentages by default
+        describe, a custom function, etc, computes frequency in percentages by default
     :type aggregation_method: str or function
+    :param return_data: Set to True if you want the data returned.
+    :type return_data: bool
     :returns: A DataFrame/Series with bins as row indexes and columns with statistics chosen by aggregation_method
 
     **Example usage**
@@ -218,9 +220,12 @@ def distribution(var_series, var_to_bin_series=None, var_bin_array=np.arange(-0.
                                labels=var_bin_labels).rename('variable_bin')
     data = pd.concat([var_series.rename('data'), var_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
-        return data.groupby(['variable_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
+        dist = data.groupby(['variable_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
     else:
-        return data.groupby(['variable_bin'])['data'].agg(aggregation_method)
+        dist = data.groupby(['variable_bin'])['data'].agg(aggregation_method)
+    if return_data:
+        return plt.plot_freq_distribution(dist), dist
+    return plt.plot_freq_distribution(dist)
 
 
 def distribution_by_wind_speed(wspd, max_speed=30, return_data=False):
@@ -230,7 +235,7 @@ def distribution_by_wind_speed(wspd, max_speed=30, return_data=False):
 
     :param wspd: Time series of the wind speed variable whose distribution we need to find.
     :type wspd: pd.Series
-    :param max_speed: Max wind speed to consider, default of 30 m/s.
+    :param max_speed: Max wind speed to consider, default is 30 m/s.
     :type max_speed: int
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
@@ -244,10 +249,10 @@ def distribution_by_wind_speed(wspd, max_speed=30, return_data=False):
 
     """
     freq_dist = distribution(wspd, wspd, var_bin_array=np.arange(-0.5, max_speed+1, 1), var_bin_labels=None,
-                             aggregation_method='%frequency')
+                             aggregation_method='%frequency', return_data=True)
     if return_data:
-        return plt.plot_freq_distribution(freq_dist), freq_dist
-    return plt.plot_freq_distribution(freq_dist)
+        return freq_dist[0], freq_dist[1]
+    return freq_dist[0]
 
 
 def _binned_direction_series(direction_series, sectors, direction_bin_array=None):
