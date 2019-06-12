@@ -179,69 +179,73 @@ def _convert_df_to_series(df):
     return df
 
 
-def distribution(var_series, var_to_bin_series=None, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None,
-                 aggregation_method='%frequency', return_data=False):
+def distribution(var_series, var_to_bin_against=None, bins=np.arange(-0.5, 41, 1), bin_labels=None,
+                 max_y_value=None, aggregation_method='%frequency', return_data=False):
     """
     Accepts a variable and computes the distribution of the variable with itself as per the bins specified. Can
     also pass another variable for finding distribution with respect to another variable.
 
     :param var_series: Time-series of the variable whose distribution we need to find
     :type var_series: pandas.Series
-    :param var_to_bin_series: (optional) Times-series of the variable which we want to bin, in case you want another
-        variable for binning
-    :type var_to_bin_series: pandas.Series, None
-    :param var_bin_array: Array of numbers where adjacent elements of array form a bin
-    :type var_bin_array: list, array
-    :param var_bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default
-    :type var_bin_labels: list, array, None
-    :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
-        describe, a custom function, etc, computes frequency in percentages by default
+    :param var_to_bin_against: (optional) Times-series of the variable which we want to bin against if required
+           to bin against another variable.
+    :type var_to_bin_against: pandas.Series, None
+    :param bins: Array of numbers where adjacent elements of array form a bin
+    :type bins: list, array
+    :param bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default
+    :type bin_labels: list, array, None
+    :param max_y_value: Max value for the y-axis of the plot to be set. Default will be relative to max calculated
+                        data value.
+    :type max_y_value: float, int
+    :param aggregation_method: Statistical method used to find distribution. It can be mean, max, min, std, count,
+           %frequency or a custom function. Computes frequency in percentages by default.
     :type aggregation_method: str or function
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
-    :returns: A DataFrame/Series with bins as row indexes and columns with statistics chosen by aggregation_method
+    :returns: A distribution plot and, if requested, a pandas.Series with bins as row indexes and column with
+              statistics chosen by aggregation_method.
 
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
         #For distribution of %frequency of wind speeds
-        dist = bw.distribution(df.Spd40mN, var_bin_array=[0, 8, 12, 21], var_bin_labels=['normal', 'gale', 'storm'])
+        dist = bw.distribution(data.Spd40mN, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
 
         #For distribution of mean temperature
-        temp_dist = bw.distribution(df.T2m, var_bin_array=[-10, 4, 12, 18, 30], aggregation_method='mean')
+        temp_dist = bw.distribution(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method='mean')
 
         #For custom aggregation function
         def custom_agg(x):
             return x.mean()+(2*x.std())
-        temp_dist = bw.distribution(df.T2m, var_bin_array=[-10, 4, 12, 18, 30], aggregation_method=custom_agg)
+        temp_dist = bw.distribution(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method=custom_agg)
 
         #For distribution of mean wind speeds with respect to temperature
-        spd_dist = bw.distribution(df.Spd40mN, var_to_bin_series=df.T2m,
-            var_bin_array=[-10, 4, 12, 18, 30],
-                var_bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
+        spd_dist = bw.distribution(df.Spd40mN, var_to_bin_against=df.T2m,
+            bins=[-10, 4, 12, 18, 30],
+            bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
 
     """
-    if var_to_bin_series is None:
-        var_to_bin_series = var_series.copy(deep=False)
+    if var_to_bin_against is None:
+        var_to_bin_against = var_series.copy(deep=False)
     var_series = _convert_df_to_series(var_series)
-    var_to_bin_series = _convert_df_to_series(var_to_bin_series)
+    var_to_bin_against = _convert_df_to_series(var_to_bin_against)
     var_series = var_series.dropna()
-    var_to_bin_series = var_to_bin_series.dropna()
-    var_binned_series = pd.cut(var_to_bin_series, var_bin_array, right=False,
-                               labels=var_bin_labels).rename('variable_bin')
+    var_to_bin_against = var_to_bin_against.dropna()
+    var_binned_series = pd.cut(var_to_bin_against, bins, right=False,
+                               labels=bin_labels).rename('variable_bin')
     data = pd.concat([var_series.rename('data'), var_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
         dist = data.groupby(['variable_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
     else:
         dist = data.groupby(['variable_bin'])['data'].agg(aggregation_method)
     if return_data:
-        return plt.plot_freq_distribution(dist), dist
-    return plt.plot_freq_distribution(dist)
+        return plt.plot_freq_distribution(dist, max_y_value=max_y_value), dist
+    return plt.plot_freq_distribution(dist, max_y_value=max_y_value)
 
 
-def distribution_by_wind_speed(wspd, max_speed=30, return_data=False):
+def distribution_by_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
     """
     Accepts a wind speed time series and computes it's frequency distribution. That is, how often does the wind
     blow within each wind speed bin.
@@ -250,6 +254,9 @@ def distribution_by_wind_speed(wspd, max_speed=30, return_data=False):
     :type wspd: pd.Series
     :param max_speed: Max wind speed to consider, default is 30 m/s.
     :type max_speed: int
+    :param max_y_value: Max value for the y-axis of the plot to be set. Default will be relative to max calculated
+                        data value.
+    :type max_y_value: float, int
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
 
@@ -261,8 +268,8 @@ def distribution_by_wind_speed(wspd, max_speed=30, return_data=False):
         freq_dist_plot, freq_dist = bw.distribution_by_wind_speed(df.Spd80mN, return_data=True)
 
     """
-    freq_dist = distribution(wspd, var_to_bin_series=None, var_bin_array=np.arange(-0.5, max_speed+1, 1),
-                             var_bin_labels=None, aggregation_method='%frequency', return_data=True)
+    freq_dist = distribution(wspd, var_to_bin_against=None, bins=np.arange(-0.5, max_speed+1, 1), bin_labels=None,
+                             max_y_value=max_y_value, aggregation_method='%frequency', return_data=True)
     if return_data:
         return freq_dist[0], freq_dist[1]
     return freq_dist[0]

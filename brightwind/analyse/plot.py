@@ -143,7 +143,7 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     return ax.get_figure()
 
 
-def plot_freq_distribution(data, plot_colors=[bw_colors('light_green_for_gradient'),
+def plot_freq_distribution(data, max_y_value=None, plot_colors=[bw_colors('light_green_for_gradient'),
                                                         bw_colors('dark_green_for_gradient'),
                                                         bw_colors('darkgreen')]):
     from matplotlib.ticker import PercentFormatter
@@ -156,8 +156,11 @@ def plot_freq_distribution(data, plot_colors=[bw_colors('light_green_for_gradien
     else:
         x_data = data.index
     ax.set_xticks(x_data)
-    ax.set_xlim(-0.5, max(x_data)+0.5)
-    ax.set_ylim(0, max(data)+5)
+    ax.set_xlim(x_data[0]-0.5, x_data[-1]+0.5)
+    if max_y_value is None:
+        ax.set_ylim(0, max(data)*1.1)
+    else:
+        ax.set_ylim(0, max_y_value)
     ax.yaxis.set_major_formatter(PercentFormatter())
     ax.grid(b=True, axis='y', zorder=0)
     for frequency, ws_bin in zip(data, x_data):
