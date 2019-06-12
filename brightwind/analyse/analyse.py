@@ -164,6 +164,21 @@ def _map_direction_bin(wdir, bins, sectors):
     return bin_num
 
 
+def _convert_df_to_series(df):
+    """
+    Convert a pd.DataFrame to a pd.Series.
+    If more than 1 column is in the DataFrame then it will raise a TypeError.
+    If the sent argument is not a DataFrame it will return itself.
+    :param df:
+    :return:
+    """
+    if isinstance(df, pd.DataFrame) and df.shape[1] == 1:
+        return df.iloc[:, 0]
+    elif isinstance(df, pd.DataFrame) and df.shape[1] > 1:
+        raise TypeError('DataFrame cannot be converted to a Series as it contains more than 1 column.')
+    return df
+
+
 def distribution(var_series, var_to_bin_series=None, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None,
                  aggregation_method='%frequency', return_data=False):
     """
@@ -174,7 +189,7 @@ def distribution(var_series, var_to_bin_series=None, var_bin_array=np.arange(-0.
     :type var_series: pandas.Series
     :param var_to_bin_series: (optional) Times-series of the variable which we want to bin, in case you want another
         variable for binning
-    :type var_to_bin_series: pandas.Series
+    :type var_to_bin_series: pandas.Series, None
     :param var_bin_array: Array of numbers where adjacent elements of array form a bin
     :type var_bin_array: list, array
     :param var_bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default
@@ -210,10 +225,8 @@ def distribution(var_series, var_to_bin_series=None, var_bin_array=np.arange(-0.
     """
     if var_to_bin_series is None:
         var_to_bin_series = var_series.copy(deep=False)
-    if isinstance(var_series, pd.DataFrame) and var_series.shape[1] == 1:
-        var_series = var_series.iloc[:, 0]
-    if isinstance(var_to_bin_series, pd.DataFrame) and var_to_bin_series.shape[1] == 1:
-        var_to_bin_series = var_to_bin_series.iloc[:, 0]
+    var_series = _convert_df_to_series(var_series)
+    var_to_bin_series = _convert_df_to_series(var_to_bin_series)
     var_series = var_series.dropna()
     var_to_bin_series = var_to_bin_series.dropna()
     var_binned_series = pd.cut(var_to_bin_series, var_bin_array, right=False,
@@ -248,8 +261,8 @@ def distribution_by_wind_speed(wspd, max_speed=30, return_data=False):
         freq_dist_plot, freq_dist = bw.distribution_by_wind_speed(df.Spd80mN, return_data=True)
 
     """
-    freq_dist = distribution(wspd, wspd, var_bin_array=np.arange(-0.5, max_speed+1, 1), var_bin_labels=None,
-                             aggregation_method='%frequency', return_data=True)
+    freq_dist = distribution(wspd, var_to_bin_series=None, var_bin_array=np.arange(-0.5, max_speed+1, 1),
+                             var_bin_labels=None, aggregation_method='%frequency', return_data=True)
     if return_data:
         return freq_dist[0], freq_dist[1]
     return freq_dist[0]
