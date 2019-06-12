@@ -126,7 +126,8 @@ def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
     For a given resolution of data finds the maximum number of data points in the averaging period
     """
     max_pts = (averaged_data_index.to_series().diff().shift(-1)) / _get_data_resolution(data_index)
-    max_pts[-1] = ((averaged_data_index[-1] + 1) - averaged_data_index[-1]) / _get_data_resolution(data_index)
+    max_pts[-1] = ((averaged_data_index[-1] + 1*averaged_data_index[-1].freq) - averaged_data_index[-1]) / _get_data_resolution(data_index)
+    print(max_pts[-1])
     return max_pts
 
 
