@@ -63,6 +63,7 @@ def test_adjust_slope_offset_arg_wndspd_series_str():
         bw.adjust_slope_offset(pd.Series([2, 3, '4', 5]), current_slope, current_offset, new_slope, new_offset)
     assert str(except_info.value) == "some values in the Series are not of data type number"
 
+
 def test_get_data_resolution():
     import warnings
     series1 = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)['Spd80mS'].index
@@ -71,7 +72,7 @@ def test_get_data_resolution():
     series2 = pd.date_range('2010-01-01', periods=150, freq='H')
     assert bw._get_data_resolution(series2).seconds == 3600
 
-    #hourly series with one instance where difference between adjacent timestamps is 10 min
+    # hourly series with one instance where difference between adjacent timestamps is 10 min
     series3 = pd.date_range('2010-04-15', '2010-05-01', freq='H').union(pd.date_range('2010-05-01 00:10:00', periods=20,
                                                                                     freq='H'))
     with warnings.catch_warnings(record=True) as w:
@@ -80,7 +81,7 @@ def test_get_data_resolution():
 
         
 def test_offset_timestamps():
-    series1 = bw.load_campbell_scientific(bw.datasets.demo_site_data)#['Spd80mS']
+    series1 = bw.load_campbell_scientific(bw.datasets.demo_site_data)  # ['Spd80mS']
 
     # sending index with no start end
     bw.offset_timestamps(series1.index, offset='90min')
@@ -176,33 +177,8 @@ def test_average_data_by_period():
     # return coverage without filtering
     bw.average_data_by_period(data.Spd80mN, period='2W', return_coverage=True)
 
-    # test returned values
-    # get time intervals
-    date_times = {'Timestamp': pd.date_range('2016-01-01T00:00:00', '2016-12-31T00:00:00', freq='10T')}
-
-    dummy_wind_speeds = []
-
-    for i, vals in date_times.items():
-        # get list of each month for each date entry as dummy windspeeds
-        dummy_wind_speeds.append(date_times[i].month)
-
-        # change list of months (dummy windspeeds) to data frame
-    dummy_wind_speeds_df = pd.DataFrame(pd.DataFrame(dummy_wind_speeds).iloc[0])
-    # change column name
-    dummy_wind_speeds_df.columns = ['Mean Wind Speed']
-    # create data frame from dates
-    date_times_df = pd.DataFrame(date_times)
-    # add mean wind speeds to dataframe
-    date_times_df['Mean Wind Speed'] = dummy_wind_speeds_df['Mean Wind Speed']
-    # change dates to datetime values
-    date_times_df['Timestamp'] = pd.DatetimeIndex(date_times_df['Timestamp'])
-    # set date times as index of data frame
-    date_times_df.set_index('Timestamp', inplace=True)
-
-    # send dummy wind speeds to averaging function
-    average_monthly_speed = bw.average_data_by_period(date_times_df, '1M')
-    # send dummy wind speeds to averaging function
-    average_annual_speed = bw.average_data_by_period(date_times_df, '1As')
+    average_monthly_speed = bw.average_data_by_period(dummy_data_frame(), '1M')
+    average_annual_speed = bw.average_data_by_period(dummy_data_frame(), '1As')
     # round annual wind speed
     print(round(average_annual_speed, 2))
 
@@ -211,3 +187,39 @@ def test_average_data_by_period():
         assert average_monthly_speed.iloc[i].item() == i+1
     # test average annual wind speed
     assert round(average_annual_speed.iloc[0].item(), 2) == 6.5
+
+
+def dummy_data_frame(start_date='2016-01-01T00:00:00', end_date='2016-12-31T11:59:59'):
+    """
+    Returns a DataFrame with wind speed equal to the month of the year, i.e. In January, wind speed = 1 m/s.
+    for use in testing
+
+    :param start_date: Start date Timestamp, i.e. first index in the DataFrame
+    :type start_date:  Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
+    :param end_date: End date Timestamp, i.e. last index in the DataFrame
+    :type end_date: Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
+    :return: pandas.Dataframe
+    """
+
+    date_times = {'Timestamp': pd.date_range(start_date, end_date, freq='10T')}
+
+    dummy_wind_speeds = []
+
+    for i, vals in date_times.items():
+        # get list of each month for each date entry as dummy windspeeds
+        dummy_wind_speeds.append(date_times[i].month)
+
+    dummy_wind_speeds_df = pd.DataFrame(pd.DataFrame(dummy_wind_speeds).iloc[0])
+    # change column name
+    dummy_wind_speeds_df.columns = ['Mean Wind Speed']
+    # create data frame from dates
+    dummy_df = pd.DataFrame(date_times)
+    # add mean wind speeds to dataframe
+    dummy_df['Mean Wind Speed'] = dummy_wind_speeds_df['Mean Wind Speed']
+    # change dates to datetime values
+    dummy_df['Timestamp'] = pd.DatetimeIndex(dummy_df['Timestamp'])
+    # set date times as index of data frame
+    dummy_df.set_index('Timestamp', inplace=True)
+
+    return dummy_df
+
