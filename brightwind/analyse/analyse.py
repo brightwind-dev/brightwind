@@ -619,10 +619,12 @@ def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_n
 
 class TI:
 
+    @staticmethod
     def calc(wspd, wspd_std):
         ti = pd.concat([wspd[wspd > 3].rename('wdspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
         return ti['wspd_std'] / ti['wdspd']
 
+    @staticmethod
     def by_speed(wspd, wspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
                  percentile=90, IEC_class=None, return_data=False):
         """
@@ -683,6 +685,7 @@ class TI:
             return plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class), ti_dist.dropna(how='any')
         return plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class)
 
+    @staticmethod
     def by_sector(wspd, wspd_std, wdir, min_speed=0, sectors=12, direction_bin_array=None,
                   direction_bin_labels=None, return_data=False):
         """
@@ -737,6 +740,7 @@ class TI:
         else:
             return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
 
+    @staticmethod
     def twelve_by_24(wspd, wspd_std, return_data=False, var_name='Turbulence Intensity'):
         tab_12x24, graph = twelve_by_24(TI.calc(wspd, wspd_std), return_data=True, var_name=var_name)
         if return_data:
@@ -746,11 +750,13 @@ class TI:
 
 class SectorRatio:
 
+    @staticmethod
     def calc(wspd_1, wspd_2):
         sec_rat = pd.concat([wspd_1[wspd_1 > 3].rename('speed_1'), wspd_2[wspd_2 > 3].rename('speed_2')],
                             axis=1, join='inner')
         return sec_rat['speed_2']/sec_rat['speed_1']
 
+    @staticmethod
     def by_sector(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None,
                   boom_dir_1=-1, boom_dir_2=-1, return_data=False):
         """
