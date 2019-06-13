@@ -186,7 +186,7 @@ def test_average_data_by_period():
     for i in range(0, 11):
         assert average_monthly_speed.iloc[i].item() == i+1
     # test average annual wind speed
-    assert round(average_annual_speed.iloc[0].item(), 2) == 6.5
+    assert round(average_annual_speed.iloc[0].item(), 1) == 6.5
 
 
 def dummy_data_frame(start_date='2016-01-01T00:00:00', end_date='2016-12-31T11:59:59'):
