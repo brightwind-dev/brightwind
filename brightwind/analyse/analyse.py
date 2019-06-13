@@ -23,7 +23,7 @@ from brightwind.analyse import plot as plt
 
 __all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
            'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage', 'basic_stats',
-           'twelve_by_24', 'TI', 'sector_ratio_by_sector', 'Shear', 'calc_air_density']
+           'twelve_by_24', 'TI', 'speed_ratio_by_dir', 'Shear', 'calc_air_density']
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
@@ -621,7 +621,7 @@ class TI:
         return graph
 
 
-def sector_ratio_by_sector(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None,
+def speed_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None,
               boom_dir_1=-1, boom_dir_2=-1, return_data=False):
     """
     Accepts two speed series and one direction series and returns the speed ratio by sector in a table
