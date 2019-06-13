@@ -22,6 +22,9 @@ import math
 from brightwind.utils import utils
 import os
 import matplotlib as mpl
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
+
 
 __all__ = ['plot_timeseries', 'plot_freq_distribution']
 
