@@ -23,7 +23,7 @@ from brightwind.analyse import plot as plt
 
 __all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
            'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage', 'basic_stats',
-           'twelve_by_24', 'TI', 'wspd_ratio_by_dir', 'Shear', 'calc_air_density']
+           'twelve_by_24', 'TI', 'wspd_ratio_by_dir', 'Shear', 'calc_air_density', '_calc_ratio']
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
@@ -666,7 +666,7 @@ def wspd_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bi
 
     """
 
-    sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
+    sec_rat = calc_ratio(wspd_1, wspd_2, min_wspd)
     common_idxs = sec_rat.index.intersection(wdir.index)
     sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
                                               aggregation_method='mean', direction_bin_array=direction_bin_array,
@@ -681,10 +681,14 @@ def wspd_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bi
                                  boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2)
 
 
-def _calc_ratio(var_1, var_2, min_wspd):
+def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
+    
+    var_1_bounded = var_1[var_1 < max_var]
+    var_1_bounded = var_1_bounded[var_1_bounded > min_var]
+    var_2_bounded = var_2[var_2 < max_var]
+    var_2_bounded = var_2_bounded[var_2_bounded > min_var]
+    ratio = pd.concat([var_1_bounded.rename('var_1'), var_2_bounded.rename('var_2')], axis=1, join='inner')
 
-    ratio = pd.concat([var_1[var_1 > min_wspd].rename('var_1'), var_2[var_2 > min_wspd].rename('var_2')], axis=1,
-                      join='inner')
     return ratio['var_2'] / ratio['var_1']
 
 
