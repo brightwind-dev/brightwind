@@ -192,13 +192,13 @@ def test_average_data_by_period():
 def dummy_data_frame(start_date='2016-01-01T00:00:00', end_date='2016-12-31T11:59:59'):
     """
     Returns a DataFrame with wind speed equal to the month of the year, i.e. In January, wind speed = 1 m/s.
-    for use in testing
+    For use in testing.
 
     :param start_date: Start date Timestamp, i.e. first index in the DataFrame
     :type start_date:  Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
     :param end_date: End date Timestamp, i.e. last index in the DataFrame
     :type end_date: Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
-    :return: pandas.Dataframe
+    :return: pandas.DataFrame
     """
 
     date_times = {'Timestamp': pd.date_range(start_date, end_date, freq='10T')}
