@@ -108,19 +108,19 @@ def test_distribution():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
     # For distribution of %frequency of wind speeds
-    dist = bw.distribution(df.Spd40mN, var_bin_array=[0, 8, 12, 21], var_bin_labels=['normal', 'gale', 'storm'])
+    dist = bw.distribution(df.Spd40mN, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
 
     # For distribution of mean temperature
-    temp_dist = bw.distribution(df.T2m, var_bin_array=[-10, 4, 12, 18, 30], aggregation_method='mean')
+    temp_dist = bw.distribution(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method='mean')
 
     # For custom aggregation function
     def custom_agg(x):
         return x.mean() + (2 * x.std())
 
-    temp_dist = bw.distribution(df.T2m, var_bin_array=[-10, 4, 12, 18, 30], aggregation_method=custom_agg)
+    temp_dist = bw.distribution(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method=custom_agg)
 
     # For distribution of mean wind speeds with respect to temperature
-    spd_dist = bw.distribution(df.Spd40mN, var_to_bin_series=df.T2m,
-                               var_bin_array=[-10, 4, 12, 18, 30],
-                               var_bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
+    spd_dist = bw.distribution(df.Spd40mN, var_to_bin_against=df.T2m,
+                               bins=[-10, 4, 12, 18, 30],
+                               bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
 

@@ -208,10 +208,10 @@ def distribution(var_series, var_to_bin_against=None, bins=np.arange(-0.5, 41, 1
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df= bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
         #For distribution of %frequency of wind speeds
-        dist = bw.distribution(data.Spd40mN, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
+        dist = bw.distribution(df.Spd40mN, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
 
         #For distribution of mean temperature
         temp_dist = bw.distribution(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method='mean')
@@ -233,16 +233,21 @@ def distribution(var_series, var_to_bin_against=None, bins=np.arange(-0.5, 41, 1
     var_to_bin_against = _convert_df_to_series(var_to_bin_against)
     var_series = var_series.dropna()
     var_to_bin_against = var_to_bin_against.dropna()
-    var_binned_series = pd.cut(var_to_bin_against, bins, right=False,
-                               labels=bin_labels).rename('variable_bin')
+    var_binned_series = pd.cut(var_to_bin_against, bins, right=False).rename('variable_bin')
     data = pd.concat([var_series.rename('data'), var_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
         dist = data.groupby(['variable_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
     else:
         dist = data.groupby(['variable_bin'])['data'].agg(aggregation_method)
+
+    if not isinstance(aggregation_method, str):
+        aggregation_method = aggregation_method.__name__
+    graph = plt.plot_freq_distribution(dist, max_y_value=max_y_value, labels=bin_labels, y_label=aggregation_method)
+    if bin_labels is not None:
+        dist.index = bin_labels
     if return_data:
-        return plt.plot_freq_distribution(dist, max_y_value=max_y_value), dist
-    return plt.plot_freq_distribution(dist, max_y_value=max_y_value)
+        return graph, dist
+    return graph
 
 
 def distribution_by_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
