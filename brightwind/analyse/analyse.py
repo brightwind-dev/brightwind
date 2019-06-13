@@ -621,8 +621,8 @@ class TI:
         return graph
 
 
-def speed_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None,
-              boom_dir_1=-1, boom_dir_2=-1, return_data=False):
+def speed_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None, boom_dir_1=-1, boom_dir_2=-1,
+                       return_data=False):
     """
     Accepts two speed series and one direction series and returns the speed ratio by sector in a table
 
