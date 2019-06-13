@@ -242,7 +242,8 @@ def distribution(var_series, var_to_bin_against=None, bins=np.arange(-0.5, 41, 1
 
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
-    graph = plt.plot_freq_distribution(dist, max_y_value=max_y_value, labels=bin_labels, y_label=aggregation_method)
+    graph = plt.plot_freq_distribution(dist.replace([np.inf, -np.inf], np.NAN).dropna(), max_y_value=max_y_value,
+                                       labels=bin_labels, y_label=aggregation_method)
     if bin_labels is not None:
         dist.index = bin_labels
     if return_data:
@@ -656,31 +657,37 @@ class TI:
 
         :rtype: pandas.DataFrame
 
+
         """
-        ti = pd.concat([wspd.rename('wdspd'), wspd_std.rename('wdspd_std')], axis=1, join='inner')
-        ti['Turbulence_Intensity'] = TI.calc(ti['wdspd'], ti['wdspd_std'])
+        ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
+        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
         ti_dist = pd.concat([
-            distribution(var1_series=ti['Turbulence_Intensity'], var2_series=ti['wspd'],
-                         var2_bin_array=speed_bin_array, var2_bin_labels=speed_bin_labels,
-                         aggregation_method='mean').rename("Mean_TI"),
-            distribution(var1_series=ti['Turbulence_Intensity'],
-                         var2_series=ti['wspd'],
-                         var2_bin_array=speed_bin_array,
-                         var2_bin_labels=speed_bin_labels,
-                         aggregation_method='count').rename("TI_Count"),
-            distribution(var1_series=ti['Turbulence_Intensity'],
-                         var2_series=ti['wspd'],
-                         var2_bin_array=speed_bin_array,
-                         var2_bin_labels=speed_bin_labels,
-                         aggregation_method=lambda x: np.percentile(x, q=percentile)).rename("Rep_TI"),
-            distribution(var1_series=ti['Turbulence_Intensity'],
-                         var2_series=ti['wspd'],
-                         var2_bin_array=speed_bin_array,
-                         var2_bin_labels=speed_bin_labels,
-                         aggregation_method='std').rename("TI_2Sigma")], axis=1, join='inner')
-        ti_dist.loc[:, 'Char_TI'] = ti_dist.loc[:, 'Mean_TI'] + (ti_dist.loc[:, 'TI_2Sigma'] / ti_dist.index)
-        ti_dist.loc[0, 'Char_TI'] = 0
+            distribution(var_series=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
+                         bins=speed_bin_array, bin_labels=speed_bin_labels,
+                         aggregation_method='mean', return_data=True)[-1].rename("Mean_TI"),
+            distribution(var_series=ti['Turbulence_Intensity'],
+                         var_to_bin_against=ti['wspd'],
+                         bins=speed_bin_array,
+                         bin_labels=speed_bin_labels,
+                         aggregation_method='count', return_data=True)[-1].rename("TI_Count"),
+            distribution(var_series=ti['Turbulence_Intensity'],
+                         var_to_bin_against=ti['wspd'],
+                         bins=speed_bin_array,
+                         bin_labels=speed_bin_labels,
+                         aggregation_method=lambda x: np.percentile(x, q=percentile),
+                         return_data=True)[-1].rename("Rep_TI"),
+            distribution(var_series=ti['Turbulence_Intensity'],
+                         var_to_bin_against=ti['wspd'],
+                         bins=speed_bin_array,
+                         bin_labels=speed_bin_labels,
+                         aggregation_method='std', return_data=True)[-1].rename("TI_2Sigma")], axis=1, join='inner')
+        categ_index = distribution(var_series=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
+                         bins=speed_bin_array, aggregation_method='mean', return_data=True)[-1].index
+        num_index = [i.mid for i in categ_index]
+        ti_dist.loc[:, 'Char_TI'] = ti_dist.loc[:, 'Mean_TI'] + (ti_dist.loc[:, 'TI_2Sigma'] / num_index)
+        # ti_dist.loc[0, 'Char_TI'] = 0
         ti_dist.index.rename('Speed Bin', inplace=True)
+        # return ti_dist
         if return_data:
             return plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class), ti_dist.dropna(how='any')
         return plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class)
