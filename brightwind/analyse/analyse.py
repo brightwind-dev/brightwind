@@ -621,8 +621,8 @@ class TI:
         return graph
 
 
-def wspd_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None, boom_dir_1=-1, boom_dir_2=-1,
-                       return_data=False):
+def wspd_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_array=None, boom_dir_1=-1,
+                      boom_dir_2=-1, return_data=False):
     """
     Accepts two speed series and one direction series and returns the speed ratio by sector in a table
 
@@ -634,6 +634,8 @@ def wspd_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None
     :type wdir: pandas.Series
     :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
     :type sectors: int
+    :param min_wspd: Minimum wind speed to be used
+    :type: min_wpd: float
     :param direction_bin_array: (Optional) Array of numbers where adjacent elements of array form a bin.
     :param boom_dir_1: Boom direction in degrees of wspd_1. If top mounted leave default as -1.
     :type boom_dir_1: float
@@ -664,9 +666,7 @@ def wspd_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None
 
     """
 
-    sec_rat_1 = pd.concat([wspd_1[wspd_1 > 3].rename('speed_1'), wspd_2[wspd_2 > 3].rename('speed_2')],
-                        axis=1, join='inner')
-    sec_rat = sec_rat_1['speed_2'] / sec_rat_1['speed_1']
+    sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
     common_idxs = sec_rat.index.intersection(wdir.index)
     sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
                                               aggregation_method='mean', direction_bin_array=direction_bin_array,
@@ -679,6 +679,13 @@ def wspd_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None
     return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sec_rat_dist,
                                  [wspd_1.name, wspd_2.name],
                                  boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2)
+
+
+def _calc_ratio(var_1, var_2, min_wspd):
+
+    ratio = pd.concat([var_1[var_1 > min_wspd].rename('var_1'), var_2[var_2 > min_wspd].rename('var_2')], axis=1,
+                      join='inner')
+    return ratio['var_2'] / ratio['var_1']
 
 
 class Shear:
