@@ -300,8 +300,8 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
     fig, ax = plt.subplots()
     ax.scatter(wspd.loc[common_idxs], wspd_std.loc[common_idxs]/wspd.loc[common_idxs],
                color=bw_colors('green'), alpha=0.3, marker='.')
-    ax.plot(ti.index.__array__(), ti.loc[:, 'Mean_TI'].values, color=bw_colors('darkgreen'))[0].set_label('Mean_TI')
-    ax.plot(ti.index.__array__(), ti.loc[:, 'Rep_TI'].values, color=bw_colors('redline'))[0].set_label('Rep_TI')
+    ax.plot(ti.index.values, ti.loc[:, 'Mean_TI'].values, color=bw_colors('darkgreen'), label='Mean_TI')
+    ax.plot(ti.index.values, ti.loc[:, 'Rep_TI'].values, color=bw_colors('redline'), label='Rep_TI')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 1], color=bw_colors('greyline'), linestyle='dashed')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 2], color=bw_colors('greyline'), linestyle='dashdot')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=bw_colors('greyline'), linestyle='dotted')

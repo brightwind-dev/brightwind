@@ -124,3 +124,15 @@ def test_distribution():
                                bins=[-10, 4, 12, 18, 30],
                                bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
 
+def test_TI_by_speed():
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    TI_by_speed = bw.TI.by_speed(df.Spd80mN, df.Spd80mNStd)
+
+    #60 percentile
+    TI_by_speed_60 = bw.TI.by_speed(df.Spd80mN, df.Spd80mNStd, percentile=60, return_data=True)
+
+    #bin_array
+    TI_by_speed = bw.TI.by_speed(df.Spd80mN, df.Spd80mNStd, speed_bin_array=[0, 10, 14, 51],
+                                      speed_bin_labels=['low', 'mid', 'high'], return_data=True)
+    # assert TI_by_speed.index == ['low', 'mid', 'high']
+    assert True
