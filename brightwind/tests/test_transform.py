@@ -141,36 +141,73 @@ def test_offset_timestamps():
     assert (op.loc['2016-01-01 00:40:00'] == series1.Spd60mN.loc['2016-01-01 00:30:00']).all()
     assert len(op) + 1 == len(series1.Spd60mN)
 
+
 def test_average_data_by_period():
     data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
-    #hourly averages
+    # hourly averages
     bw.average_data_by_period(data.Spd80mN, period='1H')
-    #hourly average with coverage filtering
+    # hourly average with coverage filtering
     bw.average_data_by_period(data.Spd80mN, period='1H', coverage_threshold=0.9)
     bw.average_data_by_period(data.Spd80mN, period='1H', coverage_threshold=1)
-    #return coverage with filtering
+    # return coverage with filtering
     bw.average_data_by_period(data.Spd80mN, period='1H', coverage_threshold=0.9,
                               return_coverage=True)
     # return coverage without filtering
     bw.average_data_by_period(data.Spd80mN, period='1H', return_coverage=True)
 
-    #monthly averages
+    # monthly averages
     bw.average_data_by_period(data.Spd80mN, period='1M')
-    #hourly average with coverage filtering
+    # hourly average with coverage filtering
     bw.average_data_by_period(data.Spd80mN, period='1M', coverage_threshold=0.9)
     bw.average_data_by_period(data.Spd80mN, period='1M', coverage_threshold=1)
-    #return coverage with filtering
+    # return coverage with filtering
     bw.average_data_by_period(data.Spd80mN, period='1M', coverage_threshold=0.9, return_coverage=True)
     # return coverage without filtering
     bw.average_data_by_period(data.Spd80mN, period='1M', return_coverage=True)
 
-    #weekly averages
+    # weekly averages
     bw.average_data_by_period(data.Spd80mN, period='2W')
-    #hourly average with coverage filtering
+    # hourly average with coverage filtering
     bw.average_data_by_period(data.Spd80mN, period='2W', coverage_threshold=0.9)
     bw.average_data_by_period(data.Spd80mN, period='2W', coverage_threshold=1)
-    #return coverage with filtering
+    # return coverage with filtering
     bw.average_data_by_period(data.Spd80mN, period='2W', coverage_threshold=0.9, return_coverage=True)
     # return coverage without filtering
     bw.average_data_by_period(data.Spd80mN, period='2W', return_coverage=True)
+
+    # test returned values
+    # get time intervals
+    date_times = {'Timestamp': pd.date_range('2016-01-01T00:00:00', '2016-12-31T00:00:00', freq='10T')}
+
+    dummy_wind_speeds = []
+
+    for i, vals in date_times.items():
+        # get list of each month for each date entry as dummy windspeeds
+        dummy_wind_speeds.append(date_times[i].month)
+
+        # change list of months (dummy windspeeds) to data frame
+    dummy_wind_speeds_df = pd.DataFrame(pd.DataFrame(dummy_wind_speeds).iloc[0])
+    # change column name
+    dummy_wind_speeds_df.columns = ['Mean Wind Speed']
+    # create data frame from dates
+    date_times_df = pd.DataFrame(date_times)
+    # add mean wind speeds to dataframe
+    date_times_df['Mean Wind Speed'] = dummy_wind_speeds_df['Mean Wind Speed']
+    # change dates to datetime values
+    date_times_df['Timestamp'] = pd.DatetimeIndex(date_times_df['Timestamp'])
+    # set date times as index of data frame
+    date_times_df.set_index('Timestamp', inplace=True)
+
+    # send dummy wind speeds to averaging function
+    average_monthly_speed = bw.average_data_by_period(date_times_df, '1M')
+    # send dummy wind speeds to averaging function
+    average_annual_speed = bw.average_data_by_period(date_times_df, '1As')
+    # round annual wind speed
+    print(round(average_annual_speed, 2))
+
+    # test average wind speed for each month
+    for i in range(0, 11):
+        assert average_monthly_speed.iloc[i].item() == i+1
+    # test average annual wind speed
+    assert round(average_annual_speed.iloc[0].item(), 2) == 6.5
