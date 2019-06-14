@@ -17,7 +17,7 @@ def test_sector_ratio_by_sector():
     data = bw.load_csv(bw.datasets.shell_flats_80m_csv)
     bw.SectorRatio.by_sector(data['WS70mA100NW_Avg'], data['WS70mA100SE_Avg'], data['WD50mW200PNW_VAvg'],
                           sectors = 72, boom_dir_1 = 315, boom_dir_2 = 135,return_data=True)[1]
-    data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+    data = bw.load_csv(bw.datasets.demo_data)
     bw.SectorRatio.by_sector(data.Spd40mN, data.Spd60mN, wdir=data.Dir38mS,
                              direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=160, boom_dir_2=340)
     assert True
