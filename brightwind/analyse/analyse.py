@@ -23,7 +23,7 @@ from brightwind.analyse import plot as plt
 
 __all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
            'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage', 'basic_stats',
-           'twelve_by_24', 'TI', 'wspd_ratio_by_dir', 'Shear', 'calc_air_density', '_calc_ratio']
+           'twelve_by_24', 'TI', 'wspd_ratio_by_dir', 'Shear', 'calc_air_density']
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
@@ -109,7 +109,6 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     return plt.plot_monthly_means(df, ylbl=ylabel)
 
 
-
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
     """
     Return a DataFrame of mean of monthly means for each column in the DataFrame with timestamp as the index.
@@ -120,7 +119,7 @@ def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
     return monthly_df
 
 
-def momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
+def momm(data: pd.DataFrame, date_from: str = '', date_to: str = ''):
     """
     Calculates and returns long term reference speed. Accepts a DataFrame
     with timestamps as index column and another column with wind-speed. You can also specify
@@ -649,7 +648,7 @@ def wspd_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bi
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
         #For plotting both booms
         bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS, boom_dir_1=340, boom_dir_2=160)
@@ -666,7 +665,7 @@ def wspd_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bi
 
     """
 
-    sec_rat = calc_ratio(wspd_1, wspd_2, min_wspd)
+    sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
     common_idxs = sec_rat.index.intersection(wdir.index)
     sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
                                               aggregation_method='mean', direction_bin_array=direction_bin_array,
@@ -682,7 +681,7 @@ def wspd_ratio_by_dir(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bi
 
 
 def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
-    
+
     var_1_bounded = var_1[var_1 < max_var]
     var_1_bounded = var_1_bounded[var_1_bounded > min_var]
     var_2_bounded = var_2[var_2 < max_var]
