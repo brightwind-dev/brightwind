@@ -81,26 +81,26 @@ def test_get_data_resolution():
 
         
 def test_offset_timestamps():
-    series1 = bw.load_campbell_scientific(bw.datasets.demo_site_data)  # ['Spd80mS']
+    series1 = bw.load_csv(bw.datasets.demo_data)  # ['Spd80mS']
 
     # sending index with no start end
     bw.offset_timestamps(series1.index, offset='90min')
 
     # sending index with start end
-    op = bw.offset_timestamps(series1.index, offset='2min', date_from='2016-01-01 00:10:00')
-    assert op[0] == pd.to_datetime('2016-01-01 00:00:00')
-    assert op[1] == pd.to_datetime('2016-01-01 00:12:00')
+    op = bw.offset_timestamps(series1.index, offset='2min', date_from='2016-01-09 15:30:00')
+    assert op[0] == pd.to_datetime('2016-01-09 15:32:00')
+    assert op[1] == pd.to_datetime('2016-01-09 15:42:00')
 
-    op = bw.offset_timestamps(series1.index, '2min', date_to='2016-01-01 00:30:00')
-    assert op[3] == pd.to_datetime('2016-01-01 00:32:00')
-    assert op[4] == pd.to_datetime('2016-01-01 00:40:00')
+    op = bw.offset_timestamps(series1.index, '2min', date_to='2016-01-09 16:00:00')
+    assert op[3] == pd.to_datetime('2016-01-09 16:02:00')
+    assert op[4] == pd.to_datetime('2016-01-09 16:10:00')
 
-    op = bw.offset_timestamps(series1.index, '3min', date_from='2016-01-01 00:10:00', date_to='2016-01-01 00:30:00')
-    assert op[0] == pd.to_datetime('2016-01-01 00:00:00')
-    assert op[1] == pd.to_datetime('2016-01-01 00:13:00')
-    assert op[5] == pd.to_datetime('2016-01-01 00:50:00')
+    op = bw.offset_timestamps(series1.index, '3min', date_from='2016-01-09 15:40:00', date_to='2016-01-09 16:00:00')
+    assert op[0] == pd.to_datetime('2016-01-09 15:30:00')
+    assert op[1] == pd.to_datetime('2016-01-09 15:43:00')
+    assert op[5] == pd.to_datetime('2016-01-09 16:20:00')
 
-    op = bw.offset_timestamps(series1.index, '10min', date_from='2016-01-01 00:10:00', date_to='2016-01-01 00:30:00')
+    op = bw.offset_timestamps(series1.index, '10min', date_from='2016-01-09 15:40:00', date_to='2016-01-09 16:00:00')
     assert op[0] == series1.index[0]
     assert op[1] == series1.index[2]
 
@@ -223,3 +223,6 @@ def dummy_data_frame(start_date='2016-01-01T00:00:00', end_date='2016-12-31T11:5
 
     return dummy_df
 
+
+if __name__ == '__main__':
+    test_offset_timestamps()
