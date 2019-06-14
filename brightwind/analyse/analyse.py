@@ -23,7 +23,7 @@ from brightwind.analyse import plot as plt
 
 __all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
            'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage', 'basic_stats',
-           'twelve_by_24', 'TI', 'SectorRatio', 'Shear', 'calc_air_density']
+           'twelve_by_24', 'TI', 'wspd_ratio_by_dir_sector', 'Shear', 'calc_air_density']
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
@@ -61,7 +61,7 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     """
     :rtype: np.float64
     """
-    return (ref_value*slope) + offset
+    return (ref_value * slope) + offset
 
 
 def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]'):
@@ -105,9 +105,8 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     if return_data and not return_coverage:
         return plt.plot_monthly_means(df, ylbl=ylabel), df
     if return_coverage:
-        return plt.plot_monthly_means(df, covrg, ylbl=ylabel),  pd.concat([df, covrg], axis=1)
+        return plt.plot_monthly_means(df, covrg, ylbl=ylabel), pd.concat([df, covrg], axis=1)
     return plt.plot_monthly_means(df, ylbl=ylabel)
-
 
 
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
@@ -120,7 +119,7 @@ def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
     return monthly_df
 
 
-def momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
+def momm(data: pd.DataFrame, date_from: str = '', date_to: str = ''):
     """
     Calculates and returns long term reference speed. Accepts a DataFrame
     with timestamps as index column and another column with wind-speed. You can also specify
@@ -147,9 +146,9 @@ def _get_direction_bin_labels(sectors, direction_bins, zero_centred=True):
     mapper = dict()
     for i, lower_bound in enumerate(direction_bins[:sectors]):
         if i == 0 and zero_centred:
-            mapper[i+1] = '{0}-{1}'.format(direction_bins[-2], direction_bins[1])
+            mapper[i + 1] = '{0}-{1}'.format(direction_bins[-2], direction_bins[1])
         else:
-            mapper[i+1] = '{0}-{1}'.format(lower_bound, direction_bins[i+1])
+            mapper[i + 1] = '{0}-{1}'.format(lower_bound, direction_bins[i + 1])
     return mapper.values()
 
 
@@ -160,7 +159,7 @@ def _map_direction_bin(wdir, bins, sectors):
     else:
         kwargs['right'] = False
     bin_num = np.digitize([wdir], bins, **kwargs)[0]
-    if bin_num == sectors+1:
+    if bin_num == sectors + 1:
         bin_num = 1
     return bin_num
 
@@ -189,7 +188,7 @@ def distribution(var1_series, var2_series, var2_bin_array=np.arange(-0.5, 41, 1)
     var2_binned_series = pd.cut(var2_series, var2_bin_array, right=False, labels=var2_bin_labels).rename('variable_bin')
     data = pd.concat([var1_series.rename('data'), var2_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
-        return data.groupby(['variable_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
+        return data.groupby(['variable_bin'])['data'].count().rename('%frequency') / len(data) * 100.0
     else:
         return data.groupby(['variable_bin'])['data'].agg(aggregation_method)
 
@@ -254,19 +253,19 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
         direction_bin_array = utils.get_direction_bin_array(sectors)
         zero_centered = True
     else:
-        sectors = len(direction_bin_array)-1
+        sectors = len(direction_bin_array) - 1
         zero_centered = False
     if direction_bin_labels is None:
         direction_bin_labels = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
-    direction_binned_series = _binned_direction_series(direction_series, sectors, direction_bin_array)\
+    direction_binned_series = _binned_direction_series(direction_series, sectors, direction_bin_array) \
         .rename('direction_bin')
     data = pd.concat([var_series.rename('data'), direction_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
-        result = data.groupby(['direction_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
+        result = data.groupby(['direction_bin'])['data'].count().rename('%frequency') / len(data) * 100.0
     else:
         result = data.groupby(['direction_bin'])['data'].agg(aggregation_method)
 
-    for i in range(1, sectors+1):
+    for i in range(1, sectors + 1):
         if not (i in result.index):
             result[i] = 0.0
     result = result.sort_index()
@@ -303,7 +302,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         direction_bin_array = utils.get_direction_bin_array(sectors)
         zero_centered = True
     else:
-        sectors = len(direction_bin_array)-1
+        sectors = len(direction_bin_array) - 1
         zero_centered = False
     if direction_bin_labels is None:
         direction_bin_labels = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
@@ -315,9 +314,9 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         result = pd.crosstab(data.loc[:, 'variable_bin'], data.loc[:, 'direction_bin']) / len(data) * 100.0
     else:
         result = pd.crosstab(data.loc[:, 'variable_bin'], data.loc[:, 'direction_bin'])
-    for i in range(1, sectors+1):
+    for i in range(1, sectors + 1):
         if not (i in result.columns):
-            result.insert(i-1, i, 0.0)
+            result.insert(i - 1, i, 0.0)
     result.columns = direction_bin_labels
     result = result.sort_index()
     if return_data:
@@ -356,7 +355,7 @@ def time_continuity_gaps(data):
     indexes = data.dropna(how='all').index
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1], 'Date To': indexes.values.flatten()[1:]})
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
-    #Remove indexes where no days are lost before returning
+    # Remove indexes where no days are lost before returning
     return continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
 
 
@@ -490,7 +489,7 @@ def twelve_by_24(var_series, aggregation_method='mean', var_name_label=None, ret
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
     if return_data:
-        return plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method)),\
+        return plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method)), \
                pvt_tbl
     return plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method))
 
@@ -621,68 +620,76 @@ class TI:
         return graph
 
 
-class SectorRatio:
+def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
+    var_1_bounded = var_1[(var_1 >= min_var) & (var_1 < max_var)]
+    var_2_bounded = var_2[(var_2 >= min_var) & (var_2 < max_var)]
+    ratio = pd.concat([var_1_bounded.rename('var_1'), var_2_bounded.rename('var_2')], axis=1, join='inner')
 
-    def calc(wspd_1, wspd_2):
-        sec_rat = pd.concat([wspd_1[wspd_1 > 3].rename('speed_1'), wspd_2[wspd_2 > 3].rename('speed_2')],
-                            axis=1, join='inner')
-        return sec_rat['speed_2']/sec_rat['speed_1']
+    return ratio['var_2'] / ratio['var_1']
 
-    def by_sector(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None,
-                  boom_dir_1=-1, boom_dir_2=-1, return_data=False):
-        """
-        Accepts two speed series and one direction series and returns the speed ratio by sector in a table
 
-        :param wspd_1: First wind speed series. This is divisor series.
-        :type: wspd_1: pandas.Series
-        :param wspd_2: Second wind speed series, dividend
-        :type: wspd_2: pandas.Series
-        :param wdir: Series of wind directions
-        :type wdir: pandas.Series
-        :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
-        :type sectors: int
-        :param direction_bin_array: (Optional) Array of numbers where adjacent elements of array form a bin.
-        :param boom_dir_1: Boom direction in degrees of wspd_1. If top mounted leave default as -1.
-        :type boom_dir_1: float
-        :param boom_dir_2: Boom direction in degrees of wspd_2. If top mounted leave default as -1.
-        :type boom_dir_2: float
-        :param return_data:  Set to True if you want the data returned.
-        :type return_data: bool
-        :returns: A speed ratio plot showing average speed ratio by sector and scatter of individual data points. If
-            only a single boom_dir is specified the other boom is assumed to be top mounted.
+def wspd_ratio_by_dir_sector(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_array=None, boom_dir_1=-1,
+                             boom_dir_2=-1, return_data=False):
+    """
+    Calculates the wind speed ratio of two wind speed time series and plots this ratio, averaged by direction sector,
+    in a polar plot using a wind direction time series. The averaged ratio by sector can be optionally returned
+    in a pd.DataFrame.
 
-        **Example usage**
-        ::
-            import brightwind as bw
-            data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
+    If boom directions are specified, these will be overlayed on the plot. A boom direction of '-1' assumes top
+    mounted and so doesn't plot.
 
-            #For plotting both booms
-            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS, boom_dir_2=340, boom_dir_2=160)
+    :param wspd_1: First wind speed time series. This is divisor.
+    :type: wspd_1: pandas.Series
+    :param wspd_2: Second wind speed time series, dividend.
+    :type: wspd_2: pandas.Series
+    :param wdir: Series of wind directions
+    :type wdir: pandas.Series
+    :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
+    :type sectors: int
+    :param min_wspd: Minimum wind speed to be used.
+    :type: min_wpd: float
+    :param direction_bin_array: (Optional) Array of numbers where adjacent elements of array form a bin. This
+                                 overwrites the sectors.
+    :param boom_dir_1: Boom direction in degrees of wspd_1. If top mounted leave default as -1.
+    :type boom_dir_1: float
+    :param boom_dir_2: Boom direction in degrees of wspd_2. If top mounted leave default as -1.
+    :type boom_dir_2: float
+    :param return_data:  Set to True if you want the data returned.
+    :type return_data: bool
+    :returns: A wind speed ratio plot showing the average ratio by sector and scatter of individual data points.
+    :rtype: plot, pandas.DataFrame
 
-            #For plotting no booms
-            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS)
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.datasets.demo_data)
 
-            #If one boom is top mounted, say Spd40mN
-            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir=df.Dir38mS, boom_dir_2=160)
+        #For plotting both booms
+        bw.wspd_ratio_by_dir_sector(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, boom_dir_1=0, boom_dir_2=180)
 
-            #To use your custom direction bins, for example (0-45), (45-135), (135-180), (180-220), (220-360)
-            bw.SectorRatio.by_sector(df.Spd40mN, df.Spd60mN, wdir = df.Dir38mS,
-                direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=160, boom_dir_2=340)
+        #For plotting no booms
+        bw.wspd_ratio_by_dir_sector(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS)
 
-        """
-        sec_rat = SectorRatio.calc(wspd_1, wspd_2)
-        common_idxs = sec_rat.index.intersection(wdir.index)
-        sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
-                                                  aggregation_method='mean', direction_bin_array=direction_bin_array,
-                                                  direction_bin_labels=None).rename('Mean_Sector_Ratio').to_frame()
+        #If one boom is top mounted, say Spd80mS
+        bw.wspd_ratio_by_dir_sector(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, boom_dir_2=180)
 
-        if return_data:
-            return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs],
-                                         sec_rat_dist, [wspd_1.name, wspd_2.name],
-                                         boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2), sec_rat_dist
-        return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sec_rat_dist,
-                                     [wspd_1.name, wspd_2.name],
-                                     boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2)
+        #To use your custom direction bins, for example (0-45), (45-135), (135-180), (180-220), (220-360)
+        bw.wspd_ratio_by_dir_sector(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS,
+                                    direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=0, boom_dir_2=180)
+
+    """
+    sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
+    common_idxs = sec_rat.index.intersection(wdir.index)
+    sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
+                                              aggregation_method='mean', direction_bin_array=direction_bin_array,
+                                              direction_bin_labels=None).rename('Mean_Sector_Ratio').to_frame()
+    if return_data:
+        return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs],
+                                     sec_rat_dist, [wspd_1.name, wspd_2.name],
+                                     boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2), sec_rat_dist
+    return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sec_rat_dist,
+                                 [wspd_1.name, wspd_2.name],
+                                 boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2)
 
 
 class Shear:
@@ -724,8 +731,8 @@ class Shear:
         return plt.plot_12x24_contours(tab_12x24, var_name_label=var_name_label)
 
     def scale(alpha, wspd, height, height_to_scale_to):
-        scale_factor = (height_to_scale_to / height)**alpha
-        return wspd*scale_factor
+        scale_factor = (height_to_scale_to / height) ** alpha
+        return wspd * scale_factor
 
 
 def _calc_shear(wspds, heights, return_coeff=False) -> (np.array, float):
@@ -797,8 +804,8 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
     """
 
     temp = temperature
-    temp_kelvin = temp + 273.15     # to convert deg C to Kelvin.
-    pressure = pressure * 100       # to convert hPa to Pa
+    temp_kelvin = temp + 273.15  # to convert deg C to Kelvin.
+    pressure = pressure * 100  # to convert hPa to Pa
     ref_air_density = pressure / (specific_gas_constant * temp_kelvin)
 
     if elevation_ref is not None and elevation_site is not None:
