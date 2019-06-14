@@ -3,7 +3,6 @@ import brightwind as bw
 import pandas as pd
 import numpy as np
 
-
 wndspd = 8
 wndspd_df = pd.DataFrame([2, 13, np.NaN, 5, 8])
 wndspd_series = pd.Series([2, 13, np.NaN, 5, 8])
@@ -74,14 +73,14 @@ def test_get_data_resolution():
 
     # hourly series with one instance where difference between adjacent timestamps is 10 min
     series3 = pd.date_range('2010-04-15', '2010-05-01', freq='H').union(pd.date_range('2010-05-01 00:10:00', periods=20,
-                                                                                    freq='H'))
+                                                                                      freq='H'))
     with warnings.catch_warnings(record=True) as w:
         assert bw._get_data_resolution(series3).seconds == 3600
         assert len(w) == 1
 
-        
+
 def test_offset_timestamps():
-    series1 = bw.load_campbell_scientific(bw.datasets.demo_site_data)  # ['Spd80mS']
+    series1 = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
     # sending index with no start end
     bw.offset_timestamps(series1.index, offset='90min')
@@ -107,7 +106,7 @@ def test_offset_timestamps():
     # sending DataFrame with datetime index
     op = bw.offset_timestamps(series1, offset='-10min', date_from='2016-01-01 00:20:00')
     assert (op.iloc[1] == series1.iloc[1]).all()
-    assert len(op)+1 == len(series1)
+    assert len(op) + 1 == len(series1)
     assert (op.loc['2016-01-01 00:40:00'] == series1.loc['2016-01-01 00:50:00']).all()
 
     op = bw.offset_timestamps(series1, offset='-10min', date_from='2016-01-01 00:20:00', overwrite=True)
@@ -126,7 +125,7 @@ def test_offset_timestamps():
     # sending Series with datetime index
     op = bw.offset_timestamps(series1.Spd60mN, offset='-10min', date_from='2016-01-01 00:20:00')
     assert (op.iloc[1] == series1.Spd60mN.iloc[1]).all()
-    assert len(op)+1 == len(series1.Spd60mN)
+    assert len(op) + 1 == len(series1.Spd60mN)
     assert (op.loc['2016-01-01 00:40:00'] == series1.Spd60mN.loc['2016-01-01 00:50:00']).all()
 
     op = bw.offset_timestamps(series1.Spd60mN, offset='-10min', date_from='2016-01-01 00:20:00', overwrite=True)
@@ -184,7 +183,7 @@ def test_average_data_by_period():
 
     # test average wind speed for each month
     for i in range(0, 11):
-        assert average_monthly_speed.iloc[i].item() == i+1
+        assert average_monthly_speed.iloc[i].item() == i + 1
     # test average annual wind speed
     assert round(average_annual_speed.iloc[0].item(), 1) == 6.5
 
