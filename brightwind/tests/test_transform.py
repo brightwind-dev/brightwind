@@ -81,7 +81,7 @@ def test_get_data_resolution():
 
         
 def test_offset_timestamps():
-    series1 = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)  
+    series1 = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
     # sending index with no start end
     bw.offset_timestamps(series1.index, offset='90min')
@@ -223,6 +223,3 @@ def dummy_data_frame(start_date='2016-01-01T00:00:00', end_date='2016-12-31T11:5
 
     return dummy_df
 
-
-if __name__ == '__main__':
-    test_offset_timestamps()
