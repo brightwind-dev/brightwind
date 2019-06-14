@@ -622,10 +622,8 @@ class TI:
 
 def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
 
-    var_1_bounded = var_1[var_1 < max_var]
-    var_1_bounded = var_1_bounded[var_1_bounded > min_var]
-    var_2_bounded = var_2[var_2 < max_var]
-    var_2_bounded = var_2_bounded[var_2_bounded > min_var]
+    var_1_bounded = var_1[(var_1 >= min_var) & (var_1 < max_var)]
+    var_2_bounded = var_2[(var_2 >= min_var) & (var_2 < max_var)]
     ratio = pd.concat([var_1_bounded.rename('var_1'), var_2_bounded.rename('var_2')], axis=1, join='inner')
 
     return ratio['var_2'] / ratio['var_1']
