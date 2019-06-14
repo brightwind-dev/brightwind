@@ -13,14 +13,16 @@ def test_monthly_means():
     bw.monthly_means(bw.load_csv(bw.datasets.shell_flats_80m_csv).WS80mWS425NW_Avg, return_data=True)
     assert True
 
-def test_sector_ratio_by_sector():
+
+def test_wspd_ratio_by_dir_sector():
     data = bw.load_csv(bw.datasets.shell_flats_80m_csv)
-    bw.SectorRatio.by_sector(data['WS70mA100NW_Avg'], data['WS70mA100SE_Avg'], data['WD50mW200PNW_VAvg'],
+    bw.wspd_ratio_by_dir_sector(data['WS70mA100NW_Avg'], data['WS70mA100SE_Avg'], data['WD50mW200PNW_VAvg'],
                           sectors = 72, boom_dir_1 = 315, boom_dir_2 = 135,return_data=True)[1]
-    data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
-    bw.SectorRatio.by_sector(data.Spd40mN, data.Spd60mN, wdir=data.Dir38mS,
+    data = bw.load_csv(bw.datasets.demo_data)
+    bw.wspd_ratio_by_dir_sector(data.Spd40mN, data.Spd60mN, wdir=data.Dir38mS,
                              direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=160, boom_dir_2=340)
     assert True
+
 
 def test_basic_stats():
     data = bw.load_csv(bw.datasets.shell_flats_80m_csv)
@@ -28,6 +30,7 @@ def test_basic_stats():
     bs2 = bw.basic_stats(data['WS70mA100NW_Avg'])
     assert (bs2['count']==58874.0).bool() and((bs2['mean']-9.169382)<1e-6).bool() and ((bs2['std']-4.932851)<1e-6).bool()\
            and (bs2['max']==27.66).bool() and (bs2['min'] == 0.0).bool()
+
 
 def test_time_continuity_gaps():
     import pandas as pd
@@ -50,6 +53,7 @@ def test_twelve_by_24():
     graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method=custom_agg, return_data=True)
 
     assert True
+
 
 def test_TI_twelve_by_24():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
@@ -87,3 +91,4 @@ def test_calc_air_density():
     assert abs(bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200) - 1.203) < 1e-3
     assert (abs(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])) -
                pd.Series([1.225, 1.208, 1.326, 1.059])) < 1e-3).all()
+
