@@ -372,8 +372,7 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
                direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True,
-               plot_bins=[0, 3, 6, 9, 12, 15, 41],
-               plot_labels=['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s'], return_data=False):
+               plot_bins=None, plot_labels=None, return_data=False):
     """
     Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
     direction are binned
