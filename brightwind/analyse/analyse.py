@@ -23,7 +23,7 @@ from brightwind.analyse import plot as plt
 
 __all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
            'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage', 'basic_stats',
-           'twelve_by_24', 'TI', 'SectorRatio', 'Shear']
+           'twelve_by_24', 'TI', 'wspd_ratio_by_dir_sector', 'Shear', 'calc_air_density']
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
@@ -119,7 +119,7 @@ def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
     return monthly_df
 
 
-def momm(data: pd.DataFrame, date_from: str='', date_to: str=''):
+def momm(data: pd.DataFrame, date_from: str = '', date_to: str = ''):
     """
     Calculates and returns long term reference speed. Accepts a DataFrame
     with timestamps as index column and another column with wind-speed. You can also specify
@@ -514,7 +514,7 @@ def time_continuity_gaps(data):
     indexes = data.dropna(how='all').index
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1], 'Date To': indexes.values.flatten()[1:]})
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
-    # Remove indexes where no days are lost before returning
+    #Remove indexes where no days are lost before returning
     return continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
 
 
@@ -667,7 +667,6 @@ class TI:
 
         :rtype: pandas.DataFrame
 
-
         """
         ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
         ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
@@ -734,7 +733,7 @@ class TI:
         :rtype: pandas.DataFrame
 
         """
-        ti = pd.concat([wspd.rename('wdspd'), wspd_std.rename('wdspd_std'), wdir.rename('wddir')], axis=1,
+        ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std'), wdir.rename('wdir')], axis=1,
                        join='inner')
         ti = ti[ti['wspd'] >= min_speed]
         ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
@@ -765,51 +764,77 @@ class TI:
         return graph
 
 
-class SectorRatio:
+def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
 
-    @staticmethod
-    def calc(wspd_1, wspd_2):
-        sec_rat = pd.concat([wspd_1[wspd_1 > 3].rename('speed_1'), wspd_2[wspd_2 > 3].rename('speed_2')],
-                            axis=1, join='inner')
-        return sec_rat['speed_2']/sec_rat['speed_1']
+    var_1_bounded = var_1[(var_1 >= min_var) & (var_1 < max_var)]
+    var_2_bounded = var_2[(var_2 >= min_var) & (var_2 < max_var)]
+    ratio = pd.concat([var_1_bounded.rename('var_1'), var_2_bounded.rename('var_2')], axis=1, join='inner')
 
-    @staticmethod
-    def by_sector(wspd_1, wspd_2, wdir, sectors=72, direction_bin_array=None,
-                  boom_dir_1=-1, boom_dir_2=-1, return_data=False):
-        """
-        Accepts two speed series and one direction series and returns the speed ratio by sector
-        in a table
+    return ratio['var_2'] / ratio['var_1']
 
-        :param wspd_1: First wind speed series. This is divisor series.
-        :type: wspd_1: pandas.Series
-        :param wspd_2: Second wind speed series
-        :type: wspd_2: pandas.Series
-        :param wdir: Series of wind directions
-        :type wdir: pandas.Series
-        :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
-        :type sectors: int
-        :param direction_bin_array:
-        :param boom_dir_1: Boom direction in degrees of speed_col_name_1.
-        :param boom_dir_2: Boom direction in degrees of speed_col_name_2.
-        :param return_data:  Set to True if you want the data returned.
-        :type return_data: bool
-        :returns: A speed ratio plot showing average speed ratio by sector and scatter of individual datapoints.
 
-        """
-        sec_rat = SectorRatio.calc(wspd_1, wspd_2)
-        common_idxs = sec_rat.index.intersection(wdir.index)
-        sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
-                                                  aggregation_method='mean', direction_bin_array=direction_bin_array,
-                                                  direction_bin_labels=None, return_data=True)[-1].rename\
-                                                    ('Mean_Sector_Ratio').to_frame()
+def wspd_ratio_by_dir_sector(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_array=None, boom_dir_1=-1,
+                             boom_dir_2=-1, return_data=False):
+    """
+    Calculates the wind speed ratio of two wind speed time series and plots this ratio, averaged by direction sector,
+    in a polar plot using a wind direction time series. The averaged ratio by sector can be optionally returned
+    in a pd.DataFrame.
 
-        if return_data:
-            return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs],
-                                         sec_rat_dist, [wspd_1.name, wspd_2.name],
-                                         boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2), sec_rat_dist
-        return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sec_rat_dist,
-                                     [wspd_1.name, wspd_2.name],
-                                     boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2)
+    If boom directions are specified, these will be overlayed on the plot. A boom direction of '-1' assumes top
+    mounted and so doesn't plot.
+
+    :param wspd_1: First wind speed time series. This is divisor.
+    :type: wspd_1: pandas.Series
+    :param wspd_2: Second wind speed time series, dividend.
+    :type: wspd_2: pandas.Series
+    :param wdir: Series of wind directions
+    :type wdir: pandas.Series
+    :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
+    :type sectors: int
+    :param min_wspd: Minimum wind speed to be used.
+    :type: min_wpd: float
+    :param direction_bin_array: (Optional) Array of numbers where adjacent elements of array form a bin. This
+                                 overwrites the sectors.
+    :param boom_dir_1: Boom direction in degrees of wspd_1. If top mounted leave default as -1.
+    :type boom_dir_1: float
+    :param boom_dir_2: Boom direction in degrees of wspd_2. If top mounted leave default as -1.
+    :type boom_dir_2: float
+    :param return_data:  Set to True if you want the data returned.
+    :type return_data: bool
+    :returns: A wind speed ratio plot showing the average ratio by sector and scatter of individual data points.
+    :rtype: plot, pandas.DataFrame
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.datasets.demo_data)
+
+        #For plotting both booms
+        bw.wspd_ratio_by_dir_sector(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, boom_dir_1=0, boom_dir_2=180)
+
+        #For plotting no booms
+        bw.wspd_ratio_by_dir_sector(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS)
+
+        #If one boom is top mounted, say Spd80mS
+        bw.wspd_ratio_by_dir_sector(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, boom_dir_2=180)
+
+        #To use your custom direction bins, for example (0-45), (45-135), (135-180), (180-220), (220-360)
+        bw.wspd_ratio_by_dir_sector(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS,
+                                    direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=0, boom_dir_2=180)
+
+    """
+    sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
+    common_idxs = sec_rat.index.intersection(wdir.index)
+    sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
+                                              aggregation_method='mean', direction_bin_array=direction_bin_array,
+                                              direction_bin_labels=None).rename('Mean_Sector_Ratio').to_frame()
+    if return_data:
+        return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs],
+                                     sec_rat_dist, [wspd_1.name, wspd_2.name],
+                                     boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2), sec_rat_dist
+    return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sec_rat_dist,
+                                 [wspd_1.name, wspd_2.name],
+                                 boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2)
 
 
 class Shear:
@@ -881,3 +906,59 @@ def _calc_shear(wspds, heights, return_coeff=False) -> (np.array, float):
     if return_coeff:
         return coeffs[0], np.exp(coeffs[1])
     return coeffs[0]
+
+
+def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=None, lapse_rate=-0.113,
+                     specific_gas_constant=286.9):
+    """
+    Calculates air density for a given temperature and pressure and extrapolates that to the site if both reference
+    and site elevations are given.
+
+    :param temperature: Temperature values in degree Celsius
+    :type temperature: float or pandas.Series or pandas.DataFrame
+    :param pressure: Pressure values in hectopascal, hPa, (1,013.25 hPa = 101,325 Pa = 101.325 kPa =
+                    1 atm = 1013.25 mbar)
+    :type pressure: float or pandas.Series or pandas.DataFrame
+    :param elevation_ref: Elevation, in meters, of the reference temperature and pressure location.
+    :type elevation_ref: Floating point value (decimal number)
+    :param elevation_site: Elevation, in meters, of the site location to calculate air density for.
+    :type elevation_site: Floating point values (decimal number)
+    :param lapse_rate: Air density lapse rate kg/m^3/km, default is -0.113
+    :type lapse_rate: Floating point value (decimal number)
+    :param specific_gas_constant: Specific gas constant, R, for humid air J/(kg.K), default is 286.9
+    :type specific_gas_constant:  Floating point value (decimal number)
+    :return: Air density in kg/m^3
+    :rtype: float or pandas.Series depending on the input
+
+        **Example usage**
+    ::
+        import brightwind as bw
+
+        #For a series of air densities
+        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        air_density = bw.calc_air_density(data.T2m, data.P2m)
+
+        #For a single value
+        bw.calc_air_density(15, 1013)
+
+        #For a single value with ref and site elevation
+        bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200)
+
+
+
+    """
+
+    temp = temperature
+    temp_kelvin = temp + 273.15     # to convert deg C to Kelvin.
+    pressure = pressure * 100       # to convert hPa to Pa
+    ref_air_density = pressure / (specific_gas_constant * temp_kelvin)
+
+    if elevation_ref is not None and elevation_site is not None:
+        site_air_density = round(ref_air_density + (((elevation_site - elevation_ref) / 1000) * lapse_rate), 3)
+        return site_air_density
+    elif elevation_site is None and elevation_ref is not None:
+        raise TypeError('elevation_site should be a number')
+    elif elevation_site is not None and elevation_ref is None:
+        raise TypeError('elevation_ref should be a number')
+    else:
+        return ref_air_density

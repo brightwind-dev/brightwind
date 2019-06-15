@@ -322,11 +322,11 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(ti.index))
-    ax.plot(np.append(radians, radians[0]), ti.append(ti.iloc[0])['Mean_TI'], c=bw_colors('green'), linewidth=4,
+    ax.plot(np.append(radians, radians[0]), ti.append(ti.iloc[0])['Mean_TI'], color=bw_colors('green'), linewidth=4,
             figure=fig)
     maxlevel = ti['Mean_TI'].max() + 0.1
     ax.set_ylim(0, maxlevel)
-    ax.scatter(np.radians(wdir), turbulence, c=bw_colors('asphault'), alpha=0.3, s=1)
+    ax.scatter(np.radians(wdir), turbulence, color=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
 
@@ -339,11 +339,11 @@ def plot_shear_by_sector(shear, wdir, shear_dist):
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(shear_dist.index))
     ax.plot(np.append(radians, radians[0]), shear_dist.append(shear_dist.iloc[0])['Mean_Shear'],
-            c=bw_colors('green'), linewidth=4)
+            color=bw_colors('green'), linewidth=4)
     # ax.set_title('Shear by Direction')
     maxlevel = shear_dist['Mean_Shear'].max() + 0.1
     ax.set_ylim(0, maxlevel)
-    ax.scatter(np.radians(wdir), shear, c=bw_colors('asphault'), alpha=0.3, s=1)
+    ax.scatter(np.radians(wdir), shear, color=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
 
