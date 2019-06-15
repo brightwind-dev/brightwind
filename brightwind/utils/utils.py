@@ -18,7 +18,7 @@
 import numpy as np
 import pandas as pd
 
-_all__ = ['_slice_data']
+__all__ = ['slice_data']
 
 
 def _range_0_to_360(direction):
@@ -55,7 +55,7 @@ def _get_dir_sector_mid_pts(sector_idx):
     return sector_mid_pts
 
 
-def _slice_data(data, date_from: str='', date_to: str=''):
+def slice_data(data, date_from: str='', date_to: str=''):
     """
     Returns the slice of data between the two date ranges,
     Date format: YYYY-MM-DD
