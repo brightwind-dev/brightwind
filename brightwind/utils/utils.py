@@ -16,6 +16,7 @@
 
 
 import numpy as np
+import pandas as pd
 
 _all__ = ['_slice_data']
 
@@ -60,17 +61,31 @@ def _slice_data(data, date_from: str='', date_to: str=''):
     Date format: YYYY-MM-DD
     """
     import datetime
-    if (isinstance(date_from, datetime.date) or isinstance(date_from, datetime.datetime)) \
-            and (isinstance(date_to, datetime.date) or isinstance(date_to, datetime.datetime)):
-        sliced_data = data.loc[date_from:date_to, :]
-    elif date_from and date_to:
-        import datetime as dt
-        date_from = dt.datetime.strptime(date_from[:10], "%Y-%m-%d")
-        date_to = dt.datetime.strptime(date_to[:10], "%Y-%m-%d")
-        sliced_data = data.loc[date_from:date_to, :]
-    else:
-        return data
-    return sliced_data
+    date_from = pd.to_datetime(date_from, format="%Y-%m-%d")
+    date_to = pd.to_datetime(date_to, format="%Y-%m-%d")
+
+    if pd.isnull(date_from):
+        date_from = data.index[0]
+
+    if pd.isnull(date_to):
+        date_to = data.index[-1]
+
+    if date_to < date_from:
+        raise ValueError('date_to must be greater than date_from')
+
+    return data.loc[date_from:date_to, :]
+
+    # if (isinstance(date_from, datetime.date) or isinstance(date_from, datetime.datetime)) \
+    #         and (isinstance(date_to, datetime.date) or isinstance(date_to, datetime.datetime)):
+    #     sliced_data = data.loc[date_from:date_to, :]
+    # elif date_from and date_to:
+    #     import datetime as dt
+    #     date_from = dt.datetime.strptime(date_from[:10], "%Y-%m-%d")
+    #     date_to = dt.datetime.strptime(date_to[:10], "%Y-%m-%d")
+    #     sliced_data = data.loc[date_from:date_to, :]
+    # else:
+    #     return data
+    # return sliced_data
 
 
 def is_float_or_int(value):

@@ -603,37 +603,62 @@ def basic_stats(data):
         return data.to_frame().describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
 
 
-def twelve_by_24(var_series, aggregation_method='mean', return_data=False, var_name=''):
+def twelve_by_24(var_series, aggregation_method='mean', var_name_label=None, return_data=False):
     """
-    Accepts a variable series and returns 12x24 (months x hours) table for the variable.
-    :param var_series:
-    :param aggregation_method: 'mean' by default calculates mean of the variable passed. Can change it to
-            'sum', 'std', 'min', 'max', 'percentile' for sum, standard deviation, minimum, maximum, percentile
-             of the variable respectively. Can also pass a function.
+    Accepts a variable series and returns a plot of 12x24 (12 months x 24 hours) for the 'mean' of the variable with
+    the table of data as an optional return. The aggregation_method 'mean' can be can be changed as outlined below.
+    :param var_series: Variable to compute 12x24 for
+    :type var_series: pandas.Series
+    :param aggregation_method: 'mean' by default, calculates mean of the variable passed. Can change it to
+            'sum', 'std', 'min', 'max', for sum, standard deviation, minimum, maximum. Can also pass a function.
     :type aggregation_method: str or function
+    :param var_name_label: (Optional) Label to appear on the plot, can be name and unit of the variable
+    :type var_name_label: str
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
-    :param var_name: Name and units of the variable to appear on the plot
-    :type var_name: str
-    :return: A DataFrame with hours as row labels and months as column labels.
+    :return: A plot with gradients showing , also a 12x24 table with hours as row labels and months as column labels
+        when return_data is True
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+        # For 12x24 table of means
+        graph, table12x24 = bw.twelve_by_24(df.Spd40mN, var_name_label='wind speed [m/s]', return_data = True)
+
+        # For 12x24 table of sums
+        graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method='sum')
+
+        #For a custom aggregation_method
+        def custom_agg(x):
+            return x.mean()+(2*x.std())
+
+        graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method=custom_agg, return_data=True)
 
     """
+
+    if isinstance(var_series, pd.DataFrame):
+        var_series = var_series[var_series.columns[0]]
+    if isinstance(var_series, pd.Series) and var_name_label is None:
+        var_name_label = var_series.name
     table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
                              var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
-
     pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
+    if not isinstance(aggregation_method, str):
+        aggregation_method = aggregation_method.__name__
     if return_data:
-        return plt.plot_12x24_contours(pvt_tbl, title=var_name),\
+        return plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method)),\
                pvt_tbl
-    return plt.plot_12x24_contours(pvt_tbl, title=var_name)
+    return plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method))
 
 
 class TI:
 
     @staticmethod
     def calc(wspd, wspd_std):
-        ti = pd.concat([wspd[wspd > 3].rename('wdspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
-        return ti['wspd_std'] / ti['wdspd']
+        ti = pd.concat([wspd[wspd > 3].rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
+        return ti['wspd_std'] / ti['wspd']
 
     @staticmethod
     def by_speed(wspd, wspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
@@ -779,7 +804,7 @@ def wspd_ratio_by_dir_sector(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direc
     Calculates the wind speed ratio of two wind speed time series and plots this ratio, averaged by direction sector,
     in a polar plot using a wind direction time series. The averaged ratio by sector can be optionally returned
     in a pd.DataFrame.
-
+    
     If boom directions are specified, these will be overlayed on the plot. A boom direction of '-1' assumes top
     mounted and so doesn't plot.
 
@@ -868,12 +893,12 @@ class Shear:
         else:
             return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
 
-    def twelve_by_24(wspds, heights, min_speed=3, return_data=False, var_name='Shear'):
+    def twelve_by_24(wspds, heights, min_speed=3, return_data=False, var_name_label='Shear'):
         tab_12x24 = twelve_by_24(wspds[(wspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights, axis=1),
                                  return_data=True)[1]
         if return_data:
-            return plt.plot_12x24_contours(tab_12x24, title=var_name), tab_12x24
-        return plt.plot_12x24_contours(tab_12x24, title=var_name)
+            return plt.plot_12x24_contours(tab_12x24, var_name_label=var_name_label), tab_12x24
+        return plt.plot_12x24_contours(tab_12x24, var_name_label=var_name_label)
 
     def scale(alpha, wspd, height, height_to_scale_to):
         scale_factor = (height_to_scale_to / height)**alpha

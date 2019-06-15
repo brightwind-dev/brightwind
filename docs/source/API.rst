@@ -1,6 +1,7 @@
 .. _api_ref:
 
 
+
 API reference
 =============
 
@@ -87,3 +88,14 @@ Transform
     offset_wind_direction
     _get_data_resolution
     offset_timestamps
+
+
+Export
+-----------
+
+.. currentmodule:: brightwind.export.export
+
+.. autosummary::
+    :toctree:
+
+    export_tab_file

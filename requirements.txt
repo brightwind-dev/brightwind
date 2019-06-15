@@ -1,7 +1,7 @@
 pandas     == 0.24.0
 numpy      == 1.13.3
 sklearn    == 0.19.1
-matplotlib == 2.2.0
+matplotlib == 3.0.3
 requests   == 2.20.0
 scipy      == 0.19.1
 pytest     == 4.1.0
