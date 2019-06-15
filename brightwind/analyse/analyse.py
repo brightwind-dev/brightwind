@@ -298,7 +298,7 @@ def _binned_direction_series(direction_series, sectors, direction_bin_array=None
     return direction_series.dropna().apply(_map_direction_bin, bins=direction_bin_array, sectors=sectors)
 
 
-def _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels):
+def _get_direction_binned_series(sectors, direction_series, direction_bin_array=None, direction_bin_labels=None):
     if direction_bin_array is None:
         direction_bin_array = utils.get_direction_bin_array(sectors)
         zero_centered = True
@@ -315,21 +315,29 @@ def _get_direction_binned_series(sectors, direction_series, direction_bin_array,
 def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
                                direction_bin_array=None, direction_bin_labels=None, return_data=False):
     """
-    Accepts a series of a variable and  wind direction. Computes the distribution of first variable with respect to
-    wind direction sectors
+    Derive the distribution of a time series variable with respect to wind direction sectors. For example, if time
+    series of wind speeds is sent, it produces a wind rose.
 
-    :param var_series: Series of the variable whose distribution we need to find
-    :param direction_series: Series of wind directions between [0-360]
-    :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that
-            behaviour specify direction_bin_array, which overwrites sectors
+    :param var_series: Time series of the variable whose distribution we need to find.
+    :type var_series:  pd.Series
+    :param direction_series: Time series of wind directions between [0-360].
+    :type direction_series:  pd.Series
+    :param sectors: Number of direction sectors to bin in to. The first sector is centered at 0 by default. To change
+                    that behaviour specify direction_bin_array, which overwrites sectors.
+    :type sectors: int
     :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
-            describe, a custom function, etc. Computes frequency in percentages by default
+            %frequency or a custom function. Computes frequency in percentages by default.
+    :type aggregation_method: str
     :param direction_bin_array: Optional, to change default behaviour of first sector centered at 0 assign an array of
-            bins to this
-    :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
-            labels of the format '30-90' by default, overwrites sectors
-    :returns: A DataFrame/series with wind direction sector as row indexes and columns with statistics chosen by
-            aggregation_method
+            bins to this.
+    :type direction_bin_array: list, array, None
+    :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. Uses string
+            labels of the format '30-90' by default. Overwrites sectors.
+    :type direction_bin_labels: list, array, None
+    :param return_data: Set to True if you want the data returned.
+    :type return_data: bool
+    :returns: A plot of a rose and a DataFrame/Series with wind direction sector as row indexes and columns with
+                statistics chosen by aggregation_method.
 
     **Example usage**
     ::
@@ -349,6 +357,8 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
             return_data=True)
 
     """
+    var_series = _convert_df_to_series(var_series)
+    direction_series = _convert_df_to_series(direction_series)
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
     direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
@@ -439,6 +449,8 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
             plot_labels=None, return_data=True)
 
     """
+    var_series = _convert_df_to_series(var_series)
+    direction_series = _convert_df_to_series(direction_series)
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
     direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
@@ -457,16 +469,15 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     result.columns = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
     result = result.sort_index()
 
-    #Creating a graph before renaming the direction labels, to help identify sectors while plotting
+    # Creating a graph before renaming the direction labels, to help identify sectors while plotting
     graph = plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
-                                             percent_symbol=freq_as_percentage)
+                                        percent_symbol=freq_as_percentage)
 
     if direction_bin_labels is not None:
         result.columns = direction_bin_labels
     if var_bin_labels is not None:
         result.index = var_bin_labels
 
-    # return result
     if return_data:
         return graph, result
     else:
@@ -503,7 +514,7 @@ def time_continuity_gaps(data):
     indexes = data.dropna(how='all').index
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1], 'Date To': indexes.values.flatten()[1:]})
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
-    #Remove indexes where no days are lost before returning
+    # Remove indexes where no days are lost before returning
     return continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
 
 
