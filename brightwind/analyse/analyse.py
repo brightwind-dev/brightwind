@@ -20,6 +20,7 @@ import numpy as np
 from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as plt
+import matplotlib
 
 __all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
            'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage', 'basic_stats',
@@ -854,6 +855,7 @@ def wspd_ratio_by_dir_sector(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direc
                                               aggregation_method='mean', direction_bin_array=direction_bin_array,
                                               direction_bin_labels=None,return_data=True)
 
+    matplotlib.pyplot.close()
     sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
     if return_data:
         return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs],
