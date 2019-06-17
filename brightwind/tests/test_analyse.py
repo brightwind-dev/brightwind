@@ -3,6 +3,7 @@ import brightwind as bw
 import pandas as pd
 
 
+
 def test_monthly_means():
     #Load data
     bw.monthly_means(bw.load_csv(bw.datasets.shell_flats_80m_csv))
@@ -65,6 +66,7 @@ def test_TI_twelve_by_24():
     assert 1 == 1
 
 
+
 def test_coverage():
     data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
@@ -74,6 +76,81 @@ def test_coverage():
     data_hourly = bw.coverage(data.Spd80mN, period='1M')
     # monthly_coverage of variance
     data_hourly = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')
+    assert True
+
+
+def test_distribution_by_dir_sector():
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+    rose = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS)
+
+    rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS,
+                                                       direction_bin_array=[0, 90, 130, 200, 360],
+                                                       direction_bin_labels=['northerly', 'easterly', 'southerly',
+                                                                             'westerly'],
+                                                       return_data=True)
+
+
+    rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std',
+                                                       return_data=True)
+
+
+def test_freq_table():
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+    graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
+
+    # Calling with user defined dir_bin labels BUGGY
+    graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, direction_bin_array=[0, 90, 160, 210, 360],
+                           direction_bin_labels=['lowest','lower','mid','high'], return_data=True)
+    assert (tab.columns==['lowest','lower','mid','high']).all()
+
+    tab = bw.freq_table(df.Spd40mN, df.Dir38mS, plot_bins=[0, 3, 6, 9, 12, 15, 41],
+                        plot_labels=['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s'],
+                        return_data=True)
+    #Calling with user defined var_bin labels
+    graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, var_bin_array=[0, 10, 15, 50],
+                               var_bin_labels=['low', 'mid', 'high'], plot_bins=None, plot_labels=None,
+                               return_data=True)
+
+    tab = bw.freq_table(df.Spd40mN, df.Dir38mS, var_bin_array=[0, 8, 14, 41], var_bin_labels=['low', 'mid', 'high'],
+                        direction_bin_array=[0, 90, 130, 200, 360],
+                        direction_bin_labels=['northerly', 'easterly', 'southerly', 'westerly'],
+                        plot_bins=None, plot_labels=None, return_data=True)
+                        # var_bin_labels=['operating','shutdow','dangerous'],
+
+def test_distribution():
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+    # For distribution of %frequency of wind speeds
+    dist = bw.distribution(df.Spd40mN, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
+
+    # For distribution of mean temperature
+    temp_dist = bw.distribution(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method='mean')
+
+    # For custom aggregation function
+    def custom_agg(x):
+        return x.mean() + (2 * x.std())
+
+    temp_dist = bw.distribution(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method=custom_agg)
+
+    # For distribution of mean wind speeds with respect to temperature
+    spd_dist = bw.distribution(df.Spd40mN, var_to_bin_against=df.T2m,
+                               bins=[-10, 4, 12, 18, 30],
+                               bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
+
+def test_TI_by_speed():
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    TI_by_speed = bw.TI.by_speed(df.Spd80mN, df.Spd80mNStd)
+
+    #60 percentile
+    TI_by_speed_60 = bw.TI.by_speed(df.Spd80mN, df.Spd80mNStd, percentile=60, return_data=True)
+
+    #bin_array
+    TI_by_speed = bw.TI.by_speed(df.Spd80mN, df.Spd80mNStd, speed_bin_array=[0, 10, 14, 51],
+                                      speed_bin_labels=['low', 'mid', 'high'], return_data=True)
+    # assert TI_by_speed.index == ['low', 'mid', 'high']
+    assert True
 
 
 def test_calc_air_density():

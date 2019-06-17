@@ -141,7 +141,15 @@ def test_offset_timestamps():
     assert (op.loc['2016-01-01 00:40:00'] == series1.Spd60mN.loc['2016-01-01 00:30:00']).all()
     assert len(op) + 1 == len(series1.Spd60mN)
 
-
+    
+def test_freq_table():
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    temp_rose, temp_freq_tab = bw.freq_table(df.T2m, df.Dir78mS, var_bin_array=[-10, 0, 10, 20],
+                                             var_bin_labels=['low', 'mid', 'high'],
+                                             return_data=True)
+    assert 1==1
+    
+    
 def test_average_data_by_period():
     data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
@@ -221,4 +229,3 @@ def dummy_data_frame(start_date='2016-01-01T00:00:00', end_date='2016-12-31T11:5
     dummy_df.set_index('Timestamp', inplace=True)
 
     return dummy_df
-
