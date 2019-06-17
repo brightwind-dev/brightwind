@@ -782,8 +782,8 @@ class TI:
             return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
 
     @staticmethod
-    def twelve_by_24(wspd, wspd_std, return_data=False, var_name='Turbulence Intensity'):
-        tab_12x24, graph = twelve_by_24(TI.calc(wspd, wspd_std), return_data=True, var_name=var_name)
+    def twelve_by_24(wspd, wspd_std, return_data=False, var_name_label='Turbulence Intensity'):
+        tab_12x24, graph = twelve_by_24(TI.calc(wspd, wspd_std), return_data=True, var_name_label=var_name_label)
         if return_data:
             return tab_12x24, graph
         return graph
