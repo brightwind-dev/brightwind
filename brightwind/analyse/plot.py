@@ -18,15 +18,13 @@ import matplotlib.pyplot as plt
 import calendar
 import numpy as np
 import pandas as pd
-import math
 from brightwind.utils import utils
-import os
 import matplotlib as mpl
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
 
 
-__all__ = ['plot_timeseries', 'plot_freq_distribution', 'plot_rose']
+__all__ = ['plot_timeseries']
 
 
 try:
@@ -147,7 +145,7 @@ def plot_timeseries(data, date_from='', date_to=''):
         data_to_slice = data.copy(deep=False).to_frame()
     else:
         data_to_slice = data.copy()
-    sliced_data = utils._slice_data(data_to_slice, date_from, date_to)
+    sliced_data = utils.slice_data(data_to_slice, date_from, date_to)
     return sliced_data.plot().get_figure()
 
 

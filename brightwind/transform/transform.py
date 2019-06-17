@@ -20,7 +20,7 @@ import math
 from brightwind.utils import utils
 
 __all__ = ['average_data_by_period', 'adjust_slope_offset', 'scale_wind_speed', 'offset_wind_direction',
-           '_get_data_resolution', 'offset_timestamps']
+           'offset_timestamps']
 
 
 def _compute_wind_vector(wspd, wdir):
