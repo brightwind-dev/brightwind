@@ -1,0 +1,62 @@
+
+# Basic Analysis
+***
+
+## Using the brightwind library in Jupyter Notebook
+
+* With brightwind installed and opened in the Jupyter notebook, you can begin to analyse data using a wide range of functions which are displayed when you type:
+```
+bw.
+```
+and press 'Tab'.
+<br>
+<br>
+* Once you have selected which function from the list to use, click on the function name and insert and open parenthesis, i.e:
+```
+bw.monthly_means() 
+```
+* To view the list of necessary inputs for this function, press ‘Shift’ and ‘Tab’ simultaneously. A drop-down box containing the signature and docstring of the function will be displayed. The docstring explains the required inputs and their formats for each function. The docstring displayed also gives an example usage of the function and some other helpful information about its use. To view the docstring, click on the ‘+’ sign: 
+
+![Bw_function.png](attachment:Bw_function.png)
+<br>
+* The signature section of the docstring explains the arguments of the function. Some arguments are required for the function to run, i.e. data in <em>monthly_means</em>, while other named arguments have default values defined and need not be specified, i.e. <em>return_data</em>  in <em>monthly_means</em> which has a default value of <em>False</em>.
+
+![Function_Docstring.png](attachment:Function_Docstring.png)
+
+***
+
+## Importing Data
+* Most data analysis will involve the importing of data from excel spreadsheets, .csv or other file types. To import data into the brightwind workspace from a .csv file, we can use the <em>load_csv</em> function.
+<br>
+
+* For example, to import a demo .csv file such as the  <em>MERRA-2_SE_2000-01-01_2017-06-30.csv</em> distributed with brightwind, the <em>load_csv</em> function is used. If the address of this file is <em> C:\Users\myuser\brightwind\datasets\demo\MERRA-2_SE_2000-01-01_2017-06-30.csv</em>, to load it into a data frame called <em> mydata</em>, type:
+
+```
+mydata = bw.load_csv(r’C:\Users\myuser\brightwind\datasets\demo\MERRA-2_SE_2000-01-01_2017-06-30.csv’) 
+
+```
+and press ‘Shift’ and ‘Enter’.
+
+* This will load the data form the excel spreadsheet into a pandas DataFrame, which is essentially a spreadsheet in the Python environment. To view the DataFrame, type: 
+```
+mydata
+```
+and press ‘Shift’ + ‘Enter’. Something like this should be displayed:
+
+ ![DataFrame_Example.png](attachment:DataFrame_Example.png)
+
+<br>
+
+* Once this data is loaded into the brightwind environment, it can be used for data analysis within brightwind functions. Many of these functions require data in the form of a DataFrame or a Series (a one-dimensional data frame).
+<br>
+<br>
+* For example, to calculate the monthly mean wind speeds from the first column of mydata, i.e the <em>WS50m_m/s</em>  column, for the first six months of the year, type:
+```
+bw.monthly_means(mydata.loc[:'2000-06-30 23:00:00','WS50m_m/s'])
+```
+
+*** The <em>.loc</em> function simply defines the range of rows and columns from the <em>mydata</em> data frame which are to be included in this function execution. This function should return a series of graphs, as shown below: 
+
+
+
+![Graph.png](attachment:Graph.png)
