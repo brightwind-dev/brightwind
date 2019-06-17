@@ -135,7 +135,7 @@ def momm(data: pd.DataFrame, date_from: str = '', date_to: str = ''):
         momm_data = data.to_frame()
     else:
         momm_data = data.copy()
-    sliced_data = utils._slice_data(momm_data, date_from, date_to)
+    sliced_data = utils.slice_data(momm_data, date_from, date_to)
     output = _mean_of_monthly_means_basic_method(sliced_data)
     if output.shape == (1, 1):
         return output.values[0][0]
