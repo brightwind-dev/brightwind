@@ -850,9 +850,11 @@ def wspd_ratio_by_dir_sector(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direc
     """
     sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
     common_idxs = sec_rat.index.intersection(wdir.index)
-    sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
+    sec_rat_plot, sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
                                               aggregation_method='mean', direction_bin_array=direction_bin_array,
-                                              direction_bin_labels=None).rename('Mean_Sector_Ratio').to_frame()
+                                              direction_bin_labels=None,return_data=True)
+
+    sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
     if return_data:
         return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs],
                                      sec_rat_dist, [wspd_1.name, wspd_2.name],
