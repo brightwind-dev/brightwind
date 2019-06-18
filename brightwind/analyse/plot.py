@@ -106,7 +106,9 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
             ax2.set_ylabel('Coverage [-]')
             ax2.yaxis.tick_right()
             ax2.yaxis.set_label_position("right")
+            plt.close()
             return ax2.get_figure()
+    plt.close()
     return ax.get_figure()
 
 
@@ -146,7 +148,9 @@ def plot_timeseries(data, date_from='', date_to=''):
     else:
         data_to_slice = data.copy()
     sliced_data = utils.slice_data(data_to_slice, date_from, date_to)
-    return sliced_data.plot().get_figure()
+    figure = sliced_data.plot().get_figure()
+    plt.close()
+    return figure
 
 
 def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", title="", prediction_marker='k-'):
@@ -160,6 +164,7 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     if predicted_y is not None:
         ax.plot(x, predicted_y, prediction_marker)
         ax.legend(['Predicted', 'Original'])
+    plt.close()
     return ax.get_figure()
 
 
@@ -192,6 +197,7 @@ def plot_freq_distribution(data, max_y_value=None, labels=None, y_label=None,
         ax.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
                   interpolation='gaussian', extent=(ws_bin-0.4, ws_bin+0.4, 0, frequency), aspect='auto', zorder=3)
         ax.bar(ws_bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
+    plt.close()
     return ax.get_figure()
 
 
@@ -210,6 +216,7 @@ def plot_rose(ext_data):
     ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
     # ax.set_title('Wind Rose', loc='center')
+    plt.close()
     return ax.get_figure()
 
 
@@ -292,6 +299,7 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     else:
         plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=plot_labels[i]) for i in range(len(plot_labels))]
     ax.legend(handles=plot_labels)
+    plt.close()
     return ax.get_figure()
 
 
@@ -348,6 +356,7 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wdir), turbulence, color=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
+    plt.close()
     return ax.get_figure()
 
 
@@ -365,6 +374,7 @@ def plot_shear_by_sector(shear, wdir, shear_dist):
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wdir), shear, color=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
+    plt.close()
     return ax.get_figure()
 
 
@@ -387,6 +397,7 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean')):
     ax.set_xticks(tab_12x24.columns)
     ax.set_xticklabels([month_names[i-1] for i in tab_12x24.columns])
     ax.set_yticks(np.arange(0, 24, 1))
+    plt.close()
     return ax.get_figure()
 
 
@@ -446,6 +457,7 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     if annotate:
         ax.annotate(annotation_text, xy=(0.5, 0.035), xycoords='figure fraction', horizontalalignment='center')
     ax.scatter(np.radians(wdir), sec_ratio, color=bw_colors('asphault'), alpha=0.3, s=1)
+    plt.close()
     return ax.get_figure()
 
 
@@ -461,6 +473,7 @@ def plot_shear(avg_alpha, avg_c, wspds, heights):
     ax.set_xlim(0, max(speeds)+1)
     ax.set_ylim(0, max(plot_heights)+10)
     # ax.set_title("Shear Profile")
+    plt.close()
     return ax.get_figure()
 
 
