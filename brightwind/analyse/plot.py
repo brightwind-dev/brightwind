@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import calendar
 import numpy as np
 import pandas as pd
+import os
 from brightwind.utils import utils
 import matplotlib as mpl
 from pandas.plotting import register_matplotlib_converters
@@ -35,7 +36,7 @@ except Exception as ex:
     raise 'Found exception when checking installed fonts. {}'.format(str(ex))
     
 
-#plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
+plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
 
 def bw_colors(bw_color):
@@ -106,7 +107,9 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
             ax2.set_ylabel('Coverage [-]')
             ax2.yaxis.tick_right()
             ax2.yaxis.set_label_position("right")
+            plt.close()
             return ax2.get_figure()
+    plt.close()
     return ax.get_figure()
 
 
@@ -141,12 +144,15 @@ def plot_timeseries(data, date_from='', date_to=''):
         figure = bw.plot_timeseries(data.Spd40mN, date_from='2016-01-21', date_to='2016-02-28')
 
     """
+    plt.rcParams['figure.figsize'] = (15, 8)
     if isinstance(data, pd.Series):
         data_to_slice = data.copy(deep=False).to_frame()
     else:
         data_to_slice = data.copy()
     sliced_data = utils.slice_data(data_to_slice, date_from, date_to)
-    return sliced_data.plot().get_figure()
+    figure = sliced_data.plot().get_figure()
+    plt.close()
+    return figure
 
 
 def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", title="", prediction_marker='k-'):
@@ -160,6 +166,7 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     if predicted_y is not None:
         ax.plot(x, predicted_y, prediction_marker)
         ax.legend(['Predicted', 'Original'])
+    plt.close()
     return ax.get_figure()
 
 
@@ -171,7 +178,6 @@ def plot_freq_distribution(data, max_y_value=None, labels=None, y_label=None,
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     ax.set_xlabel('Speed [m/s]')
-    # ax.set_ylabel('Frequency [%]')
     ax.set_ylabel(y_label)
     if isinstance(data.index[0], pd.Interval):
         x_data = [i.mid for i in data.index]
@@ -192,6 +198,7 @@ def plot_freq_distribution(data, max_y_value=None, labels=None, y_label=None,
         ax.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
                   interpolation='gaussian', extent=(ws_bin-0.4, ws_bin+0.4, 0, frequency), aspect='auto', zorder=3)
         ax.bar(ws_bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
+    plt.close()
     return ax.get_figure()
 
 
@@ -210,12 +217,12 @@ def plot_rose(ext_data):
     ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
     # ax.set_title('Wind Rose', loc='center')
+    plt.close()
     return ax.get_figure()
 
 
 def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plot_labels=None,
                             gradient_colors=['#f5faea', '#d6ebad', '#b8dc6f', '#9acd32', '#7ba428', '#5c7b1e']):
-    # ['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s']):
     table = freq_table.copy()
     sectors = len(table.columns)
     table_trans = table.T
@@ -230,7 +237,6 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
                 if var_bin.overlaps(interval) and not (pos in bin_assigned):
                     bin_assigned.append(pos)
                     row_group.append(pos)
-            # print(bin_assigned)
             rows_to_sum.append(row_group)
     else:
         if len(table.index) > 6:
@@ -275,9 +281,9 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
         radial_pos = 0.0
         angular_pos_start = (np.pi / 180.0) * float(column.split('-')[0])
         angular_pos_end = (np.pi / 180.0) * float(column.split('-')[-1])
-        #Check for sectors with 0 degrees within the sector
+        # Check for sectors with 0 degrees within the sector
         if angular_pos_end > angular_pos_start:
-            angular_width = angular_pos_end - angular_pos_start - (np.pi / 180) # Leaving 1 degree gap
+            angular_width = angular_pos_end - angular_pos_start - (np.pi / 180)  # Leaving 1 degree gap
         else:
             angular_width = 2*np.pi - angular_pos_start + angular_pos_end - (np.pi / 180)
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
@@ -292,14 +298,15 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     else:
         plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=plot_labels[i]) for i in range(len(plot_labels))]
     ax.legend(handles=plot_labels)
+    plt.close()
     return ax.get_figure()
 
 
 def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
     """
     Plot turbulence intensity graphs alongside with IEC standards
-    :param wdspd:
-    :param wdspd_std:
+    :param wspd:
+    :param wspd_std:
     :param ti: DataFrame returned from TI.by_speed() in analyse
     :param IEC_class: By default IEC class 2005 is used for custom class pass a DataFrame. Note we have removed
         option to include IEC Class 1999 as no longer appropriate.
@@ -317,7 +324,7 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
             IEC_class.iloc[n, 2] = 0.14 * (0.75 + (5.6 / n))
             IEC_class.iloc[n, 3] = 0.12 * (0.75 + (5.6 / n))
     common_idxs = wspd.index.intersection(wspd_std.index)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(15, 8))
     ax.scatter(wspd.loc[common_idxs], wspd_std.loc[common_idxs]/wspd.loc[common_idxs],
                color=bw_colors('green'), alpha=0.3, marker='.')
     ax.plot(ti.index.values, ti.loc[:, 'Mean_TI'].values, color=bw_colors('darkgreen'), label='Mean_TI')
@@ -332,6 +339,7 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
     ax.set_ylabel('Turbulence Intensity')
     ax.grid(True)
     ax.legend()
+    plt.close()
     return ax.get_figure()
 
 
@@ -348,6 +356,7 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wdir), turbulence, color=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
+    plt.close()
     return ax.get_figure()
 
 
@@ -360,11 +369,11 @@ def plot_shear_by_sector(shear, wdir, shear_dist):
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(shear_dist.index))
     ax.plot(np.append(radians, radians[0]), shear_dist.append(shear_dist.iloc[0])['Mean_Shear'],
             color=bw_colors('green'), linewidth=4)
-    # ax.set_title('Shear by Direction')
     maxlevel = shear_dist['Mean_Shear'].max() + 0.1
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wdir), shear, color=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
+    plt.close()
     return ax.get_figure()
 
 
@@ -375,7 +384,7 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean')):
     :param label: Label of the colour bar on the plot.
     :return: 12x24 figure
     """
-    fig, ax = plt.subplots(figsize=(14, 10))
+    fig, ax = plt.subplots(figsize=(15, 8))
     levels = np.linspace(tab_12x24.min().min(), tab_12x24.max().max(), num=9)
     x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, levels=levels,
                     colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32', '#8ab92d', '#7ba428', '#6b9023'])
@@ -387,6 +396,7 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean')):
     ax.set_xticks(tab_12x24.columns)
     ax.set_xticklabels([month_names[i-1] for i in tab_12x24.columns])
     ax.set_yticks(np.arange(0, 24, 1))
+    plt.close()
     return ax.get_figure()
 
 
@@ -418,7 +428,6 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
     ax.plot(np.append(radians, radians[0]), sec_ratio_dist['Mean_Sector_Ratio'].append(sec_ratio_dist.iloc[0]),
             color=bw_colors('green'), linewidth=4)
-    # plt.title('Speed Ratio by Direction')
     # Get max and min levels and set chart axes
     max_level = sec_ratio_dist['Mean_Sector_Ratio'].max() + 0.05
     min_level = sec_ratio_dist['Mean_Sector_Ratio'].min() - 0.1
@@ -446,13 +455,14 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     if annotate:
         ax.annotate(annotation_text, xy=(0.5, 0.035), xycoords='figure fraction', horizontalalignment='center')
     ax.scatter(np.radians(wdir), sec_ratio, color=bw_colors('asphault'), alpha=0.3, s=1)
+    plt.close()
     return ax.get_figure()
 
 
 def plot_shear(avg_alpha, avg_c, wspds, heights):
     plot_heights = np.linspace(0, max(heights), num=100)
     speeds = avg_c*(plot_heights**avg_alpha)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlabel('Speed (m/s)')
     ax.set_ylabel('Elevation (m)')
     ax.plot(speeds, plot_heights, '-', color='#9ACD32')
@@ -460,41 +470,5 @@ def plot_shear(avg_alpha, avg_c, wspds, heights):
     ax.grid()
     ax.set_xlim(0, max(speeds)+1)
     ax.set_ylim(0, max(plot_heights)+10)
-    # ax.set_title("Shear Profile")
+    plt.close()
     return ax.get_figure()
-
-
-# def plot_shear(wind_speeds, heights):
-#     """
-#     Show derivation and output (alpha value) of shear calculation function for a given timestep.
-#     :param wind_speeds: List of wind speeds [m/s]
-#     :param heights: List of heights [m above ground]. The position of the height in the list must be the same
-# position in the list as its
-#     corresponding wind speed value.
-#     :return:
-#         1) Log-log plot of speed and elevation data, including linear fit.
-#         2) Speed and elevation data plotted on regular scale, showing power law fit resulting from alpha value
-#     """
-#
-#     alpha, wind_speedsfit = sh.calc_shear(wind_speeds, heights, plot=True)
-#
-#     # PLOT INPUT AND MODELLED DATA ON LOG-LOG SCALE
-#     heightstrend = np.linspace(0.1, max(heights) + 2, 100)  # create variable to define (interpolated) power law trend
-#     plt.loglog(wind_speeds, heights, 'bo')  # plot input data on log log scale
-#     plt.loglog(wind_speedsfit(heightstrend), heightstrend, 'k--')  # Show interpolated power law trend
-#     plt.xlabel('Speed (m/s)')
-#     plt.ylabel('Elevation (m)')
-#     plt.legend(['Input data', 'Best fit line for power law (' r'$\alpha$ = %i)' % int(round(alpha))])
-#     plt.grid(True)
-#     plt.show()
-#
-#     # PLOT INPUT AND MODELLED DATA ON REGULAR SCALE
-#     plt.plot(wind_speeds, heights, 'bo')  # plot input data
-#     plt.plot(wind_speedsfit(heightstrend), heightstrend, 'k--')  # Show interpolated power law trend
-#     plt.xlabel('Speed (m/s)')
-#     plt.ylabel('Elevation (m)')
-#     plt.legend(['Input data', 'Power law trend (' r'$\alpha$ = %i)' % int(round(alpha))])
-#     plt.ylim(0, max(heights) + 2)
-#     plt.xlim(0, max([max(wind_speeds), max(wind_speedsfit(heights))]) + 2)
-#     plt.grid(True)
-#     plt.show()
