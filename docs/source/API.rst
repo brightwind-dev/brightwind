@@ -48,7 +48,7 @@ Analyse
     basic_stats
     twelve_by_24
     TI
-    SectorRatio
+    wspd_ratio_by_dir_sector
     Shear
 
 .. currentmodule:: brightwind.analyse.plot
