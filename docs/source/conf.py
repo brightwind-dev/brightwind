@@ -125,7 +125,8 @@ html_theme_options = {
         ("API", "API"),
         ("Community", "Community"),
 
-    ]
+    ],
+'globaltoc_depth': -1
 
 }
 
@@ -141,7 +142,7 @@ html_static_path = [path.replace('docs\source', 'docs\_static')]
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
 html_sidebars = {
-   'API': ['localtoc.html'],
+   'API': ['sidebartoc.html'],#'localtoc.html',
    'index': [],
     '**':[]
 }
