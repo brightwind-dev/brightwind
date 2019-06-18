@@ -18,14 +18,15 @@ import matplotlib.pyplot as plt
 import calendar
 import numpy as np
 import pandas as pd
+import math
 from brightwind.utils import utils
+import os
 import matplotlib as mpl
 from pandas.plotting import register_matplotlib_converters
+
 register_matplotlib_converters()
 
-
-__all__ = ['plot_timeseries']
-
+__all__ = ['plot_timeseries', 'plot_freq_distribution', 'plot_wind_rose']
 
 try:
     if 'Gotham Rounded' in \
@@ -33,9 +34,9 @@ try:
         mpl.rcParams['font.family'] = 'Gotham Rounded'
 except Exception as ex:
     raise 'Found exception when checking installed fonts. {}'.format(str(ex))
-    
 
-#plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
+
+# plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
 
 def bw_colors(bw_color):
@@ -98,7 +99,7 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
 
             ax2.set_ylim(0, 1)
             ax.set_ylim(bottom=0)
-            ax.set_xlim(data.index[0]-pd.Timedelta('20days'), data.index[-1]+pd.Timedelta('20days'))
+            ax.set_xlim(data.index[0] - pd.Timedelta('20days'), data.index[-1] + pd.Timedelta('20days'))
             ax.set_zorder(3)
             ax2.yaxis.grid(True)
             ax2.set_axisbelow(True)
@@ -106,7 +107,9 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
             ax2.set_ylabel('Coverage [-]')
             ax2.yaxis.tick_right()
             ax2.yaxis.set_label_position("right")
+            plt.close()
             return ax2.get_figure()
+    plt.close()
     return ax.get_figure()
 
 
@@ -145,8 +148,10 @@ def plot_timeseries(data, date_from='', date_to=''):
         data_to_slice = data.copy(deep=False).to_frame()
     else:
         data_to_slice = data.copy()
-    sliced_data = utils.slice_data(data_to_slice, date_from, date_to)
-    return sliced_data.plot().get_figure()
+    sliced_data = utils._slice_data(data_to_slice, date_from, date_to)
+    figure = sliced_data.plot().get_figure()
+    plt.close()
+    return figure
 
 
 def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", title="", prediction_marker='k-'):
@@ -163,105 +168,79 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     return ax.get_figure()
 
 
-def plot_freq_distribution(data, max_y_value=None, labels=None, y_label=None,
-                           plot_colors=[bw_colors('light_green_for_gradient'),
-                                        bw_colors('dark_green_for_gradient'),
-                                        bw_colors('darkgreen')]):
+def plot_freq_distribution(data, max_speed=30, plot_colors=[bw_colors('light_green_for_gradient'),
+                                                            bw_colors('dark_green_for_gradient'),
+                                                            bw_colors('darkgreen')]):
     from matplotlib.ticker import PercentFormatter
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     ax.set_xlabel('Speed [m/s]')
-    # ax.set_ylabel('Frequency [%]')
-    ax.set_ylabel(y_label)
+    ax.set_ylabel('Frequency [%]')
     if isinstance(data.index[0], pd.Interval):
         x_data = [i.mid for i in data.index]
     else:
         x_data = data.index
     ax.set_xticks(x_data)
-    ax.set_xlim(x_data[0]-0.5, x_data[-1]+0.5)
-    if labels is not None:
-        ax.set_xticklabels(labels)
-    if max_y_value is None:
-        ax.set_ylim(0, max(data)*1.1)
-    else:
-        ax.set_ylim(0, max_y_value)
-    if y_label[0] == '%':
-        ax.yaxis.set_major_formatter(PercentFormatter())
+    ax.set_xlim(-0.5, max_speed + 0.5)
+    ax.set_ylim(0, max(data) + 5)
+    ax.yaxis.set_major_formatter(PercentFormatter())
     ax.grid(b=True, axis='y', zorder=0)
-    for frequency, ws_bin in zip(data, x_data):
+    # ax.bar(result.index, result.values,facecolor='#9ACD32',edgecolor=['#6C9023' for i in range(len(result))],zorder=3)
+    for frequency, bin in zip(data, x_data):
         ax.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
-                  interpolation='gaussian', extent=(ws_bin-0.4, ws_bin+0.4, 0, frequency), aspect='auto', zorder=3)
-        ax.bar(ws_bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
+                  interpolation='gaussian', extent=(bin - 0.4, bin + 0.4, 0, frequency), aspect='auto', zorder=3)
+        ax.bar(bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
+    # ax.set_title('Wind Speed Frequency Distribution')
+    plt.close()
     return ax.get_figure()
 
 
-def plot_rose(ext_data):
+def plot_wind_rose(ext_data, freq_table=False):
     """
-    Plot a wind rose from data by distribution_by_dir_sector
+    Plot a wind rose from a frequency table.
     """
-    result = ext_data.copy(deep=False)
-    sectors = len(result)
+    data = ext_data.copy()
+    if freq_table:
+        sectors = data.shape[1]
+
+    else:
+        sectors = data.shape[0]
+    result = data.sum(axis=0)
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.arange(0, 360, 360.0/sectors))
-    ax.set_rgrids(np.arange(0, 101, 10), labels=[str(i)+'%' for i in np.arange(0, 101, 10)], angle=0)
-    ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
+    ax.set_thetagrids(np.arange(0, 360, 360.0 / sectors))
+    ax.set_rgrids(np.arange(0, 101, 10), labels=[str(i) + '%' for i in np.arange(0, 101, 10)], angle=0)
+    ax.bar(np.arange(0, 2.0 * np.pi, 2.0 * np.pi / sectors), result, width=2.0 * np.pi / sectors, bottom=0.0,
+           color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
     # ax.set_title('Wind Rose', loc='center')
+    plt.close()
     return ax.get_figure()
 
 
-def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plot_labels=None,
-                            gradient_colors=['#f5faea', '#d6ebad', '#b8dc6f', '#9acd32', '#7ba428', '#5c7b1e']):
-    # ['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s']):
+def plot_wind_rose_with_gradient(freq_table, gradient_colors=['#f5faea', '#d6ebad', '#b8dc6f',
+                                                              '#9acd32', '#7ba428', '#5c7b1e'], percent_symbol=True):
     table = freq_table.copy()
+    import matplotlib as mpl
     sectors = len(table.columns)
-    table_trans = table.T
-    if plot_bins is not None:
-        rows_to_sum = []
-        intervals = [pd.Interval(plot_bins[i], plot_bins[i+1], closed=table.index[0].closed)
-                     for i in range(len(plot_bins)-1)]
-        bin_assigned = []
-        for interval in intervals:
-            row_group = []
-            for var_bin, pos in zip(table.index, range(len(table.index))):
-                if var_bin.overlaps(interval) and not (pos in bin_assigned):
-                    bin_assigned.append(pos)
-                    row_group.append(pos)
-            # print(bin_assigned)
-            rows_to_sum.append(row_group)
-    else:
-        if len(table.index) > 6:
-            rows_to_sum = []
-            num_rows = len(table.index)//6
-            ctr = 0
-            while ctr < len(table.index)-(len(table.index) % 6):
-                rows_to_sum.append(list(range(ctr, ctr+num_rows)))
-                ctr += num_rows
-            rows_to_sum[-1].extend(list(range(len(table.index)-(len(table.index) % 6), len(table.index))))
-
-        else:
-            rows_to_sum = [[i] for i in range(len(table.index))]
-
     table_binned = pd.DataFrame()
-    bin_labels = []
-    group = 0
-    for i in rows_to_sum:
-        bin_labels.append(str(table.index[i[0]].left) + ' - ' + str(table.index[i[-1]].right))
-        to_concat = table_trans.iloc[:, i].sum(axis=1).rename(group)
-        group += 1
-        table_binned = pd.concat([table_binned, to_concat], axis=1, sort=True)
+    if isinstance(table.index[0], pd.Interval):
+        table.index = [i.mid for i in table.index]
+    table_trans = table.T
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 0:3].sum(axis=1).rename(3)], axis=1, sort=True)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 4:6].sum(axis=1).rename(6)], axis=1, sort=True)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 7:9].sum(axis=1).rename(9)], axis=1, sort=True)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 10:12].sum(axis=1).rename(12)], axis=1, sort=True)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 13:15].sum(axis=1).rename(15)], axis=1, sort=True)
+    table_binned = pd.concat([table_binned, table_trans.loc[:, 16:].sum(axis=1).rename(18)], axis=1, sort=True)
     table_binned = table_binned.T
-    # print(rows_to_sum)
-    # return table_binned
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0, 360, 360.0 / sectors), zorder=2)
-
     if percent_symbol:
         symbol = '%'
     else:
@@ -269,29 +248,34 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     ax.set_rgrids(np.linspace(0.1, max(table.sum(axis=0)) + 2.0, 10),
                   labels=['%.0f' % round(i) + symbol for i in np.linspace(0.1, max(table.sum(axis=0)) + 2.0, 10)],
                   angle=0, zorder=2)
+    direction_bins = utils.get_direction_bin_array(sectors)[1:-2]
+    direction_bins = np.insert(direction_bins, 0, direction_bins[-2])
     ax.set_ylim(0, max(table.sum(axis=0)) + 3.0)
+    angular_width = 2 * np.pi / sectors - (np.pi / 180)  # Leaving 1 degree gap
     ax.bar(0, 1, alpha=0)
+
+    def _choose_color(speed_bin):
+        colors = gradient_colors
+        bins = [0, 3.5, 6.5, 9.5, 12.5, 15.5, 18.5, 41]
+        return colors[np.digitize([speed_bin], bins)[0] - 1]
+
     for column in table_binned:
         radial_pos = 0.0
-        angular_pos_start = (np.pi / 180.0) * float(column.split('-')[0])
-        angular_pos_end = (np.pi / 180.0) * float(column.split('-')[-1])
-        #Check for sectors with 0 degrees within the sector
-        if angular_pos_end > angular_pos_start:
-            angular_width = angular_pos_end - angular_pos_start - (np.pi / 180) # Leaving 1 degree gap
-        else:
-            angular_width = 2*np.pi - angular_pos_start + angular_pos_end - (np.pi / 180)
+        angular_pos = (np.pi / 180.0) * float(column.split('-')[0])
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
-            patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,
-                                          frequency, facecolor=gradient_colors[speed_bin], edgecolor='#5c7b1e',
-                                          linewidth=0.3, zorder=3)
+            color = _choose_color(speed_bin)
+            patch = mpl.patches.Rectangle((angular_pos, radial_pos), angular_width, frequency, facecolor=color,
+                                          edgecolor='#5c7b1e', linewidth=0.3, zorder=3)
             ax.add_patch(patch)
             radial_pos += frequency
-
-    if plot_labels is None:
-        plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=bin_labels[i]) for i in range(len(bin_labels))]
-    else:
-        plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=plot_labels[i]) for i in range(len(plot_labels))]
-    ax.legend(handles=plot_labels)
+    legend_patches = [mpl.patches.Patch(color=gradient_colors[0], label='0-3 m/s'),
+                      mpl.patches.Patch(color=gradient_colors[1], label='4-6 m/s'),
+                      mpl.patches.Patch(color=gradient_colors[2], label='7-9 m/s'),
+                      mpl.patches.Patch(color=gradient_colors[3], label='10-12 m/s'),
+                      mpl.patches.Patch(color=gradient_colors[4], label='13-15 m/s'),
+                      mpl.patches.Patch(color=gradient_colors[5], label='15+ m/s')]
+    ax.legend(handles=legend_patches)
+    plt.close()
     return ax.get_figure()
 
 
@@ -318,10 +302,10 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
             IEC_class.iloc[n, 3] = 0.12 * (0.75 + (5.6 / n))
     common_idxs = wspd.index.intersection(wspd_std.index)
     fig, ax = plt.subplots()
-    ax.scatter(wspd.loc[common_idxs], wspd_std.loc[common_idxs]/wspd.loc[common_idxs],
+    ax.scatter(wspd.loc[common_idxs], wspd_std.loc[common_idxs] / wspd.loc[common_idxs],
                color=bw_colors('green'), alpha=0.3, marker='.')
-    ax.plot(ti.index.values, ti.loc[:, 'Mean_TI'].values, color=bw_colors('darkgreen'), label='Mean_TI')
-    ax.plot(ti.index.values, ti.loc[:, 'Rep_TI'].values, color=bw_colors('redline'), label='Rep_TI')
+    ax.plot(ti.index.__array__(), ti.loc[:, 'Mean_TI'].values, color=bw_colors('darkgreen'))[0].set_label('Mean_TI')
+    ax.plot(ti.index.__array__(), ti.loc[:, 'Rep_TI'].values, color=bw_colors('redline'))[0].set_label('Rep_TI')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 1], color=bw_colors('greyline'), linestyle='dashed')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 2], color=bw_colors('greyline'), linestyle='dashdot')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=bw_colors('greyline'), linestyle='dotted')
@@ -332,6 +316,7 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
     ax.set_ylabel('Turbulence Intensity')
     ax.grid(True)
     ax.legend()
+    plt.close()
     return ax.get_figure()
 
 
@@ -348,6 +333,7 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wdir), turbulence, color=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
+    plt.close()
     return ax.get_figure()
 
 
@@ -365,6 +351,7 @@ def plot_shear_by_sector(shear, wdir, shear_dist):
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wdir), shear, color=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
+    plt.close()
     return ax.get_figure()
 
 
@@ -383,10 +370,11 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean')):
     cbar.ax.set_ylabel(label[1].capitalize() + " of " + label[0])
     ax.set_xlabel('Month of Year')
     ax.set_ylabel('Hour of Day')
-    month_names= calendar.month_abbr[1:13]
+    month_names = calendar.month_abbr[1:13]
     ax.set_xticks(tab_12x24.columns)
-    ax.set_xticklabels([month_names[i-1] for i in tab_12x24.columns])
+    ax.set_xticklabels([month_names[i - 1] for i in tab_12x24.columns])
     ax.set_yticks(np.arange(0, 24, 1))
+    plt.close()
     return ax.get_figure()
 
 
@@ -446,23 +434,24 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     if annotate:
         ax.annotate(annotation_text, xy=(0.5, 0.035), xycoords='figure fraction', horizontalalignment='center')
     ax.scatter(np.radians(wdir), sec_ratio, color=bw_colors('asphault'), alpha=0.3, s=1)
+    plt.close()
     return ax.get_figure()
 
 
 def plot_shear(avg_alpha, avg_c, wspds, heights):
     plot_heights = np.linspace(0, max(heights), num=100)
-    speeds = avg_c*(plot_heights**avg_alpha)
+    speeds = avg_c * (plot_heights ** avg_alpha)
     fig, ax = plt.subplots()
     ax.set_xlabel('Speed (m/s)')
     ax.set_ylabel('Elevation (m)')
     ax.plot(speeds, plot_heights, '-', color='#9ACD32')
     ax.scatter(wspds, heights, marker='o', color=bw_colors('asphault'))
     ax.grid()
-    ax.set_xlim(0, max(speeds)+1)
-    ax.set_ylim(0, max(plot_heights)+10)
+    ax.set_xlim(0, max(speeds) + 1)
+    ax.set_ylim(0, max(plot_heights) + 10)
     # ax.set_title("Shear Profile")
+    plt.close()
     return ax.get_figure()
-
 
 # def plot_shear(wind_speeds, heights):
 #     """
