@@ -11,7 +11,7 @@ Datasets
 .. currentmodule:: brightwind.datasets
 
 .. autosummary::
-    :toctree:
+    :toctree: generated
 
     datasets_available
 
@@ -21,7 +21,7 @@ Load
 .. currentmodule:: brightwind.load.load
 
 .. autosummary::
-    :toctree:
+    :toctree: generated
 
     load_csv
     load_campbell_scientific
@@ -34,7 +34,7 @@ Analyse
 .. currentmodule:: brightwind.analyse.analyse
 
 .. autosummary::
-    :toctree:
+    :toctree: generated
 
     concurrent_coverage
     monthly_means
@@ -54,7 +54,7 @@ Analyse
 .. currentmodule:: brightwind.analyse.plot
 
 .. autosummary::
-    :toctree:
+    :toctree: generated
 
     plot_timeseries
 
@@ -65,7 +65,7 @@ Correlation
 .. currentmodule:: brightwind.analyse.correlation
 
 .. autosummary::
-    :toctree:
+    :toctree: generated
 
     OrdinaryLeastSquares
     OrthogonalLeastSquares
@@ -80,7 +80,7 @@ Transform
 .. currentmodule:: brightwind.transform.transform
 
 .. autosummary::
-    :toctree:
+    :toctree: generated
 
     average_data_by_period
     adjust_slope_offset
@@ -96,6 +96,6 @@ Export
 .. currentmodule:: brightwind.export.export
 
 .. autosummary::
-    :toctree:
+    :toctree: generated
 
     export_tab_file
