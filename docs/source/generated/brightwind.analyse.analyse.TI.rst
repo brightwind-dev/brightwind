@@ -4,6 +4,7 @@ brightwind.analyse.analyse.TI
 .. currentmodule:: brightwind.analyse.analyse
 
 .. autoclass:: TI
+
    
    .. autosummary::
         :toctree: TI

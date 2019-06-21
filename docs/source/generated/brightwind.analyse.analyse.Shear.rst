@@ -4,6 +4,7 @@ brightwind.analyse.analyse.Shear
 .. currentmodule:: brightwind.analyse.analyse
 
 .. autoclass:: Shear
+
    
    .. autosummary::
         :toctree: Shear

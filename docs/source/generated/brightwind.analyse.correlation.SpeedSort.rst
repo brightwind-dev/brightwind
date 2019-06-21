@@ -4,6 +4,7 @@ brightwind.analyse.correlation.SpeedSort
 .. currentmodule:: brightwind.analyse.correlation
 
 .. autoclass:: SpeedSort
+
    
    .. autosummary::
         :toctree: SpeedSort

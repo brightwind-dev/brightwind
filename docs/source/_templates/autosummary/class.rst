@@ -4,12 +4,13 @@
 .. currentmodule:: {{ module }}
 
 .. autoclass:: {{ objname }}
+
    {% block methods %}
    .. autosummary::
         :toctree: {{ objname }}
         {% if methods %}
         {% for item in methods %}
-        {{ name }}.{{ item }}
+        {{ objname }}.{{ item }}
         {%- endfor %}
         {% endif %}
         {% endblock %}

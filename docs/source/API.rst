@@ -98,4 +98,5 @@ Export
 .. autosummary::
     :toctree: generated
 
+    export_csv
     export_tab_file

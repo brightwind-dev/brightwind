@@ -4,6 +4,7 @@ brightwind.analyse.correlation.OrdinaryLeastSquares
 .. currentmodule:: brightwind.analyse.correlation
 
 .. autoclass:: OrdinaryLeastSquares
+
    
    .. autosummary::
         :toctree: OrdinaryLeastSquares

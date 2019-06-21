@@ -4,6 +4,7 @@ brightwind.analyse.correlation.SimpleSpeedRatio
 .. currentmodule:: brightwind.analyse.correlation
 
 .. autoclass:: SimpleSpeedRatio
+
    
    .. autosummary::
         :toctree: SimpleSpeedRatio

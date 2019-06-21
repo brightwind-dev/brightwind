@@ -4,6 +4,7 @@ brightwind.analyse.correlation.SVR
 .. currentmodule:: brightwind.analyse.correlation
 
 .. autoclass:: SVR
+
    
    .. autosummary::
         :toctree: SVR

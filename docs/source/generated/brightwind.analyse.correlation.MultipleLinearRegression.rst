@@ -4,6 +4,7 @@ brightwind.analyse.correlation.MultipleLinearRegression
 .. currentmodule:: brightwind.analyse.correlation
 
 .. autoclass:: MultipleLinearRegression
+
    
    .. autosummary::
         :toctree: MultipleLinearRegression
