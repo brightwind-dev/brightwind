@@ -38,14 +38,8 @@ sys.path.insert(0, path.replace('docs\source','brightwind'))
 
 extensions = ['sphinx.ext.autosummary',
               'sphinx.ext.autodoc',
-            'sphinx.ext.doctest',
             'sphinx.ext.intersphinx',
-            'sphinx.ext.todo',
-            'sphinx.ext.coverage',
             'sphinx.ext.mathjax',
-            'sphinx.ext.ifconfig',
-            'sphinx.ext.viewcode',
-            'sphinx.ext.githubpages',
             'nbsphinx',
             'm2r']
 
