@@ -93,7 +93,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = []
+exclude_patterns = ['_build', '**.ipynb_checkpoints']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -125,7 +125,8 @@ html_theme_options = {
         ("API", "API"),
         ("Community", "Community"),
 
-    ]
+    ],
+'globaltoc_depth': -1
 
 }
 
@@ -141,7 +142,7 @@ html_static_path = [path.replace('docs\source', 'docs\_static')]
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
 html_sidebars = {
-   'API': ['localtoc.html'],
+   'API': ['localtoc.html'],#,'sidebartoc.html'
    'index': [],
     '**':[]
 }
@@ -223,8 +224,6 @@ epub_copyright = copyright
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
-
-
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'https://docs.python.org/': None}
