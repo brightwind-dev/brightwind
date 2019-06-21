@@ -13,6 +13,10 @@ The brightwind python library aims to empower wind resource analysts and
 establish a common industry standard toolset.
 <br>
 
+![demo_image_1](read_me_1.png)
+
+![demo_image_2](read_me_2.png)
+
 ###### Features
 The library provides wind analysts with easy to use tools for working with
 meteorological data. It supports loading of meteorological data, averaging,
