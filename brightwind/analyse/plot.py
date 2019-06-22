@@ -160,14 +160,26 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.scatter(x, y, marker='.', color='#9ACD32', alpha=0.5)
-    # fig.set_figwidth(size[0])
-    # fig.set_figheight(size[1])
+    fig.set_figwidth(10)
+    fig.set_figheight(10)
     # ax.set_title(title)
     if predicted_y is not None:
         ax.plot(x, predicted_y, prediction_marker)
         ax.legend(['Predicted', 'Original'])
     plt.close()
     return ax.get_figure()
+
+
+def plot_scatter_wdir(x_dir, y_dir):
+    scat_plot = _scatter_plot(x_dir, y_dir)
+    scat_plot.axes[0].set_xlim(0, 360)
+    scat_plot.axes[0].set_ylim(0, 360)
+    scat_plot.axes[0].set_xlabel(x_dir.name + ' [°]')
+    scat_plot.axes[0].set_ylabel(y_dir.name + ' [°]')
+    x = [0, 360]
+    y = [0, 360]
+    scat_plot.axes[0].plot(x, y, 'k-')
+    return scat_plot
 
 
 def plot_freq_distribution(data, max_y_value=None, labels=None, y_label=None,
