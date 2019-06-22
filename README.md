@@ -9,13 +9,18 @@
  ```
 --------------
 
+<br>
+
 The brightwind python library aims to **empower wind resource analysts** and establish a common **industry standard toolset**.
+
+<br>
+
+Example usage is shown below via a Jupyter Notebook.
 <br>
 
 <p>
 
 ![demo_image_1](read_me_1.png)
-
 ![demo_image_2](read_me_2.png)
 </p>
 
