@@ -77,7 +77,7 @@ C:\Users\Stephen> pip install brightwind
 
 <br>
 
-For those that do not already have Puthon or pip installed please follow this tutorial,
+For those that do not already have Python or pip, please follow this tutorial,
 [getting started with Windows](https://brightwind-dev.github.io/brightwind-docs/tutorials/Getting_Started_Stable_Development.html),
 to get set up.
 
