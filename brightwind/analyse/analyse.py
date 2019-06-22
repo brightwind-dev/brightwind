@@ -22,9 +22,22 @@ from brightwind.utils import utils
 from brightwind.analyse import plot as plt
 import matplotlib
 
-__all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
-           'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage', 'basic_stats',
-           'twelve_by_24', 'TI', 'wspd_ratio_by_dir_sector', 'Shear', 'calc_air_density']
+__all__ = ['concurrent_coverage',
+           'monthly_means',
+           'momm',
+           'dist',
+           'dist_of_wind_speed',
+           'distribution_by_dir_sector',
+           'dist_12x24',
+           'freq_distribution'
+           'freq_table',
+           'time_continuity_gaps',
+           'coverage',
+           'basic_stats',
+           'TI',
+           'sector_ratio',
+           'Shear',
+           'calc_air_density']
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
@@ -515,7 +528,7 @@ def time_continuity_gaps(data):
     indexes = data.dropna(how='all').index
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1], 'Date To': indexes.values.flatten()[1:]})
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
-    #Remove indexes where no days are lost before returning
+    # Remove indexes where no days are lost before returning
     return continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
 
 
@@ -799,14 +812,14 @@ def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
     return ratio['var_2'] / ratio['var_1']
 
 
-def wspd_ratio_by_dir_sector(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_array=None, boom_dir_1=-1,
-                             boom_dir_2=-1, return_data=False):
+def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_array=None, boom_dir_1=-1,
+                 boom_dir_2=-1, return_data=False):
     """
     Calculates the wind speed ratio of two wind speed time series and plots this ratio, averaged by direction sector,
     in a polar plot using a wind direction time series. The averaged ratio by sector can be optionally returned
     in a pd.DataFrame.
     
-    If boom directions are specified, these will be overlayed on the plot. A boom direction of '-1' assumes top
+    If boom directions are specified, these will be overlaid on the plot. A boom direction of '-1' assumes top
     mounted and so doesn't plot.
 
     :param wspd_1: First wind speed time series. This is divisor.
@@ -836,24 +849,24 @@ def wspd_ratio_by_dir_sector(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direc
         data = bw.load_csv(bw.datasets.demo_data)
 
         #For plotting both booms
-        bw.wspd_ratio_by_dir_sector(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, boom_dir_1=0, boom_dir_2=180)
+        bw.sector_ratio(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, boom_dir_1=0, boom_dir_2=180)
 
         #For plotting no booms
-        bw.wspd_ratio_by_dir_sector(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS)
+        bw.sector_ratio(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS)
 
         #If one boom is top mounted, say Spd80mS
-        bw.wspd_ratio_by_dir_sector(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, boom_dir_2=180)
+        bw.sector_ratio(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, boom_dir_2=180)
 
         #To use your custom direction bins, for example (0-45), (45-135), (135-180), (180-220), (220-360)
-        bw.wspd_ratio_by_dir_sector(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS,
-                                    direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=0, boom_dir_2=180)
+        bw.sector_ratio(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS,
+                        direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=0, boom_dir_2=180)
 
     """
     sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
     common_idxs = sec_rat.index.intersection(wdir.index)
     sec_rat_plot, sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
-                                              aggregation_method='mean', direction_bin_array=direction_bin_array,
-                                              direction_bin_labels=None,return_data=True)
+                                                    aggregation_method='mean', direction_bin_array=direction_bin_array,
+                                                    direction_bin_labels=None,return_data=True)
 
     matplotlib.pyplot.close()
     sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
