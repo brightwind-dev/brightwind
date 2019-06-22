@@ -5,16 +5,6 @@
 API reference
 =============
 
-Datasets
----------
-
-.. currentmodule:: brightwind.datasets
-
-.. autosummary::
-    :toctree: generated
-
-    datasets_available
-
 Load
 -----
 
@@ -26,7 +16,11 @@ Load
     load_csv
     load_campbell_scientific
     load_excel
+    load_windographer_txt
     load_brightdata
+    load_cleaning_file
+    apply_cleaning
+    apply_cleaning_windographer
 
 Analyse
 ---------
@@ -36,20 +30,21 @@ Analyse
 .. autosummary::
     :toctree: generated
 
+    time_continuity_gaps
+    basic_stats
+    coverage
     concurrent_coverage
     monthly_means
     momm
+    wspd_ratio_by_dir_sector
     distribution
     distribution_by_wind_speed
     distribution_by_dir_sector
     freq_table
-    time_continuity_gaps
-    coverage
-    basic_stats
     twelve_by_24
     TI
-    wspd_ratio_by_dir_sector
     Shear
+    calc_air_density
 
 .. currentmodule:: brightwind.analyse.plot
 
@@ -86,7 +81,6 @@ Transform
     adjust_slope_offset
     scale_wind_speed
     offset_wind_direction
-    _get_data_resolution
     offset_timestamps
 
 
@@ -100,3 +94,14 @@ Export
 
     export_csv
     export_tab_file
+
+
+Datasets
+---------
+
+.. currentmodule:: brightwind.datasets
+
+.. autosummary::
+    :toctree: generated
+
+    datasets_available
