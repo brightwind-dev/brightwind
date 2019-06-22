@@ -40,9 +40,9 @@ Analyse
     dist
     dist_of_wind_speed
     distribution_by_dir_sector
+    dist_12x24
     freq_distribution
     freq_table
-    twelve_by_24
     TI
     Shear
     calc_air_density
