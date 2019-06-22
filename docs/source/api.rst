@@ -37,9 +37,10 @@ Analyse
     monthly_means
     momm
     wspd_ratio_by_dir_sector
-    distribution
-    distribution_by_wind_speed
+    dist
+    dist_of_wind_speed
     distribution_by_dir_sector
+    freq_distribution
     freq_table
     twelve_by_24
     TI
