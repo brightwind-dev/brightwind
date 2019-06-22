@@ -36,7 +36,7 @@ Analyse
     concurrent_coverage
     monthly_means
     momm
-    wspd_ratio_by_dir_sector
+    sector_ratio
     dist
     dist_of_wind_speed
     distribution_by_dir_sector
