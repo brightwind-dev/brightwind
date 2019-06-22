@@ -191,8 +191,9 @@ def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None,
     :param var_to_bin_against: (optional) Times-series of the variable which we want to bin against if required
            to bin against another variable.
     :type var_to_bin_against: pandas.Series, None
-    :param bins: Array of numbers where adjacent elements of array form a bin
-    :type bins: list, array
+    :param bins: Array of numbers where adjacent elements of array form a bin. If set to None if derives
+                 the min and max from the var_to_bin_against series and creates array in steps of 1.
+    :type bins: list, array, None
     :param bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default
     :type bin_labels: list, array, None
     :param max_y_value: Max value for the y-axis of the plot to be set. Default will be relative to max calculated
@@ -209,23 +210,26 @@ def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None,
     **Example usage**
     ::
         import brightwind as bw
-        df= bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        data = bw.load_csv(bw.datasets.demo_data)
 
         #For distribution of %frequency of wind speeds
-        dist = bw.distribution(df.Spd40mN, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
+        dist = bw.dist(data.Spd40mN, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
 
-        #For distribution of mean temperature
-        temp_dist = bw.distribution(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method='mean')
+        #For distribution of temperature
+        temp_dist = bw.dist(data.T2m)
+
+        #For distribution of temperature with set bin array
+        temp_dist = bw.dist(data.T2m, bins=[-10, 4, 12, 18, 30])
 
         #For custom aggregation function
         def custom_agg(x):
             return x.mean()+(2*x.std())
-        temp_dist = bw.distribution(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method=custom_agg)
+        temp_dist = bw.dist(data.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method=custom_agg)
 
         #For distribution of mean wind speeds with respect to temperature
-        spd_dist = bw.distribution(df.Spd40mN, var_to_bin_against=df.T2m,
-            bins=[-10, 4, 12, 18, 30],
-            bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
+        spd_dist = bw.dist(data.Spd40mN, var_to_bin_against=data.T2m,
+                           bins=[-10, 4, 12, 18, 30],
+                           bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
 
     """
     if var_to_bin_against is None:
@@ -239,18 +243,18 @@ def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None,
     var_binned_series = pd.cut(var_to_bin_against, bins, right=False).rename('variable_bin')
     data = pd.concat([var_series.rename('data'), var_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
-        dist = data.groupby(['variable_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
+        distribution = data.groupby(['variable_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
     else:
-        dist = data.groupby(['variable_bin'])['data'].agg(aggregation_method)
+        distribution = data.groupby(['variable_bin'])['data'].agg(aggregation_method)
 
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
-    graph = plt.plot_freq_distribution(dist.replace([np.inf, -np.inf], np.NAN).dropna(), max_y_value=max_y_value,
+    graph = plt.plot_freq_distribution(distribution.replace([np.inf, -np.inf], np.NAN).dropna(), max_y_value=max_y_value,
                                        labels=bin_labels, y_label=aggregation_method)
     if bin_labels is not None:
-        dist.index = bin_labels
+        distribution.index = bin_labels
     if return_data:
-        return graph, dist
+        return graph, distribution
     return graph
 
 
@@ -277,7 +281,7 @@ def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
         freq_dist_plot, freq_dist = bw.dist_of_wind_speed(data.Spd80mN, return_data=True)
 
     """
-    freq_dist = distribution(wspd, var_to_bin_against=None, bins=np.arange(-0.5, max_speed+1, 1), bin_labels=None,
+    freq_dist = dist(wspd, var_to_bin_against=None, bins=np.arange(-0.5, max_speed+1, 1), bin_labels=None,
                              max_y_value=max_y_value, aggregation_method='%frequency', return_data=True)
     if return_data:
         return freq_dist[0], freq_dist[1]
@@ -525,11 +529,10 @@ def time_continuity_gaps(data):
         bw.time_continuity_gaps(data['WS70mA100NW_Avg'])
 
     """
-
     indexes = data.dropna(how='all').index
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1], 'Date To': indexes.values.flatten()[1:]})
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
-    #Remove indexes where no days are lost before returning
+    # Remove indexes where no days are lost before returning
     return continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
 
 
@@ -711,27 +714,27 @@ class TI:
         ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
         ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
         ti_dist = pd.concat([
-            distribution(var_series=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
-                         bins=speed_bin_array, bin_labels=speed_bin_labels,
-                         aggregation_method='mean', return_data=True)[-1].rename("Mean_TI"),
-            distribution(var_series=ti['Turbulence_Intensity'],
-                         var_to_bin_against=ti['wspd'],
-                         bins=speed_bin_array,
-                         bin_labels=speed_bin_labels,
-                         aggregation_method='count', return_data=True)[-1].rename("TI_Count"),
-            distribution(var_series=ti['Turbulence_Intensity'],
-                         var_to_bin_against=ti['wspd'],
-                         bins=speed_bin_array,
-                         bin_labels=speed_bin_labels,
-                         aggregation_method=lambda x: np.percentile(x, q=percentile),
-                         return_data=True)[-1].rename("Rep_TI"),
-            distribution(var_series=ti['Turbulence_Intensity'],
-                         var_to_bin_against=ti['wspd'],
-                         bins=speed_bin_array,
-                         bin_labels=speed_bin_labels,
-                         aggregation_method='std', return_data=True)[-1].rename("TI_2Sigma")], axis=1, join='inner')
-        categ_index = distribution(var_series=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
-                         bins=speed_bin_array, aggregation_method='mean', return_data=True)[-1].index
+            dist(var_series=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
+                 bins=speed_bin_array, bin_labels=speed_bin_labels,
+                 aggregation_method='mean', return_data=True)[-1].rename("Mean_TI"),
+            dist(var_series=ti['Turbulence_Intensity'],
+                 var_to_bin_against=ti['wspd'],
+                 bins=speed_bin_array,
+                 bin_labels=speed_bin_labels,
+                 aggregation_method='count', return_data=True)[-1].rename("TI_Count"),
+            dist(var_series=ti['Turbulence_Intensity'],
+                 var_to_bin_against=ti['wspd'],
+                 bins=speed_bin_array,
+                 bin_labels=speed_bin_labels,
+                 aggregation_method=lambda x: np.percentile(x, q=percentile),
+                 return_data=True)[-1].rename("Rep_TI"),
+            dist(var_series=ti['Turbulence_Intensity'],
+                 var_to_bin_against=ti['wspd'],
+                 bins=speed_bin_array,
+                 bin_labels=speed_bin_labels,
+                 aggregation_method='std', return_data=True)[-1].rename("TI_2Sigma")], axis=1, join='inner')
+        categ_index = dist(var_series=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
+                           bins=speed_bin_array, aggregation_method='mean', return_data=True)[-1].index
         num_index = [i.mid for i in categ_index]
         ti_dist.loc[:, 'Char_TI'] = ti_dist.loc[:, 'Mean_TI'] + (ti_dist.loc[:, 'TI_2Sigma'] / num_index)
         # ti_dist.loc[0, 'Char_TI'] = 0
