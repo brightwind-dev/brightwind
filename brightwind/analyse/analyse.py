@@ -22,7 +22,7 @@ from brightwind.utils import utils
 from brightwind.analyse import plot as plt
 import matplotlib
 
-__all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'dist_of_wind_speed',
+__all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'dist', 'dist_of_wind_speed',
            'distribution_by_dir_sector', 'freq_table', 'freq_distribution', 'time_continuity_gaps', 'coverage',
            'basic_stats', 'twelve_by_24', 'TI', 'wspd_ratio_by_dir_sector', 'Shear', 'calc_air_density']
 
@@ -180,10 +180,10 @@ def _convert_df_to_series(df):
     return df
 
 
-def distribution(var_series, var_to_bin_against=None, bins=np.arange(-0.5, 41, 1), bin_labels=None,
-                 max_y_value=None, aggregation_method='%frequency', return_data=False):
+def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None,
+         max_y_value=None, aggregation_method='%frequency', return_data=False):
     """
-    Accepts a variable and computes the distribution of the variable with itself as per the bins specified. Can
+    Calculates the distribution of a variable against itself as per the bins specified. Can
     also pass another variable for finding distribution with respect to another variable.
 
     :param var_series: Time-series of the variable whose distribution we need to find
@@ -234,6 +234,8 @@ def distribution(var_series, var_to_bin_against=None, bins=np.arange(-0.5, 41, 1
     var_to_bin_against = _convert_df_to_series(var_to_bin_against)
     var_series = var_series.dropna()
     var_to_bin_against = var_to_bin_against.dropna()
+    if bins is None:
+        bins = np.arange(round(var_to_bin_against.min()-0.5)-0.5, var_to_bin_against.max()+0.5, 1)
     var_binned_series = pd.cut(var_to_bin_against, bins, right=False).rename('variable_bin')
     data = pd.concat([var_series.rename('data'), var_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
@@ -284,7 +286,7 @@ def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
 
 def freq_distribution(wspd, max_speed=30, max_y_value=None, return_data=False):
     """
-    This is a wrapper function around `dist_of_wind_speed()`. Please see that functions documentation.
+    This is a wrapper function around `dist_of_wind_speed()`. Please see that function's documentation.
     :param wspd:
     :param max_speed:
     :param max_y_value:
