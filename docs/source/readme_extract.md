@@ -13,7 +13,7 @@ C:\Users\Stephen> pip install brightwind
 <br>
 
 For those not familiar with Python or pip, please follow this tutorial,
-[getting started with Windows](tutorials/Getting_Started_Stable_Development.html),
+[getting started on Windows](tutorials/getting_started_on_windows.html),
 to get started.
 
 <br>
@@ -65,6 +65,6 @@ A test dataset is included in this repository and is used to test functions in t
 #### Contributing
 If you wish to be involved or find out more please contact stephen@brightwindanalysis.com.
 
-More information can be found on the [Community](Community.html) section.
+More information can be found on the [Community](community.html) section.
 
 <br>
