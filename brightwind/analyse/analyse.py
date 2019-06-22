@@ -22,9 +22,9 @@ from brightwind.utils import utils
 from brightwind.analyse import plot as plt
 import matplotlib
 
-__all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'distribution_by_wind_speed',
-           'distribution_by_dir_sector', 'freq_table', 'time_continuity_gaps', 'coverage', 'basic_stats',
-           'twelve_by_24', 'TI', 'wspd_ratio_by_dir_sector', 'Shear', 'calc_air_density']
+__all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'distribution', 'dist_of_wind_speed',
+           'distribution_by_dir_sector', 'freq_table', 'freq_distribution', 'time_continuity_gaps', 'coverage',
+           'basic_stats', 'twelve_by_24', 'TI', 'wspd_ratio_by_dir_sector', 'Shear', 'calc_air_density']
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
@@ -252,7 +252,7 @@ def distribution(var_series, var_to_bin_against=None, bins=np.arange(-0.5, 41, 1
     return graph
 
 
-def distribution_by_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
+def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
     """
     Accepts a wind speed time series and computes it's frequency distribution. That is, how often does the wind
     blow within each wind speed bin.
@@ -270,9 +270,9 @@ def distribution_by_wind_speed(wspd, max_speed=30, max_y_value=None, return_data
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        data = bw.load_csv(bw.datasets.demo_data)
 
-        freq_dist_plot, freq_dist = bw.distribution_by_wind_speed(df.Spd80mN, return_data=True)
+        freq_dist_plot, freq_dist = bw.dist_of_wind_speed(data.Spd80mN, return_data=True)
 
     """
     freq_dist = distribution(wspd, var_to_bin_against=None, bins=np.arange(-0.5, max_speed+1, 1), bin_labels=None,
@@ -280,6 +280,18 @@ def distribution_by_wind_speed(wspd, max_speed=30, max_y_value=None, return_data
     if return_data:
         return freq_dist[0], freq_dist[1]
     return freq_dist[0]
+
+
+def freq_distribution(wspd, max_speed=30, max_y_value=None, return_data=False):
+    """
+    This is a wrapper function around `dist_of_wind_speed()`. Please see that functions documentation.
+    :param wspd:
+    :param max_speed:
+    :param max_y_value:
+    :param return_data:
+    :return:
+    """
+    return dist_of_wind_speed(wspd, max_speed=max_speed, max_y_value=max_y_value, return_data=return_data)
 
 
 def _binned_direction_series(direction_series, sectors, direction_bin_array=None):
