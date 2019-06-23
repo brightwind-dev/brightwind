@@ -225,7 +225,8 @@ def plot_scatter(x_series, y_series, x_axis_title=None, y_axis_title=None,
     if y_axis_title is None:
         y_axis_title = y_series.name
 
-    scat_plot = _scatter_plot(x_series, y_series, x_label=x_axis_title, y_label=y_axis_title)
+    merged_df = pd.concat([x_series, y_series], join='inner', axis=1)
+    scat_plot = _scatter_plot(merged_df[x_series.name], merged_df[y_series.name], x_label=x_axis_title, y_label=y_axis_title)
 
     if x_limits is None:
         x_limits = (round(x_series.min()-0.5), -(-x_series.max()//1))
@@ -281,7 +282,7 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_ti
     x = [0, 360]
     y = [0, 360]
     scat_plot.axes[0].plot(x, y, 'k-')
-    scat_plot.axes[0].legend(['reference line', 'data points'])
+    scat_plot.axes[0].legend(['Reference line', 'Data points'])
     return scat_plot
 
 
