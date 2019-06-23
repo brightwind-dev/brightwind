@@ -290,13 +290,9 @@ def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
 
 def freq_distribution(wspd, max_speed=30, max_y_value=None, return_data=False):
     """
-    This is a wrapper function around `dist_of_wind_speed()`. Please see that function's documentation.
-    :param wspd:
-    :param max_speed:
-    :param max_y_value:
-    :param return_data:
-    :return:
+    Same as `dist_of_wind_speed()`. Please see that function's documentation.
     """
+
     return dist_of_wind_speed(wspd, max_speed=max_speed, max_y_value=max_y_value, return_data=return_data)
 
 
