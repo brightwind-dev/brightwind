@@ -209,15 +209,15 @@ def plot_scatter(x_series, y_series, x_axis_title=None, y_axis_title=None,
         import brightwind as bw
         data = bw.load_csv(bw.datasets.demo_data)
 
-        #To plot few variables
-        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS)
+        # To plot two variables against each other
+        bw.plot_scatter(data.Spd80mN, data.Spd80mS)
 
-        #To over write the default axis titles.
-        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS, x_axis_title='Reference', y_axis_title='Target')
+        # To overwrite the default axis titles.
+        bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_axis_title='Dir78mS', y_axis_title='Dir58mS')
 
-        #To set the x and y axis limits by using a tuple.
-        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS,x_axis_title='Reference', y_axis_title='Target',
-                             x_limits=(50,300), y_limits=(250,300))
+        # To set the x and y axis limits by using a tuple.
+        bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_axis_title='Dir78mS', y_axis_title='Dir58mS',
+                        x_limits=(50,300), y_limits=(250,300))
 
     """
     if x_axis_title is None:
@@ -226,7 +226,8 @@ def plot_scatter(x_series, y_series, x_axis_title=None, y_axis_title=None,
         y_axis_title = y_series.name
 
     merged_df = pd.concat([x_series, y_series], join='inner', axis=1)
-    scat_plot = _scatter_plot(merged_df[x_series.name], merged_df[y_series.name], x_label=x_axis_title, y_label=y_axis_title)
+    scat_plot = _scatter_plot(merged_df[x_series.name], merged_df[y_series.name],
+                              x_label=x_axis_title, y_label=y_axis_title)
 
     if x_limits is None:
         x_limits = (round(x_series.min()-0.5), -(-x_series.max()//1))
@@ -265,11 +266,12 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_ti
         #To plot few variables
         bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS)
 
-        #To over write the default axis titles.
-        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS, x_axis_title='Reference', y_axis_title='Target')
+        #To overwrite the default axis titles.
+        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS, x_axis_title='Wind direction at 78m',
+                             y_axis_title='Wind direction at 58m')
 
         #To set the x and y axis limits by using a tuple.
-        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS,x_axis_title='Reference', y_axis_title='Target',
+        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS, x_axis_title='Reference', y_axis_title='Target',
                              x_limits=(50,300), y_limits=(250,300))
 
     """
@@ -289,7 +291,9 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_ti
 def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_title=None,
                       x_limits=(0, 30), y_limits=(0, 30)):
     """
-    Plots a scatter plot of two wind speed timeseries and adds a reference line from 0,0 to 40,40.
+    Plots a scatter plot of two wind speed timeseries and adds a reference line from 0,0 to 40,40. This should
+    only be used for wind speeds in m/s and not when one of the wind speed series is normalised. Please use the
+    basic 'plot_scatter()' function when using normalised wind speeds.
 
     :param x_wspd_series: The x-axis values or reference wind speeds.
     :type x_wspd_series: pd.Series
@@ -313,15 +317,16 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
         import brightwind as bw
         data = bw.load_csv(bw.datasets.demo_data)
 
-        #To plot few variables
-        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS)
+        # To plot two wind speeds against each other
+        bw.plot_scatter_wspd(data.Spd80mN, data.Spd80mS)
 
-        #To over write the default axis titles.
-        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS, x_axis_title='Reference', y_axis_title='Target')
+        # To overwrite the default axis titles.
+        bw.plot_scatter_wspd(data.Spd80mN, data.Spd80mS, x_axis_title='Speed at 80m North',
+                             y_axis_title='Speed at 80m South')
 
-        #To set the x and y axis limits by using a tuple.
-        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS,x_axis_title='Reference', y_axis_title='Target',
-                             x_limits=(50,300), y_limits=(250,300))
+        # To set the x and y axis limits by using a tuple.
+        bw.plot_scatter_wspd(data.Spd80mN, data.Spd80mS, x_axis_title='Speed at 80m North',
+                             y_axis_title='Speed at 80m South', x_limits=(0,25), y_limits=(0,25))
 
     """
     if x_axis_title is None:
