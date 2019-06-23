@@ -281,13 +281,14 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_ti
     x = [0, 360]
     y = [0, 360]
     scat_plot.axes[0].plot(x, y, 'k-')
+    scat_plot.axes[0].legend(['reference line', 'data points'])
     return scat_plot
 
 
 def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_title=None,
                       x_limits=(0, 30), y_limits=(0, 30)):
     """
-    Plots a scatter plot of two wind speed timeseries and adds a line from 0,0 to 40,40.
+    Plots a scatter plot of two wind speed timeseries and adds a reference line from 0,0 to 40,40.
 
     :param x_wspd_series: The x-axis values or reference wind speeds.
     :type x_wspd_series: pd.Series
@@ -331,6 +332,7 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
     x = [0, 40]
     y = [0, 40]
     scat_plot.axes[0].plot(x, y, 'k-')
+    scat_plot.axes[0].legend(['Reference line', 'Data points'])
     return scat_plot
 
 
