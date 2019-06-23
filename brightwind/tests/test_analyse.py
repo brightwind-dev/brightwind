@@ -3,9 +3,8 @@ import brightwind as bw
 import pandas as pd
 
 
-
 def test_monthly_means():
-    #Load data
+    # Load data
     bw.monthly_means(bw.load_csv(bw.datasets.shell_flats_80m_csv))
     bw.monthly_means(bw.load_csv(bw.datasets.shell_flats_80m_csv)[['WS70mA100NW_Avg','WS70mA100SE_Avg',
                                                                           'WS50mA100NW_Avg','WS50mA100SE_Avg',
@@ -49,6 +48,7 @@ def test_twelve_by_24():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
     graph, table12x24 = bw.twelve_by_24(df.Spd40mN, var_name_label='wind speed', return_data=True)
     graph = bw.twelve_by_24(df.PrcpTot, aggregation_method='sum')
+
     def custom_agg(x):
         return x.mean() + (2 * x.std())
     graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method=custom_agg, return_data=True)
@@ -64,7 +64,6 @@ def test_TI_twelve_by_24():
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, var_name_label='Speed 60 m N m/s')
     bw.TI.twelve_by_24(df.Spd40mN, df.Spd40mNStd)
     assert 1 == 1
-
 
 
 def test_coverage():
@@ -103,7 +102,7 @@ def test_freq_table():
     # Calling with user defined dir_bin labels BUGGY
     graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, direction_bin_array=[0, 90, 160, 210, 360],
                            direction_bin_labels=['lowest','lower','mid','high'], return_data=True)
-    assert (tab.columns==['lowest','lower','mid','high']).all()
+    assert (tab.columns == ['lowest','lower','mid','high']).all()
 
     tab = bw.freq_table(df.Spd40mN, df.Dir38mS, plot_bins=[0, 3, 6, 9, 12, 15, 41],
                         plot_labels=['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s'],
@@ -119,25 +118,39 @@ def test_freq_table():
                         plot_bins=None, plot_labels=None, return_data=True)
                         # var_bin_labels=['operating','shutdow','dangerous'],
 
+
 def test_distribution():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
 
     # For distribution of %frequency of wind speeds
-    dist = bw.distribution(df.Spd40mN, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
+    dist = bw.dist(df.Spd40mN, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
 
     # For distribution of mean temperature
-    temp_dist = bw.distribution(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method='mean')
+    temp_dist = bw.dist(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method='mean')
 
     # For custom aggregation function
     def custom_agg(x):
         return x.mean() + (2 * x.std())
 
-    temp_dist = bw.distribution(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method=custom_agg)
+    temp_dist = bw.dist(df.T2m, bins=[-10, 4, 12, 18, 30], aggregation_method=custom_agg)
 
     # For distribution of mean wind speeds with respect to temperature
-    spd_dist = bw.distribution(df.Spd40mN, var_to_bin_against=df.T2m,
-                               bins=[-10, 4, 12, 18, 30],
-                               bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
+    spd_dist = bw.dist(df.Spd40mN, var_to_bin_against=df.T2m,
+                       bins=[-10, 4, 12, 18, 30],
+                       bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
+
+
+def test_dist_of_wind_speed():
+    df = bw.load_csv(bw.datasets.demo_data)
+    spd_dist = bw.dist_of_wind_speed(df.Spd80mN, max_speed=30, max_y_value=10, return_data=False)
+    assert True
+
+
+def test_freq_distribution():
+    df = bw.load_csv(bw.datasets.demo_data)
+    spd_dist = bw.freq_distribution(df.Spd80mN, max_speed=30, max_y_value=10, return_data=False)
+    assert True
+
 
 def test_TI_by_speed():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
