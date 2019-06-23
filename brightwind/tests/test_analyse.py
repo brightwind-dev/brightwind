@@ -28,8 +28,8 @@ def test_basic_stats():
     data = bw.load_csv(bw.datasets.shell_flats_80m_csv)
     bw.basic_stats(data)
     bs2 = bw.basic_stats(data['WS70mA100NW_Avg'])
-    assert (bs2['count']==58874.0).bool() and((bs2['mean']-9.169382)<1e-6).bool() and ((bs2['std']-4.932851)<1e-6).bool()\
-           and (bs2['max']==27.66).bool() and (bs2['min'] == 0.0).bool()
+    assert (bs2['count'] == 58874.0).bool() and((bs2['mean']-9.169382) < 1e-6).bool() and \
+           ((bs2['std']-4.932851) < 1e-6).bool() and (bs2['max'] == 27.66).bool() and (bs2['min'] == 0.0).bool()
 
 
 def test_time_continuity_gaps():
@@ -44,14 +44,15 @@ def test_time_continuity_gaps():
     assert abs(gaps.iloc[1, 2] - 0.01388) < 1e-5
 
 
-def test_twelve_by_24():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
-    graph, table12x24 = bw.twelve_by_24(df.Spd40mN, var_name_label='wind speed', return_data=True)
-    graph = bw.twelve_by_24(df.PrcpTot, aggregation_method='sum')
-
+def test_dist_12x24():
+    df = bw.load_csv(bw.datasets.demo_data)
+    graph, table12x24 = bw.dist_12x24(df.Spd40mN, var_name_label='wind speed', return_data=True)
+    graph = bw.dist_12x24(df.PrcpTot, aggregation_method='sum')
+    
     def custom_agg(x):
         return x.mean() + (2 * x.std())
-    graph, table12x24 = bw.twelve_by_24(df.PrcpTot, aggregation_method=custom_agg, return_data=True)
+
+    graph, table12x24 = bw.dist_12x24(df.PrcpTot, aggregation_method=custom_agg, return_data=True)
 
     assert True
 
