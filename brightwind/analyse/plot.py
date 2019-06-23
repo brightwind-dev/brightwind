@@ -117,7 +117,7 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
     """
     Plot a timeseries of data.
 
-    :param data: DataFrame to plot.
+    :param data: Data in the form of a Pandas DataFrame/Series to plot.
     :type data: pd.DataFrame, pd.Series
     :param date_from: Start date used for plotting, if not specified the first timestamp of data is considered. Should
         be in yyyy-mm-dd format
@@ -149,7 +149,7 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
 
         # To set the y-axis minimum to 0
         bw.plot_timeseries(data.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=(0, None))
-        
+
         # To set the y-axis maximum to 25
         bw.plot_timeseries(data.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=(0, 25))
 
