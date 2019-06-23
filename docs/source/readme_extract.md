@@ -1,32 +1,46 @@
-# brightwind
-------
-The brightwind python library aims to empower wind resource analysts and
-establish a common industry standard toolset.
 <br>
 
----------
-##### Features
+#### Installation
+
+The library can be installed by using pip install from the command line (for those that have pip installed).
+
+<br>
+
+```
+C:\Users\Stephen> pip install brightwind
+```
+
+<br>
+
+For those not familiar with Python or pip, please follow this tutorial,
+[getting started on Windows](tutorials/getting_started_on_windows.html),
+to get started.
+
+<br>
+
+
+#### Features
 The library provides wind analysts with easy to use tools for working with
 meteorological data. It supports loading of meteorological data, averaging,
 filtering, plotting, correlations, shear analysis, long term adjustments, etc.
 The library can export a resulting long term adjusted tab file to be used in
 other software.
 
-----------------
-##### Benefits
+<br>
 
-The key benefits to an open-sourced, scriptable library is that it provides traceability
-and validation by the industry. An open-source toolset provides complete transparency
-of the calculations that underpin a wind energy assessment leading to a standardisation
-of these calculations by the industry thus removing any confusion as to how the data is
-manipulated.
+#### Benefits
+The key benefits to an open-source library is that it provides complete transparency
+and traceability. Anyone in the industry can review any part of the code and suggest changes,
+thus creating a standardised, validated toolkit for the industry.
 
-As it is scriptable it can be clearly seen exactly how the data was processed making it easier
-for reviewing and checking. It can also be used as the foundation building block
-in the automation of wind analysis tasks and software development.
+By default, during an assessment every manipulation or adjustment made to the wind data is
+contained in a single file. This can easily be reviewed and checked by internal reviewers or,
+as the underlying code is open-sourced, there is no reason why this file cannot be sent to
+3rd parties for review thus increasing the effectiveness of a banks due diligence.
 
---------
-##### License
+<br>
+
+#### License
 The library is licensed under the GNU Lesser General Public License v3.0. It is the
 intention to allow commercial products or services to be built on top of this
 library but any modifications to the library itself should be kept open-sourced.
@@ -34,23 +48,23 @@ Keeping this open-sourced will ensure that the library becomes the de facto
 library used by wind analysts, establishing a common, standard industry wide
 toolset for wind data processing .
 
----------
+<br>
 
-Project website : https://github.com/brightwind-dev/brightwind
+#### Test datasets
+A test dataset is included in this repository and is used to test functions in the code. The source of the dataset is:
 
-------------
-##### Installation
-> Note: This is an initial beta release of the library. Anything may change at any
-> time. The public API must not be considered stable.
+<br>
 
-First clone or download the github repository to your machine. From the command prompt, navigate to the root folder of the brightwind repository where you can find the setup.py file and run:
-```
-C:\...\brightwind> pip install -e .
-```
-Don't forget the dot at the end. This command will install the package using pip.
+| Dataset            | Source           | Notes  |
+|:------------------ |:-------------|:-----|
+| Demo data          | Anonymous | A modified 2 year met mast dataset in various logger formats along with associated 18-yr MERRA-2 data. |
+| Offshore-CREYAP-2  | [Offshore-CREYAP-2-Data-pack](http://www.ewea.org/events/workshops/past-workshops/resource-assessment-2015/offshore-creyap-part-ii/) | Two offshore met masts with MERRA data. |
+| CREYAP Pt II       | [CREYAP-Pt-2](http://www.ewea.org/events/workshops/past-workshops/resource-assessment-2015/offshore-creyap-part-ii/)      | Onshore 50m met mast from the CREYAP Pt II along with additional MERRA-2 reference data  |
 
-Requires Python version 3.6 or later. If you work on Windows, the [Anaconda](https://www.anaconda.com/download/) Python
-distribution will install everything you need including [pip](https://www.w3schools.com/python/python_pip.asp) for installing packages and
-the [Jupyter Notebook](https://jupyter.org/) for using the library.
 
----
+#### Contributing
+If you wish to be involved or find out more please contact stephen@brightwindanalysis.com.
+
+More information can be found on the [Community](community.html) section.
+
+<br>
