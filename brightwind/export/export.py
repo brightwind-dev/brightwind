@@ -165,4 +165,4 @@ def export_csv(data, file_name=None, folder_path=None, **kwargs):
             pd.DataFrame(data).to_csv(file_path, header=None, index=None, **kwargs)
     else:
         raise NotADirectoryError("The destination folder doesn't seem to exist.")
-    print('Export fo csv successful.')
+    print('Export to csv successful.')
