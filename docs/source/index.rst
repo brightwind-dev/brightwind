@@ -7,10 +7,17 @@
    :scale: 30 %
    :align: center
 
+The brightwind python library aims to **empower wind resource analysts** and establish a common **industry standard toolset**.
+
+Example usage is shown below via a Jupyter Notebook.
+
+.. image:: read_me_1.png
+   :align: center
+.. image:: read_me_2.png
+   :align: center
+
 .. mdinclude:: readme_extract.md
 
-.. seealso:: [Tutorial]
-   :ref:`how_to_get_started`
 
 
 

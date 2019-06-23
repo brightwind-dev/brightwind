@@ -115,9 +115,9 @@ html_theme_options = {
 'navbar_sidebarrel': False,
 'navbar_links': [
         ("Home", "index"),
-        ("Tutorials", "Tutorials"),
-        ("API", "API"),
-        ("Community", "Community"),
+        ("Tutorials", "tutorials"),
+        ("API", "api"),
+        ("Community", "community"),
 
     ],
 'globaltoc_depth': -1
@@ -136,7 +136,7 @@ html_static_path = [path.replace('docs\source', 'docs\_static')]
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
 html_sidebars = {
-   'API': ['localtoc.html'],#,'sidebartoc.html'
+   'api': ['localtoc.html'],#,'sidebartoc.html'
    'index': [],
     '**':[]
 }
