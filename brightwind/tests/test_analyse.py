@@ -28,8 +28,8 @@ def test_basic_stats():
     data = bw.load_csv(bw.datasets.shell_flats_80m_csv)
     bw.basic_stats(data)
     bs2 = bw.basic_stats(data['WS70mA100NW_Avg'])
-    assert (bs2['count']==58874.0).bool() and((bs2['mean']-9.169382)<1e-6).bool() and ((bs2['std']-4.932851)<1e-6).bool()\
-           and (bs2['max']==27.66).bool() and (bs2['min'] == 0.0).bool()
+    assert (bs2['count'] == 58874.0).bool() and((bs2['mean']-9.169382) < 1e-6).bool() and \
+           ((bs2['std']-4.932851) < 1e-6).bool() and (bs2['max'] == 27.66).bool() and (bs2['min'] == 0.0).bool()
 
 
 def test_time_continuity_gaps():

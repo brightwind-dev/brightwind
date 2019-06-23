@@ -24,8 +24,8 @@ import matplotlib
 
 
 __all__ = ['concurrent_coverage', 'monthly_means', 'momm', 'dist', 'dist_of_wind_speed',
-           'distribution_by_dir_sector', 'freq_table', 'freq_distribution', 'time_continuity_gaps', 'coverage',
-           'dist_12x24', 'TI', 'wspd_ratio_by_dir_sector', 'Shear', 'calc_air_density']
+           'distribution_by_dir_sector', 'freq_table', 'freq_distribution', 'time_continuity_gaps', 'coverage', 
+           'basic_stats', 'dist_12x24', 'TI', 'wspd_ratio_by_dir_sector', 'Shear', 'calc_air_density']
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
