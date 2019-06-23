@@ -548,7 +548,7 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean')):
     :param label: Label of the colour bar on the plot.
     :return: 12x24 figure
     """
-    fig, ax = plt.subplots(figsize=(15, 8))
+    fig, ax = plt.subplots(figsize=(15, 10))
     levels = np.linspace(tab_12x24.min().min(), tab_12x24.max().max(), num=9)
     x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, levels=levels,
                     colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32', '#8ab92d', '#7ba428', '#6b9023'])
