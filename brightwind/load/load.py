@@ -27,8 +27,14 @@ from io import StringIO
 import warnings
 
 
-__all__ = ['load_csv', 'load_campbell_scientific', 'load_windographer_txt', 'load_excel', 'load_brightdata',
-           'load_cleaning_file', 'apply_cleaning', 'apply_cleaning_windographer']
+__all__ = ['load_csv',
+           'load_campbell_scientific',
+           'load_windographer_txt',
+           'load_excel',
+           'load_brightdata',
+           'load_cleaning_file',
+           'apply_cleaning',
+           'apply_cleaning_windographer']
 
 
 def _list_files(folder_path, file_type):
@@ -374,7 +380,7 @@ def _assemble_files_to_folder(source_folder, destination_folder, file_type, prin
     for file in files_list:
         filename = os.path.split(file)[1]
         filepath = os.path.split(file)[0]
-        new_file: str = os.path.join(destination_folder, filename)
+        new_file = os.path.join(destination_folder, filename)
         if print_filename:
             print(new_file)
         if filepath == destination_folder:
@@ -667,6 +673,8 @@ def apply_cleaning(data, cleaning_file_or_df, sensor_col_name='Sensor', date_fro
                 if cleaning_df[sensor_col_name][k] in col:
                     data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
+
+    print('Cleaning applied. (Please remember to assign the cleaned returned DataFrame to a variable.)')
     return data
 
 
@@ -723,4 +731,5 @@ def apply_cleaning_windographer(data, windog_cleaning_file, flags_to_exclude=['S
                     data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
+    print('Cleaning applied. (Please remember to assign the cleaned returned DataFrame to a variable.)')
     return data
