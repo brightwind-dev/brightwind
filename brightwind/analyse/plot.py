@@ -25,7 +25,10 @@ from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
 
 
-__all__ = ['plot_timeseries']
+__all__ = ['plot_timeseries',
+           'plot_scatter',
+           'plot_scatter_wspd',
+           'plot_scatter_wdir']
 
 
 try:
@@ -156,18 +159,187 @@ def plot_timeseries(data, date_from='', date_to=''):
 
 
 def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", title="", prediction_marker='k-'):
+    """
+    Plots a scatter plot.
+    :param x:
+    :param y:
+    :param predicted_y: A series of predicted y values after applying the correlation to the x series.
+    :param x_label:
+    :param y_label:
+    :param title:
+    :param prediction_marker:
+    :return:
+    """
     fig, ax = plt.subplots()
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.scatter(x, y, marker='.', color='#9ACD32', alpha=0.5)
-    # fig.set_figwidth(size[0])
-    # fig.set_figheight(size[1])
+    fig.set_figwidth(10)
+    fig.set_figheight(10.2)
     # ax.set_title(title)
     if predicted_y is not None:
         ax.plot(x, predicted_y, prediction_marker)
         ax.legend(['Predicted', 'Original'])
     plt.close()
     return ax.get_figure()
+
+
+def plot_scatter(x_series, y_series, x_axis_title=None, y_axis_title=None,
+                 x_limits=None, y_limits=None):
+    """
+    Plots a scatter plot of two variable's timeseries.
+
+    :param x_series: The x-axis values or reference variable.
+    :type x_series: pd.Series
+    :param y_series: The y-axis values or target variable.
+    :type y_series: pd.Series
+    :param x_axis_title: Title for the x-axis. If None, title will be taken from x_series name.
+    :type x_axis_title: str, None
+    :param y_axis_title: Title for the y-axis. If None, title will be taken from y_series name.
+    :type y_axis_title: str, None
+    :param x_limits: x-axis min and max limits.
+    :type x_limits: tuple, None
+    :param y_limits: y-axis min and max limits.
+    :type y_limits: tuple, None
+    :return: scatter plot
+    :rtype: matplotlib.figure.Figure
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.datasets.demo_data)
+
+        # To plot two variables against each other
+        bw.plot_scatter(data.Spd80mN, data.Spd80mS)
+
+        # To overwrite the default axis titles.
+        bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_axis_title='Dir78mS', y_axis_title='Dir58mS')
+
+        # To set the x and y axis limits by using a tuple.
+        bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_axis_title='Dir78mS', y_axis_title='Dir58mS',
+                        x_limits=(50,300), y_limits=(250,300))
+
+    """
+    if x_axis_title is None:
+        x_axis_title = x_series.name
+    if y_axis_title is None:
+        y_axis_title = y_series.name
+
+    merged_df = pd.concat([x_series, y_series], join='inner', axis=1)
+    scat_plot = _scatter_plot(merged_df[x_series.name], merged_df[y_series.name],
+                              x_label=x_axis_title, y_label=y_axis_title)
+
+    if x_limits is None:
+        x_limits = (round(x_series.min()-0.5), -(-x_series.max()//1))
+    if y_limits is None:
+        y_limits = (round(y_series.min()-0.5), -(-y_series.max()//1))
+    scat_plot.axes[0].set_xlim(x_limits[0], x_limits[1])
+    scat_plot.axes[0].set_ylim(y_limits[0], y_limits[1])
+    return scat_plot
+
+
+def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_title=None,
+                      x_limits=(0, 360), y_limits=(0, 360)):
+    """
+    Plots a scatter plot of two wind direction timeseries and adds a line from 0,0 to 360,360.
+
+    :param x_wdir_series: The x-axis values or reference wind directions.
+    :type x_wdir_series: pd.Series
+    :param y_wdir_series: The y-axis values or target wind directions.
+    :type y_wdir_series: pd.Series
+    :param x_axis_title: Title for the x-axis. If None, title will be taken from x_wdir_series name.
+    :type x_axis_title: str, None
+    :param y_axis_title: Title for the y-axis. If None, title will be taken from y_wdir_series name.
+    :type y_axis_title: str, None
+    :param x_limits: x-axis min and max limits.
+    :type x_limits: tuple
+    :param y_limits: y-axis min and max limits.
+    :type y_limits: tuple
+    :return: scatter plot
+    :rtype: matplotlib.figure.Figure
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.datasets.demo_data)
+
+        #To plot few variables
+        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS)
+
+        #To overwrite the default axis titles.
+        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS, x_axis_title='Wind direction at 78m',
+                             y_axis_title='Wind direction at 58m')
+
+        #To set the x and y axis limits by using a tuple.
+        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS, x_axis_title='Reference', y_axis_title='Target',
+                             x_limits=(50,300), y_limits=(250,300))
+
+    """
+    if x_axis_title is None:
+        x_axis_title = x_wdir_series.name + ' [°]'
+    if y_axis_title is None:
+        y_axis_title = y_wdir_series.name + ' [°]'
+    scat_plot = plot_scatter(x_wdir_series, y_wdir_series, x_axis_title=x_axis_title, y_axis_title=y_axis_title,
+                             x_limits=x_limits, y_limits=y_limits)
+    x = [0, 360]
+    y = [0, 360]
+    scat_plot.axes[0].plot(x, y, 'k-')
+    scat_plot.axes[0].legend(['Reference line', 'Data points'])
+    return scat_plot
+
+
+def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_title=None,
+                      x_limits=(0, 30), y_limits=(0, 30)):
+    """
+    Plots a scatter plot of two wind speed timeseries and adds a reference line from 0,0 to 40,40. This should
+    only be used for wind speeds in m/s and not when one of the wind speed series is normalised. Please use the
+    basic 'plot_scatter()' function when using normalised wind speeds.
+
+    :param x_wspd_series: The x-axis values or reference wind speeds.
+    :type x_wspd_series: pd.Series
+    :param y_wspd_series: The y-axis values or target wind speeds.
+    :type y_wspd_series: pd.Series
+    :param x_axis_title: Title for the x-axis. If None, title will be taken from x_wspd_series name.
+    :type x_axis_title: str, None
+    :param y_axis_title: Title for the y-axis. If None, title will be taken from y_wspd_series name.
+    :type y_axis_title: str, None
+    :param x_limits: x-axis min and max limits. Can be set to None to let the code derive the min and max from
+                     the x_wspd_series.
+    :type x_limits: tuple, None
+    :param y_limits: y-axis min and max limits. Can be set to None to let the code derive the min and max from
+                     the y_wspd_series.
+    :type y_limits: tuple, None
+    :return: scatter plot
+    :rtype: matplotlib.figure.Figure
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.datasets.demo_data)
+
+        # To plot two wind speeds against each other
+        bw.plot_scatter_wspd(data.Spd80mN, data.Spd80mS)
+
+        # To overwrite the default axis titles.
+        bw.plot_scatter_wspd(data.Spd80mN, data.Spd80mS, x_axis_title='Speed at 80m North',
+                             y_axis_title='Speed at 80m South')
+
+        # To set the x and y axis limits by using a tuple.
+        bw.plot_scatter_wspd(data.Spd80mN, data.Spd80mS, x_axis_title='Speed at 80m North',
+                             y_axis_title='Speed at 80m South', x_limits=(0,25), y_limits=(0,25))
+
+    """
+    if x_axis_title is None:
+        x_axis_title = x_wspd_series.name + ' [m/s]'
+    if y_axis_title is None:
+        y_axis_title = y_wspd_series.name + ' [m/s]'
+    scat_plot = plot_scatter(x_wspd_series, y_wspd_series, x_axis_title=x_axis_title, y_axis_title=y_axis_title,
+                             x_limits=x_limits, y_limits=y_limits)
+    x = [0, 40]
+    y = [0, 40]
+    scat_plot.axes[0].plot(x, y, 'k-')
+    scat_plot.axes[0].legend(['Reference line', 'Data points'])
+    return scat_plot
 
 
 def plot_freq_distribution(data, max_y_value=None, labels=None, y_label=None,
@@ -188,7 +360,7 @@ def plot_freq_distribution(data, max_y_value=None, labels=None, y_label=None,
     if labels is not None:
         ax.set_xticklabels(labels)
     if max_y_value is None:
-        ax.set_ylim(0, max(data)*1.1)
+        ax.set_ylim(0, data.max()*1.1)
     else:
         ax.set_ylim(0, max_y_value)
     if y_label[0] == '%':
