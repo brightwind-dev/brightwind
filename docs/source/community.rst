@@ -15,3 +15,5 @@ Most contributors use the PyCharm IDE and follow the built in PyCharm code style
     :maxdepth: 1
 
     Getting beta versions<tutorials/getting_beta_versions.ipynb>
+
+    Use a template tutorial<tutorials/template_tutorial.ipynb>
