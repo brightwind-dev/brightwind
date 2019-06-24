@@ -25,6 +25,7 @@ import matplotlib
 __all__ = ['concurrent_coverage',
            'monthly_means',
            'momm',
+           'dist_matrix',
            'dist',
            'dist_of_wind_speed',
            'distribution_by_dir_sector',
@@ -191,6 +192,51 @@ def _convert_df_to_series(df):
     elif isinstance(df, pd.DataFrame) and df.shape[1] > 1:
         raise TypeError('DataFrame cannot be converted to a Series as it contains more than 1 column.')
     return df
+
+def dist_matrix(var_series, var_to_bin_1=None, bins_var_1=None, bin_labels_var_1=None, num_bins_1=6,
+                            var_to_bin_2=None, bins_var_2=None, bin_labels_var_2=None, num_bins_2=6,
+                max_y_value=None, aggregation_method='%frequency', return_data=False):
+    """
+
+    :param var_series:
+    :param binned_var_1:
+    :param bins_var_1:
+    :param bin_labels_var_1:
+    :param binned_var_2:
+    :param bins_var_2:
+    :param bin_labels_var_2:
+    :param max_y_value:
+    :param aggregation_method:
+    :param return_data:
+    :return:
+    """
+    # if var_to_bin_against is None:
+    #     var_to_bin_against = var_series.copy(deep=False)
+    var_series = _convert_df_to_series(var_series).dropna()
+    var_to_bin_1 = _convert_df_to_series(var_to_bin_1).dropna()
+    var_to_bin_2 = _convert_df_to_series(var_to_bin_2).dropna()
+
+    if bins_var_1 is None:
+        bins_var_1 = np.linspace(var_to_bin_1.min(), var_to_bin_1.max(), num_bins_1)
+    if bins_var_2 is None:
+        bins_var_2 = np.linspace(var_to_bin_2.min(), var_to_bin_2.max(), num_bins_2)
+
+    var_binned_series_1 = pd.cut(var_to_bin_1, bins_var_1, right=False).rename('variable_bin_1')
+    var_binned_series_2 = pd.cut(var_to_bin_2, bins_var_2, right=False).rename('variable_bin_2')
+    data = pd.concat([var_series.rename('var_data'), var_binned_series_1, var_binned_series_2], join='inner',
+                     axis=1).dropna()
+
+    return data
+
+    if aggregation_method == '%frequency':
+        result = pd.crosstab(data.loc[:, 'variable_bin'], data.loc[:, 'direction_bin']) / len(data) * 100.0
+    else:
+        result = pd.crosstab(data.loc[:, 'variable_bin'], data.loc[:, 'direction_bin'])
+
+    if aggregation_method == '%frequency':
+        distribution = data.groupby(['variable_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
+    else:
+        distribution = data.groupby(['variable_bin'])['data'].agg(aggregation_method)
 
 
 def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None,

@@ -136,7 +136,7 @@ html_static_path = [path.replace('docs\source', 'docs\_static')]
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
 html_sidebars = {
-   'api': ['localtoc.html'],#,'sidebartoc.html'
+   'api': ['localtoc.html'],#'sidebartoc.html', 'globaltoc.html'
    'index': [],
     '**':[]
 }
