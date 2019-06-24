@@ -53,6 +53,9 @@ Analyse
     :toctree: generated
 
     plot_timeseries
+    plot_scatter
+    plot_scatter_wspd
+    plot_scatter_wdir
 
 
 Correlation
