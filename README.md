@@ -15,6 +15,12 @@ The brightwind python library aims to **empower wind resource analysts** and est
 
 <br>
 
+### Documentation
+
+Documentation on how to get setup and use the library can be found at https://brightwind-dev.github.io/brightwind-docs/
+
+<br>
+
 Example usage is shown below via a Jupyter Notebook.
 <br>
 
@@ -25,11 +31,7 @@ Example usage is shown below via a Jupyter Notebook.
 </p>
 
 
-<br>
 
-### Documentation
-
-Documentation on how to get setup and use the library can be found at https://brightwind-dev.github.io/brightwind-docs/
 
 <br>
 
