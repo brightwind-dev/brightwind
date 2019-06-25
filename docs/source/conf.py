@@ -137,8 +137,8 @@ html_static_path = [path.replace('docs\source', 'docs\_static')]
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
 html_sidebars = {
    'api': ['localtoc.html'],#,'sidebartoc.html'
-   'index': [],
-    '**':[]
+   'index': ['localtoc.html'],
+    '**':['globaltoc.html']
 }
 
 # -- Options for HTMLHelp output ------------------------------------------
