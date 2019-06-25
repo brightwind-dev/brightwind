@@ -5,6 +5,8 @@
 API reference
 =============
 
+.. align:: left
+
 Load
 -----
 
