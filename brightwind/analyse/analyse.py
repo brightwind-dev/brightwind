@@ -232,6 +232,32 @@ def dist_matrix(var_series, var_to_bin_1=None, var_to_bin_2=None,
     :param return_data: If True data is also returned with a plot
     :return: A heatmap and a distribution matrix is return_data is True, otherwise just a heatmap
 
+    **Example usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+        #For distribution of mean wind speed standard deviation against wind speed and temperature
+        data = bw.dist_matrix(df.Spd40mNStd, var_to_bin_1=df.Spd40mN, var_to_bin_2=df.T2m, aggregation_method='mean',
+                                                                return_data=True)
+
+        #To change the number of bins
+        data = bw.dist_matrix(df.Spd40mNStd, var_to_bin_1=df.Spd40mN, var_to_bin_2=df.T2m,
+                                                    num_bins_1=10, num_bins_2=4, return_data=True)
+
+        #To specify custom bins
+        data = bw.dist_matrix(df.Spd40mNStd, var_to_bin_1=df.Spd40mN, var_to_bin_2=df.T2m,
+                                            bins_var_1=[0,6,12, 15, 41],
+                                            bin_labels_var_1=['low wind', 'medium wind', 'gale', 'storm'],
+                                            aggregation_method='min', return_data=True)
+
+
+        #For custom aggregation function
+        def custom_agg(x):
+            return x.mean()+(2*x.std())
+        data = bw.dist_matrix(df.Spd40mNStd, var_to_bin_1=df.Spd40mN, var_to_bin_2=df.T2m,
+                                aggregation_method=custom_agg, return_data=True)
+
     """
     var_series = _convert_df_to_series(var_series).dropna()
     var_to_bin_1 = _convert_df_to_series(var_to_bin_1).dropna()
@@ -261,7 +287,7 @@ def dist_matrix(var_series, var_to_bin_1=None, var_to_bin_2=None,
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
 
-    heatmap = plt.plot_dist_matrix(distribution, aggregation_method)
+    heatmap = plt.plot_dist_matrix(distribution, aggregation_method+' '+var_series.name)
 
     if return_data:
         return heatmap, distribution

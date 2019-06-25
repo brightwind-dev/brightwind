@@ -16,12 +16,14 @@ def test_monthly_means():
 
 def test_dist_matrix():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
-    data = bw.dist_matrix(df.Spd40mN, var_to_bin_1=df.T2m, var_to_bin_2=df.P2m)
-    data = bw.dist_matrix(df.Spd40mN, var_to_bin_1=df.T2m, var_to_bin_2=df.P2m, num_bins_1=10, num_bins_2=7)
+    data = bw.dist_matrix(df.Spd40mN, var_to_bin_1=df.T2m, var_to_bin_2=df.P2m, return_data=True)
+    data = bw.dist_matrix(df.Spd40mN, var_to_bin_1=df.T2m, var_to_bin_2=df.P2m, num_bins_1=10, num_bins_2=7,
+                          return_data=True)[-1]
     assert data.shape == (10, 7)
 
     data = bw.dist_matrix(df.Spd40mN, var_to_bin_1=df.T2m, var_to_bin_2=df.P2m, num_bins_1=3, num_bins_2=3,
-                          bin_labels_var_1=['cold', 'mild', 'hot'], bin_labels_var_2=['low', 'mid', 'high'])
+                          bin_labels_var_1=['cold', 'mild', 'hot'], bin_labels_var_2=['low', 'mid', 'high'],
+                          return_data=True)[-1]
     assert (data.index.values == ['cold', 'mild', 'hot']).all()
     assert (data.columns == ['low', 'mid', 'high']).all()
     assert True
