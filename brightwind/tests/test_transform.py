@@ -2,6 +2,8 @@ import pytest
 import brightwind as bw
 import pandas as pd
 import numpy as np
+import datetime
+
 
 wndspd = 8
 wndspd_df = pd.DataFrame([2, 13, np.NaN, 5, 8])
@@ -13,6 +15,54 @@ new_offset = 0.236
 wndspd_adj = 8.173555555555556
 wndspd_adj_df = pd.DataFrame([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
 wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
+
+
+def np_array_equal(a, b):
+    # nan's don't compare so use this instead
+    try:
+        np.testing.assert_equal(a, b)
+    except AssertionError:
+        return False
+    return True
+
+
+def test_selective_avg():
+    date_today = datetime.datetime(2019, 6, 1)
+    days = pd.date_range(date_today, date_today + datetime.timedelta(24), freq='D')
+    data = pd.DataFrame({'DTM': days})
+    data = data.set_index('DTM')
+    data['Spd1'] = [1, np.NaN, 1, 1, 1, 1, 1, 1, 1, np.NaN, 1, 1, 1, 1, np.NaN, 1, 1, np.NaN, 1, 1, 1, 1, np.NaN, 1, 1]
+    data['Spd2'] = [2, 2, np.NaN, 2, 2, 2, 2, 2, np.NaN, 2, 2, 2, 2, np.NaN, 2, 2, 2, np.NaN, 2, 2, 2, 2, 2, np.NaN, 2]
+    data['Dir'] = [0, 15, 30, 45, np.NaN, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240, 255, 270, 285, 300,
+                   315, np.NaN, 345, 360]
+
+    # Test Case 1: Neither boom is near 0-360 crossover
+    result = np.array([1.5, 2, 1, 1.5, 1.5, 1.5, 1.5, 2, 1, 2, 2, 2, 1.5, 1, 2, 1.5, 1.5, np.NaN,
+                       1.5, 1, 1, 1, 2, 1, 1.5])
+    sel_avg = np.array(bw.selective_avg(data.Spd1, data.Spd2, data.Dir,
+                                        boom_dir_1=315, boom_dir_2=135, sector_width=60))
+    assert np_array_equal(sel_avg, result)
+
+    # Test Case 2: Boom 1 is near 0-360 crossover
+    result = np.array([1.0, 2.0, 1.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.0, 2.0, 1.5, 1.5, 2.0, 1.0, 2.0, 2.0, 1.5, np.NaN,
+                       1.5, 1.5, 1.5, 1.5, 2.0, 1.0, 1.0])
+    sel_avg = np.array(bw.selective_avg(data.Spd1, data.Spd2, data.Dir,
+                                        boom_dir_1=20, boom_dir_2=200, sector_width=60))
+    assert np_array_equal(sel_avg, result)
+
+    # Test Case 3: Boom 2 is near 0-360 crossover
+    result = np.array([2.0, 2.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.5, 1.5, np.NaN,
+                       1.5, 1.5, 1.5, 1.5, 2.0, 1.0, 2.0])
+    sel_avg = np.array(bw.selective_avg(data.Spd1, data.Spd2, data.Dir,
+                                        boom_dir_1=175, boom_dir_2=355, sector_width=60))
+    assert np_array_equal(sel_avg, result)
+
+    # Test Case 4: Booms at 90 deg to each other
+    result = np.array([1.0, 2.0, 1.0, 1.5, 1.5, 2.0, 2.0, 2.0, 1.0, 2.0, 1.5, 1.5, 1.5, 1.0, 2.0, 1.5, 1.5, np.NaN,
+                       1.5, 1.5, 1.5, 1.5, 2.0, 1.0, 1.0])
+    sel_avg = np.array(bw.selective_avg(data.Spd1, data.Spd2, data.Dir,
+                                        boom_dir_1=270, boom_dir_2=180, sector_width=60))
+    assert np_array_equal(sel_avg, result)
 
 
 def test_adjust_slope_offset_single_value():
