@@ -226,18 +226,12 @@ def dist_matrix(var_series, var_to_bin_1=None, bins_var_1=None, bin_labels_var_1
     data = pd.concat([var_series.rename('var_data'), var_binned_series_1, var_binned_series_2], join='inner',
                      axis=1).dropna()
 
-    return data
-
     if aggregation_method == '%frequency':
-        result = pd.crosstab(data.loc[:, 'variable_bin'], data.loc[:, 'direction_bin']) / len(data) * 100.0
+        distribution = data.groupby(['variable_bin_1', 'variable_bin_2']).count()/len(data) * 100.0
     else:
-        result = pd.crosstab(data.loc[:, 'variable_bin'], data.loc[:, 'direction_bin'])
+        distribution = data.groupby(['variable_bin_1', 'variable_bin_2']).agg(aggregation_method).unstack(level=-1)
 
-    if aggregation_method == '%frequency':
-        distribution = data.groupby(['variable_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
-    else:
-        distribution = data.groupby(['variable_bin'])['data'].agg(aggregation_method)
-
+    return distribution
 
 def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None,
          max_y_value=None, aggregation_method='%frequency', return_data=False):
