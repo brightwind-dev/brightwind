@@ -64,6 +64,12 @@ def test_selective_avg():
                                         boom_dir_1=270, boom_dir_2=180, sector_width=60))
     assert np_array_equal(sel_avg, result)
 
+    # Test Case 5: Sectors overlap error msg
+    with pytest.raises(ValueError) as except_info:
+        result = bw.selective_avg(data.Spd1, data.Spd2, data.Dir, boom_dir_1=180, boom_dir_2=185, sector_width=60)
+    assert str(except_info.value) == "Sectors overlap! Please check your inputs or reduce the size of " \
+                                     "your 'sector_width'."
+
 
 def test_adjust_slope_offset_single_value():
     assert wndspd_adj == bw.adjust_slope_offset(wndspd, current_slope, current_offset, new_slope, new_offset)

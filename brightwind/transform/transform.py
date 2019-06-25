@@ -376,7 +376,15 @@ def _calc_sector_limits(boom_dir, sector_width):
     return inflow_lower, inflow_higher
 
 
+def _sectors_overlap(boom_dir_1, boom_dir_2, sector_width):
+    # return True if sectors overlap, False if they don't
+    # Put logic here.
+    return True
+
+
 def selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2, sector_width=60):
+    if _sectors_overlap(boom_dir_1, boom_dir_2, sector_width):
+        raise ValueError("Sectors overlap! Please check your inputs or reduce the size of your 'sector_width'.")
     inflow_lower1, inflow_higher1 = _calc_sector_limits(boom_dir_1, sector_width)
     inflow_lower2, inflow_higher2 = _calc_sector_limits(boom_dir_2, sector_width)
     sel_avg = _selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2,
