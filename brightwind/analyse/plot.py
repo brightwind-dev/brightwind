@@ -656,3 +656,8 @@ def plot_shear(avg_alpha, avg_c, wspds, heights):
     ax.set_ylim(0, max(plot_heights)+10)
     plt.close()
     return ax.get_figure()
+
+def plot_dist_matrix(matrix):
+    fig, ax = plt.subplots(figsize=(10, 10))
+    plt.close()
+    return ax.get_figure()

@@ -193,45 +193,78 @@ def _convert_df_to_series(df):
         raise TypeError('DataFrame cannot be converted to a Series as it contains more than 1 column.')
     return df
 
-def dist_matrix(var_series, var_to_bin_1=None, bins_var_1=None, bin_labels_var_1=None, num_bins_1=6,
-                            var_to_bin_2=None, bins_var_2=None, bin_labels_var_2=None, num_bins_2=6,
-                max_y_value=None, aggregation_method='%frequency', return_data=False):
-    """
 
-    :param var_series:
-    :param binned_var_1:
-    :param bins_var_1:
-    :param bin_labels_var_1:
-    :param binned_var_2:
-    :param bins_var_2:
-    :param bin_labels_var_2:
-    :param max_y_value:
-    :param aggregation_method:
-    :param return_data:
-    :return:
+def dist_matrix(var_series, var_to_bin_1=None, var_to_bin_2=None,
+                            num_bins_1=6, num_bins_2=6,
+                            bins_var_1=None, bins_var_2=None,
+                            bin_labels_var_1=None, bin_labels_var_2=None,
+                            aggregation_method='%frequency', return_data=False):
     """
-    # if var_to_bin_against is None:
-    #     var_to_bin_against = var_series.copy(deep=False)
+    Calculates the distribution of a variable against two other variables as per the bins specified.
+
+    :param var_series: Time-series of the variable whose distribution we need to find
+    :type var_series: pandas.Series
+    :param var_to_bin_1: Time-series of the first variable which we want to bin against, forms rows of distribution
+    :type var_to_bin_1: pandas.Series
+    :param var_to_bin_2: Time-series of the second variable which we want to bin against, forms columns of distribution
+    :type var_to_bin_2; pandas.Series
+    :param num_bins_1: Number of evenly spaced bins to use for var_to_bin_1
+    :type num_bins_1: int
+    :param num_bins_2: Number of evenly spaced bins to use for var_to_bin_2
+    :type num_bins_2: int
+    :param bins_var_1: (optional) Array of numbers where adjacent elements of array form a bin. Overwrites num_bins_1.
+                If set to None derives the min and max from the var_to_bin_1 series and creates evenly spaced number of
+                bins specified by num_bins_1
+    :type bins_var_1: list, array, None
+    :param bins_var_2: (optional) Array of numbers where adjacent elements of array form a bin. Overwrites num_bins_2.
+                If set to None derives the min and max from the var_to_bin_2 series and creates evenly spaced number of
+                bins specified by num_bins_2
+    :type bins_var_2: list, array, None
+    :param bin_labels_var_1: (optional) Labels of bins to be used for variable 1, uses (bin-start, bin-end] format by
+                            default
+    :type bin_labels_var_1: list
+    :param bin_labels_var_2: (optional) Labels of bins to be used for variable 1, uses (bin-start, bin-end] format by
+                            default
+    :type bin_labels_var_2:list
+    :param aggregation_method: Statistical method used to find distribution. It can be mean, max, min, std, count,
+           %frequency or a custom function. Computes frequency in percentages by default.
+    :type aggregation_method: str or function
+    :param return_data: If True data is also returned with a plot
+    :return: A heatmap and a distribution matrix is return_data is True, otherwise just a heatmap
+
+    """
     var_series = _convert_df_to_series(var_series).dropna()
     var_to_bin_1 = _convert_df_to_series(var_to_bin_1).dropna()
     var_to_bin_2 = _convert_df_to_series(var_to_bin_2).dropna()
 
     if bins_var_1 is None:
-        bins_var_1 = np.linspace(var_to_bin_1.min(), var_to_bin_1.max(), num_bins_1)
+        bins_var_1 = np.linspace(var_to_bin_1.min(), var_to_bin_1.max(), num_bins_1+1)
     if bins_var_2 is None:
-        bins_var_2 = np.linspace(var_to_bin_2.min(), var_to_bin_2.max(), num_bins_2)
+        bins_var_2 = np.linspace(var_to_bin_2.min(), var_to_bin_2.max(), num_bins_2+1)
 
-    var_binned_series_1 = pd.cut(var_to_bin_1, bins_var_1, right=False).rename('variable_bin_1')
-    var_binned_series_2 = pd.cut(var_to_bin_2, bins_var_2, right=False).rename('variable_bin_2')
+    var_binned_series_1 = pd.cut(var_to_bin_1, bins_var_1, right=False).rename(var_to_bin_1.name)
+    var_binned_series_2 = pd.cut(var_to_bin_2, bins_var_2, right=False).rename(var_to_bin_2.name)
     data = pd.concat([var_series.rename('var_data'), var_binned_series_1, var_binned_series_2], join='inner',
                      axis=1).dropna()
 
     if aggregation_method == '%frequency':
-        distribution = data.groupby(['variable_bin_1', 'variable_bin_2']).count()/len(data) * 100.0
+        counts = data.groupby([var_to_bin_1.name, var_to_bin_2.name]).count().unstack(level=-1)
+        distribution = counts/(counts.sum().sum()) * 100.0
     else:
         distribution = data.groupby(['variable_bin_1', 'variable_bin_2']).agg(aggregation_method).unstack(level=-1)
 
-    return distribution
+    #create a plot
+    heatmap=None
+
+    if bin_labels_var_1 is not None:
+        distribution.index = bin_labels_var_1
+    if bin_labels_var_2 is not None:
+        distribution.columns = bin_labels_var_2
+    if return_data:
+        return heatmap, distribution
+    else:
+        return heatmap
+
 
 def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None,
          max_y_value=None, aggregation_method='%frequency', return_data=False):
@@ -241,7 +274,7 @@ def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None,
 
     :param var_series: Time-series of the variable whose distribution we need to find
     :type var_series: pandas.Series
-    :param var_to_bin_against: (optional) Times-series of the variable which we want to bin against if required
+    :param var_to_bin_against: (optional) Time-series of the variable which we want to bin against if required
            to bin against another variable.
     :type var_to_bin_against: pandas.Series, None
     :param bins: Array of numbers where adjacent elements of array form a bin. If set to None if derives
@@ -426,10 +459,8 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
             return_data=True)
 
     """
-    var_series = _convert_df_to_series(var_series)
-    direction_series = _convert_df_to_series(direction_series)
-    var_series = var_series.dropna()
-    direction_series = direction_series.dropna()
+    var_series = _convert_df_to_series(var_series).dropna()
+    direction_series = _convert_df_to_series(direction_series).dropna()
     direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
         _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
     data = pd.concat([var_series.rename('data'), direction_binned_series], join='inner', axis=1)
