@@ -244,22 +244,25 @@ def dist_matrix(var_series, var_to_bin_1=None, var_to_bin_2=None,
 
     var_binned_series_1 = pd.cut(var_to_bin_1, bins_var_1, right=False).rename(var_to_bin_1.name)
     var_binned_series_2 = pd.cut(var_to_bin_2, bins_var_2, right=False).rename(var_to_bin_2.name)
-    data = pd.concat([var_series.rename('var_data'), var_binned_series_1, var_binned_series_2], join='inner',
+    data = pd.concat([var_series, var_binned_series_1, var_binned_series_2], join='inner',
                      axis=1).dropna()
 
     if aggregation_method == '%frequency':
         counts = data.groupby([var_to_bin_1.name, var_to_bin_2.name]).count().unstack(level=-1)
         distribution = counts/(counts.sum().sum()) * 100.0
     else:
-        distribution = data.groupby(['variable_bin_1', 'variable_bin_2']).agg(aggregation_method).unstack(level=-1)
-
-    #create a plot
-    heatmap=None
+        distribution = data.groupby([var_to_bin_1.name, var_to_bin_2.name]).agg(aggregation_method).unstack(level=-1)
 
     if bin_labels_var_1 is not None:
         distribution.index = bin_labels_var_1
     if bin_labels_var_2 is not None:
         distribution.columns = bin_labels_var_2
+
+    if not isinstance(aggregation_method, str):
+        aggregation_method = aggregation_method.__name__
+
+    heatmap = plt.plot_dist_matrix(distribution, aggregation_method)
+
     if return_data:
         return heatmap, distribution
     else:
