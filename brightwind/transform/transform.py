@@ -19,7 +19,11 @@ import pandas as pd
 import math
 from brightwind.utils import utils
 
-__all__ = ['average_data_by_period', 'adjust_slope_offset', 'scale_wind_speed', 'offset_wind_direction',
+__all__ = ['average_data_by_period',
+           'adjust_slope_offset',
+           'scale_wind_speed',
+           'offset_wind_direction',
+           'selective_avg',
            'offset_timestamps']
 
 
@@ -126,8 +130,8 @@ def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
     For a given resolution of data finds the maximum number of data points in the averaging period
     """
     max_pts = (averaged_data_index.to_series().diff().shift(-1)) / _get_data_resolution(data_index)
-    max_pts[-1] = ((averaged_data_index[-1] + 1*averaged_data_index[-1].freq) - averaged_data_index[-1]) / \
-                  _get_data_resolution(data_index)
+    max_pts[-1] = (((averaged_data_index[-1] + 1*averaged_data_index[-1].freq) - averaged_data_index[-1]) /
+                   _get_data_resolution(data_index))
     return max_pts
 
 
@@ -137,7 +141,7 @@ def _get_coverage_series(data, grouper_obj):
 
 
 def average_data_by_period(data, period, aggregation_method='mean', coverage_threshold=None,
-                           return_coverage=False) -> pd.DataFrame:
+                           return_coverage=False):
     """
     Averages the data by the time period specified by period.
 
@@ -280,7 +284,7 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
         raise error
 
 
-def scale_wind_speed(spd, scale_factor: float) -> pd.Series:
+def scale_wind_speed(spd, scale_factor: float):
     """
     Scales wind speed by the scale_factor
 
@@ -308,41 +312,76 @@ def offset_wind_direction(wdir, offset: float) -> pd.Series:
         return wdir.to_frame().add(offset).applymap(utils._range_0_to_360)
 
 
-# def selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2, angular_span):
+def _selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2,
+                   inflow_lower1, inflow_higher1, inflow_lower2, inflow_higher2, sector_width):
+    # duplicate threshold values into lists which are the same length as other inputs
+    inflow_lower1 = [inflow_lower1] * len(wdir)
+    inflow_higher1 = [inflow_higher1] * len(wdir)
+    inflow_lower2 = [inflow_lower2] * len(wdir)
+    inflow_higher2 = [inflow_higher2] * len(wdir)
 
-#     df = pd.Series()
-#     angular_span = angular_span/2
-#     boom1_lower = (boom_dir1 - angular_span +360)%360
-#     boom1_higher = (boom_dir1 + angular_span +360)%360
-#     boom2_lower = (boom_dir2 - angular_span+360)%360
-#     boom2_higher = (boom_dir2 + angular_span +360)%360
+    # if boom 1 'inflow' sector overlaps with 0/360
+    if ((boom_dir1 + 180) % 360) >= (360 - (sector_width/2)) or ((boom_dir1 + 180) % 360) <= (sector_width/2):
+        # many nested if statments follow, all within one mapped lambda function
+        sel_avg = list(map(lambda spd1,spd2,Dir,inflowlow1,inflowhigh1,inflowlow2,inflowhigh2:
+                           # if one value is Nan, use the other one
+                           spd2 if (np.isnan(spd1)==True) else (spd1 if np.isnan(spd2)==True
+                               # use spd1 if 2 is in mast shadow
+                               else (spd1 if Dir >= inflowlow2 and Dir <= inflowhigh2
+                                  # use spd2 if 1 is in mast shadow ('left' of 360)
+                                  else (spd2 if Dir >= inflowlow1 and Dir <= 360
+                                        # use spd2 if 1 is in mast shadow ('right' of 0)
+                                        else (spd2 if Dir >= 0 and Dir <= inflowhigh1
+                                              # otherwise, selective average
+                                              else (spd1 + spd2)/2)))),
+                           # end of map function, list input variables
+                           wspd1,wspd2,wdir,inflow_lower1,inflow_higher1,inflow_lower2,inflow_higher2))
 
-#     for i, row in wspd1.iteritems():
-#         if wdir[i] >= boom1_lower and wdir[i]<= boom1_higher:
-#             if np.isnan(row) == True:
-#                 df[i] = wspd2[i]
-#             else:
-#                 df[i] = row
-#         elif wdir[i] >= boom2_lower and wdir[i]<=boom2_higher:
-#             if np.isnan(wspd2[i])==True:
-#                 df[i] = row
-#             else:
-#                 df[i] = wspd2[i]
-#         else:
-#             if np.isnan(row) == True:
-#                 df[i] = wspd2[i]
-#             elif np.isnan(wspd2[i])==True:
-#                 df[i] = row
-#             else:
-#                 df[i] = (row +wspd2[i])/2
+    # if boom 2 'inflow' sector overlaps with 0/360
+    elif ((boom_dir2 + 180) % 360) >= (360 - (sector_width/2)) or ((boom_dir2 + 180) % 360) <= (sector_width/2):
+        # many nested if statments follow, all within one mapped lambda function
+        sel_avg = list(map(lambda spd1,spd2,Dir,inflowlow1,inflowhigh1,inflowlow2,inflowhigh2:
+                           # if one value is Nan, use the other one
+                           spd2 if (np.isnan(spd1)==True) else (spd1 if np.isnan(spd2)==True
+                               # use spd2 if 1 is in mast shadow
+                               else (spd2 if (Dir >= inflowlow1 and Dir <= inflowhigh1)
+                                  # use spd1 if 2 is in mast shadow ('left' of 360)
+                                  else (spd1 if (Dir >= inflowlow2 and Dir <= 360)
+                                        # use spd1 if 2 is in mast shadow ('right' of 0)
+                                        else (spd1 if (Dir >= 0 and Dir <= inflowhigh2)
+                                              # otherwise, selective average
+                                              else (spd1 + spd2)/2)))),
+                           # end of map function, list input variables
+                           wspd1,wspd2,wdir,inflow_lower1,inflow_higher1,inflow_lower2,inflow_higher2))
+    # if neither boom 'inflow' sectors overlap with 0/360 threshold
+    else:
+        # many nested if statements follow, all within one mapped lambda function
+        sel_avg = list(map(lambda spd1, spd2, Dir, inflowlow1, inflowhigh1, inflowlow2, inflowhigh2:
+                           # if one value is Nan, use the other one
+                           spd2 if np.isnan(spd1)==True else (spd1 if np.isnan(spd2)==True
+                              # use spd2 if 1 is in mast shadow
+                              else (spd2 if (Dir >= inflowlow1 and Dir <= inflowhigh1)
+                                    # use spd1 if 2 is in mast shadow and spd1 is not Nan
+                                    else (spd1 if (Dir >= inflowlow2 and Dir <= inflowhigh2)
+                                           # otherwise, selective average
+                                           else (spd1 + spd2) / 2))),
+                            # end of map function, list input variables
+                            wspd1,wspd2,wdir,inflow_lower1,inflow_higher1,inflow_lower2,inflow_higher2))
+    return sel_avg
 
-#     return df
+
+def _calc_sector_limits(boom_dir, sector_width):
+    inflow_lower = (boom_dir - (sector_width / 2) + 180) % 360
+    inflow_higher = (boom_dir + (sector_width / 2) + 180) % 360
+    return inflow_lower, inflow_higher
 
 
-# Clean_synth['Spd_120m_SelAvg'] = selective_avg(Clean_synth.Vaisala_120_avg,
-#                                                Clean_synth.FirstClass_120_avg_Synthesized,
-#                                                Clean_synth.FirstClass_120_dir,
-#                                                boom_dir1=135, boom_dir2=315, angular_span=60)
+def selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2, sector_width=60):
+    inflow_lower1, inflow_higher1 = _calc_sector_limits(boom_dir_1, sector_width)
+    inflow_lower2, inflow_higher2 = _calc_sector_limits(boom_dir_2, sector_width)
+    sel_avg = _selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2,
+                             inflow_lower1, inflow_higher1, inflow_lower2, inflow_higher2, sector_width)
+    return sel_avg
 
 
 def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
@@ -503,6 +542,3 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
                 shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original > date_to)])
             df_copy.index = shifted
             return df_copy.sort_index()
-
-
-
