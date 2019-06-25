@@ -4,7 +4,7 @@ Community
 .. |br| raw:: html
    <br />
 
-|br|
+
 
 If you wish to be involved or find out more please contact stephen@brightwindanalysis.com.
 

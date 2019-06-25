@@ -138,7 +138,8 @@ html_static_path = [path.replace('docs\source', 'docs\_static')]
 html_sidebars = {
    'api': ['localtoc.html'],#,'sidebartoc.html'
    'index': ['localtoc.html'],
-    '**':['globaltoc.html']
+    'tutorials': ['localtoc.html'],
+    '**':['localtoc.html']
 }
 
 # -- Options for HTMLHelp output ------------------------------------------
