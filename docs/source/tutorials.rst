@@ -1,6 +1,10 @@
 Tutorials
 ============================
 
+
+.. mdinclude:: tutorial_welcome.md
+
+
 .. toctree::
     :maxdepth: 1
 
