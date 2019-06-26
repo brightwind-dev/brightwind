@@ -3,17 +3,134 @@ import numpy as np
 from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as plt
-from brightwind.analyse.analyse import distribution_by_dir_sector, dist_12x24, coverage
+from brightwind.analyse.analyse import distribution_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
 import re
 import warnings
 
 __all__ = ['']
 
 
-class power_law():
+class PowerLaw:
 
-    def apply(self):
-        return _apply()
+    def __init__(self, plot=None, wspds=None, alpha=None, origin=None,
+                 info=None):
+
+        self.plot = plot
+        self.wspds = wspds
+        self.origin = origin
+        self.alpha = alpha
+        self.info = info
+
+    def apply(self, wspds, height, height_to_scale_to):
+        """"
+               :param self: Shear object to use when applying shear to the data
+               :type self: Shear object
+               :param wspds: Wind speed time series to apply shear to
+               :type wspds: Pandas Series
+               :param height: height of above wspds
+               :type height: float
+               :param height_to_scale_to: height to which wspds should be scaled to
+               :type height_to_scale_to: float
+               :return: a DataFrame showing original wind speed, scaled wind speed, wind direction (if applicable)
+                and the shear exponent used.
+
+                **Example Usage**
+                ::
+                   # Load anemometer data to calculate exponents
+                   data = bw.load_csv(bw.datasets.demo_data)
+                   anemometers = data[['Spd80mS', 'Spd60mS']]
+                   heights = [80, 60]
+
+                   # Calculate shear exponents
+                   shear_object_power_law = bw.Shear.power_law(anemometers, heights, return_object=True)
+
+                   # View attributes of Shear objects
+                   # View exponents calculated
+                     shear_object_power_law.alpha
+
+                   # View plots
+                   shear_object_power_law.plot
+
+                   # View input data
+                   shear_object_power_law.wspds
+
+                   # View other information
+                   shear_object_power_law.info
+
+                   # Scale wind speeds using exponents
+                   # Specify wind speeds to be scaled
+                   wspds = bw.load_csv(r'mywindspeedtimeseries.csv')
+                   height = 50
+                   height_to_scale_to =70
+                   shear_object_power_law=bw.Shear.apply( wspds, height, height_to_scale_to)
+
+                   """
+        return _apply(self, wspds, height, height_to_scale_to)
+
+
+class BySector:
+
+    def __init__(self, plot=None, wspds=None, wdir=None, sectors=None, alpha=None, origin=None,
+                 info=None):
+
+        self.plot = plot
+        self.wspds = wspds
+        self.wdir = wdir
+        self.sectors = sectors
+        self.origin = origin
+        self.alpha = alpha
+        self.info = info
+
+    def apply(self, wspds, height, height_to_scale_to, wdir):
+        """"
+                :param self: Shear object to use when applying shear to the data
+                :type self: Shear object
+                :param wspds: Wind speed time series to apply shear to
+                :type wspds: Pandas Series
+                :param height: height of above wspds
+                :type height: float
+                :param height_to_scale_to: height to which wspds should be scaled to
+                :type height_to_scale_to: float
+                :param wdir: wind direction measurements of wspds, only required if shear is to be applied by direction sector.
+                :type wdir: Pandas Series
+                :return: a DataFrame showing original wind speed, scaled wind speed, wind direction (if applicable)
+                 and the shear exponent used.
+
+                 **Example Usage**
+                 ::
+                    # Load anemometer data to calculate exponents
+                    data = bw.load_csv(bw.datasets.demo_data)
+                    anemometers = data[['Spd80mS', 'Spd60mS']]
+                    heights = [80, 60]
+                    directions = data[['Dir78mS']]
+                    sectors = 12
+
+                    # Calculate shear exponents
+                    shear_object_by_sector = bw.Shear.by_sector(anemometers, heights, directions, return_object=True)
+
+                    # View attributes of Shear objects
+                    # View exponents calculated
+                    shear_object_by_sector.alpha
+
+                    # View plots
+                    shear_object_by_sector.plot
+
+                    # View input data
+                    shear_object_by_sector.wspds
+                    shear_object_by_sector.wdir
+
+                    # View other information
+                    shear_object_by_sector.info
+
+                    # Scale wind speeds using exponents
+                    # Specify wind speeds to be scaled
+                    wspds = bw.load_csv(r'mywindspeedtimeseries.csv')
+                    wdir = bw.load_csv(r'mywinddirectiontimeseries.csv')
+                    height = 50
+                    height_to_scale_to =70
+                    """
+
+        return _apply(self, wspds, height, height_to_scale_to, wdir=wdir)
 
 
 class Shear:
@@ -56,7 +173,7 @@ class Shear:
         return coeffs[0]
 
     @staticmethod
-    def power_law(wspds, heights, min_speed=3, return_data=False):
+    def power_law(wspds, heights, min_speed=3, return_object=False):
         """
         Calculates shear based on power law
 
@@ -66,10 +183,10 @@ class Shear:
         :type heights: list
         :param min_speed: Only speeds higher than this would be considered for calculating shear, default is 3
         :type min_speed: float
-        :param return_data: Return a Shear object containing shear exponents calculated from supplied data, input data and plit
-        :type return_data: bool
+        :param return_object: Return a Shear object containing shear exponents calculated from supplied data, input data and plit
+        :type return_object: bool
         :return: A plot with shear plotted along with the means. Also returns a Shear object containing shear exponents and other data
-        hen return_data is True.
+        hen return_object is True.
 
         **Example usage**
         ::
@@ -100,15 +217,15 @@ class Shear:
         info['input_wind_speeds'] = input_wind_speeds
         info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
 
-        if return_data:
-            shear_object = Shear(plot=(plt.plot_shear(alpha, c, mean_wspds.values, heights)), wspds=wspds,
-            wdir=None, sectors=12, origin='by_power_law', alpha=alpha, info=info)
+        if return_object:
+            shear_object = PowerLaw(plot=(plt.plot_shear(alpha, c, mean_wspds.values, heights)), wspds=wspds,
+                                     origin='by_power_law', alpha=alpha, info=info)
             return shear_object
         return plt.plot_shear(alpha, c, mean_wspds.values, heights)
 
     @staticmethod
     def by_sector(wspds, heights, wdir, sectors=12, min_speed=3, direction_bin_array=None, direction_bin_labels=None,
-                  return_data=False):
+                  return_object=False):
         """
         :param wspds: Wind speed measurements for calculating shear
         :type wspds:  pandas DataFrame or Series
@@ -125,12 +242,13 @@ class Shear:
         :type direction_bin_array: array
         :param: direction_bin_labels: labels to be given to the above direction_bin array
         :type direction_bin_labels: array
-        :param return_data: if True returns a Shear Object, if False returns a plot
-        :type return_data: boolean
+        :param return_object: if True returns a Shear Object, if False returns a plot
+        :type return_object: boolean
         :return: returns a shear object containing a plot, all inputted data and a series of calculated shear
         exponents if True, returns a plot if False
         """
         common_idxs = wspds.index.intersection(wdir.index)
+        wdir = _convert_df_to_series(wdir)
         shear = wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_power_law, heights=heights, axis=1)
         shear = shear.loc[shear.index.intersection(common_idxs)]
         cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
@@ -156,8 +274,8 @@ class Shear:
                                        return_data=True)[1].rename("Shear_Count")], axis=1, join='outer')
         shear_dist.index.rename('Direction Bin', inplace=True)
 
-        if return_data:
-            shear_object = Shear(plot=(plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)],
+        if return_object:
+            shear_object = BySector(plot=(plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)],
                                                                 shear_dist)), wspds=wspds, wdir=wdir,
                                  sectors=sectors, alpha=shear_dist['Mean_Shear'], origin='by_sector', info=info)
             return shear_object
@@ -178,7 +296,7 @@ def _scale(alpha, wspd, height, height_to_scale_to):
     return wspd * scale_factor
 
 
-def _apply(shear_obj, wspds, height, height_to_scale_to, wdir=None):
+def _apply(self, wspds, height, height_to_scale_to, wdir=None):
 
         """"
         :param self: Shear object to use when applying shear to the data
@@ -204,8 +322,8 @@ def _apply(shear_obj, wspds, height, height_to_scale_to, wdir=None):
             sectors = 12
 
             # Calculate shear exponents
-            shear_object_power_law = bw.Shear.power_law(anemometers, heights, return_data=True)
-            shear_object_by_sector = bw.Shear.by_sector(anemometers, heights, directions, return_data=True)
+            shear_object_power_law = bw.Shear.power_law(anemometers, heights, return_object=True)
+            shear_object_by_sector = bw.Shear.by_sector(anemometers, heights, directions, return_object=True)
 
             # View attributes of Shear objects
             # View exponents calculated
