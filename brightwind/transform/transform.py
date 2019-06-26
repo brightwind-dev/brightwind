@@ -391,6 +391,46 @@ def _sectors_overlap(boom_dir_1, boom_dir_2, sector_width):
 
 
 def selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2, sector_width=60):
+    """
+
+    Creates a time series of wind speed using data from two anemometers (ideally at the same height) and one wind vane.
+    This function either averages the two wind speed values for a given timestamp or only includes the upstream wind
+    speed value when the other is in the wake of the mast.
+
+    :param wspd_1: First wind speed time series
+    :type wspd_1: pandas.Series
+    :param wspd_2: Second wind speed time series
+    :type wspd_2: pandas.Series
+    :param wdir: Wind direction time series
+    :type wdir: pandas.Series
+    :param boom_dir_1: Boom direction in degrees of wspd_1
+    :type boom_dir_1: float
+    :param boom_dir_2: Boom direction in degrees of wspd_2
+    :type boom_dir_1: float
+    :param sector_width: Angular width of upstream sector within which a boom is deemed to be in the wake of the mast.
+    :type sector_width: float
+    :return: list of speed values for each timestamp of the input time series
+    :rtype: list
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.datasets.demo_data)
+
+        # Normal use: Derive selective average of 80 m anemometer pair
+        data['sel_avg_80m'] = bw.selective_avg(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS,
+                                               boom_dir_1=0, boom_dir_2=180, sector_width=60)
+
+        # When boom directions are specified too close to each other, the 'wake' sectors of each boom are found to
+        # overlap.
+        data['sel_avg_80m'] = bw.selective_avg(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS,
+                                               boom_dir_1=0, boom_dir_2=50, sector_width=60)
+        # This will result in the following error:
+        # "Sectors overlap! Please check your inputs or reduce the size of your 'sector_width'."
+
+
+    """
+
     if _sectors_overlap(boom_dir_1, boom_dir_2, sector_width):
         raise ValueError("Sectors overlap! Please check your inputs or reduce the size of your 'sector_width'.")
     inflow_lower1, inflow_higher1 = _calc_sector_limits(boom_dir_1, sector_width)
