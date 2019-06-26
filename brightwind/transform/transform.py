@@ -378,8 +378,16 @@ def _calc_sector_limits(boom_dir, sector_width):
 
 def _sectors_overlap(boom_dir_1, boom_dir_2, sector_width):
     # return True if sectors overlap, False if they don't
-    # Put logic here.
-    return True
+    if boom_dir_1 >= boom_dir_2:
+        dif = (boom_dir_1 - boom_dir_2) % 360
+    else:
+        dif = (boom_dir_2 - boom_dir_1) % 360
+    if dif > 180:
+        dif = 360 - dif
+    if dif < sector_width:
+        return True
+    else:
+        return False
 
 
 def selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2, sector_width=60):
