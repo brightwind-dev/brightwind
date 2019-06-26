@@ -1,17 +1,11 @@
 import pandas as pd
 import numpy as np
-from brightwind.transform import transform as tf
-from brightwind.utils import utils
 from brightwind.analyse import plot as plt
 from brightwind.analyse.analyse import distribution_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
 import re
 import warnings
 
-__all__ = ['PowerLaw',
-           'BySector',
-           'by_sector',
-           'power_law'
-           ]
+__all__ = ['PowerLaw', 'BySector', 'by_sector', 'power_law']
 
 
 class PowerLaw:
@@ -419,15 +413,3 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
             result.sort_index(axis='index', inplace=True)
 
         return result
-
-if __name__ == '__main__':
-    import brightwind as bw
-    data = bw.load_csv(bw.datasets.demo_data)
-    anemometers = data[['Spd80mS', 'Spd60mS']]
-    heights = [80, 60]
-    directions = data[['Dir78mS']]
-    sectors = 12
-    bin_array = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 330]
-    object_shear = bw.Shear.Shear.by_sector(anemometers, heights, directions,
-                                            return_object=True)
-    object_shear.apply(data['Spd80mS'], 60, 80, directions)
