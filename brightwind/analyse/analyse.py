@@ -194,11 +194,13 @@ def _convert_df_to_series(df):
     return df
 
 
-def dist_matrix(var_series, var_to_bin_1=None, var_to_bin_2=None,
+def dist_matrix(var_series, var_to_bin_1, var_to_bin_2,
                             num_bins_1=6, num_bins_2=6,
                             bins_var_1=None, bins_var_2=None,
                             bin_labels_var_1=None, bin_labels_var_2=None,
-                            aggregation_method='%frequency', return_data=False):
+                            aggregation_method='%frequency',
+                            var_label=None, x_label=None, y_label=None,
+                            return_data=False):
     """
     Calculates the distribution of a variable against two other variables as per the bins specified.
 
@@ -230,6 +232,12 @@ def dist_matrix(var_series, var_to_bin_1=None, var_to_bin_2=None,
            %frequency or a custom function. Computes frequency in percentages by default.
     :type aggregation_method: str or function
     :param return_data: If True data is also returned with a plot
+    :param var_label: (Optional) Label to use for variable distributed, by default name of the var_series is used
+    :type var_label: str
+    :param x_label: (Optional) Label to use for x_label of heatmap, by default name of the var_to_bin_1 is used
+    :type x_label: str
+    :param y_label: (Optional) Label to use for y_label of heatmap, by default name of the var_to_bin_2 is used
+    :type y_label: str
     :return: A heatmap and a distribution matrix is return_data is True, otherwise just a heatmap
 
     **Example usage**
@@ -263,6 +271,22 @@ def dist_matrix(var_series, var_to_bin_1=None, var_to_bin_2=None,
     var_to_bin_1 = _convert_df_to_series(var_to_bin_1).dropna()
     var_to_bin_2 = _convert_df_to_series(var_to_bin_2).dropna()
 
+    if var_label is not None:
+        var_series.name = var_label
+    if x_label is not None:
+        var_to_bin_1.name = x_label
+    if y_label is not None:
+        var_to_bin_2.name = y_label
+    if var_series.name is None:
+        var_series.name = 'var_series'
+    if var_to_bin_1.name is None:
+        var_to_bin_1.name = 'binned_var_1'
+    if var_to_bin_2.name is None:
+        var_to_bin_2.name = 'binned_var_2'
+    if var_series.name == var_to_bin_1.name:
+        var_series.name = var_series.name+'_distributed'
+    if var_series.name == var_to_bin_2.name:
+        var_series.name = var_series.name + '_distributed'
     if bins_var_1 is None:
         bins_var_1 = np.linspace(var_to_bin_1.min(), var_to_bin_1.max(), num_bins_1+1)
     if bins_var_2 is None:
