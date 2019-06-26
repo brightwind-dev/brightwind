@@ -3,11 +3,17 @@ import numpy as np
 from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as plt
-from brightwind.analyse.analyse import distribution_by_dir_sector, twelve_by_24, coverage
+from brightwind.analyse.analyse import distribution_by_dir_sector, dist_12x24, coverage
 import re
 import warnings
 
-__all__ = ['Shear']
+__all__ = ['']
+
+
+class power_law():
+
+    def apply(self):
+        return _apply()
 
 
 class Shear:
@@ -68,7 +74,7 @@ class Shear:
         **Example usage**
         ::
             import brightwind as bw
-            data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+            data = bw.load_csv(bw.datasets.demo_data)
 
             #Using with a DataFrame of wind speeds
             graph, alpha = bw.Shear.power_law(data[['Spd80mN', 'Spd60mN', 'Spd40mN']], heights = [80, 60, 40], return_alpha=True)
@@ -128,25 +134,27 @@ class Shear:
         shear = wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_power_law, heights=heights, axis=1)
         shear = shear.loc[shear.index.intersection(common_idxs)]
         cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
+        info = {}
+        input_wind_speeds = {'heights(m)': [heights], 'column_names': [list(wspds.columns.values)], 'min_spd(m/s)': [3]}
+        input_wind_dir = {'heights(m)': [re.findall(r'\d+', str(wdir.name))],
+                          'column_names': [list(wspds.columns.values)]}
+        info['input_wind_speeds'] = input_wind_speeds
+        info['input_wind_dir'] = input_wind_dir
+        info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
         shear_dist = pd.concat([
             distribution_by_dir_sector(var_series=shear,
                                        direction_series=wdir.loc[common_idxs],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
-                                       aggregation_method='mean').rename("Mean_Shear"),
+                                       aggregation_method='mean',
+                                       return_data=True)[1].rename("Mean_Shear"),
             distribution_by_dir_sector(var_series=shear,
                                        direction_series=wdir.loc[common_idxs],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
-                                       aggregation_method='count').rename("Shear_Count")], axis=1, join='outer')
+                                       aggregation_method='count',
+                                       return_data=True)[1].rename("Shear_Count")], axis=1, join='outer')
         shear_dist.index.rename('Direction Bin', inplace=True)
-        info = {}
-        input_wind_speeds = {'heights(m)': [heights], 'column_names':[list(wspds.columns.values)], 'min_spd(m/s)': [3]}
-        input_wind_dir = {'heights(m)':[re.findall(r'\d+', str(wdir.columns.values))],
-                          'column_names': [list(wspds.columns.values)]}
-        info['input_wind_speeds'] = input_wind_speeds
-        info['input_wind_dir'] = input_wind_dir
-        info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
 
         if return_data:
             shear_object = Shear(plot=(plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)],
@@ -157,19 +165,20 @@ class Shear:
             return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
 
     @staticmethod
-    def twelve_by_24(wspds, heights, min_speed=3, return_data=False, var_name='Shear'):
-        tab_12x24 = twelve_by_24(wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_power_law, heights=heights,
-                                                                              axis=1), return_data=True)[1]
+    def by_12x24(wspds, heights, min_speed=3, return_data=False, var_name='Shear'):
+        tab_12x24 = dist_12x24(wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_power_law, heights=heights,
+                                                                            axis=1), return_data=True)[1]
         if return_data:
-            return plt.plot_12x24_contours(tab_12x24, title=var_name), tab_12x24
-        return plt.plot_12x24_contours(tab_12x24, title=var_name)
+            return plt.plot_12x24_contours(tab_12x24, label=(var_name, 'mean')), tab_12x24
+        return plt.plot_12x24_contours(tab_12x24,  label=(var_name, 'mean'))
 
-    @staticmethod
-    def scale(alpha, wspd, height, height_to_scale_to):
-        scale_factor = (height_to_scale_to / height) ** alpha
-        return wspd * scale_factor
 
-    def apply(self, wspds, height, height_to_scale_to, wdir=None):
+def _scale(alpha, wspd, height, height_to_scale_to):
+    scale_factor = (height_to_scale_to / height) ** alpha
+    return wspd * scale_factor
+
+
+def _apply(shear_obj, wspds, height, height_to_scale_to, wdir=None):
 
         """"
         :param self: Shear object to use when applying shear to the data
@@ -259,7 +268,7 @@ class Shear:
                         (df['Wind_Direction'] >= alpha_bounds[i]) & (df['Wind_Direction'] < alpha_bounds[i + 1])]
 
                 by_sector[i].columns = ['Unscaled_Wind_Speeds', 'Wind_Direction']
-                scaled_wspds[i] = Shear.scale(self.alpha[i], by_sector[i]['Unscaled_Wind_Speeds'], height,
+                scaled_wspds[i] = _scale(self.alpha[i], by_sector[i]['Unscaled_Wind_Speeds'], height,
                                               height_to_scale_to)
                 by_sector[i]['Scaled_Wind_Speeds'] = scaled_wspds[i]
                 by_sector[i]['Shear_Exponent'] = self.alpha[i]
@@ -280,9 +289,9 @@ class Shear:
             if wdir is not None:
                 warnings.warn('Warning: Wind direction will not be accounted for when calculating scaled wind speeds.'
                               ' The shear exponents for this object were not calculated by sector. '
-                              'Check the oriign of the object using ".origin". ')
+                              'Check the origin of the object using ".origin". ')
 
-            scaled_wspds = Shear.scale(self.alpha, wspds, height, height_to_scale_to)
+            scaled_wspds = _scale(self.alpha, wspds, height, height_to_scale_to)
             alpha = pd.DataFrame([self.alpha]*len(wspds))
             alpha.index = wspds.index
             result = pd.concat([wspds, scaled_wspds, alpha], axis=1)

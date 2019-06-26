@@ -36,7 +36,7 @@ __all__ = ['concurrent_coverage',
            'basic_stats',
            'TI',
            'sector_ratio',
-           'Shear',
+           'Shear_old',
            'calc_air_density']
 
 
@@ -898,7 +898,7 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
                                  boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2)
 
 
-class Shear:
+class Shear_old:
     def power_law(wspds, heights, min_speed=3, return_alpha=False):
         wspds = wspds.dropna()
         mean_wspds = wspds[(wspds > min_speed).all(axis=1)].mean()
