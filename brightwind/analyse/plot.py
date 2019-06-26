@@ -354,14 +354,14 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
     return scat_plot
 
 
-def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=None, y_label=None,
+def plot_freq_distribution(data, max_y_value=None, labels=None, y_label=None,
                            plot_colors=[bw_colors('light_green_for_gradient'),
                                         bw_colors('dark_green_for_gradient'),
                                         bw_colors('darkgreen')]):
     from matplotlib.ticker import PercentFormatter
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-    ax.set_xlabel(x_label)
+    ax.set_xlabel('Speed [m/s]')
     ax.set_ylabel(y_label)
     if isinstance(data.index[0], pd.Interval):
         x_data = [i.mid for i in data.index]
@@ -369,8 +369,8 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
         x_data = data.index
     ax.set_xticks(x_data)
     ax.set_xlim(x_data[0]-0.5, x_data[-1]+0.5)
-    if x_tick_labels is not None:
-        ax.set_xticklabels(x_tick_labels)
+    if labels is not None:
+        ax.set_xticklabels(labels)
     if max_y_value is None:
         ax.set_ylim(0, data.max()*1.1)
     else:

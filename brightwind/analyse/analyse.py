@@ -193,7 +193,7 @@ def _convert_df_to_series(df):
     return df
 
 
-def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None, x_label=None,
+def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None,
          max_y_value=None, aggregation_method='%frequency', return_data=False):
     """
     Calculates the distribution of a variable against itself as per the bins specified. Can
@@ -209,8 +209,6 @@ def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     :type bins: list, array, None
     :param bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default
     :type bin_labels: list, array, None
-    :param x_label: x-axis label to be used. If None, it will take the name of the series sent.
-    :type x_label: str, None
     :param max_y_value: Max value for the y-axis of the plot to be set. Default will be relative to max calculated
                         data value.
     :type max_y_value: float, int
@@ -234,7 +232,7 @@ def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
         temp_dist = bw.dist(data.T2m)
 
         #For distribution of temperature with set bin array
-        temp_dist = bw.dist(data.T2m, bins=[0,1,2,3,4,5,6,7,8,9,10])
+        temp_dist = bw.dist(data.T2m, bins=[-10, 4, 12, 18, 30])
 
         #For custom aggregation function
         def custom_agg(x):
@@ -253,8 +251,6 @@ def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     var_to_bin_against = _convert_df_to_series(var_to_bin_against)
     var_series = var_series.dropna()
     var_to_bin_against = var_to_bin_against.dropna()
-    if x_label is None:
-        x_label = var_to_bin_against.name
     if bins is None:
         bins = np.arange(round(var_to_bin_against.min()-0.5)-0.5, var_to_bin_against.max()+0.5, 1)
     var_binned_series = pd.cut(var_to_bin_against, bins, right=False).rename('variable_bin')
@@ -266,9 +262,8 @@ def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
 
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
-    graph = plt.plot_freq_distribution(distribution.replace([np.inf, -np.inf], np.NAN).dropna(),
-                                       max_y_value=max_y_value,
-                                       x_tick_labels=bin_labels, x_label=x_label, y_label=aggregation_method)
+    graph = plt.plot_freq_distribution(distribution.replace([np.inf, -np.inf], np.NAN).dropna(), max_y_value=max_y_value,
+                                       labels=bin_labels, y_label=aggregation_method)
     if bin_labels is not None:
         distribution.index = bin_labels
     if return_data:
@@ -300,8 +295,7 @@ def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
 
     """
     freq_dist = dist(wspd, var_to_bin_against=None, bins=np.arange(-0.5, max_speed+1, 1), bin_labels=None,
-                     x_label='Wind Speed [m/s]', max_y_value=max_y_value, aggregation_method='%frequency',
-                     return_data=True)
+                             max_y_value=max_y_value, aggregation_method='%frequency', return_data=True)
     if return_data:
         return freq_dist[0], freq_dist[1]
     return freq_dist[0]
