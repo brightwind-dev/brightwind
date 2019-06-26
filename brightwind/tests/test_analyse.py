@@ -120,7 +120,7 @@ def test_freq_table():
                         # var_bin_labels=['operating','shutdow','dangerous'],
 
 
-def test_distribution():
+def test_dist():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
 
     # For distribution of %frequency of wind speeds
