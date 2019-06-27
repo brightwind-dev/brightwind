@@ -19,56 +19,6 @@ class PowerLaw:
         self.alpha = alpha
         self.info = info
 
-    def calc_alpha(wspds, heights, min_speed=3, return_object=False):
-        """
-        Calculates shear based on power law
-
-        :param wspds: DataFrame or list of wind speeds for calculating shear
-        :type wspds: list of pandas.DataFrame
-        :param heights: List of anemometer heights
-        :type heights: list
-        :param min_speed: Only speeds higher than this would be considered for calculating shear, default is 3
-        :type min_speed: float
-        :param return_object: Return a Shear object containing shear exponents calculated from supplied data, input data and plit
-        :type return_object: bool
-        :return: A plot with shear plotted along with the means. Also returns a Shear object containing shear exponents and other data
-        hen return_object is True.
-
-        **Example usage**
-        ::
-            import brightwind as bw
-            data = bw.load_csv(bw.datasets.demo_data)
-
-            #Using with a DataFrame of wind speeds
-            graph, alpha = bw.Shear.power_law(data[['Spd80mN', 'Spd60mN', 'Spd40mN']], heights = [80, 60, 40], return_alpha=True)
-
-            #List of wind speeds
-            graph, alpha = bw.Shear.power_law([1, 8, 4], heights = [80, 60, 40], return_alpha=True)
-
-            #To change minimum wind speed to filter and not return alpha
-            pow_law = bw.Shear.power_law([1, 8, 4], heights = [80, 60, 40], min_speed=5)
-
-        """
-        if not isinstance(wspds, pd.DataFrame):
-            wspds = pd.DataFrame(wspds).T
-        wspds = wspds.dropna()
-        cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
-        mean_wspds = wspds[(wspds > min_speed).all(axis=1)].mean().dropna()
-        if mean_wspds.shape[0] == 0:
-            raise ValueError('None of the input wind speeds are greater than the min_speed, cannot calculate shear')
-        alpha, c = _calc_power_law(mean_wspds.values, heights, return_coeff=True)
-        info = {}
-        input_wind_speeds = {'heights(m)': [heights], 'column_names': [list(wspds.columns.values)],
-                             'min_spd(m/s)': str(min_speed)}
-        info['input_wind_speeds'] = input_wind_speeds
-        info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
-
-        if return_object:
-            shear_object = PowerLaw(plot=(plt.plot_shear(alpha, c, mean_wspds.values, heights)), wspds=wspds,
-                                    origin='by_power_law', alpha=alpha, info=info)
-            return shear_object
-        return plt.plot_shear(alpha, c, mean_wspds.values, heights)
-
     def apply_alpha(self, wspds, height, height_to_scale_to):
         """"
                :param self: Shear object to use when applying shear to the data
@@ -128,69 +78,6 @@ class BySector:
         self.origin = origin
         self.alpha = alpha
         self.info = info
-
-    def calc_alpha(wspds, heights, wdir, sectors=12, min_speed=3, direction_bin_array=None, direction_bin_labels=None,
-                  return_object=False):
-        """
-        :param wspds: Wind speed measurements for calculating shear
-        :type wspds:  pandas DataFrame or Series
-        :param heights: List of anemometer heights
-        :type heights: list
-        :param wdir: Wind direction measurements
-        :type wdir:  pandas DataFrame or Series
-        :param sectors: number of sectors for the shear to be calculated for
-        :type sectors: int
-        :param:min_speed:  Only speeds higher than this would be considered for calculating shear, default is 3
-        :type: min_speed: float
-        :param direction_bin_array: specific array of directional bins to be used. Default is that bins are calculated
-        by 360/sectors
-        :type direction_bin_array: array
-        :param: direction_bin_labels: labels to be given to the above direction_bin array
-        :type direction_bin_labels: array
-        :param return_object: if True returns a Shear Object, if False returns a plot
-        :type return_object: boolean
-        :return: returns a shear object containing a plot, all inputted data and a series of calculated shear
-        exponents if True, returns a plot if False
-        """
-        if direction_bin_array is not None:
-            sectors = len(direction_bin_array) - 1
-            direction_bin_array = ["%.1f" % member for member in direction_bin_array]
-
-        common_idxs = wspds.index.intersection(wdir.index)
-        wdir = _convert_df_to_series(wdir)
-        shear = wspds[(wspds > min_speed).all(axis=1)].apply(_calc_power_law, heights=heights, axis=1)
-        shear = shear.loc[shear.index.intersection(common_idxs)]
-        cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
-        info = {}
-        input_wind_speeds = {'heights(m)': [heights], 'column_names': [list(wspds.columns.values)], 'min_spd(m/s)': [3]}
-        input_wind_dir = {'heights(m)': [re.findall(r'\d+', str(wdir.name))],
-                          'column_names': [list(wspds.columns.values)]}
-        info['input_wind_speeds'] = input_wind_speeds
-        info['input_wind_dir'] = input_wind_dir
-        info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
-        shear_dist = pd.concat([
-            distribution_by_dir_sector(var_series=shear,
-                                       direction_series=wdir.loc[common_idxs],
-                                       sectors=sectors, direction_bin_array=direction_bin_array,
-                                       direction_bin_labels=direction_bin_labels,
-                                       aggregation_method='mean',
-                                       return_data=True)[1].rename("Mean_Shear"),
-            distribution_by_dir_sector(var_series=shear,
-                                       direction_series=wdir.loc[common_idxs],
-                                       sectors=sectors, direction_bin_array=direction_bin_array,
-                                       direction_bin_labels=direction_bin_labels,
-                                       aggregation_method='count',
-                                       return_data=True)[1].rename("Shear_Count")], axis=1, join='outer')
-        shear_dist.index.rename('Direction Bin', inplace=True)
-
-        if return_object:
-            shear_object = BySector(
-                plot=(plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)],
-                                               shear_dist)), wspds=wspds, wdir=wdir,
-                sectors=sectors, alpha=shear_dist['Mean_Shear'], origin='by_sector', info=info)
-            return shear_object
-        else:
-            return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
 
     def apply_alpha(self, wspds, height, height_to_scale_to, wdir):
         """"
@@ -413,3 +300,131 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
 
         return result
 
+
+def power_law(wspds, heights, min_speed=3, return_object=False):
+    """
+    Calculates shear based on power law
+
+    :param wspds: DataFrame or list of wind speeds for calculating shear
+    :type wspds: list of pandas.DataFrame
+    :param heights: List of anemometer heights
+    :type heights: list
+    :param min_speed: Only speeds higher than this would be considered for calculating shear, default is 3
+    :type min_speed: float
+    :param return_object: Return a Shear object containing shear exponents calculated from supplied data, input data and plit
+    :type return_object: bool
+    :return: A plot with shear plotted along with the means. Also returns a Shear object containing shear exponents and other data
+    hen return_object is True.
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.datasets.demo_data)
+
+        #Using with a DataFrame of wind speeds
+        graph, alpha = bw.Shear.power_law(data[['Spd80mN', 'Spd60mN', 'Spd40mN']], heights = [80, 60, 40], return_alpha=True)
+
+        #List of wind speeds
+        graph, alpha = bw.Shear.power_law([1, 8, 4], heights = [80, 60, 40], return_alpha=True)
+
+        #To change minimum wind speed to filter and not return alpha
+        pow_law = bw.Shear.power_law([1, 8, 4], heights = [80, 60, 40], min_speed=5)
+
+    """
+    if not isinstance(wspds, pd.DataFrame):
+        wspds = pd.DataFrame(wspds).T
+    wspds = wspds.dropna()
+    cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
+    mean_wspds = wspds[(wspds > min_speed).all(axis=1)].mean().dropna()
+    if mean_wspds.shape[0] == 0:
+        raise ValueError('None of the input wind speeds are greater than the min_speed, cannot calculate shear')
+    alpha, c = _calc_power_law(mean_wspds.values, heights, return_coeff=True)
+    info = {}
+    input_wind_speeds = {'heights(m)': [heights], 'column_names': [list(wspds.columns.values)],
+                         'min_spd(m/s)': str(min_speed)}
+    info['input_wind_speeds'] = input_wind_speeds
+    info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
+
+    if return_object:
+        shear_object = PowerLaw(plot=(plt.plot_shear(alpha, c, mean_wspds.values, heights)), wspds=wspds,
+                                origin='by_power_law', alpha=alpha, info=info)
+        return shear_object
+    return plt.plot_shear(alpha, c, mean_wspds.values, heights)
+
+
+def by_sector(wspds, heights, wdir, sectors=12, min_speed=3, direction_bin_array=None, direction_bin_labels=None,
+              return_object=False):
+    """
+    :param wspds: Wind speed measurements for calculating shear
+    :type wspds:  pandas DataFrame or Series
+    :param heights: List of anemometer heights
+    :type heights: list
+    :param wdir: Wind direction measurements
+    :type wdir:  pandas DataFrame or Series
+    :param sectors: number of sectors for the shear to be calculated for
+    :type sectors: int
+    :param:min_speed:  Only speeds higher than this would be considered for calculating shear, default is 3
+    :type: min_speed: float
+    :param direction_bin_array: specific array of directional bins to be used. Default is that bins are calculated
+    by 360/sectors
+    :type direction_bin_array: array
+    :param: direction_bin_labels: labels to be given to the above direction_bin array
+    :type direction_bin_labels: array
+    :param return_object: if True returns a Shear Object, if False returns a plot
+    :type return_object: boolean
+    :return: returns a shear object containing a plot, all inputted data and a series of calculated shear
+    exponents if True, returns a plot if False
+    """
+    if direction_bin_array is not None:
+        sectors = len(direction_bin_array) - 1
+        direction_bin_array = ["%.1f" % member for member in direction_bin_array]
+
+    common_idxs = wspds.index.intersection(wdir.index)
+    wdir = _convert_df_to_series(wdir)
+    shear = wspds[(wspds > min_speed).all(axis=1)].apply(_calc_power_law, heights=heights, axis=1)
+    shear = shear.loc[shear.index.intersection(common_idxs)]
+    cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
+    info = {}
+    input_wind_speeds = {'heights(m)': [heights], 'column_names': [list(wspds.columns.values)], 'min_spd(m/s)': [3]}
+    input_wind_dir = {'heights(m)': [re.findall(r'\d+', str(wdir.name))],
+                      'column_names': [list(wspds.columns.values)]}
+    info['input_wind_speeds'] = input_wind_speeds
+    info['input_wind_dir'] = input_wind_dir
+    info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
+    shear_dist = pd.concat([
+        distribution_by_dir_sector(var_series=shear,
+                                   direction_series=wdir.loc[common_idxs],
+                                   sectors=sectors, direction_bin_array=direction_bin_array,
+                                   direction_bin_labels=direction_bin_labels,
+                                   aggregation_method='mean',
+                                   return_data=True)[1].rename("Mean_Shear"),
+        distribution_by_dir_sector(var_series=shear,
+                                   direction_series=wdir.loc[common_idxs],
+                                   sectors=sectors, direction_bin_array=direction_bin_array,
+                                   direction_bin_labels=direction_bin_labels,
+                                   aggregation_method='count',
+                                   return_data=True)[1].rename("Shear_Count")], axis=1, join='outer')
+    shear_dist.index.rename('Direction Bin', inplace=True)
+
+    if return_object:
+        shear_object = BySector(
+            plot=(plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)],
+                                           shear_dist)), wspds=wspds, wdir=wdir,
+            sectors=sectors, alpha=shear_dist['Mean_Shear'], origin='by_sector', info=info)
+        return shear_object
+    else:
+        return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
+
+if __name__ == '__main__':
+
+    import brightwind as bw
+    data = bw.load_csv(bw.datasets.demo_data)
+    anemometers = data[['Spd80mS', 'Spd60mS']]
+    heights = [80, 60]
+    directions = data[['Dir78mS']]
+    sectors = 12
+    shear_object_sector_test = bw.Shear.BySector.calc_alpha(anemometers, heights, directions,
+                                                            direction_bin_array=[0, 30, 60, 90, 120, 150, 180, 210, 240,
+                                                                                 270, 300, 330, 360],
+                                                            return_object=True)
+    test_bins = shear_object_sector_test.apply_alpha(data.Spd40mN, 30, 40, directions)
