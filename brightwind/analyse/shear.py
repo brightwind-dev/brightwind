@@ -234,6 +234,7 @@ def by_sector(wspds, heights, wdir, sectors=12, min_speed=3, direction_bin_array
     """
     if direction_bin_array is not None:
         sectors = len(direction_bin_array)-1
+        direction_bin_array = ["%.1f" % member for member in direction_bin_array]
 
     common_idxs = wspds.index.intersection(wdir.index)
     wdir = _convert_df_to_series(wdir)
@@ -360,12 +361,12 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
             # get directional bin edges from Shear.by_sector output
             for i in range(self.sectors):
                 alpha_bounds[i] = int(re.findall(r'\d+', self.alpha.index[i])[0])
-                if i == self.sectors - 1:
-                    alpha_bounds[i + 1] = int(re.findall(r'\d+', self.alpha.index[i])[1])
+                if i == self.sectors-1:
+                    alpha_bounds[i + 1] = int(re.findall(r'\d+', self.alpha.index[i])[2])
 
             #
             for i in range(0, self.sectors):
-                if i == 0:
+                if alpha_bounds[i] > alpha_bounds[i+1]:
                     by_sector[i] = df[
                         (df['Wind_Direction'] >= alpha_bounds[i]) | (df['Wind_Direction'] < alpha_bounds[i + 1])]
 
@@ -405,11 +406,10 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
                               'Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)', 'Shear_Exponent']
 
             result['Unscaled_Wind_Speeds' + '(' + str(height) + 'm)'] = result['Unscaled_Wind_Speeds' + '(' +
-                                                                               str(height) + 'm)'].map('{:,.3f}'.format)
+                                                                               str(height) + 'm)']
             result['Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)'] = \
-                result['Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)'].map('{:,.3f}'.format)
-            result['Shear_Exponent'] = result['Shear_Exponent'].map('{:,.3f}'.format)
-
+                result['Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)']
+            result['Shear_Exponent'] = result['Shear_Exponent']
             result.sort_index(axis='index', inplace=True)
 
         return result
