@@ -19,7 +19,7 @@ class PowerLaw:
         self.alpha = alpha
         self.info = info
 
-    def apply_alpha(self, wspds, height, height_to_scale_to):
+    def apply(self, wspds, height, height_to_scale_to):
         """"
                :param self: Shear object to use when applying shear to the data
                :type self: Shear object
@@ -79,7 +79,7 @@ class BySector:
         self.alpha = alpha
         self.info = info
 
-    def apply_alpha(self, wspds, height, height_to_scale_to, wdir):
+    def apply(self, wspds, height, height_to_scale_to, wdir):
         """"
                 :param self: Shear object to use when applying shear to the data
                 :type self: Shear object
