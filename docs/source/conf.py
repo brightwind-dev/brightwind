@@ -115,7 +115,7 @@ html_theme_options = {
 'navbar_sidebarrel': False,
 'navbar_links': [
         ("Home", "index"),
-        ("Tutorials", "tutorials"),
+        ("Tutorials", "tutorials/tutorial_welcome"),
         ("API", "api"),
         ("Community", "community"),
 
