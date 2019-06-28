@@ -4,6 +4,7 @@ from brightwind.analyse import plot as plt
 from brightwind.analyse.analyse import distribution_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
 import re
 import warnings
+pd.options.mode.chained_assignment = None
 
 __all__ = ['PowerLaw', 'BySector']
 
