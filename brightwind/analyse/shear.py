@@ -279,9 +279,14 @@ def _by_12x24(wspds, heights, min_speed=3, return_data=False, var_name='Shear'):
     return plt.plot_12x24_contours(tab_12x24,  label=(var_name, 'mean'))
 
 
-def _scale(alpha, wspd, height, height_to_scale_to):
+def scale(alpha, wspd, height, height_to_scale_to):
     scale_factor = (height_to_scale_to / height) ** alpha
-    return wspd * scale_factor
+    alpha = pd.DataFrame([alpha] * len(wspd))
+    alpha.index = wspd.index
+    result = pd.concat([wspd, wspd * scale_factor, alpha], axis=1)
+    result.columns = ['Unscaled_Wind_Speeds' + '(' + str(height) + 'm)',
+                      'Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)', 'Shear_Exponent']
+    return result
 
 
 def _apply(self, wspds, height, height_to_scale_to, wdir=None):
@@ -377,8 +382,8 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
                         (df['Wind_Direction'] >= alpha_bounds[i]) & (df['Wind_Direction'] < alpha_bounds[i + 1])]
 
                 by_sector[i].columns = ['Unscaled_Wind_Speeds', 'Wind_Direction']
-                scaled_wspds[i] = _scale(self.alpha[i], by_sector[i]['Unscaled_Wind_Speeds'], height,
-                                              height_to_scale_to)
+                scaled_wspds[i] = scale(self.alpha[i], by_sector[i]['Unscaled_Wind_Speeds'], height,
+                                              height_to_scale_to).iloc[:, 1]
                 by_sector[i]['Scaled_Wind_Speeds'] = scaled_wspds[i]
                 by_sector[i]['Shear_Exponent'] = self.alpha[i]
                 by_sector[i] = by_sector[i][
@@ -400,7 +405,7 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
                               ' The shear exponents for this object were not calculated by sector. '
                               'Check the origin of the object using ".origin". ')
 
-            scaled_wspds = _scale(self.alpha, wspds, height, height_to_scale_to)
+            scaled_wspds = scale(self.alpha, wspds, height, height_to_scale_to).iloc[:, 1]
             alpha = pd.DataFrame([self.alpha]*len(wspds))
             alpha.index = wspds.index
             result = pd.concat([wspds, scaled_wspds, alpha], axis=1)
