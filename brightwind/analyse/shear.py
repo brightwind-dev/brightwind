@@ -246,9 +246,9 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
 
             # get directional bin edges from Shear.by_sector output
             for i in range(self.sectors):
-                alpha_bounds[i] = int(re.findall(r'\d+', self.alpha.index[i])[0])
+                alpha_bounds[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", self.alpha.index[i])[0])
                 if i == self.sectors-1:
-                    alpha_bounds[i + 1] = int(re.findall(r'\d+', self.alpha.index[i])[2])
+                    alpha_bounds[i + 1] = -float(re.findall(r"[-+]?\d*\.\d+|\d+", self.alpha.index[i])[1])
 
             #
             for i in range(0, self.sectors):
@@ -256,6 +256,9 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
                     by_sector[i] = df[
                         (df['Wind_Direction'] >= alpha_bounds[i]) | (df['Wind_Direction'] < alpha_bounds[i + 1])]
 
+                elif alpha_bounds[i+1] == 360:
+                    by_sector[i] = df[
+                        (df['Wind_Direction'] >= alpha_bounds[i])]
                 else:
                     by_sector[i] = df[
                         (df['Wind_Direction'] >= alpha_bounds[i]) & (df['Wind_Direction'] < alpha_bounds[i + 1])]
@@ -377,7 +380,6 @@ def by_sector(wspds, heights, wdir, sectors=12, min_speed=3, direction_bin_array
     """
     if direction_bin_array is not None:
         sectors = len(direction_bin_array) - 1
-        direction_bin_array = ["%.1f" % member for member in direction_bin_array]
 
     common_idxs = wspds.index.intersection(wdir.index)
     wdir = _convert_df_to_series(wdir)
@@ -414,17 +416,3 @@ def by_sector(wspds, heights, wdir, sectors=12, min_speed=3, direction_bin_array
         return shear_object
     else:
         return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
-
-if __name__ == '__main__':
-
-    import brightwind as bw
-    data = bw.load_csv(bw.datasets.demo_data)
-    anemometers = data[['Spd80mS', 'Spd60mS']]
-    heights = [80, 60]
-    directions = data[['Dir78mS']]
-    sectors = 12
-    shear_object_sector_test = bw.Shear.BySector.calc_alpha(anemometers, heights, directions,
-                                                            direction_bin_array=[0, 30, 60, 90, 120, 150, 180, 210, 240,
-                                                                                 270, 300, 330, 360],
-                                                            return_object=True)
-    test_bins = shear_object_sector_test.apply_alpha(data.Spd40mN, 30, 40, directions)
