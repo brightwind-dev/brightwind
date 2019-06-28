@@ -20,6 +20,7 @@ class PowerLaw:
         self.alpha = alpha
         self.info = info
 
+    @staticmethod
     def calc_alpha(wspds, heights, min_speed=3, return_object=False):
         """
         Calculates shear based on power law
@@ -37,17 +38,26 @@ class PowerLaw:
 
         **Example usage**
         ::
-            import brightwind as bw
+            # Load anemometer data to calculate exponents
             data = bw.load_csv(bw.datasets.demo_data)
+            anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
+            heights = [80, 60, 40]
 
-            #Using with a DataFrame of wind speeds
-            graph, alpha = bw.Shear.power_law(data[['Spd80mN', 'Spd60mN', 'Spd40mN']], heights = [80, 60, 40], return_alpha=True)
+            # Using with a DataFrame of wind speeds
+            shear_power_law = bw.Shear.PowerLaw.calc_alpha(anemometers, heights , return_object=True)
 
-            #List of wind speeds
-            graph, alpha = bw.Shear.power_law([1, 8, 4], heights = [80, 60, 40], return_alpha=True)
+            # View attributes of Shear objects
+            # View exponents calculated
+            shear_object_power_law.alpha
 
-            #To change minimum wind speed to filter and not return alpha
-            pow_law = bw.Shear.power_law([1, 8, 4], heights = [80, 60, 40], min_speed=5)
+            # View plot
+            shear_object_power_law.plot
+
+            # View input data
+            shear_object_power_law.wspds
+
+            # View other information
+            shear_object_power_law.info
 
         """
         if not isinstance(wspds, pd.DataFrame):
@@ -72,48 +82,38 @@ class PowerLaw:
 
     def apply_alpha(self, wspds, height, height_to_scale_to):
         """"
-               :param self: Shear object to use when applying shear to the data
-               :type self: Shear object
-               :param wspds: Wind speed time series to apply shear to
-               :type wspds: Pandas Series
-               :param height: height of above wspds
-               :type height: float
-               :param height_to_scale_to: height to which wspds should be scaled to
-               :type height_to_scale_to: float
-               :return: a DataFrame showing original wind speed, scaled wind speed, wind direction (if applicable)
-                and the shear exponent used.
+        Applies shear exponent calculated with the power law to a wind speed and scales wind speed from one height to
+        another
 
-                **Example Usage**
-                ::
-                   # Load anemometer data to calculate exponents
-                   data = bw.load_csv(bw.datasets.demo_data)
-                   anemometers = data[['Spd80mS', 'Spd60mS']]
-                   heights = [80, 60]
+       :param self: Shear object to use when applying shear to the data
+       :type self: Shear object
+       :param wspds: Wind speed time series to apply shear to
+       :type wspds: Pandas Series
+       :param height: height of above wspds
+       :type height: float
+       :param height_to_scale_to: height to which wspds should be scaled to
+       :type height_to_scale_to: float
+       :return: a DataFrame showing original wind speed, scaled wind speed, wind direction (if applicable)
+        and the shear exponent used.
 
-                   # Calculate shear exponents
-                   shear_object_power_law = bw.Shear.power_law(anemometers, heights, return_object=True)
+        **Example Usage**
+        ::
+            # Load anemometer data to calculate exponents
+            data = bw.load_csv(bw.datasets.demo_data)
+            anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
+            heights = [80, 60, 40]
 
-                   # View attributes of Shear objects
-                   # View exponents calculated
-                     shear_object_power_law.alpha
+            # Get power law object
+            shear_power_law = bw.Shear.PowerLaw.calc_alpha(anemometers, heights , return_object=True)
 
-                   # View plots
-                   shear_object_power_law.plot
+           # Scale wind speeds using exponents
+           # Specify wind speeds to be scaled
+           windseries = data['Spd40mN']
+           height = 50
+           height_to_scale_to =70
+           shear_object_power_law=bw.Shear.apply(windseries, height, height_to_scale_to)
 
-                   # View input data
-                   shear_object_power_law.wspds
-
-                   # View other information
-                   shear_object_power_law.info
-
-                   # Scale wind speeds using exponents
-                   # Specify wind speeds to be scaled
-                   wspds = bw.load_csv(r'mywindspeedtimeseries.csv')
-                   height = 50
-                   height_to_scale_to =70
-                   shear_object_power_law=bw.Shear.apply( wspds, height, height_to_scale_to)
-
-                   """
+           """
         return _apply(self, wspds, height, height_to_scale_to)
 
 
@@ -130,9 +130,12 @@ class BySector:
         self.alpha = alpha
         self.info = info
 
+    @staticmethod
     def calc_alpha(wspds, heights, wdir, sectors=12, min_speed=3, direction_bin_array=None, direction_bin_labels=None,
                   return_object=False):
         """
+        Calculates the shear exponent for each directional bin
+
         :param wspds: Wind speed measurements for calculating shear
         :type wspds:  pandas DataFrame or Series
         :param heights: List of anemometer heights
@@ -152,6 +155,35 @@ class BySector:
         :type return_object: boolean
         :return: returns a shear object containing a plot, all inputted data and a series of calculated shear
         exponents if True, returns a plot if False
+
+         **Example usage**
+        ::
+            # Load anemometer data to calculate exponents
+            data = bw.load_csv(bw.datasets.demo_data)
+            anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
+            heights = [80, 60, 40]
+            directions = data['Dir78mS']
+
+            # Calculate shear exponents using default bins ([345,15,45,75,105,135,165,195,225,255,285,315,345])
+            shear_by_sector= bw.Shear.PowerLaw.calc_alpha(anemometers, heights, directions return_object=True)
+
+            # Calculate shear exponents using custom bins
+            custom_bins = [0,30,60,90,120,150,180,210,240,270,300,330,360]
+            shear_by_sector_custom_bins = bw.Shear.BySector.calc_alpha(anemometers,heights,data['Dir78mS'],
+             direction_bin_array=custom_bins, return_object=True)
+
+            # View attributes of Shear objects
+            # View exponents calculated
+            shear_object_power_law.alpha
+
+            # View plot
+            shear_object_power_law.plot
+
+            # View input data
+            shear_object_power_law.wspds
+
+            # View other information
+            shear_object_power_law.info
         """
         if direction_bin_array is not None:
             sectors = len(direction_bin_array) - 1
@@ -194,52 +226,46 @@ class BySector:
 
     def apply_alpha(self, wspds, height, height_to_scale_to, wdir):
         """"
-                :param self: Shear object to use when applying shear to the data
-                :type self: Shear object
-                :param wspds: Wind speed time series to apply shear to
-                :type wspds: Pandas Series
-                :param height: height of above wspds
-                :type height: float
-                :param height_to_scale_to: height to which wspds should be scaled to
-                :type height_to_scale_to: float
-                :param wdir: wind direction measurements of wspds, only required if shear is to be applied by direction sector.
-                :type wdir: Pandas Series
-                :return: a DataFrame showing original wind speed, scaled wind speed, wind direction (if applicable)
-                 and the shear exponent used.
+        Applies the corresponding shear exponent calculated for each directional bin to a wind speed series and scales
+        wind speed from one height to another
 
-                 **Example Usage**
-                 ::
-                    # Load anemometer data to calculate exponents
-                    data = bw.load_csv(bw.datasets.demo_data)
-                    anemometers = data[['Spd80mS', 'Spd60mS']]
-                    heights = [80, 60]
-                    directions = data[['Dir78mS']]
-                    sectors = 12
+        :param self: Shear object to use when applying shear to the data
+        :type self: Shear object
+        :param wspds: Wind speed time series to apply shear to
+        :type wspds: Pandas Series
+        :param height: height of above wspds
+        :type height: float
+        :param height_to_scale_to: height to which wspds should be scaled to
+        :type height_to_scale_to: float
+        :param wdir: wind direction measurements of wspds, only required if shear is to be applied by direction sector.
+        :type wdir: Pandas Series
+        :return: a DataFrame showing original wind speed, scaled wind speed, wind direction (if applicable)
+         and the shear exponent used.
 
-                    # Calculate shear exponents
-                    shear_object_by_sector = bw.Shear.by_sector(anemometers, heights, directions, return_object=True)
+         **Example Usage**
+         ::
+            # Load anemometer data to calculate exponents
+            data = bw.load_csv(bw.datasets.demo_data)
+            anemometers = data[['Spd80mS', 'Spd60mS']]
+            heights = [80, 60]
+            directions = data[['Dir78mS']]
+            sectors = 12
 
-                    # View attributes of Shear objects
-                    # View exponents calculated
-                    shear_object_by_sector.alpha
+            # Calculate shear exponents
+            shear_object_by_sector = bw.Shear.by_sector(anemometers, heights, directions, return_object=True)
 
-                    # View plots
-                    shear_object_by_sector.plot
+            # Calculate shear exponents using default bins ([345,15,45,75,105,135,165,195,225,255,285,315,345])
+            shear_by_sector= bw.Shear.PowerLaw.calc_alpha(anemometers, heights, directions return_object=True)
 
-                    # View input data
-                    shear_object_by_sector.wspds
-                    shear_object_by_sector.wdir
+            # Scale wind speeds using exponents
+            # Specify wind speeds to be scaled
+            windseries = data['Spd40mN']
+            height = 40
+            height_to_scale_to =80
+            wdir = data['DIr48mS']
+            shear_by_sector.apply(windseries, height, height_to_scale_to, wdir)
 
-                    # View other information
-                    shear_object_by_sector.info
-
-                    # Scale wind speeds using exponents
-                    # Specify wind speeds to be scaled
-                    wspds = bw.load_csv(r'mywindspeedtimeseries.csv')
-                    wdir = bw.load_csv(r'mywinddirectiontimeseries.csv')
-                    height = 50
-                    height_to_scale_to =70
-                    """
+            """
 
         return _apply(self, wspds, height, height_to_scale_to, wdir=wdir)
 
@@ -279,11 +305,42 @@ def _by_12x24(wspds, heights, min_speed=3, return_data=False, var_name='Shear'):
     return plt.plot_12x24_contours(tab_12x24,  label=(var_name, 'mean'))
 
 
-def scale(alpha, wspd, height, height_to_scale_to):
+def scale(alpha, wspds, height, height_to_scale_to):
+    """"
+    Scales wind speeds from one height to another given a value of shear exponent
+
+   :param alpha: Shear exponent to be used when scaling wind speeds
+   :type alpha: Float
+   :param wspds: Wind speed time series to apply shear to
+   :type wspds: Pandas Series
+   :param height: height of above wspds
+   :type height: float
+   :param height_to_scale_to: height to which wspds should be scaled to
+   :type height_to_scale_to: float
+   :return: a DataFrame showing original wind speed, scaled wind speed
+    and the shear exponent used.
+
+    **Example Usage**
+    ::
+
+       # Scale wind speeds using exponents
+       # Specify wind speeds to be scaled
+       windseries = data['Spd40mN']
+
+       # Specify alpha to use
+       alpha = .2
+
+       height = 40
+       height_to_scale_to =80
+       wdir = data['DIr48mS']
+       Shear.scale(alpha, windseries, height, height_to_scale_to)
+
+    """
+
     scale_factor = (height_to_scale_to / height) ** alpha
-    alpha = pd.DataFrame([alpha] * len(wspd))
-    alpha.index = wspd.index
-    result = pd.concat([wspd, wspd * scale_factor, alpha], axis=1)
+    alpha = pd.DataFrame([alpha] * len(wspds))
+    alpha.index = wspds.index
+    result = pd.concat([wspds, wspds * scale_factor, alpha], axis=1)
     result.columns = ['Unscaled_Wind_Speeds' + '(' + str(height) + 'm)',
                       'Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)', 'Shear_Exponent']
     return result
@@ -291,133 +348,78 @@ def scale(alpha, wspd, height, height_to_scale_to):
 
 def _apply(self, wspds, height, height_to_scale_to, wdir=None):
 
-        """"
-        :param self: Shear object to use when applying shear to the data
-        :type self: Shear object
-        :param wspds: Wind speed time series to apply shear to
-        :type wspds: Pandas Series
-        :param height: height of above wspds
-        :type height: float
-        :param height_to_scale_to: height to which wspds should be scaled to
-        :type height_to_scale_to: float
-        :param wdir: wind direction measurements of wspds, only required if shear is to be applied by direction sector.
-        :type wdir: Pandas Series
-        :return: a DataFrame showing original wind speed, scaled wind speed, wind direction (if applicable)
-         and the shear exponent used.
+    scaled_wspds = pd.Series([])
+    result = pd.Series([])
 
-         **Example Usage**
-         ::
-            # Load anemometer data to calculate exponents
-            data = bw.load_csv(bw.datasets.demo_data)
-            anemometers = data[['Spd80mS', 'Spd60mS']]
-            heights = [80, 60]
-            directions = data[['Dir78mS']]
-            sectors = 12
+    if self.origin == 'by_sector':
 
-            # Calculate shear exponents
-            shear_object_power_law = bw.Shear.power_law(anemometers, heights, return_object=True)
-            shear_object_by_sector = bw.Shear.by_sector(anemometers, heights, directions, return_object=True)
+        if wdir is None:
+            raise ValueError('A wind direction series, wdir, is required for scaling wind speeds by '
+                             'direction sector. Check origin of Shear object using ".origin"')
+        # initilise series for later use
+        alpha_bounds = pd.Series([])
+        by_sector = pd.Series([])
+        # join wind speeds and directions together in DataFrame
 
-            # View attributes of Shear objects
-            # View exponents calculated
-              shear_object_by_sector.alpha
-              shear_object_power_law.alpha
+        df = pd.concat([wspds, wdir], axis=1)
+        df.columns = ['Unscaled_Wind_Speeds', 'Wind_Direction']
 
-            # View plots
-            shear_object_by_sector.plot
-            shear_object_power_law.plot
+        # get directional bin edges from Shear.by_sector output
+        for i in range(self.sectors):
+            alpha_bounds[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", self.alpha.index[i])[0])
+            if i == self.sectors - 1:
+                alpha_bounds[i + 1] = -float(re.findall(r"[-+]?\d*\.\d+|\d+", self.alpha.index[i])[1])
 
-            # View input data
-            shear_object_by_sector.wspds
-            shear_object_by_sector.wdir
-            shear_object_power_law.wspds
+        #
+        for i in range(0, self.sectors):
+            if alpha_bounds[i] > alpha_bounds[i+1]:
+                by_sector[i] = df[
+                    (df['Wind_Direction'] >= alpha_bounds[i]) | (df['Wind_Direction'] < alpha_bounds[i + 1])]
 
-            # View other information
-            shear_object_by_sector.info
-            shear_object_power_law.info
+            elif alpha_bounds[i + 1] == 360:
+                by_sector[i] = df[(df['Wind_Direction'] >= alpha_bounds[i])]
 
-            # Scale wind speeds using exponents
-            # Specify wind speeds to be scaled
-            wspds = bw.load_csv(r'mywindspeedtimeseries.csv')
-            wdir = bw.load_csv(r'mywinddirectiontimeseries.csv')
-            height = 50
-            height_to_scale_to =70
-            shear_object_by_sector.apply(wspds, height, height_to_scale_to, wdir)
-            shear_object_power_law=bw.Shear.apply( wspds, height, height_to_scale_to)
+            else:
+                by_sector[i] = df[
+                    (df['Wind_Direction'] >= alpha_bounds[i]) & (df['Wind_Direction'] < alpha_bounds[i + 1])]
 
-            """
-        scaled_wspds = pd.Series([])
-        result = pd.Series([])
+            by_sector[i].columns = ['Unscaled_Wind_Speeds', 'Wind_Direction']
+            scaled_wspds[i] = scale(self.alpha[i], by_sector[i]['Unscaled_Wind_Speeds'], height,
+                                          height_to_scale_to).iloc[:, 1]
+            by_sector[i]['Scaled_Wind_Speeds'] = scaled_wspds[i]
+            by_sector[i]['Shear_Exponent'] = self.alpha[i]
+            by_sector[i] = by_sector[i][
+                ['Wind_Direction', 'Unscaled_Wind_Speeds', 'Scaled_Wind_Speeds', 'Shear_Exponent']]
 
-        if self.origin == 'by_sector':
+            if i == 0:
+                result = by_sector[i]
+            else:
+                result = pd.concat([result, by_sector[i]], axis=0)
 
-            if wdir is None:
-                raise ValueError('A wind direction series, wdir, is required for scaling wind speeds by '
-                                 'direction sector. Check origin of Shear object using ".origin"')
-            # initilise series for later use
-            alpha_bounds = pd.Series([])
-            by_sector = pd.Series([])
-            # join wind speeds and directions together in DataFrame
+        result.columns = ['Wind Direction', 'Unscaled_Wind_Speeds' + '(' + str(height) + 'm)',
+                          'Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)', 'Shear_Exponent']
+        result.sort_index(axis='index', inplace=True)
 
-            df = pd.concat([wspds, wdir], axis=1)
-            df.columns = ['Unscaled_Wind_Speeds', 'Wind_Direction']
+    if self.origin == 'by_power_law':
 
-            # get directional bin edges from Shear.by_sector output
-            for i in range(self.sectors):
-                alpha_bounds[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", self.alpha.index[i])[0])
-                if i == self.sectors - 1:
-                    alpha_bounds[i + 1] = -float(re.findall(r"[-+]?\d*\.\d+|\d+", self.alpha.index[i])[1])
+        if wdir is not None:
+            warnings.warn('Warning: Wind direction will not be accounted for when calculating scaled wind speeds.'
+                          ' The shear exponents for this object were not calculated by sector. '
+                          'Check the origin of the object using ".origin". ')
 
-            #
-            for i in range(0, self.sectors):
-                if alpha_bounds[i] > alpha_bounds[i+1]:
-                    by_sector[i] = df[
-                        (df['Wind_Direction'] >= alpha_bounds[i]) | (df['Wind_Direction'] < alpha_bounds[i + 1])]
+        scaled_wspds = scale(self.alpha, wspds, height, height_to_scale_to).iloc[:, 1]
+        alpha = pd.DataFrame([self.alpha]*len(wspds))
+        alpha.index = wspds.index
+        result = pd.concat([wspds, scaled_wspds, alpha], axis=1)
+        result.columns = ['Unscaled_Wind_Speeds' + '(' + str(height) + 'm)',
+                          'Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)', 'Shear_Exponent']
 
-                elif alpha_bounds[i + 1] == 360:
-                    by_sector[i] = df[(df['Wind_Direction'] >= alpha_bounds[i])]
+        result['Unscaled_Wind_Speeds' + '(' + str(height) + 'm)'] = result['Unscaled_Wind_Speeds' + '(' +
+                                                                           str(height) + 'm)']
+        result['Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)'] = \
+            result['Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)']
+        result['Shear_Exponent'] = result['Shear_Exponent']
+        result.sort_index(axis='index', inplace=True)
 
-                else:
-                    by_sector[i] = df[
-                        (df['Wind_Direction'] >= alpha_bounds[i]) & (df['Wind_Direction'] < alpha_bounds[i + 1])]
-
-                by_sector[i].columns = ['Unscaled_Wind_Speeds', 'Wind_Direction']
-                scaled_wspds[i] = scale(self.alpha[i], by_sector[i]['Unscaled_Wind_Speeds'], height,
-                                              height_to_scale_to).iloc[:, 1]
-                by_sector[i]['Scaled_Wind_Speeds'] = scaled_wspds[i]
-                by_sector[i]['Shear_Exponent'] = self.alpha[i]
-                by_sector[i] = by_sector[i][
-                    ['Wind_Direction', 'Unscaled_Wind_Speeds', 'Scaled_Wind_Speeds', 'Shear_Exponent']]
-
-                if i == 0:
-                    result = by_sector[i]
-                else:
-                    result = pd.concat([result, by_sector[i]], axis=0)
-
-            result.columns = ['Wind Direction', 'Unscaled_Wind_Speeds' + '(' + str(height) + 'm)',
-                              'Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)', 'Shear_Exponent']
-            result.sort_index(axis='index', inplace=True)
-
-        if self.origin == 'by_power_law':
-
-            if wdir is not None:
-                warnings.warn('Warning: Wind direction will not be accounted for when calculating scaled wind speeds.'
-                              ' The shear exponents for this object were not calculated by sector. '
-                              'Check the origin of the object using ".origin". ')
-
-            scaled_wspds = scale(self.alpha, wspds, height, height_to_scale_to).iloc[:, 1]
-            alpha = pd.DataFrame([self.alpha]*len(wspds))
-            alpha.index = wspds.index
-            result = pd.concat([wspds, scaled_wspds, alpha], axis=1)
-            result.columns = ['Unscaled_Wind_Speeds' + '(' + str(height) + 'm)',
-                              'Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)', 'Shear_Exponent']
-
-            result['Unscaled_Wind_Speeds' + '(' + str(height) + 'm)'] = result['Unscaled_Wind_Speeds' + '(' +
-                                                                               str(height) + 'm)']
-            result['Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)'] = \
-                result['Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)']
-            result['Shear_Exponent'] = result['Shear_Exponent']
-            result.sort_index(axis='index', inplace=True)
-
-        return result
+    return result
 
