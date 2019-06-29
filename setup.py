@@ -12,7 +12,7 @@ setup(
 	download_url = 'https://github.com/brightwind-dev/brightwind/archive/v0.2.0.tar.gz',
     license='LGPL-3.0-or-later',
     author='Stephen Holleran and Inder Preet of BrightWind Ltd',
-    author_email='stephen@brightwindanalysis',
+    author_email='stephen@brightwindanalysis.com',
     description='Scripts for wind resource data processing.',
     long_description=long_description,
     long_description_content_type="text/markdown",
