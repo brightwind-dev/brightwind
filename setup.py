@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='brightwind',
-    version='0.2.0',
+    version='0.2.1',
     packages=['brightwind', 'brightwind.load', 'brightwind.utils', 'brightwind.export', 'brightwind.analyse',
               'brightwind.transform'],
     url='https://github.com/brightwind-dev/brightwind.git',
@@ -20,7 +20,7 @@ setup(
 	classifiers=[
 		"Programming Language :: Python :: 3.6",
 		"Programming Language :: Python :: 3.7",
-		"OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+		"License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
 		"Operating System :: OS Independent",
 	],
 )
