@@ -5,11 +5,11 @@ with open("README.md", "r") as fh:
 
 setup(
     name='brightwind',
-    version='0.2.1',
+    version='0.2.2',
     packages=['brightwind', 'brightwind.load', 'brightwind.utils', 'brightwind.export', 'brightwind.analyse',
               'brightwind.transform'],
     url='https://github.com/brightwind-dev/brightwind.git',
-	download_url = 'https://github.com/brightwind-dev/brightwind/archive/v0.2.0.tar.gz',
+	download_url = 'https://github.com/brightwind-dev/brightwind/archive/v0.2.2.tar.gz',
     license='GNU Lesser General Public License v3 or later (LGPLv3+)',
     author='Stephen Holleran and Inder Preet of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
