@@ -11,17 +11,8 @@ __all__ = ['PowerLaw', 'BySector']
 
 class PowerLaw:
 
-    def __init__(self, plot=None, wspds=None, alpha=None, origin=None,
-                 info=None):
+    def __init__(self, wspds, heights, min_speed=3):
 
-        self.plot = plot
-        self.wspds = wspds
-        self.origin = origin
-        self.alpha = alpha
-        self.info = info
-
-    @staticmethod
-    def calc_alpha(wspds, heights, min_speed=3, return_object=False):
         """
         Calculates shear based on power law
 
@@ -31,10 +22,7 @@ class PowerLaw:
         :type heights: list
         :param min_speed: Only speeds higher than this would be considered for calculating shear, default is 3
         :type min_speed: float
-        :param return_object: Return a Shear object containing shear exponents calculated from supplied data, input data and plit
-        :type return_object: bool
-        :return: A plot with shear plotted along with the means. Also returns a Shear object containing shear exponents and other data
-        hen return_object is True.
+        :return:  Shear object containing shear exponents, a plot and other data.
 
         **Example usage**
         ::
@@ -44,7 +32,7 @@ class PowerLaw:
             heights = [80, 60, 40]
 
             # Using with a DataFrame of wind speeds
-            shear_power_law = bw.Shear.PowerLaw.calc_alpha(anemometers, heights , return_object=True)
+            shear_power_law = bw.Shear.PowerLaw(anemometers, heights , return_object=True)
 
             # View attributes of Shear objects
             # View exponents calculated
@@ -74,11 +62,11 @@ class PowerLaw:
         info['input_wind_speeds'] = input_wind_speeds
         info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
 
-        if return_object:
-            shear_object = PowerLaw(plot=(plt.plot_shear(alpha, c, mean_wspds.values, heights)), wspds=wspds,
-                                    origin='by_power_law', alpha=alpha, info=info)
-            return shear_object
-        return plt.plot_shear(alpha, c, mean_wspds.values, heights)
+        self.plot = (plt.plot_shear(alpha, c, mean_wspds.values, heights))
+        self.wspds = wspds
+        self.origin = 'by_power_law'
+        self.alpha = alpha
+        self.info = info
 
     def apply_alpha(self, wspds, height, height_to_scale_to):
         """"
@@ -104,14 +92,14 @@ class PowerLaw:
             heights = [80, 60, 40]
 
             # Get power law object
-            shear_power_law = bw.Shear.PowerLaw.calc_alpha(anemometers, heights , return_object=True)
+            shear_power_law = bw.Shear.PowerLaw(anemometers, heights , return_object=True)
 
            # Scale wind speeds using exponents
            # Specify wind speeds to be scaled
            windseries = data['Spd40mN']
            height = 50
            height_to_scale_to =70
-           shear_object_power_law=bw.Shear.apply(windseries, height, height_to_scale_to)
+           shear_object_power_law.apply_alpha(windseries, height, height_to_scale_to)
 
            """
         return _apply(self, wspds, height, height_to_scale_to)
@@ -119,20 +107,9 @@ class PowerLaw:
 
 class BySector:
 
-    def __init__(self, plot=None, wspds=None, wdir=None, sectors=None, alpha=None, origin=None,
-                 info=None):
+    def __init__(self, wspds, heights, wdir, sectors=12, min_speed=3, direction_bin_array=None,
+                 direction_bin_labels=None,):
 
-        self.plot = plot
-        self.wspds = wspds
-        self.wdir = wdir
-        self.sectors = sectors
-        self.origin = origin
-        self.alpha = alpha
-        self.info = info
-
-    @staticmethod
-    def calc_alpha(wspds, heights, wdir, sectors=12, min_speed=3, direction_bin_array=None, direction_bin_labels=None,
-                  return_object=False):
         """
         Calculates the shear exponent for each directional bin
 
@@ -151,10 +128,8 @@ class BySector:
         :type direction_bin_array: array
         :param: direction_bin_labels: labels to be given to the above direction_bin array
         :type direction_bin_labels: array
-        :param return_object: if True returns a Shear Object, if False returns a plot
-        :type return_object: boolean
         :return: returns a shear object containing a plot, all inputted data and a series of calculated shear
-        exponents if True, returns a plot if False
+        exponents.
 
          **Example usage**
         ::
@@ -165,12 +140,12 @@ class BySector:
             directions = data['Dir78mS']
 
             # Calculate shear exponents using default bins ([345,15,45,75,105,135,165,195,225,255,285,315,345])
-            shear_by_sector= bw.Shear.PowerLaw.calc_alpha(anemometers, heights, directions return_object=True)
+            shear_by_sector= bw.Shear.BySector(anemometers, heights, directions)
 
             # Calculate shear exponents using custom bins
             custom_bins = [0,30,60,90,120,150,180,210,240,270,300,330,360]
-            shear_by_sector_custom_bins = bw.Shear.BySector.calc_alpha(anemometers,heights,data['Dir78mS'],
-             direction_bin_array=custom_bins, return_object=True)
+            shear_by_sector_custom_bins = bw.Shear.BySector(anemometers,heights,data['Dir78mS'],
+             direction_bin_array=custom_bins)
 
             # View attributes of Shear objects
             # View exponents calculated
@@ -185,6 +160,7 @@ class BySector:
             # View other information
             shear_object_power_law.info
         """
+
         if direction_bin_array is not None:
             sectors = len(direction_bin_array) - 1
 
@@ -215,16 +191,15 @@ class BySector:
                                        return_data=True)[1].rename("Shear_Count")], axis=1, join='outer')
         shear_dist.index.rename('Direction Bin', inplace=True)
 
-        if return_object:
-            shear_object = BySector(
-                plot=(plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)],
-                                               shear_dist)), wspds=wspds, wdir=wdir,
-                sectors=sectors, alpha=shear_dist['Mean_Shear'], origin='by_sector', info=info)
-            return shear_object
-        else:
-            return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
+        self.plot = plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
+        self.wspds = wspds
+        self.wdir = wdir
+        self.sectors = sectors
+        self.origin = 'by_sector'
+        self.alpha = shear_dist['Mean_Shear']
+        self.info = info
 
-    def apply_alpha(self, wspds, height, height_to_scale_to, wdir):
+    def apply_alpha(self, wspds, wdir, height, height_to_scale_to):
         """"
         Applies the corresponding shear exponent calculated for each directional bin to a wind speed series and scales
         wind speed from one height to another
@@ -233,12 +208,13 @@ class BySector:
         :type self: Shear object
         :param wspds: Wind speed time series to apply shear to
         :type wspds: Pandas Series
+        :param wdir: wind direction measurements of wspds, only required if shear is to be applied by direction sector.
+        :type wdir: Pandas Series
         :param height: height of above wspds
         :type height: float
         :param height_to_scale_to: height to which wspds should be scaled to
         :type height_to_scale_to: float
-        :param wdir: wind direction measurements of wspds, only required if shear is to be applied by direction sector.
-        :type wdir: Pandas Series
+
         :return: a DataFrame showing original wind speed, scaled wind speed, wind direction (if applicable)
          and the shear exponent used.
 
@@ -252,10 +228,10 @@ class BySector:
             sectors = 12
 
             # Calculate shear exponents
-            shear_object_by_sector = bw.Shear.by_sector(anemometers, heights, directions, return_object=True)
+            shear_object_by_sector = bw.Shear.BySector(anemometers, heights, directions)
 
             # Calculate shear exponents using default bins ([345,15,45,75,105,135,165,195,225,255,285,315,345])
-            shear_by_sector= bw.Shear.PowerLaw.calc_alpha(anemometers, heights, directions return_object=True)
+            shear_by_sector= bw.Shear.BySector(anemometers, heights, directions)
 
             # Scale wind speeds using exponents
             # Specify wind speeds to be scaled
@@ -263,7 +239,7 @@ class BySector:
             height = 40
             height_to_scale_to =80
             wdir = data['DIr48mS']
-            shear_by_sector.apply(windseries, height, height_to_scale_to, wdir)
+            shear_by_sector.apply_alpha(windseries, wdir, height, height_to_scale_to)
 
             """
 
@@ -385,7 +361,7 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
 
             by_sector[i].columns = ['Unscaled_Wind_Speeds', 'Wind_Direction']
             scaled_wspds[i] = scale(self.alpha[i], by_sector[i]['Unscaled_Wind_Speeds'], height,
-                                          height_to_scale_to).iloc[:, 1]
+                                    height_to_scale_to).iloc[:, 1]
             by_sector[i]['Scaled_Wind_Speeds'] = scaled_wspds[i]
             by_sector[i]['Shear_Exponent'] = self.alpha[i]
             by_sector[i] = by_sector[i][
@@ -422,4 +398,3 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
         result.sort_index(axis='index', inplace=True)
 
     return result
-

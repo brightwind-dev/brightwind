@@ -557,7 +557,6 @@ def plot_shear_by_sector(shear, wdir, shear_dist):
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wdir), shear, color=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
-    plt.close()
     return ax.get_figure()
 
 
@@ -654,5 +653,4 @@ def plot_shear(avg_alpha, avg_c, wspds, heights):
     ax.grid()
     ax.set_xlim(0, max(speeds)+1)
     ax.set_ylim(0, max(plot_heights)+10)
-    plt.close()
     return ax.get_figure()
