@@ -18,6 +18,15 @@ setup(
     long_description_content_type="text/markdown",
     keywords=['BRIGHT', 'WIND', 'RESOURCE', 'DATA', 'ANALYSTS', 'PROCESSING', 'WASP', 'ROSE', 'WINDFARMER', 'OPENWIND',
               'WIND PRO', 'WINDOGRAPHER'],
+    install_requires=[
+        'pandas>=0.24.0',
+        'numpy>=1.14.6',
+        'sklearn>=0.19.1',
+        'matplotlib>=3.0.3',
+        'requests>=2.20.0',
+        'scipy>=0.19.1',
+        'pytest>= 4.1.0',
+    ],
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
