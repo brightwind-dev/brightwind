@@ -1,15 +1,21 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
     name='brightwind',
+    # Update version number here:
     version='0.2.3',
     packages=['brightwind', 'brightwind.load', 'brightwind.utils', 'brightwind.export', 'brightwind.analyse',
-              'brightwind.transform'],
+              'brightwind.transform', 'brightwind.datasets'],
+    package_data={
+        # If any package contains *.mplstyle or *.txt files, include them:
+        '': ['*.mplstyle', '*.csv', '*.txt'],
+    },
     url='https://github.com/brightwind-dev/brightwind.git',
-    download_url = 'https://github.com/brightwind-dev/brightwind/archive/v0.2.2.tar.gz',
+    # Update version number here:
+    download_url = 'https://github.com/brightwind-dev/brightwind/archive/v0.2.3.tar.gz',
     license='GNU Lesser General Public License v3 or later (LGPLv3+)',
     author='Stephen Holleran and Inder Preet of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
