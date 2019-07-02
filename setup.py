@@ -16,7 +16,8 @@ setup(
     description='Scripts for wind resource data processing.',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    keywords = ['WIND', 'RESOURCE', 'DATA', 'ANALYSTS', 'PROCESSING', 'WASP', 'ROSE', 'WINDFARMER', 'OPENWIND', 'WIND PRO', 'WINDOGRAPHER'],
+    keywords=['BRIGHT', 'WIND', 'RESOURCE', 'DATA', 'ANALYSTS', 'PROCESSING', 'WASP', 'ROSE', 'WINDFARMER', 'OPENWIND',
+              'WIND PRO', 'WINDOGRAPHER'],
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
