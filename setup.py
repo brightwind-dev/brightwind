@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='brightwind',
-    version='0.2.2',
+    version='0.2.3',
     packages=['brightwind', 'brightwind.load', 'brightwind.utils', 'brightwind.export', 'brightwind.analyse',
               'brightwind.transform'],
     url='https://github.com/brightwind-dev/brightwind.git',
