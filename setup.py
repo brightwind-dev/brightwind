@@ -11,7 +11,7 @@ setup(
               'brightwind.transform', 'brightwind.datasets'],
     package_data={
         # If any package contains *.mplstyle or *.txt files, include them:
-        '': ['*.mplstyle', '*.csv', '*.txt'],
+        '': ['*.mplstyle', 'datasets/demo/*.csv', 'datasets/demo/*.txt'],
     },
     url='https://github.com/brightwind-dev/brightwind.git',
     # Update version number here:
