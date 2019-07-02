@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import datetime
+from datetime import timedelta, date
 import math
 from math import e
 from brightwind.analyse import plot as plt
@@ -9,6 +11,107 @@ import warnings
 pd.options.mode.chained_assignment = None
 
 __all__ = ['Average', 'BySector', 'TimeSeries']
+
+
+
+class TimeSeries:
+
+    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3, day_time_start='07:00:00', daily_sectors = 2):
+
+        """
+        Calculates shear based on power law
+
+        :param wspds: DataFrame or list of wind speeds for calculating shear
+        :type wspds: list of pandas.DataFrame
+        :param heights: List of anemometer heights
+        :type heights: list
+        :param min_speed: Only speeds higher than this would be considered for calculating shear, default is 3
+        :type min_speed: float
+        :return:  Shear object containing shear exponents, a plot and other data.
+
+        **Example usage**
+        ::
+            # Load anemometer data to calculate exponents
+            data = bw.load_csv(bw.datasets.demo_data)
+            anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
+            heights = [80, 60, 40]
+
+            # Using with a DataFrame of wind speeds
+            shear_power_law = bw.Shear.Average(anemometers, heights , return_object=True)
+
+            # View attributes of Shear objects
+            # View exponents calculated
+            shear_object_power_law.alpha
+
+            # View plot
+            shear_object_power_law.plot
+
+            # View input data
+            shear_object_power_law.wspds
+
+            # View other information
+            shear_object_power_law.info
+
+        """
+
+        start_times = pd.Series([])
+        time_wspds = pd.Series([])
+        alpha = pd.Series([])
+        c = pd.Series([])
+
+        if not isinstance(wspds, pd.DataFrame):
+            wspds = pd.DataFrame(wspds).T
+        wspds = wspds.dropna()
+        cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
+
+        interval = 24 / daily_sectors
+        start_times[0] = datetime.datetime.strptime(day_time_start, '%H:%M:%S')
+        dt = datetime.timedelta(hours=interval)
+        for i in range(1, daily_sectors):
+            start_times[i] = start_times[i - 1] + dt
+
+        start_times[daily_sectors] = start_times[0]
+
+        for i in range(0, daily_sectors):
+            start_times[i] = start_times[i].strftime("%H:%M:%S")
+            start = str(start_times[i].time())
+            end = str(start_times[i + 1].time())
+            time_wspds[i] = (pd.DataFrame(data['Spd80mN'])).between_time(start, end)
+
+
+
+        mean_wspds = time_wspds[(wspds > min_speed).all(axis=1)].mean().dropna()
+        if mean_wspds.shape[0] == 0:
+            raise ValueError('None of the input wind speeds are greater than the min_speed, cannot calculate shear')
+
+        if calc_method == 'power_law':
+            for i in range (0, len(mean_wspds)):
+                alpha[i], c[i] = _calc_power_law(mean_wspds[i].values, heights, return_coeff=True)
+            self.alpha = alpha
+            self.plot = plt.plot_power_law(alpha, c, mean_wspds.values, heights)
+
+        elif calc_method == 'log_law':
+            slope, c = _calc_log_law(mean_wspds.values, heights, return_coeff=True)
+            roughness_coefficient = _calc_roughness_coeff(mean_wspds, heights)
+            self.roughness_coefficient = roughness_coefficient
+            self.plot = plt.plot_log_law(slope, c, mean_wspds.values, heights)
+            self.slope =slope
+            self.intercept = c
+
+        else:
+            raise ValueError('Please enter a valid calculation method, "power_law or "log_law"')
+
+        info = {}
+        input_wind_speeds = {'heights(m)': [heights], 'column_names': [list(wspds.columns.values)],
+                             'min_spd(m/s)': str(min_speed)}
+        info['input_wind_speeds'] = input_wind_speeds
+        info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
+
+        self.wspds = wspds
+        self.origin = 'Average'
+        self.info = info
+        self.calc_method = calc_method
+
 
 
 class Average:
@@ -271,15 +374,6 @@ class BySector:
         return _apply(self, wspds, height, height_to_scale_to, wdir=wdir, calc_method='power_law')
 
 
-def _calc_log_law(wspds, heights, return_coeff=False) -> (np.array, float):
-
-    logheights = np.log(heights)
-    coeffs = np.polyfit(logheights, wspds, deg=1)
-    if return_coeff:
-        return coeffs[0], coeffs[1]
-    return coeffs[0]
-
-
 def test_scale(wspds, height, height_to_scale_to, calc_method, slope, intercept):
 
     graph_speed = slope*np.log(height) + intercept
@@ -303,6 +397,13 @@ def _calc_roughness_coeff(wspds, heights):
 
     return roughness_coefficient.mean()
 
+def _calc_log_law(wspds, heights, return_coeff=False) -> (np.array, float):
+
+    logheights = np.log(heights)
+    coeffs = np.polyfit(logheights, wspds, deg=1)
+    if return_coeff:
+        return coeffs[0], coeffs[1]
+    return coeffs[0]
 
 def _calc_power_law(wspds, heights, return_coeff=False) -> (np.array, float):
     """
@@ -469,4 +570,6 @@ if __name__ == '__main__':
     means = anemometers.mean()
     directions = data['Dir78mS']
     shear_log = bw.Shear.Average(anemometers, heights, calc_method='log_law')
+    shear_log.apply_alpha(data['Spd40mS'], 40 ,80)
+    test_scale(data['Spd40mS'], 40, 80, 'dsfsdf.', 1.164)
 
