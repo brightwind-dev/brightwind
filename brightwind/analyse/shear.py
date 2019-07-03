@@ -3,20 +3,22 @@ import numpy as np
 import datetime
 from datetime import timedelta, date
 import math
+import calendar
 from math import e
 from brightwind.analyse import plot as plt
 from brightwind.analyse.analyse import distribution_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
 import re
 import warnings
+import matplotlib.dates as mdates
 pd.options.mode.chained_assignment = None
 
-__all__ = ['Average', 'BySector', 'TimeSeries']
+__all__ = ['Average', 'BySector', 'TimeOfDay']
 
 
 
-class TimeSeries:
+class TimeOfDay:
 
-    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3, day_time_start='07:00:00', daily_sectors = 2):
+    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3, by_month=True, day_start_time='07:00:00', daily_sectors = 2):
 
         """
         Calculates shear based on power law
@@ -56,8 +58,10 @@ class TimeSeries:
 
         start_times = pd.Series([])
         time_wspds = pd.Series([])
+        mean_time_wspds = pd.Series([])
         alpha = pd.Series([])
         c = pd.Series([])
+        alpha_monthly = pd.DataFrame([])
 
         if not isinstance(wspds, pd.DataFrame):
             wspds = pd.DataFrame(wspds).T
@@ -65,41 +69,51 @@ class TimeSeries:
         cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
 
         interval = 24 / daily_sectors
-        start_times[0] = datetime.datetime.strptime(day_time_start, '%H:%M:%S')
+        start_times[0] = datetime.datetime.strptime(day_start_time, '%H:%M:%S')
         dt = datetime.timedelta(hours=interval)
+
         for i in range(1, daily_sectors):
             start_times[i] = start_times[i - 1] + dt
 
-        start_times[daily_sectors] = start_times[0]
+        for j in range(0, 12):
 
-        for i in range(0, daily_sectors):
-            start_times[i] = start_times[i].strftime("%H:%M:%S")
-            start = str(start_times[i].time())
-            end = str(start_times[i + 1].time())
-            time_wspds[i] = (pd.DataFrame(data['Spd80mN'])).between_time(start, end)
+            anemometers_monthly = wspds[wspds.index.month == j + 1]
+            for i in range(0, daily_sectors):
 
+                if i == daily_sectors - 1:
+                    start_times[i] = start_times[i].strftime("%H:%M:%S")
+                    start = str(start_times[i].time())
+                    end = str(start_times[0].time())
+                    time_wspds[i] = pd.DataFrame(anemometers_monthly).between_time(start, end)
+                    mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
+                else:
+                    start_times[i] = start_times[i].strftime("%H:%M:%S")
+                    start = str(start_times[i].time())
+                    end = str(start_times[i + 1].time())
+                    time_wspds[i] = pd.DataFrame(anemometers_monthly).between_time(start, end)
+                    mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
 
+            for i in range(0, len(mean_time_wspds)):
+                alpha[i], c[i] = _calc_power_law(mean_time_wspds[i].values, heights, return_coeff=True)
 
-        mean_wspds = time_wspds[(wspds > min_speed).all(axis=1)].mean().dropna()
-        if mean_wspds.shape[0] == 0:
+            alpha_monthly = pd.concat([alpha_monthly, alpha], axis=1)
+
+        if mean_time_wspds.shape[0] == 0:
             raise ValueError('None of the input wind speeds are greater than the min_speed, cannot calculate shear')
 
-        if calc_method == 'power_law':
-            for i in range (0, len(mean_wspds)):
-                alpha[i], c[i] = _calc_power_law(mean_wspds[i].values, heights, return_coeff=True)
-            self.alpha = alpha
-            self.plot = plt.plot_power_law(alpha, c, mean_wspds.values, heights)
-
-        elif calc_method == 'log_law':
-            slope, c = _calc_log_law(mean_wspds.values, heights, return_coeff=True)
-            roughness_coefficient = _calc_roughness_coeff(mean_wspds, heights)
-            self.roughness_coefficient = roughness_coefficient
-            self.plot = plt.plot_log_law(slope, c, mean_wspds.values, heights)
-            self.slope =slope
-            self.intercept = c
+        alpha_monthly = pd.concat([(alpha_monthly[start_times[0].hour:]), (alpha_monthly[:start_times[0].hour])],
+                                  axis=0)
+        alpha_monthly.index = start_times
+        alpha_monthly.index = alpha_monthly.index.time
+        if by_month is True:
+            alpha_monthly.columns = calendar.month_abbr[1:13]
 
         else:
-            raise ValueError('Please enter a valid calculation method, "power_law or "log_law"')
+            alpha_monthly = pd.DataFrame(alpha_monthly.mean(axis=1))
+            alpha_monthly.columns = ['12 Month Average']
+           # alpha_monthly.columns = ['12 Month Average']
+            #alpha_monthly = alpha_monthly.rename('12 Month Average')
+
 
         info = {}
         input_wind_speeds = {'heights(m)': [heights], 'column_names': [list(wspds.columns.values)],
@@ -108,11 +122,11 @@ class TimeSeries:
         info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
 
         self.wspds = wspds
-        self.origin = 'Average'
+        self. plot = plt.plot_shear_time_of_day(alpha_monthly)
+        self.origin = 'TimeOfDay'
         self.info = info
         self.calc_method = calc_method
-
-
+        self.alpha = pd.DataFrame(alpha_monthly)
 
 class Average:
 
@@ -567,9 +581,5 @@ if __name__ == '__main__':
     data = bw.load_csv(r'C:\Users\lukec\demo_data.csv')
     anemometers = data[['Spd80mN', 'Spd60mN', 'Spd40mN']]
     heights = [80, 60, 40]
-    means = anemometers.mean()
-    directions = data['Dir78mS']
-    shear_log = bw.Shear.Average(anemometers, heights, calc_method='log_law')
-    shear_log.apply_alpha(data['Spd40mS'], 40 ,80)
-    test_scale(data['Spd40mS'], 40, 80, 'dsfsdf.', 1.164)
+    test = bw.Shear.TimeOfDay(anemometers, heights, daily_sectors=24, day_start_time='07:00:00', by_month=False)
 

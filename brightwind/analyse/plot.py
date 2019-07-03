@@ -668,3 +668,20 @@ def plot_log_law(slope, intercept, wspds, heights):
     ax.set_xlim(0, max(speeds) + 1)
     ax.set_ylim(0, max(plot_heights) + 10)
     return ax.get_figure()
+
+
+def plot_shear_time_of_day(alpha_monthly):
+    alpha_monthly.index = alpha_monthly.index.map(str)
+    fig, ax = plt.subplots()
+    ax.set_xlabel('Time of Day')
+    ax.set_ylabel('Average Shear')
+    #plt.gca().set_color_cycle(['red', 'green', 'blue', 'yellow'])
+
+    for i in range(0, len(alpha_monthly.columns)):
+        ax.plot(alpha_monthly.index, alpha_monthly.iloc[:,i], label=alpha_monthly.iloc[:,i].name)
+
+    ax.legend()
+    ax.set_xticks(alpha_monthly.index)
+    ax.xaxis.set_minor_formatter(mpl.dates.DateFormatter("%H-%M"))
+    _ = plt.xticks(rotation=90)
+    return ax.get_figure()
