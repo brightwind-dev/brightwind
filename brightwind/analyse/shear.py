@@ -18,7 +18,7 @@ __all__ = ['Average', 'BySector', 'TimeOfDay']
 
 class TimeOfDay:
 
-    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3, by_month=True, day_start_time='07:00:00', daily_sectors = 2):
+    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3, by_month=True, day_start_time='07', daily_sectors = 2):
 
         """
         Calculates shear based on power law
@@ -69,7 +69,7 @@ class TimeOfDay:
         cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
 
         interval = 24 / daily_sectors
-        start_times[0] = datetime.datetime.strptime(day_start_time, '%H:%M:%S')
+        start_times[0] = datetime.datetime.strptime(day_start_time, '%H')
         dt = datetime.timedelta(hours=interval)
 
         for i in range(1, daily_sectors):
@@ -84,13 +84,13 @@ class TimeOfDay:
                     start_times[i] = start_times[i].strftime("%H:%M:%S")
                     start = str(start_times[i].time())
                     end = str(start_times[0].time())
-                    time_wspds[i] = pd.DataFrame(anemometers_monthly).between_time(start, end)
+                    time_wspds[i] = pd.DataFrame(anemometers_monthly).between_time(start, end, include_end=False)
                     mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
                 else:
                     start_times[i] = start_times[i].strftime("%H:%M:%S")
                     start = str(start_times[i].time())
                     end = str(start_times[i + 1].time())
-                    time_wspds[i] = pd.DataFrame(anemometers_monthly).between_time(start, end)
+                    time_wspds[i] = pd.DataFrame(anemometers_monthly).between_time(start, end, include_end=False)
                     mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
 
             for i in range(0, len(mean_time_wspds)):
@@ -101,8 +101,8 @@ class TimeOfDay:
         if mean_time_wspds.shape[0] == 0:
             raise ValueError('None of the input wind speeds are greater than the min_speed, cannot calculate shear')
 
-        alpha_monthly = pd.concat([(alpha_monthly[start_times[0].hour:]), (alpha_monthly[:start_times[0].hour])],
-                                  axis=0)
+        #alpha_monthly = pd.concat([(alpha_monthly[start_times[0].hour:]), (alpha_monthly[:start_times[0].hour])],
+                              #  axis=0)
         alpha_monthly.index = start_times
         alpha_monthly.index = alpha_monthly.index.time
         if by_month is True:
@@ -111,9 +111,6 @@ class TimeOfDay:
         else:
             alpha_monthly = pd.DataFrame(alpha_monthly.mean(axis=1))
             alpha_monthly.columns = ['12 Month Average']
-           # alpha_monthly.columns = ['12 Month Average']
-            #alpha_monthly = alpha_monthly.rename('12 Month Average')
-
 
         info = {}
         input_wind_speeds = {'heights(m)': [heights], 'column_names': [list(wspds.columns.values)],
@@ -581,5 +578,5 @@ if __name__ == '__main__':
     data = bw.load_csv(r'C:\Users\lukec\demo_data.csv')
     anemometers = data[['Spd80mN', 'Spd60mN', 'Spd40mN']]
     heights = [80, 60, 40]
-    test = bw.Shear.TimeOfDay(anemometers, heights, daily_sectors=24, day_start_time='07:00:00', by_month=False)
+    test = bw.Shear.TimeOfDay(anemometers, heights, daily_sectors=24, day_start_time='12', by_month=True)
 
