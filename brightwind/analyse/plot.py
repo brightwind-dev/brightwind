@@ -670,10 +670,7 @@ def plot_log_law(slope, intercept, wspds, heights):
     return ax.get_figure()
 
 
-def plot_shear_time_of_day(alpha_monthly):
-
-    # sort index to plot starting at 00:00
-    alpha_monthly = alpha_monthly.sort_index()
+def plot_shear_time_of_day(alpha_monthly, interval, plot_type='step'):
 
     # create copy for later use
     alpha_monthly_copy = alpha_monthly.copy()
@@ -682,17 +679,20 @@ def plot_shear_time_of_day(alpha_monthly):
     idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H')
 
     # create new dataframe with 24 rows only interval number of unique values
-    if len(alpha_monthly.columns) == 1:
-        intervals = int(24 / (len(alpha_monthly_copy)))
-        alpha_monthly = pd.DataFrame(index=pd.DatetimeIndex(idx).time)
-        alpha_monthly['Average Shear'] = 0
+    alpha_monthly = pd.DataFrame(index=pd.DatetimeIndex(idx).time,columns=alpha_monthly_copy.columns)
+    alpha_monthly = pd.concat(
+        [(alpha_monthly[alpha_monthly_copy.index[0].hour:]), (alpha_monthly[:alpha_monthly_copy.index[0].hour])],
+        axis=0)
 
-        for i in range(0, len(alpha_monthly_copy)):
-            alpha_monthly['Average Shear'].iloc[i * intervals:(i + 1) * intervals] = alpha_monthly_copy.iloc[i, 0]
+    for i in range(0, len(alpha_monthly_copy)):
+        alpha_monthly.iloc[i * interval:(i + 1) * interval, :] = pd.DataFrame(alpha_monthly_copy.iloc[i, :]).values.T
 
+    alpha_monthly.sort_index(inplace=True)
+    alpha_monthly_copy.sort_index(inplace=True)
     # shift values in DataFrame for plot
-    alpha_monthly = alpha_monthly.shift(+1, axis=0)
-    alpha_monthly.iloc[0, :] = alpha_monthly_copy.tail(1).values
+    if plot_type == 'step':
+        alpha_monthly = alpha_monthly.shift(+1, axis=0)
+        alpha_monthly.iloc[0, :] = alpha_monthly_copy.tail(1).values
 
     fig, ax = plt.subplots()
     ax.set_xlabel('Time of Day')
@@ -701,8 +701,14 @@ def plot_shear_time_of_day(alpha_monthly):
 
     # create x values for plot
     idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H').time
-    for i in range(0, len(alpha_monthly.columns)):
-        ax.step(idx, alpha_monthly.iloc[:, i], label=alpha_monthly.iloc[:, i].name)
+
+    if plot_type == 'step':
+        for i in range(0, len(alpha_monthly.columns)):
+            ax.step(idx, alpha_monthly.iloc[:, i], label=alpha_monthly.iloc[:, i].name)
+
+    if plot_type == 'line':
+        for i in range(0, len(alpha_monthly.columns)):
+            ax.plot(idx, alpha_monthly.iloc[:, i], label=alpha_monthly.iloc[:, i].name)
 
     ax.legend()
     ax.set_xticks(alpha_monthly.index)

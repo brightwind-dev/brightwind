@@ -15,10 +15,10 @@ pd.options.mode.chained_assignment = None
 __all__ = ['Average', 'BySector', 'TimeOfDay']
 
 
-
 class TimeOfDay:
 
-    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3, by_month=True, day_start_time='07', daily_sectors = 2):
+    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3, by_month=True, day_start_time='07',
+                 daily_sectors=2, plot_type='step'):
 
         """
         Calculates shear based on power law
@@ -55,7 +55,7 @@ class TimeOfDay:
             shear_object_power_law.info
 
         """
-
+        # initialise empty series for later use
         start_times = pd.Series([])
         time_wspds = pd.Series([])
         mean_time_wspds = pd.Series([])
@@ -66,15 +66,19 @@ class TimeOfDay:
         if not isinstance(wspds, pd.DataFrame):
             wspds = pd.DataFrame(wspds).T
         wspds = wspds.dropna()
+
         cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
 
-        interval = 24 / daily_sectors
+        # time of day shear calculations
+        interval = int(24 / daily_sectors)
         start_times[0] = datetime.datetime.strptime(day_start_time, '%H')
         dt = datetime.timedelta(hours=interval)
 
+        # extract wind speeds for each daily segment
         for i in range(1, daily_sectors):
             start_times[i] = start_times[i - 1] + dt
 
+        # extract wind speeds for each month
         for j in range(0, 12):
 
             anemometers_monthly = wspds[wspds.index.month == j + 1]
@@ -93,16 +97,16 @@ class TimeOfDay:
                     time_wspds[i] = pd.DataFrame(anemometers_monthly).between_time(start, end, include_end=False)
                     mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
 
+            # calculate shear
             for i in range(0, len(mean_time_wspds)):
                 alpha[i], c[i] = _calc_power_law(mean_time_wspds[i].values, heights, return_coeff=True)
 
             alpha_monthly = pd.concat([alpha_monthly, alpha], axis=1)
 
+        # error check
         if mean_time_wspds.shape[0] == 0:
             raise ValueError('None of the input wind speeds are greater than the min_speed, cannot calculate shear')
 
-        #alpha_monthly = pd.concat([(alpha_monthly[start_times[0].hour:]), (alpha_monthly[:start_times[0].hour])],
-                              #  axis=0)
         alpha_monthly.index = start_times
         alpha_monthly.index = alpha_monthly.index.time
         if by_month is True:
@@ -119,11 +123,12 @@ class TimeOfDay:
         info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
 
         self.wspds = wspds
-        self. plot = plt.plot_shear_time_of_day(alpha_monthly)
+        self. plot = plt.plot_shear_time_of_day(alpha_monthly, interval, plot_type)
         self.origin = 'TimeOfDay'
         self.info = info
         self.calc_method = calc_method
         self.alpha = pd.DataFrame(alpha_monthly)
+
 
 class Average:
 
@@ -385,7 +390,7 @@ class BySector:
         return _apply(self, wspds, height, height_to_scale_to, wdir=wdir, calc_method='power_law')
 
 
-def test_scale(wspds, height, height_to_scale_to, calc_method, slope, intercept):
+def log_scale(wspds, height, height_to_scale_to, slope, intercept):
 
     graph_speed = slope*np.log(height) + intercept
     error = -(graph_speed-wspds)/graph_speed
@@ -407,6 +412,7 @@ def _calc_roughness_coeff(wspds, heights):
                                        / (wspds.iloc[i] - wspds.iloc[i+1]))
 
     return roughness_coefficient.mean()
+
 
 def _calc_log_law(wspds, heights, return_coeff=False) -> (np.array, float):
 
@@ -451,7 +457,7 @@ def _by_12x24(wspds, heights, min_speed=3, return_data=False, var_name='Shear'):
     return plt.plot_12x24_contours(tab_12x24,  label=(var_name, 'mean'))
 
 
-def scale(wspds, height, height_to_scale_to, calc_method, alpha=None, roughness_coefficient=None):
+def scale_test(wspds, height, height_to_scale_to, calc_method, alpha=None, roughness_coefficient=None):
     """"
     Scales wind speeds from one height to another given a value of shear exponent
 
@@ -496,6 +502,55 @@ def scale(wspds, height, height_to_scale_to, calc_method, alpha=None, roughness_
     scale_variable = pd.DataFrame([scale_variable] * len(wspds))
     scale_variable.index = wspds.index
     result = pd.concat([wspds, wspds * scale_factor, scale_variable], axis=1)
+    result.columns = ['Unscaled_Wind_Speeds' + '(' + str(height) + 'm)',
+                      'Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)', scale_string]
+    return result
+
+def scale(wspds, height, height_to_scale_to, calc_method, alpha=None, slope=None, intercept=None, roughness_coefficient=None):
+    """"
+    Scales wind speeds from one height to another given a value of shear exponent
+
+   :param alpha: Shear exponent to be used when scaling wind speeds
+   :type alpha: Float
+   :param wspds: Wind speed time series to apply shear to
+   :type wspds: Pandas Series
+   :param height: height of above wspds
+   :type height: float
+   :param height_to_scale_to: height to which wspds should be scaled to
+   :type height_to_scale_to: float
+   :return: a DataFrame showing original wind speed, scaled wind speed
+    and the shear exponent used.
+
+    **Example Usage**
+    ::
+
+       # Scale wind speeds using exponents
+       # Specify wind speeds to be scaled
+       windseries = data['Spd40mN']
+
+       # Specify alpha to use
+       alpha = .2
+
+       height = 40
+       height_to_scale_to =80
+       wdir = data['DIr48mS']
+       Shear.scale(alpha, windseries, height, height_to_scale_to)
+
+    """
+    if calc_method == 'power_law':
+        scale_factor = (height_to_scale_to / height) ** alpha
+        scale_string = 'Shear_Exponent'
+        scale_variable = alpha
+        scaled_wspds = wspds * scale_factor
+
+    elif calc_method =='log_law':
+        scaled_wspds = wspds.apply(log_scale, args=(height, height_to_scale_to, slope, intercept))
+        scale_string = 'Roughness_Coefficient'
+        scale_variable = roughness_coefficient
+
+    scale_variable = pd.DataFrame([scale_variable] * len(wspds))
+    scale_variable.index = wspds.index
+    result = pd.concat([wspds, scaled_wspds, scale_variable], axis=1)
     result.columns = ['Unscaled_Wind_Speeds' + '(' + str(height) + 'm)',
                       'Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)', scale_string]
     return result
@@ -566,17 +621,9 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
         if self.calc_method == 'power_law':
             result = scale(wspds, height, height_to_scale_to, self.calc_method, alpha=self.alpha)
         elif self.calc_method == 'log_law':
-            result = scale(wspds, height, height_to_scale_to, self.calc_method, roughness_coefficient=self.roughness_coefficient)
+            result = scale(wspds, height, height_to_scale_to, self.calc_method, slope=self.slope,
+                           intercept=self.intercept, roughness_coefficient=self.roughness_coefficient)
 
     return result
 
-
-if __name__ == '__main__':
-
-    import brightwind as bw
-
-    data = bw.load_csv(r'C:\Users\lukec\demo_data.csv')
-    anemometers = data[['Spd80mN', 'Spd60mN', 'Spd40mN']]
-    heights = [80, 60, 40]
-    test = bw.Shear.TimeOfDay(anemometers, heights, daily_sectors=24, day_start_time='12', by_month=True)
 
