@@ -162,7 +162,7 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
     row, the pandas.read_csv key word arguments (kwargs) can be used::
 
         filepath = r'C:\\some\\folder\\some_data_with_column_headings_on_second_line.csv'
-        df = bw.load_csv(filepath, skiprows=[0])
+        df = bw.load_csv(filepath, skiprows=0)
     """
 
     is_file = _is_file(filepath_or_folder)
@@ -341,7 +341,7 @@ def load_excel(filepath_or_folder, search_by_file_type=['.xlsx'], print_progress
     row, the pandas.read_excel key word arguments (kwargs) can be used::
 
         filepath = r'C:\\some\\folder\\some_data_with_column_headings_on_second_line.xlsx'
-        df = bw.load_excel(filepath, skiprows=[0])
+        df = bw.load_excel(filepath, skiprows=0)
     """
 
     is_file = _is_file(filepath_or_folder)
