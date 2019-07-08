@@ -1,15 +1,14 @@
 import pandas as pd
 import numpy as np
 import datetime
-from datetime import timedelta, date
-import math
 import calendar
 from math import e
 from brightwind.analyse import plot as plt
 from brightwind.analyse.analyse import distribution_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
 import re
 import warnings
-import matplotlib.dates as mdates
+from ipywidgets import FloatProgress
+from IPython.display import display
 pd.options.mode.chained_assignment = None
 
 __all__ = ['Average', 'BySector', 'TimeOfDay']
@@ -18,7 +17,7 @@ __all__ = ['Average', 'BySector', 'TimeOfDay']
 class TimeOfDay:
 
     def __init__(self, wspds, heights, calc_method='power_law', min_speed=3, by_month=True, day_start_time='07',
-                 daily_sectors=2, plot_type='step'):
+                 daily_segments=2, plot_type='step'):
 
         """
         Calculates shear based on power law
@@ -70,21 +69,21 @@ class TimeOfDay:
         cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
 
         # time of day shear calculations
-        interval = int(24 / daily_sectors)
+        interval = int(24 / daily_segments)
         start_times[0] = datetime.datetime.strptime(day_start_time, '%H')
         dt = datetime.timedelta(hours=interval)
 
         # extract wind speeds for each daily segment
-        for i in range(1, daily_sectors):
+        for i in range(1, daily_segments):
             start_times[i] = start_times[i - 1] + dt
 
         # extract wind speeds for each month
         for j in range(0, 12):
 
             anemometers_monthly = wspds[wspds.index.month == j + 1]
-            for i in range(0, daily_sectors):
+            for i in range(0, daily_segments):
 
-                if i == daily_sectors - 1:
+                if i == daily_segments - 1:
                     start_times[i] = start_times[i].strftime("%H:%M:%S")
                     start = str(start_times[i].time())
                     end = str(start_times[0].time())
@@ -116,18 +115,37 @@ class TimeOfDay:
             alpha_monthly = pd.DataFrame(alpha_monthly.mean(axis=1))
             alpha_monthly.columns = ['12 Month Average']
 
+        alpha_monthly = pd.DataFrame(alpha_monthly)
+        alpha_monthly.sort_index(inplace=True)
         info = {}
+        input_data = {}
+        output_data = {}
         input_wind_speeds = {'heights(m)': [heights], 'column_names': [list(wspds.columns.values)],
                              'min_spd(m/s)': str(min_speed)}
-        info['input_wind_speeds'] = input_wind_speeds
-        info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
+        input_data['input_wind_speeds'] = input_wind_speeds
+        input_data['daily_segments'] = daily_segments
+        input_data['day_start_time'] = day_start_time
+        input_data['calculation_method'] = calc_method
+        output_data['concurrent_period(years)'] = str("{:.3f}".format(cvg))
+        output_data['average_alpha_per_segment'] = alpha_monthly.mean(axis=1)
+        info['input data'] = input_data
+        info['output data'] = output_data
 
         self.wspds = wspds
-        self. plot = plt.plot_shear_time_of_day(alpha_monthly, interval, plot_type)
+        self. plot = plt.plot_shear_time_of_day(_fill_alpha_12x24(alpha_monthly), interval,
+                                                plot_type=plot_type)
         self.origin = 'TimeOfDay'
         self.info = info
         self.calc_method = calc_method
-        self.alpha = pd.DataFrame(alpha_monthly)
+        self._alpha = alpha_monthly
+
+    @property
+    def alpha(self):
+        return self._alpha
+
+    def apply(self, wspds, height, height_to_scale_to):
+
+        return _apply(self, wspds, height, height_to_scale_to)
 
 
 class Average:
@@ -179,7 +197,7 @@ class Average:
 
         if calc_method == 'power_law':
             alpha, c = _calc_power_law(mean_wspds.values, heights, return_coeff=True)
-            self.alpha = alpha
+            self._alpha = alpha
             self.plot = plt.plot_power_law(alpha, c, mean_wspds.values, heights)
 
         elif calc_method == 'log_law':
@@ -187,24 +205,34 @@ class Average:
             roughness_coefficient = _calc_roughness_coeff(mean_wspds, heights)
             self.roughness_coefficient = roughness_coefficient
             self.plot = plt.plot_log_law(slope, c, mean_wspds.values, heights)
-            self.slope =slope
+            self.slope = slope
             self.intercept = c
 
         else:
             raise ValueError('Please enter a valid calculation method, "power_law or "log_law"')
 
         info = {}
+        input_data = {}
+        output_data = {}
         input_wind_speeds = {'heights(m)': [heights], 'column_names': [list(wspds.columns.values)],
                              'min_spd(m/s)': str(min_speed)}
-        info['input_wind_speeds'] = input_wind_speeds
-        info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
+        input_data['input_wind_speeds'] = input_wind_speeds
+        input_data['calculation_method'] = calc_method
+        output_data['concurrent_period(years)'] = str("{:.3f}".format(cvg))
+        output_data['alpha'] = alpha
+        info['input data'] = input_data
+        info['output data'] = output_data
 
         self.wspds = wspds
         self.origin = 'Average'
         self.info = info
         self.calc_method = calc_method
 
-    def apply_alpha(self, wspds, height, height_to_scale_to):
+    @property
+    def alpha(self):
+        return self._alpha
+
+    def apply(self, wspds, height, height_to_scale_to):
         """"
         Applies shear exponent calculated with the power law to a wind speed and scales wind speed from one height to
         another
@@ -243,8 +271,8 @@ class Average:
 
 class BySector:
 
-    def __init__(self, wspds, heights, wdir, calc_method = 'power_law', sectors=12, min_speed=3, direction_bin_array=None,
-                 direction_bin_labels=None):
+    def __init__(self, wspds, heights, wdir, calc_method='power_law', sectors=12, min_speed=3,
+                 direction_bin_array=None, direction_bin_labels=None):
 
         """
         Calculates the shear exponent for each directional bin
@@ -302,23 +330,19 @@ class BySector:
 
         common_idxs = wspds.index.intersection(wdir.index)
         wdir = _convert_df_to_series(wdir)
-
+        f = FloatProgress(min=0, max=4, description='Calculating', bar_style='success')
+        display(f)
+        f.value += 1
         if calc_method == 'power_law':
             shear = wspds[(wspds > min_speed).all(axis=1)].apply(_calc_power_law, heights=heights, axis=1)
         elif calc_method == 'log_law':
             shear = wspds[(wspds > min_speed).all(axis=1)].apply(_calc_log_law, heights=heights, axis=1)
         else:
             raise ValueError('Please enter a valid calculation method, "power_law or "log_law"')
-
+        f.value += 1
         shear = shear.loc[shear.index.intersection(common_idxs)]
         cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
-        info = {}
-        input_wind_speeds = {'heights(m)': [heights], 'column_names': [list(wspds.columns.values)], 'min_spd(m/s)': [3]}
-        input_wind_dir = {'heights(m)': [re.findall(r'\d+', str(wdir.name))],
-                          'column_names': [list(wspds.columns.values)]}
-        info['input_wind_speeds'] = input_wind_speeds
-        info['input_wind_dir'] = input_wind_dir
-        info['concurrent_period(years)'] = str("{:.3f}".format(cvg))
+
         shear_dist = pd.concat([
             distribution_by_dir_sector(var_series=shear,
                                        direction_series=wdir.loc[common_idxs],
@@ -332,18 +356,39 @@ class BySector:
                                        direction_bin_labels=direction_bin_labels,
                                        aggregation_method='count',
                                        return_data=True)[1].rename("Shear_Count")], axis=1, join='outer')
+        f.value += 1
         shear_dist.index.rename('Direction Bin', inplace=True)
 
+        info = {}
+        output_data = {}
+        input_data = {}
+        input_wind_speeds = {'heights(m)': [heights], 'column_names': [list(wspds.columns.values)], 'min_spd(m/s)': [3]}
+        input_wind_dir = {'heights(m)': [re.findall(r'\d+', str(wdir.name))],
+                          'column_names': [list(wdir.name)]}
+        input_data['input_wind_speeds'] = input_wind_speeds
+        input_data['input_wind_dir'] = input_wind_dir
+        input_data['sectors'] = sectors
+        input_data['calculation_method'] = calc_method
+        output_data['alpha'] = shear_dist['Mean_Shear']
+        output_data['concurrent_period(years)'] = str("{:.3f}".format(cvg))
+        info['input data'] = input_data
+        info['output data'] = output_data
+        f.value += 1
         self.plot = plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
         self.wspds = wspds
         self.wdir = wdir
         self.sectors = sectors
-        self.origin = 'by_sector'
+        self.origin = 'BySector'
         self.calc_method = calc_method
-        self.alpha = shear_dist['Mean_Shear']
+        self._alpha = shear_dist['Mean_Shear']
         self.info = info
+        f.close()
 
-    def apply_alpha(self, wspds, wdir, height, height_to_scale_to):
+    @property
+    def alpha(self):
+        return self._alpha
+
+    def apply(self, wspds, wdir, height, height_to_scale_to):
         """"
         Applies the corresponding shear exponent calculated for each directional bin to a wind speed series and scales
         wind speed from one height to another
@@ -387,7 +432,7 @@ class BySector:
 
             """
 
-        return _apply(self, wspds, height, height_to_scale_to, wdir=wdir, calc_method='power_law')
+        return _apply(self, wspds=wspds, height=height, height_to_scale_to=height_to_scale_to, wdir=wdir)
 
 
 def log_scale(wspds, height, height_to_scale_to, slope, intercept):
@@ -399,6 +444,14 @@ def log_scale(wspds, height, height_to_scale_to, slope, intercept):
     corrected_speed = scaled_graph_speed + error*scaled_graph_speed
 
     return corrected_speed
+
+
+def log_roughness_scale(wspds, height, height_to_scale_to, roughness_coefficient):
+
+    scale_factor = np.log(height_to_scale_to / roughness_coefficient) / (np.log(height / roughness_coefficient))
+    scaled_wspds = wspds*scale_factor
+
+    return scaled_wspds
 
 
 def _calc_roughness_coeff(wspds, heights):
@@ -421,6 +474,7 @@ def _calc_log_law(wspds, heights, return_coeff=False) -> (np.array, float):
     if return_coeff:
         return coeffs[0], coeffs[1]
     return coeffs[0]
+
 
 def _calc_power_law(wspds, heights, return_coeff=False) -> (np.array, float):
     """
@@ -457,56 +511,44 @@ def _by_12x24(wspds, heights, min_speed=3, return_data=False, var_name='Shear'):
     return plt.plot_12x24_contours(tab_12x24,  label=(var_name, 'mean'))
 
 
-def scale_test(wspds, height, height_to_scale_to, calc_method, alpha=None, roughness_coefficient=None):
+def scale(wspds, alpha, height, height_to_scale_to, calc_method='power_law'):
     """"
-    Scales wind speeds from one height to another given a value of shear exponent
+        Scales wind speeds from one height to another given a value of shear exponent
 
-   :param alpha: Shear exponent to be used when scaling wind speeds
-   :type alpha: Float
-   :param wspds: Wind speed time series to apply shear to
-   :type wspds: Pandas Series
-   :param height: height of above wspds
-   :type height: float
-   :param height_to_scale_to: height to which wspds should be scaled to
-   :type height_to_scale_to: float
-   :return: a DataFrame showing original wind speed, scaled wind speed
-    and the shear exponent used.
+       :param alpha: Shear exponent to be used when scaling wind speeds
+       :type alpha: Float
+       :param wspds: Wind speed time series to apply shear to
+       :type wspds: Pandas Series
+       :param height: height of above wspds
+       :type height: float
+       :param height_to_scale_to: height to which wspds should be scaled to
+       :type height_to_scale_to: float
+       :param calc_method: calculation method used to scale the wind speed
+       :type calc_method: string
+       :return: a Pandas series of the scaled wind speed
 
-    **Example Usage**
-    ::
+        **Example Usage**
+        ::
 
-       # Scale wind speeds using exponents
-       # Specify wind speeds to be scaled
-       windseries = data['Spd40mN']
+           # Scale wind speeds using exponents
+           # Specify wind speeds to be scaled
+           windseries = data['Spd40mN']
 
-       # Specify alpha to use
-       alpha = .2
+           # Specify alpha to use
+           alpha = .2
 
-       height = 40
-       height_to_scale_to =80
-       wdir = data['DIr48mS']
-       Shear.scale(alpha, windseries, height, height_to_scale_to)
+           height = 40
+           height_to_scale_to =80
+           wdir = data['DIr48mS']
+           Shear.scale(alpha, windseries, height, height_to_scale_to)
 
-    """
-    if calc_method == 'power_law':
-        scale_factor = (height_to_scale_to / height) ** alpha
-        scale_string = 'Shear_Exponent'
-        scale_variable = alpha
+        """
+    return _scale(wspds=wspds, height=height, height_to_scale_to=height_to_scale_to, calc_method=calc_method,
+                  alpha=alpha)
 
-    elif calc_method =='log_law':
-        scale_factor = np.log(height_to_scale_to/roughness_coefficient)/(np.log(height/roughness_coefficient))
-        print(scale_factor)
-        scale_string = 'Roughness_Coefficient'
-        scale_variable = roughness_coefficient
 
-    scale_variable = pd.DataFrame([scale_variable] * len(wspds))
-    scale_variable.index = wspds.index
-    result = pd.concat([wspds, wspds * scale_factor, scale_variable], axis=1)
-    result.columns = ['Unscaled_Wind_Speeds' + '(' + str(height) + 'm)',
-                      'Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)', scale_string]
-    return result
-
-def scale(wspds, height, height_to_scale_to, calc_method, alpha=None, slope=None, intercept=None, roughness_coefficient=None):
+def _scale(wspds, height, height_to_scale_to, calc_method, alpha=None, slope=None, intercept=None,
+           roughness_coefficient=None):
     """"
     Scales wind speeds from one height to another given a value of shear exponent
 
@@ -543,17 +585,12 @@ def scale(wspds, height, height_to_scale_to, calc_method, alpha=None, slope=None
         scale_variable = alpha
         scaled_wspds = wspds * scale_factor
 
-    elif calc_method =='log_law':
+    elif calc_method == 'log_law':
         scaled_wspds = wspds.apply(log_scale, args=(height, height_to_scale_to, slope, intercept))
         scale_string = 'Roughness_Coefficient'
         scale_variable = roughness_coefficient
 
-    scale_variable = pd.DataFrame([scale_variable] * len(wspds))
-    scale_variable.index = wspds.index
-    result = pd.concat([wspds, scaled_wspds, scale_variable], axis=1)
-    result.columns = ['Unscaled_Wind_Speeds' + '(' + str(height) + 'm)',
-                      'Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)', scale_string]
-    return result
+    return scaled_wspds
 
 
 def _apply(self, wspds, height, height_to_scale_to, wdir=None):
@@ -561,7 +598,30 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
     scaled_wspds = pd.Series([])
     result = pd.Series([])
 
-    if self.origin == 'by_sector':
+    if self.origin == 'TimeOfDay':
+
+        filled_alpha = _fill_alpha_12x24(self.alpha)
+        df_wspds = [[None for y in range(12)] for x in range(24)]
+        f = FloatProgress(min=0, max=24*12,description = 'Calculating',bar_style='success')
+        display(f)
+        for i in range(0, 24):
+            for j in range(0, 12):
+
+                if i == 23:
+                    df_wspds[i][j] = wspds[
+                        (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.month == j + 1)]
+                else:
+                    df_wspds[i][j] = wspds[
+                        (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.time < filled_alpha.index[i + 1]) & (
+                                    wspds.index.month == j + 1)]
+
+                df_wspds[i][j] = df_wspds[i][j] * (height_to_scale_to / height) ** filled_alpha.iloc[i, j]
+                scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
+                f.value += 1
+        result = scaled_wspds.sort_index()
+        f.close()
+
+    if self.origin == 'BySector':
 
         if wdir is None:
             raise ValueError('A wind direction series, wdir, is required for scaling wind speeds by '
@@ -595,8 +655,9 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
 
             by_sector[i].columns = ['Unscaled_Wind_Speeds', 'Wind_Direction']
 
-            scaled_wspds[i] = scale(by_sector[i]['Unscaled_Wind_Speeds'], height,
-                                    height_to_scale_to, self.calc_method, alpha=self.alpha[i]).iloc[:, 1]
+            scaled_wspds[i] = _scale(wspds=by_sector[i]['Unscaled_Wind_Speeds'], height=height,
+                                     height_to_scale_to=height_to_scale_to,
+                                     calc_method=self.calc_method, alpha=self.alpha[i])
             by_sector[i]['Scaled_Wind_Speeds'] = scaled_wspds[i]
             by_sector[i]['Shear_Exponent'] = self.alpha[i]
             by_sector[i] = by_sector[i][
@@ -607,9 +668,10 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
             else:
                 result = pd.concat([result, by_sector[i]], axis=0)
 
-        result.columns = ['Wind Direction', 'Unscaled_Wind_Speeds' + '(' + str(height) + 'm)',
-                          'Scaled_Wind_Speeds' + '(' + str(height_to_scale_to) + 'm)', 'Shear_Exponent']
+        result.columns = ['Wind Direction', 'Unscaled_Wind_Speeds',
+                          'Scaled_Wind_Speeds', 'Shear_Exponent']
         result.sort_index(axis='index', inplace=True)
+        result = result['Scaled_Wind_Speeds']
 
     if self.origin == 'Average':
 
@@ -619,11 +681,34 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
                           'Check the origin of the object using ".origin". ')
 
         if self.calc_method == 'power_law':
-            result = scale(wspds, height, height_to_scale_to, self.calc_method, alpha=self.alpha)
+            result = _scale(wspds=wspds, height=height, height_to_scale_to=height, calc_method=self.calc_method,
+                            alpha=self.alpha)
         elif self.calc_method == 'log_law':
-            result = scale(wspds, height, height_to_scale_to, self.calc_method, slope=self.slope,
-                           intercept=self.intercept, roughness_coefficient=self.roughness_coefficient)
+            result = _scale(wspds=wspds, height=height, height_to_scale_to=height_to_scale_to,
+                            calc_method=self.calc_method, slope=self.slope,
+                            intercept=self.intercept, roughness_coefficient=self.roughness_coefficient)
 
     return result
 
+
+def _fill_alpha_12x24(df):
+    # create copy for later use
+    df_copy = df.copy()
+    interval = int(24/len(df))
+    # set index for new data frame to deal with less than 24 sectors
+    idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H')
+
+    # create new dataframe with 24 rows only interval number of unique values
+    df = pd.DataFrame(index=pd.DatetimeIndex(idx).time, columns=df_copy.columns)
+    df = pd.concat(
+        [(df[df_copy.index[0].hour:]), (df[:df_copy.index[0].hour])],
+        axis=0)
+
+    for i in range(0, len(df_copy)):
+        df.iloc[i * interval:(i + 1) * interval, :] = pd.DataFrame(df_copy.iloc[i, :]).values.T
+
+    df.sort_index(inplace=True)
+    df_copy.sort_index(inplace=True)
+
+    return df
 
