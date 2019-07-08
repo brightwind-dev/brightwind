@@ -670,13 +670,18 @@ def plot_log_law(slope, intercept, wspds, heights):
     return ax.get_figure()
 
 
-def plot_shear_time_of_day(alpha_monthly, interval, plot_type='step'):
+def plot_shear_time_of_day(alpha_monthly, calc_method, plot_type='step'):
 
     alpha_monthly_copy = alpha_monthly.copy()
 
     fig, ax = plt.subplots()
     ax.set_xlabel('Time of Day')
-    ax.set_ylabel('Average Shear')
+    if calc_method == 'power_law':
+        ax.set_ylabel('Average Shear')
+
+    elif calc_method == 'log_law':
+        ax.set_ylabel('Roughness Coefficient')
+
     import matplotlib.dates as mdates
 
     # create x values for plot

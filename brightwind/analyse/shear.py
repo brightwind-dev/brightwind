@@ -58,9 +58,18 @@ class TimeOfDay:
         start_times = pd.Series([])
         time_wspds = pd.Series([])
         mean_time_wspds = pd.Series([])
-        alpha = pd.Series([])
         c = pd.Series([])
+        slope = pd.Series([])
+        intercept = pd.Series([])
+        alpha = pd.Series([])
+        roughness_coefficient = pd.Series([])
+        slope_monthly = pd.DataFrame([])
+        intercept_monthly = pd.DataFrame([])
+        roughness_coefficient_monthly = pd.DataFrame([])
         alpha_monthly = pd.DataFrame([])
+        info = {}
+        input_data = {}
+        output_data = {}
 
         if not isinstance(wspds, pd.DataFrame):
             wspds = pd.DataFrame(wspds).T
@@ -97,26 +106,66 @@ class TimeOfDay:
                     mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
 
             # calculate shear
-            for i in range(0, len(mean_time_wspds)):
-                alpha[i], c[i] = _calc_power_law(mean_time_wspds[i].values, heights, return_coeff=True)
+            if calc_method == 'power_law':
+                for i in range(0, len(mean_time_wspds)):
+                    alpha[i], c[i] = _calc_power_law(mean_time_wspds[i].values, heights, return_coeff=True)
+                alpha_monthly = pd.concat([alpha_monthly, alpha], axis=1)
 
-            alpha_monthly = pd.concat([alpha_monthly, alpha], axis=1)
+            if calc_method == 'log_law':
+                for i in range(0, len(mean_time_wspds)):
+                    slope[i], intercept[i] = _calc_power_law(mean_time_wspds[i].values, heights, return_coeff=True)
+                    roughness_coefficient[i] = _calc_roughness_coeff(mean_time_wspds[i], heights)
+                roughness_coefficient_monthly = pd.concat([roughness_coefficient_monthly, roughness_coefficient],
+                                                          axis=1)
+                slope_monthly = pd.concat([slope_monthly, slope], axis=1)
+                intercept_monthly = pd.concat([intercept_monthly, intercept], axis=1)
 
         # error check
         if mean_time_wspds.shape[0] == 0:
             raise ValueError('None of the input wind speeds are greater than the min_speed, cannot calculate shear')
 
-        alpha_monthly.index = start_times
-        alpha_monthly.index = alpha_monthly.index.time
-        if by_month is True:
-            alpha_monthly.columns = calendar.month_abbr[1:13]
+        if calc_method == 'power_law':
+            alpha_monthly.index = start_times
+            alpha_monthly.index = alpha_monthly.index.time
+            if by_month is True:
+                alpha_monthly.columns = calendar.month_abbr[1:13]
 
-        else:
-            alpha_monthly = pd.DataFrame(alpha_monthly.mean(axis=1))
-            alpha_monthly.columns = ['12 Month Average']
+            else:
+                alpha_monthly = pd.DataFrame(alpha_monthly.mean(axis=1))
+                alpha_monthly.columns = ['12 Month Average']
 
-        alpha_monthly = pd.DataFrame(alpha_monthly)
-        alpha_monthly.sort_index(inplace=True)
+            alpha_monthly = pd.DataFrame(alpha_monthly)
+            alpha_monthly.sort_index(inplace=True)
+
+            output_data['average_alpha_per_segment'] = alpha_monthly.mean(axis=1)
+            self.plot = plt.plot_shear_time_of_day(_fill_alpha_12x24(alpha_monthly), calc_method=calc_method,
+                                                   plot_type=plot_type)
+            self._alpha = alpha_monthly
+
+        if calc_method == 'log_law':
+            roughness_coefficient_monthly.index = slope_monthly.index = intercept_monthly.index = start_times
+            roughness_coefficient_monthly.index = slope_monthly.index =  intercept_monthly.index = roughness_coefficient_monthly.index.time
+
+            if by_month is True:
+                roughness_coefficient_monthly.columns = slope_monthly.columns = intercept_monthly.columns =calendar.month_abbr[1:13]
+
+            else:
+                roughness_coefficient_monthly = pd.DataFrame(roughness_coefficient_monthly.mean(axis=1))
+                slope_monthly = pd.DataFrame(slope_monthly.mean(axis=1))
+                intercept_monthly = pd.DataFrame(intercept_monthly.mean(axis=1))
+                roughness_coefficient_monthly.columns = slope_monthly.columns = intercept_monthly.columns = ['12 Month Average']
+
+
+            roughness_coefficient_monthly.sort_index(inplace=True)
+            slope_monthly.sort_index(inplace=True)
+            intercept_monthly.sort_index(inplace=True)
+            output_data['average_monthly_roughnesss_coefficient'] = roughness_coefficient_monthly.mean(axis=1)
+            self.plot = plt.plot_shear_time_of_day(_fill_alpha_12x24(roughness_coefficient_monthly), calc_method=calc_method,
+                                                   plot_type=plot_type)
+            self._roughness_coefficient = roughness_coefficient_monthly
+            self.slope = slope_monthly
+            self.intercept = intercept_monthly
+
         info = {}
         input_data = {}
         output_data = {}
@@ -127,21 +176,21 @@ class TimeOfDay:
         input_data['day_start_time'] = day_start_time
         input_data['calculation_method'] = calc_method
         output_data['concurrent_period(years)'] = str("{:.3f}".format(cvg))
-        output_data['average_alpha_per_segment'] = alpha_monthly.mean(axis=1)
         info['input data'] = input_data
         info['output data'] = output_data
 
         self.wspds = wspds
-        self. plot = plt.plot_shear_time_of_day(_fill_alpha_12x24(alpha_monthly), interval,
-                                                plot_type=plot_type)
         self.origin = 'TimeOfDay'
         self.info = info
         self.calc_method = calc_method
-        self._alpha = alpha_monthly
 
     @property
     def alpha(self):
         return self._alpha
+
+    @property
+    def roughness_coefficient(self):
+        return self._roughness_coefficient
 
     def apply(self, wspds, height, height_to_scale_to):
 
@@ -600,7 +649,13 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
 
     if self.origin == 'TimeOfDay':
 
-        filled_alpha = _fill_alpha_12x24(self.alpha)
+        if self.calc_method == 'power_law':
+            filled_alpha = _fill_alpha_12x24(self.alpha)
+        elif self.calc_method == 'log_law':
+            filled_slope = _fill_alpha_12x24(self.slope)
+            filled_intercept = _fill_alpha_12x24(self.intercept)
+            filled_alpha = filled_slope
+
         df_wspds = [[None for y in range(12)] for x in range(24)]
         f = FloatProgress(min=0, max=24*12,description = 'Calculating',bar_style='success')
         display(f)
@@ -615,7 +670,16 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
                         (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.time < filled_alpha.index[i + 1]) & (
                                     wspds.index.month == j + 1)]
 
-                df_wspds[i][j] = df_wspds[i][j] * (height_to_scale_to / height) ** filled_alpha.iloc[i, j]
+                if self.calc_method == 'power_law':
+                    df_wspds[i][j] = _scale(df_wspds[i][j], height_to_scale_to=height_to_scale_to, height=height,
+                                            alpha=filled_alpha.iloc[i, j], calc_method=self.calc_method)
+
+                elif self.calc_method == 'log_law':
+                    df_wspds[i][j] = _scale(df_wspds[i][j], height_to_scale_to=height_to_scale_to, height=height,
+                                            slope=filled_slope.iloc[i, j], intercept=filled_intercept.iloc[i, j],
+                                            calc_method=self.calc_method)
+
+                #df_wspds[i][j] = df_wspds[i][j] * (height_to_scale_to / height) ** filled_alpha.iloc[i, j]
                 scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
                 f.value += 1
         result = scaled_wspds.sort_index()
