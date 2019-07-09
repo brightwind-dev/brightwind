@@ -5,10 +5,12 @@ import calendar
 from math import e
 from brightwind.analyse import plot as plt
 from brightwind.analyse.analyse import distribution_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
-import re
-import warnings
+from brightwind.utils.utils import progress_bar
 from ipywidgets import FloatProgress
 from IPython.display import display
+import re
+import warnings
+import threading
 pd.options.mode.chained_assignment = None
 
 __all__ = ['Average', 'BySector', 'TimeOfDay']
@@ -411,8 +413,10 @@ class BySector:
             output_data['alpha'] = shear_dist['Mean_Shear']
 
         elif calc_method == 'log_law':
-            slope, intercept = wspds[(wspds > min_speed).all(axis=1)].apply(_calc_log_law, heights=heights,
+            slope_intercept = wspds[(wspds > min_speed).all(axis=1)].apply(_calc_log_law, heights=heights,
                                                                             return_coeff=True, axis=1)
+            slope = slope_intercept.iloc[:, 0]
+            intercept = slope_intercept.iloc[:, 1]
 
             slope = slope.loc[slope.index.intersection(common_idxs)]
             intercept = intercept.loc[intercept.index.intersection(common_idxs)]
@@ -449,6 +453,7 @@ class BySector:
             intercept_dist.index.rename('Direction Bin', inplace=True)
 
             self.slope = slope_dist['Mean_Slope']
+            self.intercept = intercept_dist['Mean_Intercept']
             #self.plot = plt.plot_shear_by_sector(, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
             output_data['slope'] = slope_dist['Mean_Slope']
             output_data['intercept'] = intercept_dist['Mean_Intercept']
@@ -562,7 +567,7 @@ def _calc_log_law(wspds, heights, return_coeff=False) -> (np.array, float):
     logheights = np.log(heights)
     coeffs = np.polyfit(logheights, wspds, deg=1)
     if return_coeff:
-        return coeffs[0], coeffs[1]
+        return pd.Series([coeffs[0], coeffs[1]])
     return coeffs[0]
 
 
@@ -731,35 +736,40 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
             raise ValueError('A wind direction series, wdir, is required for scaling wind speeds by '
                              'direction sector. Check origin of Shear object using ".origin"')
         # initilise series for later use
-        alpha_bounds = pd.Series([])
+        bin_edges = pd.Series([])
         by_sector = pd.Series([])
-        # join wind speeds and directions together in DataFrame
 
+        if self.calc_method == 'log_law':
+            direction_bins = self.slope
+        if self.calc_method == 'power_law':
+            direction_bins = self.alpha
+
+        # join wind speeds and directions together in DataFrame
         df = pd.concat([wspds, wdir], axis=1)
         df.columns = ['Unscaled_Wind_Speeds', 'Wind_Direction']
 
         # get directional bin edges from Shear.by_sector output
         for i in range(self.sectors):
-            alpha_bounds[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", self.alpha.index[i])[0])
+            bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", direction_bins.index[i])[0])
             if i == self.sectors - 1:
-                alpha_bounds[i + 1] = -float(re.findall(r"[-+]?\d*\.\d+|\d+", self.alpha.index[i])[1])
+                bin_edges[i + 1] = -float(re.findall(r"[-+]?\d*\.\d+|\d+", direction_bins.index[i])[1])
 
         #
         for i in range(0, self.sectors):
-            if alpha_bounds[i] > alpha_bounds[i+1]:
+            if bin_edges[i] > bin_edges[i+1]:
                 by_sector[i] = df[
-                    (df['Wind_Direction'] >= alpha_bounds[i]) | (df['Wind_Direction'] < alpha_bounds[i + 1])]
+                    (df['Wind_Direction'] >= bin_edges[i]) | (df['Wind_Direction'] < bin_edges[i + 1])]
 
-            elif alpha_bounds[i + 1] == 360:
-                by_sector[i] = df[(df['Wind_Direction'] >= alpha_bounds[i])]
+            elif bin_edges[i + 1] == 360:
+                by_sector[i] = df[(df['Wind_Direction'] >= bin_edges[i])]
 
             else:
                 by_sector[i] = df[
-                    (df['Wind_Direction'] >= alpha_bounds[i]) & (df['Wind_Direction'] < alpha_bounds[i + 1])]
+                    (df['Wind_Direction'] >= bin_edges[i]) & (df['Wind_Direction'] < bin_edges[i + 1])]
 
             by_sector[i].columns = ['Unscaled_Wind_Speeds', 'Wind_Direction']
 
-            if self.calc_method=='power_law':
+            if self.calc_method == 'power_law':
                 scaled_wspds[i] = _scale(wspds=by_sector[i]['Unscaled_Wind_Speeds'], height=height,
                                          height_to_scale_to=height_to_scale_to,
                                          calc_method=self.calc_method, alpha=self.alpha[i])
@@ -767,20 +777,18 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
             if self.calc_method == 'log_law':
                 scaled_wspds[i] = _scale(wspds=by_sector[i]['Unscaled_Wind_Speeds'], height=height,
                                          height_to_scale_to=height_to_scale_to,
-                                         calc_method=self.calc_method, alpha=self.alpha[i])
+                                         calc_method=self.calc_method, intercept=self.intercept[i], slope=self.slope[i])
 
             by_sector[i]['Scaled_Wind_Speeds'] = scaled_wspds[i]
-            by_sector[i]['Shear_Exponent'] = self.alpha[i]
             by_sector[i] = by_sector[i][
-                ['Wind_Direction', 'Unscaled_Wind_Speeds', 'Scaled_Wind_Speeds', 'Shear_Exponent']]
+                ['Wind_Direction', 'Unscaled_Wind_Speeds', 'Scaled_Wind_Speeds']]
 
             if i == 0:
                 result = by_sector[i]
             else:
                 result = pd.concat([result, by_sector[i]], axis=0)
 
-        result.columns = ['Wind Direction', 'Unscaled_Wind_Speeds',
-                          'Scaled_Wind_Speeds', 'Shear_Exponent']
+        result.columns = ['Wind Direction', 'Unscaled_Wind_Speeds', 'Scaled_Wind_Speeds']
         result.sort_index(axis='index', inplace=True)
         result = result['Scaled_Wind_Speeds']
 
@@ -829,16 +837,3 @@ def _fill_alpha_12x24(df):
         df = df_12x24
 
     return df
-
-if __name__ == '__main__':
-    import brightwind as bw
-
-    data = bw.load_csv(r'C:\Users\lukec\demo_data.csv')
-
-    anemometers = data[['Spd80mN', 'Spd60mN', 'Spd40mN']]
-
-    heights = [80, 60, 40]
-
-    directions = data['Dir78mS']
-    avg_pow = bw.Shear.BySector(anemometers, heights, directions, calc_method='log_law')
-    avg_pow.apply(data['Spd40mN'], 40, 70)
