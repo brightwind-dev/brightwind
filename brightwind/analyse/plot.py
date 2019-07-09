@@ -674,6 +674,9 @@ def plot_shear_time_of_day(alpha_monthly, calc_method, plot_type='step'):
 
     alpha_monthly_copy = alpha_monthly.copy()
 
+    if len(alpha_monthly.columns) == 1:
+        alpha_monthly.columns = ['12 Month Average']
+
     fig, ax = plt.subplots()
     ax.set_xlabel('Time of Day')
     if calc_method == 'power_law':
@@ -681,6 +684,7 @@ def plot_shear_time_of_day(alpha_monthly, calc_method, plot_type='step'):
 
     elif calc_method == 'log_law':
         ax.set_ylabel('Roughness Coefficient')
+
 
     import matplotlib.dates as mdates
 
@@ -697,7 +701,7 @@ def plot_shear_time_of_day(alpha_monthly, calc_method, plot_type='step'):
         for i in range(0, len(alpha_monthly.columns)):
             ax.plot(idx, alpha_monthly.iloc[:, i], label=alpha_monthly.iloc[:, i].name)
 
-    ax.legend()
+    ax.legend(bbox_to_anchor=(1.1, 1.05))
     ax.set_xticks(alpha_monthly.index)
     ax.xaxis.set_minor_formatter(mpl.dates.DateFormatter("%H-%M"))
     _ = plt.xticks(rotation=90)

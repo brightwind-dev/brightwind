@@ -5,12 +5,11 @@ import calendar
 from math import e
 from brightwind.analyse import plot as plt
 from brightwind.analyse.analyse import distribution_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
-from brightwind.utils.utils import progress_bar
 from ipywidgets import FloatProgress
 from IPython.display import display
 import re
 import warnings
-import threading
+
 pd.options.mode.chained_assignment = None
 
 __all__ = ['Average', 'BySector', 'TimeOfDay']
@@ -130,6 +129,7 @@ class TimeOfDay:
             alpha_df.index = start_times
             alpha_df.index = alpha_df.index.time
             alpha_df.sort_index(inplace=True)
+
             if by_month is True:
                 alpha_df.columns = calendar.month_abbr[1:13]
                 self.plot = plt.plot_shear_time_of_day(_fill_alpha_12x24(alpha_df), calc_method=calc_method,
@@ -138,30 +138,33 @@ class TimeOfDay:
             else:
                 alpha_df = pd.DataFrame(alpha_df.mean(axis=1))
                 alpha_df.columns = ['12 Month Average']
-                self.plot = plt.plot_shear_time_of_day(alpha_df, calc_method=calc_method,
-                                                       plot_type=plot_type)
+                self.plot = plt.plot_shear_time_of_day(pd.DataFrame((_fill_alpha_12x24(alpha_df)).iloc[:, 0]),
+                                                       calc_method=calc_method, plot_type=plot_type)
 
             output_data['average_alpha_per_segment'] = alpha_df.mean(axis=1)
             self._alpha = alpha_df
 
         if calc_method == 'log_law':
             roughness_coefficient_df.index = slope_df.index = intercept_df.index = start_times
-            roughness_coefficient_df.index = slope_df.index =  intercept_df.index = roughness_coefficient_df.index.time
+            roughness_coefficient_df.index = slope_df.index = intercept_df.index = roughness_coefficient_df.index.time
             roughness_coefficient_df.sort_index(inplace=True)
+
             slope_df.sort_index(inplace=True)
             intercept_df.sort_index(inplace=True)
 
             if by_month is True:
-                roughness_coefficient_df.columns = slope_df.columns = intercept_df.columns =calendar.month_abbr[1:13]
-                self.plot = plt.plot_shear_time_of_day(_fill_alpha_12x24(roughness_coefficient_df), calc_method=calc_method,
-                                                   plot_type=plot_type)
+                roughness_coefficient_df.columns = slope_df.columns = intercept_df.columns = calendar.month_abbr[1:13]
+                self.plot = plt.plot_shear_time_of_day(_fill_alpha_12x24(roughness_coefficient_df),
+                                                       calc_method=calc_method, plot_type=plot_type)
             else:
                 roughness_coefficient_df = pd.DataFrame(roughness_coefficient_df.mean(axis=1))
                 slope_df = pd.DataFrame(slope_df.mean(axis=1))
                 intercept_df = pd.DataFrame(intercept_df.mean(axis=1))
                 roughness_coefficient_df.columns = slope_df.columns = intercept_df.columns = ['12 Month Average']
-                self.plot = plt.plot_shear_time_of_day(roughness_coefficient_df, calc_method=calc_method,
-                                                   plot_type=plot_type)
+                self.plot = plt.plot_shear_time_of_day(pd.DataFrame(_fill_alpha_12x24(roughness_coefficient_df).iloc[:,0]),
+                                                       calc_method=calc_method, plot_type=plot_type)
+
+
 
             output_data['average_df_roughnesss_coefficient'] = roughness_coefficient_df.mean(axis=1)
             self._roughness_coefficient = roughness_coefficient_df
@@ -837,3 +840,19 @@ def _fill_alpha_12x24(df):
         df = df_12x24
 
     return df
+
+
+if __name__=='__main__':
+
+    import brightwind as bw
+
+    data = bw.load_csv(r'C:\Users\lukec\demo_data.csv')
+
+    anemometers = data[['Spd80mN','Spd60mN','Spd40mN']]
+
+    heights = [80, 60, 40]
+
+    directions = data['Dir78mS']
+
+    speeds = data['Spd40mN']
+    tod_log = bw.Shear.TimeOfDay(anemometers,heights,daily_segments=24,by_month=False, calc_method='power_law')
