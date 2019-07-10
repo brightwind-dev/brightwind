@@ -656,3 +656,17 @@ def plot_shear(avg_alpha, avg_c, wspds, heights):
     ax.set_ylim(0, max(plot_heights)+10)
     plt.close()
     return ax.get_figure()
+
+
+def plot_dist_matrix(matrix, colorbar_label):
+    fig, ax = plt.subplots(figsize=(10, 10))
+    im = ax.imshow(matrix, cmap="YlGn")
+    ax.set_xticklabels([i[1] for i in matrix.columns])
+    ax.set_yticklabels(matrix.index.values)
+    plt.setp(ax.get_xticklabels(), rotation=90, ha="right",rotation_mode="anchor")
+    ax.set_xlabel(matrix.index.name)
+    ax.set_ylabel(matrix.columns.names[-1])
+    cbar = ax.figure.colorbar(im, ax=ax)
+    cbar.ax.set_ylabel(colorbar_label)
+    plt.close()
+    return ax.get_figure()
