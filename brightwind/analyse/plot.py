@@ -646,8 +646,8 @@ def plot_power_law(avg_alpha, avg_c, wspds, heights):
     plot_heights = np.linspace(0, max(heights), num=100)
     speeds = avg_c * (plot_heights ** avg_alpha)
     fig, ax = plt.subplots(figsize=(10, 10))
-    ax.set_xlabel('Speed (m/s)')
-    ax.set_ylabel('Elevation (m)')
+    ax.set_xlabel('Speed [m/s]')
+    ax.set_ylabel('Elevation [m]')
     ax.plot(speeds, plot_heights, '-', color='#9ACD32')
     ax.scatter(wspds, heights, marker='o', color=bw_colors('asphault'))
     ax.grid()
@@ -660,8 +660,8 @@ def plot_log_law(slope, intercept, wspds, heights):
     plot_heights = np.linspace(0.0001, max(heights), num=100)
     speeds = slope * np.log(plot_heights) + intercept
     fig, ax = plt.subplots(figsize=(10, 10))
-    ax.set_xlabel('Speed (m/s)')
-    ax.set_ylabel('Elevation (m)')
+    ax.set_xlabel('Speed [m/s]')
+    ax.set_ylabel('Elevation [m]')
     ax.plot(speeds, plot_heights, '-', color='#9ACD32')
     ax.scatter(wspds, heights, marker='o', color=bw_colors('asphault'))
     ax.grid()
@@ -670,39 +670,45 @@ def plot_log_law(slope, intercept, wspds, heights):
     return ax.get_figure()
 
 
-def plot_shear_time_of_day(alpha_monthly, calc_method, plot_type='step'):
+def plot_shear_time_of_day(df, calc_method, plot_type='step'):
 
-    alpha_monthly_copy = alpha_monthly.copy()
+    df_copy = df.copy()
 
-    if len(alpha_monthly.columns) == 1:
-        alpha_monthly.columns = ['12 Month Average']
+    if len(df.columns) == 1:
+        df.columns = ['12 Month Average']
 
-    fig, ax = plt.subplots()
-    ax.set_xlabel('Time of Day')
     if calc_method == 'power_law':
-        ax.set_ylabel('Average Shear')
+        label = 'Average Shear'
 
-    elif calc_method == 'log_law':
-        ax.set_ylabel('Roughness Coefficient')
+    if calc_method == 'log_law':
+        label = 'Roughness Coefficient'
 
+    if plot_type == '12x24':
+        df.columns = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        ax = plot_12x24_contours(df, label=(label, 'mean'))
+        ax.show()
+        return ax
+    else:
+        fig, ax = plt.subplots()
+        ax.set_xlabel('Time of Day')
+        ax.set_ylabel(label)
+        import matplotlib.dates as mdates
 
-    import matplotlib.dates as mdates
+        # create x values for plot
+        idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H').time
 
-    # create x values for plot
-    idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H').time
+        if plot_type == 'step':
+            df = df.shift(+1, axis=0)
+            df.iloc[0, :] = df_copy.tail(1).values
+            for i in range(0, len(df.columns)):
+                ax.step(idx, df.iloc[:, i], label=df.iloc[:, i].name)
 
-    if plot_type == 'step':
-        alpha_monthly = alpha_monthly.shift(+1, axis=0)
-        alpha_monthly.iloc[0, :] = alpha_monthly_copy.tail(1).values
-        for i in range(0, len(alpha_monthly.columns)):
-            ax.step(idx, alpha_monthly.iloc[:, i], label=alpha_monthly.iloc[:, i].name)
+        if plot_type == 'line':
+            for i in range(0, len(df.columns)):
+                ax.plot(idx, df.iloc[:, i], label=df.iloc[:, i].name)
 
-    if plot_type == 'line':
-        for i in range(0, len(alpha_monthly.columns)):
-            ax.plot(idx, alpha_monthly.iloc[:, i], label=alpha_monthly.iloc[:, i].name)
-
-    ax.legend(bbox_to_anchor=(1.1, 1.05))
-    ax.set_xticks(alpha_monthly.index)
-    ax.xaxis.set_minor_formatter(mpl.dates.DateFormatter("%H-%M"))
-    _ = plt.xticks(rotation=90)
-    return ax.get_figure()
+        ax.legend(bbox_to_anchor=(1.1, 1.05))
+        ax.set_xticks(df.index)
+        ax.xaxis.set_minor_formatter(mpl.dates.DateFormatter("%H-%M"))
+        _ = plt.xticks(rotation=90)
+        return ax.get_figure()

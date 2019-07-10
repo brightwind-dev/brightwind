@@ -35,7 +35,7 @@ __all__ = ['Average',
 
 class TimeOfDay:
 
-    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3, by_month=True, day_start_time='07',
+    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3, by_month=True, day_start_time=7,
                  daily_segments=2, plot_type='step'):
 
         """
@@ -98,6 +98,14 @@ class TimeOfDay:
 
         # time of day shear calculations
         interval = int(24 / daily_segments)
+
+        if not day_start_time % 1 == 0:
+            raise ValueError('day_start_time must be an integer between 0 and 24')
+
+        if not 24 % daily_segments == 0:
+            raise ValueError('daily_segments must be a divisor of 24')
+
+        day_start_time = str(day_start_time)
         start_times[0] = datetime.datetime.strptime(day_start_time, '%H')
         dt = datetime.timedelta(hours=interval)
 
@@ -548,7 +556,7 @@ class BySector:
         return _apply(self, wspds=wspds, height=height, height_to_scale_to=height_to_scale_to, wdir=wdir)
 
 
-def log_scale(wspds, height, height_to_scale_to, slope, intercept):
+def _log_scale(wspds, height, height_to_scale_to, slope, intercept):
 
     graph_speed = slope*np.log(height) + intercept
     error = -(graph_speed-wspds)/graph_speed
@@ -559,7 +567,7 @@ def log_scale(wspds, height, height_to_scale_to, slope, intercept):
     return corrected_speed
 
 
-def log_roughness_scale(wspds, height, height_to_scale_to, roughness_coefficient):
+def _log_roughness_scale(wspds, height, height_to_scale_to, roughness_coefficient):
 
     scale_factor = np.log(height_to_scale_to / roughness_coefficient) / (np.log(height / roughness_coefficient))
     scaled_wspds = wspds*scale_factor
@@ -672,7 +680,7 @@ def _scale(wspds, height, height_to_scale_to, calc_method, alpha=None, slope=Non
         scaled_wspds = wspds * scale_factor
 
     elif calc_method == 'log_law':
-        scaled_wspds = wspds.apply(log_scale, args=(height, height_to_scale_to, slope, intercept))
+        scaled_wspds = wspds.apply(_log_scale, args=(height, height_to_scale_to, slope, intercept))
 
     return scaled_wspds
 
@@ -827,3 +835,19 @@ def _fill_alpha_12x24(df):
         df = df_12x24
 
     return df
+
+if __name__ == '__main__':
+
+    import brightwind as bw
+
+    data = bw.load_csv(r'C:\Users\lukec\demo_data.csv')
+
+    anemometers = data[['Spd80mN','Spd60mN','Spd40mN']]
+
+    heights = [80, 60, 40]
+
+    speeds = data ['Spd40mN']
+
+    directions = data['Dir78mS']
+
+    avg_tod = bw.Shear.TimeOfDay(anemometers, heights,calc_method='power_law', daily_segments=24,day_start_time=9, min_speed=4.2, plot_type='12x24')
