@@ -30,7 +30,41 @@ pd.options.mode.chained_assignment = None
 
 __all__ = ['Average',
            'BySector',
-           'TimeOfDay']
+           'TimeOfDay',
+           'TimeSeries']
+
+
+class TimeSeries:
+
+    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3):
+
+        if not isinstance(wspds, pd.DataFrame):
+            wspds = pd.DataFrame(wspds).T
+
+        self.origin = 'TimeSeries'
+        self.calc_method = calc_method
+        alpha = pd.Series([])
+        c = pd.Series([])
+        wspds = wspds.dropna()
+        cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
+
+        if calc_method == 'power_law':
+            alpha = (wspds[(wspds > min_speed).all(axis=1)].apply(_calc_power_law, heights=heights, axis=1))
+            self._alpha = alpha
+
+        elif calc_method == 'log_law':
+            slope_intercept = (wspds[(wspds > min_speed).all(axis=1)].apply(_calc_log_law, heights=heights, return_coeff=True,
+                                                                  axis=1))
+            self.slope = slope_intercept.iloc[:, 0]
+            self.intercept = slope_intercept.iloc[:, 1]
+
+    @property
+    def alpha(self):
+        return self._alpha
+
+    def apply(self, wspds, height, height_to_scale_to):
+
+        return _apply(self, wspds, height, height_to_scale_to)
 
 
 class TimeOfDay:
@@ -86,6 +120,7 @@ class TimeOfDay:
         intercept_df = pd.DataFrame([])
         roughness_coefficient_df = pd.DataFrame([])
         alpha_df = pd.DataFrame([])
+
         info = {}
         input_data = {}
         output_data = {}
@@ -98,6 +133,9 @@ class TimeOfDay:
 
         # time of day shear calculations
         interval = int(24 / daily_segments)
+
+        if by_month is False and plot_type == '12x24':
+            raise ValueError('12x24 plot is only possible when by_month=True')
 
         if not day_start_time % 1 == 0:
             raise ValueError('day_start_time must be an integer between 0 and 24')
@@ -141,7 +179,7 @@ class TimeOfDay:
             if calc_method == 'log_law':
                 for i in range(0, len(mean_time_wspds)):
                     slope[i], intercept[i] = _calc_power_law(mean_time_wspds[i].values, heights, return_coeff=True)
-                    roughness_coefficient[i] = _calc_roughness_coeff(mean_time_wspds[i], heights)
+                    roughness_coefficient[i] = e**-intercept[i]
                 roughness_coefficient_df = pd.concat([roughness_coefficient_df, roughness_coefficient], axis=1)
                 slope_df = pd.concat([slope_df, slope], axis=1)
                 intercept_df = pd.concat([intercept_df, intercept], axis=1)
@@ -157,16 +195,16 @@ class TimeOfDay:
 
             if by_month is True:
                 alpha_df.columns = calendar.month_abbr[1:13]
-                self.plot = plt.plot_shear_time_of_day(_fill_alpha_12x24(alpha_df), calc_method=calc_method,
+                self.plot = plt.plot_shear_time_of_day(_fill_df_12x24(alpha_df), calc_method=calc_method,
                                                        plot_type=plot_type)
 
             else:
                 alpha_df = pd.DataFrame(alpha_df.mean(axis=1))
                 alpha_df.columns = ['12 Month Average']
-                self.plot = plt.plot_shear_time_of_day(pd.DataFrame((_fill_alpha_12x24(alpha_df)).iloc[:, 0]),
+                self.plot = plt.plot_shear_time_of_day(pd.DataFrame((_fill_df_12x24(alpha_df)).iloc[:, 0]),
                                                        calc_method=calc_method, plot_type=plot_type)
 
-            output_data['average_alpha_per_segment'] = alpha_df.mean(axis=1)
+            output_data['shear_exponent(alpha)'] = alpha_df
             self._alpha = alpha_df
 
         if calc_method == 'log_law':
@@ -179,21 +217,20 @@ class TimeOfDay:
 
             if by_month is True:
                 roughness_coefficient_df.columns = slope_df.columns = intercept_df.columns = calendar.month_abbr[1:13]
-                self.plot = plt.plot_shear_time_of_day(_fill_alpha_12x24(roughness_coefficient_df),
+                self.plot = plt.plot_shear_time_of_day(_fill_df_12x24(roughness_coefficient_df),
                                                        calc_method=calc_method, plot_type=plot_type)
             else:
-                roughness_coefficient_df = pd.DataFrame(roughness_coefficient_df.mean(axis=1))
                 slope_df = pd.DataFrame(slope_df.mean(axis=1))
                 intercept_df = pd.DataFrame(intercept_df.mean(axis=1))
                 roughness_coefficient_df.columns = slope_df.columns = intercept_df.columns = ['12 Month Average']
                 self.plot = plt.plot_shear_time_of_day(
-                    pd.DataFrame(_fill_alpha_12x24(roughness_coefficient_df).iloc[:, 0]),
+                    pd.DataFrame(_fill_df_12x24(roughness_coefficient_df).iloc[:, 0]),
                     calc_method=calc_method, plot_type=plot_type)
 
-            output_data['average_roughnesss_coefficient'] = roughness_coefficient_df.mean(axis=1)
-            self._roughness_coefficient = roughness_coefficient_df
+            output_data['roughnesss_coefficient'] = roughness_coefficient_df
             self.slope = slope_df
             self.intercept = intercept_df
+            self.roughness_coefficient = roughness_coefficient_df
 
         input_wind_speeds = {'heights(m)': heights, 'column_names': list(wspds.columns.values),
                              'min_spd(m/s)': min_speed}
@@ -201,7 +238,7 @@ class TimeOfDay:
         input_data['daily_segments'] = daily_segments
         input_data['day_start_time'] = day_start_time
         input_data['calculation_method'] = calc_method
-        output_data['concurrent_period_in_years'] = str("{:.3f}".format(cvg))
+        output_data['concurrent_period_in_years'] = float("{:.3f}".format(cvg))
         info['input data'] = input_data
         info['output data'] = output_data
 
@@ -213,10 +250,6 @@ class TimeOfDay:
     @property
     def alpha(self):
         return self._alpha
-
-    @property
-    def roughness_coefficient(self):
-        return self._roughness_coefficient
 
     def apply(self, wspds, height, height_to_scale_to):
 
@@ -278,9 +311,9 @@ class Average:
 
         if calc_method == 'power_law':
             alpha, c = _calc_power_law(mean_wspds.values, heights, return_coeff=True)
-            self._alpha = alpha
             self.plot = plt.plot_power_law(alpha, c, mean_wspds.values, heights)
-            output_data['alpha'] = alpha
+            self._alpha = alpha
+            output_data['shear_exponent(alpha)'] = alpha
 
         elif calc_method == 'log_law':
             slope, intercept = _calc_log_law(mean_wspds.values, heights, return_coeff=True)
@@ -289,7 +322,7 @@ class Average:
             self.plot = plt.plot_log_law(slope, intercept, mean_wspds.values, heights)
             self.slope = slope
             self.intercept = intercept
-            output_data['roughness_coefficients'] = roughness_coefficient
+            output_data['roughness_coefficient'] = roughness_coefficient
             output_data['slope'] = slope
             output_data['intercept'] = intercept
 
@@ -300,7 +333,7 @@ class Average:
                              'min_spd(m/s)': min_speed}
         input_data['input_wind_speeds'] = input_wind_speeds
         input_data['calculation_method'] = calc_method
-        output_data['concurrent_period_in_years'] = str("{:.3f}".format(cvg))
+        output_data['concurrent_period_in_years'] = float("{:.3f}".format(cvg))
         info['input data'] = input_data
         info['output data'] = output_data
 
@@ -437,16 +470,18 @@ class BySector:
 
             self._alpha = shear_dist['Mean_Shear']
             self.plot = plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
-            output_data['alpha'] = shear_dist['Mean_Shear']
+            output_data['shear_exponent(alpha)'] = shear_dist['Mean_Shear']
 
         elif calc_method == 'log_law':
             slope_intercept = wspds[(wspds > min_speed).all(axis=1)].apply(_calc_log_law, heights=heights,
                                                                            return_coeff=True, axis=1)
             slope = slope_intercept.iloc[:, 0]
             intercept = slope_intercept.iloc[:, 1]
+            roughness_coefficient = e**-intercept
 
             slope = slope.loc[slope.index.intersection(common_idxs)]
             intercept = intercept.loc[intercept.index.intersection(common_idxs)]
+            roughness_coefficient = roughness_coefficient.loc[roughness_coefficient.index.intersection(common_idxs)]
 
             slope_dist = pd.concat([
                 distribution_by_dir_sector(var_series=slope,
@@ -476,11 +511,30 @@ class BySector:
                                            aggregation_method='count',
                                            return_data=True)[1].rename("Intercept_Count")], axis=1, join='outer')
 
+            roughness_coefficient_dist = pd.concat([
+                distribution_by_dir_sector(var_series=roughness_coefficient,
+                                           direction_series=wdir.loc[common_idxs],
+                                           sectors=sectors, direction_bin_array=direction_bin_array,
+                                           direction_bin_labels=direction_bin_labels,
+                                           aggregation_method='mean',
+                                           return_data=True)[1].rename("Mean_Roughness_Coefficient"),
+                distribution_by_dir_sector(var_series=intercept,
+                                           direction_series=wdir.loc[common_idxs],
+                                           sectors=sectors, direction_bin_array=direction_bin_array,
+                                           direction_bin_labels=direction_bin_labels,
+                                           aggregation_method='count',
+                                           return_data=True)[1].rename("Roughness_Coefficient_Count")], axis=1,
+                                           join='outer')
+
             slope_dist.index.rename('Direction Bin', inplace=True)
             intercept_dist.index.rename('Direction Bin', inplace=True)
-
-            self.slope = slope_dist['Mean_Slope']
+            self.plot = plt.plot_shear_by_sector(roughness_coefficient,
+                                                 wdir.loc[roughness_coefficient.index.intersection(wdir.index)],
+                                                 roughness_coefficient_dist, calc_method='log_law')
+            self.roughness_coefficient = roughness_coefficient_dist['Mean_Roughness_Coefficient']
+            output_data['roughnesss_coefficient'] = roughness_coefficient_dist['Mean_Roughness_Coefficient']
             self.intercept = intercept_dist['Mean_Intercept']
+            self.slope = intercept_dist['Mean_Slope']
             output_data['slope'] = slope_dist['Mean_Slope']
             output_data['intercept'] = intercept_dist['Mean_Intercept']
 
@@ -495,7 +549,7 @@ class BySector:
         input_data['input_wind_dir'] = input_wind_dir
         input_data['sectors'] = sectors
         input_data['calculation_method'] = calc_method
-        output_data['concurrent_period_in_years'] = str("{:.3f}".format(cvg))
+        output_data['concurrent_period_in_years'] = float("{:.3f}".format(cvg))
         info['input data'] = input_data
         info['output data'] = output_data
         self.wspds = wspds
@@ -668,7 +722,7 @@ def scale(wspd, alpha, height, height_to_scale_to, calc_method='power_law'):
                   alpha=alpha)
 
 
-def _scale(wspds, height, height_to_scale_to, calc_method, alpha=None, slope=None, intercept=None,):
+def _scale(wspds, height, height_to_scale_to, calc_method, alpha=None, slope=None, intercept=None, roughness_coefficient=None):
     """
     Private function for execution of scale()
     """
@@ -680,7 +734,8 @@ def _scale(wspds, height, height_to_scale_to, calc_method, alpha=None, slope=Non
         scaled_wspds = wspds * scale_factor
 
     elif calc_method == 'log_law':
-        scaled_wspds = wspds.apply(_log_scale, args=(height, height_to_scale_to, slope, intercept))
+       # scaled_wspds = wspds.apply(_log_scale, args=(height, height_to_scale_to, slope, intercept))
+        scaled_wspds = wspds.apply(_log_roughness_scale, args=(height, height_to_scale_to, roughness_coefficient))
 
     return scaled_wspds
 
@@ -690,14 +745,28 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
     scaled_wspds = pd.Series([])
     result = pd.Series([])
 
+    if self.origin == 'TimeSeries':
+
+        if self.calc_method == 'power_law':
+            df = pd.concat([wspds, self.alpha], axis=1).dropna()
+            scaled_wspds = _scale(wspds=df.iloc[:, 0], height=height, height_to_scale_to=height_to_scale_to,
+                                  calc_method='power_law', alpha=df.iloc[:, 1])
+
+        elif self.calc_method == 'log_law':
+            df = pd.concat([wspds, self.slope,self.intercept], axis=1).dropna()
+            scaled_wspds = _log_scale(wspds=df.iloc[:, 0], height=height, height_to_scale_to=height_to_scale_to,
+                                      slope=df.iloc[:, 1], intercept=df.iloc[:, 2])
+
+    result = scaled_wspds.dropna()
     if self.origin == 'TimeOfDay':
 
         if self.calc_method == 'power_law':
-            filled_alpha = _fill_alpha_12x24(self.alpha)
+            filled_alpha = _fill_df_12x24(self.alpha)
 
         elif self.calc_method == 'log_law':
-            filled_slope = _fill_alpha_12x24(self.slope)
-            filled_intercept = _fill_alpha_12x24(self.intercept)
+            filled_slope = _fill_df_12x24(self.slope)
+            filled_intercept = _fill_df_12x24(self.intercept)
+            filled_roughness = e**-filled_intercept
             filled_alpha = filled_slope
 
         df_wspds = [[None for y in range(12)] for x in range(24)]
@@ -722,8 +791,12 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
 
                 elif self.calc_method == 'log_law':
                     df_wspds[i][j] = _scale(df_wspds[i][j], height_to_scale_to=height_to_scale_to, height=height,
-                                            slope=filled_slope.iloc[i, j], intercept=filled_intercept.iloc[i, j],
-                                            calc_method=self.calc_method)
+                                            roughness_coefficient=filled_roughness.iloc[i, j], calc_method=self.calc_method)
+
+               # elif self.calc_method == 'log_law':
+                #    df_wspds[i][j] = _scale(df_wspds[i][j], height_to_scale_to=height_to_scale_to, height=height,
+                 #                           slope=filled_slope.iloc[i, j], intercept=filled_intercept.iloc[i, j],
+                  #                          calc_method=self.calc_method)
 
                 scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
                 f.value += 1
@@ -808,7 +881,7 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
     return result
 
 
-def _fill_alpha_12x24(df):
+def _fill_df_12x24(df):
     # create copy for later use
     df_copy = df.copy()
     interval = int(24/len(df))
@@ -850,4 +923,9 @@ if __name__ == '__main__':
 
     directions = data['Dir78mS']
 
-    avg_tod = bw.Shear.TimeOfDay(anemometers, heights,calc_method='power_law', daily_segments=24,day_start_time=9, min_speed=4.2, plot_type='12x24')
+
+    power = bw.Shear.TimeSeries(anemometers,heights, calc_method = 'power_law')
+    scaled_power = power.apply(speeds, 30, 40)
+    log = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law')
+    scaled_log = log.apply(speeds, 30, 40)
+    comparison = pd.concat([speeds.dropna(), scaled_log, scaled_power], axis=1)

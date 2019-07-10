@@ -544,23 +544,29 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     return ax.get_figure()
 
 
-def plot_shear_by_sector(shear, wdir, shear_dist):
-    radians = np.radians(utils._get_dir_sector_mid_pts(shear_dist.index))
+def plot_shear_by_sector(scale_variable, wdir, dist, calc_method='power_law'):
+    radians = np.radians(utils._get_dir_sector_mid_pts(dist.index))
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(utils._get_dir_sector_mid_pts(shear_dist.index))
-    ax.plot(np.append(radians, radians[0]), shear_dist.append(shear_dist.iloc[0])['Mean_Shear'],
+    ax.set_thetagrids(utils._get_dir_sector_mid_pts(dist.index))
+
+    if calc_method == 'power_law':
+        label = 'Mean_Shear'
+    if calc_method == 'log_law':
+        label = 'Mean_Roughness_Coefficient'
+
+    ax.plot(np.append(radians, radians[0]), dist.append(dist.iloc[0])[label],
             color=bw_colors('green'), linewidth=4)
-    maxlevel = shear_dist['Mean_Shear'].max() + 0.1
+    maxlevel = dist[label].max() + 0.1
     ax.set_ylim(0, maxlevel)
-    ax.scatter(np.radians(wdir), shear, color=bw_colors('asphault'), alpha=0.3, s=1)
+    ax.scatter(np.radians(wdir), scale_variable, color=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
     return ax.get_figure()
 
 
-def plot_12x24_contours(tab_12x24, label=('Variable', 'mean')):
+def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
     """
     Get Contour Plot of 12 month x 24 hour matrix of variable
     :param tab_12x24: DataFrame returned from get_12x24() in analyse
@@ -579,7 +585,8 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean')):
     ax.set_xticks(tab_12x24.columns)
     ax.set_xticklabels([month_names[i - 1] for i in tab_12x24.columns])
     ax.set_yticks(np.arange(0, 24, 1))
-    plt.close()
+    if plot is None:
+        plt.close()
     return ax.get_figure()
 
 
@@ -684,10 +691,11 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         label = 'Roughness Coefficient'
 
     if plot_type == '12x24':
-        df.columns = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-        ax = plot_12x24_contours(df, label=(label, 'mean'))
-        ax.show()
-        return ax
+        df.columns = np.arange(1, 13, 1)
+        df.index= np.arange(0, 24, 1)
+        df[df.columns[::-1]]
+        return plot_12x24_contours(df, label=(label, 'mean'), plot='tod')
+
     else:
         fig, ax = plt.subplots()
         ax.set_xlabel('Time of Day')
