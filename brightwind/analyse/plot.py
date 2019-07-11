@@ -649,8 +649,11 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     return ax.get_figure()
 
 
-def plot_power_law(avg_alpha, avg_c, wspds, heights):
-    plot_heights = np.linspace(0, max(heights), num=100)
+def plot_power_law(avg_alpha, avg_c, wspds, heights, max_plot_height=None):
+    if max_plot_height is None:
+        plot_heights = np.linspace(0, max(heights), num=100)
+    else:
+        plot_heights = np.linspace(0, max_plot_height, num=100)
     speeds = avg_c * (plot_heights ** avg_alpha)
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlabel('Speed [m/s]')
@@ -663,9 +666,12 @@ def plot_power_law(avg_alpha, avg_c, wspds, heights):
     return ax.get_figure()
 
 
-def plot_log_law(slope, intercept, wspds, heights):
-    plot_heights = np.linspace(0.0001, max(heights), num=100)
-    speeds = slope * np.log(plot_heights) + intercept
+def plot_log_law(avg_slope, avg_intercept, wspds, heights, max_plot_height=None):
+    if max_plot_height is None:
+        plot_heights = np.linspace(0.0001, max(heights), num=100)
+    else:
+        plot_heights = np.linspace(0.0001, max_plot_height, num=100)
+    speeds = avg_slope * np.log(plot_heights) + avg_intercept
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlabel('Speed [m/s]')
     ax.set_ylabel('Elevation [m]')

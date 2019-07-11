@@ -26,7 +26,7 @@ from IPython.display import display
 import re
 import warnings
 
-pd.options.mode.chained_assignment = None
+pd.set_option('mode.chained_assignment', None)
 
 __all__ = ['Average',
            'BySector',
@@ -36,27 +36,45 @@ __all__ = ['Average',
 
 class TimeSeries:
 
-    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3):
+    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3, max_plot_height=None):
 
         if not isinstance(wspds, pd.DataFrame):
             wspds = pd.DataFrame(wspds).T
 
+        info = {}
+        input_data = {}
+        output_data = {}
         self.origin = 'TimeSeries'
         self.calc_method = calc_method
-        alpha = pd.Series([])
-        c = pd.Series([])
         wspds = wspds.dropna()
         cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
+        avg_plot = Average(wspds=wspds, heights=heights, calc_method=calc_method, max_plot_height=max_plot_height)
+        self.plot = avg_plot.plot
 
         if calc_method == 'power_law':
-            alpha = (wspds[(wspds > min_speed).all(axis=1)].apply(_calc_power_law, heights=heights, axis=1))
-            self._alpha = alpha
+            alpha_c = (wspds[(wspds > min_speed).all(axis=1)].apply(_calc_power_law, heights=heights, return_coeff=True, by_row=True,
+                                                                    axis=1))
+            self._alpha = alpha_c.iloc[:, 0]
+            output_data['shear_exponent(alpha)'] = self._alpha
 
         elif calc_method == 'log_law':
-            slope_intercept = (wspds[(wspds > min_speed).all(axis=1)].apply(_calc_log_law, heights=heights, return_coeff=True,
-                                                                  axis=1))
+            slope_intercept = (wspds[(wspds > min_speed).all(axis=1)].apply(_calc_log_law, heights=heights,
+                                                                            return_coeff=True, by_row=True, axis=1))
             self.slope = slope_intercept.iloc[:, 0]
             self.intercept = slope_intercept.iloc[:, 1]
+            output_data['slope'] = self.slope
+            output_data['intercept'] = self.intercept
+
+        input_wind_speeds = {'heights(m)': heights, 'column_names': list(wspds.columns.values),
+                             'min_spd(m/s)': min_speed}
+        input_data['input_wind_speeds'] = input_wind_speeds
+        input_data['calculation_method'] = calc_method
+        output_data['concurrent_period_in_years'] = float("{:.3f}".format(cvg))
+        info['input data'] = input_data
+        info['output data'] = output_data
+        self.wspds = wspds
+        self.info = info
+        self.calc_method = calc_method
 
     @property
     def alpha(self):
@@ -178,7 +196,7 @@ class TimeOfDay:
 
             if calc_method == 'log_law':
                 for i in range(0, len(mean_time_wspds)):
-                    slope[i], intercept[i] = _calc_power_law(mean_time_wspds[i].values, heights, return_coeff=True)
+                    slope[i], intercept[i] = _calc_log_law(mean_time_wspds[i].values, heights, return_coeff=True)
                     roughness_coefficient[i] = e**-intercept[i]
                 roughness_coefficient_df = pd.concat([roughness_coefficient_df, roughness_coefficient], axis=1)
                 slope_df = pd.concat([slope_df, slope], axis=1)
@@ -258,7 +276,7 @@ class TimeOfDay:
 
 class Average:
 
-    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3):
+    def __init__(self, wspds, heights, calc_method='power_law', min_speed=3, max_plot_height=None):
 
         """
         Calculates shear based on power law
@@ -311,15 +329,16 @@ class Average:
 
         if calc_method == 'power_law':
             alpha, c = _calc_power_law(mean_wspds.values, heights, return_coeff=True)
-            self.plot = plt.plot_power_law(alpha, c, mean_wspds.values, heights)
+            self.plot = plt.plot_power_law(alpha, c, mean_wspds.values, heights, max_plot_height=max_plot_height)
             self._alpha = alpha
+            self.c = c
             output_data['shear_exponent(alpha)'] = alpha
 
         elif calc_method == 'log_law':
             slope, intercept = _calc_log_law(mean_wspds.values, heights, return_coeff=True)
-            roughness_coefficient = _calc_roughness_coeff(mean_wspds, heights)
+            roughness_coefficient = e**-intercept
             self.roughness_coefficient = roughness_coefficient
-            self.plot = plt.plot_log_law(slope, intercept, mean_wspds.values, heights)
+            self.plot = plt.plot_log_law(slope, intercept, mean_wspds.values, heights, max_plot_height=max_plot_height)
             self.slope = slope
             self.intercept = intercept
             output_data['roughness_coefficient'] = roughness_coefficient
@@ -528,13 +547,13 @@ class BySector:
 
             slope_dist.index.rename('Direction Bin', inplace=True)
             intercept_dist.index.rename('Direction Bin', inplace=True)
-            self.plot = plt.plot_shear_by_sector(roughness_coefficient,
-                                                 wdir.loc[roughness_coefficient.index.intersection(wdir.index)],
-                                                 roughness_coefficient_dist, calc_method='log_law')
+            #self.plot = plt.plot_shear_by_sector(roughness_coefficient,
+             #                                    wdir.loc[roughness_coefficient.index.intersection(wdir.index)],
+              #                                   roughness_coefficient_dist, calc_method='log_law')
             self.roughness_coefficient = roughness_coefficient_dist['Mean_Roughness_Coefficient']
             output_data['roughnesss_coefficient'] = roughness_coefficient_dist['Mean_Roughness_Coefficient']
             self.intercept = intercept_dist['Mean_Intercept']
-            self.slope = intercept_dist['Mean_Slope']
+            self.slope = slope_dist['Mean_Slope']
             output_data['slope'] = slope_dist['Mean_Slope']
             output_data['intercept'] = intercept_dist['Mean_Intercept']
 
@@ -543,7 +562,7 @@ class BySector:
 
         input_wind_speeds = {'heights(m)': heights, 'column_names': list(wspds.columns.values),
                              'min_spd(m/s)': min_speed}
-        input_wind_dir = {'heights(m)': re.findall(r'\d+', str(wdir.name)),
+        input_wind_dir = {'heights(m)': float((re.findall(r'\d+', str(wdir.name))[0])),
                           'column_names': str(wdir.name)}
         input_data['input_wind_speeds'] = input_wind_speeds
         input_data['input_wind_dir'] = input_wind_dir
@@ -642,16 +661,23 @@ def _calc_roughness_coeff(wspds, heights):
     return roughness_coefficient.mean()
 
 
-def _calc_log_law(wspds, heights, return_coeff=False) -> (np.array, float):
+def _calc_log_law(wspds, heights, return_coeff=False, by_row=False) -> (np.array, float):
 
-    logheights = np.log(heights)
-    coeffs = np.polyfit(logheights, wspds, deg=1)
+    if by_row:
+        logheights = np.log(
+            pd.Series(heights).drop(wspds[wspds == 0].index.values.astype(int)))  # take log of elevations
+        wspds = wspds.drop(wspds[wspds == 0].index.values.astype(int))  # take log of speeds
+
+    else:
+        logheights = np.log(heights)  # take log of elevations
+
+    coeffs = np.polyfit( logheights, wspds, deg=1)
     if return_coeff:
         return pd.Series([coeffs[0], coeffs[1]])
     return coeffs[0]
 
 
-def _calc_power_law(wspds, heights, return_coeff=False) -> (np.array, float):
+def _calc_power_law(wspds, heights, return_coeff=False, by_row=False) -> (np.array, float):
     """
     Derive the best fit power law exponent (as 1/alpha) from a given time-step of speed data at 2 or more elevations
 
@@ -669,12 +695,17 @@ def _calc_power_law(wspds, heights, return_coeff=False) -> (np.array, float):
         Return alpha value
 
     """
+    if by_row:
+        logheights = np.log( pd.Series(heights).drop(wspds[wspds == 0].index.values.astype(int)))  # take log of elevations
+        logwspds = np.log(wspds.drop(wspds[wspds == 0].index.values.astype(int)))  # take log of speeds
 
-    logheights = np.log(heights)  # take log of elevations
-    logwspds = np.log(wspds)  # take log of speeds
+    else:
+        logheights = np.log(heights)  # take log of elevations
+        logwspds = np.log(wspds)  # take log of speeds
+
     coeffs = np.polyfit(logheights, logwspds, deg=1)  # get coefficients of linear best fit to log distribution
     if return_coeff:
-        return coeffs[0], np.exp(coeffs[1])
+        return pd.Series([coeffs[0], np.exp(coeffs[1])])
     return coeffs[0]
 
 
@@ -734,8 +765,8 @@ def _scale(wspds, height, height_to_scale_to, calc_method, alpha=None, slope=Non
         scaled_wspds = wspds * scale_factor
 
     elif calc_method == 'log_law':
-       # scaled_wspds = wspds.apply(_log_scale, args=(height, height_to_scale_to, slope, intercept))
-        scaled_wspds = wspds.apply(_log_roughness_scale, args=(height, height_to_scale_to, roughness_coefficient))
+        scaled_wspds = wspds.apply(_log_scale, args=(height, height_to_scale_to, slope, intercept))
+        #scaled_wspds = wspds.apply(_log_roughness_scale, args=(height, height_to_scale_to, roughness_coefficient))
 
     return scaled_wspds
 
@@ -757,7 +788,8 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
             scaled_wspds = _log_scale(wspds=df.iloc[:, 0], height=height, height_to_scale_to=height_to_scale_to,
                                       slope=df.iloc[:, 1], intercept=df.iloc[:, 2])
 
-    result = scaled_wspds.dropna()
+        result = scaled_wspds.dropna()
+
     if self.origin == 'TimeOfDay':
 
         if self.calc_method == 'power_law':
@@ -791,12 +823,12 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
 
                 elif self.calc_method == 'log_law':
                     df_wspds[i][j] = _scale(df_wspds[i][j], height_to_scale_to=height_to_scale_to, height=height,
-                                            roughness_coefficient=filled_roughness.iloc[i, j], calc_method=self.calc_method)
+                                            slope=filled_slope.iloc[i, j], intercept=filled_intercept.iloc[i, j],
+                                            calc_method=self.calc_method)
 
-               # elif self.calc_method == 'log_law':
-                #    df_wspds[i][j] = _scale(df_wspds[i][j], height_to_scale_to=height_to_scale_to, height=height,
-                 #                           slope=filled_slope.iloc[i, j], intercept=filled_intercept.iloc[i, j],
-                  #                          calc_method=self.calc_method)
+                #  elif self.calc_method == 'log_law':
+                #     df_wspds[i][j] = _scale(df_wspds[i][j], height_to_scale_to=height_to_scale_to, height=height,
+                #                            roughness_coefficient=filled_roughness.iloc[i, j], calc_method=self.calc_method)
 
                 scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
                 f.value += 1
@@ -878,6 +910,9 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
                             calc_method=self.calc_method, slope=self.slope,
                             intercept=self.intercept)
 
+            #result = _scale(wspds=wspds, height=height, height_to_scale_to=height_to_scale_to,
+             #               calc_method=self.calc_method, roughness_coefficient=self.roughness_coefficient)
+
     return result
 
 
@@ -908,24 +943,3 @@ def _fill_df_12x24(df):
         df = df_12x24
 
     return df
-
-if __name__ == '__main__':
-
-    import brightwind as bw
-
-    data = bw.load_csv(r'C:\Users\lukec\demo_data.csv')
-
-    anemometers = data[['Spd80mN','Spd60mN','Spd40mN']]
-
-    heights = [80, 60, 40]
-
-    speeds = data ['Spd40mN']
-
-    directions = data['Dir78mS']
-
-
-    power = bw.Shear.TimeSeries(anemometers,heights, calc_method = 'power_law')
-    scaled_power = power.apply(speeds, 30, 40)
-    log = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law')
-    scaled_log = log.apply(speeds, 30, 40)
-    comparison = pd.concat([speeds.dropna(), scaled_log, scaled_power], axis=1)
