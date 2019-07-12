@@ -765,8 +765,8 @@ def _scale(wspds, height, height_to_scale_to, calc_method, alpha=None, slope=Non
         scaled_wspds = wspds * scale_factor
 
     elif calc_method == 'log_law':
-        scaled_wspds = wspds.apply(_log_scale, args=(height, height_to_scale_to, slope, intercept))
-        #scaled_wspds = wspds.apply(_log_roughness_scale, args=(height, height_to_scale_to, roughness_coefficient))
+        #scaled_wspds = wspds.apply(_log_scale, args=(height, height_to_scale_to, slope, intercept))
+        scaled_wspds = wspds.apply(_log_roughness_scale, args=(height, height_to_scale_to, roughness_coefficient))
 
     return scaled_wspds
 
