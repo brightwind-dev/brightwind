@@ -496,7 +496,7 @@ class BySector:
                                                                            return_coeff=True, axis=1)
             slope = slope_intercept.iloc[:, 0]
             intercept = slope_intercept.iloc[:, 1]
-            roughness_coefficient = e**-intercept
+            roughness_coefficient = e**(-intercept/slope)
 
             slope = slope.loc[slope.index.intersection(common_idxs)]
             intercept = intercept.loc[intercept.index.intersection(common_idxs)]
@@ -550,7 +550,7 @@ class BySector:
             #self.plot = plt.plot_shear_by_sector(roughness_coefficient,
              #                                    wdir.loc[roughness_coefficient.index.intersection(wdir.index)],
               #                                   roughness_coefficient_dist, calc_method='log_law')
-            self.roughness_coefficient = roughness_coefficient_dist['Mean_Roughness_Coefficient']
+            self.roughness_coefficient = roughness_coefficient
             output_data['roughnesss_coefficient'] = roughness_coefficient_dist['Mean_Roughness_Coefficient']
             self.intercept = intercept_dist['Mean_Intercept']
             self.slope = slope_dist['Mean_Slope']
@@ -877,9 +877,12 @@ def _apply(self, wspds, height, height_to_scale_to, wdir=None):
                                          calc_method=self.calc_method, alpha=self.alpha[i])
 
             if self.calc_method == 'log_law':
+                #scaled_wspds[i] = _scale(wspds=by_sector[i]['Unscaled_Wind_Speeds'], height=height,
+                 #                        height_to_scale_to=height_to_scale_to,
+                  #                       calc_method=self.calc_method, intercept=self.intercept[i], slope=self.slope[i])
                 scaled_wspds[i] = _scale(wspds=by_sector[i]['Unscaled_Wind_Speeds'], height=height,
                                          height_to_scale_to=height_to_scale_to,
-                                         calc_method=self.calc_method, intercept=self.intercept[i], slope=self.slope[i])
+                                         calc_method=self.calc_method, roughness_coefficient=self.roughness_coefficient[i])
 
             by_sector[i]['Scaled_Wind_Speeds'] = scaled_wspds[i]
             by_sector[i] = by_sector[i][
