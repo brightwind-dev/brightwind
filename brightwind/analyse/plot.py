@@ -658,17 +658,20 @@ def plot_shear(avg_alpha, avg_c, wspds, heights):
     return ax.get_figure()
 
 
-def plot_dist_matrix(matrix, colorbar_label):
+def plot_dist_matrix(matrix, colorbar_label=None, xticklabels=None, yticklabels=None):
     fig, ax = plt.subplots(figsize=(10, 10))
     cm = ax.pcolormesh(matrix, cmap='YlGn')
     ax.set(xlim=(0, matrix.shape[1]), ylim=(0, matrix.shape[0]))
-    ax.set(xticks=range(0, matrix.shape[1]), yticks=np.array(range(0, matrix.shape[0])) + 0.5)
-    ax.set_xticklabels([str(i[1]) for i in matrix.columns])
-    ax.set_yticklabels([str(i) for i in matrix.index.values])
-    plt.setp(ax.get_xticklabels(), rotation=90, ha="right",rotation_mode="anchor")
+    ax.set(xticks=np.array(range(0, matrix.shape[1]))+0.5, yticks=np.array(range(0, matrix.shape[0])) + 0.5)
+    if xticklabels is not None:
+        ax.set_xticklabels(xticklabels)
+    if yticklabels is not None:
+        ax.set_yticklabels(yticklabels)
+    plt.setp(ax.get_xticklabels(), rotation=90, ha="right", rotation_mode="anchor")
     ax.set_xlabel(matrix.columns.names[-1])
     ax.set_ylabel(matrix.index.name)
     cbar = ax.figure.colorbar(cm, ax=ax)
-    cbar.ax.set_ylabel(colorbar_label)
+    if colorbar_label is not None:
+        cbar.ax.set_ylabel(colorbar_label)
     plt.close()
     return ax.get_figure()

@@ -42,9 +42,9 @@ __all__ = ['concurrent_coverage',
 
 
 def dist_matrix(var_series, y_series, x_series,
-                num_bins_1=6, num_bins_2=6,
-                bins_var_1=None, bins_var_2=None,
-                bin_labels_var_1=None, bin_labels_var_2=None,
+                num_bins_x=20, num_bins_y=20,
+                x_bins=None, y_bins=None,
+                x_bin_labels=None, y_bin_labels=None,
                 var_label=None, x_label=None, y_label=None,
                 aggregation_method='%frequency',
                 return_data=False):
@@ -54,32 +54,32 @@ def dist_matrix(var_series, y_series, x_series,
     :param var_series: Time-series of the variable whose distribution we need to find
     :type var_series: pandas.Series
     :param x_series: Time-series of the second variable which we want to bin against, forms columns of distribution
-    :type x_series; pandas.Series
+    :type x_series: pandas.Series
     :param y_series: Time-series of the first variable which we want to bin against, forms rows of distribution
     :type y_series: pandas.Series
-    :param num_bins_1: Number of evenly spaced bins to use for y_series
-    :type num_bins_1: int
-    :param num_bins_2: Number of evenly spaced bins to use for x_series
-    :type num_bins_2: int
-    :param bins_var_1: (optional) Array of numbers where adjacent elements of array form a bin. Overwrites num_bins_1.
-                If set to None derives the min and max from the y_series series and creates evenly spaced number of
-                bins specified by num_bins_1
-    :type bins_var_1: list, array, None
-    :param bins_var_2: (optional) Array of numbers where adjacent elements of array form a bin. Overwrites num_bins_2.
+    :param num_bins_x: Number of evenly spaced bins to use for x_series
+    :type num_bins_x: int
+    :param num_bins_y: Number of evenly spaced bins to use for y_series
+    :type num_bins_y: int
+    :param x_bins: (optional) Array of numbers where adjacent elements of array form a bin. Overwrites num_bins_x.
                 If set to None derives the min and max from the x_series series and creates evenly spaced number of
-                bins specified by num_bins_2
-    :type bins_var_2: list, array, None
-    :param bin_labels_var_1: (optional) Labels of bins to be used for variable 1, uses (bin-start, bin-end] format by
+                bins specified by num_bins_x
+    :type x_bins: list, array, None
+    :param y_bins: (optional) Array of numbers where adjacent elements of array form a bin. Overwrites num_bins_y.
+                If set to None derives the min and max from the y_series series and creates evenly spaced number of
+                bins specified by num_bins_y
+    :type y_bins: list, array, None
+    :param x_bin_labels: (optional) Labels of bins to be used for x_series, uses (bin-start, bin-end] format by
                             default
-    :type bin_labels_var_1: list
-    :param bin_labels_var_2: (optional) Labels of bins to be used for variable 1, uses (bin-start, bin-end] format by
+    :type x_bin_labels:list
+    :param y_bin_labels: (optional) Labels of bins to be used for y_series, uses (bin-start, bin-end] format by
                             default
-    :type bin_labels_var_2:list
+    :type y_bin_labels: list
     :param var_label: (Optional) Label to use for variable distributed, by default name of the var_series is used
     :type var_label: str
-    :param x_label: (Optional) Label to use for x_label of heatmap, by default name of the y_series is used
+    :param x_label: (Optional) Label to use for x_label of heatmap, by default name of the x_series is used
     :type x_label: str
-    :param y_label: (Optional) Label to use for y_label of heatmap, by default name of the x_series is used
+    :param y_label: (Optional) Label to use for y_label of heatmap, by default name of the y_series is used
     :type y_label: str
     :param aggregation_method: Statistical method used to find distribution. It can be mean, max, min, std, count,
            %frequency or a custom function. Computes frequency in percentages by default.
@@ -98,12 +98,12 @@ def dist_matrix(var_series, y_series, x_series,
 
         #To change the number of bins
         data = bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN,
-                                                    num_bins_1=10, num_bins_2=4, return_data=True)
+                                                     num_bins_x=4, num_bins_y=10, return_data=True)
 
         #To specify custom bins
         data = bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN,
-                                            bins_var_1=[0,6,12, 15, 41],
-                                            bin_labels_var_1=['low wind', 'medium wind', 'gale', 'storm'],
+                                            y_bins=[0,6,12, 15, 41],
+                                            y_bin_labels=['low wind', 'medium wind', 'gale', 'storm'],
                                             aggregation_method='min', return_data=True)
 
 
@@ -118,12 +118,10 @@ def dist_matrix(var_series, y_series, x_series,
     y_series = _convert_df_to_series(y_series).dropna()
     x_series = _convert_df_to_series(x_series).dropna()
 
-    if var_label is not None:
-        var_series.name = var_label
     if x_label is not None:
-        y_series.name = x_label
+        x_series.name = x_label
     if y_label is not None:
-        x_series.name = y_label
+        y_series.name = y_label
     if var_series.name is None:
         var_series.name = 'var_series'
     if y_series.name is None:
@@ -134,13 +132,13 @@ def dist_matrix(var_series, y_series, x_series,
         var_series.name = var_series.name + '_distributed'
     if var_series.name == x_series.name:
         var_series.name = var_series.name + '_distributed'
-    if bins_var_1 is None:
-        bins_var_1 = np.linspace(y_series.min(), y_series.max(), num_bins_1 + 1)
-    if bins_var_2 is None:
-        bins_var_2 = np.linspace(x_series.min(), x_series.max(), num_bins_2 + 1)
+    if y_bins is None:
+        y_bins = np.linspace(y_series.min(), y_series.max(), num_bins_y + 1)
+    if x_bins is None:
+        x_bins = np.linspace(x_series.min(), x_series.max(), num_bins_x + 1)
 
-    var_binned_series_1 = pd.cut(y_series, bins_var_1, right=False).rename(y_series.name)
-    var_binned_series_2 = pd.cut(x_series, bins_var_2, right=False).rename(x_series.name)
+    var_binned_series_1 = pd.cut(y_series, y_bins, right=False).rename(y_series.name)
+    var_binned_series_2 = pd.cut(x_series, x_bins, right=False).rename(x_series.name)
     data = pd.concat([var_series, var_binned_series_1, var_binned_series_2], join='inner',
                      axis=1).dropna()
 
@@ -150,16 +148,23 @@ def dist_matrix(var_series, y_series, x_series,
     else:
         distribution = data.groupby([y_series.name, x_series.name]).agg(aggregation_method).unstack(level=-1)
 
-    if bin_labels_var_1 is not None:
-        distribution.index = bin_labels_var_1
-    if bin_labels_var_2 is not None:
-        distribution.columns = bin_labels_var_2
+    if y_bin_labels is not None:
+        distribution.index = y_bin_labels
+    if x_bin_labels is not None:
+        distribution.columns = x_bin_labels
 
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
 
-    heatmap = plt.plot_dist_matrix(distribution,
-                                   aggregation_method + ' of ' + var_series.name.replace('_distributed', ''))
+    if var_label is None:
+        var_label = aggregation_method + ' of ' + var_series.name.replace('_distributed', '')
+
+    if x_bin_labels is None:
+        x_bin_labels = [str(i[1]) for i in distribution.columns]
+    if y_bin_labels is None:
+        y_bin_labels = [str(i) for i in distribution.index.values]
+
+    heatmap = plt.plot_dist_matrix(distribution, var_label, xticklabels=x_bin_labels, yticklabels=y_bin_labels)
 
     if return_data:
         return heatmap, distribution
