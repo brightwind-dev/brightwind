@@ -158,7 +158,8 @@ def dist_matrix(var_series, var_to_bin_1, var_to_bin_2,
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
 
-    heatmap = plt.plot_dist_matrix(distribution, aggregation_method + ' ' + var_series.name)
+    heatmap = plt.plot_dist_matrix(distribution,
+                                   aggregation_method + ' of ' + var_series.name.replace('_distributed', ''))
 
     if return_data:
         return heatmap, distribution
