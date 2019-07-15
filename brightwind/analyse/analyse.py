@@ -415,6 +415,34 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
         return plt.plot_rose(result)
 
 
+def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
+                              var_bin_array=np.arange(-0.5, 41, 1),
+                              sectors=12, direction_bin_array=None, direction_bin_labels=None,
+                              aggregation_method='%frequency'):
+    var_series = _convert_df_to_series(var_series).dropna()
+    var_to_bin_series = _convert_df_to_series(var_to_bin_series).dropna()
+    direction_series = _convert_df_to_series(direction_series).dropna()
+
+    direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
+        _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
+
+    var_binned_series = pd.cut(var_to_bin_series, var_bin_array, right=False).rename('variable_bin')
+    data = pd.concat([var_series.rename('var_data'), var_binned_series, direction_binned_series], axis=1).dropna()
+
+    if aggregation_method == '%frequency':
+        counts = data.groupby(['variable_bin', 'direction_bin']).count().unstack(level=-1)
+        distribution = counts/(counts.sum().sum()) * 100.0
+    else:
+        distribution = data.groupby(['variable_bin', 'direction_bin']).agg(aggregation_method).unstack(level=-1)
+    for i in range(1, sectors + 1):
+        if not (i in distribution.columns):
+            distribution.insert(i - 1, i, 0.0)
+
+    distribution.columns = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
+    return distribution.sort_index()
+
+
+
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
                direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True,
                plot_bins=None, plot_labels=None, return_data=False):
@@ -518,6 +546,28 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     else:
         return graph
 
+# if freq_as_percentage:
+#         agg_method = '%frequency'
+#     else:
+#         agg_method = 'count'
+#     result = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_series,
+#                                             direction_series=direction_series, var_bin_array=var_bin_array,
+#                                             sectors=sectors, direction_bin_array=direction_bin_array,
+#                                             direction_bin_labels=None, aggregation_method=agg_method)
+#
+#     # Creating a graph before renaming the direction labels, to help identify sectors while plotting
+#     graph = plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
+#                                         percent_symbol=freq_as_percentage)
+#
+#     if direction_bin_labels is not None:
+#         result.columns = direction_bin_labels
+#     if var_bin_labels is not None:
+#         result.index = var_bin_labels
+#
+#     if return_data:
+#         return graph, result
+#     else:
+#         return graph
 
 def time_continuity_gaps(data):
     """
