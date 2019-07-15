@@ -41,8 +41,8 @@ __all__ = ['concurrent_coverage',
            'calc_air_density']
 
 
-def dist_matrix(var_series, y_series, x_series,
-                num_bins_x=20, num_bins_y=20,
+def dist_matrix(var_series, x_series, y_series,
+                num_bins_x=None, num_bins_y=None,
                 x_bins=None, y_bins=None,
                 x_bin_labels=None, y_bin_labels=None,
                 var_label=None, x_label=None, y_label=None,
@@ -57,9 +57,11 @@ def dist_matrix(var_series, y_series, x_series,
     :type x_series: pandas.Series
     :param y_series: Time-series of the first variable which we want to bin against, forms rows of distribution
     :type y_series: pandas.Series
-    :param num_bins_x: Number of evenly spaced bins to use for x_series
+    :param num_bins_x: Number of evenly spaced bins to use for x_series. If this and x_bins are not specified, bins
+        of width 1 are used.
     :type num_bins_x: int
-    :param num_bins_y: Number of evenly spaced bins to use for y_series
+    :param num_bins_y: Number of evenly spaced bins to use for y_series. If this and y_bins are not specified, bins
+        of width 1 are used.
     :type num_bins_y: int
     :param x_bins: (optional) Array of numbers where adjacent elements of array form a bin. Overwrites num_bins_x.
                 If set to None derives the min and max from the x_series series and creates evenly spaced number of
@@ -132,10 +134,20 @@ def dist_matrix(var_series, y_series, x_series,
         var_series.name = var_series.name + '_distributed'
     if var_series.name == x_series.name:
         var_series.name = var_series.name + '_distributed'
-    if y_bins is None:
-        y_bins = np.linspace(y_series.min(), y_series.max(), num_bins_y + 1)
-    if x_bins is None:
+
+    if num_bins_x is None and x_bins is None:
+        x_bins = np.arange(int(np.floor(x_series.min())), int(np.ceil(x_series.max()) + 1 + (x_series.max() % 1 == 0)),1)
+    elif num_bins_x is not None and x_bins is None:
         x_bins = np.linspace(x_series.min(), x_series.max(), num_bins_x + 1)
+    elif x_bins is not None:
+        x_bins = x_bins
+
+    if num_bins_y is None and y_bins is None:
+        y_bins = np.arange(int(np.floor(y_series.min())), int(np.ceil(y_series.max()) + 1 + (y_series.max() % 1 == 0)), 1)
+    elif num_bins_y is not None and y_bins is None:
+        y_bins = np.linspace(y_series.min(), y_series.max(), num_bins_y + 1)
+    elif y_bins is not None:
+        y_bins = y_bins
 
     var_binned_series_1 = pd.cut(y_series, y_bins, right=False).rename(y_series.name)
     var_binned_series_2 = pd.cut(x_series, x_bins, right=False).rename(x_series.name)
@@ -157,7 +169,7 @@ def dist_matrix(var_series, y_series, x_series,
         aggregation_method = aggregation_method.__name__
 
     if var_label is None:
-        var_label = aggregation_method + ' of ' + var_series.name.replace('_distributed', '')
+        var_label = aggregation_method.capitalize() + ' of ' + var_series.name.replace('_distributed', '')
 
     if x_bin_labels is None:
         x_bin_labels = [str(i[1]) for i in distribution.columns]
