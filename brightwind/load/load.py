@@ -408,7 +408,7 @@ def _assemble_files_to_folder(source_folder, destination_folder, file_type, prin
         print('Number of files processed: ' + str(len(files_list)) + '. Number of files moved: ' + str(x))
 
 
-def _append_files_together(source_folder, assembled_file_name, file_type):
+def _append_files_together(source_folder, assembled_file_name, file_type, append_first_line=True):
     """
     Assemble files scattered in subfolders of a certain directory and copy them to a single file filtering for a
     specific list of file types.
@@ -419,14 +419,23 @@ def _append_files_together(source_folder, assembled_file_name, file_type):
     :type assembled_file_name: str
     :param file_type: Is a list of file extensions to filter for e.g. ['.csv', '.txt']
     :type file_type: List[str]
+    :param append_first_line: Append the first line (usually the column names) after the first file to the
+                              assembled file.
+    :type append_first_line: bool
     :return:
     """
     list_of_files = _list_files(source_folder, file_type)
 
     file_handler = open(os.path.join(source_folder, assembled_file_name), 'a+')
-    for file in list_of_files:
+    for file_number, file in enumerate(list_of_files):
         file_handler2 = open(file, 'r')
-        file_handler.write(file_handler2.read())
+        if file_number == 0:
+            file_handler.write(file_handler2.read())
+        if file_number > 0:
+            if append_first_line:
+                file_handler.write(file_handler2.read())
+            else:
+                file_handler.writelines(file_handler2.readlines()[1:])
         file_handler2.close()
     file_handler.close()
     return
