@@ -26,6 +26,7 @@ __all__ = ['concurrent_coverage',
            'monthly_means',
            'momm',
            'dist',
+           'dist_matrix',
            'dist_of_wind_speed',
            'distribution_by_dir_sector',
            'dist_12x24',
@@ -38,6 +39,148 @@ __all__ = ['concurrent_coverage',
            'sector_ratio',
            'Shear',
            'calc_air_density']
+
+
+def dist_matrix(var_series, x_series, y_series,
+                num_bins_x=None, num_bins_y=None,
+                x_bins=None, y_bins=None,
+                x_bin_labels=None, y_bin_labels=None,
+                var_label=None, x_label=None, y_label=None,
+                aggregation_method='%frequency',
+                return_data=False):
+    """
+    Calculates the distribution of a variable against two other variables, on an X-Y plane, returning a heat map.
+    By default, the X and Y variables are binned in bins of 1. However, this behaviour can be modified by the user.
+
+    :param var_series: Time-series of the variable whose distribution we need to find.
+    :type var_series: pandas.Series
+    :param x_series: Time-series of the X variable which we want to bin against, forms columns of distribution.
+    :type x_series: pandas.Series
+    :param y_series: Time-series of the Y variable which we want to bin against, forms rows of distribution.
+    :type y_series: pandas.Series
+    :param num_bins_x: Number of evenly spaced bins to use for x_series. If this and x_bins are not specified, bins
+                       of width 1 are used.
+    :type num_bins_x: int
+    :param num_bins_y: Number of evenly spaced bins to use for y_series. If this and y_bins are not specified, bins
+                       of width 1 are used.
+    :type num_bins_y: int
+    :param x_bins: (optional) Array of numbers where adjacent elements of array form a bin. Overwrites num_bins_x.
+                If set to None derives the min and max from the x_series series and creates evenly spaced number of
+                bins specified by num_bins_x.
+    :type x_bins: list, array, None
+    :param y_bins: (optional) Array of numbers where adjacent elements of array form a bin. Overwrites num_bins_y.
+                If set to None derives the min and max from the y_series series and creates evenly spaced number of
+                bins specified by num_bins_y.
+    :type y_bins: list, array, None
+    :param x_bin_labels: (optional) Labels of bins to be used for x_series, uses (bin-start, bin-end] format by
+                          default.
+    :type x_bin_labels:list
+    :param y_bin_labels: (optional) Labels of bins to be used for y_series, uses (bin-start, bin-end] format by
+                          default.
+    :type y_bin_labels: list
+    :param var_label: (Optional) Label to use for variable distributed, by default name of the var_series is used.
+    :type var_label: str
+    :param x_label: (Optional) Label to use for x_label of heat map, by default name of the x_series is used.
+    :type x_label: str
+    :param y_label: (Optional) Label to use for y_label of heat map, by default name of the y_series is used.
+    :type y_label: str
+    :param aggregation_method: Statistical method used to find distribution. It can be mean, max, min, std, count,
+           %frequency or a custom function. Computes frequency in percentages by default.
+    :type aggregation_method: str or function
+    :param return_data: If True data is also returned with a plot.
+    :return: A heat map and a distribution matrix if return_data is True, otherwise just a heat map.
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        df = bw.load_csv(r'C:\Users\Stephen\Documents\Analysis\demo_data.csv')
+
+        # For distribution of mean wind speed standard deviation against wind speed and temperature
+        bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN, aggregation_method='mean')
+
+        # To change the number of bins
+        bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN, num_bins_x=4, num_bins_y=10)
+
+        # To specify custom bins
+        bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN,
+                       y_bins=[0,6,12, 15, 41], y_bin_labels=['low wind', 'medium wind', 'gale', 'storm'],
+                       aggregation_method='min', return_data=True)
+
+        # For custom aggregation function
+        def custom_agg(x):
+            return x.mean()+(2*x.std())
+        data = bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN,
+                              aggregation_method=custom_agg, return_data=True)
+
+    """
+    var_series = _convert_df_to_series(var_series).dropna()
+    y_series = _convert_df_to_series(y_series).dropna()
+    x_series = _convert_df_to_series(x_series).dropna()
+
+    if x_label is not None:
+        x_series.name = x_label
+    if y_label is not None:
+        y_series.name = y_label
+    if var_series.name is None:
+        var_series.name = 'var_series'
+    if y_series.name is None:
+        y_series.name = 'binned_var_1'
+    if x_series.name is None:
+        x_series.name = 'binned_var_2'
+    if var_series.name == y_series.name:
+        var_series.name = var_series.name + '_distributed'
+    if var_series.name == x_series.name:
+        var_series.name = var_series.name + '_distributed'
+
+    if num_bins_x is None and x_bins is None:
+        x_bins = np.arange(int(np.floor(x_series.min())), int(np.ceil(x_series.max()) + 1 + (x_series.max() % 1 == 0)),
+                           1)
+    elif num_bins_x is not None and x_bins is None:
+        x_bins = np.linspace(x_series.min(), x_series.max(), num_bins_x + 1)
+    elif x_bins is not None:
+        x_bins = x_bins
+
+    if num_bins_y is None and y_bins is None:
+        y_bins = np.arange(int(np.floor(y_series.min())), int(np.ceil(y_series.max()) + 1 + (y_series.max() % 1 == 0)),
+                           1)
+    elif num_bins_y is not None and y_bins is None:
+        y_bins = np.linspace(y_series.min(), y_series.max(), num_bins_y + 1)
+    elif y_bins is not None:
+        y_bins = y_bins
+
+    var_binned_series_1 = pd.cut(y_series, y_bins, right=False).rename(y_series.name)
+    var_binned_series_2 = pd.cut(x_series, x_bins, right=False).rename(x_series.name)
+    data = pd.concat([var_series, var_binned_series_1, var_binned_series_2], join='inner',
+                     axis=1).dropna()
+
+    if aggregation_method == '%frequency':
+        counts = data.groupby([y_series.name, x_series.name]).count().unstack(level=-1)
+        distribution = counts / (counts.sum().sum()) * 100.0
+    else:
+        distribution = data.groupby([y_series.name, x_series.name]).agg(aggregation_method).unstack(level=-1)
+
+    if y_bin_labels is not None:
+        distribution.index = y_bin_labels
+    if x_bin_labels is not None:
+        distribution.columns = x_bin_labels
+
+    if not isinstance(aggregation_method, str):
+        aggregation_method = aggregation_method.__name__
+
+    if var_label is None:
+        var_label = aggregation_method.capitalize() + ' of ' + var_series.name.replace('_distributed', '')
+
+    if x_bin_labels is None:
+        x_bin_labels = [str(i[1]) for i in distribution.columns]
+    if y_bin_labels is None:
+        y_bin_labels = [str(i) for i in distribution.index.values]
+
+    heatmap = plt.plot_dist_matrix(distribution, var_label, xticklabels=x_bin_labels, yticklabels=y_bin_labels)
+
+    if return_data:
+        return heatmap, distribution
+    else:
+        return heatmap
 
 
 def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
