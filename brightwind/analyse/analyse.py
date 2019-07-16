@@ -93,7 +93,7 @@ def dist_matrix(var_series, x_series, y_series,
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_csv(r'C:\Users\Stephen\Documents\Analysis\demo_data.csv')
+        df = bw.load_csv(r'C:\\Users\\Stephen\\Documents\\Analysis\\demo_data.csv')
 
         # For distribution of mean wind speed standard deviation against wind speed and temperature
         bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN, aggregation_method='mean')
@@ -113,6 +113,7 @@ def dist_matrix(var_series, x_series, y_series,
                               aggregation_method=custom_agg, return_data=True)
 
     """
+
     var_series = _convert_df_to_series(var_series).dropna()
     y_series = _convert_df_to_series(y_series).dropna()
     x_series = _convert_df_to_series(x_series).dropna()
