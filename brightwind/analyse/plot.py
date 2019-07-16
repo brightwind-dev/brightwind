@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 import os
 from brightwind.utils import utils
+from matplotlib.colors import LinearSegmentedColormap
 import matplotlib as mpl
 from pandas.plotting import register_matplotlib_converters
 
@@ -28,7 +29,8 @@ register_matplotlib_converters()
 __all__ = ['plot_timeseries',
            'plot_scatter',
            'plot_scatter_wspd',
-           'plot_scatter_wdir']
+           'plot_scatter_wdir',
+           'plot_shear_by_sector']
 
 try:
     if 'Gotham Rounded' in \
@@ -544,25 +546,38 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     return ax.get_figure()
 
 
-def plot_shear_by_sector(scale_variable, wdir, dist, calc_method='power_law'):
-    radians = np.radians(utils._get_dir_sector_mid_pts(dist.index))
-    fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
+def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'):
+
+    params = dict(projection='polar', theta_direction=-1, theta_offset=np.pi / 2)
+    radians = np.radians(utils._get_dir_sector_mid_pts(scale_variable.index))
+    fig, ax = plt.subplots(subplot_kw=params)
+    fig.set_figheight(10)
+    fig.set_figwidth(10)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(utils._get_dir_sector_mid_pts(dist.index))
+    ax.set_thetagrids(utils._get_dir_sector_mid_pts(scale_variable.index))
 
     if calc_method == 'power_law':
         label = 'Mean_Shear'
     if calc_method == 'log_law':
         label = 'Mean_Roughness_Coefficient'
 
-    ax.plot(np.append(radians, radians[0]), dist.append(dist.iloc[0])[label],
-            color=bw_colors('green'), linewidth=4)
-    maxlevel = dist[label].max() + 0.1
+    sectors = len(wind_rose_data)
+    plot_x = np.append(radians, radians[0])
+    scale_to_fit = max(scale_variable)/max(wind_rose_data/100)
+    wind_rose_y = (wind_rose_data/100) * scale_to_fit
+    wind_rose_y = np.append(np.array(wind_rose_y), np.array(wind_rose_y)[0])
+
+    scale_variable_y = np.append(scale_variable, scale_variable[0])
+
+    ax.bar(plot_x,  wind_rose_y, width=2.0 * np.pi/sectors, bottom=0.0,
+          color=bw_colors('asphault'), edgecolor=['#6C9023' for i in range(len(wind_rose_y))], alpha=0.8,label = 'Wind_Directional_Frequency')
+
+    ax.plot(plot_x, scale_variable_y, color=bw_colors('green'), linewidth=4, label=label)
+    maxlevel = (max(scale_variable_y)) + 0.05
     ax.set_ylim(0, maxlevel)
-    ax.scatter(np.radians(wdir), scale_variable, color=bw_colors('asphault'), alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
+
     return ax.get_figure()
 
 
@@ -651,9 +666,9 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
 
 def plot_power_law(avg_alpha, avg_c, wspds, heights, max_plot_height=None):
     if max_plot_height is None:
-        plot_heights = np.linspace(0, max(heights), num=100)
+        plot_heights = np.arange(1, max(heights) + 1, 1)
     else:
-        plot_heights = np.linspace(0, max_plot_height, num=100)
+        plot_heights = np.arange(1, max_plot_height+1, 1)
     speeds = avg_c * (plot_heights ** avg_alpha)
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlabel('Speed [m/s]')
@@ -686,10 +701,22 @@ def plot_log_law(avg_slope, avg_intercept, wspds, heights, max_plot_height=None)
 def plot_shear_time_of_day(df, calc_method, plot_type='step'):
 
     df_copy = df.copy()
+    colors = [(0.6313725490196078, 0.6470588235294118, 0.6705882352941176, 1.0),  # Jan
+              (0.09411764705882353, 0.3176470588235294, 0.4627450980392157),  # Feb
+              (0.06666666666666667, 0.4196078431372549, 0.6901960784313725, 1.0),  # March
+              (0.22745098039215686, 0.7294117647058823, 0.9803921568627451, 1.0),  # April
+              (0.2392156862745098, 0.5666666666666667, 0.42745098039215684, 1.0),  # May
+              (0.4117647058823529, 0.7137254901960784, 0.16470588235294117, 1.0),  # June
+              (0.611764705882353, 0.7725490196078432, 0.21568627450980393, 1.0),  # July
+              (0.6823529411764706, 0.403921568627451, 0.1607843137254902, 1.0),  # Aug
+              (0.7901960784313726, 0.48627450980392156, 0.1843137254901961, 1.0),  # Sep
+              (1, 0.7019607843, .4, 1),  # Oct
+              (0, 0, 0, 1.0),  # Nov
+              (0.40588235294117647, 0.43137254901960786, 0.4666666666666667, 1.0)]  # Dec
 
     if len(df.columns) == 1:
         df.columns = ['12 Month Average']
-
+        colors[0] = colors[5]
     if calc_method == 'power_law':
         label = 'Average Shear'
 
@@ -703,7 +730,7 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         return plot_12x24_contours(df, label=(label, 'mean'), plot='tod')
 
     else:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(10, 10))
         ax.set_xlabel('Time of Day')
         ax.set_ylabel(label)
         import matplotlib.dates as mdates
@@ -715,11 +742,11 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
             df = df.shift(+1, axis=0)
             df.iloc[0, :] = df_copy.tail(1).values
             for i in range(0, len(df.columns)):
-                ax.step(idx, df.iloc[:, i], label=df.iloc[:, i].name)
+                ax.step(idx, df.iloc[:, i], label=df.iloc[:, i].name, color=colors[i])
 
         if plot_type == 'line':
             for i in range(0, len(df.columns)):
-                ax.plot(idx, df.iloc[:, i], label=df.iloc[:, i].name)
+                ax.plot(idx, df.iloc[:, i], label=df.iloc[:, i].name, color=colors[i])
 
         ax.legend(bbox_to_anchor=(1.1, 1.05))
         ax.set_xticks(df.index)

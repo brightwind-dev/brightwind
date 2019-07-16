@@ -85,6 +85,32 @@ def test_TimeOfDay():
     assert True
 
 
+def test_TimeSeries():
+    # Load data
+
+    # load data as dataframe
+    data = bw.load_csv(bw.datasets.demo_data)
+    # Specify columns in data which contain the anemometer measurements from which to calculate shear
+    anemometers = data[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    # Specify the heights of these anemometers
+    heights = [80, 60, 40]
+    anemometers = anemometers[:100]
+    # Test initialisation
+    shear_by_ts_power_law = bw.Shear.TimeSeries(anemometers, heights)
+    shear_by_ts_power_law = bw.Shear.TimeSeries(anemometers, heights,  maximise_data=True)
+    shear_by_ts_log_law = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law')
+    shear_by_ts_log_law = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law',
+                                              maximise_data=True)
+
+    # Test attributes
+    shear_by_ts_power_law.alpha
+    shear_by_ts_log_law.slope
+
+    # Test apply
+    shear_by_ts_power_law.apply(data['Spd80mN'], 40, 60)
+    shear_by_ts_log_law.apply(data['Spd80mN'], 40, 60)
+    assert True
+
 
 def test_scale():
     # load data as dataframe
