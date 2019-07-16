@@ -49,71 +49,68 @@ def dist_matrix(var_series, x_series, y_series,
                 aggregation_method='%frequency',
                 return_data=False):
     """
-    Calculates the distribution of a variable against two other variables as per the bins specified.
+    Calculates the distribution of a variable against two other variables, on an X-Y plane, returning a heat map.
+    By default, the X and Y variables are binned in bins of 1. However, this behaviour can be modified by the user.
 
-    :param var_series: Time-series of the variable whose distribution we need to find
+    :param var_series: Time-series of the variable whose distribution we need to find.
     :type var_series: pandas.Series
-    :param x_series: Time-series of the second variable which we want to bin against, forms columns of distribution
+    :param x_series: Time-series of the X variable which we want to bin against, forms columns of distribution.
     :type x_series: pandas.Series
-    :param y_series: Time-series of the first variable which we want to bin against, forms rows of distribution
+    :param y_series: Time-series of the Y variable which we want to bin against, forms rows of distribution.
     :type y_series: pandas.Series
     :param num_bins_x: Number of evenly spaced bins to use for x_series. If this and x_bins are not specified, bins
-        of width 1 are used.
+                       of width 1 are used.
     :type num_bins_x: int
     :param num_bins_y: Number of evenly spaced bins to use for y_series. If this and y_bins are not specified, bins
-        of width 1 are used.
+                       of width 1 are used.
     :type num_bins_y: int
     :param x_bins: (optional) Array of numbers where adjacent elements of array form a bin. Overwrites num_bins_x.
                 If set to None derives the min and max from the x_series series and creates evenly spaced number of
-                bins specified by num_bins_x
+                bins specified by num_bins_x.
     :type x_bins: list, array, None
     :param y_bins: (optional) Array of numbers where adjacent elements of array form a bin. Overwrites num_bins_y.
                 If set to None derives the min and max from the y_series series and creates evenly spaced number of
-                bins specified by num_bins_y
+                bins specified by num_bins_y.
     :type y_bins: list, array, None
     :param x_bin_labels: (optional) Labels of bins to be used for x_series, uses (bin-start, bin-end] format by
-                            default
+                          default.
     :type x_bin_labels:list
     :param y_bin_labels: (optional) Labels of bins to be used for y_series, uses (bin-start, bin-end] format by
-                            default
+                          default.
     :type y_bin_labels: list
-    :param var_label: (Optional) Label to use for variable distributed, by default name of the var_series is used
+    :param var_label: (Optional) Label to use for variable distributed, by default name of the var_series is used.
     :type var_label: str
-    :param x_label: (Optional) Label to use for x_label of heatmap, by default name of the x_series is used
+    :param x_label: (Optional) Label to use for x_label of heat map, by default name of the x_series is used.
     :type x_label: str
-    :param y_label: (Optional) Label to use for y_label of heatmap, by default name of the y_series is used
+    :param y_label: (Optional) Label to use for y_label of heat map, by default name of the y_series is used.
     :type y_label: str
     :param aggregation_method: Statistical method used to find distribution. It can be mean, max, min, std, count,
            %frequency or a custom function. Computes frequency in percentages by default.
     :type aggregation_method: str or function
-    :param return_data: If True data is also returned with a plot
-    :return: A heatmap and a distribution matrix is return_data is True, otherwise just a heatmap
+    :param return_data: If True data is also returned with a plot.
+    :return: A heat map and a distribution matrix if return_data is True, otherwise just a heat map.
 
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df = bw.load_csv(r'C:\Users\Stephen\Documents\Analysis\demo_data.csv')
 
-        #For distribution of mean wind speed standard deviation against wind speed and temperature
-        data = bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN, aggregation_method='mean',
-                                                                return_data=True)
+        # For distribution of mean wind speed standard deviation against wind speed and temperature
+        bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN, aggregation_method='mean')
 
-        #To change the number of bins
-        data = bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN,
-                                                     num_bins_x=4, num_bins_y=10, return_data=True)
+        # To change the number of bins
+        bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN, num_bins_x=4, num_bins_y=10)
 
-        #To specify custom bins
-        data = bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN,
-                                            y_bins=[0,6,12, 15, 41],
-                                            y_bin_labels=['low wind', 'medium wind', 'gale', 'storm'],
-                                            aggregation_method='min', return_data=True)
+        # To specify custom bins
+        bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN,
+                       y_bins=[0,6,12, 15, 41], y_bin_labels=['low wind', 'medium wind', 'gale', 'storm'],
+                       aggregation_method='min', return_data=True)
 
-
-        #For custom aggregation function
+        # For custom aggregation function
         def custom_agg(x):
             return x.mean()+(2*x.std())
         data = bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN,
-                                aggregation_method=custom_agg, return_data=True)
+                              aggregation_method=custom_agg, return_data=True)
 
     """
     var_series = _convert_df_to_series(var_series).dropna()
@@ -136,14 +133,16 @@ def dist_matrix(var_series, x_series, y_series,
         var_series.name = var_series.name + '_distributed'
 
     if num_bins_x is None and x_bins is None:
-        x_bins = np.arange(int(np.floor(x_series.min())), int(np.ceil(x_series.max()) + 1 + (x_series.max() % 1 == 0)),1)
+        x_bins = np.arange(int(np.floor(x_series.min())), int(np.ceil(x_series.max()) + 1 + (x_series.max() % 1 == 0)),
+                           1)
     elif num_bins_x is not None and x_bins is None:
         x_bins = np.linspace(x_series.min(), x_series.max(), num_bins_x + 1)
     elif x_bins is not None:
         x_bins = x_bins
 
     if num_bins_y is None and y_bins is None:
-        y_bins = np.arange(int(np.floor(y_series.min())), int(np.ceil(y_series.max()) + 1 + (y_series.max() % 1 == 0)), 1)
+        y_bins = np.arange(int(np.floor(y_series.min())), int(np.ceil(y_series.max()) + 1 + (y_series.max() % 1 == 0)),
+                           1)
     elif num_bins_y is not None and y_bins is None:
         y_bins = np.linspace(y_series.min(), y_series.max(), num_bins_y + 1)
     elif y_bins is not None:
