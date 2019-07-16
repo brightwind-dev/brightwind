@@ -20,7 +20,6 @@ import numpy as np
 import pandas as pd
 import os
 from brightwind.utils import utils
-from matplotlib.colors import LinearSegmentedColormap
 import matplotlib as mpl
 from pandas.plotting import register_matplotlib_converters
 
