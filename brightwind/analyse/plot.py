@@ -570,7 +570,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
     scale_variable_y = np.append(scale_variable, scale_variable[0])
 
     ax.bar(plot_x,  wind_rose_y, width=2.0 * np.pi/sectors, bottom=0.0,
-          color=bw_colors('asphault'), edgecolor=['#6C9023' for i in range(len(wind_rose_y))], alpha=0.8,label = 'Wind_Directional_Frequency')
+          color='#E3E7EC', edgecolor=[bw_colors('asphault') for i in range(len(wind_rose_y))], alpha=0.8,label = 'Wind_Directional_Frequency')
 
     ax.plot(plot_x, scale_variable_y, color=bw_colors('green'), linewidth=4, label=label)
     maxlevel = (max(scale_variable_y)) + max(scale_variable_y)*.1
