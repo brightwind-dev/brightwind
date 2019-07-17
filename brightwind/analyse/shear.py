@@ -136,7 +136,7 @@ class TimeSeries:
                                                                             maximise_data=maximise_data, axis=1))
             slope = slope_intercept.iloc[:, 0]
             intercept = slope_intercept.iloc[:, 1]
-            self._roughness = calc_roughness(slope=slope, intercept=intercept)
+            self._roughness = _calc_roughness(slope=slope, intercept=intercept)
             output_data['roughness'] = self._roughness
 
         input_wind_speeds = {'heights(m)': heights, 'column_names': list(wspds.columns.values),
@@ -339,7 +339,7 @@ class TimeOfDay:
             if calc_method == 'log_law':
                 for i in range(0, len(mean_time_wspds)):
                     slope[i], intercept[i] = _calc_log_law(mean_time_wspds[i].values, heights, return_coeff=True)
-                    roughness_coefficient[i] = calc_roughness(slope=slope[i], intercept=intercept[i])
+                    roughness_coefficient[i] = _calc_roughness(slope=slope[i], intercept=intercept[i])
                 roughness_coefficient_df = pd.concat([roughness_coefficient_df, roughness_coefficient], axis=1)
                 slope_df = pd.concat([slope_df, slope], axis=1)
                 intercept_df = pd.concat([intercept_df, intercept], axis=1)
@@ -540,7 +540,7 @@ class Average:
 
         elif calc_method == 'log_law':
             slope, intercept = _calc_log_law(mean_wspds.values, heights, return_coeff=True)
-            roughness = calc_roughness(slope=slope, intercept=intercept)
+            roughness = _calc_roughness(slope=slope, intercept=intercept)
             self._roughness = roughness
             if plot_both is True:
                 alpha, c = _calc_power_law(mean_wspds.values, heights, return_coeff=True)
@@ -749,7 +749,7 @@ class BySector:
 
             slope = slope_intercept.iloc[:, 0]
             intercept = slope_intercept.iloc[:, 1]
-            roughness = calc_roughness(slope=slope, intercept=intercept)
+            roughness = _calc_roughness(slope=slope, intercept=intercept)
             output_data['roughness'] = roughness
             output_data['roughness_count'] = count_df
             self.roughness_count = count_df
@@ -940,7 +940,7 @@ def _calc_power_law(wspds, heights, return_coeff=False, maximise_data=False) -> 
     return coeffs[0]
 
 
-def calc_roughness(slope, intercept):
+def _calc_roughness(slope, intercept):
     return e**(-intercept/slope)
 
 
