@@ -39,7 +39,8 @@ class TimeSeries:
 
     def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', max_plot_height=None, maximise_data=False):
         """
-       Calculates the alpha/roughness coefficient for each individual time stamp of a wind series
+        Calculates alpha, using the power law, or the roughness coefficient, using the log law, for each timestamp of a
+        wind series.
 
        :param wspds: DataFrame or list of wind speeds for calculating shear.
        :type wspds:  pandas.DataFrame
@@ -108,6 +109,7 @@ class TimeSeries:
         else:
             _wspds = wspds[wspds > min_speed]
             count = _wspds.count(axis=1)
+            count = count[count >= 2]
             count.rename('count', inplace=True)
             cvg = coverage(count, period='1AS').sum()
 
@@ -188,10 +190,10 @@ class TimeOfDay:
 
     def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', by_month=True, segment_start_time=7,
                  segments_per_day=2, plot_type='step'):
-
         """
-        Calculates alpha using the power law or the roughness coefficient using log law for each segment of the day
-        and per month, depending on the user's inputs.
+        Calculates alpha, using the power law, or the roughness coefficient, using the log law, for a wind series binned by
+        time of the day and (optionally by) month, depending on the user's inputs. The alpha/roughness coeffcient values
+        are calculated based on the average wind speeds at each measurement height in each bin.
 
         :param wspds: DataFrame or list of wind speeds for calculating shear.
         :type wspds:  pandas.DataFrame
@@ -371,9 +373,7 @@ class TimeOfDay:
                     calc_method=calc_method, plot_type=plot_type)
 
             output_data['roughnesss_coefficient'] = roughness_coefficient_df
-            self.slope = slope_df
-            self.intercept = intercept_df
-            self.roughness_coefficient = e ** ((-1 / slope_df) * intercept_df)
+            self.roughness_coefficient = roughness_coefficient_df
 
         input_wind_speeds = {'heights(m)': heights, 'column_names': list(wspds.columns.values),
                              'min_spd(m/s)': min_speed}
@@ -437,7 +437,7 @@ class Average:
 
     def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', max_plot_height=None):
         """
-         Calculates alpha using the power law or the roughness coefficient using log law based on the average wind
+         Calculates alpha, using the power law, or the roughness coefficient, using the log law, based on the average wind
          speeds of each supplied time series.
 
         :param wspds: DataFrame or list of wind speeds for calculating shear.
@@ -578,7 +578,10 @@ class BySector:
     def __init__(self, wspds, heights, wdir, min_speed=3, calc_method='power_law', sectors=12,
                  direction_bin_array=None, direction_bin_labels=None):
         """
-        Calculates the shear exponent for each directional bin
+        Calculates alpha, using the power law, or the roughness coefficient, using the log law, for a wind series binned
+         by direction. The alpha/roughness coefficient values are calculated based on the average wind speeds at each
+        measurement height in each bin.
+
 
         :param wspds: DataFrame or list of wind speeds for calculating shear.
         :type wspds:  pandas DataFrame
@@ -701,9 +704,6 @@ class BySector:
             output_data['roughnesss_coefficient_count'] = count_df
             output_data['slope'] = slope
             output_data['intercept'] = intercept
-            self.mean_wspds = mean_wspds_df
-            self.intercept = intercept
-            self.slope = slope
             self.roughness_coefficient_count = count_df
             self.roughness_coefficient = roughness_coefficient
             clear_output()
@@ -1007,7 +1007,6 @@ def _apply(self, wspds, height, shear_to, wdir=None):
             scaled_wspds = _scale(wspds=df.iloc[:, 0], height=height, shear_to=shear_to, calc_method=self.calc_method,
                                   roughness_coefficient=self.roughness_coefficient, origin=self.origin)
 
-        scaled_wspds.rename(wspds.name, inplace=True)
         result = scaled_wspds.dropna()
 
     if self.origin == 'TimeOfDay':
@@ -1016,10 +1015,8 @@ def _apply(self, wspds, height, shear_to, wdir=None):
             filled_alpha = _fill_df_12x24(self.alpha)
 
         elif self.calc_method == 'log_law':
-            filled_slope = _fill_df_12x24(self.slope)
-            filled_intercept = _fill_df_12x24(self.intercept)
-            filled_roughness = e ** (-((1 / filled_slope) * (filled_intercept)))
-            filled_alpha = filled_slope
+            filled_roughness_coefficient = _fill_df_12x24(self.roughness_coefficient)
+            filled_alpha = filled_roughness_coefficient
 
         df_wspds = [[None for y in range(12)] for x in range(24)]
         f = FloatProgress(min=0, max=24 * 12, description='Calculating', bar_style='success')
@@ -1043,7 +1040,7 @@ def _apply(self, wspds, height, shear_to, wdir=None):
 
                 elif self.calc_method == 'log_law':
                     df_wspds[i][j] = _scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                            roughness_coefficient=filled_roughness.iloc[i, j],
+                                            roughness_coefficient=filled_roughness_coefficient.iloc[i, j],
                                             calc_method=self.calc_method)
 
                 scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
@@ -1059,7 +1056,7 @@ def _apply(self, wspds, height, shear_to, wdir=None):
         by_sector = pd.Series([])
 
         if self.calc_method == 'log_law':
-            direction_bins = self.slope
+            direction_bins = self.roughness_coefficient
         if self.calc_method == 'power_law':
             direction_bins = self.alpha
 
@@ -1098,18 +1095,12 @@ def _apply(self, wspds, height, shear_to, wdir=None):
                                          calc_method=self.calc_method,
                                          roughness_coefficient=self.roughness_coefficient[i])
 
-            by_sector[i]['Scaled_Wind_Speeds'] = scaled_wspds[i]
-            by_sector[i] = by_sector[i][
-                ['Wind_Direction', 'Unscaled_Wind_Speeds', 'Scaled_Wind_Speeds']]
-
             if i == 0:
-                result = by_sector[i]
+                result = scaled_wspds[i]
             else:
-                result = pd.concat([result, by_sector[i]], axis=0)
+                result = pd.concat([result, scaled_wspds[i]], axis=0)
 
-        result.columns = ['Wind Direction', 'Unscaled_Wind_Speeds', 'Scaled_Wind_Speeds']
         result.sort_index(axis='index', inplace=True)
-        result = result['Scaled_Wind_Speeds']
 
     if self.origin == 'Average':
 
@@ -1126,15 +1117,23 @@ def _apply(self, wspds, height, shear_to, wdir=None):
             result = _scale(wspds=wspds, height=height, shear_to=shear_to,
                             calc_method=self.calc_method, roughness_coefficient=self.roughness_coefficient)
 
-    new_name = result.name + '_scaled_to_' + str(shear_to) + 'm'
+    new_name = wspds.name + '_scaled_to_' + str(shear_to) + 'm'
     result.rename(new_name, inplace=True)
     return result
 
 
-def _fill_df_12x24(df):
+def _fill_df_12x24(data):
+    """
+    Fills a DataFrame or Series to be a 12 month x 24 hour DataFrame by duplicating entries. Used for plotting TimeOfDay
+    shear.
+
+    :param data: DataFrame or Series to be turned into a 12x24 dataframe
+    :type data: Pandas Series or DataFrame.
+    :return: 12x24 DataFrame
+    """
     # create copy for later use
-    df_copy = df.copy()
-    interval = int(24 / len(df))
+    df_copy = data.copy()
+    interval = int(24 / len(data))
     # set index for new data frame to deal with less than 24 sectors
     idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H')
 

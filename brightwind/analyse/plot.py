@@ -573,7 +573,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
           color=bw_colors('asphault'), edgecolor=['#6C9023' for i in range(len(wind_rose_y))], alpha=0.8,label = 'Wind_Directional_Frequency')
 
     ax.plot(plot_x, scale_variable_y, color=bw_colors('green'), linewidth=4, label=label)
-    maxlevel = (max(scale_variable_y)) + 0.05
+    maxlevel = (max(scale_variable_y)) + max(scale_variable_y)*.1
     ax.set_ylim(0, maxlevel)
     ax.legend(loc=8, framealpha=1)
 
@@ -700,8 +700,9 @@ def plot_log_law(avg_slope, avg_intercept, wspds, heights, max_plot_height=None)
 def plot_shear_time_of_day(df, calc_method, plot_type='step'):
 
     df_copy = df.copy()
+    # colours in use
     colors = [(0.6313725490196078, 0.6470588235294118, 0.6705882352941176, 1.0),  # Jan
-              (0.09411764705882353, 0.3176470588235294, 0.4627450980392157),  # Feb
+              (0.1568627450980392, .19215686274509805, 0.6705882352941176, 1.0),  # Feb
               (0.06666666666666667, 0.4196078431372549, 0.6901960784313725, 1.0),  # March
               (0.22745098039215686, 0.7294117647058823, 0.9803921568627451, 1.0),  # April
               (0.2392156862745098, 0.5666666666666667, 0.42745098039215684, 1.0),  # May
