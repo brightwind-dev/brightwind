@@ -33,6 +33,12 @@ pd.options.mode.chained_assignment = None
 __all__ = ['']
 
 
+def _unequal_wspd_heights_error_msg(wspds, heights):
+    raise ValueError('An equal number of wind speed data series and heights is required. ' +
+                     str(len(wspds.columns)) + ' wind speed(s) and ' +
+                     str(len(heights)) + ' height(s) were given.')
+
+
 class TimeSeries:
 
     def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', max_plot_height=None, maximise_data=False):
@@ -52,42 +58,42 @@ class TimeSeries:
        :param max_plot_height: height to which the wind profile plot is extended.
        :type max_plot_height: float
        :param maximise_data: If maximise_data is True, calculations will be carried out on all data where two or
-        more anemometers readings exist for a timestamp. If False, calculations will only be carried out on
-        timestamps where readings exist for all anemometers.
+                             more anemometers readings exist for a timestamp. If False, calculations will only be
+                             carried out on timestamps where readings exist for all anemometers.
        :type maximise_data: Boolean
        :return TimeSeries object containing calculated alpha/roughness coefficient values, a plot
-        and other data.
-       :rtype TimeSeries Object
+               and other data.
+       :rtype TimeSeries object
 
        **Example usage**
        ::
-           # Load anemometer data to calculate exponents
-            data = bw.load_csv(bw.datasets.demo_data)
+            import brightwind as bw
+            import pprint
+
+            # Load anemometer data to calculate exponents
+            data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
             anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
             heights = [80, 60, 40]
 
-           # Using with a DataFrame of wind speeds
-
+            # Using with a DataFrame of wind speeds
             timeseries_power_law = bw.Shear.TimeSeries(anemometers, heights, maximise_data=True)
-            timeseries_log_law = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law',
-            max_plot_height=120)
+            timeseries_log_law = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law', max_plot_height=120)
 
-           # View attributes of Shear objects
-           # View exponents calculated
+            # Get the alpha or roughness values calculated
             timeseries_power_law.alpha
             timeseries_log_law.roughness
 
-           # View plot
+            # View plot
             timeseries_power_law.plot
             timeseries_log_law.plot
 
-           # View input anemometer data
+            # View input anemometer data
             timeseries_power_law.wspds
             timeseries_log_law.wspds
 
-           # View other information
-            timeseries_power_law.info
-            timeseries_log_law.info
+            # View other information
+            pprint.pprint(timeseries_power_law.info)
+            pprint.pprint(timeseries_log_law.info)
 
        """
 
@@ -95,8 +101,8 @@ class TimeSeries:
             wspds = pd.DataFrame(wspds).T
 
         if len(wspds.columns) != len(heights):
-            raise ValueError('An equal number of wind series and heights is required. ' + str(len(wspds.columns)) +
-                             ' wind serie(s) and ' + str(len(heights)) + ' height(s) were given.')
+            _unequal_wspd_heights_error_msg(wspds, heights)
+
         info = {}
         input_data = {}
         output_data = {}
@@ -131,7 +137,7 @@ class TimeSeries:
             slope = slope_intercept.iloc[:, 0]
             intercept = slope_intercept.iloc[:, 1]
             self._roughness = calc_roughness(slope=slope, intercept=intercept)
-            output_data['roughnesss_coefficient'] = self._roughness
+            output_data['roughness'] = self._roughness
 
         input_wind_speeds = {'heights(m)': heights, 'column_names': list(wspds.columns.values),
                              'min_spd(m/s)': min_speed}
@@ -172,8 +178,10 @@ class TimeSeries:
 
         **Example Usage**
         ::
+            import brightwind as bw
+
             # Load anemometer data to calculate exponents
-            data = bw.load_csv(bw.datasets.demo_data)
+            data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
             anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
             heights = [80, 60, 40]
 
@@ -182,12 +190,8 @@ class TimeSeries:
             timeseries_log_law = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law')
 
             # Scale wind speeds using calculated exponents
-            # Specify wind speeds to be scaled
-            windseries = data['Spd40mN']
-            height = 40
-            shear_to = 70
-            timeseries_power_law.apply(windseries, height, shear_to)
-            timeseries_log_law.apply(windseries, height, shear_to)
+            timeseries_power_law.apply(data['Spd40mN'], height=40, shear_to=70)
+            timeseries_log_law.apply(data['Spd40mN'], height=40, shear_to=70)
            """
 
         return _apply(self, wspds, height, shear_to)
@@ -199,7 +203,7 @@ class TimeOfDay:
                  segments_per_day=2, plot_type='step'):
         """
         Calculates alpha, using the power law, or the roughness coefficient, using the log law, for a wind series binned
-        by time of the day and (optionally by) month, depending on the user's inputs. The alpha/roughness coeffcient
+        by time of the day and (optionally by) month, depending on the user's inputs. The alpha/roughness coefficient
         values are calculated based on the average wind speeds at each measurement height in each bin.
 
         :param wspds: pandas.DataFrame, list of pandas.Series or list of wind speeds to be used for calculating shear.
@@ -209,10 +213,11 @@ class TimeOfDay:
         :param min_speed: Only speeds higher than this would be considered for calculating shear, default is 3
         :type min_speed: float
         :param calc_method: method to use for calculation, either 'power_law' (returns alpha) or 'log_law'
-                                  (returns the roughness coefficient).
+                            (returns the roughness coefficient).
         :type calc_method: str
         :param by_month: If True, calculate alpha or roughness coefficient values for each daily segment and month.
-        If False, average alpha or roughness coefficient values are calculated for each daily segment across all months.
+                         If False, average alpha or roughness coefficient values are calculated for each daily segment
+                         across all months.
         :type by_month: Boolean
         :param segment_start_time: Starting time for first segment.
         :type segment_start_time: int
@@ -221,24 +226,24 @@ class TimeOfDay:
         :param plot_type: Type of plot to be generated. Options include 'line', 'step' and '12x24'.
         :type plot_type: str
         :return: TimeOfDay object containing calculated alpha/roughness coefficient values, a plot
-                and other data.
+                 and other data.
         :rtype: TimeOfDay object
 
         **Example usage**
         ::
+            import brightwind as bw
+            import pprint
+
             # Load anemometer data to calculate exponents
-            data = bw.load_csv(bw.datasets.demo_data)
+            data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
             anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
             heights = [80, 60, 40]
 
             # Using with a DataFrame of wind speeds
-            timeofday_power_law = bw.Shear.TimeOfDay(anemometers, heights , return_object=True, daily_segments=2,
-             segment_start_time =7)
-            timeofday_log_law = bw.Shear.TimeOfDay(anemometers, heights , return_object=True, calc_method='log_law',
-            by_month=False)
+            timeofday_power_law = bw.Shear.TimeOfDay(anemometers, heights, daily_segments=2, segment_start_time=7)
+            timeofday_log_law = bw.Shear.TimeOfDay(anemometers, heights, calc_method='log_law', by_month=False)
 
-            # View attributes of TimeOfDay objects
-            # View exponents calculated
+            # Get alpha or roughness values calculated
             timeofday_power_law.alpha
             timeofday_log_law.roughness
 
@@ -251,8 +256,8 @@ class TimeOfDay:
             timeofday_log_law.wspds
 
             # View other information
-            timeofday_power_law.info
-            timeofday_log_law.info
+            pprint.pprint(timeofday_power_law.info)
+            pprint.pprint(timeofday_log_law.info)
 
         """
         # initialise empty series for later use
@@ -278,8 +283,7 @@ class TimeOfDay:
         wspds = wspds.dropna()
 
         if len(wspds.columns) != len(heights):
-            raise ValueError('An equal number of wind series and heights is required. ' + str(len(wspds.columns)) +
-                             ' wind serie(s) and ' + str(len(heights)) + ' height(s) were given.')
+            _unequal_wspd_heights_error_msg(wspds, heights)
 
         cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
 
@@ -384,8 +388,8 @@ class TimeOfDay:
                     pd.DataFrame(_fill_df_12x24(roughness_coefficient_df).iloc[:, 0]),
                     calc_method=calc_method, plot_type=plot_type)
 
-            output_data['roughness'] = roughness_coefficient_df
             roughness_coefficient_df.index.name = 'segment_start_time'
+            output_data['roughness'] = roughness_coefficient_df
             self._roughness = roughness_coefficient_df
 
         input_wind_speeds = {'heights(m)': heights, 'column_names': list(wspds.columns.values),
@@ -429,8 +433,10 @@ class TimeOfDay:
 
         **Example Usage**
         ::
+            import brightwind as bw
+
             # Load anemometer data to calculate exponents
-            data = bw.load_csv(bw.datasets.demo_data)
+            data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
             anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
             heights = [80, 60, 40]
 
@@ -439,12 +445,8 @@ class TimeOfDay:
             timeofday_log_law = bw.Shear.TimeOfDay(anemometers, heights, calc_method='log_law')
 
             # Scale wind speeds using calculated exponents
-            # Specify wind speeds to be scaled
-            windseries = data['Spd40mN']
-            height = 40
-            shear_to = 70
-            timeofday_power_law.apply(windseries, height, shear_to)
-            timeofday_log_law.apply(windseries, height, shear_to)
+            timeofday_power_law.apply(data['Spd40mN'], height=40, shear_to=70)
+            timeofday_log_law.apply(data['Spd40mN'], height=40, shear_to=70)
 
         """
 
@@ -474,8 +476,11 @@ class Average:
 
         **Example usage**
         ::
+            import brightwind as bw
+            import pprint
+
             # Load anemometer data to calculate exponents
-            data = bw.load_csv(bw.datasets.demo_data)
+            data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
             anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
             heights = [80, 60, 40]
 
@@ -483,8 +488,7 @@ class Average:
             average_power_law = bw.Shear.Average(anemometers, heights)
             average_log_law = bw.Shear.Average(anemometers, heights, calc_method='log_law', max_plot_height=120)
 
-            # View attributes of Shear objects
-            # View exponents calculated
+            # Get the alpha or roughness values calculated
             average_power_law.alpha
             average_log_law.roughness
 
@@ -497,8 +501,8 @@ class Average:
             average_log_law.wspds
 
             # View other information
-            average_power_law.info
-            average_log_law.info
+            pprint.pprint(average_power_law.info)
+            pprint.pprint(average_log_law.info)
 
         """
         if not isinstance(wspds, pd.DataFrame):
@@ -507,8 +511,7 @@ class Average:
         wspds = wspds.dropna()
 
         if len(wspds.columns) != len(heights):
-            raise ValueError('An equal number of wind series and heights is required. ' + str(len(wspds.columns)) +
-                             ' wind serie(s) and ' + str(len(heights)) + ' height(s) were given.')
+            _unequal_wspd_heights_error_msg(wspds, heights)
 
         info = {}
         input_data = {}
@@ -590,8 +593,10 @@ class Average:
 
         **Example Usage**
         ::
+            import brightwind as bw
+
             # Load anemometer data to calculate exponents
-            data = bw.load_csv(bw.datasets.demo_data)
+            data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
             anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
             heights = [80, 60, 40]
 
@@ -600,15 +605,8 @@ class Average:
 a           average_log_law = bw.Shear.Average(anemometers, heights, calc_method='log_law', max_plot_height=120)
 
            # Scale wind speeds using exponents
-           # Specify wind speeds to be scaled
-
-           windseries = data['Spd40mN']
-
-           height = 40
-           shear_to = 70
-
-           average_power_law.apply(windseries, height, shear_to)
-           average_log_law.apply(windseries, height, shear_to)
+           average_power_law.apply(data['Spd40mN'], height=40, shear_to=70)
+           average_log_law.apply(data['Spd40mN'], height=40, shear_to=70)
 
            """
         return _apply(self, wspds, height, shear_to)
@@ -625,30 +623,33 @@ class BySector:
 
 
         :param wspds: pandas.DataFrame, list of pandas.Series or list of wind speeds to be used for calculating shear.
-        :type wspds:  pandas.DataFrame, list of pandas.Series or list.
+        :type wspds: pandas.DataFrame, list of pandas.Series or list.
         :param heights: List of anemometer heights
         :type heights: list
         :param wdir: Wind direction measurements
-        :type wdir:  pandas.DataFrame or Series
-        :param:min_speed:  Only speeds higher than this would be considered for calculating shear, default is 3.
+        :type wdir: pandas.DataFrame or Series
+        :param: min_speed: Only speeds higher than this would be considered for calculating shear, default is 3.
         :type: min_speed: float
-        :param calc_method: method to use for calculation, either 'power_law' (returns alpha) or 'log_law'
-                                  (returns the roughness coefficient).
+        :param calc_method: Method to use for calculation, either 'power_law' (returns alpha) or 'log_law'
+                            (returns the roughness coefficient).
         :type calc_method: str
-        :param sectors: number of sectors for the shear to be calculated for.
+        :param sectors: Number of sectors for the shear to be calculated for.
         :type sectors: int
-        :param direction_bin_array: specific array of directional bins to be used. Default is that bins are calculated
+        :param direction_bin_array: Specific array of directional bins to be used. If None, bins are calculated
                                     by 360/sectors.
         :type direction_bin_array: array
-        :param direction_bin_labels: labels to be given to the above direction_bin array.
+        :param direction_bin_labels: Labels to be given to the above direction_bin array.
         :type direction_bin_labels: array
         :return: BySector object containing calculated alpha/roughness coefficient values, a plot and other data.
         :rtype: BySector object
 
          **Example usage**
         ::
+            import brightwind as bw
+            import pprint
+
             # Load anemometer data to calculate exponents
-            data = bw.load_csv(bw.datasets.demo_data)
+            data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
             anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
             heights = [80, 60, 40]
             directions = data['Dir78mS']
@@ -662,8 +663,7 @@ class BySector:
             by_sector_power_law_custom_bins = bw.Shear.BySector(anemometers, heights, directions,
             direction_bin_array=custom_bins)
 
-            # View attributes of Shear objects
-            # View exponents calculated
+            # Get alpha or roughness values calculated
             by_sector_power_law.alpha
             by_sector_log_law.roughness
 
@@ -676,8 +676,8 @@ class BySector:
             by_sector_log_law.wspds
 
             # View other information
-            by_sector_power_law.info
-            by_sector_log_law.info
+            pprint.pprint(by_sector_power_law.info)
+            pprint.pprint(by_sector_log_law.info)
 
         """
 
@@ -687,8 +687,7 @@ class BySector:
         wspds = wspds.dropna()
 
         if len(wspds.columns) != len(heights):
-            raise ValueError('An equal number of wind series and heights is required. ' + str(len(wspds.columns)) +
-                             ' wind serie(s) and ' + str(len(heights)) + ' height(s) were given.')
+            _unequal_wspd_heights_error_msg(wspds, heights)
 
         if direction_bin_array is not None:
             sectors = len(direction_bin_array) - 1
@@ -751,8 +750,8 @@ class BySector:
             slope = slope_intercept.iloc[:, 0]
             intercept = slope_intercept.iloc[:, 1]
             roughness = calc_roughness(slope=slope, intercept=intercept)
-            output_data['roughnesss_coefficient'] = roughness
-            output_data['roughnesss_coefficient_count'] = count_df
+            output_data['roughness'] = roughness
+            output_data['roughness_count'] = count_df
             self.roughness_count = count_df
             self._roughness = roughness
             self.plot = plt.plot_shear_by_sector(scale_variable=roughness, wind_rose_data=wind_rose_dist,
@@ -797,19 +796,21 @@ class BySector:
         :type self: BySector object
         :param wspds: Wind speed time series to apply shear to.
         :type wspds: pandas.Series
-        :param wdir: wind direction measurements of wspds, only required if shear is to be applied by direction sector.
+        :param wdir: Wind direction measurements of wspds, only required if shear is to be applied by direction sector.
         :type wdir: pandas.Series
-        :param height: height of above wspds.
+        :param height: Height of wspds.
         :type height: float
-        :param shear_to: height to which wspds should be scaled to.
+        :param shear_to: Height to which wspds should be scaled to.
         :type shear_to: float
-        :return: a pandas.Series of the scaled wind speeds.
+        :return: A pandas.Series of the scaled wind speeds.
         :rtype: pandas.Series
 
          **Example Usage**
          ::
+            import brightwind as bw
+
             # Load anemometer data to calculate exponents
-            data = bw.load_csv(bw.datasets.demo_data)
+            data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
             anemometers = data[['Spd80mS', 'Spd60mS']]
             heights = [80, 60]
             directions = data[['Dir78mS']]
@@ -822,16 +823,8 @@ class BySector:
             by_sector_power_law= bw.Shear.BySector(anemometers, heights, directions)
 
             # Scale wind speeds using exponents
-            # Specify wind speeds to be scaled
-
-            windseries = data['Spd40mN']
-            height = 40
-            shear_to =80
-            wdir = data['DIr48mS']
-
-            by_sector_power_law.apply(windseries, wdir, height, shear_to)
-            by_sector_log_law.apply(windseries, wdir, height, shear_to)
-
+            by_sector_power_law.apply(data['Spd40mN'], data['Dir38mS'], height=40, shear_to=70)
+            by_sector_log_law.apply(data['Spd40mN'], data['Dir38mS'], height=40, shear_to=70)
 
         """
 
@@ -840,9 +833,9 @@ class BySector:
 
 def _log_roughness_scale(wspds, height, shear_to, roughness_coefficient):
     """
-    Scale wind speeds using the logarithimic wind shear law.
+    Scale wind speeds using the logarithmic wind shear law.
 
-    :param wspds: windspeeds at height h1, U1
+    :param wspds: wind speeds at height z1, U1
     :param height: z1
     :param shear_to: z2
     :param roughness_coefficient: z0
@@ -873,7 +866,7 @@ def _calc_log_law(wspds, heights, return_coeff=False, maximise_data=False) -> (n
     :param heights: List of heights [m above ground]. The position of the height in the list must be the same
         position in the list as its corresponding wind speed value.
     :return: The slope and intercept of the best fit line, as defined above
-    :rtype: pandas.Series or float
+    :rtype: pandas.Series and float
 
     METHODOLOGY:
         Derive natural log of elevation data sets
@@ -901,14 +894,14 @@ def _calc_log_law(wspds, heights, return_coeff=False, maximise_data=False) -> (n
         """
 
     if maximise_data:
-        logheights = np.log(
+        log_heights = np.log(
             pd.Series(heights).drop(wspds[wspds == 0].index.values.astype(int)))  # take log of elevations
         wspds = wspds.drop(wspds[wspds == 0].index.values.astype(int))
 
     else:
-        logheights = np.log(heights)  # take log of elevations
+        log_heights = np.log(heights)  # take log of elevations
 
-    coeffs = np.polyfit(logheights, wspds, deg=1)
+    coeffs = np.polyfit(log_heights, wspds, deg=1)
     if return_coeff:
         return pd.Series([coeffs[0], coeffs[1]])
     return coeffs[0]
@@ -923,7 +916,7 @@ def _calc_power_law(wspds, heights, return_coeff=False, maximise_data=False) -> 
         position in the list as its corresponding wind speed value.
     :return: The shear value (alpha), as the inverse exponent of the best fit power law, based on the form:
         $(v1/v2) = (z1/z2)^(1/alpha)$
-    :rtype: pandas.Series or float
+    :rtype: pandas.Series and float
 
     METHODOLOGY:
         Derive natural log of elevation and speed data sets
@@ -934,14 +927,14 @@ def _calc_power_law(wspds, heights, return_coeff=False, maximise_data=False) -> 
 
     """
     if maximise_data:
-        logheights = np.log(pd.Series(heights).drop(wspds[wspds == 0].index.values.astype(int)))
-        logwspds = np.log(wspds.drop(wspds[wspds == 0].index.values.astype(int)))
+        log_heights = np.log(pd.Series(heights).drop(wspds[wspds == 0].index.values.astype(int)))
+        log_wspds = np.log(wspds.drop(wspds[wspds == 0].index.values.astype(int)))
 
     else:
-        logheights = np.log(heights)  # take log of elevations
-        logwspds = np.log(wspds)  # take log of speeds
+        log_heights = np.log(heights)  # take log of elevations
+        log_wspds = np.log(wspds)  # take log of speeds
 
-    coeffs = np.polyfit(logheights, logwspds, deg=1)  # get coefficients of linear best fit to log distribution
+    coeffs = np.polyfit(log_heights, log_wspds, deg=1)  # get coefficients of linear best fit to log distribution
     if return_coeff:
         return pd.Series([coeffs[0], np.exp(coeffs[1])])
     return coeffs[0]
@@ -959,23 +952,23 @@ def _by_12x24(wspds, heights, min_speed=3, return_data=False, var_name='Shear'):
     return plt.plot_12x24_contours(tab_12x24, label=(var_name, 'mean'))
 
 
-def scale(wspd,  height, shear_to, alpha=None, roughness_coefficient=None, calc_method='power_law'):
+def scale(wspd,  height, shear_to, alpha=None, roughness=None, calc_method='power_law'):
     """
     Scales wind speeds from one height to another given a value of alpha or roughness coefficient (zo)
 
-    :param alpha: Shear exponent or roughness coefficient to be used when scaling wind speeds.
-    :type alpha: Float
     :param wspd: Wind speed time series to apply shear to.
     :type wspd: pandas.Series
     :param height: height of above wspds.
     :type height: float
-    :param shear_to: height to which wspd should be scaled to.
+    :param shear_to: Height to which wspd should be scaled to.
     :type shear_to: float
+    :param alpha: Shear exponent to be used when scaling wind speeds.
+    :type alpha: Float
+    :param roughness: Roughness coefficient to be used when scaling wind speeds.
+    :type roughness: float
     :param calc_method: calculation method used to scale the wind speed.
             Using either:   1) 'power_law' :    $(v1/v2) = (z1/z2)^(1/alpha)$
-                            2) 'log_law':        $v2 = (ln(z2/z0)/ln(z1/z0))v1$
-
-
+                            2) 'log_law':       $v2 = (ln(z2/z0)/ln(z1/z0))v1$
     :type calc_method: string
     :return: a pandas series of the scaled wind speed
     :return: pandas.Series or float
@@ -984,25 +977,22 @@ def scale(wspd,  height, shear_to, alpha=None, roughness_coefficient=None, calc_
     ::
 
        # Scale wind speeds using exponents
-       # Specify wind speeds to be scaled
-       windseries = data['Spd40mN']
 
        # Specify alpha to use
-       alpha = .2
+       alpha_value = .2
 
-       #Specify roughness coefficient to use
+       # Specify roughness coefficient to use
        zo = .03
 
        height = 40
-       shear_to =80
+       shear_to = 80
 
-       scaled_by_power_law = bw.Shear.scale(windseries, height, shear_to, alpha)
-       scaled_by_log_law = bw.Sheear.scaled(windseries, height, shear_to, roughness, calc_method = 'log_law')
-
+       scaled_by_power_law = bw.Shear.scale(data['Spd40mN'], height, shear_to, alpha=alpha_value)
+       scaled_by_log_law = bw.Shear.scale(data['Spd40mN'], height, shear_to, roughness=zo, calc_method='log_law')
 
     """
     return _scale(wspds=wspd, height=height, shear_to=shear_to, calc_method=calc_method,
-                  alpha=alpha, roughness_coefficient=roughness_coefficient)
+                  alpha=alpha, roughness_coefficient=roughness)
 
 
 def _scale(wspds, height, shear_to, calc_method='power_law', alpha=None, roughness_coefficient=None, origin=None):
