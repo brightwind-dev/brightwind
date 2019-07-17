@@ -1157,6 +1157,3 @@ def _fill_df_12x24(data):
         df = df_12x24
 
     return df
-
-    shear_by_ts_log_law = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law')
-    shear_by_ts_log_law.apply(data['Spd80mN'], 40, 60)
