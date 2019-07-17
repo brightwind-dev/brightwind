@@ -203,7 +203,7 @@ class TimeOfDay:
         values are calculated based on the average wind speeds at each measurement height in each bin.
 
         :param wspds: pandas.DataFrame, list of pandas.Series or list of wind speeds to be used for calculating shear.
-       :type wspds:  pandas.DataFrame, list of pandas.Series or list.
+        :type wspds:  pandas.DataFrame, list of pandas.Series or list.
         :param heights: List of anemometer heights..
         :type heights: list
         :param min_speed: Only speeds higher than this would be considered for calculating shear, default is 3
@@ -638,7 +638,7 @@ class BySector:
         :param sectors: number of sectors for the shear to be calculated for.
         :type sectors: int
         :param direction_bin_array: specific array of directional bins to be used. Default is that bins are calculated
-        by 360/sectors.
+                                    by 360/sectors.
         :type direction_bin_array: array
         :param direction_bin_labels: labels to be given to the above direction_bin array.
         :type direction_bin_labels: array
@@ -959,7 +959,7 @@ def _by_12x24(wspds, heights, min_speed=3, return_data=False, var_name='Shear'):
     return plt.plot_12x24_contours(tab_12x24, label=(var_name, 'mean'))
 
 
-def scale(wspd, alpha, height, shear_to, calc_method='power_law'):
+def scale(wspd,  height, shear_to, alpha=None, roughness_coefficient=None, calc_method='power_law'):
     """
     Scales wind speeds from one height to another given a value of alpha or roughness coefficient (zo)
 
@@ -996,13 +996,13 @@ def scale(wspd, alpha, height, shear_to, calc_method='power_law'):
        height = 40
        shear_to =80
 
-       scaled_by_power_law = bw.Shear.scale(alpha, windseries, height, shear_to)
-       scaled_by_log_law = bw.Sheear.scaled(zo, windseries, height, shear_to, calc_method = 'log_law')
+       scaled_by_power_law = bw.Shear.scale(windseries, height, shear_to, alpha)
+       scaled_by_log_law = bw.Sheear.scaled(windseries, height, shear_to, roughness, calc_method = 'log_law')
 
 
     """
     return _scale(wspds=wspd, height=height, shear_to=shear_to, calc_method=calc_method,
-                  alpha=alpha)
+                  alpha=alpha, roughness_coefficient=roughness_coefficient)
 
 
 def _scale(wspds, height, shear_to, calc_method, alpha=None, roughness_coefficient=None, origin=None):
