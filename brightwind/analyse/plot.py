@@ -663,17 +663,25 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     return ax.get_figure()
 
 
-def plot_power_law(avg_alpha, avg_c, wspds, heights, max_plot_height=None):
+def plot_power_law(avg_alpha, avg_c, wspds, heights, max_plot_height=None, avg_slope=None, avg_intercept=None,
+                   plot_both=True):
     if max_plot_height is None:
-        plot_heights = np.arange(1, max(heights) + 1, 1)
-    else:
-        plot_heights = np.arange(1, max_plot_height+1, 1)
+        max_plot_height = max(heights)
+
+    plot_heights = np.arange(1, max_plot_height+1, 1)
     speeds = avg_c * (plot_heights ** avg_alpha)
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlabel('Speed [m/s]')
     ax.set_ylabel('Elevation [m]')
-    ax.plot(speeds, plot_heights, '-', color='#9ACD32')
+    ax.plot(speeds, plot_heights, '-', color='#9ACD32',label='power_law')
     ax.scatter(wspds, heights, marker='o', color=bw_colors('asphault'))
+    if plot_both is True:
+        plot_heights = np.arange(1, max_plot_height+1, 1)
+        speeds = avg_slope * np.log(plot_heights) + avg_intercept
+        ax.plot(speeds, plot_heights, '-', color=bw_colors('asphault'),label='log_law')
+        ax.scatter(wspds, heights, marker='o', color=bw_colors('asphault'))
+        plt.legend(loc='upper left')
+
     ax.grid()
     ax.set_xlim(0, max(speeds) + 1)
     ax.set_ylim(0, max(plot_heights) + 10)
@@ -682,9 +690,9 @@ def plot_power_law(avg_alpha, avg_c, wspds, heights, max_plot_height=None):
 
 def plot_log_law(avg_slope, avg_intercept, wspds, heights, max_plot_height=None):
     if max_plot_height is None:
-        plot_heights = np.linspace(0.0001, max(heights), num=100)
-    else:
-        plot_heights = np.linspace(0.0001, max_plot_height, num=100)
+        max_plot_height = max(heights)
+
+    plot_heights = np.arange(1, max_plot_height + 1, 1)
     speeds = avg_slope * np.log(plot_heights) + avg_intercept
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlabel('Speed [m/s]')

@@ -435,7 +435,7 @@ class TimeOfDay:
 
 class Average:
 
-    def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', max_plot_height=None):
+    def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', plot_both=False, max_plot_height=None):
         """
          Calculates alpha, using the power law, or the roughness coefficient, using the log law, based on the average wind
          speeds of each supplied time series.
@@ -498,7 +498,14 @@ class Average:
 
         if calc_method == 'power_law':
             alpha, c = _calc_power_law(mean_wspds.values, heights, return_coeff=True)
-            self.plot = plt.plot_power_law(alpha, c, mean_wspds.values, heights, max_plot_height=max_plot_height)
+            if plot_both is True:
+                slope, intercept = _calc_log_law(mean_wspds.values, heights, return_coeff=True)
+                self.plot = plt.plot_power_law(plot_both=True, avg_alpha=alpha, avg_c=c, avg_slope=slope,
+                                               avg_intercept=intercept,
+                                               wspds=mean_wspds.values, heights=heights,
+                                               max_plot_height=max_plot_height)
+            else:
+                self.plot = plt.plot_power_law(alpha, c, mean_wspds.values, heights, max_plot_height=max_plot_height)
             self._alpha = alpha
             output_data['alpha'] = alpha
 
@@ -506,7 +513,12 @@ class Average:
             slope, intercept = _calc_log_law(mean_wspds.values, heights, return_coeff=True)
             roughness_coefficient = e ** (-intercept / slope)
             self.roughness_coefficient = roughness_coefficient
-            self.plot = plt.plot_log_law(slope, intercept, mean_wspds.values, heights, max_plot_height=max_plot_height)
+            if plot_both is True:
+                alpha, c = _calc_power_law(mean_wspds.values, heights, return_coeff=True)
+                self.plot = plt.plot_power_law(avg_alpha=alpha, avg_c=c, avg_slope=slope, avg_intercept=intercept,
+                                               wspds=mean_wspds.values, heights=heights, max_plot_height=max_plot_height)
+            else:
+                self.plot = plt.plot_log_law(slope, intercept, mean_wspds.values, heights, max_plot_height=max_plot_height)
             self.slope = slope
             self.intercept = intercept
             output_data['roughness_coefficient'] = roughness_coefficient
