@@ -366,12 +366,13 @@ class TimeOfDay:
                 slope_df = pd.DataFrame(slope_df.mean(axis=1))
                 intercept_df = pd.DataFrame(intercept_df.mean(axis=1))
                 roughness_coefficient_df = pd.DataFrame(roughness_coefficient_df.mean(axis=1))
-                roughness_coefficient_df.columns = slope_df.columns = intercept_df.columns = ['12 Month Average']
+                roughness_coefficient_df.columns = slope_df.columns = intercept_df.columns = ['12_month_average']
                 self.plot = plt.plot_shear_time_of_day(
                     pd.DataFrame(_fill_df_12x24(roughness_coefficient_df).iloc[:, 0]),
                     calc_method=calc_method, plot_type=plot_type)
 
             output_data['roughness'] = roughness_coefficient_df
+            roughness_coefficient_df.index.name = 'segment_start_time'
             self._roughness = roughness_coefficient_df
 
         input_wind_speeds = {'heights(m)': heights, 'column_names': list(wspds.columns.values),
