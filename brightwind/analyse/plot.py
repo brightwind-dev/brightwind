@@ -664,7 +664,7 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
 
 
 def plot_power_law(avg_alpha, avg_c, wspds, heights, max_plot_height=None, avg_slope=None, avg_intercept=None,
-                   plot_both=True):
+                   plot_both=False):
     if max_plot_height is None:
         max_plot_height = max(heights)
 

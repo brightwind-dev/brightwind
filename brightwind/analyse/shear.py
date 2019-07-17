@@ -29,10 +29,7 @@ import warnings
 
 # pd.options.mode.chained_assignment = None
 
-__all__ = ['Average',
-           'BySector',
-           'TimeOfDay',
-           'TimeSeries']
+__all__ = ['']
 
 
 class TimeSeries:
@@ -123,12 +120,10 @@ class TimeSeries:
             slope_intercept = (wspds[(wspds > min_speed).all(axis=1)].apply(_calc_log_law, heights=heights,
                                                                             return_coeff=True,
                                                                             maximise_data=maximise_data, axis=1))
-            self.slope = slope_intercept.iloc[:, 0]
-            self.intercept = slope_intercept.iloc[:, 1]
-            self.roughness_coefficient = e ** -(self.intercept / self.slope)
-            output_data['slope'] = self.slope
-            output_data['intercept'] = self.intercept
-            output_data['roughnesss_coefficient'] = self.roughness_coefficient
+            slope = slope_intercept.iloc[:, 0]
+            intercept = slope_intercept.iloc[:, 1]
+            self._roughness = e ** -(intercept / slope)
+            output_data['roughnesss_coefficient'] = self._roughness
 
         input_wind_speeds = {'heights(m)': heights, 'column_names': list(wspds.columns.values),
                              'min_spd(m/s)': min_speed}
@@ -147,6 +142,10 @@ class TimeSeries:
     @property
     def alpha(self):
         return self._alpha
+
+    @property
+    def roughness(self):
+        return self._roughness
 
     def apply(self, wspds, height, shear_to):
         """"
@@ -372,8 +371,8 @@ class TimeOfDay:
                     pd.DataFrame(_fill_df_12x24(roughness_coefficient_df).iloc[:, 0]),
                     calc_method=calc_method, plot_type=plot_type)
 
-            output_data['roughnesss_coefficient'] = roughness_coefficient_df
-            self.roughness_coefficient = roughness_coefficient_df
+            output_data['roughness'] = roughness_coefficient_df
+            self._roughness = roughness_coefficient_df
 
         input_wind_speeds = {'heights(m)': heights, 'column_names': list(wspds.columns.values),
                              'min_spd(m/s)': min_speed}
@@ -393,6 +392,10 @@ class TimeOfDay:
     @property
     def alpha(self):
         return self._alpha
+
+    @property
+    def roughness(self):
+        return self._roughness
 
     def apply(self, wspds, height, shear_to):
         """
@@ -512,18 +515,15 @@ class Average:
         elif calc_method == 'log_law':
             slope, intercept = _calc_log_law(mean_wspds.values, heights, return_coeff=True)
             roughness_coefficient = e ** (-intercept / slope)
-            self.roughness_coefficient = roughness_coefficient
+            self._roughness = roughness_coefficient
             if plot_both is True:
                 alpha, c = _calc_power_law(mean_wspds.values, heights, return_coeff=True)
                 self.plot = plt.plot_power_law(avg_alpha=alpha, avg_c=c, avg_slope=slope, avg_intercept=intercept,
                                                wspds=mean_wspds.values, heights=heights, max_plot_height=max_plot_height)
             else:
                 self.plot = plt.plot_log_law(slope, intercept, mean_wspds.values, heights, max_plot_height=max_plot_height)
-            self.slope = slope
-            self.intercept = intercept
-            output_data['roughness_coefficient'] = roughness_coefficient
-            output_data['slope'] = slope
-            output_data['intercept'] = intercept
+
+            output_data['roughness'] = roughness_coefficient
 
         else:
             raise ValueError('Please enter a valid calculation method, "power_law or "log_law"')
@@ -544,6 +544,10 @@ class Average:
     @property
     def alpha(self):
         return self._alpha
+
+    @property
+    def roughness(self):
+        return self._roughness
 
     def apply(self, wspds, height, shear_to):
         """
@@ -714,10 +718,8 @@ class BySector:
 
             output_data['roughnesss_coefficient'] = roughness_coefficient
             output_data['roughnesss_coefficient_count'] = count_df
-            output_data['slope'] = slope
-            output_data['intercept'] = intercept
-            self.roughness_coefficient_count = count_df
-            self.roughness_coefficient = roughness_coefficient
+            self.roughness_count = count_df
+            self._roughness = roughness_coefficient
             clear_output()
             self.plot = plt.plot_shear_by_sector(scale_variable=roughness_coefficient, wind_rose_data=wind_rose_dist,
                                                  calc_method=calc_method)
@@ -747,6 +749,10 @@ class BySector:
     @property
     def alpha(self):
         return self._alpha
+
+    @property
+    def roughness(self):
+        return self._roughness
 
     def apply(self, wspds, wdir, height, shear_to):
         """
@@ -1015,9 +1021,9 @@ def _apply(self, wspds, height, shear_to, wdir=None):
                                   calc_method='power_law', alpha=df.iloc[:, 1])
 
         elif self.calc_method == 'log_law':
-            df = pd.concat([wspds, self.slope, self.intercept], axis=1).dropna()
+            df = pd.concat([wspds, self.roughness], axis=1).dropna()
             scaled_wspds = _scale(wspds=df.iloc[:, 0], height=height, shear_to=shear_to, calc_method=self.calc_method,
-                                  roughness_coefficient=self.roughness_coefficient, origin=self.origin)
+                                  roughness_coefficient=self._roughness, origin=self.origin)
 
         result = scaled_wspds.dropna()
 
@@ -1027,7 +1033,7 @@ def _apply(self, wspds, height, shear_to, wdir=None):
             filled_alpha = _fill_df_12x24(self.alpha)
 
         elif self.calc_method == 'log_law':
-            filled_roughness_coefficient = _fill_df_12x24(self.roughness_coefficient)
+            filled_roughness_coefficient = _fill_df_12x24(self._roughness)
             filled_alpha = filled_roughness_coefficient
 
         df_wspds = [[None for y in range(12)] for x in range(24)]
@@ -1068,7 +1074,7 @@ def _apply(self, wspds, height, shear_to, wdir=None):
         by_sector = pd.Series([])
 
         if self.calc_method == 'log_law':
-            direction_bins = self.roughness_coefficient
+            direction_bins = self._roughness
         if self.calc_method == 'power_law':
             direction_bins = self.alpha
 
@@ -1105,7 +1111,7 @@ def _apply(self, wspds, height, shear_to, wdir=None):
                 scaled_wspds[i] = _scale(wspds=by_sector[i]['Unscaled_Wind_Speeds'], height=height,
                                          shear_to=shear_to,
                                          calc_method=self.calc_method,
-                                         roughness_coefficient=self.roughness_coefficient[i])
+                                         roughness_coefficient=self._roughness[i])
 
             if i == 0:
                 result = scaled_wspds[i]
@@ -1127,7 +1133,7 @@ def _apply(self, wspds, height, shear_to, wdir=None):
 
         elif self.calc_method == 'log_law':
             result = _scale(wspds=wspds, height=height, shear_to=shear_to,
-                            calc_method=self.calc_method, roughness_coefficient=self.roughness_coefficient)
+                            calc_method=self.calc_method, roughness_coefficient=self._roughness)
 
     new_name = wspds.name + '_scaled_to_' + str(shear_to) + 'm'
     result.rename(new_name, inplace=True)
