@@ -19,7 +19,7 @@ def test_Average():
 
     # Test attributes
     shear_avg_power_law.alpha
-    shear_avg_log_law.slope
+    shear_avg_log_law.roughness
 
     # Test apply
     shear_avg_power_law.apply(data['Spd80mN'], 40, 60)
@@ -77,7 +77,7 @@ def test_TimeOfDay():
 
     # Test attributes
     shear_by_tod_power_law.alpha
-    shear_by_tod_log_law.slope
+    shear_by_tod_log_law.roughness
 
     # Test apply
     shear_by_tod_power_law.apply(data['Spd80mN'], 40, 60)
@@ -104,7 +104,7 @@ def test_TimeSeries():
 
     # Test attributes
     shear_by_ts_power_law.alpha
-    shear_by_ts_log_law.slope
+    shear_by_ts_log_law.roughness
 
     # Test apply
     shear_by_ts_power_law.apply(data['Spd80mN'], 40, 60)
