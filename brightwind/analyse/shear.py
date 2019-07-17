@@ -1005,7 +1005,7 @@ def scale(wspd,  height, shear_to, alpha=None, roughness_coefficient=None, calc_
                   alpha=alpha, roughness_coefficient=roughness_coefficient)
 
 
-def _scale(wspds, height, shear_to, calc_method, alpha=None, roughness_coefficient=None, origin=None):
+def _scale(wspds, height, shear_to, calc_method='power_law', alpha=None, roughness_coefficient=None, origin=None):
     """
     Private function for execution of scale()
     """
