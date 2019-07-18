@@ -1153,6 +1153,11 @@ class Shear:
                 output_data['roughness'] = self.roughness
                 output_data['roughness_count'] = self.roughness_count
 
+        if self.calc_method == 'power_law':
+            output_data['alpha'] = self.alpha
+        if self.calc_method == 'log_law':
+            output_data['roughness'] = self.roughness
+            
         info['input data'] = input_data
         info['output data'] = output_data
 
