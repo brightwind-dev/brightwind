@@ -325,6 +325,7 @@ class Shear:
                     self.plot = plt.plot_shear_time_of_day(pd.DataFrame((Shear._fill_df_12x24(alpha_df)).iloc[:, 0]),
                                                            calc_method=calc_method, plot_type=plot_type)
 
+                alpha_df.index.name = 'segment_start_time'
                 self._alpha = alpha_df
 
             if calc_method == 'log_law':
@@ -678,7 +679,8 @@ class Shear:
             self.origin = 'BySector'
             self.sectors = sectors
             self.calc_method = calc_method
-            self.info = Shear.create_info(self, heights=heights, cvg=cvg, min_speed=min_speed)
+            self.info = Shear.create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
+                                          direction_bin_array = direction_bin_array)
 
         @property
         def alpha(self):
@@ -1130,7 +1132,8 @@ class Shear:
                              'min_spd': min_speed}
         input_data['input_wind_speeds'] = input_wind_speeds
         input_data['calculation_method'] = self.calc_method
-        output_data['concurrent_period'] = float("{:.3f}".format(cvg))
+        if cvg is not None:
+            output_data['concurrent_period'] = float("{:.3f}".format(cvg))
 
         if self.origin == 'TimeOfDay':
             input_data['segments_per_day'] = int(segments_per_day)

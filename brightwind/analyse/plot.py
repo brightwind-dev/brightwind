@@ -22,6 +22,7 @@ import os
 from brightwind.utils import utils
 import matplotlib as mpl
 from pandas.plotting import register_matplotlib_converters
+import re
 
 register_matplotlib_converters()
 
@@ -29,7 +30,8 @@ __all__ = ['plot_timeseries',
            'plot_scatter',
            'plot_scatter_wspd',
            'plot_scatter_wdir',
-           'plot_shear_by_sector']
+           'plot_shear_by_sector',
+           'plot_rose']
 
 try:
     if 'Gotham Rounded' in \
@@ -395,11 +397,20 @@ def plot_rose(ext_data):
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.arange(0, 360, 360.0 / sectors))
+    bin_edges = pd.Series([])
+    for i in range(sectors):
+        bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", ext_data.index[i])[0])
+        if i == sectors - 1:
+            bin_edges[i + 1] = float(re.findall(r"[-+]?\d*\.\d+|\d+", ext_data.index[i])[1])
+
+    radians = np.radians(utils._get_dir_sector_mid_pts(ext_data.index))
     ax.set_rgrids(np.arange(0, 101, 10), labels=[str(i) + '%' for i in np.arange(0, 101, 10)], angle=0)
-    ax.bar(np.arange(0, 2.0 * np.pi, 2.0 * np.pi / sectors), result, width=2.0 * np.pi / sectors, bottom=0.0,
-           color='#9ACD32',
-           edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
+    for i in range(len(bin_edges)-1):
+        ax.bar(radians[i], result[i], width=2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360), bottom=0.0,
+                                                         color='#9ACD32', align = 'center',
+                                                         edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
+
+    ax.set_thetagrids(radians*180/np.pi)
     # ax.set_title('Wind Rose', loc='center')
     plt.close()
     return ax.get_figure()
@@ -547,31 +558,44 @@ def plot_TI_by_sector(turbulence, wdir, ti):
 
 def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'):
 
-    params = dict(projection='polar', theta_direction=-1, theta_offset=np.pi / 2)
+    result = wind_rose_data.copy(deep=False)
     radians = np.radians(utils._get_dir_sector_mid_pts(scale_variable.index))
-    fig, ax = plt.subplots(subplot_kw=params)
-    fig.set_figheight(10)
-    fig.set_figwidth(10)
+    sectors = len(result)
+    fig = plt.figure(figsize=(12, 12),)
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(utils._get_dir_sector_mid_pts(scale_variable.index))
+    bin_edges = pd.Series([])
+    for i in range(sectors):
+        bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])[0])
+        if i == sectors - 1:
+            bin_edges[i + 1] = float(re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])[1])
 
     if calc_method == 'power_law':
         label = 'Mean_Shear'
     if calc_method == 'log_law':
         label = 'Mean_Roughness_Coefficient'
 
-    sectors = len(wind_rose_data)
-    plot_x = np.append(radians, radians[0])
-    scale_to_fit = max(scale_variable)/max(wind_rose_data/100)
-    wind_rose_y = (wind_rose_data/100) * scale_to_fit
-    wind_rose_y = np.append(np.array(wind_rose_y), np.array(wind_rose_y)[0])
-
     scale_variable_y = np.append(scale_variable, scale_variable[0])
+    plot_x = np.append(radians, radians[0])
+    scale_to_fit = max(scale_variable)/max(result/100)
+    wind_rose_r = (result/100) * scale_to_fit
+    bin_edges = np.array(bin_edges)
 
-    ax.bar(plot_x,  wind_rose_y, width=2.0 * np.pi/sectors, bottom=0.0,
-          color='#2e3743', edgecolor=[bw_colors('asphault') for i in range(len(wind_rose_y))], alpha=0.8,label = 'Wind_Directional_Frequency')
+    for i in range(len(bin_edges) - 1):
+        if i == 0:
+             ax.bar(radians[i], wind_rose_r[i], width=2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360),
+                                                                    color= bw_colors('asphault'), align='center',
+                                                                    edgecolor=['#2e3743' for i in range(len(result))],
+                                                                    alpha=0.8, label='Wind_Directional_Frequency')
 
+        else:
+             ax.bar(radians[i], wind_rose_r[i], width=2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360),
+                                                                    color=bw_colors('asphault'), align='center',
+                                                                    edgecolor=['#2e3743' for i in range(len(result))],
+                                                                    alpha=0.8)
+
+    ax.set_thetagrids(radians*180/np.pi)
     ax.plot(plot_x, scale_variable_y, color=bw_colors('green'), linewidth=4, label=label)
     maxlevel = (max(scale_variable_y)) + max(scale_variable_y)*.1
     ax.set_ylim(0, maxlevel)
@@ -761,3 +785,20 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         ax.xaxis.set_minor_formatter(mpl.dates.DateFormatter("%H-%M"))
         _ = plt.xticks(rotation=90)
         return ax.get_figure()
+
+
+if __name__ == '__main__':
+    import brightwind as bw
+
+    data = bw.load_csv(r'C:\Users\lukec\demo_data.csv')
+
+    anemometers = data[['Spd80mN','Spd60mN', 'Spd40mN']]
+
+    heights = [80, 60, 40]
+
+    directions = data['Dir78mS']
+
+    speeds = data['Spd40mN']
+
+    custombins = [0,30,60,90,120,150,180,210,240,270,360]
+    data = bw.Shear.BySector(anemometers, heights, directions, direction_bin_array=custombins)

@@ -24,7 +24,20 @@ def test_Average():
     # Test apply
     shear_avg_power_law.apply(data['Spd80mN'], 40, 60)
     shear_avg_log_law.apply(data['Spd80mN'], 40, 60)
+
     assert True
+    # Test specific values
+    wspds = [7.74, 8.2, 8.57]
+    heights =  [60, 80, 100]
+    specific_test = bw.Shear.Average(wspds, heights)
+    assert round(specific_test.alpha, 9) == 0.199474297
+
+    wspds = [8, 8.365116]
+    heights = [80, 100]
+    specific_test = bw.Shear.Average(wspds, heights)
+    assert round(specific_test.alpha, 1) == 0.2
+    specific_test_log = bw.Shear.Average(wspds, heights, calc_method='log_law')
+    assert round(specific_test_log.roughness, 9) == 0.602156994
 
 
 def test_BySector():
