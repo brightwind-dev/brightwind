@@ -117,5 +117,5 @@ def test_scale():
     data = bw.load_csv(bw.datasets.demo_data)
     # Specify columns in data which contain the anemometer measurements from which to calculate shear
     bw.Shear.scale( data['Spd40mN'], 40, 60, alpha=.2)
-    bw.Shear.scale(data['Spd40mN'], 40, 60, calc_method='log_law', roughness_coefficient=.03)
+    bw.Shear.scale(data['Spd40mN'], 40, 60, calc_method='log_law', roughness=.03)
     assert True
