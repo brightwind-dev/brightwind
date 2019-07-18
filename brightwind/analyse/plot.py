@@ -398,17 +398,28 @@ def plot_rose(ext_data):
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     bin_edges = pd.Series([])
+    width = pd.Series([])
     for i in range(sectors):
         bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", ext_data.index[i])[0])
         if i == sectors - 1:
-            bin_edges[i + 1] = float(re.findall(r"[-+]?\d*\.\d+|\d+", ext_data.index[i])[1])
+            bin_edges[i + 1] = abs(float(re.findall(r"[-+]?\d*\.\d+|\d+", ext_data.index[i])[1]))
 
     radians = np.radians(utils._get_dir_sector_mid_pts(ext_data.index))
     ax.set_rgrids(np.arange(0, 101, 10), labels=[str(i) + '%' for i in np.arange(0, 101, 10)], angle=0)
-    for i in range(len(bin_edges)-1):
-        ax.bar(radians[i], result[i], width=2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360), bottom=0.0,
-                                                         color='#9ACD32', align = 'center',
-                                                         edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
+
+    for i in range(len(bin_edges) - 1):
+
+        if bin_edges[i+1] == 0:
+            width[i] = 2 * np.pi*(360 - bin_edges[i])/360
+
+        elif bin_edges[i + 1] > bin_edges[i]:
+            width[i] = 2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360)
+
+        else:
+            width[i] = 2 * np.pi * (((360 + bin_edges[i + 1]) - bin_edges[i]) / 360)
+
+    ax.bar(radians, result, width=width, bottom=0.0, color='#9ACD32', align = 'center',
+           edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
 
     ax.set_thetagrids(radians*180/np.pi)
     # ax.set_title('Wind Rose', loc='center')
@@ -569,7 +580,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
     for i in range(sectors):
         bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])[0])
         if i == sectors - 1:
-            bin_edges[i + 1] = float(re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])[1])
+            bin_edges[i + 1] = abs(float(re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])[1]))
 
     if calc_method == 'power_law':
         label = 'Mean_Shear'
@@ -581,24 +592,27 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
     scale_to_fit = max(scale_variable)/max(result/100)
     wind_rose_r = (result/100) * scale_to_fit
     bin_edges = np.array(bin_edges)
+    width = pd.Series([])
 
     for i in range(len(bin_edges) - 1):
-        if i == 0:
-             ax.bar(radians[i], wind_rose_r[i], width=2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360),
-                                                                    color= bw_colors('asphault'), align='center',
-                                                                    edgecolor=['#2e3743' for i in range(len(result))],
-                                                                    alpha=0.8, label='Wind_Directional_Frequency')
+
+        if bin_edges[i + 1] == 0:
+            width[i] = 2 * np.pi * (360 - bin_edges[i]) / 360
+
+        elif bin_edges[i + 1] > bin_edges[i]:
+            width[i] = 2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360)
 
         else:
-             ax.bar(radians[i], wind_rose_r[i], width=2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360),
-                                                                    color=bw_colors('asphault'), align='center',
-                                                                    edgecolor=['#2e3743' for i in range(len(result))],
-                                                                    alpha=0.8)
+            width[i] = 2 * np.pi * (((360 + bin_edges[i + 1]) - bin_edges[i]) / 360)
 
+    ax.bar(radians, wind_rose_r, width=width, color=bw_colors('asphault'), align='center',
+                                              edgecolor=['#2e3743' for i in range(len(result))],
+                                             alpha=0.8, label='Wind_Directional_Frequency')
+
+    maxlevel = (max(scale_variable_y)) + max(scale_variable_y) * .1
     ax.set_thetagrids(radians*180/np.pi)
     ax.plot(plot_x, scale_variable_y, color=bw_colors('green'), linewidth=4, label=label)
-    maxlevel = (max(scale_variable_y)) + max(scale_variable_y)*.1
-    ax.set_ylim(0, maxlevel)
+    ax.set_ylim(0, top=maxlevel)
     ax.legend(loc=8, framealpha=1)
 
     return ax.get_figure()
@@ -785,4 +799,3 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         ax.xaxis.set_minor_formatter(mpl.dates.DateFormatter("%H-%M"))
         _ = plt.xticks(rotation=90)
         return ax.get_figure()
-    

@@ -96,7 +96,7 @@ class Shear:
            """
             print('This may take a while...')
 
-            wspds, cvg = Shear.data_prep(wspds=wspds, heights=heights, min_speed=min_speed, maximise_data=maximise_data)
+            wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed, maximise_data=maximise_data)
 
             if calc_method == 'power_law':
                 alpha_c = (wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_power_law, heights=heights,
@@ -120,7 +120,7 @@ class Shear:
             self.calc_method = calc_method
             self.wspds = wspds
             self.plot = avg_plot.plot
-            self.info = Shear.create_info(self, heights=heights, cvg=cvg, min_speed=min_speed)
+            self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed)
 
         @property
         def alpha(self):
@@ -231,7 +231,7 @@ class Shear:
 
             """
 
-            wspds, cvg = Shear.data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
+            wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
 
             # initialise empty series for later use
             start_times = pd.Series([])
@@ -355,7 +355,7 @@ class Shear:
             self.calc_method = calc_method
             self.wspds = wspds
             self.origin = 'TimeOfDay'
-            self.info = Shear.create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
+            self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
                                           segment_start_time=segment_start_time, segments_per_day=segments_per_day)
 
         @property
@@ -457,9 +457,9 @@ class Shear:
 
             """
 
-            wspds, cvg = Shear.data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
+            wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
 
-            mean_wspds = wspds[(wspds > min_speed).all(axis=1)].mean().dropna()
+            mean_wspds = wspds.mean(axis=0)
 
             if mean_wspds.shape[0] == 0:
                 raise ValueError('None of the input wind speeds are greater than the min_speed, cannot calculate shear')
@@ -496,7 +496,7 @@ class Shear:
             self.wspds = wspds
             self.origin = 'Average'
             self.calc_method = calc_method
-            self.info = Shear.create_info(self, heights=heights, min_speed=min_speed, cvg=cvg)
+            self.info = Shear._create_info(self, heights=heights, min_speed=min_speed, cvg=cvg)
 
         @property
         def alpha(self):
@@ -532,7 +532,7 @@ class Shear:
 
                 # Get power law object
                 average_power_law = bw.Shear.Average(anemometers, heights)
-    a           average_log_law = bw.Shear.Average(anemometers, heights, calc_method='log_law', max_plot_height=120)
+                average_log_law = bw.Shear.Average(anemometers, heights, calc_method='log_law', max_plot_height=120)
 
                # Scale wind speeds using exponents
                average_power_law.apply(data['Spd40mN'], height=40, shear_to=70)
@@ -611,7 +611,7 @@ class Shear:
 
             """
             print('This may take a while...')
-            wspds, cvg = Shear.data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
+            wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
 
             if direction_bin_array is not None:
                 sectors = len(direction_bin_array) - 1
@@ -679,7 +679,7 @@ class Shear:
             self.origin = 'BySector'
             self.sectors = sectors
             self.calc_method = calc_method
-            self.info = Shear.create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
+            self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
                                           direction_bin_array = direction_bin_array)
 
         @property
@@ -1092,7 +1092,7 @@ class Shear:
         return df
 
     @staticmethod
-    def data_prep(wspds, heights, min_speed, maximise_data=False):
+    def _data_prep(wspds, heights, min_speed, maximise_data=False):
 
         if not isinstance(wspds, pd.DataFrame):
             wspds = pd.DataFrame(wspds).T
@@ -1122,7 +1122,7 @@ class Shear:
                          str(len(heights)) + ' height(s) were given.')
 
     @staticmethod
-    def create_info(self, heights, min_speed, cvg, direction_bin_array=None, segments_per_day=None,
+    def _create_info(self, heights, min_speed, cvg, direction_bin_array=None, segments_per_day=None,
                     segment_start_time=None):
 
         info = {}
@@ -1157,3 +1157,19 @@ class Shear:
         info['output data'] = output_data
 
         return info
+
+if __name__ == '__main__':
+
+    import brightwind as bw
+
+
+    data = bw.load_csv(r'C:\Users\lukec\demo_data.csv')
+
+    anemometers = data[['Spd80mN','Spd60mN', 'Spd40mN']]
+
+    heights = [80, 60, 40]
+
+    directions = data['Dir78mS']
+
+    speeds = data['Spd40mN']
+    test = bw.Shear.Average(anemometers, heights)
