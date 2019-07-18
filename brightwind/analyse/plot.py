@@ -785,20 +785,4 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         ax.xaxis.set_minor_formatter(mpl.dates.DateFormatter("%H-%M"))
         _ = plt.xticks(rotation=90)
         return ax.get_figure()
-
-
-if __name__ == '__main__':
-    import brightwind as bw
-
-    data = bw.load_csv(r'C:\Users\lukec\demo_data.csv')
-
-    anemometers = data[['Spd80mN','Spd60mN', 'Spd40mN']]
-
-    heights = [80, 60, 40]
-
-    directions = data['Dir78mS']
-
-    speeds = data['Spd40mN']
-
-    custombins = [0,30,60,90,120,150,180,210,240,270,360]
-    data = bw.Shear.BySector(anemometers, heights, directions, direction_bin_array=custombins)
+    
