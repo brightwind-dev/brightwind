@@ -1157,19 +1157,3 @@ class Shear:
         info['output data'] = output_data
 
         return info
-
-if __name__ == '__main__':
-
-    import brightwind as bw
-
-
-    data = bw.load_csv(r'C:\Users\lukec\demo_data.csv')
-
-    anemometers = data[['Spd80mN','Spd60mN', 'Spd40mN']]
-
-    heights = [80, 60, 40]
-
-    directions = data['Dir78mS']
-
-    speeds = data['Spd40mN']
-    test = bw.Shear.Average(anemometers, heights)
