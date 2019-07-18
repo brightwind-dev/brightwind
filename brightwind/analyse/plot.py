@@ -799,3 +799,22 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         ax.xaxis.set_minor_formatter(mpl.dates.DateFormatter("%H-%M"))
         _ = plt.xticks(rotation=90)
         return ax.get_figure()
+
+def plot_dist_matrix(matrix, colorbar_label=None, xticklabels=None, yticklabels=None):
+    fig, ax = plt.subplots(figsize=(10, 10))
+    cm = ax.pcolormesh(matrix, cmap='YlGn')
+    ax.set(xlim=(0, matrix.shape[1]), ylim=(0, matrix.shape[0]))
+    ax.set(xticks=np.array(range(0, matrix.shape[1]))+0.5, yticks=np.array(range(0, matrix.shape[0])) + 0.5)
+    if xticklabels is not None:
+        ax.set_xticklabels(xticklabels)
+    if yticklabels is not None:
+        ax.set_yticklabels(yticklabels)
+    plt.setp(ax.get_xticklabels(), rotation=90, ha="right", rotation_mode="anchor")
+    ax.set_xlabel(matrix.columns.names[-1])
+    ax.set_ylabel(matrix.index.name)
+    cbar = ax.figure.colorbar(cm, ax=ax)
+    if colorbar_label is not None:
+        cbar.ax.set_ylabel(colorbar_label)
+    plt.close()
+    return ax.get_figure()
+
