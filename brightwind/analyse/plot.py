@@ -22,14 +22,16 @@ import os
 from brightwind.utils import utils
 import matplotlib as mpl
 from pandas.plotting import register_matplotlib_converters
-register_matplotlib_converters()
+import re
 
+register_matplotlib_converters()
 
 __all__ = ['plot_timeseries',
            'plot_scatter',
            'plot_scatter_wspd',
-           'plot_scatter_wdir']
-
+           'plot_scatter_wdir',
+           'plot_shear_by_sector',
+           'plot_rose']
 
 try:
     if 'Gotham Rounded' in \
@@ -37,7 +39,6 @@ try:
         mpl.rcParams['font.family'] = 'Gotham Rounded'
 except Exception as ex:
     raise 'Found exception when checking installed fonts. {}'.format(str(ex))
-    
 
 plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
@@ -102,7 +103,7 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
 
             ax2.set_ylim(0, 1)
             ax.set_ylim(bottom=0)
-            ax.set_xlim(data.index[0]-pd.Timedelta('20days'), data.index[-1]+pd.Timedelta('20days'))
+            ax.set_xlim(data.index[0] - pd.Timedelta('20days'), data.index[-1] + pd.Timedelta('20days'))
             ax.set_zorder(3)
             ax2.yaxis.grid(True)
             ax2.set_axisbelow(True)
@@ -242,9 +243,9 @@ def plot_scatter(x_series, y_series, x_axis_title=None, y_axis_title=None,
                               x_label=x_axis_title, y_label=y_axis_title)
 
     if x_limits is None:
-        x_limits = (round(x_series.min()-0.5), -(-x_series.max()//1))
+        x_limits = (round(x_series.min() - 0.5), -(-x_series.max() // 1))
     if y_limits is None:
-        y_limits = (round(y_series.min()-0.5), -(-y_series.max()//1))
+        y_limits = (round(y_series.min() - 0.5), -(-y_series.max() // 1))
     scat_plot.axes[0].set_xlim(x_limits[0], x_limits[1])
     scat_plot.axes[0].set_ylim(y_limits[0], y_limits[1])
     return scat_plot
@@ -368,11 +369,11 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     else:
         x_data = data.index
     ax.set_xticks(x_data)
-    ax.set_xlim(x_data[0]-0.5, x_data[-1]+0.5)
+    ax.set_xlim(x_data[0] - 0.5, x_data[-1] + 0.5)
     if x_tick_labels is not None:
         ax.set_xticklabels(x_tick_labels)
     if max_y_value is None:
-        ax.set_ylim(0, data.max()*1.1)
+        ax.set_ylim(0, data.max() * 1.1)
     else:
         ax.set_ylim(0, max_y_value)
     if y_label[0] == '%':
@@ -380,7 +381,7 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     ax.grid(b=True, axis='y', zorder=0)
     for frequency, ws_bin in zip(data, x_data):
         ax.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
-                  interpolation='gaussian', extent=(ws_bin-0.4, ws_bin+0.4, 0, frequency), aspect='auto', zorder=3)
+                  interpolation='gaussian', extent=(ws_bin - 0.4, ws_bin + 0.4, 0, frequency), aspect='auto', zorder=3)
         ax.bar(ws_bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
     plt.close()
     return ax.get_figure()
@@ -396,10 +397,31 @@ def plot_rose(ext_data):
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.arange(0, 360, 360.0/sectors))
-    ax.set_rgrids(np.arange(0, 101, 10), labels=[str(i)+'%' for i in np.arange(0, 101, 10)], angle=0)
-    ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
+    bin_edges = pd.Series([])
+    width = pd.Series([])
+    for i in range(sectors):
+        bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", ext_data.index[i])[0])
+        if i == sectors - 1:
+            bin_edges[i + 1] = abs(float(re.findall(r"[-+]?\d*\.\d+|\d+", ext_data.index[i])[1]))
+
+    radians = np.radians(utils._get_dir_sector_mid_pts(ext_data.index))
+    ax.set_rgrids(np.arange(0, 101, 10), labels=[str(i) + '%' for i in np.arange(0, 101, 10)], angle=0)
+
+    for i in range(len(bin_edges) - 1):
+
+        if bin_edges[i+1] == 0:
+            width[i] = 2 * np.pi*(360 - bin_edges[i])/360
+
+        elif bin_edges[i + 1] > bin_edges[i]:
+            width[i] = 2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360)
+
+        else:
+            width[i] = 2 * np.pi * (((360 + bin_edges[i + 1]) - bin_edges[i]) / 360)
+
+    ax.bar(radians, result, width=width, bottom=0.0, color='#9ACD32', align = 'center',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
+
+    ax.set_thetagrids(radians*180/np.pi)
     # ax.set_title('Wind Rose', loc='center')
     plt.close()
     return ax.get_figure()
@@ -412,8 +434,8 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     table_trans = table.T
     if plot_bins is not None:
         rows_to_sum = []
-        intervals = [pd.Interval(plot_bins[i], plot_bins[i+1], closed=table.index[0].closed)
-                     for i in range(len(plot_bins)-1)]
+        intervals = [pd.Interval(plot_bins[i], plot_bins[i + 1], closed=table.index[0].closed)
+                     for i in range(len(plot_bins) - 1)]
         bin_assigned = []
         for interval in intervals:
             row_group = []
@@ -425,12 +447,12 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     else:
         if len(table.index) > 6:
             rows_to_sum = []
-            num_rows = len(table.index)//6
+            num_rows = len(table.index) // 6
             ctr = 0
-            while ctr < len(table.index)-(len(table.index) % 6):
-                rows_to_sum.append(list(range(ctr, ctr+num_rows)))
+            while ctr < len(table.index) - (len(table.index) % 6):
+                rows_to_sum.append(list(range(ctr, ctr + num_rows)))
                 ctr += num_rows
-            rows_to_sum[-1].extend(list(range(len(table.index)-(len(table.index) % 6), len(table.index))))
+            rows_to_sum[-1].extend(list(range(len(table.index) - (len(table.index) % 6), len(table.index))))
 
         else:
             rows_to_sum = [[i] for i in range(len(table.index))]
@@ -469,7 +491,7 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
         if angular_pos_end > angular_pos_start:
             angular_width = angular_pos_end - angular_pos_start - (np.pi / 180)  # Leaving 1 degree gap
         else:
-            angular_width = 2*np.pi - angular_pos_start + angular_pos_end - (np.pi / 180)
+            angular_width = 2 * np.pi - angular_pos_start + angular_pos_end - (np.pi / 180)
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
             patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,
                                           frequency, facecolor=gradient_colors[speed_bin], edgecolor='#5c7b1e',
@@ -480,7 +502,8 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     if plot_labels is None:
         plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=bin_labels[i]) for i in range(len(bin_labels))]
     else:
-        plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=plot_labels[i]) for i in range(len(plot_labels))]
+        plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=plot_labels[i]) for i in
+                       range(len(plot_labels))]
     ax.legend(handles=plot_labels)
     plt.close()
     return ax.get_figure()
@@ -509,7 +532,7 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
             IEC_class.iloc[n, 3] = 0.12 * (0.75 + (5.6 / n))
     common_idxs = wspd.index.intersection(wspd_std.index)
     fig, ax = plt.subplots(figsize=(15, 8))
-    ax.scatter(wspd.loc[common_idxs], wspd_std.loc[common_idxs]/wspd.loc[common_idxs],
+    ax.scatter(wspd.loc[common_idxs], wspd_std.loc[common_idxs] / wspd.loc[common_idxs],
                color=bw_colors('green'), alpha=0.3, marker='.')
     ax.plot(ti.index.values, ti.loc[:, 'Mean_TI'].values, color=bw_colors('darkgreen'), label='Mean_TI')
     ax.plot(ti.index.values, ti.loc[:, 'Rep_TI'].values, color=bw_colors('redline'), label='Rep_TI')
@@ -544,24 +567,58 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     return ax.get_figure()
 
 
-def plot_shear_by_sector(shear, wdir, shear_dist):
-    radians = np.radians(utils._get_dir_sector_mid_pts(shear_dist.index))
-    fig = plt.figure(figsize=(10, 10))
+def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'):
+
+    result = wind_rose_data.copy(deep=False)
+    radians = np.radians(utils._get_dir_sector_mid_pts(scale_variable.index))
+    sectors = len(result)
+    fig = plt.figure(figsize=(12, 12),)
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(utils._get_dir_sector_mid_pts(shear_dist.index))
-    ax.plot(np.append(radians, radians[0]), shear_dist.append(shear_dist.iloc[0])['Mean_Shear'],
-            color=bw_colors('green'), linewidth=4)
-    maxlevel = shear_dist['Mean_Shear'].max() + 0.1
-    ax.set_ylim(0, maxlevel)
-    ax.scatter(np.radians(wdir), shear, color=bw_colors('asphault'), alpha=0.3, s=1)
+    bin_edges = pd.Series([])
+    for i in range(sectors):
+        bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])[0])
+        if i == sectors - 1:
+            bin_edges[i + 1] = abs(float(re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])[1]))
+
+    if calc_method == 'power_law':
+        label = 'Mean_Shear'
+    if calc_method == 'log_law':
+        label = 'Mean_Roughness_Coefficient'
+
+    scale_variable_y = np.append(scale_variable, scale_variable[0])
+    plot_x = np.append(radians, radians[0])
+    scale_to_fit = max(scale_variable)/max(result/100)
+    wind_rose_r = (result/100) * scale_to_fit
+    bin_edges = np.array(bin_edges)
+    width = pd.Series([])
+
+    for i in range(len(bin_edges) - 1):
+
+        if bin_edges[i + 1] == 0:
+            width[i] = 2 * np.pi * (360 - bin_edges[i]) / 360
+
+        elif bin_edges[i + 1] > bin_edges[i]:
+            width[i] = 2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360)
+
+        else:
+            width[i] = 2 * np.pi * (((360 + bin_edges[i + 1]) - bin_edges[i]) / 360)
+
+    ax.bar(radians, wind_rose_r, width=width, color=bw_colors('asphault'), align='center',
+                                              edgecolor=['#2e3743' for i in range(len(result))],
+                                             alpha=0.8, label='Wind_Directional_Frequency')
+
+    maxlevel = (max(scale_variable_y)) + max(scale_variable_y) * .1
+    ax.set_thetagrids(radians*180/np.pi)
+    ax.plot(plot_x, scale_variable_y, color=bw_colors('green'), linewidth=4, label=label)
+    ax.set_ylim(0, top=maxlevel)
     ax.legend(loc=8, framealpha=1)
-    plt.close()
+
     return ax.get_figure()
 
 
-def plot_12x24_contours(tab_12x24, label=('Variable', 'mean')):
+def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
     """
     Get Contour Plot of 12 month x 24 hour matrix of variable
     :param tab_12x24: DataFrame returned from get_12x24() in analyse
@@ -576,11 +633,12 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean')):
     cbar.ax.set_ylabel(label[1].capitalize() + " of " + label[0])
     ax.set_xlabel('Month of Year')
     ax.set_ylabel('Hour of Day')
-    month_names= calendar.month_abbr[1:13]
+    month_names = calendar.month_abbr[1:13]
     ax.set_xticks(tab_12x24.columns)
-    ax.set_xticklabels([month_names[i-1] for i in tab_12x24.columns])
+    ax.set_xticklabels([month_names[i - 1] for i in tab_12x24.columns])
     ax.set_yticks(np.arange(0, 24, 1))
-    plt.close()
+    if plot is None:
+        plt.close()
     return ax.get_figure()
 
 
@@ -643,20 +701,104 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     return ax.get_figure()
 
 
-def plot_shear(avg_alpha, avg_c, wspds, heights):
-    plot_heights = np.linspace(0, max(heights), num=100)
-    speeds = avg_c*(plot_heights**avg_alpha)
+def plot_power_law(avg_alpha, avg_c, wspds, heights, max_plot_height=None, avg_slope=None, avg_intercept=None,
+                   plot_both=False):
+    if max_plot_height is None:
+        max_plot_height = max(heights)
+
+    plot_heights = np.arange(1, max_plot_height+1, 1)
+    speeds = avg_c * (plot_heights ** avg_alpha)
     fig, ax = plt.subplots(figsize=(10, 10))
-    ax.set_xlabel('Speed (m/s)')
-    ax.set_ylabel('Elevation (m)')
+    ax.set_xlabel('Speed [m/s]')
+    ax.set_ylabel('Elevation [m]')
+    ax.plot(speeds, plot_heights, '-', color='#9ACD32',label='power_law')
+    ax.scatter(wspds, heights, marker='o', color=bw_colors('asphault'))
+    if plot_both is True:
+        plot_heights = np.arange(1, max_plot_height+1, 1)
+        speeds = avg_slope * np.log(plot_heights) + avg_intercept
+        ax.plot(speeds, plot_heights, '-', color=bw_colors('asphault'),label='log_law')
+        ax.scatter(wspds, heights, marker='o', color=bw_colors('asphault'))
+        plt.legend(loc='upper left')
+
+    ax.grid()
+    ax.set_xlim(0, max(speeds) + 1)
+    ax.set_ylim(0, max(plot_heights) + 10)
+    return ax.get_figure()
+
+
+def plot_log_law(avg_slope, avg_intercept, wspds, heights, max_plot_height=None):
+    if max_plot_height is None:
+        max_plot_height = max(heights)
+
+    plot_heights = np.arange(1, max_plot_height + 1, 1)
+    speeds = avg_slope * np.log(plot_heights) + avg_intercept
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.set_xlabel('Speed [m/s]')
+    ax.set_ylabel('Elevation [m]')
     ax.plot(speeds, plot_heights, '-', color='#9ACD32')
     ax.scatter(wspds, heights, marker='o', color=bw_colors('asphault'))
     ax.grid()
-    ax.set_xlim(0, max(speeds)+1)
-    ax.set_ylim(0, max(plot_heights)+10)
-    plt.close()
+    ax.set_xlim(0, max(speeds) + 1)
+    ax.set_ylim(0, max(plot_heights) + 10)
     return ax.get_figure()
 
+
+def plot_shear_time_of_day(df, calc_method, plot_type='step'):
+
+    df_copy = df.copy()
+    # colours in use
+    colors = [(0.6313725490196078, 0.6470588235294118, 0.6705882352941176, 1.0),  # Jan
+              (0.1568627450980392, .19215686274509805, 0.6705882352941176, 1.0),  # Feb
+              (0.06666666666666667, 0.4196078431372549, 0.6901960784313725, 1.0),  # March
+              (0.22745098039215686, 0.7294117647058823, 0.9803921568627451, 1.0),  # April
+              (0.2392156862745098, 0.5666666666666667, 0.42745098039215684, 1.0),  # May
+              (0.4117647058823529, 0.7137254901960784, 0.16470588235294117, 1.0),  # June
+              (0.611764705882353, 0.7725490196078432, 0.21568627450980393, 1.0),  # July
+              (0.6823529411764706, 0.403921568627451, 0.1607843137254902, 1.0),  # Aug
+              (0.7901960784313726, 0.48627450980392156, 0.1843137254901961, 1.0),  # Sep
+              (1, 0.7019607843, .4, 1),  # Oct
+              (0, 0, 0, 1.0),  # Nov
+              (0.40588235294117647, 0.43137254901960786, 0.4666666666666667, 1.0)]  # Dec
+
+    if len(df.columns) == 1:
+        df.columns = ['12 Month Average']
+        colors[0] = colors[5]
+    if calc_method == 'power_law':
+        label = 'Average Shear'
+
+    if calc_method == 'log_law':
+        label = 'Roughness Coefficient'
+
+    if plot_type == '12x24':
+        df.columns = np.arange(1, 13, 1)
+        df.index= np.arange(0, 24, 1)
+        df[df.columns[::-1]]
+        return plot_12x24_contours(df, label=(label, 'mean'), plot='tod')
+
+    else:
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.set_xlabel('Time of Day')
+        ax.set_ylabel(label)
+        import matplotlib.dates as mdates
+
+        # create x values for plot
+        idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H').time
+
+        if plot_type == 'step':
+            df = df.shift(+1, axis=0)
+            df.iloc[0, :] = df_copy.tail(1).values
+            for i in range(0, len(df.columns)):
+                ax.step(idx, df.iloc[:, i], label=df.iloc[:, i].name, color=colors[i])
+
+        if plot_type == 'line':
+            for i in range(0, len(df.columns)):
+                ax.plot(idx, df.iloc[:, i], label=df.iloc[:, i].name, color=colors[i])
+
+        ax.legend(bbox_to_anchor=(1.1, 1.05))
+        ax.set_xticks(df.index)
+        ax.xaxis.set_minor_formatter(mpl.dates.DateFormatter("%H-%M"))
+        _ = plt.xticks(rotation=90)
+        return ax.get_figure()
 
 def plot_dist_matrix(matrix, colorbar_label=None, xticklabels=None, yticklabels=None):
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -675,3 +817,4 @@ def plot_dist_matrix(matrix, colorbar_label=None, xticklabels=None, yticklabels=
         cbar.ax.set_ylabel(colorbar_label)
     plt.close()
     return ax.get_figure()
+

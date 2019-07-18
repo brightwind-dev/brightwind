@@ -1,5 +1,6 @@
 from .load.load import *
 from .analyse import correlation as Correl
+from .analyse.shear import *
 from .analyse.analyse import *
 from .analyse.plot import *
 from .transform.transform import *

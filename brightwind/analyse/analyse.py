@@ -37,7 +37,6 @@ __all__ = ['concurrent_coverage',
            'basic_stats',
            'TI',
            'sector_ratio',
-           'Shear',
            'calc_air_density']
 
 
@@ -1040,77 +1039,6 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sec_rat_dist,
                                  [wspd_1.name, wspd_2.name],
                                  boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2)
-
-
-class Shear:
-    def power_law(wspds, heights, min_speed=3, return_alpha=False):
-        wspds = wspds.dropna()
-        mean_wspds = wspds[(wspds > min_speed).all(axis=1)].mean()
-        alpha, c = _calc_shear(mean_wspds.values, heights, return_coeff=True)
-        if return_alpha:
-            return plt.plot_shear(alpha, c, mean_wspds.values, heights), alpha
-        return plt.plot_shear(alpha, c, mean_wspds.values, heights)
-
-    def by_sector(wspds, heights, wdir, sectors=12, min_speed=3, direction_bin_array=None, direction_bin_labels=None,
-                  return_data=False):
-        common_idxs = wspds.index.intersection(wdir.index)
-        shear = wspds[(wspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights, axis=1).loc[common_idxs]
-        shear_dist = pd.concat([
-            distribution_by_dir_sector(var_series=shear,
-                                       direction_series=wdir.loc[common_idxs],
-                                       sectors=sectors, direction_bin_array=direction_bin_array,
-                                       direction_bin_labels=direction_bin_labels,
-                                       aggregation_method='mean', return_data=True)[-1].rename("Mean_Shear"),
-            distribution_by_dir_sector(var_series=shear,
-                                       direction_series=wdir.loc[common_idxs],
-                                       sectors=sectors, direction_bin_array=direction_bin_array,
-                                       direction_bin_labels=direction_bin_labels,
-                                       aggregation_method='count', return_data=True)[-1].rename("Shear_Count")], axis=1, join='outer')
-        shear_dist.index.rename('Direction Bin', inplace=True)
-        if return_data:
-            return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist), \
-                   shear_dist
-        else:
-            return plt.plot_shear_by_sector(shear, wdir.loc[shear.index.intersection(wdir.index)], shear_dist)
-
-    def twelve_by_24(wspds, heights, min_speed=3, return_data=False, var_name_label='Shear'):
-        tab_12x24 = dist_12x24(wspds[(wspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights, axis=1),
-                               return_data=True)[1]
-        if return_data:
-            return plt.plot_12x24_contours(tab_12x24, var_name_label=var_name_label), tab_12x24
-        return plt.plot_12x24_contours(tab_12x24, var_name_label=var_name_label)
-
-    def scale(alpha, wspd, height, height_to_scale_to):
-        scale_factor = (height_to_scale_to / height)**alpha
-        return wspd*scale_factor
-
-
-def _calc_shear(wspds, heights, return_coeff=False) -> (np.array, float):
-    """
-    Derive the best fit power law exponent (as 1/alpha) from a given time-step of speed data at 2 or more elevations
-
-    :param wspds: List of wind speeds [m/s]
-    :param heights: List of heights [m above ground]. The position of the height in the list must be the same position
-        in the list as its
-    corresponding wind speed value.
-    :return: The shear value (alpha), as the inverse exponent of the best fit power law, based on the form:
-        (v1/v2) = (z1/z2)^(1/alpha)
-
-    METHODOLOGY:
-        Derive natural log of elevation and speed data sets
-        Derive coefficients of linear best fit along log-log distribution
-        Characterise new distribution of speed values based on linear best fit
-        Derive 'alpha' based on gradient of first and last best fit points (function works for 2 or more points)
-        Return alpha value
-
-    """
-
-    logheights = np.log(heights)  # take log of elevations
-    logwspds = np.log(wspds)  # take log of speeds
-    coeffs = np.polyfit(logheights, logwspds, deg=1)  # get coefficients of linear best fit to log distribution
-    if return_coeff:
-        return coeffs[0], np.exp(coeffs[1])
-    return coeffs[0]
 
 
 def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=None, lapse_rate=-0.113,
