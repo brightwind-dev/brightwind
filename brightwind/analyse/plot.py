@@ -444,8 +444,6 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
         group += 1
         table_binned = pd.concat([table_binned, to_concat], axis=1, sort=True)
     table_binned = table_binned.T
-    # print(rows_to_sum)
-    # return table_binned
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')

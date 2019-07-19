@@ -28,6 +28,7 @@ __all__ = ['concurrent_coverage',
            'dist',
            'dist_of_wind_speed',
            'distribution_by_dir_sector',
+           'dist_matrix_by_dir_sector',
            'dist_12x24',
            'freq_distribution',
            'freq_table',
@@ -434,12 +435,74 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
         distribution = counts/(counts.sum().sum()) * 100.0
     else:
         distribution = data.groupby(['variable_bin', 'direction_bin']).agg(aggregation_method).unstack(level=-1)
-    # for i in range(1, sectors + 1):
-    #     if not (i in distribution.columns):
-    #         distribution.insert(i - 1, i, 0.0)
+    distribution.columns = distribution.columns.droplevel(0)
+    for i in range(1, sectors + 1):
+        if not (i in distribution.columns):
+            distribution.insert(i - 1, i, np.nan)
 
-    # distribution.columns = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
+    distribution.columns = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
     return distribution.sort_index()
+
+
+def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series, var_bin_array=None, var_bin_labels=None, sectors=12,
+               direction_bin_array=None, direction_bin_labels=None, aggregation_method='mean'):
+    """
+    Calculates a distribution matrix of a variable against another variable and wind direction.
+
+    :param var_series: Series of variable whose distribution is calculated
+    :type var_series: pandas.Series
+    :param var_to_bin_series: Series of variable to bin
+    :type var_to_bin_series: pandas.Series
+    :param direction_series: Series of wind directions between [0-360]
+    :type direction_series: pandas.Series
+    :param var_bin_array: List of numbers where adjacent elements of array form a bin. For instance, for bins
+        [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]
+    :type var_bin_array: list
+    :param var_bin_labels: Optional, an array of labels to use for variable bins
+    :type var_bin_labels: list
+    :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that
+            behaviour specify direction_bin_array, it overwrites sectors
+    :type sectors: int
+    :param direction_bin_array: To add custom bins for direction sectors, overwrites sectors. For instance,
+        for direction bins [0,120), [120, 215), [215, 360) the list would be [0, 120, 215, 360]
+    :type direction_bin_array: list
+    :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
+        labels of the format '30-90' by default
+    :type direction_bin_labels: list(float), list(str)
+    :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
+            %frequency or a custom function. Computes frequency in percentages by default.
+    :type aggregation_method: str
+    :return: A distribution matrix for the given variable
+    :rtype: pandas.DataFrame
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+        #Simple use
+        matrix = bw.dist_matrix_by_dir_sector(df.Spd40mN, df.T2m, df.Dir38mS,
+                    var_bin_array=[-8, -5, 5, 10, 15, 20 ,26], sectors=8)
+
+        # Using custom direction bins
+        matrix = bw.dist_matrix_by_dir_sector(df.Spd40mN, df.T2m, df.Dir38mS,
+                    var_bin_array=[-8, -5, 5, 10, 15, 20 ,26],
+                    direction_bin_array=[0, 90, 180, 270, 360],
+                    direction_bin_labels=['north', 'east', 'south', 'west'])
+
+
+    """
+    dist = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_to_bin_series,
+                                        direction_series=direction_series, var_bin_array=var_bin_array,
+                                        sectors=sectors, direction_bin_array=direction_bin_array,
+                                        direction_bin_labels=None, aggregation_method=aggregation_method).replace\
+                                                        (np.nan, 0.0)
+    if direction_bin_labels is not None:
+        dist.columns = direction_bin_labels
+    if var_bin_labels is not None:
+        dist.index = var_bin_labels
+
+    return dist
 
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
@@ -505,46 +568,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                            direction_bin_labels=['northerly','easterly','southerly','westerly'], plot_bins=None,
                            plot_labels=None, return_data=True)
 
-        #For classic wind rose plot use the following plot_bins and plot_labels
-        tab = bw.freq_table(df.Spd40mN, df.Dir38mS, plot_bins=[0,3,6,9,12,15,41],
-            plot_labels=['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s'], plot_bins=None,
-            plot_labels=None, return_data=True)
-
     """
-    # var_series = _convert_df_to_series(var_series)
-    # direction_series = _convert_df_to_series(direction_series)
-    # var_series = var_series.dropna()
-    # direction_series = direction_series.dropna()
-    # direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
-    #     _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
-    #
-    # var_binned_series = pd.cut(var_series, var_bin_array, right=False).rename('variable_bin')
-    # data = pd.concat([var_series.rename('var_data'), var_binned_series, direction_binned_series], axis=1).dropna()
-    # if freq_as_percentage:
-    #     result = pd.crosstab(data.loc[:, 'variable_bin'], data.loc[:, 'direction_bin']) / len(data) * 100.0
-    # else:
-    #     result = pd.crosstab(data.loc[:, 'variable_bin'], data.loc[:, 'direction_bin'])
-    # for i in range(1, sectors+1):
-    #     if not (i in result.columns):
-    #         result.insert(i-1, i, 0.0)
-    #
-    # result.columns = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
-    # result = result.sort_index()
-    #
-    # # Creating a graph before renaming the direction labels, to help identify sectors while plotting
-    # graph = plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
-    #                                     percent_symbol=freq_as_percentage)
-    #
-    # if direction_bin_labels is not None:
-    #     result.columns = direction_bin_labels
-    # if var_bin_labels is not None:
-    #     result.index = var_bin_labels
-    #
-    # if return_data:
-    #     return graph, result
-    # else:
-    #     return graph
-
     if freq_as_percentage:
             agg_method = '%frequency'
     else:
@@ -552,8 +576,17 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     result = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_series,
                                             direction_series=direction_series, var_bin_array=var_bin_array,
                                             sectors=sectors, direction_bin_array=direction_bin_array,
-                                            direction_bin_labels=None, aggregation_method=agg_method)
-    return result
+                                        direction_bin_labels=None, aggregation_method=agg_method).replace(np.nan, 0.0)
+
+    # if plot_bins is None:
+    #     plot_bins = [0, 3, 6, 9, 12, 15, 41],
+    #     if plot_bins is None:
+    #         plot_labels = ['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s']
+    #     else:
+    #         if len(plot_labels) + 1 != len(plot_bins):
+    #             import warnings
+    #             warnings.warn("Number of plot_labels is not equal to number of plot_bins. Using default plot_labels")
+
     # Creating a graph before renaming the direction labels, to help identify sectors while plotting
     graph = plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
                                         percent_symbol=freq_as_percentage)
