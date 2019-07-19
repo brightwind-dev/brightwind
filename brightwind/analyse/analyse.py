@@ -27,7 +27,7 @@ __all__ = ['concurrent_coverage',
            'momm',
            'dist',
            'dist_of_wind_speed',
-           'distribution_by_dir_sector',
+           'dist_by_dir_sector',
            'dist_12x24',
            'freq_distribution',
            'freq_table',
@@ -347,8 +347,8 @@ def _get_direction_binned_series(sectors, direction_series, direction_bin_array=
     return direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered
 
 
-def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
-                               direction_bin_array=None, direction_bin_labels=None, return_data=False):
+def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
+                               direction_bin_array=None, direction_bin_labels=None, plot_label=None, return_data=False):
     """
     Derive the distribution of a time series variable with respect to wind direction sectors. For example, if time
     series of wind speeds is sent, it produces a wind rose.
@@ -369,6 +369,8 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
     :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. Uses string
             labels of the format '30-90' by default. Overwrites sectors.
     :type direction_bin_labels: list, array, None
+    :param plot_label: Label to show on the rose plot.
+    :type plot_label: str
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
     :returns: A plot of a rose and a DataFrame/Series with wind direction sector as row indexes and columns with
@@ -379,23 +381,21 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
         import brightwind as bw
         df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
 
-        rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS, return_data=True)
+        rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS, return_data=True)
 
         #For using custom bins
-        rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS,
+        rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS,
                                 direction_bin_array=[0,90,130,200,360],
                                 direction_bin_labels=['northerly','easterly','southerly','westerly'],
                                 return_data=True)
 
         #For measuring standard deviation in a sector rather than frequency in percentage (default)
-        rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std',
+        rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std',
             return_data=True)
 
     """
-    var_series = _convert_df_to_series(var_series)
-    direction_series = _convert_df_to_series(direction_series)
-    var_series = var_series.dropna()
-    direction_series = direction_series.dropna()
+    var_series = _convert_df_to_series(var_series).dropna()
+    direction_series = _convert_df_to_series(direction_series).dropna()
     direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
         _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
     data = pd.concat([var_series.rename('data'), direction_binned_series], join='inner', axis=1)
@@ -409,10 +409,15 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
             result[i] = 0.0
     result = result.sort_index()
     result.index = direction_bin_labels
+    if plot_label is None:
+        if var_series.name is not None:
+            plot_label = aggregation_method.capitalize()+' '+ var_series.name
+        else:
+            plot_label = aggregation_method.capitalize()+' of variable'
     if return_data:
-        return plt.plot_rose(result), result
+        return plt.plot_rose(result, plot_label), result
     else:
-        return plt.plot_rose(result)
+        return plt.plot_rose(result, plot_label)
 
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
@@ -796,12 +801,12 @@ class TI:
         ti = ti[ti['wspd'] >= min_speed]
         ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
         ti_dist = pd.concat([
-            distribution_by_dir_sector(var_series=ti['Turbulence_Intensity'],
+            dist_by_dir_sector(var_series=ti['Turbulence_Intensity'],
                                        direction_series=ti['wdir'],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
                                        aggregation_method='mean', return_data=True)[-1].rename("Mean_TI"),
-            distribution_by_dir_sector(var_series=ti['Turbulence_Intensity'],
+            dist_by_dir_sector(var_series=ti['Turbulence_Intensity'],
                                        direction_series=ti['wdir'],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
@@ -883,7 +888,7 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     """
     sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
     common_idxs = sec_rat.index.intersection(wdir.index)
-    sec_rat_plot, sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
+    sec_rat_plot, sec_rat_dist = dist_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
                                                     aggregation_method='mean', direction_bin_array=direction_bin_array,
                                                     direction_bin_labels=None,return_data=True)
 
@@ -912,12 +917,12 @@ class Shear:
         common_idxs = wspds.index.intersection(wdir.index)
         shear = wspds[(wspds > min_speed).all(axis=1)].apply(_calc_shear, heights=heights, axis=1).loc[common_idxs]
         shear_dist = pd.concat([
-            distribution_by_dir_sector(var_series=shear,
+            dist_by_dir_sector(var_series=shear,
                                        direction_series=wdir.loc[common_idxs],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,
                                        aggregation_method='mean', return_data=True)[-1].rename("Mean_Shear"),
-            distribution_by_dir_sector(var_series=shear,
+            dist_by_dir_sector(var_series=shear,
                                        direction_series=wdir.loc[common_idxs],
                                        sectors=sectors, direction_bin_array=direction_bin_array,
                                        direction_bin_labels=direction_bin_labels,

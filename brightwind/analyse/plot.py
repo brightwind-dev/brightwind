@@ -386,7 +386,7 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     return ax.get_figure()
 
 
-def plot_rose(ext_data):
+def plot_rose(ext_data, plot_label=None):
     """
     Plot a wind rose from data by distribution_by_dir_sector
     """
@@ -397,10 +397,13 @@ def plot_rose(ext_data):
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0, 360, 360.0/sectors))
-    ax.set_rgrids(np.arange(0, 101, 10), labels=[str(i)+'%' for i in np.arange(0, 101, 10)], angle=0)
+    max_contour = (ext_data.max() + ext_data.std()).round()
+    levels = np.linspace(0, max_contour+10-(max_contour%10), 10)
+    ax.set_rgrids(levels, labels=['%.0f' % round(i) for i in levels], angle=0)
     ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
-    # ax.set_title('Wind Rose', loc='center')
+
+    ax.legend([plot_label])
     plt.close()
     return ax.get_figure()
 
@@ -444,8 +447,6 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
         group += 1
         table_binned = pd.concat([table_binned, to_concat], axis=1, sort=True)
     table_binned = table_binned.T
-    # print(rows_to_sum)
-    # return table_binned
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
