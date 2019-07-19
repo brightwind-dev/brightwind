@@ -663,7 +663,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='
         print(data_cleaned)
 
     To modified 'data' and replace it with the cleaned data:
-        bw.apply(data, cleaning_file, inplace=True)
+        bw.apply_cleaning(data, cleaning_file, inplace=True)
         print(data)
 
     To apply cleaning where the cleaning file has column names other than defaults::
@@ -701,7 +701,8 @@ def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='
     return data
 
 
-def apply_cleaning_windographer(data, windog_cleaning_file, flags_to_exclude=['Synthesized'], replacement_text='NaN'):
+def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags_to_exclude=['Synthesized'],
+                                replacement_text='NaN'):
     """
     Apply cleaning to a DataFrame using the Windographer flagging log file after Windographer was used to clean and
     filter the data.
@@ -712,6 +713,12 @@ def apply_cleaning_windographer(data, windog_cleaning_file, flags_to_exclude=['S
     :param windog_cleaning_file: File path of the Windographer flagging log file which contains the list of sensor
                                  names along with the start and end timestamps of the periods that are flagged.
     :type windog_cleaning_file: str
+    :param inplace: If 'inplace' is True, the original data, 'data', will be modified and and replaced with the cleaned
+                    data.
+                    If inplace is False, the original data will not be touched and instead a new object containing
+                    the cleaned data is created. To store this cleaned data, please ensure it is assigned to a new
+                    variable.
+    :type inplace: Boolean
     :param flags_to_exclude: List of flags you do not want to use to clean the data e.g. Synthesized.
     :type flags_to_exclude: List[str], default ['Synthesized']
     :param replacement_text: Text used to replace the flagged data.
@@ -724,7 +731,13 @@ def apply_cleaning_windographer(data, windog_cleaning_file, flags_to_exclude=['S
         import brightwind as bw
         data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
         windog_cleaning_file = r'C:\\some\\folder\\windog_cleaning_file.txt'
-        data = bw.apply_cleaning_windographer(data, windog_cleaning_file)
+
+    To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
+        data_cleaned = bw.apply_cleaning_windographer(data, windog_cleaning_file)
+        print(data_cleaned)
+
+    To modify 'data' and replace it with the cleaned data:
+        bw.apply_cleaning_windographer(data, windog_cleaning_file, inplace=True)
         print(data)
 
     Apply cleaning where you do not want the flag 'Tower shading' to be used::
@@ -735,6 +748,9 @@ def apply_cleaning_windographer(data, windog_cleaning_file, flags_to_exclude=['S
         print(data)
 
     """
+    if inplace is False:
+        data = data.copy(deep=True)
+
     sensor_col_name = 'Data Column'
     flag_col_name = 'Flag Name'
     date_from_col_name = 'Start Time'
@@ -754,5 +770,4 @@ def apply_cleaning_windographer(data, windog_cleaning_file, flags_to_exclude=['S
                     data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
-    print('Cleaning applied. (Please remember to assign the cleaned returned DataFrame to a variable.)')
     return data
