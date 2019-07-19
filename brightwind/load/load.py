@@ -634,10 +634,9 @@ def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='
                                 names along with the start and end timestamps of the periods that are flagged.
     :type cleaning_file_or_df: str, pd.DataFrame
     :param inplace: If 'inplace' is True, the original data, 'data', will be modified and and replaced with the cleaned
-                    data.
-                    If inplace is False, the original data will not be touched and instead a new object containing
-                    the cleaned data is created. To store this cleaned data, please ensure it is assigned to a new
-                    variable.
+                    data. If 'inplace' is False, the original data will not be touched and instead a new object
+                    containing the cleaned data is created. To store this cleaned data, please ensure it is assigned
+                    to a new variable.
     :type inplace: Boolean
     :param sensor_col_name: The column name which contains the list of sensor names that have flagged periods.
     :type sensor_col_name: str, default 'Sensor'
@@ -655,8 +654,10 @@ def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='
     **Example usage**
     ::
         import brightwind as bw
-        cleaning_file = r'C:\\some\\folder\\cleaning_file.csv'
-        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+    Load data:
+        data = bw.load_csv(r'C:\\Users\\Stephen\\Documents\\Analysis\\demo_data')
+        cleaning_file = r'C:\\Users\\Stephen\\Documents\\Analysis\\demo_cleaning_file.csv'
 
     To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
         data_cleaned = bw.apply_cleaning(data, cleaning_file)
@@ -714,10 +715,9 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
                                  names along with the start and end timestamps of the periods that are flagged.
     :type windog_cleaning_file: str
     :param inplace: If 'inplace' is True, the original data, 'data', will be modified and and replaced with the cleaned
-                    data.
-                    If inplace is False, the original data will not be touched and instead a new object containing
-                    the cleaned data is created. To store this cleaned data, please ensure it is assigned to a new
-                    variable.
+                    data. If 'inplace' is False, the original data will not be touched and instead a new object
+                    containing the cleaned data is created. To store this cleaned data, please ensure it is assigned
+                    to a new variable.
     :type inplace: Boolean
     :param flags_to_exclude: List of flags you do not want to use to clean the data e.g. Synthesized.
     :type flags_to_exclude: List[str], default ['Synthesized']
@@ -729,7 +729,9 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+
+    Load data:
+        data = bw.load_csv(r'C:\\Users\\Stephen\\Documents\\Analysis\\demo_data')
         windog_cleaning_file = r'C:\\some\\folder\\windog_cleaning_file.txt'
 
     To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
