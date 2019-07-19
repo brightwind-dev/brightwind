@@ -411,7 +411,7 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
     result.index = direction_bin_labels
     if plot_label is None:
         if var_series.name is not None:
-            plot_label = aggregation_method.capitalize()+' '+ var_series.name
+            plot_label = aggregation_method.capitalize()+' of '+ var_series.name
         else:
             plot_label = aggregation_method.capitalize()+' of variable'
     if return_data:
