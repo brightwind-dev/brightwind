@@ -662,7 +662,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='
         data_cleaned = bw.apply_cleaning(data, cleaning_file)
         print(data_cleaned)
 
-    To modified 'data' and replace it with the cleaned data:
+    To modify 'data' and replace it with the cleaned data:
         bw.apply_cleaning(data, cleaning_file, inplace=True)
         print(data)
 
