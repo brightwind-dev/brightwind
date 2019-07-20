@@ -595,11 +595,31 @@ class _LoadBWPlatform:
         return json_response['access_token']
 
     @staticmethod
-    def sites():
-        return 'list of sites'
+    def get_all_meas_locs():
+        """
+        Get all the measurement locations you have access to. A list of dictionaries of all your sites are returned.
+        Format is:
+
+        {
+            'notes': None,
+            'longitude': 54,
+            'id': '55a8b5b2-70fb-415d-b0d9-33c26e94bd9e',
+            'measurement_station_type': 'mast',
+            'plant_uuid': '78g2j9b2-70fb-425d-b0d9-33c26e94bd4e',
+            'name': 'Mast name',
+            'latitude': -8
+        }
+
+        :return: A list of all the measurement locations you have access to.
+        :rtype: List(Dict())
+        """
+        access_token = _LoadBWPlatform._get_token()
+        headers = {'Authorization': 'Bearer ' + access_token}
+        response = requests.get(_LoadBWPlatform._base_url + '/api/measurement-locations', headers=headers)
+        return response.json()
 
     @staticmethod
-    def data(measurement_location_uuid, from_date=None, to_date=None):
+    def get_data(measurement_location_uuid, from_date=None, to_date=None):
         """
         Retrieve measurement data from the brightwind platform and return it in a DataFrame with index as Timestamp.
 
@@ -619,7 +639,7 @@ class _LoadBWPlatform:
             meas_loc_uuid = '55a8b5b2-70fb-415d-b0d9-33c26e94bd9e'
 
             # To load with a specific start and end date.
-            df = bw.load.load._LoadBWPlatform.data(meas_loc_uuid, '2019-07-01', '2019-07-02')
+            df = bw.load.load._LoadBWPlatform.get_data(meas_loc_uuid, '2019-07-01', '2019-07-02')
             df
 
         Different date formats can be sent however it is recommended to use the format 'YYYY-MM-DD' to avoid
@@ -629,7 +649,7 @@ class _LoadBWPlatform:
         to always specify and end date to make your work repeatable, unless every time you run your code you
         want the most recent data. E.g.::
 
-            df = bw.load.load._LoadBWPlatform.data(meas_loc_uuid, to_date='2019-07-02')
+            df = bw.load.load._LoadBWPlatform.get_data(meas_loc_uuid, to_date='2019-07-02')
             df
 
         """
