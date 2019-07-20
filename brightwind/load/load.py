@@ -25,6 +25,7 @@ import shutil
 import json
 from io import StringIO
 import warnings
+from dateutil.parser import parse
 
 
 __all__ = ['load_csv',
@@ -469,6 +470,12 @@ def _get_brightdata_credentials():
     return os.getenv('BRIGHTDATA_USERNAME'), os.getenv('BRIGHTDATA_PASSWORD')
 
 
+def _get_environment_variable(name):
+    if name not in os.environ:
+        raise Exception('{} environmental variable is not set.'.format(name))
+    return os.getenv(name)
+
+
 def _get_brightdata(dataset, lat, long, nearest, from_date, to_date):
     """
     Get merra2 or era5 data from the brightdata platform and format it for use.
@@ -569,6 +576,95 @@ def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None):
                 raise error
 
     raise NotImplementedError('dataset not identified.')
+
+
+class _LoadBWPlatform:
+
+    _base_url = 'https://api.brightwindanalysis.com/platform'
+
+    @staticmethod
+    def _get_token():
+        username = _get_environment_variable('BW_PLATFORM_USERNAME')
+        password = _get_environment_variable('BW_PLATFORM_PASSWORD')
+
+        params = {'username': username, 'password': password}
+        json_response = requests.post('https://api.brightwindanalysis.com/auth/login', json=params).json()
+
+        if json_response.get('error_description'):
+            raise ValueError(json_response['error_description'])
+        return json_response['access_token']
+
+    @staticmethod
+    def sites():
+        return 'list of sites'
+
+    @staticmethod
+    def data(measurement_location_uuid, from_date=None, to_date=None):
+        """
+        Retrieve measurement data from the brightwind platform and return it in a DataFrame with index as Timestamp.
+
+        :param measurement_location_uuid: The measurement location uuid.
+        :type measurement_location_uuid: str or uuid
+        :param from_date: Datetime representing the start of the measurement period you want.
+        :type from_date: datetime or str
+        :param to_date: Datetime representing the end of the measurement period you want.
+        :type to_date: datetime or str
+        :return: DataFrame with index as a timestamp.
+        :rtype: pd.DataFrame
+
+        **Example usage**
+        ::
+            import brightwind as bw
+
+            meas_loc_uuid = '55a8b5b2-70fb-415d-b0d9-33c26e94bd9e'
+
+            # To load with a specific start and end date.
+            df = bw.load.load._LoadBWPlatform.data(meas_loc_uuid, '2019-07-01', '2019-07-02')
+            df
+
+        Different date formats can be sent however it is recommended to use the format 'YYYY-MM-DD' to avoid
+        your date interpreted incorrectly. E.g. '1-7-2019' will be interpreted as Jan 7th, 2019.
+
+        If no dates are sent a false date of 1900-01-01 and todays date will be sent instead. It is recommended
+        to always specify and end date to make your work repeatable, unless every time you run your code you
+        want the most recent data. E.g.::
+
+            df = bw.load.load._LoadBWPlatform.data(meas_loc_uuid, to_date='2019-07-02')
+            df
+
+        """
+        access_token = _LoadBWPlatform._get_token()
+        headers = {'Authorization': 'Bearer ' + access_token}
+
+        # set max min dates, parse dates that are typed in and set to datetime obj
+        if from_date is None or to_date is None:
+            from_date, to_date = _if_null_max_the_date(from_date, to_date)
+        if isinstance(from_date, str):
+            from_date = parse(from_date)
+        if isinstance(to_date, str):
+            to_date = parse(to_date)
+        print(from_date)
+        print(to_date)
+        response = requests.get(_LoadBWPlatform._base_url + '/api/resource-data-measurement-location', params={
+            'measurement_location_uuid': measurement_location_uuid,
+            'date_from': from_date.isoformat(),
+            'date_to': to_date.isoformat(),
+        }, headers=headers)
+
+        response_json = response.json()
+        if 'Error' in response_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
+            raise ValueError(response_json['Error'])
+
+        df = pd.DataFrame(data=response_json)
+        try:
+            df['Timestamp'] = pd.to_datetime(df['Timestamp'])   # this throws error if return doesn't have 'Timestamp'
+            df.set_index('Timestamp', inplace=True)
+        except Exception as error:
+            if 'errors' in response_json:
+                raise TypeError(response_json['errors'])
+            else:
+                raise error
+        return df
 
 
 def _if_null_max_the_date(date_from, date_to):
