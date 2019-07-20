@@ -430,7 +430,9 @@ def selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2, sector_width=60)
 
 
     """
-
+    wspd_1 = utils._convert_df_to_series(wspd_1)
+    wspd_2 = utils._convert_df_to_series(wspd_2)
+    wdir = utils._convert_df_to_series(wdir)
     if _sectors_overlap(boom_dir_1, boom_dir_2, sector_width):
         raise ValueError("Sectors overlap! Please check your inputs or reduce the size of your 'sector_width'.")
     inflow_lower1, inflow_higher1 = _calc_sector_limits(boom_dir_1, sector_width)

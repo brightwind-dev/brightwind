@@ -39,6 +39,8 @@ def test_selective_avg():
     # Test Case 1: Neither boom is near 0-360 crossover
     result = np.array([1.5, 2, 1, 1.5, 1.5, 1.5, 1.5, 2, 1, 2, 2, 2, 1.5, 1, 2, 1.5, 1.5, np.NaN,
                        1.5, 1, 1, 1, 2, 1, 1.5])
+    bw.selective_avg(data[['Spd1']], data[['Spd2']], data[['Dir']],
+                     boom_dir_1=315, boom_dir_2=135, sector_width=60)
     sel_avg = np.array(bw.selective_avg(data.Spd1, data.Spd2, data.Dir,
                                         boom_dir_1=315, boom_dir_2=135, sector_width=60))
     assert np_array_equal(sel_avg, result)
@@ -200,6 +202,9 @@ def test_offset_timestamps():
     
 def test_freq_table():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    temp_rose, temp_freq_tab = bw.freq_table(df[['T2m']], df[['Dir78mS']], var_bin_array=[-10, 0, 10, 20],
+                                             var_bin_labels=['low', 'mid', 'high'],
+                                             return_data=True)
     temp_rose, temp_freq_tab = bw.freq_table(df.T2m, df.Dir78mS, var_bin_array=[-10, 0, 10, 20],
                                              var_bin_labels=['low', 'mid', 'high'],
                                              return_data=True)
@@ -208,7 +213,7 @@ def test_freq_table():
     
 def test_average_data_by_period():
     data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
-
+    bw.average_data_by_period(data[['Spd80mN']], period='1H')
     # hourly averages
     bw.average_data_by_period(data.Spd80mN, period='1H')
     # hourly average with coverage filtering
