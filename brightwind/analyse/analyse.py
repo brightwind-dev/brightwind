@@ -20,6 +20,7 @@ import numpy as np
 from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as plt
+from brightwind.utils.utils import _convert_df_to_series
 import matplotlib
 
 __all__ = ['concurrent_coverage',
@@ -319,21 +320,6 @@ def _map_direction_bin(wdir, bins, sectors):
     if bin_num == sectors+1:
         bin_num = 1
     return bin_num
-
-
-def _convert_df_to_series(df):
-    """
-    Convert a pd.DataFrame to a pd.Series.
-    If more than 1 column is in the DataFrame then it will raise a TypeError.
-    If the sent argument is not a DataFrame it will return itself.
-    :param df:
-    :return:
-    """
-    if isinstance(df, pd.DataFrame) and df.shape[1] == 1:
-        return df.iloc[:, 0]
-    elif isinstance(df, pd.DataFrame) and df.shape[1] > 1:
-        raise TypeError('DataFrame cannot be converted to a Series as it contains more than 1 column.')
-    return df
 
 
 def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None, x_label=None,
@@ -833,6 +819,8 @@ class TI:
 
     @staticmethod
     def calc(wspd, wspd_std):
+        wspd = _convert_df_to_series(wspd).dropna()
+        wspd_std = _convert_df_to_series(wspd_std).dropna()
         ti = pd.concat([wspd[wspd > 3].rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
         return ti['wspd_std'] / ti['wspd']
 
@@ -869,6 +857,8 @@ class TI:
         :rtype: pandas.DataFrame
 
         """
+        wspd = _convert_df_to_series(wspd)
+        wspd_std = _convert_df_to_series(wspd_std)
         ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
         ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
         ti_dist = pd.concat([
@@ -1024,6 +1014,10 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
                         direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=0, boom_dir_2=180)
 
     """
+    wspd_1 = _convert_df_to_series(wspd_1).dropna()
+    wspd_2 = _convert_df_to_series(wspd_2).dropna()
+    wdir = _convert_df_to_series(wdir).dropna()
+
     sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
     common_idxs = sec_rat.index.intersection(wdir.index)
     sec_rat_plot, sec_rat_dist = distribution_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,

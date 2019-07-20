@@ -100,3 +100,18 @@ def is_float_or_int(value):
         return True
     else:
         return False
+
+
+def _convert_df_to_series(df):
+    """
+    Convert a pd.DataFrame to a pd.Series.
+    If more than 1 column is in the DataFrame then it will raise a TypeError.
+    If the sent argument is not a DataFrame it will return itself.
+    :param df:
+    :return:
+    """
+    if isinstance(df, pd.DataFrame) and df.shape[1] == 1:
+        return df.iloc[:, 0]
+    elif isinstance(df, pd.DataFrame) and df.shape[1] > 1:
+        raise TypeError('DataFrame cannot be converted to a Series as it contains more than 1 column.')
+    return df
