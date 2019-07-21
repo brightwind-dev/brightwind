@@ -595,6 +595,40 @@ class _LoadBWPlatform:
         return json_response['access_token']
 
     @staticmethod
+    def get_plants():
+        """
+        Get all the wind or solar plants you have access to. A list of dictionaries of all your plants are returned.
+        Format of dictionary is:
+
+        {
+            'alias': None,
+            'connection_details': None,
+            'country': 'Ireland',
+            'id': '78g2j9b2-70fb-425d-b0d9-33c26e94bd4e',
+            'is_location_verified': True,
+            'is_operational': False,
+            'latitude': -8,
+            'longitude': 54,
+            'mec_mw': None,
+            'name': 'wind farm name',
+            'notes': None,
+            'operator_uuid': None,
+            'plant_type': 'wind',
+            'region': None,
+            'specifications': None,
+            'trader_uuid': None
+        }
+
+        :return:
+        """
+        access_token = _LoadBWPlatform._get_token()
+        headers = {'Authorization': 'Bearer ' + access_token}
+        response = requests.get(_LoadBWPlatform._base_url + '/api/plants', headers=headers)
+        if response.headers.get('content-type') != 'application/json.':
+            response.raise_for_status()
+        return response.json()
+
+    @staticmethod
     def get_meas_locs():
         """
         Get all the measurement locations you have access to. A list of dictionaries of all your sites are returned.
