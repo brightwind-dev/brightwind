@@ -26,6 +26,7 @@ import json
 from io import StringIO
 import warnings
 from dateutil.parser import parse
+from brightwind.analyse import plot as plt
 
 
 __all__ = ['load_csv',
@@ -663,7 +664,19 @@ class _LoadBWPlatform:
     @staticmethod
     def get_meas_points(meas_loc_uuid):
         """
-        Get measurement points for a particular measurement location uuid.
+        Get measurement points for a particular measurement location uuid. Return is a list of dictionaries.
+        Format of dictionary is:
+
+        {
+            'id': '071d559a-8096-47bd-91cf-f7f9137a6689',
+            'measurement_location_uuid': 'e927041f-8736-4fa3-9471-f806497633d5',
+            'measurement_type': 'wind speed',
+            'mounting_arrangement': {'boom_orientation_deg': 15,
+                                     'height_metres': 100.125},
+            'name': 'Spd1_100m15',
+            'notes': None
+        }
+
         :param meas_loc_uuid:
         :return:
         """
@@ -785,6 +798,128 @@ class _LoadBWPlatform:
             else:
                 raise error
         return df
+
+    @staticmethod
+    def _get_meas_points_in_df(meas_loc_uuid, Include_Tilt_Angle='N'):
+        # Next we get the height of each instrument from the database and return it to a dataframe. In cases where a height does not exist
+        # a dash is placed.
+
+        pddict = dict()
+        if Include_Tilt_Angle == 'Y':
+            pddict = {'Sensor Name': [], 'Height [m]': [], 'Measurement Type': [], 'Tilt Angle [°]': [],
+                      'Boom Orientation [°]': [], 'Sensor_UUID': []}
+        else:
+            pddict = {'Sensor Name': [], 'Height [m]': [], 'Measurement Type': [], 'Boom Orientation [°]': [],
+                      'Sensor_UUID': []}
+
+        meas_points = _LoadBWPlatform.get_meas_points(meas_loc_uuid)
+
+        for mp in meas_points:
+            # print(mp['mounting_arrangement']['height_metres'])
+
+            pddict['Sensor Name'].append(mp['name'])
+            pddict['Sensor_UUID'].append(mp['id'])
+            pddict['Measurement Type'].append(mp['measurement_type'])
+
+            if mp.get('mounting_arrangement') and 'boom_orientation_deg' in mp['mounting_arrangement'].keys():
+                pddict['Boom Orientation [°]'].append(mp['mounting_arrangement']['boom_orientation_deg'])
+            else:
+                pddict['Boom Orientation [°]'].append('-')
+
+            if Include_Tilt_Angle == 'Y':
+                if mp.get('mounting_arrangement') and 'tilt_angle_deg' in mp['mounting_arrangement'].keys():
+                    pddict['Tilt Angle [°]'].append(mp['mounting_arrangement']['tilt_angle_deg'])
+                else:
+                    pddict['Tilt Angle [°]'].append('-')
+
+            if mp.get('mounting_arrangement') and mp['mounting_arrangement'].get('height_metres'):
+                pddict['Height [m]'].append(mp['mounting_arrangement']['height_metres'])
+            else:
+                pddict['Height [m]'].append('-')
+
+        Instrument_height = pd.DataFrame(pddict).set_index('Sensor_UUID')
+        return Instrument_height
+
+    @staticmethod
+    def _get_sen_configs_in_df(meas_loc_uuid):
+        # Next we get the relvant information we need from the database to populate the configuration table for the monthly report.
+
+        pddict = {'Sensor Model': [], 'Units': [], 'Serial Number': [], 'Measurement_point_UUID': [], 'Date From': [],
+                  'Date To': []}
+        # pddict = {'Units':[],'Measurement_point_UUID':[]}
+
+        sen_configs = _LoadBWPlatform.get_sensor_configs(meas_loc_uuid)
+
+        for mp in sen_configs:
+            # print(mp['mounting_arrangement']['height_metres'])
+            if mp.get('measurement_point_uuid'):
+                pddict['Measurement_point_UUID'].append(mp['measurement_point_uuid'])
+                # pddict['Measurement Type'].append(mp['measurement_type'])
+
+                if mp['logger_config'].get('measurement_units'):
+                    # Note need to convert m2 symbol so that it can displaued properly in table. This will have to be done for any special units
+                    mp['logger_config']['measurement_units'] = mp['logger_config']['measurement_units'].replace('m²', '$m^2$') if '²' in mp['logger_config']['measurement_units'] else mp['logger_config']['measurement_units']
+                    pddict['Units'].append(mp['logger_config']['measurement_units'])
+                else:
+                    pddict['Units'].append('-')
+
+                if mp['sensor_info'] and mp['sensor_info'].get('sensor_serial_number'):
+                    pddict['Serial Number'].append(mp['sensor_info']['sensor_serial_number'])
+                else:
+                    pddict['Serial Number'].append('-')
+
+                if mp['sensor_info'] and mp['sensor_info'].get('sensor_model'):
+                    pddict['Sensor Model'].append(mp['sensor_info']['sensor_model'])
+                else:
+                    pddict['Sensor Model'].append('-')
+
+                if mp.get('date_from'):
+                    pddict['Date From'].append(mp['date_from'])
+                else:
+                    pddict['Date From'].append('-')
+
+                if mp.get('date_to'):
+                    pddict['Date To'].append(mp['date_to'])
+                else:
+                    pddict['Date To'].append(datetime.datetime.now())
+
+        Sensor_config = pd.DataFrame(pddict).set_index('Measurement_point_UUID')
+        return Sensor_config
+
+    @staticmethod
+    def get_sensor_table(meas_loc_uuid, measurement_type='wind speed', Include_Tilt_Angle='N', return_data=False):
+        """
+        Get the sensor setup in a formatted table for a measurement location uuid.
+
+        :param meas_loc_uuid:
+        :param measurement_type:
+        :param return_data:
+        :return:
+        """
+        meas_points_df = _LoadBWPlatform._get_meas_points_in_df(meas_loc_uuid, Include_Tilt_Angle=Include_Tilt_Angle)
+        sen_configs_df = _LoadBWPlatform._get_sen_configs_in_df(meas_loc_uuid)
+        sensor_table = meas_points_df.join(sen_configs_df)
+
+        if Include_Tilt_Angle == 'Y':
+            sensor_table = sensor_table[['Sensor Name', 'Units', 'Sensor Model', 'Measurement Type', 'Height [m]',
+                                         'Boom Orientation [°]', 'Tilt Angle [°]', 'Serial Number', 'Date From']]
+        else:
+            sensor_table = sensor_table[['Sensor Name', 'Units', 'Sensor Model', 'Measurement Type', 'Height [m]',
+                                         'Boom Orientation [°]', 'Serial Number', 'Date From']]
+
+        sensor_table = sensor_table.set_index('Sensor Name')
+        sensor_table['Date From'] = pd.to_datetime(sensor_table['Date From'])
+        sensor_table['Date From'] = sensor_table['Date From'].dt.strftime("%d-%b-%Y")
+
+        sensor_table.reset_index(inplace=True)
+        sensor_table.drop(columns=['Measurement Type'], inplace=True)
+        sensor_table.sort_values(by=['Sensor Name'], inplace=True)
+        table = plt.render_table(sensor_table, header_columns=0, col_width=3.3)
+
+        if return_data:
+            return table, sensor_table.set_index('Sensor Name')
+        else:
+            return table
 
 
 def _if_null_max_the_date(date_from, date_to):
