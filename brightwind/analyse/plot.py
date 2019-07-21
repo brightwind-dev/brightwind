@@ -23,6 +23,7 @@ from brightwind.utils import utils
 import matplotlib as mpl
 from pandas.plotting import register_matplotlib_converters
 import re
+import six
 
 register_matplotlib_converters()
 
@@ -820,3 +821,41 @@ def plot_dist_matrix(matrix, colorbar_label=None, xticklabels=None, yticklabels=
     plt.close()
     return ax.get_figure()
 
+
+def render_table(data, col_width=3.0, row_height=0.625, font_size=16, header_color='#9CC537',
+                 row_colors=['#E8F1D3', 'w'], edge_color='w', bbox=[0, 0, 1, 1], header_columns=0, show_col_head=1,
+                 ax=None, cellLoc='center', padding=0.01, **kwargs):
+    if ax is None:
+        size = (np.array(data.shape[::-1]) + np.array([0, 1])) * np.array([col_width, row_height])
+        fig, ax = plt.subplots(figsize=size)
+        ax.axis('off')
+
+    if show_col_head == 1:
+        mpl_table = ax.table(cellText=data.values, bbox=bbox, colLabels=data.columns, cellLoc=cellLoc, **kwargs)
+    else:
+        mpl_table = ax.table(cellText=data.values, bbox=bbox, cellLoc=cellLoc, **kwargs)
+
+    mpl_table.auto_set_font_size(False)
+    mpl_table.set_fontsize(font_size)
+
+    for k, cell in six.iteritems(mpl_table._cells):
+        cell.set_edgecolor(edge_color)
+        if show_col_head == 1:
+            if k[0] == 0 or k[1] < header_columns:
+                cell.set_text_props(weight='bold', color='w')
+                cell.set_facecolor(header_color)
+                cell.PAD = padding
+            else:
+                cell.set_facecolor(row_colors[k[0] % len(row_colors)])
+                cell.PAD = padding
+        else:
+            if k[1] < header_columns:
+                cell.set_text_props(weight='bold', color='w')
+                cell.set_facecolor(header_color)
+                cell.PAD = padding
+            else:
+                cell.set_facecolor(row_colors[k[0] % len(row_colors)])
+                cell.PAD = padding
+                # if k[1]==1:
+                #   cell.set_width(0.03)
+    return ax

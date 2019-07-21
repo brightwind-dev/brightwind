@@ -32,6 +32,7 @@ setup(
         'requests>=2.20.0',
         'scipy>=0.19.1',
         'pytest>= 4.1.0',
+        'six>= 1.12.0',
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",
