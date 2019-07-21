@@ -595,10 +595,10 @@ class _LoadBWPlatform:
         return json_response['access_token']
 
     @staticmethod
-    def get_all_meas_locs():
+    def get_meas_locs():
         """
         Get all the measurement locations you have access to. A list of dictionaries of all your sites are returned.
-        Format is:
+        Format of dictionary is:
 
         {
             'notes': None,
@@ -616,6 +616,20 @@ class _LoadBWPlatform:
         access_token = _LoadBWPlatform._get_token()
         headers = {'Authorization': 'Bearer ' + access_token}
         response = requests.get(_LoadBWPlatform._base_url + '/api/measurement-locations', headers=headers)
+        return response.json()
+
+    @staticmethod
+    def get_meas_points(meas_loc_uuid):
+        """
+        Get measurement points for a particular measurement location uuid.
+        :param meas_loc_uuid:
+        :return:
+        """
+        access_token = _LoadBWPlatform._get_token()
+        headers = {'Authorization': 'Bearer ' + access_token}
+        response = requests.get(_LoadBWPlatform._base_url + '/api/measurement-points', headers=headers, params={
+            'measurement_location_uuid': meas_loc_uuid
+        })
         return response.json()
 
     @staticmethod
