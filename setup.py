@@ -33,7 +33,6 @@ setup(
         'scipy>=0.19.1',
         'pytest>= 4.1.0',
         'six>= 1.12.0',
-        'pytest>=4.1.0',
         'dateutil>=2.8.0'
     ],
     classifiers=[
