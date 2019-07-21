@@ -626,7 +626,11 @@ class _LoadBWPlatform:
         response = requests.get(_LoadBWPlatform._base_url + '/api/plants', headers=headers)
         if response.headers.get('content-type') != 'application/json.':
             response.raise_for_status()
-        return response.json()
+
+        response_json = response.json()
+        if 'Error' in response_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
+            raise ValueError(response_json['Error'])
+        return response_json
 
     @staticmethod
     def get_meas_locs():
@@ -650,7 +654,11 @@ class _LoadBWPlatform:
         access_token = _LoadBWPlatform._get_token()
         headers = {'Authorization': 'Bearer ' + access_token}
         response = requests.get(_LoadBWPlatform._base_url + '/api/measurement-locations', headers=headers)
-        return response.json()
+
+        response_json = response.json()
+        if 'Error' in response_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
+            raise ValueError(response_json['Error'])
+        return response_json
 
     @staticmethod
     def get_meas_points(meas_loc_uuid):
@@ -664,7 +672,51 @@ class _LoadBWPlatform:
         response = requests.get(_LoadBWPlatform._base_url + '/api/measurement-points', headers=headers, params={
             'measurement_location_uuid': meas_loc_uuid
         })
-        return response.json()
+        response_json = response.json()
+        if 'Error' in response_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
+            raise ValueError(response_json['Error'])
+        return response_json
+
+    @staticmethod
+    def get_sensor_configs(meas_loc_uuid):
+        """
+        Get all the sensor configurations for a certain measurement location uuid.
+
+        {
+            'calibration': None,
+            'column_names': {'An1_100_315;wind_speed;Avg': {'is_ignored': False, 'metric': 'Avg'},
+                             'An1_100_315;wind_speed;Count': {'is_ignored': False, 'metric': 'Count'},
+                             'An1_100_315;wind_speed;Max': {'is_ignored': False, 'metric': 'Max'},
+                             'An1_100_315;wind_speed;Min': {'is_ignored': False, 'metric': 'Min'},
+                             'An1_100_315;wind_speed;StdDev': {'is_ignored': False, 'metric': 'StdDev'}},
+            'date_from': '2017-07-26T00:00:00+00:00',
+            'date_to': None,
+            'desired_adj': None,
+            'id': '2d6e5057-8319-4326-aa4e-1b5a753ae0a6',
+            'logger_config': {'logger_offset': 0.2575,
+                              'logger_slope': 0.04598,
+                              'logger_stated_height': 100,
+                              'measurement_units': 'm/s'},
+            'logger_main_config_uuid': 'ed62d180-dac4-4615-820f-05313bb8ffff',
+            'measurement_point_uuid': '071d559a-8096-47bd-91cf-f7f9137a6689',
+            'notes': None,
+            'sensor_info': {'sensor_model': 'Thies Anemometer First Class Advanced',
+                            'sensor_type': 'anemometer'},
+            'sensor_name': 'An1_100_315;wind_speed'
+        }
+
+        :param meas_loc_uuid:
+        :return:
+        """
+        access_token = _LoadBWPlatform._get_token()
+        headers = {'Authorization': 'Bearer ' + access_token}
+        response = requests.get(_LoadBWPlatform._base_url + '/api/sensor-configs', headers=headers, params={
+            'measurement_location_uuid': meas_loc_uuid
+        })
+        response_json = response.json()
+        if 'Error' in response_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
+            raise ValueError(response_json['Error'])
+        return response_json
 
     @staticmethod
     def get_data(measurement_location_uuid, from_date=None, to_date=None):
