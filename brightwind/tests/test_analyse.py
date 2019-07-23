@@ -197,3 +197,9 @@ def test_calc_air_density():
     assert (abs(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])) -
                pd.Series([1.225, 1.208, 1.326, 1.059])) < 1e-3).all()
 
+
+def test_dist_matrix_by_direction_sector():
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    bw.dist_matrix_by_dir_sector(var_series=df.Spd80mN, var_to_bin_series=df.Spd80mN, direction_series=df.Dir78mS,
+                                 aggregation_method='count')
+    assert True

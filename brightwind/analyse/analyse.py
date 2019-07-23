@@ -546,8 +546,7 @@ def distribution_by_dir_sector(var_series, direction_series, sectors=12, aggrega
 
 
 def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
-                              var_bin_array=np.arange(-0.5, 41, 1),
-                              sectors=12, direction_bin_array=None, direction_bin_labels=None,
+                              var_bin_array, sectors=12, direction_bin_array=None, direction_bin_labels=None,
                               aggregation_method='%frequency'):
     var_series = _convert_df_to_series(var_series).dropna()
     var_to_bin_series = _convert_df_to_series(var_to_bin_series).dropna()
@@ -573,7 +572,7 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
     return distribution.sort_index()
 
 
-def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series, var_bin_array=None, var_bin_labels=None, sectors=12,
+def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
                direction_bin_array=None, direction_bin_labels=None, aggregation_method='mean'):
     """
     Calculates a distribution matrix of a variable against another variable and wind direction.
@@ -707,14 +706,14 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                                             sectors=sectors, direction_bin_array=direction_bin_array,
                                         direction_bin_labels=None, aggregation_method=agg_method).replace(np.nan, 0.0)
 
-    # if plot_bins is None:
-    #     plot_bins = [0, 3, 6, 9, 12, 15, 41],
-    #     if plot_bins is None:
-    #         plot_labels = ['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s']
-    #     else:
-    #         if len(plot_labels) + 1 != len(plot_bins):
-    #             import warnings
-    #             warnings.warn("Number of plot_labels is not equal to number of plot_bins. Using default plot_labels")
+    if plot_bins is None:
+        plot_bins = [0, 3, 6, 9, 12, 15, 41],
+        if plot_labels is None:
+            plot_labels = ['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s']
+        else:
+            if len(plot_labels) + 1 != len(plot_bins):
+                import warnings
+                warnings.warn("Number of plot_labels is not equal to number of plot_bins. Using default plot_labels")
 
     # Creating a graph before renaming the direction labels, to help identify sectors while plotting
     graph = plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
