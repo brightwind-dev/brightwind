@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name='brightwind',
     # Update version number here:
-    version='0.2.6',
+    version='0.2.7',
     packages=['brightwind', 'brightwind.load', 'brightwind.utils', 'brightwind.export', 'brightwind.analyse',
               'brightwind.transform', 'brightwind.datasets'],
     package_data={
@@ -15,7 +15,7 @@ setup(
     },
     url='https://github.com/brightwind-dev/brightwind.git',
     # Update version number here:
-    download_url = 'https://github.com/brightwind-dev/brightwind/archive/v0.2.6.tar.gz',
+    download_url = 'https://github.com/brightwind-dev/brightwind/archive/v0.2.7.tar.gz',
     license='GNU Lesser General Public License v3 or later (LGPLv3+)',
     author='Stephen Holleran and Inder Preet of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
@@ -33,7 +33,7 @@ setup(
         'scipy>=0.19.1',
         'pytest>= 4.1.0',
         'six>= 1.12.0',
-        'dateutil>=2.8.0'
+        'python-dateutil>=2.8.0'
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",
