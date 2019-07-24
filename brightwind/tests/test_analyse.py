@@ -202,4 +202,10 @@ def test_dist_matrix_by_direction_sector():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
     bw.dist_matrix_by_dir_sector(var_series=df.Spd80mN, var_to_bin_series=df.Spd80mN, direction_series=df.Dir78mS,
                                  aggregation_method='count')
+    matrix = bw.dist_matrix_by_dir_sector(df.Spd40mN, df.T2m, df.Dir38mS,
+                                          var_bin_array=[-8, -5, 5, 10, 15, 20, 26],
+                                          direction_bin_array=[0, 90, 180, 270, 360],
+                                          direction_bin_labels=['north', 'east', 'south', 'west'])
+    matrix = bw.dist_matrix_by_dir_sector(df.Spd40mN, df.T2m, df.Dir38mS,
+                                          var_bin_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
