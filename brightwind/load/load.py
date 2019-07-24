@@ -27,6 +27,7 @@ from io import StringIO
 import warnings
 from dateutil.parser import parse
 from brightwind.analyse import plot as plt
+from time import sleep
 
 
 __all__ = ['load_csv',
@@ -547,8 +548,8 @@ def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None):
     To use load_brightdata the BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD environmental variables need to be set. In
     Windows this can be done by running the command prompt in Administrator mode and running:
 
-    >>> setx BRIGHTDATA_USERNAME "username"
-    >>> setx BRIGHTDATA_PASSWORD "password"
+    >> setx BRIGHTDATA_USERNAME "username"
+    >> setx BRIGHTDATA_PASSWORD "password"
 
     **Example usage**
     ::
@@ -580,6 +581,16 @@ def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None):
 
 
 class _LoadBWPlatform:
+    """
+    LoadBWPlatform allows you to pull meta data and timeseries data of measurements from the brightwind platform.
+
+    To use LoadBWPlatform the BW_PLATFORM_USERNAME and BW_PLATFORM_PASSWORD environmental variables need to be set. In
+    Windows this can be done by running the command prompt in Administrator mode and running:
+
+    > setx BW_PLATFORM_USERNAME "username"
+    > setx BW_PLATFORM_PASSWORD "password"
+
+    """
 
     _base_url = 'https://api.brightwindanalysis.com/platform'
 
@@ -631,7 +642,12 @@ class _LoadBWPlatform:
         response_json = response.json()
         if 'Error' in response_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
             raise ValueError(response_json['Error'])
-        return response_json
+        plants_df = pd.read_json(json.dumps(response_json))
+        plants_df['uuid'] = plants_df.id
+        plants_df.drop(['id', 'alias', 'connection_details', 'is_location_verified', 'operator_uuid', 'specifications',
+                        'trader_uuid'], axis=1, inplace=True)
+        plants_df.set_index(['uuid'], inplace=True)
+        return plants_df
 
     @staticmethod
     def get_meas_locs():
@@ -659,7 +675,11 @@ class _LoadBWPlatform:
         response_json = response.json()
         if 'Error' in response_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
             raise ValueError(response_json['Error'])
-        return response_json
+        meas_locs_df = pd.read_json(json.dumps(response_json))
+        meas_locs_df['uuid'] = meas_locs_df['id']
+        meas_locs_df.drop(['id'], axis=1, inplace=True)
+        meas_locs_df.set_index(['uuid'], inplace=True)
+        return meas_locs_df
 
     @staticmethod
     def get_meas_points(meas_loc_uuid):
@@ -691,9 +711,9 @@ class _LoadBWPlatform:
         return response_json
 
     @staticmethod
-    def get_sensor_configs(meas_loc_uuid):
+    def get_sensor_configs(meas_point_uuid, access_token):
         """
-        Get all the sensor configurations for a certain measurement location uuid.
+        Get all the sensor configurations for a certain measurement point uuid.
 
         {
             'calibration': None,
@@ -718,13 +738,13 @@ class _LoadBWPlatform:
             'sensor_name': 'An1_100_315;wind_speed'
         }
 
-        :param meas_loc_uuid:
+        :param meas_point_uuid:
         :return:
         """
-        access_token = _LoadBWPlatform._get_token()
+        # access_token = _LoadBWPlatform._get_token()
         headers = {'Authorization': 'Bearer ' + access_token}
         response = requests.get(_LoadBWPlatform._base_url + '/api/sensor-configs', headers=headers, params={
-            'measurement_location_uuid': meas_loc_uuid
+            'measurement_point_uuid': meas_point_uuid
         })
         response_json = response.json()
         if 'Error' in response_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
@@ -841,47 +861,54 @@ class _LoadBWPlatform:
         return Instrument_height
 
     @staticmethod
-    def _get_sen_configs_in_df(meas_loc_uuid):
+    def _get_sen_configs_in_df(meas_points_df, access_token):
         # Next we get the relvant information we need from the database to populate the configuration table for the monthly report.
 
-        pddict = {'Sensor Model': [], 'Units': [], 'Serial Number': [], 'Measurement_point_UUID': [], 'Date From': [],
+        pddict = {'Sensor OEM': [], 'Units': [], 'Serial Number': [], 'Measurement_point_UUID': [], 'Date From': [],
                   'Date To': []}
         # pddict = {'Units':[],'Measurement_point_UUID':[]}
 
-        sen_configs = _LoadBWPlatform.get_sensor_configs(meas_loc_uuid)
+        limit_counter = 0
+        for index, row in meas_points_df.iterrows():
+            sen_configs = _LoadBWPlatform.get_sensor_configs(index, access_token)
 
-        for mp in sen_configs:
-            # print(mp['mounting_arrangement']['height_metres'])
-            if mp.get('measurement_point_uuid'):
-                pddict['Measurement_point_UUID'].append(mp['measurement_point_uuid'])
-                # pddict['Measurement Type'].append(mp['measurement_type'])
+            for sc in sen_configs:
+                # print(mp['mounting_arrangement']['height_metres'])
+                if sc.get('measurement_point_uuid'):
+                    pddict['Measurement_point_UUID'].append(sc['measurement_point_uuid'])
+                    # pddict['Measurement Type'].append(mp['measurement_type'])
 
-                if mp['logger_config'].get('measurement_units'):
-                    # Note need to convert m2 symbol so that it can displaued properly in table. This will have to be done for any special units
-                    mp['logger_config']['measurement_units'] = mp['logger_config']['measurement_units'].replace('m²', '$m^2$') if '²' in mp['logger_config']['measurement_units'] else mp['logger_config']['measurement_units']
-                    pddict['Units'].append(mp['logger_config']['measurement_units'])
-                else:
-                    pddict['Units'].append('-')
+                    if sc['logger_config'].get('measurement_units'):
+                        # Note need to convert m2 symbol so that it can displaued properly in table. This will have to be done for any special units
+                        sc['logger_config']['measurement_units'] = sc['logger_config']['measurement_units'].replace('m²', '$m^2$') if '²' in sc['logger_config']['measurement_units'] else sc['logger_config']['measurement_units']
+                        pddict['Units'].append(sc['logger_config']['measurement_units'])
+                    else:
+                        pddict['Units'].append('-')
 
-                if mp['sensor_info'] and mp['sensor_info'].get('sensor_serial_number'):
-                    pddict['Serial Number'].append(mp['sensor_info']['sensor_serial_number'])
-                else:
-                    pddict['Serial Number'].append('-')
+                    if sc['sensor_info'] and sc['sensor_info'].get('sensor_serial_number'):
+                        pddict['Serial Number'].append(sc['sensor_info']['sensor_serial_number'])
+                    else:
+                        pddict['Serial Number'].append('-')
 
-                if mp['sensor_info'] and mp['sensor_info'].get('sensor_model'):
-                    pddict['Sensor Model'].append(mp['sensor_info']['sensor_model'])
-                else:
-                    pddict['Sensor Model'].append('-')
+                    if sc['sensor_info'] and sc['sensor_info'].get('sensor_oem'):
+                        pddict['Sensor OEM'].append(sc['sensor_info']['sensor_oem'])
+                    else:
+                        pddict['Sensor OEM'].append('-')
 
-                if mp.get('date_from'):
-                    pddict['Date From'].append(mp['date_from'])
-                else:
-                    pddict['Date From'].append('-')
+                    if sc.get('date_from'):
+                        pddict['Date From'].append(sc['date_from'])
+                    else:
+                        pddict['Date From'].append('-')
 
-                if mp.get('date_to'):
-                    pddict['Date To'].append(mp['date_to'])
-                else:
-                    pddict['Date To'].append(datetime.datetime.now())
+                    if sc.get('date_to'):
+                        pddict['Date To'].append(sc['date_to'])
+                    else:
+                        pddict['Date To'].append(datetime.datetime.now())
+
+            # sleep(0.2)
+            # limit_counter = limit_counter + 1
+            # if limit_counter > 1:
+            #     break
 
         Sensor_config = pd.DataFrame(pddict).set_index('Measurement_point_UUID')
         return Sensor_config
@@ -896,15 +923,17 @@ class _LoadBWPlatform:
         :param return_data:
         :return:
         """
+        access_token = _LoadBWPlatform._get_token()
+
         meas_points_df = _LoadBWPlatform._get_meas_points_in_df(meas_loc_uuid, Include_Tilt_Angle=Include_Tilt_Angle)
-        sen_configs_df = _LoadBWPlatform._get_sen_configs_in_df(meas_loc_uuid)
+        sen_configs_df = _LoadBWPlatform._get_sen_configs_in_df(meas_points_df, access_token)
         sensor_table = meas_points_df.join(sen_configs_df)
 
         if Include_Tilt_Angle == 'Y':
-            sensor_table = sensor_table[['Sensor Name', 'Units', 'Sensor Model', 'Measurement Type', 'Height [m]',
+            sensor_table = sensor_table[['Sensor Name', 'Units', 'Sensor OEM', 'Measurement Type', 'Height [m]',
                                          'Boom Orientation [°]', 'Tilt Angle [°]', 'Serial Number', 'Date From']]
         else:
-            sensor_table = sensor_table[['Sensor Name', 'Units', 'Sensor Model', 'Measurement Type', 'Height [m]',
+            sensor_table = sensor_table[['Sensor Name', 'Units', 'Sensor OEM', 'Measurement Type', 'Height [m]',
                                          'Boom Orientation [°]', 'Serial Number', 'Date From']]
 
         sensor_table = sensor_table.set_index('Sensor Name')
@@ -913,7 +942,9 @@ class _LoadBWPlatform:
 
         sensor_table.reset_index(inplace=True)
         sensor_table.drop(columns=['Measurement Type'], inplace=True)
-        sensor_table.sort_values(by=['Sensor Name'], inplace=True)
+        sensor_table['Date From'] = pd.to_datetime(sensor_table['Date From'])
+        sensor_table.sort_values(by=['Sensor Name', 'Date From'], inplace=True)
+        sensor_table['Date From'] = sensor_table['Date From'].dt.strftime("%d-%b-%Y")  # this code is shit!!!
         table = plt.render_table(sensor_table, header_columns=0, col_width=3.3)
 
         if return_data:
