@@ -551,18 +551,19 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
     var_series = _convert_df_to_series(var_series).dropna()
     var_to_bin_series = _convert_df_to_series(var_to_bin_series).dropna()
     direction_series = _convert_df_to_series(direction_series).dropna()
-
+    if var_series.name is None:
+        var_series.name = 'variable_bin'
     direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
         _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
 
-    var_binned_series = pd.cut(var_to_bin_series, var_bin_array, right=False).rename('variable_bin')
+    var_binned_series = pd.cut(var_to_bin_series, var_bin_array, right=False).rename(var_series.name)
     data = pd.concat([var_series.rename('var_data'), var_binned_series, direction_binned_series], axis=1).dropna()
 
     if aggregation_method == '%frequency':
-        counts = data.groupby(['variable_bin', 'direction_bin']).count().unstack(level=-1)
+        counts = data.groupby([var_series.name, 'direction_bin']).count().unstack(level=-1)
         distribution = counts/(counts.sum().sum()) * 100.0
     else:
-        distribution = data.groupby(['variable_bin', 'direction_bin']).agg(aggregation_method).unstack(level=-1)
+        distribution = data.groupby([var_series.name, 'direction_bin']).agg(aggregation_method).unstack(level=-1)
     distribution.columns = distribution.columns.droplevel(0)
     for i in range(1, sectors + 1):
         if not (i in distribution.columns):
@@ -572,10 +573,13 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
     return distribution.sort_index()
 
 
-def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
-               direction_bin_array=None, direction_bin_labels=None, aggregation_method='mean'):
+def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
+                              num_bins=None, var_bin_array=None, var_bin_labels=None,
+                              sectors=12, direction_bin_array=None, direction_bin_labels=None,
+                              aggregation_method='mean', return_data=False):
     """
-    Calculates a distribution matrix of a variable against another variable and wind direction.
+    Calculates a distribution matrix of a variable against another variable and wind direction. Returns a plot
+    of the distribution matrix
 
     :param var_series: Series of variable whose distribution is calculated
     :type var_series: pandas.Series
@@ -583,6 +587,8 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series, v
     :type var_to_bin_series: pandas.Series
     :param direction_series: Series of wind directions between [0-360]
     :type direction_series: pandas.Series
+    :param num_bins: Number of equally spaced bins of var_to_bin_series to be used
+    :type num_bins: int
     :param var_bin_array: List of numbers where adjacent elements of array form a bin. For instance, for bins
         [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]
     :type var_bin_array: list
@@ -600,6 +606,8 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series, v
     :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
             %frequency or a custom function. Computes frequency in percentages by default.
     :type aggregation_method: str
+    :param return_data: If True returns the distribution matrix dataframe alongwith the plot
+    :type return_data: bool
     :return: A distribution matrix for the given variable
     :rtype: pandas.DataFrame
 
@@ -620,16 +628,39 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series, v
 
 
     """
+
+    if num_bins is None and var_bin_array is None:
+        var_bin_array = np.arange(int(np.floor(var_to_bin_series.min())), int(np.ceil(var_to_bin_series.max()) + 1 +
+                                                                              (var_to_bin_series.max() % 1 == 0)), 1)
+    elif num_bins is not None and var_bin_array is None:
+        var_bin_array = np.linspace(var_to_bin_series.min(), var_to_bin_series.max(), num_bins + 1)
+    elif var_bin_array is not None:
+        var_bin_array = var_bin_array
+
     dist = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_to_bin_series,
                                         direction_series=direction_series, var_bin_array=var_bin_array,
                                         sectors=sectors, direction_bin_array=direction_bin_array,
                                         direction_bin_labels=None, aggregation_method=aggregation_method)
     if direction_bin_labels is not None:
         dist.columns = direction_bin_labels
+    else:
+        direction_bin_labels = dist.columns
     if var_bin_labels is not None:
         dist.index = var_bin_labels
+    else:
+        var_bin_labels = dist.index
 
-    return dist
+    if var_series.name is None:
+        var_label = aggregation_method.capitalize() + ' of  var_series'
+    else:
+        var_label = aggregation_method.capitalize() + ' of ' + var_series.name
+
+    heatmap = plt.plot_dist_matrix(dist, var_label, xticklabels=direction_bin_labels, yticklabels=var_bin_labels)
+
+    if return_data:
+        return heatmap, dist
+    else:
+        return heatmap
 
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
