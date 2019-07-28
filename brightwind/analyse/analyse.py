@@ -623,8 +623,7 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series, v
     dist = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_to_bin_series,
                                         direction_series=direction_series, var_bin_array=var_bin_array,
                                         sectors=sectors, direction_bin_array=direction_bin_array,
-                                        direction_bin_labels=None, aggregation_method=aggregation_method).replace\
-                                                        (np.nan, 0.0)
+                                        direction_bin_labels=None, aggregation_method=aggregation_method)
     if direction_bin_labels is not None:
         dist.columns = direction_bin_labels
     if var_bin_labels is not None:
@@ -728,6 +727,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         return graph, result
     else:
         return graph
+
 
 def time_continuity_gaps(data):
     """
