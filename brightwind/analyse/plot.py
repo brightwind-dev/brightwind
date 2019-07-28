@@ -403,7 +403,7 @@ def plot_rose(ext_data, plot_label=None):
     num_digits_to_round = 0
     while contour_spacing*(10**num_digits_to_round) < 1:
         num_digits_to_round += 1
-    levels = np.linspace(0, max_contour, round(contour_spacing, num_digits_to_round))
+    levels = np.arange(0, max_contour, round(contour_spacing, num_digits_to_round))
     ax.set_rgrids(levels, labels=[str(i) for i in levels], angle=0)
     ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
@@ -467,7 +467,7 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     num_digits_to_round = 0
     while contour_spacing * (10 ** num_digits_to_round) < 1:
         num_digits_to_round += 1
-    levels = np.linspace(0, max_contour, round(contour_spacing, num_digits_to_round))
+    levels = np.arange(0, max_contour, round(contour_spacing, num_digits_to_round))
     ax.set_rgrids(levels,
                   labels=[str(i) + symbol for i in levels],
                   angle=0, zorder=2)
