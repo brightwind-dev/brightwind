@@ -399,13 +399,11 @@ def plot_rose(ext_data, plot_label=None):
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0, 360, 360.0/sectors))
     max_contour = (ext_data.max() + ext_data.std())
-    levels = np.linspace(0, max_contour+10-(max_contour%10), 10)
-    contour_spacing = levels[1]-levels[0]
+    contour_spacing = max_contour / 10
     num_digits_to_round = 0
-    while contour_spacing < 1:
+    while contour_spacing*(10**num_digits_to_round) < 1:
         num_digits_to_round += 1
-        contour_spacing = contour_spacing * 10
-    levels = [round(i, num_digits_to_round) for i in levels]
+    levels = np.linspace(0, max_contour, round(contour_spacing, num_digits_to_round))
     ax.set_rgrids(levels, labels=[str(i) for i in levels], angle=0)
     ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
@@ -464,13 +462,12 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
         symbol = '%'
     else:
         symbol = ' '
-    levels = np.linspace(0.1, max(table.sum(axis=0)) + 2.0, 10)
-    contour_spacing = levels[1] - levels[0]
+    max_contour = max(table.sum(axis=0)) + table.sum(axis=0).std()
+    contour_spacing = max_contour / 10
     num_digits_to_round = 0
-    while contour_spacing < 1:
+    while contour_spacing * (10 ** num_digits_to_round) < 1:
         num_digits_to_round += 1
-        contour_spacing = contour_spacing * 10
-    levels = [round(i, num_digits_to_round) for i in levels]
+    levels = np.linspace(0, max_contour, round(contour_spacing, num_digits_to_round))
     ax.set_rgrids(levels,
                   labels=[str(i) + symbol for i in levels],
                   angle=0, zorder=2)
