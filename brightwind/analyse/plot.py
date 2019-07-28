@@ -447,6 +447,7 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
                     bin_assigned.append(pos)
                     row_group.append(pos)
             rows_to_sum.append(row_group)
+
     else:
         if len(table.index) > 6:
             rows_to_sum = []
@@ -484,6 +485,7 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
                   angle=0, zorder=2)
     ax.set_ylim(0, max(table.sum(axis=0)) + 3.0)
     ax.bar(0, 1, alpha=0)
+
     for column in table_binned:
         radial_pos = 0.0
         angular_pos_start = (np.pi / 180.0) * float(column.split('-')[0])
@@ -493,13 +495,13 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
             angular_width = angular_pos_end - angular_pos_start - (np.pi / 180)  # Leaving 1 degree gap
         else:
             angular_width = 2 * np.pi - angular_pos_start + angular_pos_end - (np.pi / 180)
+
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
             patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,
                                           frequency, facecolor=gradient_colors[speed_bin], edgecolor='#5c7b1e',
-                                          linewidth=0.3, zorder=3)
+                                          linewidth=0.3, zorder=5)
             ax.add_patch(patch)
             radial_pos += frequency
-
     if plot_labels is None:
         plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=bin_labels[i]) for i in range(len(bin_labels))]
     else:

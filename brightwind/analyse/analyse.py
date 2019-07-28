@@ -662,8 +662,9 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     :type freq_as_percentage: bool
     :param return_data:  Set to True if you want to return the frequency table too.
     :type return_data: bool
-    :param plot_bins: (Optional) Bins to use for gradient in the rose. Different bins will be plotted with different
-        color. Chooses six bins to plot by default.
+    :param plot_bins: Bins to use for gradient in the rose. Different bins will be plotted with different
+        color. Chooses six bins to plot by default '0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s' and
+        '15+ m/s'. If you change var_bin_array this should be changed in accordance with it.
     :type plot_bins: list
     :param plot_labels: (Optional) Labels to use for different colors in the rose. By default chooses the end points of
         bin
@@ -682,7 +683,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         #To use 3 bins for wind speed [0,8), [8, 14), [14, 41) and label them as ['low', 'mid', 'high']. Can be used for
         #variabes other than wind speed too
         rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, var_bin_array=[0,8,14,41],
-            var_bin_labels=['low', 'mid', 'high'], return_data=True)
+            var_bin_labels=['low', 'mid', 'high'], plot_bins=[0,8,14,41], return_data=True)
 
 
         #Use custom direction bins
@@ -706,14 +707,13 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                                         direction_bin_labels=None, aggregation_method=agg_method).replace(np.nan, 0.0)
 
     if plot_bins is None:
-        plot_bins = [0, 3, 6, 9, 12, 15, 41],
+        plot_bins = [0, 3, 6, 9, 12, 15, 41]
         if plot_labels is None:
             plot_labels = ['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s']
         else:
             if len(plot_labels) + 1 != len(plot_bins):
                 import warnings
                 warnings.warn("Number of plot_labels is not equal to number of plot_bins. Using default plot_labels")
-
     # Creating a graph before renaming the direction labels, to help identify sectors while plotting
     graph = plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
                                         percent_symbol=freq_as_percentage)
