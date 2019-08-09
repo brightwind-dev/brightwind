@@ -734,6 +734,49 @@ class Shear:
 
             return Shear._apply(self, wspds=wspds, height=height, shear_to=shear_to, wdir=wdir)
 
+    class BySectorTimeOfDay:
+
+        def __init__(self, wspds, heights, wdir, min_speed=3, calc_method='power_law', sectors=12,
+                     direction_bin_array=None, direction_bin_labels=None, segment_start_time=7,
+                     segments_per_day=2, plot_type='step'):
+
+            print('This may take a while...')
+            wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
+
+            if direction_bin_array is not None:
+                sectors = len(direction_bin_array) - 1
+
+            wdir = _convert_df_to_series(wdir)
+            mean_wspds_sector = pd.Series([])
+            mean_wspds_sector_tod = pd.Series([])
+            mean_wspds_df = pd.DataFrame([])
+            count_df = pd.DataFrame([])
+            count = pd.Series([])
+            #wspds_wdir = pd.concat([wspds, wdir], axis=1).dropna()
+            grouped_tod_wspds = list(wspds.groupby(wspds.index.hour))
+            mean_tod_sector_wspds = []
+            shear_tod_sector = []
+
+            for j, group_tod_wspd in enumerate(grouped_tod_wspds):
+                group_tod_wspd = group_tod_wspd[1]
+                for i in range(len(wspds.columns)):
+                    wspds_tod = group_tod_wspd.iloc[:, i]
+                    plot, mean_tod_sector_wspds = distribution_by_dir_sector(wspds_tod, wdir, direction_bin_array=direction_bin_array,
+                                                                     aggregation_method='mean', return_data=True)
+
+                   # plot, count[i] = distribution_by_dir_sector(wspds_tod[i], wdir, direction_bin_array=direction_bin_array,
+                                                             #   aggregation_method='count', return_data=True)
+                    if i == 0:
+                        df = pd.DataFrame(mean_tod_sector_wspds)
+                    else:
+                        df = pd.concat([df, mean_tod_sector_wspds], axis=1)
+
+                alpha = df.apply(Shear._calc_power_law, heights=heights, return_coeff=False, axis=1)
+                shear_tod_sector.append(alpha)
+
+            self.alpha = shear_tod_sector
+
+
     @staticmethod
     def _log_roughness_scale(wspds, height, shear_to, roughness):
         """
@@ -1162,3 +1205,22 @@ class Shear:
         info['output data'] = output_data
 
         return info
+
+if __name__ =='__main__':
+    import brightwind as bw
+
+    data = bw.load_csv(r'C:\Users\lukec\demo_data.csv')
+
+    heights = [60, 40]
+
+    directions = data['Dir78mS']
+
+    speeds = data['Spd40mN']
+
+    cleaning_file = r'C:\Users\lukec\demo_cleaning_file.csv'
+
+    data = bw.apply_cleaning(data, cleaning_file).dropna()
+
+    anemometers = data[['Spd60mN', 'Spd40mN']]
+
+    x = bw.Shear.BySectorTimeOfDay(anemometers,heights,directions)
