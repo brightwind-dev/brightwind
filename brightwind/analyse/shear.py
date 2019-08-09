@@ -102,7 +102,8 @@ class Shear:
                 alpha_c = (wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_power_law, heights=heights,
                                                                         return_coeff=True,
                                                                         maximise_data=maximise_data, axis=1))
-                self._alpha = alpha_c.iloc[:, 0]
+                alpha = pd.Series(alpha_c.iloc[:, 0], name='alpha')
+                self._alpha = alpha
 
             elif calc_method == 'log_law':
                 slope_intercept = (wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_log_law, heights=heights,
@@ -110,7 +111,9 @@ class Shear:
                                                                                 maximise_data=maximise_data, axis=1))
                 slope = slope_intercept.iloc[:, 0]
                 intercept = slope_intercept.iloc[:, 1]
-                self._roughness = Shear._calc_roughness(slope=slope, intercept=intercept)
+                roughness_coefficient = pd.Series(Shear._calc_roughness(slope=slope, intercept=intercept),
+                                                  name='roughness_coefficient')
+                self._roughness = roughness_coefficient
 
             clear_output()
             avg_plot = Shear.Average(wspds=wspds, heights=heights, calc_method=calc_method,
@@ -653,7 +656,7 @@ class Shear:
                                                                             return_data=True)
 
                 self.alpha_count = count_df
-                self._alpha = alpha
+                self._alpha = pd.Series(alpha, name='alpha')
                 clear_output()
                 self.plot = plt.plot_shear_by_sector(scale_variable=alpha, wind_rose_data=wind_rose_dist,
                                                      calc_method=calc_method)
@@ -666,7 +669,7 @@ class Shear:
                 intercept = slope_intercept.iloc[:, 1]
                 roughness = Shear._calc_roughness(slope=slope, intercept=intercept)
                 self.roughness_count = count_df
-                self._roughness = roughness
+                self._roughness = pd.Series(roughness, name='roughness_coefficient')
                 clear_output()
                 self.plot = plt.plot_shear_by_sector(scale_variable=roughness, wind_rose_data=wind_rose_dist,
                                                      calc_method=calc_method)
