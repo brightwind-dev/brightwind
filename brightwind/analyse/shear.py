@@ -750,6 +750,7 @@ class Shear:
             grouped_tod_wspds = list(wspds.groupby(wspds.index.hour))
             shear_tod_sector_alpha = []
             shear_tod_sector_roughness = []
+            wspds['wdir'] = wdir
             wspds['timestamp'] = wspds.index
             new_index = pd.to_datetime(pd.Series(wspds.index).apply(lambda x: datetime.datetime.strftime(x, "%H:%M:%S")))
             wspds.set_index(new_index, inplace=True)
@@ -758,9 +759,8 @@ class Shear:
 
             for j, group_tod_wspd in enumerate(grouped_tod_wspds):
                 group_tod_wspd = group_tod_wspd[1]
-                for i in range(len(wspds.columns)-1):
-                    wspds_tod = group_tod_wspd.iloc[:, i]
-                    plot, mean_tod_sector_wspds = distribution_by_dir_sector(wspds_tod, wdir, direction_bin_array=direction_bin_array, direction_bin_labels=
+                for i in range(len(wspds.columns)-2):
+                    plot, mean_tod_sector_wspds = distribution_by_dir_sector(group_tod_wspd.iloc[:, i], group_tod_wspd.iloc[:,-2], direction_bin_array=direction_bin_array, direction_bin_labels=
                     direction_bin_labels, aggregation_method='mean', return_data=True)
 
                    # plot, count[i] = distribution_by_dir_sector(wspds_tod[i], wdir, direction_bin_array=direction_bin_array,
@@ -771,6 +771,7 @@ class Shear:
                         df = pd.concat([df, mean_tod_sector_wspds], axis=1)
                 if calc_method == 'power_law':
                     alpha = df.apply(Shear._calc_power_law, heights=heights, return_coeff=False, axis=1)
+                    alpha.name = group_tod_wspd.iloc[:, i].index[0].hour
                     shear_tod_sector_alpha.append(alpha)
                 elif calc_method == 'log_law':
                     slope, intercept = df.apply(Shear._calc_log_law, heights=heights, return_coeff=True, axis=1)
@@ -782,6 +783,13 @@ class Shear:
             elif calc_method == 'log_law':
                 self.roughness == shear_tod_sector_roughness
 
+            self.wspds = wspds
+            self.wdir = wdir
+            self.origin = 'BySectorTimeOfDay'
+            self.sectors = sectors
+            self.calc_method = calc_method
+            self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
+                                           direction_bin_array=direction_bin_array)
 
     @staticmethod
     def _log_roughness_scale(wspds, height, shear_to, roughness):
