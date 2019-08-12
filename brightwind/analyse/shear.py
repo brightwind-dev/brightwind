@@ -680,7 +680,7 @@ class Shear:
             self.sectors = sectors
             self.calc_method = calc_method
             self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
-                                          direction_bin_array = direction_bin_array)
+                                           direction_bin_array = direction_bin_array)
 
         @property
         def alpha(self):
@@ -747,22 +747,21 @@ class Shear:
                 sectors = len(direction_bin_array) - 1
 
             wdir = _convert_df_to_series(wdir)
-            mean_wspds_sector = pd.Series([])
-            mean_wspds_sector_tod = pd.Series([])
-            mean_wspds_df = pd.DataFrame([])
-            count_df = pd.DataFrame([])
-            count = pd.Series([])
-            #wspds_wdir = pd.concat([wspds, wdir], axis=1).dropna()
             grouped_tod_wspds = list(wspds.groupby(wspds.index.hour))
-            mean_tod_sector_wspds = []
-            shear_tod_sector = []
+            shear_tod_sector_alpha = []
+            shear_tod_sector_roughness = []
+            wspds['timestamp'] = wspds.index
+            new_index = pd.to_datetime(pd.Series(wspds.index).apply(lambda x: datetime.datetime.strftime(x, "%H:%M:%S")))
+            wspds.set_index(new_index, inplace=True)
+            freq = str(24/segments_per_day) + 'H'
+            grouped_tod_wspds = wspds.groupby(pd.Grouper(freq=freq))
 
             for j, group_tod_wspd in enumerate(grouped_tod_wspds):
                 group_tod_wspd = group_tod_wspd[1]
-                for i in range(len(wspds.columns)):
+                for i in range(len(wspds.columns)-1):
                     wspds_tod = group_tod_wspd.iloc[:, i]
-                    plot, mean_tod_sector_wspds = distribution_by_dir_sector(wspds_tod, wdir, direction_bin_array=direction_bin_array,
-                                                                     aggregation_method='mean', return_data=True)
+                    plot, mean_tod_sector_wspds = distribution_by_dir_sector(wspds_tod, wdir, direction_bin_array=direction_bin_array, direction_bin_labels=
+                    direction_bin_labels, aggregation_method='mean', return_data=True)
 
                    # plot, count[i] = distribution_by_dir_sector(wspds_tod[i], wdir, direction_bin_array=direction_bin_array,
                                                              #   aggregation_method='count', return_data=True)
@@ -770,11 +769,18 @@ class Shear:
                         df = pd.DataFrame(mean_tod_sector_wspds)
                     else:
                         df = pd.concat([df, mean_tod_sector_wspds], axis=1)
+                if calc_method == 'power_law':
+                    alpha = df.apply(Shear._calc_power_law, heights=heights, return_coeff=False, axis=1)
+                    shear_tod_sector_alpha.append(alpha)
+                elif calc_method == 'log_law':
+                    slope, intercept = df.apply(Shear._calc_log_law, heights=heights, return_coeff=True, axis=1)
+                    roughness_coefficient = Shear._calc_roughness(slope,intercept)
+                    shear_tod_sector_roughness.append(roughness_coefficient)
 
-                alpha = df.apply(Shear._calc_power_law, heights=heights, return_coeff=False, axis=1)
-                shear_tod_sector.append(alpha)
-
-            self.alpha = shear_tod_sector
+            if calc_method == 'power_law':
+                self.alpha = shear_tod_sector_alpha
+            elif calc_method == 'log_law':
+                self.roughness == shear_tod_sector_roughness
 
 
     @staticmethod
