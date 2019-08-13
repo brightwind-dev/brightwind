@@ -747,9 +747,8 @@ class Shear:
                 sectors = len(direction_bin_array) - 1
 
             wdir = _convert_df_to_series(wdir)
-            grouped_tod_wspds = list(wspds.groupby(wspds.index.hour))
-            shear_tod_sector_alpha = []
-            shear_tod_sector_roughness = []
+            alpha_sector_tods = []
+            roughness_sector_tods = []
             wspds['wdir'] = wdir
             wspds['timestamp'] = wspds.index
             new_index = pd.to_datetime(pd.Series(wspds.index).apply(lambda x: datetime.datetime.strftime(x, "%H:%M:%S")))
@@ -760,28 +759,39 @@ class Shear:
             for j, group_tod_wspd in enumerate(grouped_tod_wspds):
                 group_tod_wspd = group_tod_wspd[1]
                 for i in range(len(wspds.columns)-2):
-                    plot, mean_tod_sector_wspds = distribution_by_dir_sector(group_tod_wspd.iloc[:, i], group_tod_wspd.iloc[:,-2], direction_bin_array=direction_bin_array, direction_bin_labels=
-                    direction_bin_labels, aggregation_method='mean', return_data=True)
+                    plot, mean_tod_sector_wspds = distribution_by_dir_sector(group_tod_wspd.iloc[:, i],
+                                                                             group_tod_wspd.iloc[:, -2],
+                                                                             direction_bin_array=direction_bin_array,
+                                                                             direction_bin_labels=direction_bin_labels,
+                                                                             aggregation_method='mean',
+                                                                             return_data=True)
 
-                   # plot, count[i] = distribution_by_dir_sector(wspds_tod[i], wdir, direction_bin_array=direction_bin_array,
-                                                             #   aggregation_method='count', return_data=True)
                     if i == 0:
                         df = pd.DataFrame(mean_tod_sector_wspds)
                     else:
                         df = pd.concat([df, mean_tod_sector_wspds], axis=1)
                 if calc_method == 'power_law':
-                    alpha = df.apply(Shear._calc_power_law, heights=heights, return_coeff=False, axis=1)
-                    alpha.name = group_tod_wspd.iloc[:, i].index[0].hour
-                    shear_tod_sector_alpha.append(alpha)
+                    alpha_sector_tod = df.apply(Shear._calc_power_law, heights=heights, return_coeff=False, axis=1)
+                    alpha_sector_tod.name = group_tod_wspd.iloc[:, i].index[0].strftime('%H:%M:%S')
+                    alpha_sector_tods.append(alpha_sector_tod)
                 elif calc_method == 'log_law':
-                    slope, intercept = df.apply(Shear._calc_log_law, heights=heights, return_coeff=True, axis=1)
-                    roughness_coefficient = Shear._calc_roughness(slope,intercept)
-                    shear_tod_sector_roughness.append(roughness_coefficient)
+                    slope_intercept = df.apply(Shear._calc_log_law, heights=heights, return_coeff=True, axis=1)
+                    roughness_coefficient = Shear._calc_roughness(slope_intercept.iloc[:, 0], slope_intercept.iloc[:, 1])
+                    roughness_coefficient.name = group_tod_wspd.iloc[:, i].index[0].strftime('%H:%M:%S')
+                    roughness_sector_tods.append(roughness_coefficient)
+
+            alpha = pd.DataFrame([])
+            roughness = pd.DataFrame([])
 
             if calc_method == 'power_law':
-                self.alpha = shear_tod_sector_alpha
+                for i in alpha_sector_tods:
+                    alpha = pd.concat([alpha, i], axis=1, sort=True)
+                self._alpha = alpha.T
+
             elif calc_method == 'log_law':
-                self.roughness == shear_tod_sector_roughness
+                for i in roughness_sector_tods:
+                    roughness = pd.concat([roughness, i], axis=1, sort=True)
+                self._roughness = roughness.T
 
             self.wspds = wspds
             self.wdir = wdir
@@ -790,6 +800,58 @@ class Shear:
             self.calc_method = calc_method
             self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
                                            direction_bin_array=direction_bin_array)
+
+        @property
+        def alpha(self):
+            return self._alpha
+
+        @property
+        def roughness(self):
+            return self._roughness
+
+        def apply(self, wspds, wdir, height, shear_to):
+            """
+            Applies shear calculated to a wind speed time series by wind direction to scale
+            wind speed from one height to another.
+
+            :param self: BySector object to use when applying shear to the data
+            :type self: BySector object
+            :param wspds: Wind speed time series to apply shear to.
+            :type wspds: pandas.Series
+            :param wdir: Wind direction measurements of wspds, only required if shear is to be applied by direction
+            sector.
+            :type wdir: pandas.Series
+            :param height: Height of wspds.
+            :type height: float
+            :param shear_to: Height to which wspds should be scaled to.
+            :type shear_to: float
+            :return: A pandas.Series of the scaled wind speeds.
+            :rtype: pandas.Series
+
+             **Example Usage**
+             ::
+                import brightwind as bw
+
+                # Load anemometer data to calculate exponents
+                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                anemometers = data[['Spd80mS', 'Spd60mS']]
+                heights = [80, 60]
+                directions = data[['Dir78mS']]
+
+                # Calculate shear exponents
+                by_sector_power_law = bw.Shear.BySector(anemometers, heights, directions)
+                by_sector_log_law = bw.Shear.BySector(anemometers, heights, directions, calc_method='log_law')
+
+                # Calculate shear exponents using default bins ([345,15,45,75,105,135,165,195,225,255,285,315,345])
+                by_sector_power_law= bw.Shear.BySector(anemometers, heights, directions)
+
+                # Scale wind speeds using exponents
+                by_sector_power_law.apply(data['Spd40mN'], data['Dir38mS'], height=40, shear_to=70)
+                by_sector_log_law.apply(data['Spd40mN'], data['Dir38mS'], height=40, shear_to=70)
+
+            """
+
+            return Shear._apply(self, wspds=wspds, height=height, shear_to=shear_to, wdir=wdir)
 
     @staticmethod
     def _log_roughness_scale(wspds, height, shear_to, roughness):
@@ -1091,6 +1153,64 @@ class Shear:
 
             result.sort_index(axis='index', inplace=True)
 
+
+        if self.origin == 'BySectorTimeOfDay':
+            # initilise series for later use
+            bin_edges = pd.Series([])
+            by_sector = pd.Series([])
+
+            if self.calc_method == 'power_law':
+                direction_bins = self.alpha
+            else:
+                direction_bins = self.roughness
+
+            # join wind speeds and directions together in DataFrame
+            df = pd.concat([wspds, wdir], axis=1)
+
+            if self.calc_method == 'power_law':
+                filled_alpha = Shear._fill_df_12x24(self.alpha)
+
+            else:
+                filled_roughness = Shear._fill_df_12x24(self._roughness)
+                filled_alpha = filled_roughness
+
+            for i in range(self.sectors):
+                bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", direction_bins.columns.values[i])[0])
+                if i == self.sectors - 1:
+                    bin_edges[i + 1] = -float(re.findall(r"[-+]?\d*\.\d+|\d+", direction_bins.columns.values[i])[1])
+
+            df_wspds = [[None for y in range(12)] for x in range(24)]
+            f = FloatProgress(min=0, max=24 * 12, description='Calculating', bar_style='success')
+            display(f)
+
+            for i in range(0, 24):
+
+                for j in range(0, self.sectors):
+
+                    if i == 23:
+                        df_wspds[i][j] = df[
+                            (df.index.time >= filled_alpha.index[i]) & (df.iloc[i, j] > )]
+                    else:
+                        df_wspds[i][j] = wspds[
+                            (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.time < filled_alpha.index[i + 1])
+                            & (wspds.index.month == j + 1)]
+
+                    if self.calc_method == 'power_law':
+                        df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
+                                                      alpha=filled_alpha.iloc[i, j], calc_method=self.calc_method)
+
+                    else:
+                        df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
+                                                      roughness=filled_roughness.iloc[i, j],
+                                                      calc_method=self.calc_method)
+
+                    scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
+                    f.value += 1
+
+            result = scaled_wspds.sort_index()
+            f.close()
+
+
         if self.origin == 'Average':
 
             if wdir is not None:
@@ -1237,4 +1357,4 @@ if __name__ =='__main__':
 
     anemometers = data[['Spd60mN', 'Spd40mN']]
 
-    x = bw.Shear.BySectorTimeOfDay(anemometers,heights,directions)
+    x = bw.Shear.BySectorTimeOfDay(anemometers,heights,directions, calc_method='log_law')
