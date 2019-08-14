@@ -234,8 +234,6 @@ def plot_scatter(x_series, y_series, x_axis_title=None, y_axis_title=None,
                         x_limits=(50,300), y_limits=(250,300))
 
     """
-    x_series = utils._convert_df_to_series(x_series)
-    y_series = utils._convert_df_to_series(y_series)
     if x_axis_title is None:
         x_axis_title = x_series.name
     if y_axis_title is None:
@@ -390,7 +388,7 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     return ax.get_figure()
 
 
-def plot_rose(ext_data):
+def plot_rose(ext_data, plot_label=None):
     """
     Plot a wind rose from data by distribution_by_dir_sector
     """
@@ -400,32 +398,21 @@ def plot_rose(ext_data):
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    bin_edges = pd.Series([])
-    width = pd.Series([])
-    for i in range(sectors):
-        bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", ext_data.index[i])[0])
-        if i == sectors - 1:
-            bin_edges[i + 1] = abs(float(re.findall(r"[-+]?\d*\.\d+|\d+", ext_data.index[i])[1]))
+    ax.set_thetagrids(np.arange(0, 360, 360.0/sectors))
+    max_contour = (ext_data.max() + ext_data.std())
 
-    radians = np.radians(utils._get_dir_sector_mid_pts(ext_data.index))
-    ax.set_rgrids(np.arange(0, 101, 10), labels=[str(i) + '%' for i in np.arange(0, 101, 10)], angle=0)
-
-    for i in range(len(bin_edges) - 1):
-
-        if bin_edges[i+1] == 0:
-            width[i] = 2 * np.pi*(360 - bin_edges[i])/360
-
-        elif bin_edges[i + 1] > bin_edges[i]:
-            width[i] = 2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360)
-
-        else:
-            width[i] = 2 * np.pi * (((360 + bin_edges[i + 1]) - bin_edges[i]) / 360)
-
-    ax.bar(radians, result, width=width, bottom=0.0, color='#9ACD32', align = 'center',
+    contour_spacing = max_contour / 10
+    num_digits_to_round = 0
+    while contour_spacing*(10**num_digits_to_round) <= 1:
+        num_digits_to_round += 1
+    if contour_spacing > 0.5 and contour_spacing < 1:
+        contour_spacing = 1
+    levels = np.arange(0, max_contour, round(contour_spacing, num_digits_to_round))
+    ax.set_rgrids(levels, labels=[str(i) for i in levels], angle=0)
+    ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
 
-    ax.set_thetagrids(radians*180/np.pi)
-    # ax.set_title('Wind Rose', loc='center')
+    ax.legend([plot_label])
     plt.close()
     return ax.get_figure()
 
@@ -447,7 +434,6 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
                     bin_assigned.append(pos)
                     row_group.append(pos)
             rows_to_sum.append(row_group)
-
     else:
         if len(table.index) > 6:
             rows_to_sum = []
@@ -480,12 +466,19 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
         symbol = '%'
     else:
         symbol = ' '
-    ax.set_rgrids(np.linspace(0.1, max(table.sum(axis=0)) + 2.0, 10),
-                  labels=['%.0f' % round(i) + symbol for i in np.linspace(0.1, max(table.sum(axis=0)) + 2.0, 10)],
+    max_contour = max(table.sum(axis=0)) + table.sum(axis=0).std()
+    contour_spacing = max_contour / 10
+    num_digits_to_round = 0
+    while contour_spacing * (10 ** num_digits_to_round) < 1:
+        num_digits_to_round += 1
+    if contour_spacing > 0.5 and contour_spacing < 1:
+        contour_spacing = 1
+    levels = np.arange(0, max_contour, round(contour_spacing, num_digits_to_round))
+    ax.set_rgrids(levels,
+                  labels=[str(i) + symbol for i in levels],
                   angle=0, zorder=2)
     ax.set_ylim(0, max(table.sum(axis=0)) + 3.0)
     ax.bar(0, 1, alpha=0)
-
     for column in table_binned:
         radial_pos = 0.0
         angular_pos_start = (np.pi / 180.0) * float(column.split('-')[0])
@@ -495,13 +488,13 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
             angular_width = angular_pos_end - angular_pos_start - (np.pi / 180)  # Leaving 1 degree gap
         else:
             angular_width = 2 * np.pi - angular_pos_start + angular_pos_end - (np.pi / 180)
-
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
             patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,
                                           frequency, facecolor=gradient_colors[speed_bin], edgecolor='#5c7b1e',
-                                          linewidth=0.3, zorder=5)
+                                          linewidth=0.3, zorder=3)
             ax.add_patch(patch)
             radial_pos += frequency
+
     if plot_labels is None:
         plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=bin_labels[i]) for i in range(len(bin_labels))]
     else:
