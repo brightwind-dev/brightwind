@@ -553,6 +553,8 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
     direction_series = _convert_df_to_series(direction_series).dropna()
     if var_series.name is None:
         var_series.name = 'variable_bin'
+    if direction_series.name is None:
+        direction_series.name = 'direction_bin'
     direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
         _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
 
@@ -641,6 +643,7 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
                                         direction_series=direction_series, var_bin_array=var_bin_array,
                                         sectors=sectors, direction_bin_array=direction_bin_array,
                                         direction_bin_labels=None, aggregation_method=aggregation_method)
+
     if direction_bin_labels is not None:
         dist.columns = direction_bin_labels
     else:
@@ -655,6 +658,15 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
     else:
         var_label = aggregation_method.capitalize() + ' of ' + var_series.name
 
+    if var_series.name == var_to_bin_series.name:
+        table_label = var_series.name + "_distributed"
+    else:
+        table_label = var_series.name
+
+    dist.columns = pd.MultiIndex(levels=[[table_label], dist.columns],
+                                         codes=[[0 for i in range(len(dist.columns))],
+                                                list(range(len(dist.columns)))],
+                                         names=[None, direction_series.name])
     heatmap = plt.plot_dist_matrix(dist, var_label, xticklabels=direction_bin_labels, yticklabels=var_bin_labels)
 
     if return_data:
@@ -736,7 +748,6 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                                             direction_series=direction_series, var_bin_array=var_bin_array,
                                             sectors=sectors, direction_bin_array=direction_bin_array,
                                         direction_bin_labels=None, aggregation_method=agg_method).replace(np.nan, 0.0)
-
     if plot_bins is None:
         plot_bins = [0, 3, 6, 9, 12, 15, 41]
         if plot_labels is None:
