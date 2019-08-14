@@ -772,13 +772,15 @@ class Shear:
                         df = pd.concat([df, mean_tod_sector_wspds], axis=1)
                 if calc_method == 'power_law':
                     alpha_sector_tod = df.apply(Shear._calc_power_law, heights=heights, return_coeff=False, axis=1)
-                    alpha_sector_tod.name = group_tod_wspd.iloc[:, i].index[0].strftime('%H:%M:%S')
+                    name = group_tod_wspd.iloc[:, i].index[0].strftime('%H:%M:%S')
+                    alpha_sector_tod.name = datetime.datetime.strptime(name, '%H:%M:%S')
                     alpha_sector_tods.append(alpha_sector_tod)
                 elif calc_method == 'log_law':
                     slope_intercept = df.apply(Shear._calc_log_law, heights=heights, return_coeff=True, axis=1)
-                    roughness_coefficient = Shear._calc_roughness(slope_intercept.iloc[:, 0], slope_intercept.iloc[:, 1])
-                    roughness_coefficient.name = group_tod_wspd.iloc[:, i].index[0].strftime('%H:%M:%S')
-                    roughness_sector_tods.append(roughness_coefficient)
+                    roughness_sector_tod = Shear._calc_roughness(slope_intercept.iloc[:, 0], slope_intercept.iloc[:, 1])
+                    name = group_tod_wspd.iloc[:, i].index[0].strftime('%H:%M:%S')
+                    roughness_sector_tod.name = datetime.datetime.strptime(name, '%H:%M:%S')
+                    roughness_sector_tods.append(roughness_sector_tod)
 
             alpha = pd.DataFrame([])
             roughness = pd.DataFrame([])
@@ -1153,11 +1155,11 @@ class Shear:
 
             result.sort_index(axis='index', inplace=True)
 
-
         if self.origin == 'BySectorTimeOfDay':
             # initilise series for later use
             bin_edges = pd.Series([])
             by_sector = pd.Series([])
+            df = pd.concat([wspds, wdir], axis=1)
 
             if self.calc_method == 'power_law':
                 direction_bins = self.alpha
@@ -1180,35 +1182,55 @@ class Shear:
                     bin_edges[i + 1] = -float(re.findall(r"[-+]?\d*\.\d+|\d+", direction_bins.columns.values[i])[1])
 
             df_wspds = [[None for y in range(12)] for x in range(24)]
-            f = FloatProgress(min=0, max=24 * 12, description='Calculating', bar_style='success')
-            display(f)
+
+            for i in range(0, 24):
+
+                if i == 23:
+                    mask_time_23_00 = (df.index.time >= filled_alpha.index[i])
+                    tod_wspds = df[mask_time_23_00]
+                else:
+                    mask_time_regular = (df.index.time >= filled_alpha.index[i]) & (
+                            wspds.index.time < filled_alpha.index[i + 1])
+                    tod_wspds = df[mask_time_regular]
+
+                for j in range(0, self.sectors):
+
+                    if (i == 15) & (j == 0 | j == 2):
+                        t = 3
+
+                    if bin_edges[j] > bin_edges[j + 1]:
+
+                        mask_direction_past_0 = (tod_wspds.iloc[:, 1] >= bin_edges[j]) | (
+                                tod_wspds.iloc[:, 1] < bin_edges[j + 1])
+                        df_wspds[i][j] = tod_wspds[mask_direction_past_0]
+
+                    elif bin_edges[j + 1] == 360:
+
+                        mask_direction_to_360 = (tod_wspds.iloc[:, 1] >= bin_edges[j])
+                        df_wspds[i][j] = tod_wspds[mask_direction_to_360]
+
+                    else:
+                        mask_direction_regular = (tod_wspds.iloc[:, 1] >= bin_edges[j]) & (
+                                tod_wspds.iloc[:, 1] < bin_edges[j + 1])
+                        df_wspds[i][j] = tod_wspds[mask_direction_regular]
+                        q = 4
 
             for i in range(0, 24):
 
                 for j in range(0, self.sectors):
 
-                    if i == 23:
-                        df_wspds[i][j] = df[
-                            (df.index.time >= filled_alpha.index[i]) & (df.iloc[i, j] > )]
-                    else:
-                        df_wspds[i][j] = wspds[
-                            (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.time < filled_alpha.index[i + 1])
-                            & (wspds.index.month == j + 1)]
-
                     if self.calc_method == 'power_law':
-                        df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
+                        df_wspds[i][j] = Shear._scale(df_wspds[i][j].iloc[:, 0], shear_to=shear_to, height=height,
                                                       alpha=filled_alpha.iloc[i, j], calc_method=self.calc_method)
 
                     else:
-                        df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
+                        df_wspds[i][j] = Shear._scale(df_wspds[i][j].iloc[:, 0], shear_to=shear_to, height=height,
                                                       roughness=filled_roughness.iloc[i, j],
                                                       calc_method=self.calc_method)
 
-                    scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
-                    f.value += 1
+                    scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j].iloc[:,0]], axis=0)
 
-            result = scaled_wspds.sort_index()
-            f.close()
+            result = df_wspds
 
 
         if self.origin == 'Average':
@@ -1227,7 +1249,7 @@ class Shear:
                                       calc_method=self.calc_method, roughness=self._roughness)
 
         new_name = wspds.name + '_scaled_to_' + str(shear_to) + 'm'
-        result.rename(new_name, inplace=True)
+        # result.rename(new_name, inplace=True)
         return result
 
     @staticmethod
@@ -1358,3 +1380,4 @@ if __name__ =='__main__':
     anemometers = data[['Spd60mN', 'Spd40mN']]
 
     x = bw.Shear.BySectorTimeOfDay(anemometers,heights,directions, calc_method='log_law')
+    x.apply(wspds=speeds, wdir=directions, height=40, shear_to=80)
