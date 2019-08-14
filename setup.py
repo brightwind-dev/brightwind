@@ -33,7 +33,9 @@ setup(
         'scipy>=0.19.1',
         'pytest>= 4.1.0',
         'six>= 1.12.0',
-        'python-dateutil>=2.8.0'
+        'python-dateutil>=2.8.0',
+        'ipywidgets>=7.4.2',
+        'ipython>=7.4.0'
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",
