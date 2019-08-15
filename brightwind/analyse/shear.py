@@ -1187,11 +1187,12 @@ class Shear:
 
                 if i == 23:
                     mask_time_23_00 = (df.index.time >= filled_alpha.index[i])
-                    tod_wspds = df[mask_time_23_00]
+                    tod_wspds = df[df.index.time >= filled_alpha.index[i]]
                 else:
                     mask_time_regular = (df.index.time >= filled_alpha.index[i]) & (
                             wspds.index.time < filled_alpha.index[i + 1])
-                    tod_wspds = df[mask_time_regular]
+                    tod_wspds = df[(df.index.time >= filled_alpha.index[i]) & (
+                            wspds.index.time < filled_alpha.index[i + 1])]
 
                 for j in range(0, self.sectors):
 
@@ -1202,17 +1203,19 @@ class Shear:
 
                         mask_direction_past_0 = (tod_wspds.iloc[:, 1] >= bin_edges[j]) | (
                                 tod_wspds.iloc[:, 1] < bin_edges[j + 1])
-                        df_wspds[i][j] = tod_wspds[mask_direction_past_0]
+                        df_wspds[i][j] = tod_wspds[(tod_wspds.iloc[:, 1] >= bin_edges[j]) | (
+                                tod_wspds.iloc[:, 1] < bin_edges[j + 1])]
 
                     elif bin_edges[j + 1] == 360:
 
                         mask_direction_to_360 = (tod_wspds.iloc[:, 1] >= bin_edges[j])
-                        df_wspds[i][j] = tod_wspds[mask_direction_to_360]
+                        df_wspds[i][j] = tod_wspds[tod_wspds.iloc[:, 1] >= bin_edges[j]]
 
                     else:
                         mask_direction_regular = (tod_wspds.iloc[:, 1] >= bin_edges[j]) & (
                                 tod_wspds.iloc[:, 1] < bin_edges[j + 1])
-                        df_wspds[i][j] = tod_wspds[mask_direction_regular]
+                        df_wspds[i][j] = tod_wspds[(tod_wspds.iloc[:, 1] >= bin_edges[j]) & (
+                                tod_wspds.iloc[:, 1] < bin_edges[j + 1])]
                         q = 4
 
             for i in range(0, 24):
