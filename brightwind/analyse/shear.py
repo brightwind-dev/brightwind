@@ -787,12 +787,12 @@ class Shear:
 
             if calc_method == 'power_law':
                 for i in alpha_sector_tods:
-                    alpha = pd.concat([alpha, i], axis=1, sort=True)
+                    alpha = pd.concat([alpha, i], axis=1)
                 self._alpha = alpha.T
 
             elif calc_method == 'log_law':
                 for i in roughness_sector_tods:
-                    roughness = pd.concat([roughness, i], axis=1, sort=True)
+                    roughness = pd.concat([roughness, i], axis=1)
                 self._roughness = roughness.T
 
             self.wspds = wspds
@@ -1224,17 +1224,16 @@ class Shear:
 
                     if self.calc_method == 'power_law':
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j].iloc[:, 0], shear_to=shear_to, height=height,
-                                                      alpha=filled_alpha.iloc[i, j], calc_method=self.calc_method)
+                                                      alpha=filled_alpha.iloc, calc_method=self.calc_method)
 
                     else:
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j].iloc[:, 0], shear_to=shear_to, height=height,
                                                       roughness=filled_roughness.iloc[i, j],
                                                       calc_method=self.calc_method)
 
-                    scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j].iloc[:,0]], axis=0)
+                    scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j].iloc[:, 0]], axis=0)
 
-            result = df_wspds
-
+            result = scaled_wspds
 
         if self.origin == 'Average':
 
