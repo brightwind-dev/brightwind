@@ -478,7 +478,7 @@ def _get_environment_variable(name):
     return os.getenv(name)
 
 
-def _get_brightdata(dataset, lat, long, nearest, from_date, to_date):
+def _get_brightdata(dataset, lat, long, nearest, from_date, to_date, variables=None):
     """
     Get merra2 or era5 data from the brightdata platform and format it for use.
     :param lat:
@@ -489,15 +489,16 @@ def _get_brightdata(dataset, lat, long, nearest, from_date, to_date):
     :return:
     """
     username, password = _get_brightdata_credentials()
-    base_url = 'http://api.brightwindanalysis.com/brightdata'
-    # base_url = 'http://localhost:5000'
+    #base_url = 'http://api.brightwindanalysis.com/brightdata'
+    base_url = 'http://localhost:5000'
     response = requests.get(base_url,  auth=(username, password), params={
         'dataset': dataset,
         'latitude': lat,
         'longitude': long,
         'nearest': nearest,
         'from_date': from_date,
-        'to_date': to_date
+        'to_date': to_date,
+        'variables': variables
     })
     try:
         json_response = response.json()
@@ -524,7 +525,7 @@ def _get_brightdata(dataset, lat, long, nearest, from_date, to_date):
     return reanalysis_list
 
 
-def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None):
+def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None, variables=None):
     """
     Retrieve timeseries datasets available from the brightdata platform. Returns a list of Reanalysis objects in order
     of closest distance to the requested lat, long.
@@ -566,7 +567,8 @@ def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None):
             }
          },
         {'dataset': 'merra2', 'process_fn': _get_brightdata, 'fn_arguments': {
-            'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date, 'nearest': nearest
+            'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date,
+            'nearest': nearest, 'variables': variables
             }
          }
     ]
