@@ -47,19 +47,19 @@ __all__ = ['plot_timeseries',
 def bw_colors(bw_color):
     # Define color scheme to be used across graphs, and tables.
     if bw_color == 'green':
-        bw_color = [156/ 255.0, 197/ 255.0, 55/ 255.0]
+        bw_color = [156 / 255.0, 197 / 255.0, 55 / 255.0]
     elif bw_color == 'light_green_for_gradient':
-        bw_color = [154/ 255.0, 205/ 255.0, 50/ 255.0]
+        bw_color = [154 / 255.0, 205 / 255.0, 50 / 255.0]
     elif bw_color == 'dark_green_for_gradient':
-        bw_color = [215/ 255.0, 235/ 255.0, 173/ 255.0]
+        bw_color = [215 / 255.0, 235 / 255.0, 173 / 255.0]
     elif bw_color == 'asphault':
-        bw_color = [46/ 255.0, 55/ 255.0, 67/ 255.0]
+        bw_color = [46 / 255.0, 55 / 255.0, 67 / 255.0]
     elif bw_color == 'greyline':
-        bw_color = [108/ 255.0, 120/ 255.0, 134/ 255.0]
+        bw_color = [108 / 255.0, 120 / 255.0, 134 / 255.0]
     elif bw_color == 'darkgreen':
-        bw_color = [108/ 255.0, 144/ 255.0, 35/ 255.0]
+        bw_color = [108 / 255.0, 144 / 255.0, 35 / 255.0]
     elif bw_color == 'redline':
-        bw_color = [255/ 255.0, 0, 0]
+        bw_color = [255 / 255.0, 0, 0]
     elif bw_color == 'bw_col_map':
         colors = [(31 / 256, 41 / 256, 10 / 256),
                   (154 / 256, 205 / 256, 50 / 256),
@@ -67,7 +67,7 @@ def bw_colors(bw_color):
         bw_color = mpl.colors.LinearSegmentedColormap.reversed\
             (mpl.colors.LinearSegmentedColormap.from_list('bw_col_map', colors, N=256))
     else:
-        bw_color = [156/ 255.0, 197/ 255.0, 55/ 255.0]
+        bw_color = [156 / 255.0, 197 / 255.0, 55 / 255.0]
     return bw_color
 
 
@@ -625,10 +625,8 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
     :return: 12x24 figure
     """
     fig, ax = plt.subplots(figsize=(15, 10))
-    levels = np.linspace(tab_12x24.min().min(), tab_12x24.max().max(), num=9)
-    x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, levels=levels,
-                    colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32', '#8ab92d', '#7ba428', '#6b9023'])
-    cbar = plt.colorbar(x)
+    x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, cmap=bw_colors('bw_col_map'))
+    cbar = fig.colorbar(x)
     cbar.ax.set_ylabel(label[1].capitalize() + " of " + label[0])
     ax.set_xlabel('Month of Year')
     ax.set_ylabel('Hour of Day')
@@ -798,6 +796,7 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         ax.xaxis.set_minor_formatter(mpl.dates.DateFormatter("%H-%M"))
         _ = plt.xticks(rotation=90)
         return ax.get_figure()
+
 
 def plot_dist_matrix(matrix, colorbar_label=None, xticklabels=None, yticklabels=None):
     fig, ax = plt.subplots(figsize=(10, 10))
