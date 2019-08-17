@@ -33,38 +33,41 @@ __all__ = ['plot_timeseries',
            'plot_scatter_wdir',
            'plot_shear_by_sector',
            'plot_rose']
-
-try:
-    if 'Gotham Rounded' in \
-            [mpl.font_manager.FontProperties(fname=i).get_name() for i in mpl.font_manager.findSystemFonts()]:
-        mpl.rcParams['font.family'] = 'Gotham Rounded'
-except Exception as ex:
-    raise 'Found exception when checking installed fonts. {}'.format(str(ex))
-
-plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
+#
+# try:
+#     if 'Gotham Rounded' in \
+#             [mpl.font_manager.FontProperties(fname=i).get_name() for i in mpl.font_manager.findSystemFonts()]:
+#         mpl.rcParams['font.family'] = 'Gotham Rounded'
+# except Exception as ex:
+#     raise 'Found exception when checking installed fonts. {}'.format(str(ex))
+#
+# plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
 
 def bw_colors(bw_color):
     # Define color scheme to be used across graphs, and tables.
     if bw_color == 'green':
-        bw_color = [156, 197, 55]
-    elif bw_color == 'wind_rose_gradient':
-        bw_color = []
+        bw_color = [156/ 255.0, 197/ 255.0, 55/ 255.0]
     elif bw_color == 'light_green_for_gradient':
-        bw_color = [154, 205, 50]
+        bw_color = [154/ 255.0, 205/ 255.0, 50/ 255.0]
     elif bw_color == 'dark_green_for_gradient':
-        bw_color = [215, 235, 173]
+        bw_color = [215/ 255.0, 235/ 255.0, 173/ 255.0]
     elif bw_color == 'asphault':
-        bw_color = [46, 55, 67]
+        bw_color = [46/ 255.0, 55/ 255.0, 67/ 255.0]
     elif bw_color == 'greyline':
-        bw_color = [108, 120, 134]
+        bw_color = [108/ 255.0, 120/ 255.0, 134/ 255.0]
     elif bw_color == 'darkgreen':
-        bw_color = [108, 144, 35]
+        bw_color = [108/ 255.0, 144/ 255.0, 35/ 255.0]
     elif bw_color == 'redline':
-        bw_color = [255, 0, 0]
+        bw_color = [255/ 255.0, 0, 0]
+    elif bw_color == 'bw_col_map':
+        colors = [(31 / 256, 41 / 256, 10 / 256),
+                  (154 / 256, 205 / 256, 50 / 256),
+                  (245 / 256, 250 / 256, 234 / 256)]
+        bw_color = mpl.colors.LinearSegmentedColormap.reversed\
+            (mpl.colors.LinearSegmentedColormap.from_list('bw_col_map', colors, N=256))
     else:
-        bw_color = [156, 197, 55]
-    bw_color[:] = [x / 255.0 for x in bw_color]
+        bw_color = [156/ 255.0, 197/ 255.0, 55/ 255.0]
     return bw_color
 
 
@@ -798,7 +801,7 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
 
 def plot_dist_matrix(matrix, colorbar_label=None, xticklabels=None, yticklabels=None):
     fig, ax = plt.subplots(figsize=(10, 10))
-    cm = ax.pcolormesh(matrix, cmap='YlGn')
+    cm = ax.pcolormesh(matrix, cmap=bw_colors('bw_col_map'))
     ax.set(xlim=(0, matrix.shape[1]), ylim=(0, matrix.shape[0]))
     ax.set(xticks=np.array(range(0, matrix.shape[1]))+0.5, yticks=np.array(range(0, matrix.shape[0])) + 0.5)
     if xticklabels is not None:
