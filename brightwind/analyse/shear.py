@@ -738,7 +738,7 @@ class Shear:
 
         def __init__(self, wspds, heights, wdir, min_speed=3, calc_method='power_law', sectors=12,
                      direction_bin_array=None, direction_bin_labels=None, segment_start_time=7,
-                     segments_per_day=2, plot_type='step'):
+                     segments_per_day=2):
 
             print('This may take a while...')
             wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
@@ -782,15 +782,14 @@ class Shear:
                     roughness_sector_tod.name = datetime.datetime.strptime(name, '%H:%M:%S')
                     roughness_sector_tods.append(roughness_sector_tod)
 
-            alpha = pd.DataFrame([])
-            roughness = pd.DataFrame([])
-
             if calc_method == 'power_law':
+                alpha = pd.DataFrame([], index=alpha_sector_tod.index)
                 for i in alpha_sector_tods:
                     alpha = pd.concat([alpha, i], axis=1)
                 self._alpha = alpha.T
 
             elif calc_method == 'log_law':
+                roughness = pd.DataFrame([], index=roughness_sector_tod.index)
                 for i in roughness_sector_tods:
                     roughness = pd.concat([roughness, i], axis=1)
                 self._roughness = roughness.T
@@ -1224,16 +1223,16 @@ class Shear:
 
                     if self.calc_method == 'power_law':
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j].iloc[:, 0], shear_to=shear_to, height=height,
-                                                      alpha=filled_alpha.iloc, calc_method=self.calc_method)
+                                                      alpha=filled_alpha.iloc[i, j], calc_method=self.calc_method)
 
                     else:
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j].iloc[:, 0], shear_to=shear_to, height=height,
                                                       roughness=filled_roughness.iloc[i, j],
                                                       calc_method=self.calc_method)
 
-                    scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j].iloc[:, 0]], axis=0)
+                    scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
 
-            result = scaled_wspds
+            result = scaled_wspds.sort_index()
 
         if self.origin == 'Average':
 
