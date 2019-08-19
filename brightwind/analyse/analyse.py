@@ -564,10 +564,10 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
     data = pd.concat([var_series.rename('var_data'), var_binned_series, direction_binned_series], axis=1).dropna()
 
     if aggregation_method == '%frequency':
-        counts = data.groupby([var_series.name, 'direction_bin']).count().unstack(level=-1)
+        counts = data.groupby([var_to_bin_series.name, 'direction_bin']).count().unstack(level=-1)
         distribution = counts/(counts.sum().sum()) * 100.0
     else:
-        distribution = data.groupby([var_series.name, 'direction_bin']).agg(aggregation_method).unstack(level=-1)
+        distribution = data.groupby([var_to_bin_series.name, 'direction_bin']).agg(aggregation_method).unstack(level=-1)
     distribution.columns = distribution.columns.droplevel(0)
     for i in range(1, sectors + 1):
         if not (i in distribution.columns):
