@@ -35,6 +35,7 @@ __all__ = ['load_csv',
            'load_windographer_txt',
            'load_excel',
            'load_brightdata',
+           'load_brightdata_monthly_norms',
            'load_cleaning_file',
            'apply_cleaning',
            'apply_cleaning_windographer']
@@ -457,11 +458,13 @@ class Reanalysis:
     :type source: str
 
     """
-    def __init__(self, latitude, longitude, data, source):
+    def __init__(self, latitude, longitude, data, source, from_date, to_date):
         self.latitude = latitude
         self.longitude = longitude
         self.data = data
         self.source = source
+        self.from_date = from_date
+        self.to_date = to_date
 
 
 def _get_brightdata_credentials():
@@ -478,7 +481,8 @@ def _get_environment_variable(name):
     return os.getenv(name)
 
 
-def _get_brightdata(dataset, lat, long, nearest, from_date, to_date, variables=None):
+def _get_brightdata(dataset, lat, long, nearest, from_date, to_date, monthly_norms=False,
+                    ref_from_date=None, ref_to_date=None, ref_no_years=None, variables=None, wind_speed_measurement=None):
     """
     Get merra2 or era5 data from the brightdata platform and format it for use.
     :param lat:
@@ -489,16 +493,24 @@ def _get_brightdata(dataset, lat, long, nearest, from_date, to_date, variables=N
     :return:
     """
     username, password = _get_brightdata_credentials()
-    #base_url = 'http://api.brightwindanalysis.com/brightdata'
-    base_url = 'http://localhost:5000'
-    response = requests.get(base_url,  auth=(username, password), params={
+    if monthly_norms is False:
+        #base_url = 'http://api.brightwindanalysis.com/brightdata'
+        base_url = 'http://localhost:5000'
+    else:
+        # base_url = 'http://api.brightwindanalysis.com/brightdata/monthly-norms'
+        base_url = 'http://localhost:5000/monthly-norms'
+    response = requests.get(base_url,  auth=('stephen@brightwindanalysis.com', 'Lv+nY9Kq'), params={
         'dataset': dataset,
         'latitude': lat,
         'longitude': long,
         'nearest': nearest,
         'from_date': from_date,
         'to_date': to_date,
-        'variables': variables
+        'ref_from_date': ref_from_date,
+        'ref_to_date': ref_to_date,
+        'ref_no_years': ref_no_years,
+        'variables': variables,
+        'wind_speed_measurement': wind_speed_measurement
     })
     try:
         json_response = response.json()
@@ -509,12 +521,19 @@ def _get_brightdata(dataset, lat, long, nearest, from_date, to_date, variables=N
     reanalysis_list = []
 
     for node in json_response:
-        temp_reanalysis = Reanalysis('', '', pd.DataFrame(), '')
+        temp_reanalysis = Reanalysis('', '', pd.DataFrame(), '', '', '')
         try:
             temp_reanalysis.latitude = node['latitude']
             temp_reanalysis.longitude = node['longitude']
             temp_reanalysis.source = dataset
-            temp_reanalysis.data = pd.read_json(json.dumps(node['data']), orient='index')
+            if monthly_norms is True:
+                column_name = 'normalised_monthly_wind_speeds_' + node['wind_speed_measurement']
+                temp_reanalysis.data = pd.DataFrame((pd.read_json(json.dumps(node['data']), typ='series')),
+                                                columns=[column_name])
+            else:
+                temp_reanalysis.data = pd.read_json(json.dumps(node['data']), orient='index')
+            temp_reanalysis.from_date = from_date
+            temp_reanalysis.to_date = to_date
         except Exception as error:
             if 'errors' in node:
                 raise TypeError(json_response)
@@ -543,6 +562,8 @@ def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None, v
     :type from_date: str
     :param to_date: date to in 'yyyy-mm-dd' format.
     :type to_date: str
+    :param variables: variables to return.
+    :type variables: deliminated list.
     :return: a list of Reanalysis objects in order of closest distance to the requested lat, long.
     :rtype: List(Reanalysis)
 
@@ -570,6 +591,35 @@ def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None, v
             'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date,
             'nearest': nearest, 'variables': variables
             }
+         }
+    ]
+    for handler in handlers:
+        if dataset == handler['dataset']:
+            try:
+                return handler['process_fn'](**handler['fn_arguments'])
+            except Exception as error:
+                raise error
+
+    raise NotImplementedError('dataset not identified.')
+
+
+def load_brightdata_monthly_norms(dataset, lat, long, nearest, from_date=None, to_date=None, ref_from_date=None,
+                                  ref_to_date=None, ref_no_years=None, variables=None, wind_speed_measurement=None):
+    monthly_norms = True
+    handlers = [
+        {'dataset': 'era5', 'process_fn': _get_brightdata, 'fn_arguments': {
+            'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date,
+            'monthly_norms': monthly_norms, 'ref_from_date': ref_from_date, 'ref_to_date': ref_to_date,
+            'ref_no_years': ref_no_years, 'nearest': nearest, 'variables': variables
+        }
+         },
+
+        {'dataset': 'merra2', 'process_fn': _get_brightdata, 'fn_arguments': {
+            'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date,
+            'monthly_norms':monthly_norms, 'ref_from_date': ref_from_date, 'ref_to_date':ref_to_date,
+            'ref_no_years': ref_no_years, 'nearest': nearest, 'variables': variables,
+            'wind_speed_measurement': wind_speed_measurement
+        }
          }
     ]
     for handler in handlers:
@@ -1157,3 +1207,11 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
         pd.options.mode.chained_assignment = 'warn'
 
     return data
+
+
+if __name__=='__main__':
+    import brightwind as bw
+
+    r = bw.load_brightdata_monthly_norms('era5', 53.22, 15.747, 1, from_date='2018-01-01T00:00:00',
+                                         to_date='2020-01-01T00:00:00')
+    print(r[0].data)
