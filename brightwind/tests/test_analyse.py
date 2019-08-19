@@ -87,20 +87,18 @@ def test_coverage():
     assert True
 
 
-def test_distribution_by_dir_sector():
+def test_dist_by_dir_sector():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
-    rose = bw.distribution_by_dir_sector(df[['Spd40mN']], df[['Dir38mS']])
-    rose = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS)
+    rose = bw.dist_by_dir_sector(df[['Spd40mN']], df[['Dir38mS']])
+    rose = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS)
 
-    rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS,
-                                                       direction_bin_array=[0, 90, 130, 200, 360],
-                                                       direction_bin_labels=['northerly', 'easterly', 'southerly',
-                                                                             'westerly'],
-                                                       return_data=True)
+    rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS,
+                                               direction_bin_array=[0, 90, 130, 200, 360],
+                                               direction_bin_labels=['northerly', 'easterly', 'southerly',
+                                                                     'westerly'],
+                                               return_data=True)
 
-
-    rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std',
-                                                       return_data=True)
+    rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std', return_data=True)
 
 
 def test_freq_table():
@@ -200,12 +198,12 @@ def test_calc_air_density():
 
 def test_dist_matrix_by_direction_sector():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
-    bw.dist_matrix_by_dir_sector(var_series=df.Spd80mN, var_to_bin_series=df.Spd80mN, direction_series=df.Dir78mS,
+    bw.dist_matrix_by_dir_sector(var_series=df.Spd80mN, var_to_bin_by_series=df.Spd80mN, direction_series=df.Dir78mS,
                                  aggregation_method='count')
     matrix = bw.dist_matrix_by_dir_sector(df.Spd40mN, df.T2m, df.Dir38mS,
-                                          var_bin_array=[-8, -5, 5, 10, 15, 20, 26],
+                                          var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26],
                                           direction_bin_array=[0, 90, 180, 270, 360],
                                           direction_bin_labels=['north', 'east', 'south', 'west'])
     matrix = bw.dist_matrix_by_dir_sector(df.Spd40mN, df.T2m, df.Dir38mS,
-                                          var_bin_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
+                                          var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
