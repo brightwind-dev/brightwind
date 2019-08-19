@@ -33,38 +33,41 @@ __all__ = ['plot_timeseries',
            'plot_scatter_wdir',
            'plot_shear_by_sector',
            'plot_rose']
-
-try:
-    if 'Gotham Rounded' in \
-            [mpl.font_manager.FontProperties(fname=i).get_name() for i in mpl.font_manager.findSystemFonts()]:
-        mpl.rcParams['font.family'] = 'Gotham Rounded'
-except Exception as ex:
-    raise 'Found exception when checking installed fonts. {}'.format(str(ex))
-
+#
+# try:
+#     if 'Gotham Rounded' in \
+#             [mpl.font_manager.FontProperties(fname=i).get_name() for i in mpl.font_manager.findSystemFonts()]:
+#         mpl.rcParams['font.family'] = 'Gotham Rounded'
+# except Exception as ex:
+#     raise 'Found exception when checking installed fonts. {}'.format(str(ex))
+#
 plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
 
 def bw_colors(bw_color):
     # Define color scheme to be used across graphs, and tables.
     if bw_color == 'green':
-        bw_color = [156, 197, 55]
-    elif bw_color == 'wind_rose_gradient':
-        bw_color = []
+        bw_color = [156 / 255.0, 197 / 255.0, 55 / 255.0]
     elif bw_color == 'light_green_for_gradient':
-        bw_color = [154, 205, 50]
+        bw_color = [154 / 255.0, 205 / 255.0, 50 / 255.0]
     elif bw_color == 'dark_green_for_gradient':
-        bw_color = [215, 235, 173]
+        bw_color = [215 / 255.0, 235 / 255.0, 173 / 255.0]
     elif bw_color == 'asphault':
-        bw_color = [46, 55, 67]
+        bw_color = [46 / 255.0, 55 / 255.0, 67 / 255.0]
     elif bw_color == 'greyline':
-        bw_color = [108, 120, 134]
+        bw_color = [108 / 255.0, 120 / 255.0, 134 / 255.0]
     elif bw_color == 'darkgreen':
-        bw_color = [108, 144, 35]
+        bw_color = [108 / 255.0, 144 / 255.0, 35 / 255.0]
     elif bw_color == 'redline':
-        bw_color = [255, 0, 0]
+        bw_color = [255 / 255.0, 0, 0]
+    elif bw_color == 'bw_col_map':
+        colors = [(31 / 256, 41 / 256, 10 / 256),
+                  (154 / 256, 205 / 256, 50 / 256),
+                  (245 / 256, 250 / 256, 234 / 256)]
+        bw_color = mpl.colors.LinearSegmentedColormap.reversed\
+            (mpl.colors.LinearSegmentedColormap.from_list('bw_col_map', colors, N=256))
     else:
-        bw_color = [156, 197, 55]
-    bw_color[:] = [x / 255.0 for x in bw_color]
+        bw_color = [156 / 255.0, 197 / 255.0, 55 / 255.0]
     return bw_color
 
 
@@ -234,8 +237,6 @@ def plot_scatter(x_series, y_series, x_axis_title=None, y_axis_title=None,
                         x_limits=(50,300), y_limits=(250,300))
 
     """
-    x_series = utils._convert_df_to_series(x_series)
-    y_series = utils._convert_df_to_series(y_series)
     if x_axis_title is None:
         x_axis_title = x_series.name
     if y_axis_title is None:
@@ -390,9 +391,9 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     return ax.get_figure()
 
 
-def plot_rose(ext_data):
+def plot_rose(ext_data, plot_label=None):
     """
-    Plot a wind rose from data by distribution_by_dir_sector
+    Plot a wind rose from data by dist_by_dir_sector
     """
     result = ext_data.copy(deep=False)
     sectors = len(result)
@@ -400,32 +401,21 @@ def plot_rose(ext_data):
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    bin_edges = pd.Series([])
-    width = pd.Series([])
-    for i in range(sectors):
-        bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", ext_data.index[i])[0])
-        if i == sectors - 1:
-            bin_edges[i + 1] = abs(float(re.findall(r"[-+]?\d*\.\d+|\d+", ext_data.index[i])[1]))
+    ax.set_thetagrids(np.arange(0, 360, 360.0/sectors))
+    max_contour = (ext_data.max() + ext_data.std())
 
-    radians = np.radians(utils._get_dir_sector_mid_pts(ext_data.index))
-    ax.set_rgrids(np.arange(0, 101, 10), labels=[str(i) + '%' for i in np.arange(0, 101, 10)], angle=0)
-
-    for i in range(len(bin_edges) - 1):
-
-        if bin_edges[i+1] == 0:
-            width[i] = 2 * np.pi*(360 - bin_edges[i])/360
-
-        elif bin_edges[i + 1] > bin_edges[i]:
-            width[i] = 2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360)
-
-        else:
-            width[i] = 2 * np.pi * (((360 + bin_edges[i + 1]) - bin_edges[i]) / 360)
-
-    ax.bar(radians, result, width=width, bottom=0.0, color='#9ACD32', align = 'center',
+    contour_spacing = max_contour / 10
+    num_digits_to_round = 0
+    while contour_spacing*(10**num_digits_to_round) <= 1:
+        num_digits_to_round += 1
+    if contour_spacing > 0.5 and contour_spacing < 1:
+        contour_spacing = 1
+    levels = np.arange(0, max_contour, round(contour_spacing, num_digits_to_round))
+    ax.set_rgrids(levels, labels=[str(i) for i in levels], angle=0)
+    ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
 
-    ax.set_thetagrids(radians*180/np.pi)
-    # ax.set_title('Wind Rose', loc='center')
+    ax.legend([plot_label])
     plt.close()
     return ax.get_figure()
 
@@ -469,8 +459,6 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
         group += 1
         table_binned = pd.concat([table_binned, to_concat], axis=1, sort=True)
     table_binned = table_binned.T
-    # print(rows_to_sum)
-    # return table_binned
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
@@ -481,8 +469,16 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
         symbol = '%'
     else:
         symbol = ' '
-    ax.set_rgrids(np.linspace(0.1, max(table.sum(axis=0)) + 2.0, 10),
-                  labels=['%.0f' % round(i) + symbol for i in np.linspace(0.1, max(table.sum(axis=0)) + 2.0, 10)],
+    max_contour = max(table.sum(axis=0)) + table.sum(axis=0).std()
+    contour_spacing = max_contour / 10
+    num_digits_to_round = 0
+    while contour_spacing * (10 ** num_digits_to_round) < 1:
+        num_digits_to_round += 1
+    if contour_spacing > 0.5 and contour_spacing < 1:
+        contour_spacing = 1
+    levels = np.arange(0, max_contour, round(contour_spacing, num_digits_to_round))
+    ax.set_rgrids(levels,
+                  labels=[str(i) + symbol for i in levels],
                   angle=0, zorder=2)
     ax.set_ylim(0, max(table.sum(axis=0)) + 3.0)
     ax.bar(0, 1, alpha=0)
@@ -629,10 +625,8 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
     :return: 12x24 figure
     """
     fig, ax = plt.subplots(figsize=(15, 10))
-    levels = np.linspace(tab_12x24.min().min(), tab_12x24.max().max(), num=9)
-    x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, levels=levels,
-                    colors=['#e1f0c1', '#d6ebad', '#c2e184', '#aed75b', '#9acd32', '#8ab92d', '#7ba428', '#6b9023'])
-    cbar = plt.colorbar(x)
+    x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, cmap=bw_colors('bw_col_map'))
+    cbar = fig.colorbar(x)
     cbar.ax.set_ylabel(label[1].capitalize() + " of " + label[0])
     ax.set_xlabel('Month of Year')
     ax.set_ylabel('Hour of Day')
@@ -803,9 +797,10 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         _ = plt.xticks(rotation=90)
         return ax.get_figure()
 
+
 def plot_dist_matrix(matrix, colorbar_label=None, xticklabels=None, yticklabels=None):
     fig, ax = plt.subplots(figsize=(10, 10))
-    cm = ax.pcolormesh(matrix, cmap='YlGn')
+    cm = ax.pcolormesh(matrix, cmap=bw_colors('bw_col_map'))
     ax.set(xlim=(0, matrix.shape[1]), ylim=(0, matrix.shape[0]))
     ax.set(xticks=np.array(range(0, matrix.shape[1]))+0.5, yticks=np.array(range(0, matrix.shape[0])) + 0.5)
     if xticklabels is not None:
