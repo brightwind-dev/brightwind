@@ -1156,7 +1156,6 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     sec_rat_plot, sec_rat_dist = dist_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
                                                     aggregation_method='mean', direction_bin_array=direction_bin_array,
                                                     direction_bin_labels=None,return_data=True)
-
     matplotlib.pyplot.close()
     sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
     if return_data:
