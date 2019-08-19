@@ -575,8 +575,8 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
     return distribution.sort_index()
 
 
-def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
-                              num_bins=None, var_bin_array=None, var_bin_labels=None,
+def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series,
+                              num_bins=None, var_to_bin_by_array=None, var_to_bin_by_labels=None,
                               sectors=12, direction_bin_array=None, direction_bin_labels=None,
                               aggregation_method='mean', return_data=False):
     """
@@ -585,17 +585,17 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
 
     :param var_series: Series of variable whose distribution is calculated
     :type var_series: pandas.Series
-    :param var_to_bin_series: Series of variable to bin
-    :type var_to_bin_series: pandas.Series
+    :param var_to_bin_by_series: Series of variable to bin
+    :type var_to_bin_by_series: pandas.Series
     :param direction_series: Series of wind directions between [0-360]
     :type direction_series: pandas.Series
     :param num_bins: Number of equally spaced bins of var_to_bin_series to be used
     :type num_bins: int
-    :param var_bin_array: List of numbers where adjacent elements of array form a bin. For instance, for bins
+    :param var_to_bin_by_array: List of numbers where adjacent elements of array form a bin. For instance, for bins
         [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]
-    :type var_bin_array: list
-    :param var_bin_labels: Optional, an array of labels to use for variable bins
-    :type var_bin_labels: list
+    :type var_to_bin_by_array: list
+    :param var_to_bin_by_labels: Optional, an array of labels to use for variable bins
+    :type var_to_bin_by_labels: list
     :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that
             behaviour specify direction_bin_array, it overwrites sectors
     :type sectors: int
@@ -631,16 +631,17 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
 
     """
 
-    if num_bins is None and var_bin_array is None:
-        var_bin_array = np.arange(int(np.floor(var_to_bin_series.min())), int(np.ceil(var_to_bin_series.max()) + 1 +
-                                                                              (var_to_bin_series.max() % 1 == 0)), 1)
-    elif num_bins is not None and var_bin_array is None:
-        var_bin_array = np.linspace(var_to_bin_series.min(), var_to_bin_series.max(), num_bins + 1)
-    elif var_bin_array is not None:
-        var_bin_array = var_bin_array
+    if num_bins is None and var_to_bin_by_array is None:
+        var_to_bin_by_array = np.arange(int(np.floor(var_to_bin_by_series.min())),
+                                        int(np.ceil(var_to_bin_by_series.max()) + 1 +
+                                            (var_to_bin_by_series.max() % 1 == 0)), 1)
+    elif num_bins is not None and var_to_bin_by_array is None:
+        var_to_bin_by_array = np.linspace(var_to_bin_by_series.min(), var_to_bin_by_series.max(), num_bins + 1)
+    elif var_to_bin_by_array is not None:
+        var_to_bin_by_array = var_to_bin_by_array
 
-    dist_mat_dir = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_to_bin_series,
-                                                  direction_series=direction_series, var_bin_array=var_bin_array,
+    dist_mat_dir = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_to_bin_by_series,
+                                                  direction_series=direction_series, var_bin_array=var_to_bin_by_array,
                                                   sectors=sectors, direction_bin_array=direction_bin_array,
                                                   direction_bin_labels=None, aggregation_method=aggregation_method)
 
@@ -648,17 +649,17 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
         dist_mat_dir.columns = direction_bin_labels
     else:
         direction_bin_labels = dist_mat_dir.columns
-    if var_bin_labels is not None:
-        dist_mat_dir.index = var_bin_labels
+    if var_to_bin_by_labels is not None:
+        dist_mat_dir.index = var_to_bin_by_labels
     else:
-        var_bin_labels = dist_mat_dir.index
+        var_to_bin_by_labels = dist_mat_dir.index
 
     if var_series.name is None:
         var_label = aggregation_method.capitalize() + ' of  var_series'
     else:
         var_label = aggregation_method.capitalize() + ' of ' + var_series.name
 
-    if var_series.name == var_to_bin_series.name:
+    if var_series.name == var_to_bin_by_series.name:
         table_label = var_series.name + "_distributed"
     else:
         table_label = var_series.name
@@ -668,7 +669,7 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
                                                 list(range(len(dist_mat_dir.columns)))],
                                          names=[None, direction_series.name])
     heatmap = plt.plot_dist_matrix(dist_mat_dir, var_label, xticklabels=direction_bin_labels,
-                                   yticklabels=var_bin_labels)
+                                   yticklabels=var_to_bin_by_labels)
 
     if return_data:
         return heatmap, dist_mat_dir
