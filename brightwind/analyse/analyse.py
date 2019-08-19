@@ -639,19 +639,19 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
     elif var_bin_array is not None:
         var_bin_array = var_bin_array
 
-    dist = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_to_bin_series,
-                                        direction_series=direction_series, var_bin_array=var_bin_array,
-                                        sectors=sectors, direction_bin_array=direction_bin_array,
-                                        direction_bin_labels=None, aggregation_method=aggregation_method)
+    dist_mat_dir = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_to_bin_series,
+                                                  direction_series=direction_series, var_bin_array=var_bin_array,
+                                                  sectors=sectors, direction_bin_array=direction_bin_array,
+                                                  direction_bin_labels=None, aggregation_method=aggregation_method)
 
     if direction_bin_labels is not None:
-        dist.columns = direction_bin_labels
+        dist_mat_dir.columns = direction_bin_labels
     else:
-        direction_bin_labels = dist.columns
+        direction_bin_labels = dist_mat_dir.columns
     if var_bin_labels is not None:
-        dist.index = var_bin_labels
+        dist_mat_dir.index = var_bin_labels
     else:
-        var_bin_labels = dist.index
+        var_bin_labels = dist_mat_dir.index
 
     if var_series.name is None:
         var_label = aggregation_method.capitalize() + ' of  var_series'
@@ -663,14 +663,15 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
     else:
         table_label = var_series.name
 
-    dist.columns = pd.MultiIndex(levels=[[table_label], dist.columns],
-                                         codes=[[0 for i in range(len(dist.columns))],
-                                                list(range(len(dist.columns)))],
+    dist_mat_dir.columns = pd.MultiIndex(levels=[[table_label], dist_mat_dir.columns],
+                                         codes=[[0 for i in range(len(dist_mat_dir.columns))],
+                                                list(range(len(dist_mat_dir.columns)))],
                                          names=[None, direction_series.name])
-    heatmap = plt.plot_dist_matrix(dist, var_label, xticklabels=direction_bin_labels, yticklabels=var_bin_labels)
+    heatmap = plt.plot_dist_matrix(dist_mat_dir, var_label, xticklabels=direction_bin_labels,
+                                   yticklabels=var_bin_labels)
 
     if return_data:
-        return heatmap, dist
+        return heatmap, dist_mat_dir
     else:
         return heatmap
 
