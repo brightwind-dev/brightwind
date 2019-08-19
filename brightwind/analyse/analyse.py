@@ -555,10 +555,12 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
         var_series.name = 'variable_bin'
     if direction_series.name is None:
         direction_series.name = 'direction_bin'
+    if var_to_bin_series.name is None:
+        var_to_bin_series.name = 'var_to_bin'
     direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
         _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
 
-    var_binned_series = pd.cut(var_to_bin_series, var_bin_array, right=False).rename(var_series.name)
+    var_binned_series = pd.cut(var_to_bin_series, var_bin_array, right=False).rename(var_to_bin_series.name)
     data = pd.concat([var_series.rename('var_data'), var_binned_series, direction_binned_series], axis=1).dropna()
 
     if aggregation_method == '%frequency':
