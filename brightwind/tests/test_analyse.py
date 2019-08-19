@@ -87,20 +87,18 @@ def test_coverage():
     assert True
 
 
-def test_distribution_by_dir_sector():
+def test_dist_by_dir_sector():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
-    rose = bw.distribution_by_dir_sector(df[['Spd40mN']], df[['Dir38mS']])
-    rose = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS)
+    rose = bw.dist_by_dir_sector(df[['Spd40mN']], df[['Dir38mS']])
+    rose = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS)
 
-    rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS,
-                                                       direction_bin_array=[0, 90, 130, 200, 360],
-                                                       direction_bin_labels=['northerly', 'easterly', 'southerly',
-                                                                             'westerly'],
-                                                       return_data=True)
+    rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS,
+                                               direction_bin_array=[0, 90, 130, 200, 360],
+                                               direction_bin_labels=['northerly', 'easterly', 'southerly',
+                                                                     'westerly'],
+                                               return_data=True)
 
-
-    rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std',
-                                                       return_data=True)
+    rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std', return_data=True)
 
 
 def test_freq_table():

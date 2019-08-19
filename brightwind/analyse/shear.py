@@ -21,7 +21,7 @@ import calendar
 from math import e
 from brightwind.analyse import plot as plt
 # noinspection PyProtectedMember
-from brightwind.analyse.analyse import distribution_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
+from brightwind.analyse.analyse import dist_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
 from ipywidgets import FloatProgress
 from IPython.display import display
 from IPython.display import clear_output
@@ -625,11 +625,11 @@ class Shear:
             for i in range(len(wspds.columns)):
 
                 w = wspds.iloc[:, i]
-                plot, mean_wspds[i] = distribution_by_dir_sector(w, wdir, direction_bin_array=direction_bin_array,
-                                                                 aggregation_method='mean', return_data=True)
+                plot, mean_wspds[i] = dist_by_dir_sector(w, wdir, direction_bin_array=direction_bin_array,
+                                                         aggregation_method='mean', return_data=True)
 
-                plot, count[i] = distribution_by_dir_sector(w, wdir, direction_bin_array=direction_bin_array,
-                                                            aggregation_method='count', return_data=True)
+                plot, count[i] = dist_by_dir_sector(w, wdir, direction_bin_array=direction_bin_array,
+                                                    aggregation_method='count', return_data=True)
 
                 if i == 0:
                     mean_wspds_df = mean_wspds[i].copy()
@@ -639,18 +639,18 @@ class Shear:
                     count_df = pd.concat([count_df, count[i]], axis=1)
 
             count_df = count_df.mean(axis=1)
-            wind_rose_plot, wind_rose_dist = distribution_by_dir_sector(wspds.iloc[:, 0], wdir,
-                                                                        direction_bin_array=direction_bin_array,
-                                                                        direction_bin_labels=direction_bin_labels,
-                                                                        return_data=True)
+            wind_rose_plot, wind_rose_dist = dist_by_dir_sector(wspds.iloc[:, 0], wdir,
+                                                                direction_bin_array=direction_bin_array,
+                                                                direction_bin_labels=direction_bin_labels,
+                                                                return_data=True)
             if calc_method == 'power_law':
 
                 alpha = mean_wspds_df.apply(Shear._calc_power_law, heights=heights, return_coeff=False, axis=1)
 
-                wind_rose_plot, wind_rose_dist = distribution_by_dir_sector(wspds.iloc[:, 0], wdir,
-                                                                            direction_bin_array=direction_bin_array,
-                                                                            direction_bin_labels=direction_bin_labels,
-                                                                            return_data=True)
+                wind_rose_plot, wind_rose_dist = dist_by_dir_sector(wspds.iloc[:, 0], wdir,
+                                                                    direction_bin_array=direction_bin_array,
+                                                                    direction_bin_labels=direction_bin_labels,
+                                                                    return_data=True)
 
                 self.alpha_count = count_df
                 self._alpha = alpha

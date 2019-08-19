@@ -393,7 +393,7 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
 
 def plot_rose(ext_data, plot_label=None):
     """
-    Plot a wind rose from data by distribution_by_dir_sector
+    Plot a wind rose from data by dist_by_dir_sector
     """
     result = ext_data.copy(deep=False)
     sectors = len(result)
