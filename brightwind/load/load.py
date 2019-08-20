@@ -467,169 +467,166 @@ class Reanalysis:
         self.to_date = to_date
 
 
-def _get_brightdata_credentials():
-    if 'BRIGHTDATA_USERNAME' not in os.environ:
-        raise Exception('BRIGHTDATA_USERNAME environmental variable is not set.')
-    if 'BRIGHTDATA_PASSWORD' not in os.environ:
-        raise Exception('BRIGHTDATA_PASSWORD environmental variable is not set.')
-    return os.getenv('BRIGHTDATA_USERNAME'), os.getenv('BRIGHTDATA_PASSWORD')
-
-
 def _get_environment_variable(name):
     if name not in os.environ:
         raise Exception('{} environmental variable is not set.'.format(name))
     return os.getenv(name)
 
 
-def _get_brightdata(dataset, lat, long, nearest, from_date, to_date, monthly_norms=False,
-                    ref_from_date=None, ref_to_date=None, ref_no_years=None, variables=None, wind_speed_measurement=None):
-    """
-    Get merra2 or era5 data from the brightdata platform and format it for use.
-    :param lat:
-    :param long:
-    :param nearest:
-    :param from_date:
-    :param to_date:
-    :return:
-    """
-    username, password = _get_brightdata_credentials()
-    if monthly_norms is False:
-        #base_url = 'http://api.brightwindanalysis.com/brightdata'
-        base_url = 'http://localhost:5000'
-    else:
-        # base_url = 'http://api.brightwindanalysis.com/brightdata/monthly-norms'
-        base_url = 'http://localhost:5000/monthly-norms'
-    response = requests.get(base_url,  auth=('stephen@brightwindanalysis.com', 'Lv+nY9Kq'), params={
-        'dataset': dataset,
-        'latitude': lat,
-        'longitude': long,
-        'nearest': nearest,
-        'from_date': from_date,
-        'to_date': to_date,
-        'ref_from_date': ref_from_date,
-        'ref_to_date': ref_to_date,
-        'ref_no_years': ref_no_years,
-        'variables': variables,
-        'wind_speed_measurement': wind_speed_measurement
-    })
-    try:
-        json_response = response.json()
-    except Exception:
-        if response.status_code == 401:
-            raise Exception('Please check your BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD are correct.')
-        raise Exception('Http code {}, something is wrong with the server.'.format(str(response.status_code)))
-    reanalysis_list = []
+class LoadBrightdata:
 
-    for node in json_response:
-        temp_reanalysis = Reanalysis('', '', pd.DataFrame(), '', '', '')
+    @staticmethod
+    def _get_brightdata(dataset, lat, long, nearest, from_date, to_date, monthly_norms=False,
+                        ref_from_date=None, ref_to_date=None, ref_no_years=None, variables=None,
+                        wind_speed_measurement=None):
+        """
+        Get merra2 or era5 data from the brightdata platform and format it for use.
+        :param lat:
+        :param long:
+        :param nearest:
+        :param from_date:
+        :param to_date:
+        :return:
+        """
+        username = _get_environment_variable('BRIGHTDATA_USERNAME')
+        password = _get_environment_variable('BRIGHTDATA_PASSWORD')
+        if monthly_norms is False:
+            # base_url = 'http://api.brightwindanalysis.com/brightdata/timeseries'
+            base_url = 'http://localhost:5000/timeseries'
+        else:
+            # base_url = 'http://api.brightwindanalysis.com/brightdata/timeseries/monthly-norms'
+            base_url = 'http://localhost:5000/timeseries/monthly-norms'
+        response = requests.get(base_url, auth=(username, password), params={
+            'dataset': dataset,
+            'latitude': lat,
+            'longitude': long,
+            'nearest': nearest,
+            'from-date': from_date,
+            'to-date': to_date,
+            'ref-from-date': ref_from_date,
+            'ref-to-date': ref_to_date,
+            'ref-no-years': ref_no_years,
+            'variables': variables,
+            'wind-speed-measurement': wind_speed_measurement
+        })
         try:
-            temp_reanalysis.latitude = node['latitude']
-            temp_reanalysis.longitude = node['longitude']
-            temp_reanalysis.source = dataset
-            if monthly_norms is True:
-                column_name = 'normalised_monthly_wind_speeds_' + node['wind_speed_measurement']
-                temp_reanalysis.data = pd.DataFrame((pd.read_json(json.dumps(node['data']), typ='series')),
-                                                columns=[column_name])
-            else:
-                temp_reanalysis.data = pd.read_json(json.dumps(node['data']), orient='index')
-            temp_reanalysis.from_date = from_date
-            temp_reanalysis.to_date = to_date
-        except Exception as error:
-            if 'errors' in node:
-                raise TypeError(json_response)
-            else:
-                raise error
-        reanalysis_list.append(temp_reanalysis)
-
-    return reanalysis_list
-
-
-def load_brightdata(dataset, lat, long, nearest, from_date=None, to_date=None, variables=None):
-    """
-    Retrieve timeseries datasets available from the brightdata platform. Returns a list of Reanalysis objects in order
-    of closest distance to the requested lat, long.
-
-    :param dataset: dataset type to be retrieved from brightdata e.g. merra2, era5.
-    :type dataset: str
-    :param lat: latitude of your point of interest.
-    :type lat: float
-    :param long: longitude of your point of interest.
-    :type long: float
-    :param nearest: the number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4 is
-                    accepted.
-    :type nearest: int
-    :param from_date: date from in 'yyyy-mm-dd' format.
-    :type from_date: str
-    :param to_date: date to in 'yyyy-mm-dd' format.
-    :type to_date: str
-    :param variables: variables to return.
-    :type variables: deliminated list.
-    :return: a list of Reanalysis objects in order of closest distance to the requested lat, long.
-    :rtype: List(Reanalysis)
-
-    To use load_brightdata the BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD environmental variables need to be set. In
-    Windows this can be done by running the command prompt in Administrator mode and running:
-
-    >> setx BRIGHTDATA_USERNAME "username"
-    >> setx BRIGHTDATA_PASSWORD "password"
-
-    **Example usage**
-    ::
-        import brightwind as bw
-        nodes = bw.load_brightdata('era5', 53.4, -7.2, 4, '2018-01-01', '2018-10-01')
-        for node in nodes:
-            print(node.data)
-
-    """
-
-    handlers = [
-        {'dataset': 'era5', 'process_fn': _get_brightdata, 'fn_arguments': {
-            'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date, 'nearest': nearest
-            }
-         },
-        {'dataset': 'merra2', 'process_fn': _get_brightdata, 'fn_arguments': {
-            'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date,
-            'nearest': nearest, 'variables': variables
-            }
-         }
-    ]
-    for handler in handlers:
-        if dataset == handler['dataset']:
+            json_response = response.json()
+        except Exception:
+            if response.status_code == 401:
+                raise Exception('Please check your BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD are correct.')
+            raise Exception('Http code {}, something is wrong with the server.'.format(str(response.status_code)))
+        reanalysis_list = []
+        # even though status code is 200 check if respose starts with error.
+        for node in json_response:
+            temp_reanalysis = Reanalysis('', '', pd.DataFrame(), '', '', '')
             try:
-                return handler['process_fn'](**handler['fn_arguments'])
+                temp_reanalysis.latitude = node['latitude']
+                temp_reanalysis.longitude = node['longitude']
+                temp_reanalysis.source = dataset
+                if monthly_norms is True:
+                    column_name = 'normalised_monthly_wind_speeds_' + node['wind_speed_measurement']
+                    temp_reanalysis.data = pd.DataFrame((pd.read_json(json.dumps(node['data']), typ='series')),
+                                                        columns=[column_name])
+                else:
+                    temp_reanalysis.data = pd.read_json(json.dumps(node['data']), orient='index')
+                temp_reanalysis.from_date = from_date
+                temp_reanalysis.to_date = to_date
             except Exception as error:
-                raise error
+                if 'errors' in node:
+                    raise TypeError(json_response)
+                else:
+                    raise error
+            reanalysis_list.append(temp_reanalysis)
 
-    raise NotImplementedError('dataset not identified.')
+        return reanalysis_list
 
+    def timeseries(self, dataset, lat, long, nearest, from_date=None, to_date=None, variables=None):
+        """
+            Retrieve timeseries datasets available from the brightdata platform. Returns a list of Reanalysis objects in order
+            of closest distance to the requested lat, long.
 
-def load_brightdata_monthly_norms(dataset, lat, long, nearest, from_date=None, to_date=None, ref_from_date=None,
-                                  ref_to_date=None, ref_no_years=None, variables=None, wind_speed_measurement=None):
-    monthly_norms = True
-    handlers = [
-        {'dataset': 'era5', 'process_fn': _get_brightdata, 'fn_arguments': {
-            'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date,
-            'monthly_norms': monthly_norms, 'ref_from_date': ref_from_date, 'ref_to_date': ref_to_date,
-            'ref_no_years': ref_no_years, 'nearest': nearest, 'variables': variables
-        }
-         },
+            :param dataset: dataset type to be retrieved from brightdata e.g. merra2, era5.
+            :type dataset: str
+            :param lat: latitude of your point of interest.
+            :type lat: float
+            :param long: longitude of your point of interest.
+            :type long: float
+            :param nearest: the number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4 is
+                            accepted.
+            :type nearest: int
+            :param from_date: date from in 'yyyy-mm-dd' format.
+            :type from_date: str
+            :param to_date: date to in 'yyyy-mm-dd' format.
+            :type to_date: str
+            :param variables: variables to return.
+            :type variables: deliminated list.
+            :return: a list of Reanalysis objects in order of closest distance to the requested lat, long.
+            :rtype: List(Reanalysis)
 
-        {'dataset': 'merra2', 'process_fn': _get_brightdata, 'fn_arguments': {
-            'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date,
-            'monthly_norms':monthly_norms, 'ref_from_date': ref_from_date, 'ref_to_date':ref_to_date,
-            'ref_no_years': ref_no_years, 'nearest': nearest, 'variables': variables,
-            'wind_speed_measurement': wind_speed_measurement
-        }
-         }
-    ]
-    for handler in handlers:
-        if dataset == handler['dataset']:
-            try:
-                return handler['process_fn'](**handler['fn_arguments'])
-            except Exception as error:
-                raise error
+            To use load_brightdata the BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD environmental variables need to be set. In
+            Windows this can be done by running the command prompt in Administrator mode and running:
 
-    raise NotImplementedError('dataset not identified.')
+            >> setx BRIGHTDATA_USERNAME "username"
+            >> setx BRIGHTDATA_PASSWORD "password"
+
+            **Example usage**
+            ::
+                import brightwind as bw
+                nodes = bw.load_brightdata('era5', 53.4, -7.2, 4, '2018-01-01', '2018-10-01')
+                for node in nodes:
+                    print(node.data)
+
+            """
+
+        handlers = [
+            {'dataset': 'era5', 'process_fn': self._get_brightdata, 'fn_arguments': {
+                'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date,
+                'nearest': nearest
+            }
+             },
+            {'dataset': 'merra2', 'process_fn': self._get_brightdata, 'fn_arguments': {
+                'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date,
+                'nearest': nearest, 'variables': variables
+            }
+             }
+        ]
+        for handler in handlers:
+            if dataset == handler['dataset']:
+                try:
+                    return handler['process_fn'](**handler['fn_arguments'])
+                except Exception as error:
+                    raise error
+
+        raise NotImplementedError('dataset not identified.')
+
+    def monthly_norms(self, dataset, lat, long, nearest, from_date=None, to_date=None, ref_from_date=None,
+                      ref_to_date=None, ref_no_years=None, variables=None, wind_speed_measurement=None):
+
+        monthly_norms = True
+        handlers = [
+            {'dataset': 'era5', 'process_fn': self._get_brightdata, 'fn_arguments': {
+                'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date,
+                'monthly_norms': monthly_norms, 'ref_from_date': ref_from_date, 'ref_to_date': ref_to_date,
+                'ref_no_years': ref_no_years, 'nearest': nearest, 'variables': variables
+            }
+             },
+
+            {'dataset': 'merra2', 'process_fn': self._get_brightdata, 'fn_arguments': {
+                'dataset': dataset, 'lat': lat, 'long': long, 'from_date': from_date, 'to_date': to_date,
+                'monthly_norms': monthly_norms, 'ref_from_date': ref_from_date, 'ref_to_date': ref_to_date,
+                'ref_no_years': ref_no_years, 'nearest': nearest, 'variables': variables,
+                'wind_speed_measurement': wind_speed_measurement
+            }
+             }
+        ]
+        for handler in handlers:
+            if dataset == handler['dataset']:
+                try:
+                    return handler['process_fn'](**handler['fn_arguments'])
+                except Exception as error:
+                    raise error
+
+        raise NotImplementedError('dataset not identified.')
 
 
 class _LoadBWPlatform:
