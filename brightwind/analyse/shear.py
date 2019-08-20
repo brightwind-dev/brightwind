@@ -754,7 +754,7 @@ class Shear:
             new_index = pd.to_datetime(pd.Series(wspds.index).apply(lambda x: datetime.datetime.strftime(x, "%H:%M:%S")))
             wspds.set_index(new_index, inplace=True)
             freq = str(24/segments_per_day) + 'H'
-            grouped_tod_wspds = wspds.groupby(pd.Grouper(freq=freq))
+            grouped_tod_wspds = wspds.groupby(pd.Grouper(freq=freq, base=1))
 
             for j, group_tod_wspd in enumerate(grouped_tod_wspds):
                 group_tod_wspd = group_tod_wspd[1]
