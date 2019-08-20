@@ -129,10 +129,9 @@ def dist_matrix(var_series, x_series, y_series,
         y_series.name = 'binned_var_1'
     if x_series.name is None:
         x_series.name = 'binned_var_2'
-    if var_series.name == y_series.name:
-        var_series.name = var_series.name + '_distributed'
-    if var_series.name == x_series.name:
-        var_series.name = var_series.name + '_distributed'
+    if var_label is None:
+        var_label = aggregation_method.capitalize() + ' of ' + var_series.name
+    var_series.name = var_label
 
     if num_bins_x is None and x_bins is None:
         x_bins = np.arange(int(np.floor(x_series.min())), int(np.ceil(x_series.max()) + 1 + (x_series.max() % 1 == 0)),
@@ -168,9 +167,6 @@ def dist_matrix(var_series, x_series, y_series,
 
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
-
-    if var_label is None:
-        var_label = aggregation_method.capitalize() + ' of ' + var_series.name.replace('_distributed', '')
 
     if x_bin_labels is None:
         x_bin_labels = [str(i[1]) for i in distribution.columns]
@@ -556,7 +552,7 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
     if direction_series.name is None:
         direction_series.name = 'direction_bin'
     if var_to_bin_series.name is None:
-        var_to_bin_series.name = 'var_to_bin'
+        var_to_bin_series.name = 'var_to_bin_by'
     direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
         _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
 
@@ -666,10 +662,7 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
     else:
         var_label = aggregation_method.capitalize() + ' of ' + var_series.name
 
-    if var_series.name == var_to_bin_by_series.name:
-        table_label = var_series.name + "_distributed"
-    else:
-        table_label = var_series.name
+    table_label = var_label
 
     dist_mat_dir.columns = pd.MultiIndex(levels=[[table_label], dist_mat_dir.columns],
                                          codes=[[0 for i in range(len(dist_mat_dir.columns))],
