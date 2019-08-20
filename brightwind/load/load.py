@@ -505,7 +505,7 @@ class LoadBrightdata:
 
         nodes_list = []
         for node in json_response:
-            temp_node_obj = LoadBrightdata.Node('', '', pd.DataFrame(), '', list())
+            temp_node_obj = LoadBrightdata.Node('', '', '', pd.DataFrame(), list())
             try:
                 for key in node:
                     if key in temp_node_obj.__dict__:   # if params returned are within the Node obj, add them
@@ -530,23 +530,23 @@ class LoadBrightdata:
             Retrieve timeseries datasets available from the brightdata platform. Returns a list of Node objects in order
             of closest distance to the requested lat, long.
 
-            :param dataset: dataset type to be retrieved from brightdata e.g. merra2, era5.
+            :param dataset: Dataset type to be retrieved from brightdata e.g. merra2, era5.
             :type dataset: str
-            :param lat: latitude of your point of interest.
+            :param lat: Latitude of your point of interest.
             :type lat: float
-            :param long: longitude of your point of interest.
+            :param long: Longitude of your point of interest.
             :type long: float
-            :param nearest: the number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4 is
+            :param nearest: The number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4 is
                             accepted.
             :type nearest: int
-            :param from_date: date from in 'yyyy-mm-dd' format. If left blank it will retrieve the earliest data.
+            :param from_date: Date from in 'yyyy-mm-dd' format. If left blank it will retrieve the earliest data.
             :type from_date: str
-            :param to_date: date to in 'yyyy-mm-dd' format. If left blank it will retrieve the most recent data.
+            :param to_date: Date to in 'yyyy-mm-dd' format. If left blank it will retrieve the most recent data.
             :type to_date: str
-            :param variables: list of variables to return. At present can only accept 'Spd_50m_mps', 'Dir_50m_deg',
+            :param variables: List of variables to return. At present can only accept 'Spd_50m_mps', 'Dir_50m_deg',
                               'Tmp_2m_degC', 'Prs_0m_hPa', 'Spd_850pa_mps', 'Dir_850pa_deg'.
             :type variables: list
-            :return: a list of Node objects in order of closest distance to the requested lat, long.
+            :return: A list of Node objects in order of closest distance to the requested lat, long.
             :rtype: List(Node)
 
             To use LoadBrightdata the BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD environmental variables need to be
@@ -612,30 +612,38 @@ class LoadBrightdata:
     def monthly_norms(dataset, lat, long, nearest, from_date=None, to_date=None, ref_from_date=None,
                       ref_to_date=None, ref_no_years=None, wind_speed_measurement=None):
         """
-        Return the monthly mean wind speeds normalised to a specific reference period.
+        Return the monthly mean wind speeds normalised to a specific reference period. The reference period can be
+        between two specific dates or it could be a number of rolling years preceding each month of interest.
 
-        :param dataset: dataset type to be retrieved from brightdata e.g. merra2, era5.
+        :param dataset: Dataset type to be retrieved from brightdata e.g. merra2, era5.
         :type dataset: str
-        :param lat: latitude of your point of interest.
+        :param lat: Latitude of your point of interest.
         :type lat: float
-        :param long: longitude of your point of interest.
+        :param long: Longitude of your point of interest.
         :type long: float
-        :param nearest: the number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4 is
+        :param nearest: The number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4 is
                         accepted.
         :type nearest: int
-        :param from_date: the date you want the monthly normalised means to start from in 'yyyy-mm-dd' format.
+        :param from_date: The date you want the monthly normalised means to start from in 'yyyy-mm-dd' format.
         :type from_date: str
-        :param to_date: the date you want the monthly normalised means up to in 'yyyy-mm-dd' format.
+        :param to_date: The date you want the monthly normalised means up to in 'yyyy-mm-dd' format.
         :type to_date: str
-        :param ref_from_date: the date you want the reference period, used to calculate the long term mean wind speed,
+        :param ref_from_date: The date you want the reference period, used to calculate the long term mean wind speed,
                               to start from in 'yyyy-mm-dd' format.
         :type to_date: str
-        :param ref_to_date: the date you want the reference period, used to calculate the long term mean wind speed,
-                            up to in 'yyyy-mm-dd' format.
+        :param ref_to_date: The date you want the reference period, used to calculate the long term mean wind speed,
+                            to go up to in 'yyyy-mm-dd' format.
         :type to_date: str
-        :param ref_no_years:
-        :param wind_speed_measurement:
-        :return:
+        :param ref_no_years: The number of years to define the reference period. This will be a rolling long term
+                             up to the month been calculated at the time i.e. for ref_no_years=10 the reference
+                             period for month Sep-2018 will be the 10 years preceding it, Sep-2008 to Aug-2018, and for
+                             month Oct-2018 it will be Oct-2008 to Sep-2018.
+        :type ref_no_years: int
+        :param wind_speed_measurement: The wind variable to use from the dataset. Each dataset will use it's default
+                                       variable name however for merra2, for example, the 'Spd_850pa_mps' is also
+                                       available for certain locations.
+        :return: A list of Node objects in order of closest distance to the requested lat, long.
+        :rtype: List(Node)
 
         The long term mean wind speed is calculated using the mean of monthly mean function, bw.momm().
 
@@ -648,9 +656,30 @@ class LoadBrightdata:
         **Example usage**
         ::
             import brightwind as bw
-            nodes = bw.LoadBrightdata.monthly_norms('era5', 53.4, -7.2, 4, '2018-01-01', '2018-10-01')
+            nodes = bw.LoadBrightdata.monthly_norms('merra2', 60, 14.78, nearest=3,
+                                                    from_date='2019-01-01', to_date='2019-06-30',
+                                                    ref_from_date='2002-01-01', ref_to_date='2019-01-01')
             for node in nodes:
+                print(node.dataset)
+                print(node.latitude)
+                print(node.longitude)
+                print(node.info)
                 print(node.data)
+
+            # use a reference period of a rolling 10 years
+            merra2_nodes = bw.LoadBrightdata.monthly_norms('merra2', 60, 14.78, nearest=1,
+                                                           from_date='2019-01-01', to_date='2019-06-30',
+                                                           ref_no_years='10')
+            print(merra2_nodes[0].dataset, merra2_nodes[0].latitude, merra2_nodes[0].longitude, merra2_nodes[0].info)
+            merra2_nodes[0].data
+
+            # use the 850pa wind speed instead
+            merra2_nodes = bw.LoadBrightdata.monthly_norms('merra2', 60, 14.78, nearest=1,
+                                                           from_date='2019-01-01', to_date='2019-06-30',
+                                                           ref_no_years='10',
+                                                           wind_speed_measurement='Spd_850pa_mps')
+            print(merra2_nodes[0].dataset, merra2_nodes[0].latitude, merra2_nodes[0].longitude, merra2_nodes[0].info)
+            merra2_nodes[0].data
 
         """
         handlers = [
