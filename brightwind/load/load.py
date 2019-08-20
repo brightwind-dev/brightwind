@@ -456,35 +456,33 @@ class LoadBrightdata:
     _BASE_URI = 'http://localhost:5000/'
 
     class Node:
-        """Object defining a reanalysis node from Brightdata
+        """
+        Object defining a reanalysis node from Brightdata
 
+        :param dataset: Dataset type e.g. merra2, era5, etc.
+        :type dataset: str
         :param latitude: Is the latitude of the node location for the dataset.
         :type latitude: str
         :param longitude: Is the longitude of the node location for the dataset.
         :type longitude: str
         :param data: Contains the timeseries data from the node in a DataFrame.
         :type data: pandas.DataFrame
-        :param dataset: Dataset type e.g. merra2, era5, etc.
-        :type dataset: str
         :param info: Information relevant to the dataset.
         :type info: List
         """
-        def __init__(self, latitude, longitude, data, dataset, info):
+        def __init__(self, dataset, latitude, longitude, data, info):
+            self.dataset = dataset
             self.latitude = latitude
             self.longitude = longitude
             self.data = data
-            self.dataset = dataset
             self.info = info
 
     @staticmethod
     def _get_brightdata(sub_uri, **query_params):
         """
         Get merra2 or era5 data from the brightdata platform and format it for use.
-        :param lat:
-        :param long:
-        :param nearest:
-        :param from_date:
-        :param to_date:
+        :param sub_uri: sub part of uri string
+        :param query_params: dictionary of the query parameters to be sent
         :return:
         """
         username = _get_environment_variable('BRIGHTDATA_USERNAME')
@@ -516,7 +514,7 @@ class LoadBrightdata:
                         else:
                             setattr(temp_node_obj, key, node[key])
                     else:
-                        temp_node_obj.info.append({key: node[key]})
+                        temp_node_obj.info.append({key.replace('-', '_'): node[key]})
             except Exception as error:
                 if 'Error' in node or 'message' in node:
                     raise TypeError(json_response)
@@ -529,7 +527,7 @@ class LoadBrightdata:
     @staticmethod
     def timeseries(dataset, lat, long, nearest, from_date=None, to_date=None, variables=None):
         """
-            Retrieve timeseries datasets available from the brightdata platform. Returns a list of Reanalysis objects in order
+            Retrieve timeseries datasets available from the brightdata platform. Returns a list of Node objects in order
             of closest distance to the requested lat, long.
 
             :param dataset: dataset type to be retrieved from brightdata e.g. merra2, era5.
@@ -541,17 +539,18 @@ class LoadBrightdata:
             :param nearest: the number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4 is
                             accepted.
             :type nearest: int
-            :param from_date: date from in 'yyyy-mm-dd' format.
+            :param from_date: date from in 'yyyy-mm-dd' format. If left blank it will retrieve the earliest data.
             :type from_date: str
-            :param to_date: date to in 'yyyy-mm-dd' format.
+            :param to_date: date to in 'yyyy-mm-dd' format. If left blank it will retrieve the most recent data.
             :type to_date: str
-            :param variables: variables to return.
-            :type variables: deliminated list.
-            :return: a list of Reanalysis objects in order of closest distance to the requested lat, long.
-            :rtype: List(Reanalysis)
+            :param variables: list of variables to return. At present can only accept 'Spd_50m_mps', 'Dir_50m_deg',
+                              'Tmp_2m_degC', 'Prs_0m_hPa', 'Spd_850pa_mps', 'Dir_850pa_deg'.
+            :type variables: list
+            :return: a list of Node objects in order of closest distance to the requested lat, long.
+            :rtype: List(Node)
 
-            To use load_brightdata the BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD environmental variables need to be set. In
-            Windows this can be done by running the command prompt in Administrator mode and running:
+            To use LoadBrightdata the BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD environmental variables need to be
+            set. In Windows this can be done by running the command prompt in Administrator mode and running:
 
             >> setx BRIGHTDATA_USERNAME "username"
             >> setx BRIGHTDATA_PASSWORD "password"
@@ -559,21 +558,44 @@ class LoadBrightdata:
             **Example usage**
             ::
                 import brightwind as bw
-                nodes = bw.load_brightdata('era5', 53.4, -7.2, 4, '2018-01-01', '2018-10-01')
+                nodes = bw.LoadBrightdata.timeseries('era5', 53.4, -7.2, nearest=4,
+                                                     from_date='2018-10-01', to_date='2018-10-02')
                 for node in nodes:
+                    print(node.dataset)
+                    print(node.latitude)
+                    print(node.longitude)
                     print(node.data)
 
-            """
+                # get only temperature and pressure for the nearest node to my location
+                merra2_nodes = bw.LoadBrightdata.timeseries('merra2', 60, 14.78, nearest=1,
+                                                            from_date='2018-12-01', to_date='2018-12-02',
+                                                            variables=['Tmp_2m_degC', 'Prs_0m_hPa'])
+                print(merra2_nodes[0].dataset, merra2_nodes[0].latitude, merra2_nodes[0].longitude)
+                merra2_nodes[0].data
+
+                # get only temperature and pressure for the nearest node to my location up to most recent date
+                merra2_nodes = bw.LoadBrightdata.timeseries('merra2', 49.15, 4.78, nearest=1,
+                                                            from_date='2018-12-01',
+                                                            variables=['Tmp_2m_degC', 'Prs_0m_hPa'])
+                print(merra2_nodes[0].dataset, merra2_nodes[0].latitude, merra2_nodes[0].longitude)
+                merra2_nodes[0].data
+
+        """
+        var_parsed = None
+        if variables is not None:
+            var_parsed = variables[0]
+            for variable in variables[1:]:
+                var_parsed = var_parsed + ',' + variable
 
         handlers = [
             {'dataset': 'era5', 'process_fn': LoadBrightdata._get_brightdata, 'fn_arguments': {
                 'dataset': dataset, 'latitude': lat, 'longitude': long, 'from-date': from_date,
-                'to-date': to_date, 'nearest': nearest, 'variables': variables
+                'to-date': to_date, 'nearest': nearest, 'variables': var_parsed
             }
              },
             {'dataset': 'merra2', 'process_fn': LoadBrightdata._get_brightdata, 'fn_arguments': {
                 'dataset': dataset, 'latitude': lat, 'longitude': long, 'from-date': from_date,
-                'to-date': to_date, 'nearest': nearest, 'variables': variables
+                'to-date': to_date, 'nearest': nearest, 'variables': var_parsed
             }
              }
         ]
@@ -589,7 +611,48 @@ class LoadBrightdata:
     @staticmethod
     def monthly_norms(dataset, lat, long, nearest, from_date=None, to_date=None, ref_from_date=None,
                       ref_to_date=None, ref_no_years=None, wind_speed_measurement=None):
+        """
+        Return the monthly mean wind speeds normalised to a specific reference period.
 
+        :param dataset: dataset type to be retrieved from brightdata e.g. merra2, era5.
+        :type dataset: str
+        :param lat: latitude of your point of interest.
+        :type lat: float
+        :param long: longitude of your point of interest.
+        :type long: float
+        :param nearest: the number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4 is
+                        accepted.
+        :type nearest: int
+        :param from_date: the date you want the monthly normalised means to start from in 'yyyy-mm-dd' format.
+        :type from_date: str
+        :param to_date: the date you want the monthly normalised means up to in 'yyyy-mm-dd' format.
+        :type to_date: str
+        :param ref_from_date: the date you want the reference period, used to calculate the long term mean wind speed,
+                              to start from in 'yyyy-mm-dd' format.
+        :type to_date: str
+        :param ref_to_date: the date you want the reference period, used to calculate the long term mean wind speed,
+                            up to in 'yyyy-mm-dd' format.
+        :type to_date: str
+        :param ref_no_years:
+        :param wind_speed_measurement:
+        :return:
+
+        The long term mean wind speed is calculated using the mean of monthly mean function, bw.momm().
+
+        To use LoadBrightdata the BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD environmental variables need to be
+        set. In Windows this can be done by running the command prompt in Administrator mode and running:
+
+        >> setx BRIGHTDATA_USERNAME "username"
+        >> setx BRIGHTDATA_PASSWORD "password"
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            nodes = bw.LoadBrightdata.monthly_norms('era5', 53.4, -7.2, 4, '2018-01-01', '2018-10-01')
+            for node in nodes:
+                print(node.data)
+
+        """
         handlers = [
             {'dataset': 'era5', 'process_fn': LoadBrightdata._get_brightdata, 'fn_arguments': {
                 'dataset': dataset, 'latitude': lat, 'longitude': long,
@@ -627,6 +690,7 @@ class _LoadBWPlatform:
     """
 
     _base_url = 'https://api.brightwindanalysis.com/platform'
+    _ACCESS_TOKEN = {'token': '', 'expires_in': '', 'issued_at': ''}
 
     @staticmethod
     def _get_token():
@@ -634,11 +698,17 @@ class _LoadBWPlatform:
         password = _get_environment_variable('BW_PLATFORM_PASSWORD')
 
         params = {'username': username, 'password': password}
-        json_response = requests.post('https://api.brightwindanalysis.com/auth/login', json=params).json()
+        if not _LoadBWPlatform._ACCESS_TOKEN.get('token') or (_LoadBWPlatform._ACCESS_TOKEN['issued_at'].timestamp()
+                                                              + _LoadBWPlatform._ACCESS_TOKEN['expires_in']
+                                                              < datetime.datetime.now().timestamp()):
+            json_response = requests.post('https://api.brightwindanalysis.com/auth/login', json=params).json()
+            if json_response.get('error_description'):
+                raise ValueError(json_response['error_description'])
+            _LoadBWPlatform._ACCESS_TOKEN['token'] = json_response['access_token']
+            _LoadBWPlatform._ACCESS_TOKEN['expires_in'] = json_response['expires_in']
+            _LoadBWPlatform._ACCESS_TOKEN['issued_at'] = datetime.datetime.now()
 
-        if json_response.get('error_description'):
-            raise ValueError(json_response['error_description'])
-        return json_response['access_token']
+        return _LoadBWPlatform._ACCESS_TOKEN['token']
 
     @staticmethod
     def get_plants():
@@ -745,7 +815,7 @@ class _LoadBWPlatform:
         return response_json
 
     @staticmethod
-    def get_sensor_configs(meas_point_uuid, access_token):
+    def get_sensor_configs(meas_point_uuid):
         """
         Get all the sensor configurations for a certain measurement point uuid.
 
@@ -775,7 +845,7 @@ class _LoadBWPlatform:
         :param meas_point_uuid:
         :return:
         """
-        # access_token = _LoadBWPlatform._get_token()
+        access_token = _LoadBWPlatform._get_token()
         headers = {'Authorization': 'Bearer ' + access_token}
         response = requests.get(_LoadBWPlatform._base_url + '/api/sensor-configs', headers=headers, params={
             'measurement_point_uuid': meas_point_uuid
@@ -830,8 +900,7 @@ class _LoadBWPlatform:
             from_date = parse(from_date)
         if isinstance(to_date, str):
             to_date = parse(to_date)
-        print(from_date)
-        print(to_date)
+
         response = requests.get(_LoadBWPlatform._base_url + '/api/resource-data-measurement-location', params={
             'measurement_location_uuid': measurement_location_uuid,
             'date_from': from_date.isoformat(),
@@ -895,7 +964,7 @@ class _LoadBWPlatform:
         return Instrument_height
 
     @staticmethod
-    def _get_sen_configs_in_df(meas_points_df, access_token):
+    def _get_sen_configs_in_df(meas_points_df):
         # Next we get the relvant information we need from the database to populate the configuration table for the monthly report.
 
         pddict = {'Sensor OEM': [], 'Units': [], 'Serial Number': [], 'Measurement_point_UUID': [], 'Date From': [],
@@ -904,7 +973,7 @@ class _LoadBWPlatform:
 
         limit_counter = 0
         for index, row in meas_points_df.iterrows():
-            sen_configs = _LoadBWPlatform.get_sensor_configs(index, access_token)
+            sen_configs = _LoadBWPlatform.get_sensor_configs(index)
 
             for sc in sen_configs:
                 # print(mp['mounting_arrangement']['height_metres'])
@@ -957,10 +1026,9 @@ class _LoadBWPlatform:
         :param return_data:
         :return:
         """
-        access_token = _LoadBWPlatform._get_token()
 
         meas_points_df = _LoadBWPlatform._get_meas_points_in_df(meas_loc_uuid, Include_Tilt_Angle=Include_Tilt_Angle)
-        sen_configs_df = _LoadBWPlatform._get_sen_configs_in_df(meas_points_df, access_token)
+        sen_configs_df = _LoadBWPlatform._get_sen_configs_in_df(meas_points_df)
         sensor_table = meas_points_df.join(sen_configs_df)
 
         if Include_Tilt_Angle == 'Y':
@@ -1189,11 +1257,3 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
         pd.options.mode.chained_assignment = 'warn'
 
     return data
-
-
-if __name__=='__main__':
-    import brightwind as bw
-
-    r = bw.load_brightdata_monthly_norms('era5', 53.22, 15.747, 1, from_date='2018-01-01T00:00:00',
-                                         to_date='2020-01-01T00:00:00')
-    print(r[0].data)
