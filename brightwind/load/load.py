@@ -452,8 +452,8 @@ def _get_environment_variable(name):
 
 class LoadBrightdata:
 
-    # _BASE_URI = 'http://api.brightwindanalysis.com/brightdata/'
-    _BASE_URI = 'http://localhost:5000/'
+    _BASE_URI = 'http://api.brightwindanalysis.com/brightdata/'
+    # _BASE_URI = 'http://localhost:5000/'
 
     class Node:
         """
