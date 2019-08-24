@@ -132,6 +132,10 @@ def dist_matrix(var_series, x_series, y_series,
     if var_label is None:
         var_label = aggregation_method.capitalize() + ' of ' + var_series.name
     var_series.name = var_label
+    if x_series.name == var_series.name:
+        x_series.name = x_series.name+"_binned"
+    if y_series.name == var_series.name:
+        y_series.name = y_series.name+"_binned"
 
     if num_bins_x is None and x_bins is None:
         x_bins = np.arange(int(np.floor(x_series.min())), int(np.ceil(x_series.max()) + 1 + (x_series.max() % 1 == 0)),
@@ -661,7 +665,6 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
         var_label = aggregation_method.capitalize() + ' of  var_series'
     else:
         var_label = aggregation_method.capitalize() + ' of ' + var_series.name
-
     table_label = var_label
 
     dist_mat_dir.columns = pd.MultiIndex(levels=[[table_label], dist_mat_dir.columns],
