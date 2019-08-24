@@ -689,7 +689,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     :param direction_series: Series of wind directions between [0-360]
     :type direction_series: pandas.Series
     :param var_bin_array: List of numbers where adjacent elements of array form a bin. For instance, for bins
-        [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]
+        [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]. By default it is [-0.5, 0.5), [0.5, 1.5], ...., [39.5, 40.5)
     :type var_bin_array: list
     :param var_bin_labels: Optional, an array of labels to use for variable bins
     :type var_bin_labels: list

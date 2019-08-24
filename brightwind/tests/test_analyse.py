@@ -125,6 +125,10 @@ def test_freq_table():
                         direction_bin_labels=['northerly', 'easterly', 'southerly', 'westerly'],
                         plot_bins=[0, 8, 14, 41], plot_labels=None, return_data=True)
                         # var_bin_labels=['operating','shutdow','dangerous'],
+    temp_rose, temp_freq_tab = bw.freq_table(df.T2m, df.Dir78mS, var_bin_array=[-10, 0, 10, 20],
+                                             var_bin_labels=['low', 'mid', 'high'],
+                                             plot_bins=[-10, 0, 10, 20], plot_labels=None,
+                                             return_data=True)
 
 
 def test_dist():
