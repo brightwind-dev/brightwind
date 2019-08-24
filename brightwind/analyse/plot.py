@@ -22,6 +22,7 @@ import os
 from brightwind.utils import utils
 import matplotlib as mpl
 from pandas.plotting import register_matplotlib_converters
+from brightwind.utils.utils import _convert_df_to_series
 import re
 import six
 
@@ -237,6 +238,8 @@ def plot_scatter(x_series, y_series, x_axis_title=None, y_axis_title=None,
                         x_limits=(50,300), y_limits=(250,300))
 
     """
+    x_series = _convert_df_to_series(x_series)
+    y_series = _convert_df_to_series(y_series)
     if x_axis_title is None:
         x_axis_title = x_series.name
     if y_axis_title is None:
