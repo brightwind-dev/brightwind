@@ -408,7 +408,7 @@ def plot_rose(ext_data, plot_label=None):
     num_digits_to_round = 0
     while contour_spacing*(10**num_digits_to_round) <= 1:
         num_digits_to_round += 1
-    if contour_spacing > 0.5 and contour_spacing < 1:
+    if 0.5 < contour_spacing < 1:
         contour_spacing = 1
     levels = np.arange(0, max_contour, round(contour_spacing, num_digits_to_round))
     ax.set_rgrids(levels, labels=[str(i) for i in levels], angle=0)
@@ -474,7 +474,7 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     num_digits_to_round = 0
     while contour_spacing * (10 ** num_digits_to_round) < 1:
         num_digits_to_round += 1
-    if contour_spacing > 0.5 and contour_spacing < 1:
+    if 0.5 < contour_spacing < 1:
         contour_spacing = 1
     levels = np.arange(0, max_contour, round(contour_spacing, num_digits_to_round))
     ax.set_rgrids(levels,
@@ -482,6 +482,8 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
                   angle=0, zorder=2)
     ax.set_ylim(0, max(table.sum(axis=0)) + 3.0)
     ax.bar(0, 1, alpha=0)
+    norm = mpl.colors.Normalize(vmin=min(table_binned.index), vmax=max(table_binned.index), clip=True)
+    mapper = mpl.cm.ScalarMappable(norm=norm, cmap=bw_colors('bw_col_map'))
     for column in table_binned:
         radial_pos = 0.0
         angular_pos_start = (np.pi / 180.0) * float(column.split('-')[0])
@@ -493,8 +495,8 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
             angular_width = 2 * np.pi - angular_pos_start + angular_pos_end - (np.pi / 180)
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
             patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,
-                                          frequency, facecolor=gradient_colors[speed_bin], edgecolor='#5c7b1e',
-                                          linewidth=0.3, zorder=3)
+                                          frequency, facecolor=mapper.to_rgba(speed_bin), edgecolor='#5c7b1e',
+                                          linewidth=0.3, zorder=3) #gradient_colors[speed_bin]
             ax.add_patch(patch)
             radial_pos += frequency
 
