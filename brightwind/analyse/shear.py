@@ -737,8 +737,7 @@ class Shear:
     class BySectorTimeOfDay:
 
         def __init__(self, wspds, heights, wdir, min_speed=3, calc_method='power_law', sectors=12,
-                     direction_bin_array=None, direction_bin_labels=None, segment_start_time=7,
-                     segments_per_day=2):
+                     direction_bin_array=None, direction_bin_labels=None, segments_per_day=2):
 
             print('This may take a while...')
             wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
@@ -754,7 +753,7 @@ class Shear:
             new_index = pd.to_datetime(pd.Series(wspds.index).apply(lambda x: datetime.datetime.strftime(x, "%H:%M:%S")))
             wspds.set_index(new_index, inplace=True)
             freq = str(24/segments_per_day) + 'H'
-            grouped_tod_wspds = wspds.groupby(pd.Grouper(freq=freq, base=1))
+            grouped_tod_wspds = wspds.groupby(pd.Grouper(freq=freq))
 
             for j, group_tod_wspd in enumerate(grouped_tod_wspds):
                 group_tod_wspd = group_tod_wspd[1]
@@ -786,12 +785,16 @@ class Shear:
                 alpha = pd.DataFrame([], index=alpha_sector_tod.index)
                 for i in alpha_sector_tods:
                     alpha = pd.concat([alpha, i], axis=1)
-                self._alpha = alpha.T
+                alpha = alpha.T
+                alpha.index = alpha.index.time
+                self._alpha = alpha
 
             elif calc_method == 'log_law':
                 roughness = pd.DataFrame([], index=roughness_sector_tod.index)
                 for i in roughness_sector_tods:
                     roughness = pd.concat([roughness, i], axis=1)
+                roughness = roughness.T
+                roughness.index = roughness.index.time
                 self._roughness = roughness.T
 
             self.wspds = wspds
@@ -1380,5 +1383,5 @@ if __name__ =='__main__':
 
     anemometers = data[['Spd60mN', 'Spd40mN']]
 
-    x = bw.Shear.BySectorTimeOfDay(anemometers,heights,directions, calc_method='log_law')
+    x = bw.Shear.BySectorTimeOfDay(anemometers,heights,directions)
     x.apply(wspds=speeds, wdir=directions, height=40, shear_to=80)
