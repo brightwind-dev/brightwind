@@ -737,7 +737,7 @@ class Shear:
     class BySectorTimeOfDay:
 
         def __init__(self, wspds, heights, wdir, min_speed=3, calc_method='power_law', sectors=12,
-                     direction_bin_array=None, direction_bin_labels=None, segments_per_day=2):
+                     direction_bin_array=None, direction_bin_labels=None, segments_per_day=2, segment_start_time=0):
 
             print('This may take a while...')
             wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
@@ -753,7 +753,8 @@ class Shear:
             new_index = pd.to_datetime(pd.Series(wspds.index).apply(lambda x: datetime.datetime.strftime(x, "%H:%M:%S")))
             wspds.set_index(new_index, inplace=True)
             freq = str(24/segments_per_day) + 'H'
-            grouped_tod_wspds = wspds.groupby(pd.Grouper(freq=freq))
+            segment_start_time = str(segment_start_time) + 'h'
+            grouped_tod_wspds = wspds.resample(freq, loffset=segment_start_time)
 
             for j, group_tod_wspd in enumerate(grouped_tod_wspds):
                 group_tod_wspd = group_tod_wspd[1]
@@ -764,7 +765,6 @@ class Shear:
                                                                              direction_bin_labels=direction_bin_labels,
                                                                              aggregation_method='mean',
                                                                              return_data=True)
-
                     if i == 0:
                         df = pd.DataFrame(mean_tod_sector_wspds)
                     else:
@@ -795,7 +795,7 @@ class Shear:
                     roughness = pd.concat([roughness, i], axis=1)
                 roughness = roughness.T
                 roughness.index = roughness.index.time
-                self._roughness = roughness.T
+                self._roughness = roughness
 
             self.wspds = wspds
             self.wdir = wdir
@@ -1175,7 +1175,7 @@ class Shear:
                 filled_alpha = Shear._fill_df_12x24(self.alpha)
 
             else:
-                filled_roughness = Shear._fill_df_12x24(self._roughness)
+                filled_roughness = Shear._fill_df_12x24(self.roughness)
                 filled_alpha = filled_roughness
 
             for i in range(self.sectors):
@@ -1383,5 +1383,5 @@ if __name__ =='__main__':
 
     anemometers = data[['Spd60mN', 'Spd40mN']]
 
-    x = bw.Shear.BySectorTimeOfDay(anemometers,heights,directions)
+    x = bw.Shear.BySectorTimeOfDay(anemometers,heights,directions, calc_method='log_law')
     x.apply(wspds=speeds, wdir=directions, height=40, shear_to=80)
