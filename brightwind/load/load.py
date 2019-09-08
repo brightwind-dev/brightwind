@@ -453,7 +453,6 @@ def _get_environment_variable(name):
 class LoadBrightdata:
 
     _BASE_URI = 'http://api.brightwindanalysis.com/brightdata/'
-    # _BASE_URI = 'http://localhost:5000/'
 
     class Node:
         """
@@ -480,10 +479,10 @@ class LoadBrightdata:
     @staticmethod
     def _get_brightdata(sub_uri, **query_params):
         """
-        Get merra2 or era5 data from the brightdata platform and format it for use.
+        Get merra2 or era5 data from brightdata and format it for use.
         :param sub_uri: sub part of uri string
         :param query_params: dictionary of the query parameters to be sent
-        :return:
+        :return: List(Node)
         """
         username = _get_environment_variable('BRIGHTDATA_USERNAME')
         password = _get_environment_variable('BRIGHTDATA_PASSWORD')
@@ -536,7 +535,7 @@ class LoadBrightdata:
     @staticmethod
     def timeseries(dataset, lat, long, nearest=None, from_date=None, to_date=None, variables=None):
         """
-            Retrieve timeseries datasets available from the brightdata platform. Returns a list of Node objects in order
+            Retrieve timeseries datasets available from brightdata. Returns a list of Node objects in order
             of closest distance to the requested lat, long.
 
             :param dataset:   Dataset type to be retrieved from brightdata e.g. merra2, era5.
@@ -666,6 +665,75 @@ class LoadBrightdata:
         }
         try:
             return LoadBrightdata._get_brightdata(sub_uri='timeseries/monthly-means', **fn_arguments)
+        except Exception as error:
+            raise error
+
+    @staticmethod
+    def momm(dataset, lat, long, nearest=None, from_date=None, to_date=None, variables=None):
+        """
+            Retrieve the mean of monthly means from brightdata datasets such as merra2 and era5. Returns a list of
+            Node objects in order of closest distance to the requested lat, long.
+
+            :param dataset:   Dataset type to be retrieved from brightdata e.g. merra2, era5.
+            :type  dataset:   str
+            :param lat:       Latitude of your point of interest.
+            :type  lat:       float
+            :param long:      Longitude of your point of interest.
+            :type  long:      float
+            :param nearest:   The number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4
+                              is accepted. Default in the api is set to 1.
+            :type  nearest:   int
+            :param from_date: Date from in 'yyyy-mm-dd' format. If left blank it will retrieve the earliest data.
+            :type  from_date: str
+            :param to_date:   Date to in 'yyyy-mm-dd' format. If left blank it will retrieve the most recent data.
+            :type  to_date:   str
+            :param variables: List of variables to return. At present can only accept 'Spd_50m_mps', 'Dir_50m_deg',
+                              'Tmp_2m_degC', 'Prs_0m_hPa', 'Spd_850pa_mps', 'Dir_850pa_deg'.
+            :type  variables: list
+
+            :return: A list of Node objects in order of closest distance to the requested lat, long.
+            :rtype: List(Node)
+
+            To use LoadBrightdata the BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD environmental variables need to be
+            set. In Windows this can be done by running the command prompt in Administrator mode and running:
+
+            >> setx BRIGHTDATA_USERNAME "username"
+            >> setx BRIGHTDATA_PASSWORD "password"
+
+            **Example usage**
+            ::
+                import brightwind as bw
+                nodes = bw.LoadBrightdata.momm('era5', 53.4, -7.2, nearest=4,
+                                               from_date='2018-01-01', to_date='2018-12-31 23:00:00')
+                for node in nodes:
+                    print(node.dataset)
+                    print(node.latitude)
+                    print(node.longitude)
+                    print(node.data)
+                    print(node.info)
+
+                # get only temperature and pressure for the nearest node to my location
+                merra2_nodes = bw.LoadBrightdata.momm('merra2', 60, 14.78, nearest=1,
+                                                      from_date='2018-01-01', to_date='2018-12-31 23:00:00',
+                                                      variables=['Tmp_2m_degC', 'Prs_0m_hPa'])
+                print(merra2_nodes[0].dataset, merra2_nodes[0].latitude, merra2_nodes[0].longitude)
+                merra2_nodes[0].data
+
+                # get only temperature and pressure for the nearest node to my location up to most recent date
+                merra2_nodes = bw.LoadBrightdata.momm('merra2', 49.15, 4.78, nearest=1,
+                                                      from_date='2018-12-01',
+                                                      variables=['Tmp_2m_degC', 'Prs_0m_hPa'])
+                print(merra2_nodes[0].dataset, merra2_nodes[0].latitude, merra2_nodes[0].longitude)
+                merra2_nodes[0].data
+
+        """
+        var_parsed = LoadBrightdata._parse_variables(variables)
+        fn_arguments = {
+            'dataset': dataset, 'latitude': lat, 'longitude': long, 'from-date': from_date,
+            'to-date': to_date, 'nearest': nearest, 'variables': var_parsed
+        }
+        try:
+            return LoadBrightdata._get_brightdata(sub_uri='timeseries/momms', **fn_arguments)
         except Exception as error:
             raise error
 
