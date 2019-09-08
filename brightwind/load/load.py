@@ -525,27 +525,37 @@ class LoadBrightdata:
         return nodes_list
 
     @staticmethod
-    def timeseries(dataset, lat, long, nearest, from_date=None, to_date=None, variables=None):
+    def _parse_variables(variables_list):
+        var_parsed = None
+        if variables_list is not None:
+            var_parsed = variables_list[0]
+            for variable in variables_list[1:]:
+                var_parsed = var_parsed + ',' + variable
+        return var_parsed
+
+    @staticmethod
+    def timeseries(dataset, lat, long, nearest=None, from_date=None, to_date=None, variables=None):
         """
             Retrieve timeseries datasets available from the brightdata platform. Returns a list of Node objects in order
             of closest distance to the requested lat, long.
 
-            :param dataset: Dataset type to be retrieved from brightdata e.g. merra2, era5.
-            :type dataset: str
-            :param lat: Latitude of your point of interest.
-            :type lat: float
-            :param long: Longitude of your point of interest.
-            :type long: float
-            :param nearest: The number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4 is
-                            accepted.
-            :type nearest: int
+            :param dataset:   Dataset type to be retrieved from brightdata e.g. merra2, era5.
+            :type  dataset:   str
+            :param lat:       Latitude of your point of interest.
+            :type  lat:       float
+            :param long:      Longitude of your point of interest.
+            :type  long:      float
+            :param nearest:   The number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4
+                              is accepted.
+            :type  nearest:   int
             :param from_date: Date from in 'yyyy-mm-dd' format. If left blank it will retrieve the earliest data.
-            :type from_date: str
-            :param to_date: Date to in 'yyyy-mm-dd' format. If left blank it will retrieve the most recent data.
-            :type to_date: str
+            :type  from_date: str
+            :param to_date:   Date to in 'yyyy-mm-dd' format. If left blank it will retrieve the most recent data.
+            :type  to_date:   str
             :param variables: List of variables to return. At present can only accept 'Spd_50m_mps', 'Dir_50m_deg',
                               'Tmp_2m_degC', 'Prs_0m_hPa', 'Spd_850pa_mps', 'Dir_850pa_deg'.
-            :type variables: list
+            :type  variables: list
+
             :return: A list of Node objects in order of closest distance to the requested lat, long.
             :rtype: List(Node)
 
@@ -581,67 +591,52 @@ class LoadBrightdata:
                 merra2_nodes[0].data
 
         """
-        var_parsed = None
-        if variables is not None:
-            var_parsed = variables[0]
-            for variable in variables[1:]:
-                var_parsed = var_parsed + ',' + variable
-
-        handlers = [
-            {'dataset': 'era5', 'process_fn': LoadBrightdata._get_brightdata, 'fn_arguments': {
-                'dataset': dataset, 'latitude': lat, 'longitude': long, 'from-date': from_date,
-                'to-date': to_date, 'nearest': nearest, 'variables': var_parsed
-            }
-             },
-            {'dataset': 'merra2', 'process_fn': LoadBrightdata._get_brightdata, 'fn_arguments': {
-                'dataset': dataset, 'latitude': lat, 'longitude': long, 'from-date': from_date,
-                'to-date': to_date, 'nearest': nearest, 'variables': var_parsed
-            }
-             }
-        ]
-        for handler in handlers:
-            if dataset == handler['dataset']:
-                try:
-                    return handler['process_fn'](sub_uri='timeseries', **handler['fn_arguments'])
-                except Exception as error:
-                    raise error
-
-        raise NotImplementedError('dataset not identified.')
+        var_parsed = LoadBrightdata._parse_variables(variables)
+        fn_arguments = {
+            'dataset': dataset, 'latitude': lat, 'longitude': long, 'from-date': from_date,
+            'to-date': to_date, 'nearest': nearest, 'variables': var_parsed
+        }
+        try:
+            return LoadBrightdata._get_brightdata(sub_uri='timeseries/monthly-means', **fn_arguments)
+        except Exception as error:
+            raise error
 
     @staticmethod
-    def monthly_norms(dataset, lat, long, nearest, from_date=None, to_date=None, ref_from_date=None,
-                      ref_to_date=None, ref_no_years=None, wind_speed_measurement=None):
+    def monthly_norms(dataset, lat, long, nearest=None, from_date=None, to_date=None, ref_from_date=None,
+                      ref_to_date=None, ref_no_years=None, variable=None):
         """
         Return the monthly mean wind speeds normalised to a specific reference period. The reference period can be
         between two specific dates or it could be a number of rolling years preceding each month of interest.
 
-        :param dataset: Dataset type to be retrieved from brightdata e.g. merra2, era5.
-        :type dataset: str
-        :param lat: Latitude of your point of interest.
-        :type lat: float
-        :param long: Longitude of your point of interest.
-        :type long: float
-        :param nearest: The number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4 is
-                        accepted.
-        :type nearest: int
-        :param from_date: The date you want the monthly normalised means to start from in 'yyyy-mm-dd' format.
-        :type from_date: str
-        :param to_date: The date you want the monthly normalised means up to in 'yyyy-mm-dd' format.
-        :type to_date: str
+        :param dataset:       Dataset type to be retrieved from brightdata e.g. merra2, era5.
+        :type  dataset:       str
+        :param lat:           Latitude of your point of interest.
+        :type  lat:           float
+        :param long:          Longitude of your point of interest.
+        :type  long:          float
+        :param nearest:       The number of nearest nodes to your point of interest to retrieve. Currently only 1 to 4
+                              is accepted.
+        :type  nearest:       int
+        :param from_date:     The date you want the monthly normalised means to start from in 'yyyy-mm-dd' format.
+        :type  from_date:     str
+        :param to_date:       The date you want the monthly normalised means up to in 'yyyy-mm-dd' format.
+        :type  to_date:       str
         :param ref_from_date: The date you want the reference period, used to calculate the long term mean wind speed,
                               to start from in 'yyyy-mm-dd' format.
-        :type to_date: str
-        :param ref_to_date: The date you want the reference period, used to calculate the long term mean wind speed,
-                            to go up to in 'yyyy-mm-dd' format.
-        :type to_date: str
-        :param ref_no_years: The number of years to define the reference period. This will be a rolling long term
-                             up to the month been calculated at the time i.e. for ref_no_years=10 the reference
-                             period for month Sep-2018 will be the 10 years preceding it, Sep-2008 to Aug-2018, and for
-                             month Oct-2018 it will be Oct-2008 to Sep-2018.
-        :type ref_no_years: int
-        :param wind_speed_measurement: The wind variable to use from the dataset. Each dataset will use it's default
-                                       variable name however for merra2, for example, the 'Spd_850pa_mps' is also
-                                       available for certain locations.
+        :type  to_date:       str
+        :param ref_to_date:   The date you want the reference period, used to calculate the long term mean wind speed,
+                              to go up to in 'yyyy-mm-dd' format.
+        :type  to_date:       str
+        :param ref_no_years:  The number of years to define the reference period. This will be a rolling long term
+                              up to the month been calculated at the time i.e. for ref_no_years=10 the reference
+                              period for month Sep-2018 will be the 10 years preceding it, Sep-2008 to Aug-2018, and for
+                              month Oct-2018 it will be Oct-2008 to Sep-2018.
+        :type  ref_no_years:  int
+        :param variable:      The wind speed variable to use from the dataset. Each dataset will use it's default
+                              variable name however for merra2, for example, the 'Spd_850pa_mps' is also
+                              available for certain locations.
+        :type  variable:      str
+
         :return: A list of Node objects in order of closest distance to the requested lat, long.
         :rtype: List(Node)
 
@@ -682,28 +677,15 @@ class LoadBrightdata:
             merra2_nodes[0].data
 
         """
-        handlers = [
-            {'dataset': 'era5', 'process_fn': LoadBrightdata._get_brightdata, 'fn_arguments': {
-                'dataset': dataset, 'latitude': lat, 'longitude': long,
-                'from-date': from_date, 'to-date': to_date, 'ref-from-date': ref_from_date, 'ref-to-date': ref_to_date,
-                'ref-no-years': ref_no_years, 'nearest': nearest, 'wind-speed-measurement': wind_speed_measurement
-            }
-             },
-            {'dataset': 'merra2', 'process_fn': LoadBrightdata._get_brightdata, 'fn_arguments': {
-                'dataset': dataset, 'latitude': lat, 'longitude': long,
-                'from-date': from_date, 'to-date': to_date, 'ref-from-date': ref_from_date, 'ref-to-date': ref_to_date,
-                'ref-no-years': ref_no_years, 'nearest': nearest, 'wind-speed-measurement': wind_speed_measurement
-            }
-             }
-        ]
-        for handler in handlers:
-            if dataset == handler['dataset']:
-                try:
-                    return handler['process_fn'](sub_uri='timeseries/monthly-norms', **handler['fn_arguments'])
-                except Exception as error:
-                    raise error
-
-        raise NotImplementedError('dataset not identified.')
+        fn_arguments = {
+            'dataset': dataset, 'latitude': lat, 'longitude': long,
+            'from-date': from_date, 'to-date': to_date, 'ref-from-date': ref_from_date, 'ref-to-date': ref_to_date,
+            'ref-no-years': ref_no_years, 'nearest': nearest, 'wind-speed-measurement': variable
+        }
+        try:
+            return LoadBrightdata._get_brightdata(sub_uri='timeseries/monthly-norms', **fn_arguments)
+        except Exception as error:
+            raise error
 
 
 class _LoadBWPlatform:
