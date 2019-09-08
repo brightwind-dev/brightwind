@@ -468,7 +468,7 @@ class LoadBrightdata:
         :param data: Contains the timeseries data from the node in a DataFrame.
         :type data: pandas.DataFrame
         :param info: Information relevant to the dataset.
-        :type info: List
+        :type info: Dict
         """
         def __init__(self, dataset, latitude, longitude, data, info):
             self.dataset = dataset
@@ -505,7 +505,7 @@ class LoadBrightdata:
 
         nodes_list = []
         for node in json_response:
-            temp_node_obj = LoadBrightdata.Node('', '', '', pd.DataFrame(), list())
+            temp_node_obj = LoadBrightdata.Node('', '', '', pd.DataFrame(), dict())
             try:
                 for key in node:
                     if key in temp_node_obj.__dict__:   # if params returned are within the Node obj, add them
@@ -514,7 +514,7 @@ class LoadBrightdata:
                         else:
                             setattr(temp_node_obj, key, node[key])
                     else:
-                        temp_node_obj.info.append({key.replace('-', '_'): node[key]})
+                        temp_node_obj.info[key.replace('-', '_')] = node[key]
             except Exception as error:
                 if 'Error' in node or 'message' in node:
                     raise TypeError(json_response)
