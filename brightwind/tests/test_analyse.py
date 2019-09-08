@@ -87,20 +87,18 @@ def test_coverage():
     assert True
 
 
-def test_distribution_by_dir_sector():
+def test_dist_by_dir_sector():
     df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
-    rose = bw.distribution_by_dir_sector(df[['Spd40mN']], df[['Dir38mS']])
-    rose = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS)
+    rose = bw.dist_by_dir_sector(df[['Spd40mN']], df[['Dir38mS']])
+    rose = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS)
 
-    rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS,
-                                                       direction_bin_array=[0, 90, 130, 200, 360],
-                                                       direction_bin_labels=['northerly', 'easterly', 'southerly',
-                                                                             'westerly'],
-                                                       return_data=True)
+    rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS,
+                                               direction_bin_array=[0, 90, 130, 200, 360],
+                                               direction_bin_labels=['northerly', 'easterly', 'southerly',
+                                                                     'westerly'],
+                                               return_data=True)
 
-
-    rose, distribution = bw.distribution_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std',
-                                                       return_data=True)
+    rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std', return_data=True)
 
 
 def test_freq_table():
@@ -119,14 +117,18 @@ def test_freq_table():
                         return_data=True)
     #Calling with user defined var_bin labels
     graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, var_bin_array=[0, 10, 15, 50],
-                               var_bin_labels=['low', 'mid', 'high'], plot_bins=None, plot_labels=None,
+                               var_bin_labels=['low', 'mid', 'high'], plot_bins=[0, 10, 15, 50], plot_labels=None,
                                return_data=True)
 
     tab = bw.freq_table(df.Spd40mN, df.Dir38mS, var_bin_array=[0, 8, 14, 41], var_bin_labels=['low', 'mid', 'high'],
                         direction_bin_array=[0, 90, 130, 200, 360],
                         direction_bin_labels=['northerly', 'easterly', 'southerly', 'westerly'],
-                        plot_bins=None, plot_labels=None, return_data=True)
+                        plot_bins=[0, 8, 14, 41], plot_labels=None, return_data=True)
                         # var_bin_labels=['operating','shutdow','dangerous'],
+    temp_rose, temp_freq_tab = bw.freq_table(df.T2m, df.Dir78mS, var_bin_array=[-10, 0, 10, 20],
+                                             var_bin_labels=['low', 'mid', 'high'],
+                                             plot_bins=[-10, 0, 10, 20], plot_labels=None,
+                                             return_data=True)
 
 
 def test_dist():
@@ -197,3 +199,15 @@ def test_calc_air_density():
     assert (abs(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])) -
                pd.Series([1.225, 1.208, 1.326, 1.059])) < 1e-3).all()
 
+
+def test_dist_matrix_by_direction_sector():
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    bw.dist_matrix_by_dir_sector(var_series=df.Spd80mN, var_to_bin_by_series=df.Spd80mN, direction_series=df.Dir78mS,
+                                 aggregation_method='count')
+    matrix = bw.dist_matrix_by_dir_sector(df.Spd40mN, df.T2m, df.Dir38mS,
+                                          var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26],
+                                          direction_bin_array=[0, 90, 180, 270, 360],
+                                          direction_bin_labels=['north', 'east', 'south', 'west'])
+    matrix = bw.dist_matrix_by_dir_sector(df.Spd40mN, df.T2m, df.Dir38mS,
+                                          var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
+    assert True
