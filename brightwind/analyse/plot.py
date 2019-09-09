@@ -420,8 +420,7 @@ def plot_rose(ext_data, plot_label=None):
     return ax.get_figure()
 
 
-def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plot_labels=None,
-                            gradient_colors=['#f5faea', '#d6ebad', '#b8dc6f', '#9acd32', '#7ba428', '#5c7b1e']):
+def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plot_labels=None):
     table = freq_table.copy()
     sectors = len(table.columns)
     table_trans = table.T
@@ -496,14 +495,15 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
             patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,
                                           frequency, facecolor=mapper.to_rgba(speed_bin), edgecolor='#5c7b1e',
-                                          linewidth=0.3, zorder=3) #gradient_colors[speed_bin]
+                                          linewidth=0.3, zorder=3)
             ax.add_patch(patch)
             radial_pos += frequency
 
     if plot_labels is None:
-        plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=bin_labels[i]) for i in range(len(bin_labels))]
+        plot_labels = [mpl.patches.Patch(color=mapper.to_rgba(table_binned.index[i]), label=bin_labels[i]) for i in
+                       range(len(bin_labels))]
     else:
-        plot_labels = [mpl.patches.Patch(color=gradient_colors[i], label=plot_labels[i]) for i in
+        plot_labels = [mpl.patches.Patch(color=mapper.to_rgba(table_binned.index[i]), label=plot_labels[i]) for i in
                        range(len(plot_labels))]
     ax.legend(handles=plot_labels)
     plt.close()
@@ -856,3 +856,5 @@ def render_table(data, col_width=3.0, row_height=0.625, font_size=16, header_col
                 # if k[1]==1:
                 #   cell.set_width(0.03)
     return ax
+
+# def plot_3d_rose(matrix, colorbar_label=None):
