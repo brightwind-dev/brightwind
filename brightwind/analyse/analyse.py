@@ -651,7 +651,6 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
                                                   direction_series=direction_series, var_bin_array=var_to_bin_by_array,
                                                   sectors=sectors, direction_bin_array=direction_bin_array,
                                                   direction_bin_labels=None, aggregation_method=aggregation_method)
-
     if direction_bin_labels is not None:
         dist_mat_dir.columns = direction_bin_labels
     else:
