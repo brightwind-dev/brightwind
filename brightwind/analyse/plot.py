@@ -15,6 +15,7 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 import calendar
 import numpy as np
 import pandas as pd
@@ -45,6 +46,33 @@ __all__ = ['plot_timeseries',
 plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
 
+class ColourPalette:
+
+    def __init__(self):
+        self.primary = [156/255, 197/255, 55/255]   # greenyellow
+        self.secondary = [46/255, 55/255, 67/255]   # asphalt
+        
+        col_map_colors = [(245/255, 250/255, 234/255),
+                          (154/255, 205/255, 50/255),
+                          (31/255, 41/255, 10/255)]
+        self._color_map = self._set_col_map(col_map_colors)
+
+    @staticmethod
+    def _set_col_map(col_map_colors):
+        return LinearSegmentedColormap.from_list('col_map', col_map_colors, N=256)
+
+    @property
+    def color_map(self):
+        return self._color_map
+
+    @color_map.setter
+    def color_map(self, col_map_colors):
+        self._color_map = self._set_col_map(col_map_colors)
+
+
+COLOR_PALETTE = ColourPalette()
+
+
 def bw_colors(bw_color):
     # Define color scheme to be used across graphs, and tables.
     if bw_color == 'green':
@@ -62,9 +90,9 @@ def bw_colors(bw_color):
     elif bw_color == 'redline':
         bw_color = [255 / 255.0, 0, 0]
     elif bw_color == 'bw_col_map':
-        colors = [(31 / 256, 41 / 256, 10 / 256),
-                  (154 / 256, 205 / 256, 50 / 256),
-                  (245 / 256, 250 / 256, 234 / 256)]
+        colors = [(31/256, 41/256, 10/256),
+                  (154/256, 205/256, 50/256),
+                  (245/256, 250/256, 234/256)]
         bw_color = mpl.colors.LinearSegmentedColormap.reversed\
             (mpl.colors.LinearSegmentedColormap.from_list('bw_col_map', colors, N=256))
     else:
@@ -79,7 +107,8 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
         ax.plot(data, '-D')
         ax.legend(list(data.columns))
     else:
-        ax.plot(data, '-D', color=bw_colors('asphault'))
+        # ax.plot(data, '-D', color=bw_colors('asphault'))
+        ax.plot(data, '-D', color=COLOR_PALETTE.primary)
         ax.legend([data.name])
     ax.set_ylabel(ylbl)
 
@@ -628,7 +657,8 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
     :return: 12x24 figure
     """
     fig, ax = plt.subplots(figsize=(15, 10))
-    x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, cmap=bw_colors('bw_col_map'))
+    # x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, cmap=bw_colors('bw_col_map'))
+    x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, cmap=COLOR_PALETTE.color_map)
     cbar = fig.colorbar(x)
     cbar.ax.set_ylabel(label[1].capitalize() + " of " + label[0])
     ax.set_xlabel('Month of Year')
