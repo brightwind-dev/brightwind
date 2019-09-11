@@ -539,10 +539,14 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
             result[i] = 0.0
     result = result.sort_index()
     result.index = direction_bin_labels
-    if return_data:
-        return plt.plot_rose(result), result
+    if var_series.name is None:
+        var_label = aggregation_method.capitalize() + ' of  var_series'
     else:
-        return plt.plot_rose(result)
+        var_label = aggregation_method.capitalize() + ' of ' + var_series.name
+    if return_data:
+        return plt.plot_rose(result, var_label), result
+    else:
+        return plt.plot_rose(result, var_label)
 
 
 def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
