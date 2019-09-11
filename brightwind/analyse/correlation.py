@@ -163,14 +163,15 @@ class OrdinaryLeastSquares(CorrelBase):
     def __repr(self):
         return 'Ordinary Least Squares Model' + str(self.params)
 
-    def run(self):
+    def run(self, show_params=True):
         p, res = lstsq(np.nan_to_num(self.data['ref_spd'].values.flatten()[:, np.newaxis] ** [1, 0]),
                        np.nan_to_num(self.data['target_spd'].values.flatten()))[0:2]
 
         self.params = {'slope': p[0], 'offset': p[1]}
         self.params['r2'] = self.get_r2()
         self.params['Num data points'] = self.num_data_pts
-        self.show_params()
+        if show_params:
+            self.show_params()
 
     def _predict(self, x):
         def linear_function(x, slope, offset):
@@ -209,7 +210,7 @@ class OrthogonalLeastSquares(CorrelBase):
     def __repr__(self):
         return 'Orthogonal Least Squares Model ' + str(self.params)
 
-    def run(self):
+    def run(self, show_params=True):
         fit_data = RealData(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten())
         p, res = lstsq(np.nan_to_num(fit_data.x[:, np.newaxis] ** [1, 0]), np.nan_to_num(np.asarray(fit_data.y)
                                                                                          [:, np.newaxis]))[0:2]
@@ -219,7 +220,8 @@ class OrthogonalLeastSquares(CorrelBase):
         self.params['r2'] = self.get_r2()
         self.params['Num data points'] = self.num_data_pts
         # print("Model output:", self.out.pprint())
-        self.show_params()
+        if show_params:
+            self.show_params()
 
     def _predict(self, x):
         def linear_func_inverted(x, p):
@@ -248,11 +250,12 @@ class MultipleLinearRegression(CorrelBase):
     def __repr__(self):
         return 'Multiple Linear Regression Model ' + str(self.params)
 
-    def run(self):
+    def run(self, show_params=True):
         p, res = lstsq(np.column_stack((self.data.iloc[:, :len(self.data.columns) - 1].values,
                                         np.ones(len(self.data)))), self.data['target_spd'].values.flatten())[0:2]
         self.params = {'slope': p[:-1], 'offset': p[-1]}
-        self.show_params()
+        if show_params:
+            self.show_params()
 
     def show_params(self):
         import pprint
@@ -302,14 +305,15 @@ class SimpleSpeedRatio(CorrelBase):
     #     if self.cutoff is not None:
     #         self.data = self.data[(self.data['ref_spd'] >= self.cutoff) & (self.data['target_spd'] >= self.cutoff)]
 
-    def run(self):
+    def run(self, show_params=True):
         self.params = dict()
         self.params["ratio"] = self.data['target_spd'].mean() / self.data['ref_spd'].mean()
-        self.show_params()
+        if show_params:
+            self.show_params()
 
     def _predict(self, x):
         def linear_function(x, slope):
-            return (x * slope)
+            return x * slope
 
         return x.transform(linear_function, slope=self.params['ratio'])
 
@@ -421,7 +425,7 @@ class SpeedSort(CorrelBase):
         return {'average_veer': self._get_veer(sector_data['ref_dir'], sector_data['target_dir']).mean(),
                 'num_pts_for_veer': len(sector_data['ref_dir'])}
 
-    def run(self):
+    def run(self, show_params=True):
         self.params = dict()
         self.params['Ref_cutoff_for_speed'] = self.cutoff
         self.params['Ref_veer_cutoff'] = self.ref_veer_cutoff
@@ -440,7 +444,8 @@ class SpeedSort(CorrelBase):
                                    'num_pts_for_speed_fit': self.speed_model[sector].data_pts,
                                    'num_total_pts': min(group.count())}
             self.params[sector].update(self._avg_veer(group))
-        self.show_params()
+        if show_params:
+            self.show_params()
 
     def get_result_table(self):
         result = pd.DataFrame()
@@ -459,7 +464,7 @@ class SpeedSort(CorrelBase):
         sec_veer = []
         for i in range(1, self.sectors+1):
             sec_veer.append(self.params[i]['average_veer'])
-        #Add additional entry for first sector
+        # Add additional entry for first sector
         sec_veer.append(self.params[1]['average_veer'])
         if self.direction_bin_array is None:
             veer_bins = [i*(360/self.sectors) for i in range(0, self.sectors+1)]
@@ -511,7 +516,6 @@ class SpeedSort(CorrelBase):
         return pd.concat([output.rename(self.target_spd.name + "_Synthesized"),
                           dir_output.rename(self.target_dir.name+"_Synthesized")], axis=1, join='inner')
 
-
     def plot_wind_vane(self):
         """
         Plots reference and target directions in a scatter plot
@@ -535,7 +539,7 @@ class SVR(CorrelBase):
     def __repr__(self):
         return 'Support Vector Regression Model ' + str(self.params)
 
-    def run(self):
+    def run(self, show_params=True):
         if len(self.data['ref_spd'].values.shape) == 1:
             x = self.data['ref_spd'].values.reshape(-1, 1)
         else:
@@ -549,7 +553,8 @@ class SVR(CorrelBase):
         self.params['Explained Variance'] = -1 * sklearn_cross_val_score(self.model, x,
                                                                          self.data['target_spd'].values.flatten(),
                                                                          scoring='explained_variance', cv=3)
-        self.show_params()
+        if show_params:
+            self.show_params()
 
     def _predict(self, x):
         if isinstance(x, pd.Series):
