@@ -6,16 +6,16 @@ with open("README.md", "r") as fh:
 setup(
     name='brightwind',
     # Update version number here:
-    version='0.2.8',
+    version='0.2.9',
     packages=['brightwind', 'brightwind.load', 'brightwind.utils', 'brightwind.export', 'brightwind.analyse',
-              'brightwind.transform', 'brightwind.datasets'],
+              'brightwind.transform'],  # , 'brightwind.datasets'],
     package_data={
         # If any package contains *.mplstyle or *.txt files, include them:
-        '': ['*.mplstyle', 'datasets/demo/*.csv', 'datasets/demo/*.txt'],
+        '': ['*.mplstyle'],  # , 'datasets/demo/*.csv', 'datasets/demo/*.txt'],
     },
     url='https://github.com/brightwind-dev/brightwind.git',
     # Update version number here:
-    download_url = 'https://github.com/brightwind-dev/brightwind/archive/v0.2.8.tar.gz',
+    download_url = 'https://github.com/brightwind-dev/brightwind/archive/v0.2.9.tar.gz',
     license='GNU Lesser General Public License v3 or later (LGPLv3+)',
     author='Stephen Holleran and Inder Preet of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
@@ -26,7 +26,7 @@ setup(
               'WIND PRO', 'WINDOGRAPHER'],
     install_requires=[
         'pandas>=0.24.0',
-        'numpy>=1.14.6',
+        'numpy>=1.16.4',
         'scikit-learn>=0.19.1',
         'matplotlib>=3.0.3',
         'requests>=2.20.0',
