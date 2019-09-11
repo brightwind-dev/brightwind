@@ -405,8 +405,18 @@ def plot_rose(ext_data, plot_label=None):
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(np.arange(0, 360, 360.0/sectors))
+    sector_mid_points = []
+    widths = []
+    for i in result.index:
+        angular_pos_start = (np.pi / 180.0) * float(i.split('-')[0])
+        angular_pos_end = (np.pi / 180.0) * float(i.split('-')[-1])
+        if angular_pos_start < angular_pos_end:
+            sector_mid_points.append((angular_pos_start+angular_pos_end)/2.0)
+            widths.append(angular_pos_end-angular_pos_start - (np.pi / 180))
+        else:
+            sector_mid_points.append((np.pi + (angular_pos_start + angular_pos_end)/2.0) % 360)
+            widths.append(2*np.pi - angular_pos_start + angular_pos_end - (np.pi / 180))
     max_contour = (ext_data.max() + ext_data.std())
-
     contour_spacing = max_contour / 10
     num_digits_to_round = 0
     while contour_spacing*(10**num_digits_to_round) <= 1:
@@ -415,9 +425,10 @@ def plot_rose(ext_data, plot_label=None):
         contour_spacing = 1
     levels = np.arange(0, max_contour, round(contour_spacing, num_digits_to_round))
     ax.set_rgrids(levels, labels=[str(i) for i in levels], angle=0)
-    ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors- (np.pi / 180), bottom=0.0, color='#9ACD32',
+    ax.bar(sector_mid_points, result, width=widths, bottom=0.0, color='#9ACD32',
            edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
-
+    # ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors- (np.pi / 180), bottom=0.0, color='#9ACD32',
+    #        edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
     ax.legend([plot_label])
     plt.close()
     return ax.get_figure()
