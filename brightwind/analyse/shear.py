@@ -359,7 +359,7 @@ class Shear:
             self.wspds = wspds
             self.origin = 'TimeOfDay'
             self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
-                                          segment_start_time=segment_start_time, segments_per_day=segments_per_day)
+                                           segment_start_time=segment_start_time, segments_per_day=segments_per_day)
 
         @property
         def alpha(self):
@@ -683,7 +683,7 @@ class Shear:
             self.sectors = sectors
             self.calc_method = calc_method
             self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
-                                          direction_bin_array = direction_bin_array)
+                                           direction_bin_array = direction_bin_array)
 
         @property
         def alpha(self):

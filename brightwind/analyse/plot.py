@@ -16,12 +16,13 @@
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+import matplotlib as mpl
+from matplotlib.dates import DateFormatter
 import calendar
 import numpy as np
 import pandas as pd
 import os
 from brightwind.utils import utils
-import matplotlib as mpl
 from pandas.plotting import register_matplotlib_converters
 from brightwind.utils.utils import _convert_df_to_series
 import re
@@ -61,27 +62,37 @@ class _ColorPalette:
         https://www.w3schools.com/colors/colors_picker.asp for more info.
         """
         self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb[156/255, 197/255, 55/255]
-        self.secondary = '#2E3743'       # asphalt, rgb[46/255, 55/255, 67/255]
+        self.secondary = '#2E3743'      # asphalt, rgb[46/255, 55/255, 67/255]
         self.tertiary = '#9B2B2C'       # red'ish, rgb(155, 43, 44)
-        self.quaternary = '#E57925'     # orange'ish, rgb(229, 121, 37)
-        self.quinary = '#F2D869'        # yellow'ish, rgb(242, 216, 105)
+        self.fourth = '#E57925'         # orange'ish, rgb(229, 121, 37)
+        self.fifth = '#F2D869'          # yellow'ish, rgb(242, 216, 105)
+        self.sixth = '#AB8D60'
+        self.seventh = '#A4D29F'
+        self.eighth = '#6E807B'
+        self.ninth = '#3D636F'          # blue grey
+        self.tenth = '#A49E9D'
+        self.eleventh = '#DA9BA6'
         self.primary_10 = '#1F290A'     # darkest green, 10% of primary
         self.primary_35 = '#6C9023'     # dark green, 35% of primary
         self.primary_80 = '#D7EBAD'     # light green, 80% of primary
         self.primary_90 = '#ebf5d6'     # light green, 90% of primary
         self.primary_95 = '#F5FAEA'     # lightest green, 95% of primary
+        self.secondary_70 = '#6d737b'   # light asphalt
 
-        col_map_colors = [self.primary_95,  # lightest primary
-                          self.primary,     # primary
-                          self.primary_10]  # darkest primary
-        self._color_map = self._set_col_map(col_map_colors)
+        _col_map_colors = [self.primary_95,  # lightest primary
+                           self.primary,     # primary
+                           self.primary_10]  # darkest primary
+        self._color_map = self._set_col_map(_col_map_colors)
+
+        self.color_list = [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
+                           self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
 
         # set the mpl color cycler to our colors. It has 10 colors
         # mpl.rcParams['axes.prop_cycle']
 
     @staticmethod
     def _set_col_map(col_map_colors):
-        return LinearSegmentedColormap.from_list('col_map', col_map_colors, N=256)
+        return LinearSegmentedColormap.from_list('color_map', col_map_colors, N=256)
 
     @property
     def color_map(self):
@@ -99,14 +110,14 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     if len(data.shape) > 1:
+        ax.set_prop_cycle(color=COLOR_PALETTE.color_list)
         ax.plot(data, '-o')
         ax.legend(list(data.columns))
     else:
-        ax.plot(data, '-o', color=COLOR_PALETTE.secondary)
+        ax.plot(data, '-o', color=COLOR_PALETTE.primary)
         ax.legend([data.name])
     ax.set_ylabel(ylbl)
 
-    from matplotlib.dates import DateFormatter
     ax.set_xticks(data.index)
     ax.xaxis.set_major_formatter(DateFormatter("%b %Y"))
     fig.autofmt_xdate(rotation=20, ha='center')
@@ -118,6 +129,8 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
                 plot_coverage = False
         if plot_coverage:
             import matplotlib.dates as mdates
+            ax.clear()
+            ax.plot(data, '-o', color=COLOR_PALETTE.secondary)
             ax2 = ax.twinx()
 
             for month, coverage in zip(coverage.index, coverage.values):
@@ -126,7 +139,7 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
                            interpolation='gaussian', extent=(mdates.date2num(month - pd.Timedelta('10days')),
                                                              mdates.date2num(month + pd.Timedelta('10days')),
                                                              0, coverage), aspect='auto', zorder=1)
-                ax2.bar(mdates.date2num(month), coverage, edgecolor=COLOR_PALETTE.primary_35, linewidth=0.3,
+                ax2.bar(mdates.date2num(month), coverage, edgecolor=COLOR_PALETTE.secondary, linewidth=0.3,
                         fill=False, zorder=0)
 
             ax2.set_ylim(0, 1)
@@ -186,13 +199,13 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
         bw.plot_timeseries(data.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=(0, 25))
 
     """
-    plt.rcParams['figure.figsize'] = (15, 8)
+    plt.rcParams['figure.figsize'] = (15, 8)    # ** this might be setting the global size which isn't good practice ***
     if isinstance(data, pd.Series):
         data_to_slice = data.copy(deep=False).to_frame()
     else:
         data_to_slice = data.copy()
     sliced_data = utils.slice_data(data_to_slice, date_from, date_to)
-    figure = sliced_data.plot().get_figure()
+    figure = sliced_data.plot(color=COLOR_PALETTE.color_list).get_figure()
     if y_limits is not None:
         figure.axes[0].set_ylim(y_limits)
     plt.close()
@@ -573,8 +586,8 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
     ax.plot(ti.index.values, ti.loc[:, 'Mean_TI'].values, color=COLOR_PALETTE.secondary, label='Mean_TI')
     ax.plot(ti.index.values, ti.loc[:, 'Rep_TI'].values, color=COLOR_PALETTE.primary_35, label='Rep_TI')
     ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 1], color=COLOR_PALETTE.tertiary, linestyle='dashed')
-    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 2], color=COLOR_PALETTE.quaternary, linestyle='dashed')
-    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=COLOR_PALETTE.quinary, linestyle='dashed')
+    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 2], color=COLOR_PALETTE.fourth, linestyle='dashed')
+    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=COLOR_PALETTE.fifth, linestyle='dashed')
     ax.set_xlim(3, 25)
     ax.set_ylim(0, 0.6)
     ax.set_xticks(np.arange(3, 26, 1))
@@ -712,14 +725,14 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     annotation_text = '* Plot generated using '
     if boom_dir_1 >= 0:
         boom_dir_1_rad = np.radians(boom_dir_1)
-        ax.bar(boom_dir_1_rad, radii, width=width, bottom=min_level, color=COLOR_PALETTE.quaternary)
+        ax.bar(boom_dir_1_rad, radii, width=width, bottom=min_level, color=COLOR_PALETTE.fourth)
         if boom_dir_2 == -1:
             annotation_text += '{} (top mounted) divided by {} ({}° boom)'.format(col_names[1], col_names[0],
                                                                                   boom_dir_1)
             annotate = True
     if boom_dir_2 >= 0:
         boom_dir_2_rad = np.radians(boom_dir_2)
-        ax.bar(boom_dir_2_rad, radii, width=width, bottom=min_level, color=COLOR_PALETTE.quinary)
+        ax.bar(boom_dir_2_rad, radii, width=width, bottom=min_level, color=COLOR_PALETTE.fifth)
         if boom_dir_1 == -1:
             annotation_text += '{} ({}° boom) divided by {} (top mounted)'.format(col_names[1], boom_dir_2,
                                                                                   col_names[0])
