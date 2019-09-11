@@ -99,7 +99,7 @@ class CorrelBase:
     def plot(self, title=""):
         """For plotting"""
         return _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
-                             self._predict(self.data['ref_spd']).values.flatten(), title=title)
+                             self._predict(self.data['ref_spd']).values.flatten())
 
     def synthesize(self, ext_input=None):
         # This will give erroneous result when the averaging period is not a whole number such that ref and target does
@@ -350,7 +350,7 @@ class SpeedSort(CorrelBase):
 
         def plot_model(self, title):
             _scatter_plot(sorted(self.sector_ref.values.flatten()), sorted(self.sector_target.values.flatten()),
-                          sorted(self.sector_predict(self.sector_ref).values.flatten()), title=title)
+                          sorted(self.sector_predict(self.sector_ref).values.flatten()))
 
     def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold=0.9, sectors=12,
                  direction_bin_array=None, lt_ref_speed=None, preprocess=True):
@@ -568,4 +568,4 @@ class SVR(CorrelBase):
     def plot(self, title=""):
         """For plotting"""
         _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
-                      self._predict(self.data['ref_spd']).values.flatten(), title=title, prediction_marker='k.')
+                      self._predict(self.data['ref_spd']).values.flatten(), prediction_marker='k.')

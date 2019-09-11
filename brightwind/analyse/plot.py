@@ -46,16 +46,27 @@ __all__ = ['plot_timeseries',
 plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
 
-class ColourPalette:
+class _ColourPalette:
 
     def __init__(self):
-        self.primary = [156/255, 197/255, 55/255]   # greenyellow
-        self.secondary = [46/255, 55/255, 67/255]   # asphalt
-        
-        col_map_colors = [(245/255, 250/255, 234/255),
-                          (154/255, 205/255, 50/255),
-                          (31/255, 41/255, 10/255)]
+        self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb[156/255, 197/255, 55/255]
+        self.secondary = '2E3743'       # asphalt, rgb[46/255, 55/255, 67/255]
+        self.tertiary = '#9B2B2C'       # red'ish, rgb(155, 43, 44)
+        self.quaternary = '#E57925'     # orange'ish, rgb(229, 121, 37)
+        self.quinary = '#F2D869'        # yellow'ish, rgb(242, 216, 105)
+        self.primary_10 = '#1F290A'     # darkest green, 10% of primary
+        self.primary_35 = '#6C9023'     # dark green, 35% of primary
+        self.primary_80 = '#D7EBAD'     # light green, 80% of primary
+        self.primary_90 = '#ebf5d6'     # light green, 90% of primary
+        self.primary_95 = '#F5FAEA'     # lightest green, 95% of primary
+
+        col_map_colors = [self.primary_95,  # lightest primary
+                          self.primary,     # primary
+                          self.primary_10]  # darkest primary
         self._color_map = self._set_col_map(col_map_colors)
+
+        # set the mpl color cycler to our colors. It has 10 colors
+        # mpl.rcParams['axes.prop_cycle']
 
     @staticmethod
     def _set_col_map(col_map_colors):
@@ -70,45 +81,17 @@ class ColourPalette:
         self._color_map = self._set_col_map(col_map_colors)
 
 
-COLOR_PALETTE = ColourPalette()
-
-
-def bw_colors(bw_color):
-    # Define color scheme to be used across graphs, and tables.
-    if bw_color == 'green':
-        bw_color = [156 / 255.0, 197 / 255.0, 55 / 255.0]
-    elif bw_color == 'light_green_for_gradient':
-        bw_color = [154 / 255.0, 205 / 255.0, 50 / 255.0]
-    elif bw_color == 'dark_green_for_gradient':
-        bw_color = [215 / 255.0, 235 / 255.0, 173 / 255.0]
-    elif bw_color == 'asphault':
-        bw_color = [46 / 255.0, 55 / 255.0, 67 / 255.0]
-    elif bw_color == 'greyline':
-        bw_color = [108 / 255.0, 120 / 255.0, 134 / 255.0]
-    elif bw_color == 'darkgreen':
-        bw_color = [108 / 255.0, 144 / 255.0, 35 / 255.0]
-    elif bw_color == 'redline':
-        bw_color = [255 / 255.0, 0, 0]
-    elif bw_color == 'bw_col_map':
-        colors = [(31/256, 41/256, 10/256),
-                  (154/256, 205/256, 50/256),
-                  (245/256, 250/256, 234/256)]
-        bw_color = mpl.colors.LinearSegmentedColormap.reversed\
-            (mpl.colors.LinearSegmentedColormap.from_list('bw_col_map', colors, N=256))
-    else:
-        bw_color = [156 / 255.0, 197 / 255.0, 55 / 255.0]
-    return bw_color
+COLOR_PALETTE = _ColourPalette()
 
 
 def plot_monthly_means(data, coverage=None, ylbl=''):
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     if len(data.shape) > 1:
-        ax.plot(data, '-D')
+        ax.plot(data, '-o')
         ax.legend(list(data.columns))
     else:
-        # ax.plot(data, '-D', color=bw_colors('asphault'))
-        ax.plot(data, '-D', color=COLOR_PALETTE.primary)
+        ax.plot(data, '-o', color=COLOR_PALETTE.secondary)
         ax.legend([data.name])
     ax.set_ylabel(ylbl)
 
@@ -126,14 +109,14 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
             import matplotlib.dates as mdates
             ax2 = ax.twinx()
 
-            plot_colors = [bw_colors('light_green_for_gradient'), bw_colors('dark_green_for_gradient'),
-                           bw_colors('darkgreen')]
             for month, coverage in zip(coverage.index, coverage.values):
-                ax2.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
+                ax2.imshow(np.array([[mpl.colors.to_rgb(COLOR_PALETTE.primary)],
+                                     [mpl.colors.to_rgb(COLOR_PALETTE.primary_80)]]),
                            interpolation='gaussian', extent=(mdates.date2num(month - pd.Timedelta('10days')),
                                                              mdates.date2num(month + pd.Timedelta('10days')),
                                                              0, coverage), aspect='auto', zorder=1)
-                ax2.bar(mdates.date2num(month), coverage, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=0)
+                ax2.bar(mdates.date2num(month), coverage, edgecolor=COLOR_PALETTE.primary_35, linewidth=0.3,
+                        fill=False, zorder=0)
 
             ax2.set_ylim(0, 1)
             ax.set_ylim(bottom=0)
@@ -205,7 +188,7 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
     return figure
 
 
-def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", title="", prediction_marker='k-'):
+def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", prediction_marker='k-'):
     """
     Plots a scatter plot.
     :param x:
@@ -220,10 +203,21 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     fig, ax = plt.subplots()
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
-    ax.scatter(x, y, marker='.', color='#9ACD32', alpha=0.5)
+    no_dots = len(x)
+    if no_dots > 1000:
+        size = 36
+        alpha = 0.3
+    elif 100 < no_dots <= 1000:
+        size = 72
+        alpha = 0.5
+    else:
+        size = 144
+        alpha = 0.7
+    print('length of x: {}, size: {}'.format(len(x), size))
+
+    ax.scatter(x, y, marker='o', color=COLOR_PALETTE.primary, s=size, alpha=alpha, edgecolors='none')
     fig.set_figwidth(10)
     fig.set_figheight(10.2)
-    # ax.set_title(title)
     if predicted_y is not None:
         ax.plot(x, predicted_y, prediction_marker)
         ax.legend(['Predicted', 'Original'])
@@ -332,7 +326,7 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_ti
                              x_limits=x_limits, y_limits=y_limits)
     x = [0, 360]
     y = [0, 360]
-    scat_plot.axes[0].plot(x, y, 'k-')
+    scat_plot.axes[0].plot(x, y, '-', color=COLOR_PALETTE.secondary)
     scat_plot.axes[0].legend(['Reference line', 'Data points'])
     return scat_plot
 
@@ -386,15 +380,12 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
                              x_limits=x_limits, y_limits=y_limits)
     x = [0, 40]
     y = [0, 40]
-    scat_plot.axes[0].plot(x, y, 'k-')
+    scat_plot.axes[0].plot(x, y, '-', color=COLOR_PALETTE.secondary)
     scat_plot.axes[0].legend(['Reference line', 'Data points'])
     return scat_plot
 
 
-def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=None, y_label=None,
-                           plot_colors=[bw_colors('light_green_for_gradient'),
-                                        bw_colors('dark_green_for_gradient'),
-                                        bw_colors('darkgreen')]):
+def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=None, y_label=None):
     from matplotlib.ticker import PercentFormatter
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
@@ -416,9 +407,9 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
         ax.yaxis.set_major_formatter(PercentFormatter())
     ax.grid(b=True, axis='y', zorder=0)
     for frequency, ws_bin in zip(data, x_data):
-        ax.imshow(np.array([[plot_colors[0]], [plot_colors[1]]]),
+        ax.imshow(np.array([[mpl.colors.to_rgb(COLOR_PALETTE.primary)], [mpl.colors.to_rgb(COLOR_PALETTE.primary_80)]]),
                   interpolation='gaussian', extent=(ws_bin - 0.4, ws_bin + 0.4, 0, frequency), aspect='auto', zorder=3)
-        ax.bar(ws_bin, frequency, edgecolor=plot_colors[2], linewidth=0.3, fill=False, zorder=5)
+        ax.bar(ws_bin, frequency, edgecolor=COLOR_PALETTE.primary_35, linewidth=0.3, fill=False, zorder=5)
     plt.close()
     return ax.get_figure()
 
@@ -444,8 +435,9 @@ def plot_rose(ext_data, plot_label=None):
         contour_spacing = 1
     levels = np.arange(0, max_contour, round(contour_spacing, num_digits_to_round))
     ax.set_rgrids(levels, labels=[str(i) for i in levels], angle=0)
-    ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0, color='#9ACD32',
-           edgecolor=['#6C9023' for i in range(len(result))], alpha=0.8)
+    ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0,
+           color=COLOR_PALETTE.primary,
+           edgecolor=[COLOR_PALETTE.primary_35 for i in range(len(result))], alpha=0.8)
 
     ax.legend([plot_label])
     plt.close()
@@ -514,7 +506,7 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     ax.set_ylim(0, max(table.sum(axis=0)) + 3.0)
     ax.bar(0, 1, alpha=0)
     norm = mpl.colors.Normalize(vmin=min(table_binned.index), vmax=max(table_binned.index), clip=True)
-    mapper = mpl.cm.ScalarMappable(norm=norm, cmap=bw_colors('bw_col_map'))
+    mapper = mpl.cm.ScalarMappable(norm=norm, cmap=COLOR_PALETTE.color_map)
     for column in table_binned:
         radial_pos = 0.0
         angular_pos_start = (np.pi / 180.0) * float(column.split('-')[0])
@@ -526,7 +518,8 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
             angular_width = 2 * np.pi - angular_pos_start + angular_pos_end - (np.pi / 180)
         for speed_bin, frequency in zip(table_binned.index, table_binned[column]):
             patch = mpl.patches.Rectangle((angular_pos_start, radial_pos), angular_width,
-                                          frequency, facecolor=mapper.to_rgba(speed_bin), edgecolor='#5c7b1e',
+                                          frequency, facecolor=mapper.to_rgba(speed_bin),
+                                          edgecolor=COLOR_PALETTE.primary_35,
                                           linewidth=0.3, zorder=3)
             ax.add_patch(patch)
             radial_pos += frequency
@@ -566,12 +559,12 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
     common_idxs = wspd.index.intersection(wspd_std.index)
     fig, ax = plt.subplots(figsize=(15, 8))
     ax.scatter(wspd.loc[common_idxs], wspd_std.loc[common_idxs] / wspd.loc[common_idxs],
-               color=bw_colors('green'), alpha=0.3, marker='.')
-    ax.plot(ti.index.values, ti.loc[:, 'Mean_TI'].values, color=bw_colors('darkgreen'), label='Mean_TI')
-    ax.plot(ti.index.values, ti.loc[:, 'Rep_TI'].values, color=bw_colors('redline'), label='Rep_TI')
-    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 1], color=bw_colors('greyline'), linestyle='dashed')
-    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 2], color=bw_colors('greyline'), linestyle='dashdot')
-    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=bw_colors('greyline'), linestyle='dotted')
+               color=COLOR_PALETTE.primary, alpha=0.3, marker='.')
+    ax.plot(ti.index.values, ti.loc[:, 'Mean_TI'].values, color=COLOR_PALETTE.secondary, label='Mean_TI')
+    ax.plot(ti.index.values, ti.loc[:, 'Rep_TI'].values, color=COLOR_PALETTE.primary_35, label='Rep_TI')
+    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 1], color=COLOR_PALETTE.tertiary, linestyle='dashed')
+    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 2], color=COLOR_PALETTE.quaternary, linestyle='dashed')
+    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=COLOR_PALETTE.quinary, linestyle='dashed')
     ax.set_xlim(3, 25)
     ax.set_ylim(0, 0.6)
     ax.set_xticks(np.arange(3, 26, 1))
@@ -590,11 +583,11 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(ti.index))
-    ax.plot(np.append(radians, radians[0]), ti.append(ti.iloc[0])['Mean_TI'], color=bw_colors('green'), linewidth=4,
+    ax.plot(np.append(radians, radians[0]), ti.append(ti.iloc[0])['Mean_TI'], color=COLOR_PALETTE.primary, linewidth=4,
             figure=fig)
     maxlevel = ti['Mean_TI'].max() + 0.1
     ax.set_ylim(0, maxlevel)
-    ax.scatter(np.radians(wdir), turbulence, color=bw_colors('asphault'), alpha=0.3, s=1)
+    ax.scatter(np.radians(wdir), turbulence, color=COLOR_PALETTE.secondary, alpha=0.3, s=1)
     ax.legend(loc=8, framealpha=1)
     plt.close()
     return ax.get_figure()
@@ -614,7 +607,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
         bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])[0])
         if i == sectors - 1:
             bin_edges[i + 1] = abs(float(re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])[1]))
-
+    label = ''
     if calc_method == 'power_law':
         label = 'Mean_Shear'
     if calc_method == 'log_law':
@@ -622,7 +615,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
 
     scale_variable_y = np.append(scale_variable, scale_variable[0])
     plot_x = np.append(radians, radians[0])
-    scale_to_fit = max(scale_variable)/max(result/100)
+    scale_to_fit = max(scale_variable) / max(result/100)
     wind_rose_r = (result/100) * scale_to_fit
     bin_edges = np.array(bin_edges)
     width = pd.Series([])
@@ -638,13 +631,13 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
         else:
             width[i] = 2 * np.pi * (((360 + bin_edges[i + 1]) - bin_edges[i]) / 360)
 
-    ax.bar(radians, wind_rose_r, width=width, color=bw_colors('asphault'), align='center',
-                                              edgecolor=['#2e3743' for i in range(len(result))],
-                                             alpha=0.8, label='Wind_Directional_Frequency')
+    ax.bar(radians, wind_rose_r, width=width, color=COLOR_PALETTE.secondary, align='center',
+           edgecolor=[COLOR_PALETTE.secondary for i in range(len(result))],
+           alpha=0.8, label='Wind_Directional_Frequency')
 
     maxlevel = (max(scale_variable_y)) + max(scale_variable_y) * .1
     ax.set_thetagrids(radians*180/np.pi)
-    ax.plot(plot_x, scale_variable_y, color=bw_colors('green'), linewidth=4, label=label)
+    ax.plot(plot_x, scale_variable_y, color=COLOR_PALETTE.primary, linewidth=4, label=label)
     ax.set_ylim(0, top=maxlevel)
     ax.legend(loc=8, framealpha=1)
 
@@ -659,7 +652,6 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
     :return: 12x24 figure
     """
     fig, ax = plt.subplots(figsize=(15, 10))
-    # x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, cmap=bw_colors('bw_col_map'))
     x = ax.contourf(tab_12x24.columns, tab_12x24.index, tab_12x24.values, cmap=COLOR_PALETTE.color_map)
     cbar = fig.colorbar(x)
     cbar.ax.set_ylabel(label[1].capitalize() + " of " + label[0])
@@ -701,7 +693,7 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
     ax.plot(np.append(radians, radians[0]), sec_ratio_dist['Mean_Sector_Ratio'].append(sec_ratio_dist.iloc[0]),
-            color=bw_colors('green'), linewidth=4)
+            color=COLOR_PALETTE.primary, linewidth=4)
     # Get max and min levels and set chart axes
     max_level = sec_ratio_dist['Mean_Sector_Ratio'].max() + 0.05
     min_level = sec_ratio_dist['Mean_Sector_Ratio'].min() - 0.1
@@ -712,23 +704,26 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     annotate = False
     annotation_text = '* Plot generated using '
     if boom_dir_1 >= 0:
-        boom_dir_1 = np.radians(boom_dir_1)
-        ax.bar(boom_dir_1, radii, width=width, bottom=min_level, color='#659CEF')
+        boom_dir_1_rad = np.radians(boom_dir_1)
+        ax.bar(boom_dir_1_rad, radii, width=width, bottom=min_level, color=COLOR_PALETTE.quaternary)
         if boom_dir_2 == -1:
-            annotation_text += col_names[1] + ' (top mounted) divided by ' + col_names[0] + ' (blue boom)'
+            annotation_text += '{} (top mounted) divided by {} ({}° boom)'.format(col_names[1], col_names[0],
+                                                                                  boom_dir_1)
             annotate = True
     if boom_dir_2 >= 0:
-        boom_dir_2 = np.radians(boom_dir_2)
-        ax.bar(boom_dir_2, radii, width=width, bottom=min_level, color='#DCF600')
+        boom_dir_2_rad = np.radians(boom_dir_2)
+        ax.bar(boom_dir_2_rad, radii, width=width, bottom=min_level, color=COLOR_PALETTE.quinary)
         if boom_dir_1 == -1:
-            annotation_text += col_names[1] + ' (yellow green boom) divided by ' + col_names[0] + ' (top mounted)'
+            annotation_text += '{} ({}° boom) divided by {} (top mounted)'.format(col_names[1], boom_dir_2,
+                                                                                  col_names[0])
             annotate = True
     if boom_dir_2 >= 0 and boom_dir_1 >= 0:
-        annotation_text += col_names[1] + ' (yellow green boom) divided by ' + col_names[0] + ' (blue boom)'
+        annotation_text += '{} ({}° boom) divided by {} ({}° boom)'.format(col_names[1], boom_dir_2,
+                                                                           col_names[0], boom_dir_1)
         annotate = True
     if annotate:
         ax.annotate(annotation_text, xy=(0.5, 0.035), xycoords='figure fraction', horizontalalignment='center')
-    ax.scatter(np.radians(wdir), sec_ratio, color=bw_colors('asphault'), alpha=0.3, s=1)
+    ax.scatter(np.radians(wdir), sec_ratio, color=COLOR_PALETTE.secondary, alpha=0.3, s=1)
     plt.close()
     return ax.get_figure()
 
@@ -743,13 +738,13 @@ def plot_power_law(avg_alpha, avg_c, wspds, heights, max_plot_height=None, avg_s
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlabel('Speed [m/s]')
     ax.set_ylabel('Elevation [m]')
-    ax.plot(speeds, plot_heights, '-', color='#9ACD32',label='power_law')
-    ax.scatter(wspds, heights, marker='o', color=bw_colors('asphault'))
+    ax.plot(speeds, plot_heights, '-', color=COLOR_PALETTE.primary, label='power_law')
+    ax.scatter(wspds, heights, marker='o', color=COLOR_PALETTE.secondary)
     if plot_both is True:
         plot_heights = np.arange(1, max_plot_height+1, 1)
         speeds = avg_slope * np.log(plot_heights) + avg_intercept
-        ax.plot(speeds, plot_heights, '-', color=bw_colors('asphault'),label='log_law')
-        ax.scatter(wspds, heights, marker='o', color=bw_colors('asphault'))
+        ax.plot(speeds, plot_heights, '-', color=COLOR_PALETTE.secondary, label='log_law')
+        ax.scatter(wspds, heights, marker='o', color=COLOR_PALETTE.secondary)
         plt.legend(loc='upper left')
 
     ax.grid()
@@ -767,8 +762,8 @@ def plot_log_law(avg_slope, avg_intercept, wspds, heights, max_plot_height=None)
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlabel('Speed [m/s]')
     ax.set_ylabel('Elevation [m]')
-    ax.plot(speeds, plot_heights, '-', color='#9ACD32')
-    ax.scatter(wspds, heights, marker='o', color=bw_colors('asphault'))
+    ax.plot(speeds, plot_heights, '-', color=COLOR_PALETTE.primary)
+    ax.scatter(wspds, heights, marker='o', color=COLOR_PALETTE.secondary)
     ax.grid()
     ax.set_xlim(0, max(speeds) + 1)
     ax.set_ylim(0, max(plot_heights) + 10)
@@ -835,7 +830,7 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
 
 def plot_dist_matrix(matrix, colorbar_label=None, xticklabels=None, yticklabels=None):
     fig, ax = plt.subplots(figsize=(10, 10))
-    cm = ax.pcolormesh(matrix, cmap=bw_colors('bw_col_map'))
+    cm = ax.pcolormesh(matrix, cmap=COLOR_PALETTE.color_map)
     ax.set(xlim=(0, matrix.shape[1]), ylim=(0, matrix.shape[0]))
     ax.set(xticks=np.array(range(0, matrix.shape[1]))+0.5, yticks=np.array(range(0, matrix.shape[0])) + 0.5)
     if xticklabels is not None:
@@ -852,8 +847,9 @@ def plot_dist_matrix(matrix, colorbar_label=None, xticklabels=None, yticklabels=
     return ax.get_figure()
 
 
-def render_table(data, col_width=3.0, row_height=0.625, font_size=16, header_color='#9CC537',
-                 row_colors=['#E8F1D3', 'w'], edge_color='w', bbox=[0, 0, 1, 1], header_columns=0, show_col_head=1,
+def render_table(data, col_width=3.0, row_height=0.625, font_size=16, header_color=COLOR_PALETTE.primary,
+                 row_colors=[COLOR_PALETTE.primary_90, 'w'], edge_color='w', bbox=[0, 0, 1, 1],
+                 header_columns=0, show_col_head=1,
                  ax=None, cellLoc='center', padding=0.01, **kwargs):
     if ax is None:
         size = (np.array(data.shape[::-1]) + np.array([0, 1])) * np.array([col_width, row_height])
