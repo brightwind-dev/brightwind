@@ -172,7 +172,7 @@ class Shear:
     class TimeOfDay:
 
         def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', by_month=True, segment_start_time=7,
-                     segments_per_day=2, plot_type='step'):
+                     segments_per_day=24, plot_type='line'):
             """
             Calculates alpha, using the power law, or the roughness coefficient, using the log law, for a wind series
             binned by time of the day and (optionally by) month, depending on the user's inputs. The alpha/roughness
