@@ -207,7 +207,6 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     :param predicted_y: A series of predicted y values after applying the correlation to the x series.
     :param x_label:
     :param y_label:
-    :param title:
     :param prediction_marker:
     :return:
     """
@@ -446,7 +445,7 @@ def plot_rose(ext_data, plot_label=None):
         contour_spacing = 1
     levels = np.arange(0, max_contour, round(contour_spacing, num_digits_to_round))
     ax.set_rgrids(levels, labels=[str(i) for i in levels], angle=0)
-    ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors, bottom=0.0,
+    ax.bar(np.arange(0, 2.0*np.pi, 2.0*np.pi/sectors), result, width=2.0*np.pi/sectors-(np.pi / 180), bottom=0.0,
            color=COLOR_PALETTE.primary,
            edgecolor=[COLOR_PALETTE.primary_35 for i in range(len(result))], alpha=0.8)
 
@@ -632,15 +631,12 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
     width = pd.Series([])
 
     for i in range(len(bin_edges) - 1):
-
         if bin_edges[i + 1] == 0:
-            width[i] = 2 * np.pi * (360 - bin_edges[i]) / 360
-
+            width[i] = 2 * np.pi * (360 - bin_edges[i]) / 360 - (np.pi / 180)
         elif bin_edges[i + 1] > bin_edges[i]:
-            width[i] = 2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360)
-
+            width[i] = 2 * np.pi * ((bin_edges[i + 1] - bin_edges[i]) / 360) - (np.pi / 180)
         else:
-            width[i] = 2 * np.pi * (((360 + bin_edges[i + 1]) - bin_edges[i]) / 360)
+            width[i] = 2 * np.pi * (((360 + bin_edges[i + 1]) - bin_edges[i]) / 360) - (np.pi / 180)
 
     ax.bar(radians, wind_rose_r, width=width, color=COLOR_PALETTE.secondary, align='center',
            edgecolor=[COLOR_PALETTE.secondary for i in range(len(result))],
