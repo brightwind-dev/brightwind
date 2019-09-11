@@ -46,11 +46,22 @@ __all__ = ['plot_timeseries',
 plt.style.use(os.path.join(os.path.dirname(__file__), 'bw.mplstyle'))
 
 
-class _ColourPalette:
+class _ColorPalette:
 
     def __init__(self):
+        """
+        Color palette to be used for plotting graphs and tables. Colors can be reset by using
+
+        ::
+            import brightwind as bw
+            bw.analyse.plot.COLOR_PALETTE.primary = '#3366CC'
+
+        Color are called 'primary', secondary', 'tertiary', etc. Lighter and darker shades of primary are called
+        'primary_10' for 10% of primary. Gradient goes from 0% (darkest) to 100% (lightest). See
+        https://www.w3schools.com/colors/colors_picker.asp for more info.
+        """
         self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb[156/255, 197/255, 55/255]
-        self.secondary = '2E3743'       # asphalt, rgb[46/255, 55/255, 67/255]
+        self.secondary = '#2E3743'       # asphalt, rgb[46/255, 55/255, 67/255]
         self.tertiary = '#9B2B2C'       # red'ish, rgb(155, 43, 44)
         self.quaternary = '#E57925'     # orange'ish, rgb(229, 121, 37)
         self.quinary = '#F2D869'        # yellow'ish, rgb(242, 216, 105)
@@ -81,7 +92,7 @@ class _ColourPalette:
         self._color_map = self._set_col_map(col_map_colors)
 
 
-COLOR_PALETTE = _ColourPalette()
+COLOR_PALETTE = _ColorPalette()
 
 
 def plot_monthly_means(data, coverage=None, ylbl=''):
@@ -188,7 +199,7 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
     return figure
 
 
-def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", prediction_marker='k-'):
+def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", prediction_marker='-'):
     """
     Plots a scatter plot.
     :param x:
@@ -204,22 +215,22 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     no_dots = len(x)
-    if no_dots > 1000:
-        size = 36
-        alpha = 0.3
-    elif 100 < no_dots <= 1000:
-        size = 72
-        alpha = 0.5
-    else:
-        size = 144
-        alpha = 0.7
-    print('length of x: {}, size: {}'.format(len(x), size))
 
-    ax.scatter(x, y, marker='o', color=COLOR_PALETTE.primary, s=size, alpha=alpha, edgecolors='none')
+    marker_size_max = 216
+    marker_size_min = 18
+    marker_size = -0.2 * no_dots + marker_size_max  # y=mx+c, m = (216 - 18) / (1000 - 0) i.e. slope changes up to 1000
+    marker_size = marker_size_min if marker_size < marker_size_min else marker_size
+
+    max_alpha = 0.7
+    min_alpha = 0.3
+    alpha = -0.0004 * no_dots + max_alpha  # y=mx+c, m = (0.7 - 0.3) / (1000 - 0) i.e. alpha changes up to 1000 dots
+    alpha = min_alpha if alpha < min_alpha else alpha
+
+    ax.scatter(x, y, marker='o', color=COLOR_PALETTE.primary, s=marker_size, alpha=alpha, edgecolors='none')
     fig.set_figwidth(10)
     fig.set_figheight(10.2)
     if predicted_y is not None:
-        ax.plot(x, predicted_y, prediction_marker)
+        ax.plot(x, predicted_y, prediction_marker, color=COLOR_PALETTE.secondary)
         ax.legend(['Predicted', 'Original'])
     plt.close()
     return ax.get_figure()

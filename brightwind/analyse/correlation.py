@@ -568,4 +568,4 @@ class SVR(CorrelBase):
     def plot(self, title=""):
         """For plotting"""
         _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
-                      self._predict(self.data['ref_spd']).values.flatten(), prediction_marker='k.')
+                      self._predict(self.data['ref_spd']).values.flatten(), prediction_marker='.')
