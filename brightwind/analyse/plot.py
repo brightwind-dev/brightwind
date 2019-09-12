@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib as mpl
 from matplotlib.dates import DateFormatter
+import matplotlib.dates as mdates
 import calendar
 import numpy as np
 import pandas as pd
@@ -128,7 +129,6 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
             if coverage.shape[1] > 1:
                 plot_coverage = False
         if plot_coverage:
-            import matplotlib.dates as mdates
             ax.clear()
             ax.plot(data, '-o', color=COLOR_PALETTE.secondary)
             ax2 = ax.twinx()
