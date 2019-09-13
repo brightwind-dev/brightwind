@@ -6,16 +6,23 @@ brightwind.analyse.correlation.SVR
 .. autoclass:: SVR
 
    
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
    .. autosummary::
-        :toctree: SVR
-        
-        
-        SVR.__init__
-        SVR.get_error_metrics
-        SVR.get_r2
-        SVR.plot
-        SVR.run
-        SVR.show_params
-        SVR.synthesize
-        
-        
+   
+      ~SVR.__init__
+      ~SVR.get_error_metrics
+      ~SVR.get_r2
+      ~SVR.plot
+      ~SVR.run
+      ~SVR.show_params
+      ~SVR.synthesize
+   
+   
+
+   
+   
+   

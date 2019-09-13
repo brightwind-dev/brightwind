@@ -1,6 +1,6 @@
-brightwind.analyse.analyse.TI.by\_speed
+brightwind.analyse.analyse.dist\_matrix
 =======================================
 
 .. currentmodule:: brightwind.analyse.analyse
 
-.. automethod:: TI.by_speed
+.. autofunction:: dist_matrix

@@ -34,9 +34,7 @@ register_matplotlib_converters()
 __all__ = ['plot_timeseries',
            'plot_scatter',
            'plot_scatter_wspd',
-           'plot_scatter_wdir',
-           'plot_shear_by_sector',
-           'plot_rose']
+           'plot_scatter_wdir']
 #
 # try:
 #     if 'Gotham Rounded' in \

@@ -19,7 +19,7 @@ Load
     load_campbell_scientific
     load_excel
     load_windographer_txt
-    load_brightdata
+    LoadBrightdata
     load_cleaning_file
     apply_cleaning
     apply_cleaning_windographer
@@ -40,14 +40,14 @@ Analyse
     momm
     sector_ratio
     dist
+    dist_matrix
     dist_of_wind_speed
-    distribution_by_dir_sector
+    dist_by_dir_sector
     dist_12x24
     freq_distribution
     freq_table
-    TI
-    Shear
     calc_air_density
+    TI
 
 .. currentmodule:: brightwind.analyse.plot
 
@@ -58,6 +58,20 @@ Analyse
     plot_scatter
     plot_scatter_wspd
     plot_scatter_wdir
+    _ColorPalette
+
+Shear
+------------
+
+.. currentmodule:: brightwind.analyse.shear.Shear
+
+.. autosummary::
+    :toctree: generated
+
+    TimeSeries
+    TimeOfDay
+    Average
+    BySector
 
 
 Correlation
