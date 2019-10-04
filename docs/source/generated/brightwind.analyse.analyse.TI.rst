@@ -6,13 +6,21 @@ brightwind.analyse.analyse.TI
 .. autoclass:: TI
 
    
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
    .. autosummary::
-        :toctree: TI
-        
-        
-        TI.by_sector
-        TI.by_speed
-        TI.calc
-        TI.twelve_by_24
-        
-        
+   
+      ~TI.__init__
+      ~TI.by_sector
+      ~TI.by_speed
+      ~TI.calc
+      ~TI.twelve_by_24
+   
+   
+
+   
+   
+   

@@ -172,7 +172,7 @@ class Shear:
     class TimeOfDay:
 
         def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', by_month=True, segment_start_time=7,
-                     segments_per_day=2, plot_type='step'):
+                     segments_per_day=24, plot_type='line'):
             """
             Calculates alpha, using the power law, or the roughness coefficient, using the log law, for a wind series
             binned by time of the day and (optionally by) month, depending on the user's inputs. The alpha/roughness
@@ -359,7 +359,7 @@ class Shear:
             self.wspds = wspds
             self.origin = 'TimeOfDay'
             self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
-                                          segment_start_time=segment_start_time, segments_per_day=segments_per_day)
+                                           segment_start_time=segment_start_time, segments_per_day=segments_per_day)
 
         @property
         def alpha(self):
@@ -683,7 +683,7 @@ class Shear:
             self.sectors = sectors
             self.calc_method = calc_method
             self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
-                                          direction_bin_array = direction_bin_array)
+                                           direction_bin_array = direction_bin_array)
 
         @property
         def alpha(self):

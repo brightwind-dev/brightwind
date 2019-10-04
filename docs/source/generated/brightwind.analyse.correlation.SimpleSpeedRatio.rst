@@ -6,16 +6,23 @@ brightwind.analyse.correlation.SimpleSpeedRatio
 .. autoclass:: SimpleSpeedRatio
 
    
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
    .. autosummary::
-        :toctree: SimpleSpeedRatio
-        
-        
-        SimpleSpeedRatio.__init__
-        SimpleSpeedRatio.get_error_metrics
-        SimpleSpeedRatio.get_r2
-        SimpleSpeedRatio.plot
-        SimpleSpeedRatio.run
-        SimpleSpeedRatio.show_params
-        SimpleSpeedRatio.synthesize
-        
-        
+   
+      ~SimpleSpeedRatio.__init__
+      ~SimpleSpeedRatio.get_error_metrics
+      ~SimpleSpeedRatio.get_r2
+      ~SimpleSpeedRatio.plot
+      ~SimpleSpeedRatio.run
+      ~SimpleSpeedRatio.show_params
+      ~SimpleSpeedRatio.synthesize
+   
+   
+
+   
+   
+   

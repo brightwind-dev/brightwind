@@ -6,18 +6,25 @@ brightwind.analyse.correlation.SpeedSort
 .. autoclass:: SpeedSort
 
    
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
    .. autosummary::
-        :toctree: SpeedSort
-        
-        
-        SpeedSort.__init__
-        SpeedSort.get_error_metrics
-        SpeedSort.get_r2
-        SpeedSort.get_result_table
-        SpeedSort.plot
-        SpeedSort.plot_wind_vane
-        SpeedSort.run
-        SpeedSort.show_params
-        SpeedSort.synthesize
-        
-        
+   
+      ~SpeedSort.__init__
+      ~SpeedSort.get_error_metrics
+      ~SpeedSort.get_r2
+      ~SpeedSort.get_result_table
+      ~SpeedSort.plot
+      ~SpeedSort.plot_wind_vane
+      ~SpeedSort.run
+      ~SpeedSort.show_params
+      ~SpeedSort.synthesize
+   
+   
+
+   
+   
+   
