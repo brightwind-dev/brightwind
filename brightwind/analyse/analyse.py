@@ -809,10 +809,22 @@ def time_continuity_gaps(data):
 
     """
     indexes = data.dropna(how='all').index
-    continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1], 'Date To': indexes.values.flatten()[1:]})
+    resolution = tf._get_data_resolution(indexes)
+    # print(resolution)
+    continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1],
+                               'Date To': indexes.values.flatten()[1:]})
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
+
     # Remove indexes where no days are lost before returning
-    return continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
+    filtered = continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
+
+    # where only one timestamp is lost replace 0 by resolution lost.
+    filtered['Date From'] = filtered['Date From'] + resolution
+    filtered['Date To'] = filtered['Date To'] - resolution
+    filtered['Days Lost'] = (filtered['Date To'] - filtered['Date From']) / pd.Timedelta('1 days')
+    filtered.replace(0, (tf._get_data_resolution(indexes) / pd.Timedelta('1 days')), inplace=True)
+
+    return filtered
 
 
 def coverage(data, period='1M', aggregation_method='mean'):

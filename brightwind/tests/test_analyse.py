@@ -41,12 +41,12 @@ def test_time_continuity_gaps():
     data = bw.load_csv(bw.datasets.shell_flats_80m_csv)
     gaps_0 = bw.time_continuity_gaps(data[['WS70mA100NW_Avg']][:400])
     gaps = bw.time_continuity_gaps(data['WS70mA100NW_Avg'][:400])
-    assert gaps.iloc[0, 0] == pd.Timestamp('2011-07-16 17:50:00')
-    assert gaps.iloc[0, 1] == pd.Timestamp('2011-07-16 18:10:00')
-    assert gaps.iloc[1, 0] == pd.Timestamp('2011-07-16 23:00:00')
-    assert gaps.iloc[1, 1] == pd.Timestamp('2011-07-16 23:20:00')
-    assert abs(gaps.iloc[0, 2] - 0.01388) < 1e-5
-    assert abs(gaps.iloc[1, 2] - 0.01388) < 1e-5
+    assert gaps.iloc[0, 0] == pd.Timestamp('2011-07-16 18:00:00')
+    assert gaps.iloc[0, 1] == pd.Timestamp('2011-07-16 18:00:00')
+    assert gaps.iloc[1, 0] == pd.Timestamp('2011-07-16 23:10:00')
+    assert gaps.iloc[1, 1] == pd.Timestamp('2011-07-16 23:10:00')
+    assert abs(gaps.iloc[0, 2] - 0.006944) < 1e-5
+    assert abs(gaps.iloc[1, 2] - 0.006944) < 1e-5
 
 
 def test_dist_12x24():
