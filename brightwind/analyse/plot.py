@@ -119,7 +119,7 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
 
     ax.set_xticks(data.index)
     ax.xaxis.set_major_formatter(DateFormatter("%b %Y"))
-    fig.autofmt_xdate(rotation=20, ha='center')
+    fig.autofmt_xdate(rotation=90, ha='center')
 
     if coverage is not None:
         plot_coverage = True
@@ -143,6 +143,7 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
             ax2.set_ylim(0, 1)
             ax.set_ylim(bottom=0)
             ax.set_xlim(data.index[0] - pd.Timedelta('20days'), data.index[-1] + pd.Timedelta('20days'))
+            ax.xaxis.set_tick_params(rotation=90)
             ax.set_zorder(3)
             ax2.yaxis.grid(True)
             ax2.set_axisbelow(True)
