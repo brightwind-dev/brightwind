@@ -692,6 +692,70 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
     return ax.get_figure()
 
 
+def plot_annual_diurinal_dist(data, label=('Variable', 'mean'), plot=None):
+    """
+    Get Contour Plot of 12 month x 24 hour matrix of variable
+    :param tab_12x24: DataFrame returned from get_12x24() in analyse
+    :param label: Label of the colour bar on the plot.
+    :return: 12x24 figure
+    """
+
+    colors = COLOR_PALETTE.color_list
+    red = COLOR_PALETTE.tertiary
+    if red in COLOR_PALETTE.color_list:
+        colors.remove(red)
+    ax = data.iloc[:, :-1].plot(figsize=(15, 10), color=COLOR_PALETTE.color_list)
+    ax.plot(data.iloc[:, -1:], color=red, label='All')
+    ax.set_xlabel('Hour of Day')
+    ax.set_ylabel(label[1].capitalize() + " of " + label[0])
+    ax.set_xticks(np.arange(0, 24, 1))
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles, labels)
+    if plot is None:
+        plt.close()
+    return ax.get_figure()
+
+
+def plot_diurinal_dist(data, label=('Variable', 'mean'), plot=None, period='Monthly'):
+    """
+    Get Contour Plot of 12 month x 24 hour matrix of variable
+    :param tab_12x24: DataFrame returned from get_12x24() in analyse
+    :param label: Label of the colour bar on the plot.
+    :return: 12x24 figure
+    """
+    if period == 'Monthly':
+        fig, ax = plt.subplots(figsize=(15, 10))
+        x = ax.contourf(data.columns, data.index, data.values, cmap=COLOR_PALETTE.color_map)
+        cbar = fig.colorbar(x)
+        cbar.ax.set_ylabel(label[1].capitalize() + " of " + label[0])
+        ax.set_xlabel('Month of Year')
+        ax.set_ylabel('Hour of Day')
+        month_names = calendar.month_abbr[1:13]
+        ax.set_xticks(data.columns)
+        ax.set_xticklabels([month_names[i - 1] for i in data.columns])
+        ax.set_yticks(np.arange(0, 24, 1))
+
+    elif period == 'Annually':
+        colors = COLOR_PALETTE.color_list
+        red = COLOR_PALETTE.tertiary
+        if red in COLOR_PALETTE.color_list:
+            colors.remove(red)
+        ax = data.iloc[:, :-1].plot(figsize=(15, 10), color=COLOR_PALETTE.color_list)
+        ax.plot(data.iloc[:, -1:], color=red, label='All')
+        ax.set_xlabel('Hour of Day')
+        ax.set_ylabel(label[1].capitalize() + " of " + label[0])
+        ax.set_xticks(np.arange(0, 24, 1))
+        max_level = data.max().max() + 0.5
+        min_level = data.min().min() - 0.5
+        ax.set_ylim(min_level, max_level)
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles, labels)
+
+    if plot is None:
+        plt.close()
+    return ax.get_figure()
+
+
 def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1):
     """
     Accepts a DataFrame table, along with 2 anemometer names, and one wind vane name and plots the speed ratio

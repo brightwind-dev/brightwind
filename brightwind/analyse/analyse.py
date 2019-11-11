@@ -32,6 +32,8 @@ __all__ = ['concurrent_coverage',
            'dist_by_dir_sector',
            'dist_matrix_by_dir_sector',
            'dist_12x24',
+           'dist_annual_diurinal',
+           'dist_diurinal',
            'freq_distribution',
            'freq_table',
            'time_continuity_gaps',
@@ -959,6 +961,57 @@ def dist_12x24(var_series, aggregation_method='mean', var_name_label=None, retur
         return plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method)),\
                pvt_tbl
     return plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method))
+
+
+def dist_annual_diurinal(var_series, aggregation_method='mean', var_name_label=None, return_data=False):
+
+    if isinstance(var_series, pd.DataFrame):
+        var_series = var_series[var_series.columns[0]]
+    if isinstance(var_series, pd.Series) and var_name_label is None:
+        var_name_label = var_series.name
+    table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.year.rename('Year'),
+                             var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
+    pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Year', values='Variable', aggfunc=aggregation_method)
+    total_avg = pd.Series(pvt_tbl.mean(axis=1), name='All')
+    pvt_tbl = pd.concat([pvt_tbl, total_avg], axis=1)
+    if not isinstance(aggregation_method, str):
+        aggregation_method = aggregation_method.__name__
+
+    if return_data:
+        return plt.plot_annual_diurinal_dist(pvt_tbl, label=(var_name_label, aggregation_method)),\
+               pvt_tbl
+    return plt.plot_annual_diurinal_dist(pvt_tbl, label=(var_name_label, aggregation_method))
+
+
+def dist_diurinal(var_series, aggregation_method='mean', period='Monthly', var_name_label=None, return_data=False):
+
+    if isinstance(var_series, pd.DataFrame):
+        var_series = var_series[var_series.columns[0]]
+    if isinstance(var_series, pd.Series) and var_name_label is None:
+        var_name_label = var_series.name
+
+    if period == 'Monthly':
+        table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
+                                 var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
+        pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
+
+    elif period == 'Annually':
+        table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.year.rename('Year'),
+                             var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
+        pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Year', values='Variable', aggfunc=aggregation_method)
+        total_avg = pd.Series(pvt_tbl.mean(axis=1), name='All')
+        pvt_tbl = pd.concat([pvt_tbl, total_avg], axis=1)
+
+    else:
+        return 'Invalid value for period. Please enter either "Monthly" or "Annually".'
+
+    if not isinstance(aggregation_method, str):
+        aggregation_method = aggregation_method.__name__
+
+    if return_data:
+        return plt.plot_diurinal_dist(pvt_tbl, label=(var_name_label, aggregation_method), period=period),\
+               pvt_tbl
+    return plt.plot_diurinal_dist(pvt_tbl, label=(var_name_label, aggregation_method), period=period)
 
 
 class TI:
