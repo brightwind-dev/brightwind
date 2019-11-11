@@ -692,7 +692,7 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
     return ax.get_figure()
 
 
-def plot_annual_diurinal_dist(data, label=('Variable', 'mean'), plot=None):
+def plot_annual_diurnal_dist(data, label=('Variable', 'mean'), plot=None):
     """
     Get Contour Plot of 12 month x 24 hour matrix of variable
     :param tab_12x24: DataFrame returned from get_12x24() in analyse
@@ -716,7 +716,7 @@ def plot_annual_diurinal_dist(data, label=('Variable', 'mean'), plot=None):
     return ax.get_figure()
 
 
-def plot_diurinal_dist(data, label=('Variable', 'mean'), plot=None, period='Monthly'):
+def plot_diurnal_dist(data, label=('Variable', 'mean'), plot=None, period='Monthly'):
     """
     Get Contour Plot of 12 month x 24 hour matrix of variable
     :param tab_12x24: DataFrame returned from get_12x24() in analyse
