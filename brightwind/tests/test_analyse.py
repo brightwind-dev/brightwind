@@ -5,20 +5,18 @@ import pandas as pd
 
 def test_monthly_means():
     # Load data
-    bw.monthly_means(bw.load_csv(bw.datasets.shell_flats_80m_csv))
-    bw.monthly_means(bw.load_csv(bw.datasets.shell_flats_80m_csv)[['WS70mA100NW_Avg']])
+    bw.monthly_means(bw.load_csv(bw.datasets.demo_data))
+    bw.monthly_means(bw.load_csv(bw.datasets.demo_data)[['Spd80mS']])
 
-    bw.monthly_means(bw.load_csv(bw.datasets.shell_flats_80m_csv)[['WS70mA100NW_Avg','WS70mA100SE_Avg',
-                                                                          'WS50mA100NW_Avg','WS50mA100SE_Avg',
-                                                                          'WS20mA100CB1_Avg','WS20mA100CB2_Avg']],
-                        return_data=True)
-    bw.monthly_means(bw.load_csv(bw.datasets.shell_flats_80m_csv).WS80mWS425NW_Avg, return_data=True)
+    bw.monthly_means(bw.load_csv(bw.datasets.demo_data)[['Spd80mS', 'Spd80mN', 'Spd60mS', 'Spd60mN',
+                                                         'Spd40mS', 'Spd40mN']], return_data=True)
+    bw.monthly_means(bw.load_csv(bw.datasets.demo_data).Spd80mS, return_data=True)
     assert True
 
 
 def test_sector_ratio():
-    data = bw.load_csv(bw.datasets.shell_flats_80m_csv)
-    sec_rat_data = bw.sector_ratio(data['WS70mA100NW_Avg'], data['WS70mA100SE_Avg'], data['WD50mW200PNW_VAvg'],
+    data = bw.load_csv(bw.datasets.demo_data)
+    sec_rat_data = bw.sector_ratio(data['Spd80mN'], data['Spd80mS'], data['Spd60mN'],
                                    sectors=72, boom_dir_1=315, boom_dir_2=135, return_data=True)[1]
     data = bw.load_csv(bw.datasets.demo_data)
     bw.sector_ratio(data[['Spd40mN']], data.Spd60mN, wdir=data[['Dir38mS']])
@@ -28,25 +26,25 @@ def test_sector_ratio():
 
 
 def test_basic_stats():
-    data = bw.load_csv(bw.datasets.shell_flats_80m_csv)
+    data = bw.load_csv(bw.datasets.demo_data)
     bw.basic_stats(data)
-    bs1 = bw.basic_stats(data[['WS70mA100NW_Avg']])
-    bs2 = bw.basic_stats(data['WS70mA100NW_Avg'])
-    assert (bs2['count'] == 58874.0).bool() and((bs2['mean']-9.169382) < 1e-6).bool() and \
-           ((bs2['std']-4.932851) < 1e-6).bool() and (bs2['max'] == 27.66).bool() and (bs2['min'] == 0.0).bool()
+    # bs1 = bw.basic_stats(data[['Spd_80mN']])
+    bs2 = bw.basic_stats(data['Spd80mN'])
+    assert (bs2['count'] == 95629.0).bool() and((bs2['mean']-7.498665) < 1e-6).bool() and \
+           ((bs2['std']-3.998231) < 1e-6).bool() and (bs2['max'] == 29.00).bool() and (bs2['min'] == 0.215).bool()
 
 
 def test_time_continuity_gaps():
     import pandas as pd
-    data = bw.load_csv(bw.datasets.shell_flats_80m_csv)
-    gaps_0 = bw.time_continuity_gaps(data[['WS70mA100NW_Avg']][:400])
-    gaps = bw.time_continuity_gaps(data['WS70mA100NW_Avg'][:400])
-    assert gaps.iloc[0, 0] == pd.Timestamp('2011-07-16 18:00:00')
-    assert gaps.iloc[0, 1] == pd.Timestamp('2011-07-16 18:00:00')
-    assert gaps.iloc[1, 0] == pd.Timestamp('2011-07-16 23:10:00')
-    assert gaps.iloc[1, 1] == pd.Timestamp('2011-07-16 23:10:00')
-    assert abs(gaps.iloc[0, 2] - 0.006944) < 1e-5
-    assert abs(gaps.iloc[1, 2] - 0.006944) < 1e-5
+    data = bw.load_csv(bw.datasets.demo_data)
+    # gaps_0 = bw.time_continuity_gaps(data[['WS70mA100NW_Avg']][:400])
+    gaps = bw.time_continuity_gaps(data['Spd80mN'][:20000])
+    assert gaps.iloc[0, 0] == pd.Timestamp('2016-01-09 15:50:00')
+    assert gaps.iloc[0, 1] == pd.Timestamp('2016-01-09 16:50:00')
+    assert gaps.iloc[1, 0] == pd.Timestamp('2016-05-11 23:10:00')
+    assert gaps.iloc[1, 1] == pd.Timestamp('2016-05-31 15:10:00')
+    assert abs(gaps.iloc[0, 2] - .041666666666666664) < 1e-5
+    assert abs(gaps.iloc[1, 2] - 19.666666666666668) < 1e-5
 
 
 def test_dist_12x24():
@@ -64,7 +62,7 @@ def test_dist_12x24():
 
 
 def test_TI_twelve_by_24():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    df = bw.load_csv(bw.datasets.demo_data)
     bw.TI.twelve_by_24(df[['Spd60mN']], df[['Spd60mNStd']])
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd)
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, return_data=True)
@@ -75,7 +73,7 @@ def test_TI_twelve_by_24():
 
 
 def test_coverage():
-    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    data = bw.load_csv(bw.datasets.demo_data)
 
     # hourly coverage
     data_hourly = bw.coverage(data[['Spd80mN']], period='1H')
@@ -88,7 +86,7 @@ def test_coverage():
 
 
 def test_dist_by_dir_sector():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    df = bw.load_csv(bw.datasets.demo_data)
     rose = bw.dist_by_dir_sector(df[['Spd40mN']], df[['Dir38mS']])
     rose = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS)
 
@@ -102,7 +100,7 @@ def test_dist_by_dir_sector():
 
 
 def test_freq_table():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    df = bw.load_csv(bw.datasets.demo_data)
 
     graph = bw.freq_table(df[['Spd40mN']], df[['Dir38mS']])
     graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
@@ -132,7 +130,7 @@ def test_freq_table():
 
 
 def test_dist():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
+    df = bw.load_csv(bw.datasets.demo_data)
     dist = bw.dist(df[['Spd40mN']], bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
 
     # For distribution of %frequency of wind speeds
@@ -168,7 +166,7 @@ def test_freq_distribution():
 
 
 def test_TI_by_speed():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    df = bw.load_csv(bw.datasets.demo_data)
     TI_by_speed = bw.TI.by_speed(df[['Spd80mN']], df[['Spd80mNStd']])
     TI_by_speed = bw.TI.by_speed(df.Spd80mN, df.Spd80mNStd)
 
@@ -183,7 +181,7 @@ def test_TI_by_speed():
 
 
 def test_calc_air_density():
-    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    data = bw.load_csv(bw.datasets.demo_data)
     bw.calc_air_density(data[['T2m']], data[['P2m']])
     bw.calc_air_density(data.T2m, data.P2m)
     bw.calc_air_density(data.T2m, data.P2m, elevation_ref=0, elevation_site=200)
@@ -201,7 +199,7 @@ def test_calc_air_density():
 
 
 def test_dist_matrix_by_direction_sector():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    df = bw.load_csv(bw.datasets.demo_data)
     bw.dist_matrix_by_dir_sector(var_series=df.Spd80mN, var_to_bin_by_series=df.Spd80mN, direction_series=df.Dir78mS,
                                  aggregation_method='count')
     matrix = bw.dist_matrix_by_dir_sector(df.Spd40mN, df.T2m, df.Dir38mS,
