@@ -507,7 +507,7 @@ class SpeedSort(CorrelBase):
             output = tf.average_data_by_period(self.target_spd, self.averaging_prd,
                                                return_coverage=False).combine_first(output)
             dir_output = self._predict_dir(tf.average_data_by_period(self.ref_dir, self.averaging_prd,
-                                                        filter_by_coverage_threshold=False, return_coverage=False))
+                                                                     return_coverage=False))
 
         else:
             output = self._predict(input_spd, input_dir)
