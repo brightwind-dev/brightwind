@@ -130,6 +130,11 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
             ax.clear()
             ax.plot(data, '-o', color=COLOR_PALETTE.secondary)
             ax2 = ax.twinx()
+            ax.legend([data.name])
+            ax.set_ylabel(ylbl)
+            ax.set_xticks(data.index)
+            ax.xaxis.set_major_formatter(DateFormatter("%b %Y"))
+            fig.autofmt_xdate(rotation=90, ha='center')
 
             for month, coverage in zip(coverage.index, coverage.values):
                 ax2.imshow(np.array([[mpl.colors.to_rgb(COLOR_PALETTE.primary)],
