@@ -115,7 +115,7 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, folder_path=Non
 
     with open(str(file_path), "w") as file:
         file.write(tab_string_strip)
-    print('Export of tab file successful.')
+    print('Export of tab file "{}" successful.'.format(file_name))
 
 
 def export_csv(data, file_name=None, folder_path=None, **kwargs):
