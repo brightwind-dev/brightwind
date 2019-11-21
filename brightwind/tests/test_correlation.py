@@ -5,9 +5,6 @@ import numpy as np
 import datetime
 
 
-data = bw.datasets.demo_data
-
-
 def test_CorrelBase():
     data = bw.load_csv(bw.datasets.demo_data)
     ref_spd = data['Spd80mN']
@@ -44,8 +41,10 @@ def test_CorrelBase():
     assert CB.target_spd.all() == target_spd.all()
     assert CB_directions.ref_dir.all() == ref_spd.all()
     assert CB_directions.target_dir.all() == target_dir.all()
-    assert CB.data['ref_dir'][0] == ref_dir[0]
-    assert CB.data['target_dir'][0] == target_dir[0]
+    assert CB_directions.data['ref_dir'][0] == 114.0
+    assert CB_directions.data['target_dir'][0] == 114.0
+    assert CB_directions_preprocess_false.data['ref_dir'][0] == ref_dir[0]
+    assert CB_directions_preprocess_false.data['target_dir'][0] == ref_dir[0]
 
     # test error metrics
     assert CB.get_error_metrics() == 0
@@ -89,7 +88,7 @@ def test_OrdinaryLeastSquares():
     assert linear_func_OLS[0] == 6.823600077474694
 
     # test get_r2()
-    assert OLS.get_r2() ==  OLS.params['r2']
+    assert OLS.get_r2() == OLS.params['r2']
 
 
 def test_OrthogonalLeastSquares():
@@ -149,7 +148,6 @@ def test_MultipleLinearRegression():
     assert MLR.data['ref_spd_1'].all() == ref_spd[0].all()
     assert MLR.data['ref_spd_2'].all() == ref_spd[1].all()
     assert MLR.data['target_spd'].all() == target_spd.all()
-    assert MLR.ref_spd.all() == pd.concat([ref_spd[0], ref_spd[1]], axis=1).all()
     assert MLR.target_spd.all() == target_spd.all()
 
     # test get_error_metrics()
@@ -172,7 +170,7 @@ def test_SimpleSpeedRatio():
     target_spd = data['Spd80mS']
 
     # test basic
-    SSR = bw.Correl.SimpleSpeedRatio(ref_spd=ref_spd,target_spd=target_spd)
+    SSR = bw.Correl.SimpleSpeedRatio(ref_spd=ref_spd, target_spd=target_spd)
     SSR.run()
 
     # test show_params()
@@ -226,11 +224,11 @@ def test_SpeedSort():
     assert SS_1M.coverage_threshold == .9
     assert SS_1AS.lt_ref_speed == 7.321557354120887
     assert SS_1M.lt_ref_speed == 7.424888612760106
-    assert SS_1AS.averaging_prd =='1AS'
+    assert SS_1AS.averaging_prd == '1AS'
     assert SS_1M.averaging_prd == '1M'
     assert SS_1M.ref_spd.all() == ref_spd.all()
     assert SS_1AS.ref_spd.all() == ref_spd.all()
-    assert SS_1M.target_spd.all( )== target_spd.all()
+    assert SS_1M.target_spd.all() == target_spd.all()
     assert SS_1AS.target_spd.all() == target_spd.all()
     assert SS_1M.ref_dir.all() == ref_dir.all()
     assert SS_1AS.ref_dir.all() == ref_dir.all()
@@ -262,7 +260,7 @@ def test_SpeedSort():
     SS_1AS.plot_wind_vane()
 
     # test SectorSpeedModel
-    SSM = bw.Correl.SpeedSort.SectorSpeedModel(ref_spd=ref_spd,target_spd=target_spd,lt_ref_speed=bw.momm(ref_spd))
+    SSM = bw.Correl.SpeedSort.SectorSpeedModel(ref_spd=ref_spd, target_spd=target_spd, lt_ref_speed=bw.momm(ref_spd))
 
     # test param()
     assert SSM.params['slope'] == 1.0913560550604777
@@ -295,17 +293,19 @@ def test_SVR():
     assert SVR_model_0.params['RMSE'].all() == np.array([0.76246471, 0.28490021, 1.94454812]).all()
     assert SVR_model_0.params['MAE'].all() == np.array([0.82772912, 0.43492475, 1.29813051]).all()
     assert SVR_model_0.params['Explained Variance'].all() == np.array([-0.98498249, -0.94907944, -0.94004678]).all()
-    assert SVR_model_1.params['RMSE'].all() == np.array([-0.9863871 , -0.90654105, -0.94750595]).all()
+    assert SVR_model_1.params['RMSE'].all() == np.array([-0.9863871, -0.90654105, -0.94750595]).all()
     assert SVR_model_1.params['MAE'].all() == np.array([1.00416624, 0.46770968, 1.3029321]).all()
     assert SVR_model_1.params['Explained Variance'].all() == np.array([1.07844633, 0.34123735, 1.92476305]).all()
 
     # test attributes
     assert SVR_model_0.num_data_pts == 100
-    assert SVR_model_0.data.all() == pd.concat([ref_spd, target_spd], axis=1).all()
+    assert SVR_model_0.data['ref_spd'].all() == ref_spd.all()
+    assert SVR_model_0.data['target_spd'].all() == target_spd.all()
     assert SVR_model_1.num_data_pts == 100
-    assert SVR_model_1.data.all() == pd.concat([ref_spd, target_spd], axis=1).all()
+    assert SVR_model_1.data['ref_spd'].all() == ref_spd.all()
+    assert SVR_model_1.data['target_spd'].all() == target_spd.all()
 
     # test plot
-    assert SVR_model_0.plot()
-    assert SVR_model_1.plot()
+    SVR_model_0.plot()
+    SVR_model_1.plot()
 
