@@ -16,21 +16,37 @@ def test_CorrelBase():
     target_dir = data['Dir78mS']
 
     # test with no directions
-    result = bw.Correl.CorrelBase(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min', coverage_threshold=.9)
-    assert result.coverage_threshold == .9
-    assert result.ref_spd.all() == ref_spd.all()
-    assert result.target_spd.all() == target_spd.all()
-    assert result.get_error_metrics() == 0
+    CB = bw.Correl.CorrelBase(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min', coverage_threshold=.9)
+
+    # test attributes
+    assert CB.num_data_pts == 95629
+    assert CB.coverage_threshold == .9
+    assert CB.ref_spd.all() == ref_spd.all()
+    assert CB.target_spd.all() == target_spd.all()
+    assert CB.get_error_metrics() == 0
+    assert CB.data['ref_spd'][0] == ref_spd[0]
+    assert CB.data['target_spd'][0] == target_spd[0]
 
     # test with directions
-    result = bw.Correl.CorrelBase(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min', coverage_threshold=.9,
+    CB = bw.Correl.CorrelBase(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min', coverage_threshold=.9,
                                   ref_dir=ref_dir, target_dir=target_dir)
 
-    # test with preprocess=False and no directions
-    result = bw.Correl.CorrelBase(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min', coverage_threshold=.9,
+    # test with preprocess=False and directions
+    CB = bw.Correl.CorrelBase(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min', coverage_threshold=.9,
                                   ref_dir=ref_dir, target_dir=target_dir, preprocess=False)
-    result = bw.Correl.CorrelBase(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min', coverage_threshold=.9,
-                                  ref_dir=ref_dir, target_dir=target_dir, preprocess=False)
+
+    # test attributes
+    assert CB.num_data_pts == 95629
+    assert CB.coverage_threshold == .9
+    assert CB.ref_spd.all() == ref_spd.all()
+    assert CB.target_spd.all() == target_spd.all()
+    assert CB.ref_dir.all() == ref_spd.all()
+    assert CB.target_dir.all() == target_dir()
+    assert CB.data['ref_dir'][0] == ref_dir[0]
+    assert CB.data['target_dir'][0] == target_dir[0]
+
+    # test error metrics
+    assert CB.get_error_metrics() == 0
 
 
 def test_OrdinaryLeastSquares():
@@ -38,28 +54,40 @@ def test_OrdinaryLeastSquares():
     ref_spd = data['Spd80mN']
     target_spd = data['Spd80mS']
 
-    result = bw.Correl.OrdinaryLeastSquares(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min',
+    OLS = bw.Correl.OrdinaryLeastSquares(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min',
                                             coverage_threshold=.9)
-    result.run()
+    OLS.run()
+
     # test params
-    assert result.params['slope'] == 0.8471316221748566
-    assert result.params['offset'] == 0.1219418144494032
-    assert result.params['r2'] == 0.5773700175122298
-    assert result.params['Num data points'] == 95629
+    assert OLS.params['slope'] == 0.8471316221748566
+    assert OLS.params['offset'] == 0.1219418144494032
+    assert OLS.params['r2'] == 0.5773700175122298
+    assert OLS.params['Num data points'] == 95629
+
+    # test attributes
+    assert OLS.num_data_pts == 95629
+    assert OLS.coverage_threshold == .9
+    assert OLS.ref_spd.all() == ref_spd.all()
+    assert OLS.target_spd.all() == target_spd.all()
+    assert OLS.data['ref_spd'][0] == ref_spd[0]
+    assert OLS.data['target_spd'][0] == target_spd[0]
+
+    # test error metrics
+    assert OLS.get_error_metrics() == 0
 
     # test linear function
     p = list()
-    p.append(result.params['slope'])
-    p.append(result.params['offset'])
-    linear_func_result = result.linear_func(p, target_spd)
-    assert linear_func_result[0] == 6.823600077474694
+    p.append(OLS.params['slope'])
+    p.append(OLS.params['offset'])
+    linear_func_OLS = OLS.linear_func(p, target_spd)
+    assert linear_func_OLS[0] == 6.823600077474694
 
     # test get_r2()
-    assert result.get_r2() ==  result.params['r2']
+    assert OLS.get_r2() ==  OLS.params['r2']
 
     # test with preprocess=False
-    result = bw.Correl.OrdinaryLeastSquares(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min',
-                                            coverage_threshold=.9, preprocess=True)
+    OLS = bw.Correl.OrdinaryLeastSquares(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min',
+                                            coverage_threshold=.9, preprocess=False)
 
 
 def test_OrthogonalLeastSquares():
@@ -67,20 +95,31 @@ def test_OrthogonalLeastSquares():
     ref_spd = data['Spd80mN']
     target_spd = data['Spd80mS']
 
-    result = bw.Correl.OrthogonalLeastSquares(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min',
+    ORGLS = bw.Correl.OrthogonalLeastSquares(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min',
                                               coverage_threshold=.9, preprocess=True)
-    result.run()
+    ORGLS.run()
     #test params
-    assert result.params['slope'] == 1.1535970704590985
-    assert result.params['offset'] == -2.1761398200777227
-    assert result.params['r2'] == 0.5018059240561804
-    assert result.params['Num data points'] == 95629
+    assert ORGLS.params['slope'] == 1.1535970704590985
+    assert ORGLS.params['offset'] == -2.1761398200777227
+    assert ORGLS.params['r2'] == 0.5018059240561804
+    assert ORGLS.params['Num data points'] == 95629
+
+    # test attributes
+    assert ORGLS.num_data_pts == 95629
+    assert ORGLS.coverage_threshold == .9
+    assert ORGLS.ref_spd.all() == ref_spd.all()
+    assert ORGLS.target_spd.all() == target_spd.all()
+    assert ORGLS.data['ref_spd'][0] == ref_spd[0]
+    assert ORGLS.data['target_spd'][0] == target_spd[0]
+
+    # test error metrics
+    assert ORGLS.get_error_metrics() == 0
 
     # p = list()
-    # p.append(result.params['slope'])
-    # p.append(result.params['offset'])
-    # linear_func_result = result.linear_func(p, target_spd)
-    # assert linear_func_result[0] == 6.823600077474694
+    # p.append(ORGLS.params['slope'])
+    # p.append(ORGLS.params['offset'])
+    # linear_func_ORGLS = ORGLS.linear_func(p, target_spd)
+    # assert linear_func_ORGLS[0] == 6.823600077474694
 
 
 def test_MultipleLinearRegression():
@@ -92,11 +131,15 @@ def test_MultipleLinearRegression():
     MLR = bw.Correl.MultipleLinearRegression(ref_spd=ref_spd, target_spd=target_spd)
     MLR.run()
 
-    #test show_params
+    # test show_params
     MLR.show_params()
     assert MLR.params['offset'] == 0.1335730899262883
     assert MLR.params['slope'][0] == 0.808772620245024
     assert MLR.params['slope'][1] == 0.04092208540564364
+
+
+    # test attributes
+
 
     # test get_r2()
     assert MLR.get_r2() == 0.5685111334796743
@@ -194,7 +237,7 @@ def test_SpeedSort():
 
     # test SectorSpeedModel
     SSM = bw.Correl.SpeedSort.SectorSpeedModel(ref_spd=ref_spd,target_spd=target_spd,lt_ref_speed=bw.momm(ref_spd))
-    
+
     # test param()
     assert SSM.params['slope'] ==  1.0913560550604777
     assert SSM.params['offset'] ==  -1.6183937026706863
@@ -206,3 +249,23 @@ def test_SpeedSort():
 
     # test predict()
     SSM.plot_model()
+
+# def test_SVR():
+#     data = bw.load_csv(bw.datasets.demo_data)
+#     ref_spd = data['Spd80mN']
+#     target_spd = data['Spd80mS']
+#     target_dir = data['Dir78mS']
+#     ref_dir = data['Dir78mS']
+#
+#     SVR = bw.Correl.SVR(ref_spd=ref_spd, target_spd=target_spd, averaging_prd='10min',coverage_threshold=.9)
+#     SVR.run()
+#
+#     # test params()
+#     SVR.params
+#
+#     # test attributes
+#     assert SVR.num_data_pts ==
+#
+#     # test plot
+#     assert SVR.plot()
+
