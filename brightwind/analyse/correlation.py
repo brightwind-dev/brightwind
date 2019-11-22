@@ -353,7 +353,7 @@ class SpeedSort(CorrelBase):
             return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
 
         def plot_model(self, title):
-            _scatter_plot(sorted(self.sector_ref.values.flatten()), sorted(self.sector_target.values.flatten()),
+            return _scatter_plot(sorted(self.sector_ref.values.flatten()), sorted(self.sector_target.values.flatten()),
                           sorted(self.sector_predict(self.sector_ref).values.flatten()))
 
     def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold=0.9, sectors=12,
@@ -522,7 +522,7 @@ class SpeedSort(CorrelBase):
         """
 
         # _scatter_plot(self.ref_dir, self.target_dir,title='original data')
-        _scatter_plot(
+        return _scatter_plot(
             self.data['ref_dir'][(self.data['ref_spd'] > self.cutoff) & (self.data['target_spd'] > self.cutoff)],
             self.data['target_dir'][(self.data['ref_spd'] > self.cutoff) & (self.data['target_spd'] > self.cutoff)],
             x_label='Reference direction', y_label="Target direction")
@@ -572,5 +572,5 @@ class SVR(CorrelBase):
 
     def plot(self, title=""):
         """For plotting"""
-        _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
+        return _scatter_plot(self.data['ref_spd'].values.flatten(), self.data['target_spd'].values.flatten(),
                       self._predict(self.data['ref_spd']).values.flatten(), prediction_marker='.')
