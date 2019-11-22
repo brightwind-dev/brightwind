@@ -200,6 +200,7 @@ class OrthogonalLeastSquares(CorrelBase):
 
     """
 
+    @staticmethod
     def linear_func(p, x):
         return p[0] * x + p[1]
 
