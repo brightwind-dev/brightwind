@@ -35,10 +35,10 @@ def test_CorrelBase():
                                                           ref_dir=ref_dir, target_dir=target_dir, preprocess=False)
 
     # test attributes
-    assert CB.num_data_pts == 95629
-    assert CB.coverage_threshold == .9
-    assert CB.ref_spd.all() == ref_spd.all()
-    assert CB.target_spd.all() == target_spd.all()
+    assert CB_directions.num_data_pts == 95629
+    assert CB_directions.coverage_threshold == .9
+    assert CB_directions.ref_spd.all() == ref_spd.all()
+    assert CB_directions.target_spd.all() == target_spd.all()
     assert CB_directions.ref_dir.all() == ref_spd.all()
     assert CB_directions.target_dir.all() == target_dir.all()
     assert CB_directions.data['ref_dir'][0] == 114.0
@@ -47,7 +47,7 @@ def test_CorrelBase():
     assert CB_directions_preprocess_false.data['target_dir'][0] == ref_dir[0]
 
     # test error metrics
-    assert CB.get_error_metrics() == 0
+    assert CB_directions.get_error_metrics() == 0
 
 
 def test_OrdinaryLeastSquares():
