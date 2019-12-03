@@ -821,7 +821,7 @@ class LoadBrightdata:
                               example if using a from-date of 2000-01-01 as no data exists in brightdata before
                               this date for most regions.
         :type  ref_no_years:  int
-        :param variables:      Specify variables to be retrieved. Be advised that all variables are not available for all
+        :param variables:     Specify variables to be retrieved. Be advised that all variables are not available for all
                               latitudes and longitudes or datasets.
                               Empty value will return Spd_50m_mps for merra2 and
                               Spd_100m_mps for era5.
@@ -832,13 +832,7 @@ class LoadBrightdata:
                                 - Prs_0m_hPa                - Prs_0m_hPa
                                 - Spd_850pa_mps
                                 - Spd_10m_mps
-
-                                ********************
-
-                            The wind speed variable to use from the dataset. Each dataset will use it's default
-                              variable name however for merra2, for example, the 'Spd_850pa_mps' is also
-                              available for certain locations.
-        :type  variables:      list
+        :type  variables:     list
 
         :return: A list of Node objects in order of closest distance to the requested lat, long.
         :rtype: List(Node)
@@ -875,7 +869,7 @@ class LoadBrightdata:
             merra2_nodes = bw.LoadBrightdata.monthly_norms('merra2', 60, 14.78, nearest=1,
                                                            from_date='2019-01-01', to_date='2019-07-01',
                                                            ref_no_years='10',
-                                                           wind_speed_measurement='Spd_850pa_mps')
+                                                           variables=['Spd_850pa_mps', 'Tmp_2m_degC'])
             print(merra2_nodes[0].dataset, merra2_nodes[0].latitude, merra2_nodes[0].longitude, merra2_nodes[0].info)
             merra2_nodes[0].data
 
