@@ -1272,7 +1272,7 @@ def _if_null_max_the_date(date_from, date_to):
     return date_from, date_to
 
 
-def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop', **kwargs):
+def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop', time_format=None, **kwargs):
     """
     Load a cleaning file which contains a list of sensor names with corresponding periods of flagged data.
     This file is a simple comma separated file with the sensor name along with the start and end timestamps for the
@@ -1289,6 +1289,8 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
     :type date_from_col_name: str, default 'Start'
     :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
     :type date_to_col_name: str, default 'Stop'
+    :param time_format: The strftime to parse time, eg '%d/%m/%Y %H:%M'. More info on pandas.to_datetime parameters.
+    :type time_format: str, default None
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame where each row contains the sensor name and the start and end timestamps of the flagged data.
     :rtype: pandas.DataFrame
@@ -1303,8 +1305,8 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
     """
     cleaning_df = _pandas_read_csv(filepath, **kwargs)
     # Issue when date format is DD-MM-YYYY and the MM is 12 or less.
-    cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name])
-    cleaning_df[date_to_col_name] = pd.to_datetime(cleaning_df[date_to_col_name])
+    cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name], format=time_format)
+    cleaning_df[date_to_col_name] = pd.to_datetime(cleaning_df[date_to_col_name], format=time_format)
     return cleaning_df
 
 
@@ -1396,7 +1398,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='
 
 
 def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags_to_exclude=['Synthesized'],
-                                replacement_text='NaN'):
+                                replacement_text='NaN', time_format=None):
     """
     Apply cleaning to a DataFrame using the Windographer flagging log file after Windographer was used to clean and
     filter the data.
@@ -1416,6 +1418,8 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
     :type flags_to_exclude: List[str], default ['Synthesized']
     :param replacement_text: Text used to replace the flagged data.
     :type replacement_text: str, default 'NaN'
+    :param time_format: The strftime to parse time, eg '%d/%m/%Y %H:%M'. See more info on pandas.to_datetime parameters.
+    :type time_format: str, default None
     :return: DataFrame with the flagged data removed.
     :rtype: pandas.DataFrame
 
@@ -1450,7 +1454,8 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
     flag_col_name = 'Flag Name'
     date_from_col_name = 'Start Time'
     date_to_col_name = 'End Time'
-    cleaning_df = load_cleaning_file(windog_cleaning_file, date_from_col_name, date_to_col_name, sep='\t')
+    cleaning_df = load_cleaning_file(windog_cleaning_file, date_from_col_name, date_to_col_name,
+                                     time_format=time_format, sep='\t')
 
     if replacement_text == 'NaN':
         replacement_text = np.nan
