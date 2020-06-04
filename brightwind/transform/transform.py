@@ -297,12 +297,12 @@ def scale_wind_speed(spd, scale_factor: float):
     return spd * scale_factor
 
 
-def offset_wind_direction(wdir, offset: float) -> pd.Series:
+def offset_wind_direction(wdir, offset: float):
     """
     Add/ subtract offset from wind direction. Keeps the ranges between 0 to 360
     :param wdir: Series or data frame or a single direction to offset
     :param offset: Offset in degrees can be negative or positive
-    :return: Series or data frame with offsetted directions
+    :return: Series or Dataframe or single value with offsetted directions
     """
     if isinstance(wdir, float):
         return utils._range_0_to_360(wdir + offset)
