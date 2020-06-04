@@ -308,8 +308,8 @@ def offset_wind_direction(wdir, offset: float) -> pd.Series:
         return utils._range_0_to_360(wdir + offset)
     elif isinstance(wdir, pd.DataFrame):
         return wdir.add(offset).applymap(utils._range_0_to_360)
-    else:
-        return wdir.to_frame().add(offset).applymap(utils._range_0_to_360)
+    elif isinstance(wdir, pd.Series):
+        return wdir.add(offset).apply(utils._range_0_to_360)
 
 
 def _selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2,
