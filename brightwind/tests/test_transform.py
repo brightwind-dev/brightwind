@@ -121,6 +121,21 @@ def test_adjust_slope_offset_arg_wndspd_series_str():
     assert str(except_info.value) == "some values in the Series are not of data type number"
 
 
+def test_offset_wind_direction_float():
+    wdir_offset = float(5)
+    assert wdir_offset == bw.offset_wind_direction(float(20), 345)
+
+
+def test_offset_wind_direction_df():
+    wdir_df_offset = pd.DataFrame([355, 15, np.NaN, 25, 335])
+    assert wdir_df_offset.equals(bw.offset_wind_direction(pd.DataFrame([10, 30, np.NaN, 40, 350]), 345))
+
+
+def test_offset_wind_direction_series():
+    wdir_series_offset = pd.Series([355, 15, np.NaN, 25, 335])
+    assert wdir_series_offset.equals(bw.offset_wind_direction(pd.Series([10, 30, np.NaN, 40, 350]), 345))
+
+
 def test_get_data_resolution():
     import warnings
     series1 = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)['Spd80mS'].index

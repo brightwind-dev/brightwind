@@ -297,19 +297,19 @@ def scale_wind_speed(spd, scale_factor: float):
     return spd * scale_factor
 
 
-def offset_wind_direction(wdir, offset: float) -> pd.Series:
+def offset_wind_direction(wdir, offset: float):
     """
     Add/ subtract offset from wind direction. Keeps the ranges between 0 to 360
     :param wdir: Series or data frame or a single direction to offset
     :param offset: Offset in degrees can be negative or positive
-    :return: Series or data frame with offsetted directions
+    :return: Series or Dataframe or single value with offsetted directions
     """
     if isinstance(wdir, float):
         return utils._range_0_to_360(wdir + offset)
     elif isinstance(wdir, pd.DataFrame):
         return wdir.add(offset).applymap(utils._range_0_to_360)
-    else:
-        return wdir.to_frame().add(offset).applymap(utils._range_0_to_360)
+    elif isinstance(wdir, pd.Series):
+        return wdir.add(offset).apply(utils._range_0_to_360)
 
 
 def _selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2,
