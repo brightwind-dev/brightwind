@@ -1304,14 +1304,14 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
 
     """
     cleaning_df = _pandas_read_csv(filepath, **kwargs)
-    # Issue when date format is DD-MM-YYYY and the MM is 12 or less.
+    # Issue when the date format is not the same in the full dataset.
     cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name], format=time_format)
     cleaning_df[date_to_col_name] = pd.to_datetime(cleaning_df[date_to_col_name], format=time_format)
     return cleaning_df
 
 
-def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='Sensor', date_from_col_name='Start',
-                   date_to_col_name='Stop', all_sensors_descriptor='All', replacement_text='NaN'):
+def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Sensor', date_from_col_name='Start',
+                   date_to_col_name='Stop', all_sensors_descriptor='All', replacement_text='NaN', time_format=None):
     """
     Apply cleaning to a DataFrame using predetermined flagged periods for each sensor listed in a cleaning file.
     The flagged data will be replaced with NaN values which then do not appear in any plots or effect calculations.
@@ -1343,6 +1343,8 @@ def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='
     :type all_sensors_descriptor: str, default 'All'
     :param replacement_text: Text used to replace the flagged data.
     :type replacement_text: str, default 'NaN'
+    :param time_format: The strftime to parse time, eg '%d/%m/%Y %H:%M'. See more info on pandas.to_datetime parameters.
+    :type time_format: str, default None
     :return: DataFrame with the flagged data removed.
     :rtype: pandas.DataFrame
 
@@ -1373,7 +1375,8 @@ def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='
         data = data.copy(deep=True)
 
     if isinstance(cleaning_file_or_df, str):
-        cleaning_df = load_cleaning_file(cleaning_file_or_df, date_from_col_name, date_to_col_name)
+        cleaning_df = load_cleaning_file(cleaning_file_or_df, date_from_col_name, date_to_col_name,
+                                         time_format=time_format)
     elif isinstance(cleaning_file_or_df, pd.DataFrame):
         cleaning_df = cleaning_file_or_df
     else:
