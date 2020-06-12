@@ -128,7 +128,7 @@ def _pandas_read_csv(filepath, **kwargs):
         raise error
 
 
-def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=True, **kwargs):
+def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=True, dayfirst=False, **kwargs):
     """
     Load timeseries data from a csv file, or group of files in a folder, into a DataFrame.
     The format of the csv file should be column headings in the first row with the timestamp column as the first
@@ -142,6 +142,9 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
     :type search_by_file_type: List[str], default ['.csv']
     :param print_progress: If you want to print out statements of the file been processed set to True. Default is True.
     :type print_progress: bool, default True
+    :param dayfirst: Specify a date parse order if arg is str or its list-likes. If True, parses dates with the day
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
+    :type dayfirst: bool, default False
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame with timestamps as it's index.
     :rtype: pandas.DataFrame
@@ -169,7 +172,7 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
     """
 
     is_file = _is_file(filepath_or_folder)
-    fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True}
+    fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True, 'dayfirst': dayfirst}
     merged_fn_args = {**fn_arguments, **kwargs}
     if is_file:
         return _pandas_read_csv(filepath_or_folder, **merged_fn_args)
@@ -180,7 +183,7 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
 
 def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
     """
-    Load a Windographer .txt data file exported fom the Windographer software into a DataFrame.
+    Load a Windographer .txt data file exported from the Windographer software into a DataFrame.
 
     - If flagged data was filtered out during the export from Windographer these can be replaced to work with Pandas.
     - If delimiter other than 'tab' is used during export you can specify 'comma', 'space' or user specific.
@@ -1290,7 +1293,7 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
     :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
     :type date_to_col_name: str, default 'Stop'
     :param dayfirst: Specify a date parse order if arg is str or its list-likes. If True, parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. . More info on pandas.to_datetime parameters.
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.to_datetime parameters.
     :type dayfirst: bool, default False
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame where each row contains the sensor name and the start and end timestamps of the flagged data.
@@ -1345,7 +1348,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     :param replacement_text: Text used to replace the flagged data.
     :type replacement_text: str, default 'NaN'
     :param dayfirst: Specify a date parse order if arg is str or its list-likes. If True, parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. . More info on pandas.to_datetime parameters.
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.to_datetime parameters.
     :type dayfirst: bool, default False
     :return: DataFrame with the flagged data removed.
     :rtype: pandas.DataFrame
@@ -1423,7 +1426,7 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
     :param replacement_text: Text used to replace the flagged data.
     :type replacement_text: str, default 'NaN'
     :param dayfirst: Specify a date parse order if arg is str or its list-likes. If True, parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. . More info on pandas.to_datetime parameters.
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.to_datetime parameters.
     :type dayfirst: bool, default False
     :return: DataFrame with the flagged data removed.
     :rtype: pandas.DataFrame
