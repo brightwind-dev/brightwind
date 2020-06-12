@@ -22,3 +22,11 @@ def test_apply_cleaning():
     assert (data_clnd3.drop(['RECORD', 'Site', 'LoggerID'], axis=1).fillna(-999) ==
             data_clnd4.drop(['RECORD', 'Site', 'LoggerID'], axis=1).fillna(-999)).all().all()
 
+def test_load_csv():
+    data = bw.load_csv('../datasets/demo/demo_data.csv')
+    data2 = bw.load_csv('../datasets/demo/demo_data2.csv', dayfirst=True)
+    data3 = bw.load_csv('../datasets/demo/demo_data3.csv', dayfirst=True)
+
+    assert (data.fillna(-999) == data2.fillna(-999)).all().all()
+
+    assert (data.fillna(-999) == data3.fillna(-999)).all().all()
