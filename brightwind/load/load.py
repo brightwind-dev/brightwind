@@ -182,7 +182,7 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
                                         **merged_fn_args)
 
 
-def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
+def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, dayfirst=False, **kwargs):
     """
     Load a Windographer .txt data file exported from the Windographer software into a DataFrame.
 
@@ -199,6 +199,10 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
     :type delimiter: str, default 'tab'
     :param flag_text: This is the 'missing data point' text used during export if flagged data was filtered.
     :type flag_text: str, float
+    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
+            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
+    :type dayfirst: bool, default False
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame with timestamps as it's index.
     :rtype: pandas.DataFrame
@@ -241,7 +245,7 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
             if delimiter == separator['delimiter']:
                 delimiter = separator['fn_argument']
         fn_arguments = {'skiprows': number_of_header_rows_to_skip, 'delimiter': delimiter,
-                        'header': 0, 'index_col': 0, 'parse_dates': True}
+                        'header': 0, 'index_col': 0, 'parse_dates': True, 'dayfirst': dayfirst}
         merged_fn_args = {**fn_arguments, **kwargs}
         df = _pandas_read_csv(StringIO(file_contents), **merged_fn_args)
         if len(df.columns) > 0 and 'Unnamed' in df.columns[-1]:
