@@ -142,7 +142,8 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
     :type search_by_file_type: List[str], default ['.csv']
     :param print_progress: If you want to print out statements of the file been processed set to True. Default is True.
     :type print_progress: bool, default True
-    :param dayfirst: Specify a date parse order if arg is str or its list-likes. If True, parses dates with the day
+    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
+            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
             first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
     :type dayfirst: bool, default False
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
@@ -1292,8 +1293,9 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
     :type date_from_col_name: str, default 'Start'
     :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
     :type date_to_col_name: str, default 'Stop'
-    :param dayfirst: Specify a date parse order if arg is str or its list-likes. If True, parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.to_datetime parameters.
+    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
+            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
     :type dayfirst: bool, default False
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame where each row contains the sensor name and the start and end timestamps of the flagged data.
@@ -1347,8 +1349,9 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     :type all_sensors_descriptor: str, default 'All'
     :param replacement_text: Text used to replace the flagged data.
     :type replacement_text: str, default 'NaN'
-    :param dayfirst: Specify a date parse order if arg is str or its list-likes. If True, parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.to_datetime parameters.
+    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
+            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
     :type dayfirst: bool, default False
     :return: DataFrame with the flagged data removed.
     :rtype: pandas.DataFrame
@@ -1425,8 +1428,9 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
     :type flags_to_exclude: List[str], default ['Synthesized']
     :param replacement_text: Text used to replace the flagged data.
     :type replacement_text: str, default 'NaN'
-    :param dayfirst: Specify a date parse order if arg is str or its list-likes. If True, parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.to_datetime parameters.
+    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
+            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
     :type dayfirst: bool, default False
     :return: DataFrame with the flagged data removed.
     :rtype: pandas.DataFrame
