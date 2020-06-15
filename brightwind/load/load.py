@@ -128,7 +128,7 @@ def _pandas_read_csv(filepath, **kwargs):
         raise error
 
 
-def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=True, **kwargs):
+def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=True, dayfirst=False, **kwargs):
     """
     Load timeseries data from a csv file, or group of files in a folder, into a DataFrame.
     The format of the csv file should be column headings in the first row with the timestamp column as the first
@@ -142,6 +142,10 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
     :type search_by_file_type: List[str], default ['.csv']
     :param print_progress: If you want to print out statements of the file been processed set to True. Default is True.
     :type print_progress: bool, default True
+    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
+            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
+    :type dayfirst: bool, default False
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame with timestamps as it's index.
     :rtype: pandas.DataFrame
@@ -169,7 +173,7 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
     """
 
     is_file = _is_file(filepath_or_folder)
-    fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True}
+    fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True, 'dayfirst': dayfirst}
     merged_fn_args = {**fn_arguments, **kwargs}
     if is_file:
         return _pandas_read_csv(filepath_or_folder, **merged_fn_args)
@@ -178,9 +182,9 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
                                         **merged_fn_args)
 
 
-def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
+def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, dayfirst=False, **kwargs):
     """
-    Load a Windographer .txt data file exported fom the Windographer software into a DataFrame.
+    Load a Windographer .txt data file exported from the Windographer software into a DataFrame.
 
     - If flagged data was filtered out during the export from Windographer these can be replaced to work with Pandas.
     - If delimiter other than 'tab' is used during export you can specify 'comma', 'space' or user specific.
@@ -195,6 +199,10 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
     :type delimiter: str, default 'tab'
     :param flag_text: This is the 'missing data point' text used during export if flagged data was filtered.
     :type flag_text: str, float
+    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
+            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
+    :type dayfirst: bool, default False
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame with timestamps as it's index.
     :rtype: pandas.DataFrame
@@ -237,7 +245,7 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, **kwargs):
             if delimiter == separator['delimiter']:
                 delimiter = separator['fn_argument']
         fn_arguments = {'skiprows': number_of_header_rows_to_skip, 'delimiter': delimiter,
-                        'header': 0, 'index_col': 0, 'parse_dates': True}
+                        'header': 0, 'index_col': 0, 'parse_dates': True, 'dayfirst': dayfirst}
         merged_fn_args = {**fn_arguments, **kwargs}
         df = _pandas_read_csv(StringIO(file_contents), **merged_fn_args)
         if len(df.columns) > 0 and 'Unnamed' in df.columns[-1]:
@@ -1272,7 +1280,7 @@ def _if_null_max_the_date(date_from, date_to):
     return date_from, date_to
 
 
-def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop', **kwargs):
+def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop', dayfirst=False, **kwargs):
     """
     Load a cleaning file which contains a list of sensor names with corresponding periods of flagged data.
     This file is a simple comma separated file with the sensor name along with the start and end timestamps for the
@@ -1289,6 +1297,10 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
     :type date_from_col_name: str, default 'Start'
     :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
     :type date_to_col_name: str, default 'Stop'
+    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
+            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
+    :type dayfirst: bool, default False
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame where each row contains the sensor name and the start and end timestamps of the flagged data.
     :rtype: pandas.DataFrame
@@ -1302,14 +1314,14 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
 
     """
     cleaning_df = _pandas_read_csv(filepath, **kwargs)
-    # Issue when date format is DD-MM-YYYY and the MM is 12 or less.
-    cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name])
-    cleaning_df[date_to_col_name] = pd.to_datetime(cleaning_df[date_to_col_name])
+    # Issue when the date format is not the same in the full dataset.
+    cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name], dayfirst=dayfirst)
+    cleaning_df[date_to_col_name] = pd.to_datetime(cleaning_df[date_to_col_name], dayfirst=dayfirst)
     return cleaning_df
 
 
-def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='Sensor', date_from_col_name='Start',
-                   date_to_col_name='Stop', all_sensors_descriptor='All', replacement_text='NaN'):
+def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Sensor', date_from_col_name='Start',
+                   date_to_col_name='Stop', all_sensors_descriptor='All', replacement_text='NaN', dayfirst=False):
     """
     Apply cleaning to a DataFrame using predetermined flagged periods for each sensor listed in a cleaning file.
     The flagged data will be replaced with NaN values which then do not appear in any plots or effect calculations.
@@ -1341,6 +1353,10 @@ def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='
     :type all_sensors_descriptor: str, default 'All'
     :param replacement_text: Text used to replace the flagged data.
     :type replacement_text: str, default 'NaN'
+    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
+            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
+    :type dayfirst: bool, default False
     :return: DataFrame with the flagged data removed.
     :rtype: pandas.DataFrame
 
@@ -1371,7 +1387,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='
         data = data.copy(deep=True)
 
     if isinstance(cleaning_file_or_df, str):
-        cleaning_df = load_cleaning_file(cleaning_file_or_df, date_from_col_name, date_to_col_name)
+        cleaning_df = load_cleaning_file(cleaning_file_or_df, date_from_col_name, date_to_col_name, dayfirst=dayfirst)
     elif isinstance(cleaning_file_or_df, pd.DataFrame):
         cleaning_df = cleaning_file_or_df
     else:
@@ -1396,7 +1412,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace = False, sensor_col_name='
 
 
 def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags_to_exclude=['Synthesized'],
-                                replacement_text='NaN'):
+                                replacement_text='NaN', dayfirst=False):
     """
     Apply cleaning to a DataFrame using the Windographer flagging log file after Windographer was used to clean and
     filter the data.
@@ -1416,6 +1432,10 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
     :type flags_to_exclude: List[str], default ['Synthesized']
     :param replacement_text: Text used to replace the flagged data.
     :type replacement_text: str, default 'NaN'
+    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
+            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
+    :type dayfirst: bool, default False
     :return: DataFrame with the flagged data removed.
     :rtype: pandas.DataFrame
 
@@ -1450,7 +1470,8 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
     flag_col_name = 'Flag Name'
     date_from_col_name = 'Start Time'
     date_to_col_name = 'End Time'
-    cleaning_df = load_cleaning_file(windog_cleaning_file, date_from_col_name, date_to_col_name, sep='\t')
+    cleaning_df = load_cleaning_file(windog_cleaning_file, date_from_col_name, date_to_col_name,
+                                     dayfirst=dayfirst, sep='\t')
 
     if replacement_text == 'NaN':
         replacement_text = np.nan
