@@ -31,3 +31,9 @@ def test_load_csv():
     assert (data.fillna(-999) == data2.fillna(-999)).all().all()
 
     assert (data.fillna(-999) == data3.fillna(-999)).all().all()
+
+def test_load_windographer_txt():
+    data = bw.load_windographer_txt('../datasets/demo/windographer_demo_data.txt')
+    data2 = bw.load_windographer_txt('../datasets/demo/windographer_demo_data2.txt', dayfirst=True)
+
+    assert (data.fillna(-999) == data2.fillna(-999)).all().all()
