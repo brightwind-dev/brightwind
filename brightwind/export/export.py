@@ -114,7 +114,10 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, folder_path=Non
 
     with open(str(file_path), "w") as file:
         file.write(tab_string_strip)
-    print('Export of tab file successful.')
+    print('Export of tab file {0} successful.\nMean wind speed derived from this tab file is: ' 
+          '{1} m/s.\nLatitude: {2} , Longitude: {3}, Height: {4}\n'
+          ''.format(str(file_name_print), "{:.3f}".format(mean_wind_speed),
+                    "{:.2f}".format(lat), "{:.2f}".format(long), "{:.2f}".format(height)))
 
 
 def export_csv(data, file_name=None, folder_path=None, **kwargs):
