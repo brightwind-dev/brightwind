@@ -817,7 +817,6 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
               (0.40588235294117647, 0.43137254901960786, 0.4666666666666667, 1.0)]  # Dec
 
     if len(df.columns) == 1:
-        df.columns = ['12 Month Average']
         colors[0] = colors[5]
     if calc_method == 'power_law':
         label = 'Average Shear'
@@ -827,7 +826,7 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
 
     if plot_type == '12x24':
         df.columns = np.arange(1, 13, 1)
-        df.index= np.arange(0, 24, 1)
+        df.index = np.arange(0, 24, 1)
         df[df.columns[::-1]]
         return plot_12x24_contours(df, label=(label, 'mean'), plot='tod')
 
