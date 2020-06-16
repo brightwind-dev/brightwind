@@ -271,9 +271,10 @@ class Shear:
                 start_times[i] = start_times[i - 1] + dt
 
             # extract wind speeds for each month
-            for j in range(0, 12):
+            months_tot = pd.unique(wspds.index.month.values)
+            for j in months_tot:
 
-                anemometers_df = wspds[wspds.index.month == j + 1]
+                anemometers_df = wspds[wspds.index.month == j]
                 for i in range(0, segments_per_day):
 
                     if segments_per_day == 1:
@@ -318,15 +319,17 @@ class Shear:
                 alpha_df.sort_index(inplace=True)
 
                 if by_month is True:
-                    alpha_df.columns = calendar.month_abbr[1:13]
+                    alpha_df.columns = [calendar.month_abbr[month] for month in months_tot]
                     self.plot = plt.plot_shear_time_of_day(Shear._fill_df_12x24(alpha_df), calc_method=calc_method,
                                                            plot_type=plot_type)
 
                 else:
+                    n_months = len(alpha_df.columns.values)
                     alpha_df = pd.DataFrame(alpha_df.mean(axis=1))
-                    alpha_df.columns = ['12 Month Average']
-                    self.plot = plt.plot_shear_time_of_day(pd.DataFrame((Shear._fill_df_12x24(alpha_df)).iloc[:, 0]),
-                                                           calc_method=calc_method, plot_type=plot_type)
+                    alpha_df.columns = [str(n_months) + ' Month Average']
+                    df_in = pd.DataFrame((Shear._fill_df_12x24(alpha_df)).iloc[:, 0])
+                    df_in.columns = [str(n_months) + ' Month Average']
+                    self.plot = plt.plot_shear_time_of_day(df_in, calc_method=calc_method, plot_type=plot_type)
 
                 alpha_df.index.name = 'segment_start_time'
                 self._alpha = alpha_df
@@ -340,17 +343,20 @@ class Shear:
                 intercept_df.sort_index(inplace=True)
 
                 if by_month is True:
-                    roughness_df.columns = slope_df.columns = intercept_df.columns = calendar.month_abbr[1:13]
+                    roughness_df.columns = slope_df.columns = intercept_df.columns = \
+                                                                    [calendar.month_abbr[month] for month in months_tot]
                     self.plot = plt.plot_shear_time_of_day(Shear._fill_df_12x24(roughness_df),
                                                            calc_method=calc_method, plot_type=plot_type)
                 else:
+                    n_months = len(slope_df.columns.values)
                     slope_df = pd.DataFrame(slope_df.mean(axis=1))
                     intercept_df = pd.DataFrame(intercept_df.mean(axis=1))
                     roughness_df = pd.DataFrame(roughness_df.mean(axis=1))
-                    roughness_df.columns = slope_df.columns = intercept_df.columns = ['12_month_average']
-                    self.plot = plt.plot_shear_time_of_day(
-                        pd.DataFrame(Shear._fill_df_12x24(roughness_df).iloc[:, 0]),
-                        calc_method=calc_method, plot_type=plot_type)
+                    roughness_df.columns = slope_df.columns = intercept_df.columns = \
+                                                                            [str(len(months_tot)) + '_month_average']
+                    df_in = pd.DataFrame(Shear._fill_df_12x24(roughness_df).iloc[:, 0])
+                    df_in.columns = [str(n_months) + ' Month Average']
+                    self.plot = plt.plot_shear_time_of_day(df_in, calc_method=calc_method, plot_type=plot_type)
 
                 roughness_df.index.name = 'segment_start_time'
                 self._roughness = roughness_df
