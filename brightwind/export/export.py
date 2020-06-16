@@ -96,8 +96,8 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, folder_path=Non
     version = '0.1.0'  # __bw.__version__ # to be changed for 'pip' install
     sectors = len(local_freq_tab.columns)
 
-    tab_string = "{0} created using brightwind version {1} at {2}. Mean wind speed for tab file is: {3} m/s." \
-                 "\n{4} {5} {6}\n " \
+    tab_string = "{0} created using brightwind version {1} at {2}. Mean wind speed derived from this tab file is: " \
+                 "{3} m/s.\n{4} {5} {6}\n " \
                  "{7} {8} {9}\n ".format(str(file_name_print), version, str(current_timestamp),
                                          "{:.3f}".format(mean_wind_speed),
                                          "{:.2f}".format(lat), "{:.2f}".format(long), "{:.2f}".format(height),
