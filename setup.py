@@ -25,7 +25,7 @@ setup(
     keywords=['BRIGHT', 'WIND', 'RESOURCE', 'DATA', 'ANALYSTS', 'PROCESSING', 'WASP', 'ROSE', 'WINDFARMER', 'OPENWIND',
               'WIND PRO', 'WINDOGRAPHER'],
     install_requires=[
-        'pandas>=0.24.0',
+        'pandas>=0.24.0, <1.0.0',
         'numpy>=1.16.4',
         'scikit-learn>=0.19.1',
         'matplotlib>=3.0.3',
