@@ -27,13 +27,18 @@ def test_load_csv():
     data = bw.load_csv('../datasets/demo/demo_data.csv')
     data2 = bw.load_csv('../datasets/demo/demo_data2.csv', dayfirst=True)
     data3 = bw.load_csv('../datasets/demo/demo_data3.csv', dayfirst=True)
+    data4 = bw.load_csv('../datasets/demo/demo_data4.csv', dayfirst=True)
 
     assert (data.fillna(-999) == data2.fillna(-999)).all().all()
-
     assert (data.fillna(-999) == data3.fillna(-999)).all().all()
+    assert (data.fillna(-999) == data4.fillna(-999)).all().all()
+
 
 def test_load_windographer_txt():
     data = bw.load_windographer_txt('../datasets/demo/windographer_demo_data.txt')
+    data1 = bw.load_windographer_txt('../datasets/demo/windographer_demo_data1.txt', dayfirst=True)
     data2 = bw.load_windographer_txt('../datasets/demo/windographer_demo_data2.txt', dayfirst=True)
 
+    assert (data.fillna(-999) == data1.fillna(-999)).all().all()
     assert (data.fillna(-999) == data2.fillna(-999)).all().all()
+
