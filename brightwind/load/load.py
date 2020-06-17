@@ -176,10 +176,10 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
     fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True, 'dayfirst': dayfirst}
     merged_fn_args = {**fn_arguments, **kwargs}
     if is_file:
-        return _pandas_read_csv(filepath_or_folder, **merged_fn_args)
+        return _pandas_read_csv(filepath_or_folder, **merged_fn_args).tz_localize(None)
     elif not is_file:
         return _assemble_df_from_folder(filepath_or_folder, search_by_file_type, _pandas_read_csv, print_progress,
-                                        **merged_fn_args)
+                                        **merged_fn_args).tz_localize(None)
 
 
 def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, dayfirst=False, **kwargs):
@@ -250,7 +250,7 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, dayfirst=Fa
         df = _pandas_read_csv(StringIO(file_contents), **merged_fn_args)
         if len(df.columns) > 0 and 'Unnamed' in df.columns[-1]:
             df.drop(df.columns[-1], axis=1, inplace=True)
-        return df
+        return df.tz_localize(None)
     elif not is_file:
         raise FileNotFoundError("File path seems to be a folder. Please load a single Windographer .txt data file.")
 
