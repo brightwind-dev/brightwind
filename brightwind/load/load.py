@@ -1315,8 +1315,10 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
     """
     cleaning_df = _pandas_read_csv(filepath, **kwargs)
     # Issue when the date format is not the same in the full dataset.
-    cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name], dayfirst=dayfirst)
-    cleaning_df[date_to_col_name] = pd.to_datetime(cleaning_df[date_to_col_name], dayfirst=dayfirst)
+    cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name],
+                                                     dayfirst=dayfirst).dt.tz_localize(None)
+    cleaning_df[date_to_col_name] = pd.to_datetime(cleaning_df[date_to_col_name],
+                                                   dayfirst=dayfirst).dt.tz_localize(None)
     return cleaning_df
 
 

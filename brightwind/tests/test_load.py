@@ -15,12 +15,16 @@ def test_apply_cleaning():
     data_clnd2 = bw.apply_cleaning_windographer(data, bw.datasets.demo_windographer_flagging_log2, dayfirst=True)
     data_clnd3 = bw.apply_cleaning(data, bw.datasets.demo_cleaning_file)
     data_clnd4 = bw.apply_cleaning(data, '../datasets/demo/demo_cleaning_file2.csv', dayfirst=True)
+    data_clnd5 = bw.apply_cleaning(data, '../datasets/demo/demo_cleaning_file3.csv', dayfirst=True)
 
     assert (data_clnd2.drop(['RECORD', 'Site', 'LoggerID'], axis=1).fillna(-999) ==
             data_clnd3.drop(['RECORD', 'Site', 'LoggerID'], axis=1).fillna(-999)).all().all()
 
     assert (data_clnd3.drop(['RECORD', 'Site', 'LoggerID'], axis=1).fillna(-999) ==
             data_clnd4.drop(['RECORD', 'Site', 'LoggerID'], axis=1).fillna(-999)).all().all()
+
+    assert (data_clnd3.drop(['RECORD', 'Site', 'LoggerID'], axis=1).fillna(-999) ==
+            data_clnd5.drop(['RECORD', 'Site', 'LoggerID'], axis=1).fillna(-999)).all().all()
 
 
 def test_load_csv():
