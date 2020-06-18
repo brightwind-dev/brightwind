@@ -130,7 +130,8 @@ def _pandas_read_csv(filepath, **kwargs):
 
 def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=True, dayfirst=False, **kwargs):
     """
-    Load timeseries data from a csv file, or group of files in a folder, into a DataFrame.
+    Load timeseries data from a csv file, or group of files in a folder, into a DataFrame. The timezone is removed from
+    the timestamps if it is present.
     The format of the csv file should be column headings in the first row with the timestamp column as the first
     column, however these can be over written by sending your own arguments as this is a wrapper around the
     pandas.read_csv function. The pandas.read_csv documentation can be found at:
@@ -176,15 +177,16 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
     fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True, 'dayfirst': dayfirst}
     merged_fn_args = {**fn_arguments, **kwargs}
     if is_file:
-        return _pandas_read_csv(filepath_or_folder, **merged_fn_args)
+        return _pandas_read_csv(filepath_or_folder, **merged_fn_args).tz_localize(None)
     elif not is_file:
         return _assemble_df_from_folder(filepath_or_folder, search_by_file_type, _pandas_read_csv, print_progress,
-                                        **merged_fn_args)
+                                        **merged_fn_args).tz_localize(None)
 
 
 def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, dayfirst=False, **kwargs):
     """
-    Load a Windographer .txt data file exported from the Windographer software into a DataFrame.
+    Load a Windographer .txt data file exported from the Windographer software into a DataFrame. The timezone is removed
+    from the timestamps if it is present.
 
     - If flagged data was filtered out during the export from Windographer these can be replaced to work with Pandas.
     - If delimiter other than 'tab' is used during export you can specify 'comma', 'space' or user specific.
@@ -250,15 +252,16 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, dayfirst=Fa
         df = _pandas_read_csv(StringIO(file_contents), **merged_fn_args)
         if len(df.columns) > 0 and 'Unnamed' in df.columns[-1]:
             df.drop(df.columns[-1], axis=1, inplace=True)
-        return df
+        return df.tz_localize(None)
     elif not is_file:
         raise FileNotFoundError("File path seems to be a folder. Please load a single Windographer .txt data file.")
 
 
-def load_campbell_scientific(filepath_or_folder, print_progress=True, **kwargs):
+def load_campbell_scientific(filepath_or_folder, print_progress=True, dayfirst=False,  **kwargs):
     """
     Load timeseries data from Campbell Scientific CR1000 formatted file, or group of files in a folder, into a
-    DataFrame. If the file format is slightly different your own key word arguments can be sent as this is a wrapper
+    DataFrame. The timezone is removed from the timestamps if it is present.
+    If the file format is slightly different your own key word arguments can be sent as this is a wrapper
     around the pandas.read_csv function. The pandas.read_csv documentation can be found at:
     https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html
 
@@ -266,6 +269,10 @@ def load_campbell_scientific(filepath_or_folder, print_progress=True, **kwargs):
     :type filepath_or_folder: str
     :param print_progress: If you want to print out statements of the file been processed set to True. Default is True.
     :type print_progress: bool, default True
+    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
+            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
+    :type dayfirst: bool, default False
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame with timestamps as it's index
     :rtype: pandas.DataFrame
@@ -287,13 +294,13 @@ def load_campbell_scientific(filepath_or_folder, print_progress=True, **kwargs):
     """
 
     is_file = _is_file(filepath_or_folder)
-    fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True, 'skiprows': [0, 2, 3]}
+    fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True, 'skiprows': [0, 2, 3],  'dayfirst': dayfirst}
     merged_fn_args = {**fn_arguments, **kwargs}
     if is_file:
-        return _pandas_read_csv(filepath_or_folder, **merged_fn_args)
+        return _pandas_read_csv(filepath_or_folder, **merged_fn_args).tz_localize(None)
     elif not is_file:
         return _assemble_df_from_folder(filepath_or_folder, ['.dat', '.csv'], _pandas_read_csv, print_progress,
-                                        **merged_fn_args)
+                                        **merged_fn_args).tz_localize(None)
 
 
 def _pandas_read_excel(filepath, **kwargs):
@@ -1282,7 +1289,8 @@ def _if_null_max_the_date(date_from, date_to):
 
 def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop', dayfirst=False, **kwargs):
     """
-    Load a cleaning file which contains a list of sensor names with corresponding periods of flagged data.
+    Load a cleaning file which contains a list of sensor names with corresponding periods of flagged data. The timezone
+    is removed from the timestamps if it is present.
     This file is a simple comma separated file with the sensor name along with the start and end timestamps for the
     flagged period. There may be other columns in the file however these will be ignores.  E.g.:
     | Sensor |      Start          |       Stop
@@ -1315,8 +1323,10 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
     """
     cleaning_df = _pandas_read_csv(filepath, **kwargs)
     # Issue when the date format is not the same in the full dataset.
-    cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name], dayfirst=dayfirst)
-    cleaning_df[date_to_col_name] = pd.to_datetime(cleaning_df[date_to_col_name], dayfirst=dayfirst)
+    cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name],
+                                                     dayfirst=dayfirst).dt.tz_localize(None)
+    cleaning_df[date_to_col_name] = pd.to_datetime(cleaning_df[date_to_col_name],
+                                                   dayfirst=dayfirst).dt.tz_localize(None)
     return cleaning_df
 
 

@@ -46,10 +46,17 @@ def _get_min_overlap_timestamp(df1_timestamps, df2_timestamps):
     """
     Get the minimum overlapping timestamp from two series
     """
-    if df1_timestamps.max() < df2_timestamps.min() or df1_timestamps.min() > df2_timestamps.max():
-        raise IndexError("No overlapping data. Ranges: {0} to {1}  and {2} to {3}"
-                         .format(df1_timestamps.min(), df1_timestamps.max(),
-                                 df2_timestamps.min(), df2_timestamps.max()), )
+    try:
+        if df1_timestamps.max() < df2_timestamps.min() or df1_timestamps.min() > df2_timestamps.max():
+            raise IndexError("No overlapping data. Ranges: {0} to {1}  and {2} to {3}"
+                             .format(df1_timestamps.min(), df1_timestamps.max(),
+                                     df2_timestamps.min(), df2_timestamps.max()), )
+    except TypeError as type_error:
+        if str(type_error) == 'Cannot compare tz-naive and tz-aware timestamps':
+            raise TypeError('Cannot compare tz-naive and tz-aware timestamps. One of the input dataset '
+                            'is timezone aware, use df.tz_localize(None) to remove the timezone.')
+    except Exception as error:
+        raise error
     return max(df1_timestamps.min(), df2_timestamps.min())
 
 
