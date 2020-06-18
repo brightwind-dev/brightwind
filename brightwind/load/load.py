@@ -255,7 +255,7 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, dayfirst=Fa
         raise FileNotFoundError("File path seems to be a folder. Please load a single Windographer .txt data file.")
 
 
-def load_campbell_scientific(filepath_or_folder, print_progress=True, **kwargs):
+def load_campbell_scientific(filepath_or_folder, print_progress=True, dayfirst=False,  **kwargs):
     """
     Load timeseries data from Campbell Scientific CR1000 formatted file, or group of files in a folder, into a
     DataFrame. If the file format is slightly different your own key word arguments can be sent as this is a wrapper
@@ -266,6 +266,10 @@ def load_campbell_scientific(filepath_or_folder, print_progress=True, **kwargs):
     :type filepath_or_folder: str
     :param print_progress: If you want to print out statements of the file been processed set to True. Default is True.
     :type print_progress: bool, default True
+    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
+            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
+            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
+    :type dayfirst: bool, default False
     :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
     :return: A DataFrame with timestamps as it's index
     :rtype: pandas.DataFrame
@@ -287,13 +291,13 @@ def load_campbell_scientific(filepath_or_folder, print_progress=True, **kwargs):
     """
 
     is_file = _is_file(filepath_or_folder)
-    fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True, 'skiprows': [0, 2, 3]}
+    fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True, 'skiprows': [0, 2, 3],  'dayfirst': dayfirst}
     merged_fn_args = {**fn_arguments, **kwargs}
     if is_file:
-        return _pandas_read_csv(filepath_or_folder, **merged_fn_args)
+        return _pandas_read_csv(filepath_or_folder, **merged_fn_args).tz_localize(None)
     elif not is_file:
         return _assemble_df_from_folder(filepath_or_folder, ['.dat', '.csv'], _pandas_read_csv, print_progress,
-                                        **merged_fn_args)
+                                        **merged_fn_args).tz_localize(None)
 
 
 def _pandas_read_excel(filepath, **kwargs):
