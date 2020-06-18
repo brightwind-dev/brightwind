@@ -46,3 +46,9 @@ def test_load_windographer_txt():
     assert (data.fillna(-999) == data1.fillna(-999)).all().all()
     assert (data.fillna(-999) == data2.fillna(-999)).all().all()
 
+
+def test_load_campbell_scientific():
+    data = bw.load_campbell_scientific('../datasets/demo/campbell_scientific_demo_data.csv')
+    data1 = bw.load_campbell_scientific('../datasets/demo/campbell_scientific_demo_data1.csv', dayfirst=True)
+
+    assert (data.fillna(-999) == data1.fillna(-999)).all().all()
