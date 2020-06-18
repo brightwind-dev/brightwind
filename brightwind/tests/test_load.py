@@ -33,9 +33,12 @@ def test_load_csv():
     data3 = bw.load_csv('../datasets/demo/demo_data3.csv', dayfirst=True)
     data4 = bw.load_csv('../datasets/demo/demo_data4.csv', dayfirst=True)
 
-    assert (data.fillna(-999) == data2.fillna(-999)).all().all()
-    assert (data.fillna(-999) == data3.fillna(-999)).all().all()
-    assert (data.fillna(-999) == data4.fillna(-999)).all().all()
+    assert (data['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999) ==
+            data2['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999)).all().all()
+    assert (data['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999) ==
+            data3['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999)).all().all()
+    assert (data['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999) ==
+            data4['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999)).all().all()
 
 
 def test_load_windographer_txt():
@@ -43,12 +46,15 @@ def test_load_windographer_txt():
     data1 = bw.load_windographer_txt('../datasets/demo/windographer_demo_data1.txt', dayfirst=True)
     data2 = bw.load_windographer_txt('../datasets/demo/windographer_demo_data2.txt', dayfirst=True)
 
-    assert (data.fillna(-999) == data1.fillna(-999)).all().all()
-    assert (data.fillna(-999) == data2.fillna(-999)).all().all()
+    assert (data['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999) ==
+            data1['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999)).all().all()
+    assert (data['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999) ==
+            data2['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999)).all().all()
 
 
 def test_load_campbell_scientific():
     data = bw.load_campbell_scientific('../datasets/demo/campbell_scientific_demo_data.csv')
     data1 = bw.load_campbell_scientific('../datasets/demo/campbell_scientific_demo_data1.csv', dayfirst=True)
 
-    assert (data.fillna(-999) == data1.fillna(-999)).all().all()
+    assert (data['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999) ==
+            data1['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999)).all().all()
