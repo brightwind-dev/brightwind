@@ -130,7 +130,8 @@ def _pandas_read_csv(filepath, **kwargs):
 
 def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=True, dayfirst=False, **kwargs):
     """
-    Load timeseries data from a csv file, or group of files in a folder, into a DataFrame.
+    Load timeseries data from a csv file, or group of files in a folder, into a DataFrame. The timezone is removed from
+    the timestamps if it is present.
     The format of the csv file should be column headings in the first row with the timestamp column as the first
     column, however these can be over written by sending your own arguments as this is a wrapper around the
     pandas.read_csv function. The pandas.read_csv documentation can be found at:
@@ -184,7 +185,8 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
 
 def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, dayfirst=False, **kwargs):
     """
-    Load a Windographer .txt data file exported from the Windographer software into a DataFrame.
+    Load a Windographer .txt data file exported from the Windographer software into a DataFrame. The timezone is removed
+    from the timestamps if it is present.
 
     - If flagged data was filtered out during the export from Windographer these can be replaced to work with Pandas.
     - If delimiter other than 'tab' is used during export you can specify 'comma', 'space' or user specific.
@@ -258,7 +260,8 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, dayfirst=Fa
 def load_campbell_scientific(filepath_or_folder, print_progress=True, dayfirst=False,  **kwargs):
     """
     Load timeseries data from Campbell Scientific CR1000 formatted file, or group of files in a folder, into a
-    DataFrame. If the file format is slightly different your own key word arguments can be sent as this is a wrapper
+    DataFrame. The timezone is removed from the timestamps if it is present.
+    If the file format is slightly different your own key word arguments can be sent as this is a wrapper
     around the pandas.read_csv function. The pandas.read_csv documentation can be found at:
     https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html
 
@@ -1286,7 +1289,8 @@ def _if_null_max_the_date(date_from, date_to):
 
 def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop', dayfirst=False, **kwargs):
     """
-    Load a cleaning file which contains a list of sensor names with corresponding periods of flagged data.
+    Load a cleaning file which contains a list of sensor names with corresponding periods of flagged data. The timezone
+    is removed from the timestamps if it is present.
     This file is a simple comma separated file with the sensor name along with the start and end timestamps for the
     flagged period. There may be other columns in the file however these will be ignores.  E.g.:
     | Sensor |      Start          |       Stop
