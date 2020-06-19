@@ -18,7 +18,7 @@ import os
 import pandas as pd
 import datetime
 import re
-import pkg_resources
+import brightwind
 
 __all__ = ['export_tab_file', 'export_csv']
 
@@ -94,7 +94,7 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, folder_path=Non
 
     mean_wind_speed = _calc_mean_speed_of_freq_tab(freq_tab)
     current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    version = pkg_resources.require("brightwind")[0].version
+    version = brightwind.__version__
     sectors = len(local_freq_tab.columns)
 
     tab_string = "{0} created using brightwind version {1} at {2}. Mean wind speed for tab file is: {3} m/s." \
