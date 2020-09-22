@@ -21,6 +21,7 @@ from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as plt
 from brightwind.utils.utils import _convert_df_to_series
+from brightwind.export.export import _calc_mean_speed_of_freq_tab
 import matplotlib
 
 __all__ = ['concurrent_coverage',
@@ -685,8 +686,62 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
         return heatmap
 
 
+def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_series, direction_series, var_bin_array,
+                                                     sectors=12, direction_bin_array=None, direction_bin_labels=None,
+                                                     aggregation_method='%frequency'):
+    """
+    Calculates a distribution matrix of a variable against another variable and wind direction applying
+    a seasonal adjustment.
+
+    :param var_series: Series of variable whose distribution is calculated
+    :type var_series: pandas.Series
+    :param var_to_bin_series: Series of the variable to bin by.
+    :type var_to_bin_series: pandas.Series
+    :param direction_series: Series of wind directions to bin by. Must be between [0-360].
+    :type direction_series: pandas.Series
+    :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that
+                        behaviour specify direction_bin_array. Sectors will be overwritten if direction_bin_array is set.
+    :type sectors: int
+    :param direction_bin_array: To add custom bins for direction sectors, overwrites sectors. For instance,
+                                    for direction bins [0,120), [120, 215), [215, 360) the list would be [0, 120, 215, 360].
+    :type direction_bin_array: list
+    :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. Uses string
+                                     labels of the format '30-90' by default.
+    :type direction_bin_labels: list(float), list(str)
+    :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
+                                   %frequency or a custom function. Computes frequency in percentages by default.
+    :type aggregation_method: str
+    :return: A distribution matrix for the given variable
+    :rtype: pandas.DataFrame
+    """
+    day_month = {1: 31, 2: 28.25, 3: 31, 4: 30, 5: 31, 6: 30,
+                 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
+
+    results = {}
+    result = 0
+    for month in list(var_series.index.month.unique().sort_values()):
+        monthly_coverage = var_series[var_series.index.month == month].count() / (day_month[month] * 24 * 60 * 60 /
+                                                                                  tf._get_data_resolution(
+                                                                                      var_series.index).seconds)
+
+        monthly_weight = np.min([monthly_coverage, 1]) * day_month[month] / 365.25
+
+        results.update({month: _get_dist_matrix_by_dir_sector(
+            var_series=var_series[var_series.index.month == month],
+            var_to_bin_series=var_to_bin_series[var_series.index.month == month],
+            direction_series=direction_series[direction_series.index.month == month],
+            var_bin_array=var_bin_array,
+            sectors=sectors, direction_bin_array=direction_bin_array,
+            direction_bin_labels=direction_bin_labels, aggregation_method=aggregation_method).replace(np.nan, 0.0)})
+        result += results[month] * monthly_weight
+
+    result = result / monthly_weight.sum()
+    result = 100 * result / result.sum().sum()
+    return result
+
+
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
-               direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True,
+               direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, seasonal_adjustment=False,
                plot_bins=None, plot_labels=None, return_data=False):
     """
     Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
@@ -713,6 +768,9 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     :param freq_as_percentage: Optional, True by default. Returns the frequency as percentages. To return just the
         count, set to False
     :type freq_as_percentage: bool
+    :param seasonal_adjustment: Optional, False by default. If True, returns the frequency distribution seasonal
+                                adjusted
+    :type seasonal_adjustment: bool
     :param return_data:  Set to True if you want to return the frequency table too.
     :type return_data: bool
     :param plot_bins: Bins to use for gradient in the rose. Different bins will be plotted with different
@@ -751,14 +809,60 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
 
     """
     if freq_as_percentage:
-            agg_method = '%frequency'
+        agg_method = '%frequency'
     else:
         agg_method = 'count'
+
     result = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_series,
                                             direction_series=direction_series, var_bin_array=var_bin_array,
                                             sectors=sectors, direction_bin_array=direction_bin_array,
                                             direction_bin_labels=None, aggregation_method=agg_method).replace(np.nan,
                                                                                                               0.0)
+    if seasonal_adjustment:
+        result_seas_adj = _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series=var_series,
+                                                                           var_to_bin_series=var_series,
+                                                                           direction_series=direction_series,
+                                                                           var_bin_array=var_bin_array, sectors=sectors,
+                                                                           direction_bin_array=direction_bin_array,
+                                                                           direction_bin_labels=None,
+                                                                           aggregation_method=agg_method)
+
+        # get mean of seasonal adjusted and not seasonal adjusted distribution matrices
+        non_seas_mean = _calc_mean_speed_of_freq_tab(result)
+        seas_mean_no_adj = _calc_mean_speed_of_freq_tab(result_seas_adj)
+
+        # get scale factor
+        scale_factor = non_seas_mean / seas_mean_no_adj
+
+        # create seasonal adjusted distribution matrix (with rescaling)
+        var_series_scaled = tf.scale_wind_speed(var_series, scale_factor)
+        result_seas_adj_scaled = _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series=var_series_scaled,
+                                                                                  var_to_bin_series=var_series_scaled,
+                                                                                  direction_series=direction_series,
+                                                                                  var_bin_array=var_bin_array,
+                                                                                  sectors=sectors,
+                                                                                  direction_bin_array=
+                                                                                  direction_bin_array,
+                                                                                  direction_bin_labels=None,
+                                                                                  aggregation_method=agg_method)
+        # get mean of seasonal adjusted distribution matrix (with rescaling)
+        seas_mean_adj = _calc_mean_speed_of_freq_tab(result_seas_adj_scaled)
+
+        # at this point, we still have a gap as not all months are used evenly in the seasonal adjustment,
+        # so a simple factor doesn't have the expected impact. Therefore, we'll derive a sensitivity factor
+        # (how much tab file mean speed changes per %age scale factor)
+        sensitivity_factor = (seas_mean_adj / seas_mean_no_adj) / (non_seas_mean / seas_mean_no_adj)
+
+        # create final seas adjusted distribution matrix (with rescaling, including sensitivity ratio)
+        var_series_scaled = tf.scale_wind_speed(var_series, scale_factor / sensitivity_factor)
+        result = _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series=var_series_scaled,
+                                                                  var_to_bin_series=var_series_scaled,
+                                                                  direction_series=direction_series,
+                                                                  var_bin_array=var_bin_array, sectors=sectors,
+                                                                  direction_bin_array=direction_bin_array,
+                                                                  direction_bin_labels=None,
+                                                                  aggregation_method=agg_method)
+
     if plot_bins is None:
         plot_bins = [0, 3, 6, 9, 12, 15, 41]
         if plot_labels is None:
