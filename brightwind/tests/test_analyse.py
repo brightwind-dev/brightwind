@@ -1,6 +1,7 @@
 import pytest
 import brightwind as bw
 import pandas as pd
+from brightwind.export.export import _calc_mean_speed_of_freq_tab
 
 
 def test_monthly_means():
@@ -211,3 +212,42 @@ def test_dist_matrix_by_direction_sector():
     matrix = bw.dist_matrix_by_dir_sector(df.Spd40mN, df.T2m, df.Dir38mS,
                                           var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
+
+
+def test_freq_table():
+    df = bw.load_csv(bw.datasets.demo_data)
+    plot_wind_rose, freq_tbl_seas_adj = bw.freq_table(df.Spd80mN, df.Dir78mS, return_data=True,
+                                                      seasonal_adjustment=True)
+    plot_wind_rose, freq_tbl_no_seas_adj = bw.freq_table(df.Spd80mN, df.Dir78mS, return_data=True,
+                                                         seasonal_adjustment=False)
+
+    target_freq_dict_seas_adj_sum = {'345.0-15.0': 2.690602193274217,
+                                     '15.0-45.0': 4.932954958298831,
+                                     '45.0-75.0': 4.036425196229632,
+                                     '75.0-105.0': 4.799944104997535,
+                                     '105.0-135.0': 4.984422199223889,
+                                     '135.0-165.0': 2.791261583917291,
+                                     '165.0-195.0': 11.141741110645347,
+                                     '195.0-225.0': 30.943303351234686,
+                                     '225.0-255.0': 10.733414073732336,
+                                     '255.0-285.0': 11.747150822206224,
+                                     '285.0-315.0': 8.697878980078087,
+                                     '315.0-345.0': 2.5009014261619473}
+
+    target_freq_dict_no_seas_adj_sum = {'345.0-15.0': 2.8129542293655683,
+                                        '15.0-45.0': 5.063317612858025,
+                                        '45.0-75.0': 3.974735697330307,
+                                        '75.0-105.0': 4.766336571542107,
+                                        '105.0-135.0': 4.896004350144831,
+                                        '135.0-165.0': 2.735571845360716,
+                                        '165.0-195.0': 10.750922837214652,
+                                        '195.0-225.0': 31.380648129751428,
+                                        '225.0-255.0': 10.253165880642907,
+                                        '255.0-285.0': 11.820682010687142,
+                                        '285.0-315.0': 8.96171663407544,
+                                        '315.0-345.0': 2.5839442010268847}
+
+    assert freq_tbl_seas_adj.sum().to_dict() == target_freq_dict_seas_adj_sum
+    assert freq_tbl_no_seas_adj.sum().to_dict() == target_freq_dict_no_seas_adj_sum
+    assert round(_calc_mean_speed_of_freq_tab(freq_tbl_seas_adj) /
+                 _calc_mean_speed_of_freq_tab(freq_tbl_no_seas_adj), 4) == 1
