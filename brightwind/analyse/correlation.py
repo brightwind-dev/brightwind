@@ -16,6 +16,7 @@
 
 import pandas as pd
 import numpy as np
+import datetime
 from typing import List
 from brightwind.transform import transform as tf
 from brightwind.analyse.plot import _scatter_plot
@@ -105,7 +106,14 @@ class CorrelBase:
         # This will give erroneous result when the averaging period is not a whole number such that ref and target does
         # bot get aligned -Inder
         if ext_input is None:
-            output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
+            if 'D' in self.averaging_prd:
+                avg_prd_sec = int(''.join(c for c in self.averaging_prd if (c.isdigit()))) * 24 * 60 * 60
+                step_backward = int(
+                    (self.target_spd.index[0] - self.ref_spd.index[0]).total_seconds() / avg_prd_sec)
+                ref_start_date = self.target_spd.index[0] - datetime.timedelta(seconds=step_backward * avg_prd_sec)
+            else:
+                ref_start_date = self.ref_spd.index[0]
+            output = self._predict(tf.average_data_by_period(self.ref_spd[ref_start_date:], self.averaging_prd,
                                                              return_coverage=False))
             output = tf.average_data_by_period(self.target_spd, self.averaging_prd,
                                                return_coverage=False).combine_first(output)
@@ -500,9 +508,16 @@ class SpeedSort(CorrelBase):
         # This will give erroneous result when the averaging period is not a whole number such that ref and target does
         # bot get aligned -Inder
         if input_spd is None and input_dir is None:
-            output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
+            if 'D' in self.averaging_prd:
+                avg_prd_sec = int(''.join(c for c in self.averaging_prd if (c.isdigit()))) * 24 * 60 * 60
+                step_backward = int(
+                    (self.target_spd.index[0] - self.ref_spd.index[0]).total_seconds() / avg_prd_sec)
+                ref_start_date = self.target_spd.index[0] - datetime.timedelta(seconds=step_backward * avg_prd_sec)
+            else:
+                ref_start_date = self.ref_spd.index[0]
+            output = self._predict(tf.average_data_by_period(self.ref_spd[ref_start_date:], self.averaging_prd,
                                                              return_coverage=False),
-                                   tf.average_data_by_period(self.ref_dir, self.averaging_prd,
+                                   tf.average_data_by_period(self.ref_dir[ref_start_date:], self.averaging_prd,
                                                              return_coverage=False))
             output = tf.average_data_by_period(self.target_spd, self.averaging_prd,
                                                return_coverage=False).combine_first(output)
