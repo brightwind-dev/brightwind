@@ -1,6 +1,7 @@
 import pytest
 import brightwind as bw
 import pandas as pd
+import numpy as np
 
 
 def test_monthly_means():
@@ -211,3 +212,30 @@ def test_dist_matrix_by_direction_sector():
     matrix = bw.dist_matrix_by_dir_sector(df.Spd40mN, df.T2m, df.Dir38mS,
                                           var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
+
+
+def test_average_wdirs():
+    wdirs = np.array([350, 10])
+    assert bw.average_wdirs(wdirs) == 0.0
+    wdirs = np.array([0, 180])
+    assert bw.average_wdirs(wdirs) is np.NaN
+    wdirs = np.array([90, 270])
+    assert bw.average_wdirs(wdirs) is np.NaN
+    wdirs = np.array([45, 135])
+    assert bw.average_wdirs(wdirs) == 90
+    wdirs = np.array([135, 225])
+    assert bw.average_wdirs(wdirs) == 180
+    wdirs = np.array([45, 315, 225, 135])
+    assert bw.average_wdirs(wdirs) is np.NaN
+    wdirs = np.array([225, 315])
+    assert bw.average_wdirs(wdirs) == 270
+    wdirs = np.array([0, 10, 20, 340, 350, 360])
+    assert bw.average_wdirs(wdirs) == 0.0
+    wdirs_series = pd.Series(wdirs)
+    assert bw.average_wdirs(wdirs_series) == 0.0
+    wspds = np.array([5, 5, 5, 5, 5, 5])
+    assert bw.average_wdirs(wdirs, wspds) == 0.0
+    wspds_series = pd.Series(wspds)
+    assert bw.average_wdirs(wdirs_series, wspds_series) == 0.0
+    wspds = np.array([5, 8.5, 10, 10, 6, 5])
+    assert round(bw.average_wdirs(wdirs, wspds), 4) == 0.5774
