@@ -39,7 +39,8 @@ __all__ = ['concurrent_coverage',
            'basic_stats',
            'TI',
            'sector_ratio',
-           'calc_air_density']
+           'calc_air_density',
+           'average_wdirs']
 
 
 def dist_matrix(var_series, x_series, y_series,
@@ -1234,3 +1235,54 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         raise TypeError('elevation_ref should be a number')
     else:
         return ref_air_density
+
+
+def average_wdirs(wdirs, wspds=None):
+    """
+    Average wind directions together using vector averaging.
+
+    :param wdirs: Wind directions to calculate the average of
+    :type wdirs:  list or array or np.array or pd.Series
+    :param wspds: Wind speeds for the magnitude of the wind direction vector.
+                  If not provided the magnitude is assumed to be unity.
+                  If a list or an array is sent they must be the same length as wdirs.
+    :type wspds:  list or array or np.array or pd.Series
+    :return:      Average wind direction for the wind directions provided.
+    :rtype:       float
+
+
+    **Example usage**
+    ::
+        wdirs = np.array([350, 10])
+        bw.average_wdirs(wdirs)
+
+        wdirs_series = pd.Series(wdirs)
+        bw.average_wdirs(wdirs_series)
+
+        wspds = [5, 6]
+        bw.average_wdirs(wdirs, wspds)
+
+
+    Note:
+    The reason [0, 180] results in 90 and not NaN is because the sin of 180 is not quite zero which results in not
+    ending back exactly where you started and so gives 90. Similarly if 10, 190 is sent the mean of the sin is slightly
+    negative (-6.9e-17) instead of zero which results in 270 instead of NaN. Similar for cosine when 90, 270 sent.
+    Solution is to round both sin and cos to 5 decimal places to make them zero.
+    """
+
+    if wspds is None:
+        sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5))  # sin of each angle, East component
+        cosine = np.mean(np.round(np.cos(np.deg2rad(wdirs)), 5))  # cos of each angle, North component
+    else:
+        sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5) * wspds)  # sin of each angle, East component
+        cosine = np.mean(np.round(np.cos(np.deg2rad(wdirs)), 5) * wspds)  # cos of each angle, North component
+
+    # If both sine and cosine result in zero then all the directions cancel and you end up where you started which
+    # means there is no wind direction => return NaN
+    if sine == 0 and cosine == 0:
+        avg_dir = np.NaN
+    else:
+        avg_dir = np.rad2deg(np.arctan2(sine, cosine)) % 360
+        if avg_dir == 360.0:  # preference to have 0 returned instead of 360
+            avg_dir = 0.0
+    return avg_dir
