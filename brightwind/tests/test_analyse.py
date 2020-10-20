@@ -65,7 +65,7 @@ def test_dist_12x24():
 
 
 def test_TI_twelve_by_24():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
     bw.TI.twelve_by_24(df[['Spd60mN']], df[['Spd60mNStd']])
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd)
     bw.TI.twelve_by_24(df.Spd60mN, df.Spd60mNStd, return_data=True)
@@ -76,7 +76,7 @@ def test_TI_twelve_by_24():
 
 
 def test_coverage():
-    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
 
     # hourly coverage
     data_hourly = bw.coverage(data[['Spd80mN']], period='1H')
@@ -89,7 +89,7 @@ def test_coverage():
 
 
 def test_dist_by_dir_sector():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
     rose = bw.dist_by_dir_sector(df[['Spd40mN']], df[['Dir38mS']])
     rose = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS)
 
@@ -103,7 +103,7 @@ def test_dist_by_dir_sector():
 
 
 def test_freq_table():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
 
     graph = bw.freq_table(df[['Spd40mN']], df[['Dir38mS']])
     graph, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
@@ -169,7 +169,7 @@ def test_freq_distribution():
 
 
 def test_TI_by_speed():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
     TI_by_speed = bw.TI.by_speed(df[['Spd80mN']], df[['Spd80mNStd']])
     TI_by_speed = bw.TI.by_speed(df.Spd80mN, df.Spd80mNStd)
 
@@ -184,7 +184,7 @@ def test_TI_by_speed():
 
 
 def test_calc_air_density():
-    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
     bw.calc_air_density(data[['T2m']], data[['P2m']])
     bw.calc_air_density(data.T2m, data.P2m)
     bw.calc_air_density(data.T2m, data.P2m, elevation_ref=0, elevation_site=200)
@@ -202,7 +202,7 @@ def test_calc_air_density():
 
 
 def test_dist_matrix_by_direction_sector():
-    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+    df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
     bw.dist_matrix_by_dir_sector(var_series=df.Spd80mN, var_to_bin_by_series=df.Spd80mN, direction_series=df.Dir78mS,
                                  aggregation_method='count')
     matrix = bw.dist_matrix_by_dir_sector(df.Spd40mN, df.T2m, df.Dir38mS,
