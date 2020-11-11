@@ -1270,9 +1270,18 @@ def _vector_avg_of_wdirs(wdirs, wspds=None):
     negative (-6.9e-17) instead of zero which results in 270 instead of NaN. Similar for cosine when 90, 270 sent.
     Solution is to round both sin and cos to 5 decimal places to make them zero.
     """
-    # drop nans first
-    wdirs = [x for x in wdirs if x == x]
-    if not wdirs:
+    # first drop nans, if wind speeds available need to match them first to drop equivalent values
+    if wspds is None:
+        wdirs = np.array([x for x in wdirs if x == x])
+    else:
+        a = np.array([wdirs, wspds])
+        a = a[:, ~np.isnan(a).any(axis=0)]
+        wdirs = a[0]
+        wspds = a[1]
+        print(wdirs)
+        print(wspds)
+    # if the resulting wdir array is empty, return NAN
+    if wdirs.size == 0:
         return np.NaN
 
     if wspds is None:
