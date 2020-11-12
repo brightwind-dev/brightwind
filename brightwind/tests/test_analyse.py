@@ -217,31 +217,57 @@ import numpy as np
 def test_average_wdirs():
     wdirs = np.array([350, 10])
     assert bw.average_wdirs(wdirs) == 0.0
+
     wdirs = np.array([0, 180])
     assert bw.average_wdirs(wdirs) is np.NaN
+
     wdirs = np.array([90, 270])
     assert bw.average_wdirs(wdirs) is np.NaN
+
     wdirs = np.array([45, 135])
     assert bw.average_wdirs(wdirs) == 90
+
     wdirs = np.array([135, 225])
     assert bw.average_wdirs(wdirs) == 180
+
     wdirs = np.array([45, 315, 225, 135])
     assert bw.average_wdirs(wdirs) is np.NaN
+
     wdirs = np.array([225, 315])
     assert bw.average_wdirs(wdirs) == 270
+
     wdirs = np.array([0, 10, 20, 340, 350, 360])
     assert bw.average_wdirs(wdirs) == 0.0
+
     wdirs_with_nan = [15, np.nan, 25]
     assert round(bw.average_wdirs(wdirs_with_nan), 3) == 20.000
+
+    wspds = [3, 4, 5]
+    assert round(bw.average_wdirs(wdirs_with_nan, wspds), 3) == 21.253
+
+    wspds_with_nan = [3, 4, np.nan]
+    assert round(bw.average_wdirs(wdirs_with_nan, wspds_with_nan), 3) == 15.0
+
+    wspds_with_nan = [np.nan, np.nan, np.nan]
+    assert round(bw.average_wdirs(wdirs_with_nan, wspds_with_nan), 3) is np.NaN
+
+    wspds_with_nan = [3, 4, np.nan]
+    assert round(bw.average_wdirs(pd.Series(wdirs_with_nan), pd.Series(wspds_with_nan)), 3) == 15.0
+
     wdirs_with_nan = np.array(wdirs_with_nan)
     assert round(bw.average_wdirs(wdirs_with_nan), 3) == 20.000
+
     wdirs_with_nan = pd.Series(wdirs_with_nan)
     assert round(bw.average_wdirs(wdirs_with_nan), 3) == 20.000
+
     wdirs_series = pd.Series(wdirs)
     assert bw.average_wdirs(wdirs_series) == 0.0
+
     wspds = np.array([5, 5, 5, 5, 5, 5])
     assert bw.average_wdirs(wdirs, wspds) == 0.0
+
     wspds_series = pd.Series(wspds)
     assert bw.average_wdirs(wdirs_series, wspds_series) == 0.0
+
     wspds = np.array([5, 8.5, 10, 10, 6, 5])
     assert round(bw.average_wdirs(wdirs, wspds), 4) == 0.5774
