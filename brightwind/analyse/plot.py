@@ -176,7 +176,7 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # To plot few variables
         bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']])
@@ -269,7 +269,7 @@ def plot_scatter(x_series, y_series, x_axis_title=None, y_axis_title=None,
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # To plot two variables against each other
         bw.plot_scatter(data.Spd80mN, data.Spd80mS)
@@ -325,7 +325,7 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_ti
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         #To plot few variables
         bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS)
@@ -379,7 +379,7 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # To plot two wind speeds against each other
         bw.plot_scatter_wspd(data.Spd80mN, data.Spd80mS)

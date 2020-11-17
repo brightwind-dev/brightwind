@@ -36,9 +36,9 @@ def datasets_available():
 
         all_datasets_available = ['demo_data', 'demo_campbell_scientific_data', 'demo_merra2_NW',
            'demo_merra2_NE', 'demo_merra2_SE', 'demo_merra2_SW', 'demo_windographer_data']
-        demo_data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_data)
-        demo_data = bw.load_csv(bw.datasets.demo_data)
-        demo_windog_data = bw.load_windographer_txt(bw.datasets.demo_windographer_data)
+        demo_data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+        demo_data = bw.load_csv(bw.demo_datasets.demo_data)
+        demo_windog_data = bw.load_windographer_txt(bw.demo_datasets.demo_windographer_data)
 
     """
 
