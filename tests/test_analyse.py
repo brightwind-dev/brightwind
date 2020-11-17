@@ -3,8 +3,8 @@ import brightwind as bw
 import pandas as pd
 import numpy as np
 
-DATA = bw.load_csv(bw.datasets.demo_data)
-DATA = bw.apply_cleaning(DATA, bw.datasets.demo_cleaning_file)
+DATA = bw.load_csv(bw.demo_datasets.demo_data)
+DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 WSPD_COLS = ['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd60mS', 'Spd40mN', 'Spd40mS']
 WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
 
@@ -140,9 +140,8 @@ def test_dist():
 
 
 def test_dist_of_wind_speed():
-    df = bw.load_csv(bw.datasets.demo_data)
-    bw.dist_of_wind_speed(df[['Spd80mN']], max_speed=30, max_y_value=10, return_data=False)
-    bw.dist_of_wind_speed(df.Spd80mN, max_speed=30, max_y_value=10, return_data=False)
+    bw.dist_of_wind_speed(DATA[['Spd80mN']], max_speed=30, max_y_value=10, return_data=False)
+    bw.dist_of_wind_speed(DATA.Spd80mN, max_speed=30, max_y_value=10, return_data=False)
     assert True
 
 

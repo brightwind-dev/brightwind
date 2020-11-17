@@ -1,8 +1,8 @@
 import pytest
 import brightwind as bw
 
-DATA = bw.load_csv(bw.datasets.demo_data)
-DATA = bw.apply_cleaning(DATA, bw.datasets.demo_cleaning_file)
+DATA = bw.load_csv(bw.demo_datasets.demo_data)
+DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 
 
 def test_export_tab_file():
