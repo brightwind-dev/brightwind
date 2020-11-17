@@ -157,7 +157,7 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
     filter the returned data by coverage.
 
     :param data: Data to find average or aggregate of
-    :type data: pandas.Series
+    :type data: pandas.Series or pandas.DataFrame
     :param period: Groups data by the period specified here. The following formats are supported
 
             - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
