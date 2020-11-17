@@ -1369,6 +1369,11 @@ def average_wdirs(wdirs, wspds=None):
 
     It is also possible to send wind speeds for each wind direction to be used as the magnitude in the vector averaging
     algorithm.
+    
+    When a dataset which contains some NANs is sent these are ignored e.g. if 3 wind directions are sent and one of them
+    is a NAN, the average of the other two is calculated ignoring the NAN. Similarly, if some wind speeds contain a NAN,
+    this and the corresponding wind direction are ignored even if the wind direction is valid as the magnitude of the 
+    vector is missing.
 
     :param wdirs: Wind directions to calculate the average of.
     :type wdirs:  list or array or np.array or pd.Series or pd.DataFrame
