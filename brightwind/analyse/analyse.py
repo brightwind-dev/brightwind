@@ -357,7 +357,7 @@ def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         #For distribution of %frequency of wind speeds
         dist = bw.dist(data.Spd40mN, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
@@ -426,7 +426,7 @@ def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         freq_dist_plot, freq_dist = bw.dist_of_wind_speed(data.Spd80mN, return_data=True)
 
@@ -509,7 +509,7 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
 
         rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS, return_data=True)
 
@@ -627,7 +627,7 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # Simple use
         bw.dist_matrix_by_dir_sector(data.T2m, data.Spd80mN, data.Dir38mS)
@@ -730,7 +730,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
 
         #Simple use
         rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
@@ -861,7 +861,7 @@ def coverage(data, period='1M', aggregation_method='mean'):
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
 
         #To find hourly coverage
         data_hourly = bw.coverage(data.Spd80mN, period='1H')
@@ -903,7 +903,7 @@ def basic_stats(data):
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
         bw.basic_stats(data)
         bw.basic_stats(data['Gust_Max_1'])
 
@@ -933,7 +933,7 @@ def dist_12x24(var_series, aggregation_method='mean', var_name_label=None, retur
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # For 12x24 table of means
         graph, table12x24 = bw.dist_12x24(data.Spd40mN, var_name_label='wind speed [m/s]', return_data=True)
@@ -1146,7 +1146,7 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         #For plotting both booms
         bw.sector_ratio(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, boom_dir_1=0, boom_dir_2=180)
@@ -1209,7 +1209,7 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         import brightwind as bw
 
         #For a series of air densities
-        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
         air_density = bw.calc_air_density(data.T2m, data.P2m)
 
         #For a single value
@@ -1417,7 +1417,7 @@ def average_wdirs(wdirs, wspds=None):
         wspds_df = pd.DataFrame(wspds)
         bw.average_wdirs(wdirs_df, wspds_df)
 
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
         avg_wdir = bw.average_wdirs(data.Dir78mS)
 
         wdir_cols = ['Dir78mS', 'Dir58mS', 'Dir38mS']

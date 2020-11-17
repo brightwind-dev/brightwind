@@ -76,7 +76,7 @@ def _get_data_resolution(data_idx):
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
         resolution = bw._get_data_resolution(df.Spd80mS.index)
         #To check the number of seconds in resolution
         print(resolution.seconds)
@@ -157,7 +157,7 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
     filter the returned data by coverage.
 
     :param data: Data to find average or aggregate of
-    :type data: pandas.Series
+    :type data: pandas.Series or pandas.DataFrame
     :param period: Groups data by the period specified here. The following formats are supported
 
             - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
@@ -190,7 +190,7 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
 
         #To find hourly averages
         data_hourly = bw.average_data_by_period(data.Spd80mN, period='1H')
@@ -269,7 +269,7 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
         df['Spd80mS_adj'] = bw.adjust_slope_offset(df.Spd80mS, 0.044, 0.235, 0.04365, 0.236)
         df[['Spd80mS', 'Spd80mS_adj']]
 
@@ -422,7 +422,7 @@ def selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2, sector_width=60)
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # Normal use: Derive selective average of 80 m anemometer pair
         data['sel_avg_80m'] = bw.selective_avg(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS,
@@ -532,7 +532,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        data = bw.load_campbell_scientific(bw.demo_datasets.demo_site_data)
 
         #To decrease 10 minutes within a given date range and overwrite the original data
         op1 = bw.offset_timestamps(data, offset='1H', date_from='2016-01-01 00:20:00',
