@@ -149,6 +149,12 @@ def test_get_data_resolution():
     series2 = pd.date_range('2010-01-01', periods=150, freq='H')
     assert bw.transform.transform._get_data_resolution(series2).seconds == 3600
 
+    series1 = bw.average_data_by_period(DATA['Spd80mN'], period='1M', coverage_threshold=0, return_coverage=False)
+    assert bw.transform.transform._get_data_resolution(series1.index) == pd.Timedelta(1, unit='M')
+
+    series1 = bw.average_data_by_period(DATA['Spd80mN'], period='1AS', coverage_threshold=0, return_coverage=False)
+    assert bw.transform.transform._get_data_resolution(series1.index) == pd.Timedelta(365, unit='D')
+
     # hourly series with one instance where difference between adjacent timestamps is 10 min
     series3 = pd.date_range('2010-04-15', '2010-05-01', freq='H').union(pd.date_range('2010-05-01 00:10:00', periods=20,
                                                                                       freq='H'))
@@ -218,7 +224,7 @@ def test_offset_timestamps():
                               overwrite=True)
     assert (op.loc['2016-01-10 00:40:00'] == series1.Spd60mN.loc['2016-01-10 00:30:00']).all()
     assert len(op) + 1 == len(series1.Spd60mN)
-    
+
 
 def test_average_data_by_period():
     bw.average_data_by_period(DATA[['Spd80mN']], period='1H')

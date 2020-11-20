@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import math
 from brightwind.utils import utils
+import warnings
 
 __all__ = ['average_data_by_period',
            'adjust_slope_offset',
@@ -62,39 +63,57 @@ def _get_min_overlap_timestamp(df1_timestamps, df2_timestamps):
 
 def _get_data_resolution(data_idx):
     """
-    Get the frequency of data i.e. the most common time interval between timestamps.
+    Get the resolution of a timeseries i.e. the most common time interval between timestamps. Also known as the
+    averaging period.
 
     The algorithm finds the most common time difference between consecutive time stamps and returns the
-    most common time stamp. Also checks the most common time difference and the minimum time difference. If they
+    most common time stamp.
+
+    This function will return a specific Timedelta if a resolution of month or year is identified due to months and
+    years having irregular numbers of days. These will be:
+    - For monthly data:     pd.Timedelta(1, unit='M')       i.e. 30.436875 days
+    - For annual data:      pd.Timedelta(365, unit='D')     i.e. 365 days
+
+    The function also checks the most common time difference against the minimum time difference. If they
     do not match it shows a warning. It is suggested to manually look at the data if such a warning is shown.
 
-    :param data_idx: Indexes of the DataFrame or series
-    :type data_idx: pandas.DataFrame.index or pandas.Series.index
-    :return: A time delta object which represents the time difference between consecutive timestamps.
-    :rtype: pandas.Timedelta
+    :param data_idx: Timeseries index of a pd.DataFrame or pd.Series.
+    :type data_idx:  pd.DataFrame.index or pd.Series.index
+    :return:         A time delta object which represents the time difference between consecutive timestamps.
+    :rtype:          pd.Timedelta
 
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
-        resolution = bw._get_data_resolution(df.Spd80mS.index)
-        #To check the number of seconds in resolution
+        import pandas as pd
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        resolution = bw.transform.transform._get_data_resolution(data.Spd80mS.index)
+
+        # To check the number of seconds in resolution
         print(resolution.seconds)
+
+        # To check if the resolution is monthly
+        resolution == pd.Timedelta(1, unit='M')
 
 
     """
-
-    import warnings
     time_diff_btw_timestamps = data_idx.to_series().diff()
     most_freq_time_diff = time_diff_btw_timestamps.mode().values[0]
+    most_freq_time_diff = pd.to_timedelta(most_freq_time_diff)  # convert np.timedelta64 to pd.Timedelta
     minimum_time_diff = time_diff_btw_timestamps.min()
+
+    if most_freq_time_diff.days in [28, 29, 30, 31]:    # check if monthly first
+        return pd.Timedelta(1, unit='M')
+    elif most_freq_time_diff.days in [365, 366]:        # then if yearly
+        return pd.Timedelta(365, unit='D')
+
     if minimum_time_diff != most_freq_time_diff:
-        warnings.warn("Frequency of input data might not be determined correctly (most frequent time "
-                      "difference between adjacent timestamps"
-                      " does not match minimum time difference) most frequent time difference: {0}  "
-                      "minimum time difference {1}. Using most frequent time difference as resolution"
-                      .format(pd.to_timedelta(most_freq_time_diff, unit='s'), minimum_time_diff))
-    return pd.to_timedelta(most_freq_time_diff, unit='s')
+        warnings.warn('\nFrequency of input data may not be determined correctly. Most frequent time '
+                      'difference between adjacent timestamps does not match minimum time difference.\n'
+                      'Most frequent time difference is:\t{0}\n'
+                      'Minimum time difference is:\t\t{1}\n'
+                      'Returning most frequent time difference.'.format(most_freq_time_diff, minimum_time_diff))
+    return most_freq_time_diff
 
 
 def _round_timestamp_down_to_averaging_prd(timestamp, period):
