@@ -155,13 +155,28 @@ def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
     """
     For a given resolution of data finds the maximum number of data points in the averaging period
     """
-    max_pts = (averaged_data_index.to_series().diff().shift(-1)) / _get_data_resolution(data_index)
-    max_pts[-1] = (((averaged_data_index[-1] + 1*averaged_data_index[-1].freq) - averaged_data_index[-1]) /
-                   _get_data_resolution(data_index))
+    data_res = _get_data_resolution(data_index)
+
+    max_pts = (averaged_data_index.to_series().diff().shift(-1)) / data_res
+    # Fill in the last in the list as it is a NaT
+    max_pts[-1] = (((averaged_data_index[-1] + 1 * averaged_data_index[-1].freq) - averaged_data_index[-1]) /
+                   data_res)
+    if data_res == pd.Timedelta(1, unit='M'):
+        # The data resolution is monthly, therefore round the result to 1 decimal to make whole months.
+        max_pts = np.round(max_pts, 1)
     return max_pts
 
 
 def _get_coverage_series(data, grouper_obj):
+    """
+    Counts the number of data points in the grouper_obj relative to the maximum possible
+
+    :param data: The data to find the coverage for.
+    :type  data: pd.DataFrame or pd.Series
+    :param grouper_obj: The object that has grouped the data already. The mean, sum, count, etc. can then be found.
+    :type  grouper_obj: pd.DatetimeIndexResampler
+    :return:
+    """
     coverage = grouper_obj.count().divide(_max_coverage_count(data.index, grouper_obj.mean().index), axis=0)
     return coverage
 
@@ -241,6 +256,7 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
             period = period+'S'
         if period[-1] == 'Y':
             raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
+    print('Period understood: {}'.format(period))
     grouper_obj = data.resample(period, axis=0, closed='left', label='left', base=0,
                                 convention='start', kind='timestamp')
 
@@ -471,6 +487,17 @@ def selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2, sector_width=60)
 def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
                                       aggregation_method_ref='mean', aggregation_method_target='mean',
                                       get_coverage=False):
+    """
+
+    :param ref:
+    :param target:
+    :param averaging_prd:
+    :param coverage_threshold:
+    :param aggregation_method_ref:
+    :param aggregation_method_target:
+    :param get_coverage:
+    :return:
+    """
     ref_overlap, target_overlap = _get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(),
                                                         averaging_prd)
     from pandas.tseries.frequencies import to_offset
