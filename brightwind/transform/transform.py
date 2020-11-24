@@ -117,20 +117,48 @@ def _get_data_resolution(data_idx):
     return most_freq_time_diff
 
 
+def round_down(num, divisor):
+    """
+    Round the number down to a multiple of the divisor.
+    :param num:
+    :param divisor:
+    :return:
+    """
+    return num - (num % divisor)
+
+
+def _round_down(num, divisor):
+    return num - (num % divisor)
+
+
 def _round_timestamp_down_to_averaging_prd(timestamp, period):
     """
     Return a timestamp that represents the start of the averaging period based on the timestamp provided.
+
     :param timestamp: Timestamp to round down from.
     :type timestamp:  pd.Timestamp
     :param period:    Averaging period e.g. '10min', '1H', '3H', '6H', '1D', '7D', '1W', '1MS', '1AS'
     :type period:     str
     :return:          Timestamp to represent the start of an averaging period which covers the timestamp.
     :rtype:           str
+
+    if 10min  it should go to the first whole 10-min period i.e. 00:00, 00:10, 00:20, 00:30, 00:40, 00:50
+    if 15min  it should go to the first whole 15-min period i.e. 00:00, 00:15, 00:30, 00:45
+    if 1H     it should go to the first whole hour
+    if 3H, 4H it should go to the first whole 3 or 4-hour period i.e. 04:00, 08:00, 12:00, 16:00, 20:00
+    if 1D     it should go to midnight
+    if 7D, 1W it should go to midnight because we don't have a base reference
+    if 1M, 1MS it should go to start of month
+    if 1A, 1AS it should go to start of year
     """
     if period[-3:] == 'min':
-        return '{year}-{month}-{day} {hour}:00:00'.format(year=timestamp.year, month=timestamp.month,
-                                                          day=timestamp.day, hour=timestamp.hour)
-    elif period[-1] == 'H' or period[-1] == 'D' or period[-1] == 'W':
+        return '{year}-{month}-{day} {hour}:{minute}:00'.format(year=timestamp.year, month=timestamp.month,
+                                                                day=timestamp.day, hour=timestamp.hour,
+                                                                minute=_round_down(timestamp.minute, int(period[:-3])))
+    elif period[-1] == 'H':
+        return '{year}-{month}-{day} {hour}:00:00'.format(year=timestamp.year, month=timestamp.month, day=timestamp.day,
+                                                          hour=_round_down(timestamp.hour, int(period[:-1])))
+    elif period[-1] == 'D' or period[-1] == 'W':
         return '{year}-{month}-{day}'.format(year=timestamp.year, month=timestamp.month, day=timestamp.day,
                                              hour=timestamp.hour)
     elif period[-1] == 'M' or period[-2:] == 'MS':

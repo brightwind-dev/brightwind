@@ -142,12 +142,14 @@ def test_offset_wind_direction_series():
 
 
 def test_round_timestamp_down_to_averaging_prd():
-    avg_periods = ['10min', '1H', '3H', '6H', '1D', '7D', '1W', '1MS', '1AS']
-    avg_period_start_timestamps = ['2016-1-9 15:00:00', '2016-1-9', '2016-1-9', '2016-1-9', '2016-1-9', '2016-1-9',
-                                   '2016-1-9', '2016-1', '2016']
+    timestamp = pd.Timestamp('2016-01-09 11:21:11')
+    avg_periods = ['10min', '15min', '1H', '3H', '6H', '1D', '7D', '1W', '1MS', '1AS']
+    avg_period_start_timestamps = ['2016-1-9 11:20:00', '2016-1-9 11:15:00', '2016-1-9 11:00:00',
+                                   '2016-1-9 9:00:00', '2016-1-9 6:00:00', '2016-1-9', '2016-1-9',  '2016-1-9',
+                                   '2016-1', '2016']
     for idx, avg_period in enumerate(avg_periods):
         assert avg_period_start_timestamps[idx] == \
-               bw.transform.transform._round_timestamp_down_to_averaging_prd(DATA.index[0], avg_period)
+               bw.transform.transform._round_timestamp_down_to_averaging_prd(timestamp, avg_period)
 
 
 def test_get_data_resolution():
