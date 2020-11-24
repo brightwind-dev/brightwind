@@ -16,6 +16,7 @@
 
 import numpy as np
 import pandas as pd
+from pandas.tseries.frequencies import to_offset
 import math
 from brightwind.utils import utils
 import warnings
@@ -117,6 +118,15 @@ def _get_data_resolution(data_idx):
 
 
 def _round_timestamp_down_to_averaging_prd(timestamp, period):
+    """
+    Return a timestamp that represents the start of the averaging period based on the timestamp provided.
+    :param timestamp: Timestamp to round down from.
+    :type timestamp:  pd.Timestamp
+    :param period:    Averaging period e.g. '10min', '1H', '3H', '6H', '1D', '7D', '1W', '1MS', '1AS'
+    :type period:     str
+    :return:          Timestamp to represent the start of an averaging period which covers the timestamp.
+    :rtype:           str
+    """
     if period[-3:] == 'min':
         return '{year}-{month}-{day} {hour}:00:00'.format(year=timestamp.year, month=timestamp.month,
                                                           day=timestamp.day, hour=timestamp.hour)
@@ -143,9 +153,25 @@ def _common_idxs(reference, site):
     return common, len(common)
 
 
-def _get_overlapping_data(df1, df2, period):
-    if isinstance(period, str):
-        start = _round_timestamp_down_to_averaging_prd(_get_min_overlap_timestamp(df1.index, df2.index), period)
+def _get_overlapping_data(df1, df2, averaging_prd=None):
+    """
+    Return data from where both datasets overlap onwards. If an averaging period is sent then the datasets
+    will start at the first overlapping averaging period.
+
+    :param df1:
+    :param df2:
+    :param averaging_prd: Averaging period
+            - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
+            - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+            - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
+            - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
+            - Set period to 1M for monthly average
+            - Set period to 1AS fo annual average
+    :type averaging_prd: str
+    :return: df1 and df2 chopped to start at the same timestamp
+    """
+    if averaging_prd is not None:
+        start = _round_timestamp_down_to_averaging_prd(_get_min_overlap_timestamp(df1.index, df2.index), averaging_prd)
     else:
         start = _get_min_overlap_timestamp(df1.index, df2.index)
     return df1[start:], df2[start:]
@@ -256,7 +282,6 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
             period = period+'S'
         if period[-1] == 'Y':
             raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
-    print('Period understood: {}'.format(period))
     grouper_obj = data.resample(period, axis=0, closed='left', label='left', base=0,
                                 convention='start', kind='timestamp')
 
@@ -500,11 +525,11 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
     """
     ref_overlap, target_overlap = _get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(),
                                                         averaging_prd)
-    from pandas.tseries.frequencies import to_offset
     ref_resolution = _get_data_resolution(ref_overlap.index)
     target_resolution = _get_data_resolution(target_overlap.index)
     if (to_offset(ref_resolution) != to_offset(averaging_prd)) and \
             (to_offset(target_resolution) != to_offset(averaging_prd)):
+        # If the ref and target resolutions are not equal to the avg_period then
         if ref_resolution > target_resolution:
             target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution),
                                                     coverage_threshold=1,
@@ -518,6 +543,7 @@ def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, a
         target_overlap = target_overlap.loc[common_idxs]
 
     if get_coverage:
+        # add on the coverage to the target_overlap
         return pd.concat([average_data_by_period(ref_overlap, averaging_prd,
                                                  coverage_threshold=0, aggregation_method=aggregation_method_ref)] +
                          list(average_data_by_period(target_overlap, averaging_prd,
