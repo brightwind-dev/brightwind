@@ -14,8 +14,9 @@
 #     You should have received a copy of the GNU Lesser General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+from pandas.tseries.frequencies import to_offset
 from typing import List
 from brightwind.transform import transform as tf
 from brightwind.analyse.plot import _scatter_plot
@@ -25,38 +26,10 @@ from brightwind.analyse.analyse import momm, _binned_direction_series
 from sklearn.svm import SVR as sklearn_SVR
 from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 from brightwind.utils import utils
+import pprint
 
 
 __all__ = ['']
-
-
-# def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold):
-#     """A wrapper function that calls other functions necessary for pre-processing the data"""
-#     ref = ref.sort_index().dropna()
-#     target = target.sort_index().dropna()
-#     ref_overlap, target_overlap = tf._get_overlapping_data(ref, target, averaging_prd)
-#     ref_overlap_avgd = tf.average_data_by_period(ref_overlap, averaging_prd)
-#     target_overlap_avgd = tf.average_data_by_period(target_overlap, averaging_prd)
-#     ref_filtered_for_coverage = tf._filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)
-#     target_filtered_for_coverage = tf._filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
-#     common_idxs, data_pts = tf._common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)
-#     return ref_filtered_for_coverage.drop(['Count', 'Coverage'], axis=1).loc[common_idxs], \
-#                     target_filtered_for_coverage.drop(['Count', 'Coverage'], axis=1).loc[common_idxs]
-
-
-# def _preprocess_power_data_for_correlations(ref: pd.DataFrame, target:pd.DataFrame, averaging_prd, coverage_threshold):
-#     """A wrapper function that calls other functions necessary for pre-processing the data"""
-#     ref = ref.sort_index().dropna()
-#     target = target.sort_index().dropna()
-#     ref_overlap, target_overlap = tf._get_overlapping_data(ref, target, averaging_prd)
-#     ref_overlap_avgd = tf.average_data_by_period(ref_overlap, averaging_prd)
-#     target_overlap_avgd = tf.average_data_by_period(target_overlap, averaging_prd, aggregation_method='sum')
-#     ref_filtered_for_coverage = tf._filter_by_coverage_threshold(ref, ref_overlap_avgd, coverage_threshold)
-#     target_filtered_for_coverage = t
-# f._filter_by_coverage_threshold(target, target_overlap_avgd, coverage_threshold)
-#     common_idxs, data_pts = tf._common_idxs(ref_filtered_for_coverage, target_filtered_for_coverage)
-#     return ref_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs], \
-#                     target_filtered_for_coverage.drop(['Count','Coverage'], axis=1).loc[common_idxs]
 
 
 class CorrelBase:
@@ -93,7 +66,6 @@ class CorrelBase:
 
     def show_params(self):
         """Show the dictionary of parameters"""
-        import pprint
         pprint.pprint(self.params)
 
     def plot(self, title=""):
@@ -258,7 +230,6 @@ class MultipleLinearRegression(CorrelBase):
             self.show_params()
 
     def show_params(self):
-        import pprint
         pprint.pprint(self.params)
 
     def _predict(self, x):
@@ -286,7 +257,6 @@ class MultipleLinearRegression(CorrelBase):
 
 class SimpleSpeedRatio(CorrelBase):
     def __init__(self, ref_spd, target_spd, preprocess=True):
-        from pandas.tseries.frequencies import to_offset
         ref_resolution, target_resolution = tf._get_data_resolution(ref_spd.index), \
                                             tf._get_data_resolution(target_spd.index)
         if ref_resolution > target_resolution:
