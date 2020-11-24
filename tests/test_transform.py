@@ -141,6 +141,15 @@ def test_offset_wind_direction_series():
     assert wdir_series_offset.equals(bw.offset_wind_direction(pd.Series([10, 30, np.NaN, 40, 350]), 345))
 
 
+def test_round_timestamp_down_to_averaging_prd():
+    avg_periods = ['10min', '1H', '3H', '6H', '1D', '7D', '1W', '1MS', '1AS']
+    avg_period_start_timestamps = ['2016-1-9 15:00:00', '2016-1-9', '2016-1-9', '2016-1-9', '2016-1-9', '2016-1-9',
+                                   '2016-1-9', '2016-1', '2016']
+    for idx, avg_period in enumerate(avg_periods):
+        assert avg_period_start_timestamps[idx] == \
+               bw.transform.transform._round_timestamp_down_to_averaging_prd(DATA.index[0], avg_period)
+
+
 def test_get_data_resolution():
     import warnings
     series1 = DATA['Spd80mS'].index
