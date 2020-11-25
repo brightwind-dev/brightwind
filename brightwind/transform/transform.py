@@ -177,7 +177,7 @@ def _common_idxs(reference, site):
     Finds overlapping indexes from two DataFrames.
     Coverage is 1 if whole site data is covered. Also returns the number data points
     """
-    common = reference.index.intersection(site.index)
+    common = reference.dropna().index.intersection(site.index)
     return common, len(common)
 
 
@@ -216,8 +216,8 @@ def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
     max_pts[-1] = (((averaged_data_index[-1] + 1 * averaged_data_index[-1].freq) - averaged_data_index[-1]) /
                    data_res)
     if data_res == pd.Timedelta(1, unit='M'):
-        # The data resolution is monthly, therefore round the result to 1 decimal to make whole months.
-        max_pts = np.round(max_pts, 1)
+        # The data resolution is monthly, therefore round the result to 0 decimal to make whole months.
+        max_pts = np.round(max_pts, 0)
     return max_pts
 
 
@@ -244,8 +244,10 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
     specified. Can be used to find hourly, daily, weekly, etc. averages or sums. Can also return coverage and 
     filter the returned data by coverage.
 
-    :param data: Data to find average or aggregate of
-    :type data: pandas.Series or pandas.DataFrame
+    It will return NaN for intermediary periods where there is no data.
+
+    :param data:   Data to find average or aggregate of
+    :type data:    pd.Series or pd.DataFrame
     :param period: Groups data by the period specified here. The following formats are supported
 
             - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
@@ -253,14 +255,14 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
             - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
             - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
             - Set period to 1M for monthly average
-            - Set period to 1AS fo annual average
+            - Set period to 1A fo annual average
             - Can be a DateOffset object too
 
-    :type period: str or pandas.DateOffset
-    :param aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also use
-        `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product, summation,
-        standard deviation, variance, maximum and minimum respectively.
-    :type aggregation_method: str
+    :type period:  str or pandas.DateOffset
+    :param         aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also
+                   use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product,
+                   summation, standard deviation, variance, maximum and minimum respectively.
+    :type aggregation_method:  str
     :param coverage_threshold: Coverage is defined as the ratio of number of data points present in the period and the 
         maximum number of data points that a period should have. Example, for 10 minute data resolution and a period of 
         1 hour, the maximum number of data points in one period is 6. But if the number if data points available is only
@@ -268,12 +270,12 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
         None by default. If it is None or 0, data is not filtered. Otherwise periods are removed where coverage is less 
         than the coverage_threshold are removed.
     :type coverage_threshold: float
-    :param return_coverage: If True appends and additional column in the DataFrame returned, with coverage calculated
-        for each period. The columns with coverage are named as <column name>_Coverage
-    :type return_coverage: bool
+    :param return_coverage:   If True appends and additional column in the DataFrame returned, with coverage calculated
+                              for each period. The columns with coverage are named as <column name>_Coverage
+    :type return_coverage:    bool
     :returns: A DataFrame with data aggregated with the specified aggregation_method (mean by default). Additionally it
-        could be filtered based on coverage and have a coverage column depending on the parameters.
-    :rtype: DataFrame
+              could be filtered based on coverage and have a coverage column depending on the parameters.
+    :rtype:   DataFrame
 
     **Example usage**
     ::
@@ -307,6 +309,8 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
         if period[-1] == 'W':
             period = _convert_weeks_to_hours(period)
         if period[-1] == 'M':
+            period = period+'S'
+        if period[-1] == 'A':
             period = period+'S'
         if period[-1] == 'Y':
             raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
