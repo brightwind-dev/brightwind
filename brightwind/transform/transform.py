@@ -175,9 +175,8 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
 def _common_idxs(reference, site):
     """
     Finds overlapping indexes from two DataFrames.
-    Coverage is 1 if whole site data is covered. Also returns the number data points
     """
-    common = reference.dropna().index.intersection(site.index)
+    common = reference.dropna().index.intersection(site.dropna().index)
     return common, len(common)
 
 
