@@ -38,9 +38,9 @@ def _validate_coverage_threshold(coverage_threshold):
     :return:                   coverage_threshold
     :rtype:                    float or int
     """
+    coverage_threshold = 0 if coverage_threshold is None else coverage_threshold
     if coverage_threshold < 0 or coverage_threshold > 1:
         raise TypeError("Invalid coverage_threshold, this should be between or equal to 0 and 1.")
-    coverage_threshold = 0 if coverage_threshold is None else coverage_threshold
     return coverage_threshold
 
 
