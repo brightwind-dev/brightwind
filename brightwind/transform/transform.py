@@ -22,6 +22,7 @@ from brightwind.utils import utils
 import warnings
 
 __all__ = ['average_data_by_period',
+           'average_wdirs',
            'adjust_slope_offset',
            'scale_wind_speed',
            'offset_wind_direction',
@@ -329,6 +330,202 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
         return grouped_data, coverage[coverage >= coverage_threshold]
     else:
         return grouped_data
+
+
+def _vector_avg_of_wdirs_dataframe(wdirs, wspds=None):
+    """
+    Average wind directions together using vector averaging for a pandas DataFrame. In a DataFrame multiple wind
+    direction timeseries are sent. This function will average the wind directions for each *row* of the DataFrame
+    returning a pandas Series.
+
+    :param wdirs: Wind directions to calculate the average of
+    :type wdirs:  pd.DataFrame
+    :param wspds: Wind speeds for the magnitude of the wind direction vector.
+                  If not provided the magnitude is assumed to be unity.
+                  There must be the same number of columns sent as wind directions and the order of the columns will
+                  determine how the wind speeds will match the wind directions.
+    :type wspds:  pd.DataFrame
+    :return:      Average wind direction for each row of the DataFrame provided.
+    :rtype:       pd.Series
+
+    **Example usage**
+    ::
+        wdirs = np.array([[350, 10],
+              [0, 180],
+              [90, 270],
+              [45, 135],
+              [135, 225],
+              [15, np.nan]])
+        wdirs_df = pd.DataFrame(wdirs)
+        _vector_avg_of_wdirs_dataframe(wdirs_df)
+
+        wspds = np.array([[1, 2],
+              [1, 2],
+              [1, 2],
+              [1, 2],
+              [1, 2],
+              [np.nan, 2]])
+        wspds_df = pd.DataFrame(wspds)
+        _vector_avg_of_wdirs_dataframe(wdirs_df, wspds_df)
+
+    Note:
+    The reason [0, 180] results in 90 and not NaN is because the sin of 180 is not quite zero which results in not
+    ending back exactly where you started and so gives 90. Similarly if 10, 190 is sent the mean of the sin is slightly
+    negative (-6.9e-17) instead of zero which results in 270 instead of NaN. Similar for cosine when 90, 270 sent.
+    Solution is to round both sin and cos to 5 decimal places to make them zero.
+    """
+    if wspds is None:
+        sine = (np.round(np.sin(np.deg2rad(wdirs)), 5)).mean(axis=1)  # sin of each angle, convert to radian first
+        cosine = (np.round(np.cos(np.deg2rad(wdirs)), 5)).mean(axis=1)  # cos of each angle, convert to radian first
+    else:
+        sine = (pd.DataFrame(np.round(np.sin(np.deg2rad(wdirs)), 5).values * wspds.values, index=wdirs.index)).mean(
+            axis=1)  # sin of each angle, convert to radian first
+        cosine = (pd.DataFrame(np.round(np.cos(np.deg2rad(wdirs)), 5).values * wspds.values, index=wdirs.index)).mean(
+            axis=1)  # cos of each angle, convert to radian first
+
+    avg_dir_df = pd.DataFrame({'sine': sine, 'cosine': cosine})
+
+    # If both sine and cosine result in zero then all the directions cancel and you end up where you started which
+    # means there is no wind direction => return NaN
+    nan_mask = (avg_dir_df['sine'] == 0) & (avg_dir_df['cosine'] == 0)
+    avg_dir_df['avg_dir'] = np.rad2deg(np.arctan2(sine, cosine)) % 360
+    avg_dir_df['avg_dir'][nan_mask] = np.NaN
+    return avg_dir_df['avg_dir']
+
+
+def _vector_avg_of_wdirs_list(wdirs, wspds=None):
+    """
+    Average wind directions together using vector averaging for a list, array or pandas Series.
+
+    :param wdirs: Wind directions to calculate the average of
+    :type wdirs:  list or array or np.array or pd.Series
+    :param wspds: Wind speeds for the magnitude of the wind direction vector.
+                  If not provided the magnitude is assumed to be unity.
+                  If a list or an array is sent they must be the same length as wdirs.
+    :type wspds:  list or array or np.array or pd.Series
+    :return:      Average wind direction for the wind directions provided.
+    :rtype:       float
+
+    **Example usage**
+    ::
+        wdirs = np.array([350, 10])
+        _vector_avg_of_wdirs_list(wdirs)
+
+        wdirs_series = pd.Series(wdirs)
+        _vector_avg_of_wdirs_list(wdirs_series)
+
+        wspds = [5, 6]
+        _vector_avg_of_wdirs_list(wdirs, wspds)
+
+    Note:
+    The reason [0, 180] results in 90 and not NaN is because the sin of 180 is not quite zero which results in not
+    ending back exactly where you started and so gives 90. Similarly if 10, 190 is sent the mean of the sin is slightly
+    negative (-6.9e-17) instead of zero which results in 270 instead of NaN. Similar for cosine when 90, 270 sent.
+    Solution is to round both sin and cos to 5 decimal places to make them zero.
+    """
+    # first drop nans, if wind speeds available need to match them first to drop equivalent values
+    if wspds is None:
+        wdirs = np.array([x for x in wdirs if x == x])
+    else:
+        a = np.array([wdirs, wspds])
+        a = a[:, ~np.isnan(a).any(axis=0)]
+        wdirs = a[0]
+        wspds = a[1]
+    # if the resulting wdir array is empty, return NAN
+    if wdirs.size == 0:
+        return np.NaN
+
+    if wspds is None:
+        sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5))  # sin of each angle, East component
+        cosine = np.mean(np.round(np.cos(np.deg2rad(wdirs)), 5))  # cos of each angle, North component
+    else:
+        sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5) * wspds)  # sin of each angle, East component
+        cosine = np.mean(np.round(np.cos(np.deg2rad(wdirs)), 5) * wspds)  # cos of each angle, North component
+
+    # If both sine and cosine result in zero then all the directions cancel and you end up where you started which
+    # means there is no wind direction => return NaN
+    if sine == 0 and cosine == 0:
+        avg_dir = np.NaN
+    else:
+        avg_dir = np.rad2deg(np.arctan2(sine, cosine)) % 360
+        if avg_dir == 360.0:  # preference to have 0 returned instead of 360
+            avg_dir = 0.0
+    return avg_dir
+
+
+def average_wdirs(wdirs, wspds=None):
+    """
+    Average wind directions together using vector averaging. This works for a list, array, np.array, pd.Series or
+    pd.DataFrame.
+
+    If a list, array, np.array or pd.Series of wind directions are sent, it will average all the wind speeds in that
+    array together returning a single value.
+    If a DataFrame with multiple timeseries of wind direction columns is sent, it will average the wind directions for
+    each *row* of the DataFrame returning a pandas Series.
+
+    It is also possible to send wind speeds for each wind direction to be used as the magnitude in the vector averaging
+    algorithm.
+
+    When a dataset which contains some NANs is sent these are ignored e.g. if 3 wind directions are sent and one of them
+    is a NAN, the average of the other two is calculated ignoring the NAN. Similarly, if some wind speeds contain a NAN,
+    this and the corresponding wind direction are ignored even if the wind direction is valid as the magnitude of the
+    vector is missing.
+
+    :param wdirs: Wind directions to calculate the average of.
+    :type wdirs:  list or array or np.array or pd.Series or pd.DataFrame
+    :param wspds: Wind speeds for the magnitude of the wind direction vector.
+                  If not provided the magnitude is assumed to be unity.
+                  If a list or an array is sent they must be the same length as wdirs.
+                  If a DataFrame is sent it must have the same number of columns as the wind directions DataFrame and
+                  the wind speed column will match it's equivalent wind direction column by the ordering of the columns.
+    :type wspds:  list or array or np.array or pd.Series or pd.DataFrame
+    :return:      Average wind direction for the wind directions provided.
+    :rtype:       float or pd.Series
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        wdirs = np.array([350, 10])
+        bw.average_wdirs(wdirs)
+
+        wdirs_series = pd.Series(wdirs)
+        bw.average_wdirs(wdirs_series)
+
+        wspds = [5, 6]
+        bw.average_wdirs(wdirs, wspds)
+
+        wdirs = np.array([[350, 10],
+              [0, 180],
+              [90, 270],
+              [45, 135],
+              [135, 225],
+              [15, np.nan]])
+        wdirs_df = pd.DataFrame(wdirs)
+        bw.average_wdirs(wdirs_df)
+
+        wspds = np.array([[1, 2],
+              [1, 2],
+              [1, 2],
+              [1, 2],
+              [1, 2],
+              [np.nan, 2]])
+        wspds_df = pd.DataFrame(wspds)
+        bw.average_wdirs(wdirs_df, wspds_df)
+
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        avg_wdir = bw.average_wdirs(data.Dir78mS)
+
+        wdir_cols = ['Dir78mS', 'Dir58mS', 'Dir38mS']
+        avg_wdirs = bw.average_wdirs(data[wdir_cols])
+
+    """
+    if type(wdirs) == pd.DataFrame:
+        avg_wdir = _vector_avg_of_wdirs_dataframe(wdirs, wspds)
+    else:
+        avg_wdir = _vector_avg_of_wdirs_list(wdirs, wspds)
+
+    return avg_wdir
 
 
 def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
