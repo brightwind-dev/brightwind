@@ -50,7 +50,7 @@ def _get_min_overlap_timestamp(df1_timestamps, df2_timestamps):
     """
     try:
         if df1_timestamps.max() < df2_timestamps.min() or df1_timestamps.min() > df2_timestamps.max():
-            raise IndexError("No overlapping data. Ranges: {0} to {1}  and {2} to {3}"
+            raise IndexError("No overlapping data. Dataset ranges are: {0} to {1} and {2} to {3}."
                              .format(df1_timestamps.min(), df1_timestamps.max(),
                                      df2_timestamps.min(), df2_timestamps.max()), )
     except TypeError as type_error:
@@ -117,17 +117,13 @@ def _get_data_resolution(data_idx):
     return most_freq_time_diff
 
 
-def round_down(num, divisor):
+def _round_down_to_multiple(num, divisor):
     """
     Round the number down to a multiple of the divisor.
     :param num:
     :param divisor:
     :return:
     """
-    return num - (num % divisor)
-
-
-def _round_down(num, divisor):
     return num - (num % divisor)
 
 
@@ -154,10 +150,12 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
     if period[-3:] == 'min':
         return '{year}-{month}-{day} {hour}:{minute}:00'.format(year=timestamp.year, month=timestamp.month,
                                                                 day=timestamp.day, hour=timestamp.hour,
-                                                                minute=_round_down(timestamp.minute, int(period[:-3])))
+                                                                minute=_round_down_to_multiple(timestamp.minute,
+                                                                                               int(period[:-3])))
     elif period[-1] == 'H':
         return '{year}-{month}-{day} {hour}:00:00'.format(year=timestamp.year, month=timestamp.month, day=timestamp.day,
-                                                          hour=_round_down(timestamp.hour, int(period[:-1])))
+                                                          hour=_round_down_to_multiple(timestamp.hour,
+                                                                                       int(period[:-1])))
     elif period[-1] == 'D' or period[-1] == 'W':
         return '{year}-{month}-{day}'.format(year=timestamp.year, month=timestamp.month, day=timestamp.day,
                                              hour=timestamp.hour)
@@ -333,6 +331,72 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
         return grouped_data
 
 
+def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
+                                      aggregation_method_ref='mean', aggregation_method_target='mean',
+                                      get_coverage=False):
+    """
+
+    :param ref:
+    :param target:
+    :param averaging_prd:
+    :param coverage_threshold:
+    :param aggregation_method_ref:
+    :param aggregation_method_target:
+    :param get_coverage:
+    :return:
+    """
+    ref_overlap, target_overlap = _get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(),
+                                                        averaging_prd)
+    ref_resolution = _get_data_resolution(ref_overlap.index)
+    target_resolution = _get_data_resolution(target_overlap.index)
+    if (to_offset(ref_resolution) != to_offset(averaging_prd)) and \
+            (to_offset(target_resolution) != to_offset(averaging_prd)):
+        # If the ref and target resolutions are not equal to the avg_period then
+        if ref_resolution > target_resolution:
+            target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution),
+                                                    coverage_threshold=1,
+                                                    aggregation_method=aggregation_method_target)
+        if ref_resolution < target_resolution:
+            ref_overlap = average_data_by_period(ref_overlap, to_offset(target_resolution),
+                                                 coverage_threshold=1,
+                                                 aggregation_method=aggregation_method_ref)
+        common_idxs, data_pts = _common_idxs(ref_overlap, target_overlap)
+        ref_overlap = ref_overlap.loc[common_idxs]
+        target_overlap = target_overlap.loc[common_idxs]
+
+    if get_coverage:
+        # add on the coverage to the target_overlap
+        return pd.concat([average_data_by_period(ref_overlap, averaging_prd,
+                                                 coverage_threshold=0, aggregation_method=aggregation_method_ref)] +
+                         list(average_data_by_period(target_overlap, averaging_prd,
+                                                     coverage_threshold=0, aggregation_method=aggregation_method_target,
+                                                     return_coverage=True)),
+                         axis=1)
+    else:
+        ref_processed, target_processed = average_data_by_period(ref_overlap, averaging_prd,
+                                                                 coverage_threshold=coverage_threshold,
+                                                                 aggregation_method=aggregation_method_ref), \
+                                          average_data_by_period(target_overlap, averaging_prd,
+                                                                 coverage_threshold=coverage_threshold,
+                                                                 aggregation_method=aggregation_method_target)
+        concurrent_idxs, data_pts = _common_idxs(ref_processed, target_processed)
+        return ref_processed.loc[concurrent_idxs], target_processed.loc[concurrent_idxs]
+
+
+def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.DataFrame, target_spd: pd.DataFrame,
+                                          target_dir: pd.DataFrame, averaging_prd, coverage_threshold):
+    ref_N, ref_E= _compute_wind_vector(ref_spd.sort_index().dropna(), ref_dir.sort_index().dropna().map(math.radians))
+    target_N, target_E = _compute_wind_vector(target_spd.sort_index().dropna(),
+                                              target_dir.sort_index().dropna().map(math.radians))
+    ref_N_avgd, target_N_avgd = _preprocess_data_for_correlations(ref_N, target_N, averaging_prd=averaging_prd,
+                                                                  coverage_threshold=coverage_threshold)
+    ref_E_avgd, target_E_avgd = _preprocess_data_for_correlations(ref_E, target_E, averaging_prd=averaging_prd,
+                                                                  coverage_threshold=coverage_threshold)
+    ref_dir_avgd = np.arctan2(ref_E_avgd, ref_N_avgd).map(math.degrees).map(utils._range_0_to_360)
+    target_dir_avgd = np.arctan2(target_E_avgd, target_N_avgd).map(math.degrees).map(utils._range_0_to_360)
+    return round(ref_dir_avgd.loc[:]), round(target_dir_avgd.loc[:])
+
+
 def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offset):
     """
     Adjust a wind speed that already has a slope and offset applied with a new slope and offset.
@@ -490,7 +554,6 @@ def _sectors_overlap(boom_dir_1, boom_dir_2, sector_width):
 
 def selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2, sector_width=60):
     """
-
     Creates a time series of wind speed using data from two anemometers (ideally at the same height) and one wind vane.
     This function either averages the two wind speed values for a given timestamp or only includes the upstream wind
     speed value when the other is in the wake of the mast.
@@ -538,72 +601,6 @@ def selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2, sector_width=60)
     sel_avg = _selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2,
                              inflow_lower1, inflow_higher1, inflow_lower2, inflow_higher2, sector_width)
     return sel_avg
-
-
-def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
-                                      aggregation_method_ref='mean', aggregation_method_target='mean',
-                                      get_coverage=False):
-    """
-
-    :param ref:
-    :param target:
-    :param averaging_prd:
-    :param coverage_threshold:
-    :param aggregation_method_ref:
-    :param aggregation_method_target:
-    :param get_coverage:
-    :return:
-    """
-    ref_overlap, target_overlap = _get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(),
-                                                        averaging_prd)
-    ref_resolution = _get_data_resolution(ref_overlap.index)
-    target_resolution = _get_data_resolution(target_overlap.index)
-    if (to_offset(ref_resolution) != to_offset(averaging_prd)) and \
-            (to_offset(target_resolution) != to_offset(averaging_prd)):
-        # If the ref and target resolutions are not equal to the avg_period then
-        if ref_resolution > target_resolution:
-            target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution),
-                                                    coverage_threshold=1,
-                                                    aggregation_method=aggregation_method_target)
-        if ref_resolution < target_resolution:
-            ref_overlap = average_data_by_period(ref_overlap, to_offset(target_resolution),
-                                                 coverage_threshold=1,
-                                                 aggregation_method=aggregation_method_ref)
-        common_idxs, data_pts = _common_idxs(ref_overlap, target_overlap)
-        ref_overlap = ref_overlap.loc[common_idxs]
-        target_overlap = target_overlap.loc[common_idxs]
-
-    if get_coverage:
-        # add on the coverage to the target_overlap
-        return pd.concat([average_data_by_period(ref_overlap, averaging_prd,
-                                                 coverage_threshold=0, aggregation_method=aggregation_method_ref)] +
-                         list(average_data_by_period(target_overlap, averaging_prd,
-                                                     coverage_threshold=0, aggregation_method=aggregation_method_target,
-                                                     return_coverage=True)),
-                         axis=1)
-    else:
-        ref_processed, target_processed = average_data_by_period(ref_overlap, averaging_prd,
-                                                                 coverage_threshold=coverage_threshold,
-                                                                 aggregation_method=aggregation_method_ref), \
-                                          average_data_by_period(target_overlap, averaging_prd,
-                                                                 coverage_threshold=coverage_threshold,
-                                                                 aggregation_method=aggregation_method_target)
-        concurrent_idxs, data_pts = _common_idxs(ref_processed, target_processed)
-        return ref_processed.loc[concurrent_idxs], target_processed.loc[concurrent_idxs]
-
-
-def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.DataFrame, target_spd: pd.DataFrame,
-                                          target_dir: pd.DataFrame, averaging_prd, coverage_threshold):
-    ref_N, ref_E= _compute_wind_vector(ref_spd.sort_index().dropna(), ref_dir.sort_index().dropna().map(math.radians))
-    target_N, target_E = _compute_wind_vector(target_spd.sort_index().dropna(),
-                                              target_dir.sort_index().dropna().map(math.radians))
-    ref_N_avgd, target_N_avgd = _preprocess_data_for_correlations(ref_N, target_N, averaging_prd=averaging_prd,
-                                                                  coverage_threshold=coverage_threshold)
-    ref_E_avgd, target_E_avgd = _preprocess_data_for_correlations(ref_E, target_E, averaging_prd=averaging_prd,
-                                                                  coverage_threshold=coverage_threshold)
-    ref_dir_avgd = np.arctan2(ref_E_avgd, ref_N_avgd).map(math.degrees).map(utils._range_0_to_360)
-    target_dir_avgd = np.arctan2(target_E_avgd, target_N_avgd).map(math.degrees).map(utils._range_0_to_360)
-    return round(ref_dir_avgd.loc[:]), round(target_dir_avgd.loc[:])
 
 
 def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=False):
