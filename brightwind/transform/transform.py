@@ -30,6 +30,20 @@ __all__ = ['average_data_by_period',
            'offset_timestamps']
 
 
+def _validate_coverage_threshold(coverage_threshold):
+    """
+    Validate that coverage_threshold is between 0 and 1 and if it is None set to zero.
+    :param coverage_threshold: Should be number between or equal to 0 and 1.
+    :type coverage_threshold:  float or int
+    :return:                   coverage_threshold
+    :rtype:                    float or int
+    """
+    if coverage_threshold < 0 or coverage_threshold > 1:
+        raise TypeError("Invalid coverage_threshold, this should be between or equal to 0 and 1.")
+    coverage_threshold = 0 if coverage_threshold is None else coverage_threshold
+    return coverage_threshold
+
+
 def _compute_wind_vector(wspd, wdir):
     """
     Returns north and east component of wind-vector
@@ -265,7 +279,7 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
         maximum number of data points that a period should have. Example, for 10 minute data resolution and a period of 
         1 hour, the maximum number of data points in one period is 6. But if the number if data points available is only
         3 for that hour the coverage is 3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to 
-        None by default. If it is None or 0, data is not filtered. Otherwise periods are removed where coverage is less 
+        None by default. If it is None or 0, data is not filtered. Otherwise periods where coverage is less
         than the coverage_threshold are removed.
     :type coverage_threshold: float
     :param return_coverage:   If True appends and additional column in the DataFrame returned, with coverage calculated
@@ -294,11 +308,7 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
 
 
     """
-    if coverage_threshold is None:
-        coverage_threshold = 0
-
-    if coverage_threshold < 0 or coverage_threshold > 1:
-        raise TypeError("Invalid coverage_threshold, should be between 0 and 1, both ends inclusive")
+    coverage_threshold = _validate_coverage_threshold(coverage_threshold)
 
     data = data.sort_index()
     if isinstance(period, str):
