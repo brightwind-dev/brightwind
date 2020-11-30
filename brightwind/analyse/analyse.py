@@ -23,8 +23,7 @@ from brightwind.analyse import plot as plt
 from brightwind.utils.utils import _convert_df_to_series
 import matplotlib
 
-__all__ = ['concurrent_coverage',
-           'monthly_means',
+__all__ = ['monthly_means',
            'momm',
            'dist',
            'dist_matrix',
@@ -183,37 +182,6 @@ def dist_matrix(var_series, x_series, y_series,
         return heatmap, distribution
     else:
         return heatmap
-
-
-def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
-    """
-    Accepts ref and target data and returns the coverage of concurrent data.
-
-    :param ref: Reference data
-    :type ref: pandas.Series
-    :param target: Target data
-    :type target: pandas.Series
-    :param averaging_prd: Groups data by the period specified by period.
-
-            * 2T, 2 min for minutely average
-            * Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
-            * Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-            * Set period to 1M for monthly average
-            * Set period to 1AS fo annual average
-
-    :type averaging_prd: str
-    :param aggregation_method_target: (Optional) Calculates mean of the data for the given averaging_prd by default.
-            Can be changed to 'sum', 'std', 'max', 'min', etc. or a user defined function
-    :return: A DataFrame with concurrent coverage and resolution of the new data. The columns with coverage are named as
-            <column name>_Coverage
-
-    """
-    coverage_df = tf._preprocess_data_for_correlations(ref=ref, target=target, averaging_prd=averaging_prd,
-                                                       coverage_threshold=0,
-                                                       aggregation_method_target=aggregation_method_target,
-                                                       get_coverage=True)
-    coverage_df.columns = ["Coverage" if "_Coverage" in col else col for col in coverage_df.columns]
-    return coverage_df
 
 
 def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: float):
