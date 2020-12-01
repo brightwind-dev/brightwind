@@ -17,7 +17,7 @@ wndspd_adj_df = pd.DataFrame([2.0402222222222224, 13.284666666666668, np.NaN, 5.
 wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
 
 DATA = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
-# DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
+DATA_CLND = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 WSPD_COLS = ['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd60mS', 'Spd40mN', 'Spd40mS']
 WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
 
@@ -323,6 +323,34 @@ def test_average_wdirs():
         assert i == j
 
 
+def dummy_data_frame(start_date='2016-01-01T00:00:00', end_date='2016-12-31T11:59:59'):
+    """
+    Returns a DataFrame with wind speed equal to the month of the year, i.e. In January, wind speed = 1 m/s.
+    For use in testing.
+
+    :param start_date: Start date Timestamp, i.e. first index in the DataFrame
+    :type start_date:  Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
+    :param end_date: End date Timestamp, i.e. last index in the DataFrame
+    :type end_date: Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
+    :return: pandas.DataFrame
+    """
+
+    date_times = {'Timestamp': pd.date_range(start_date, end_date, freq='10T')}
+
+    dummy_wind_speeds = []
+    dummy_wdirs = []
+
+    for i, vals in enumerate(date_times['Timestamp']):
+        # get list of each month for each date entry as dummy windspeeds
+        dummy_wind_speeds.append(vals.month)
+        dummy_wdirs.append((vals.month - 1) * 30)
+
+    dummy_wind_speeds_df = pd.DataFrame({'wspd': dummy_wind_speeds, 'wdir': dummy_wdirs}, index=date_times['Timestamp'])
+    dummy_wind_speeds_df.index.name = 'Timestamp'
+
+    return dummy_wind_speeds_df
+
+
 def test_average_data_by_period():
     bw.average_data_by_period(DATA[['Spd80mN']], period='1H')
     # hourly averages
@@ -356,48 +384,54 @@ def test_average_data_by_period():
     # return coverage without filtering
     bw.average_data_by_period(DATA.Spd80mN, period='2W', return_coverage=True)
 
-    average_monthly_speed = bw.average_data_by_period(dummy_data_frame(), '1M')
-    average_annual_speed = bw.average_data_by_period(dummy_data_frame(), '1As')
-    # round annual wind speed
-    print(round(average_annual_speed, 2))
-
+    dummy_data = dummy_data_frame()
+    average_monthly_speed = bw.average_data_by_period(dummy_data.wspd, period='1M')
     # test average wind speed for each month
     for i in range(0, 11):
-        assert average_monthly_speed.iloc[i].item() == i + 1
+        assert average_monthly_speed.iloc[i] == i + 1
+    # test average wind speed and direction for each month
+    average_monthly_speed = bw.average_data_by_period(dummy_data, period='1M', wdir_column_names='wdir')
+    for i in range(0, 11):
+        assert average_monthly_speed.iloc[i].wspd == i + 1
+        assert round(average_monthly_speed.iloc[i].wdir, 0) == i * 30
+    # test average wind speed and direction for each month with 99% coverage required
+    average_monthly_speed = bw.average_data_by_period(dummy_data, period='1M', wdir_column_names='wdir',
+                                                      coverage_threshold=0.99, return_coverage=True)
+    assert average_monthly_speed[0].count().wspd == 11  # the returned wspd has only 11 months
+    assert average_monthly_speed[1].count().wspd_Coverage == 12  # the returned coverage has 12 months
+
     # test average annual wind speed
-    assert round(average_annual_speed.iloc[0].item(), 1) == 6.5
-
-
-def dummy_data_frame(start_date='2016-01-01T00:00:00', end_date='2016-12-31T11:59:59'):
-    """
-    Returns a DataFrame with wind speed equal to the month of the year, i.e. In January, wind speed = 1 m/s.
-    For use in testing.
-
-    :param start_date: Start date Timestamp, i.e. first index in the DataFrame
-    :type start_date:  Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
-    :param end_date: End date Timestamp, i.e. last index in the DataFrame
-    :type end_date: Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
-    :return: pandas.DataFrame
-    """
-
-    date_times = {'Timestamp': pd.date_range(start_date, end_date, freq='10T')}
-
-    dummy_wind_speeds = []
-
-    for i, vals in date_times.items():
-        # get list of each month for each date entry as dummy windspeeds
-        dummy_wind_speeds.append(date_times[i].month)
-
-    dummy_wind_speeds_df = pd.DataFrame(pd.DataFrame(dummy_wind_speeds).iloc[0])
-    # change column name
-    dummy_wind_speeds_df.columns = ['Mean Wind Speed']
-    # create data frame from dates
-    dummy_df = pd.DataFrame(date_times)
-    # add mean wind speeds to dataframe
-    dummy_df['Mean Wind Speed'] = dummy_wind_speeds_df['Mean Wind Speed']
-    # change dates to datetime values
-    dummy_df['Timestamp'] = pd.DatetimeIndex(dummy_df['Timestamp'])
-    # set date times as index of data frame
-    dummy_df.set_index('Timestamp', inplace=True)
-
-    return dummy_df
+    average_annual_speed = bw.average_data_by_period(dummy_data.wspd, period='1AS')
+    assert round(average_annual_speed.iloc[0].item(), 3) == 6.506
+    # average DATA to monthly
+    data_monthly = bw.average_data_by_period(DATA_CLND[WSPD_COLS + WDIR_COLS], period='1MS',
+                                             wdir_column_names=WDIR_COLS,
+                                             aggregation_method='mean', coverage_threshold=0.95, return_coverage=True)
+    count_months = [('Spd80mN', 19),
+                    ('Spd80mS', 17),
+                    ('Spd60mN', 19),
+                    ('Spd60mS', 19),
+                    ('Spd40mN', 19),
+                    ('Spd40mS', 19),
+                    ('Dir78mS', 16),
+                    ('Dir58mS', 8),
+                    ('Dir38mS', 19)]
+    idx = 0
+    for col_name, val in data_monthly[0].count().iteritems():
+        assert col_name == count_months[idx][0]
+        assert val == count_months[idx][1]
+        idx += 1
+    count_cov_months = [('Spd80mN_Coverage', 23),
+                        ('Spd80mS_Coverage', 23),
+                        ('Spd60mN_Coverage', 23),
+                        ('Spd60mS_Coverage', 23),
+                        ('Spd40mN_Coverage', 23),
+                        ('Spd40mS_Coverage', 23),
+                        ('Dir78mS_Coverage', 23),
+                        ('Dir58mS_Coverage', 23),
+                        ('Dir38mS_Coverage', 23)]
+    idx = 0
+    for col_name, val in data_monthly[1].count().iteritems():
+        assert col_name == count_cov_months[idx][0]
+        assert val == count_cov_months[idx][1]
+        idx += 1

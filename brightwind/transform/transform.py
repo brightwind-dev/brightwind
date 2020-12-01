@@ -233,7 +233,7 @@ def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
     return max_pts
 
 
-def _get_coverage_series(data, grouper_obj):
+def _get_coverage_by_grouper_obj(data, grouper_obj):
     """
     Counts the number of data points in the grouper_obj relative to the maximum possible
 
@@ -247,13 +247,19 @@ def _get_coverage_series(data, grouper_obj):
     return coverage
 
 
-def average_data_by_period(data, period, aggregation_method='mean', coverage_threshold=None,
+def average_data_by_period(data, period, wdir_column_names=None, aggregation_method='mean', coverage_threshold=None,
                            return_coverage=False):
     """
     Averages the data by the time period specified by period.
 
     Aggregates data by the aggregation_method specified, by default this function averages the data to the period 
-    specified. Can be used to find hourly, daily, weekly, etc. averages or sums. Can also return coverage and 
+    specified.
+
+    A list of wind direction column names can be sent to identify which columns should be vector averaged. This vector
+    averaging of wind directions only applies if the aggregation method is 'mean', otherwise it will aggregate based
+    on the method sent.
+
+    This function can be used to find hourly, daily, weekly, etc. averages or sums. Can also return coverage and
     filter the returned data by coverage.
 
     It will return NaN for intermediary periods where there is no data.
@@ -271,20 +277,24 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
             - Can be a DateOffset object too
 
     :type period:  str or pandas.DateOffset
-    :param         aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also
-                   use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product,
-                   summation, standard deviation, variance, maximum and minimum respectively.
+    :param wdir_column_names:  List of wind direction column names. These columns, if the aggregation_method is mean,
+                               will be vector averaged together instead of a straight mean.
+    :type wdir_column_names:   list or str
+    :param aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also
+                               use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median,
+                               product, summation, standard deviation, variance, maximum and minimum respectively.
     :type aggregation_method:  str
     :param coverage_threshold: Coverage is defined as the ratio of number of data points present in the period and the 
-        maximum number of data points that a period should have. Example, for 10 minute data resolution and a period of 
-        1 hour, the maximum number of data points in one period is 6. But if the number if data points available is only
-        3 for that hour the coverage is 3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to 
-        None by default. If it is None or 0, data is not filtered. Otherwise periods where coverage is less
-        than the coverage_threshold are removed.
-    :type coverage_threshold: float
-    :param return_coverage:   If True appends and additional column in the DataFrame returned, with coverage calculated
-                              for each period. The columns with coverage are named as <column name>_Coverage
-    :type return_coverage:    bool
+                               maximum number of data points that a period should have. Example, for 10 minute data
+                               resolution and a period of 1 hour, the maximum number of data points in one period is 6.
+                               But if the number if data points available is only 3 for that hour the coverage is
+                               3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to None by
+                               default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
+                               less than the coverage_threshold are removed.
+    :type coverage_threshold:  float
+    :param return_coverage:    If True appends and additional column in the DataFrame returned, with coverage calculated
+                               for each period. The columns with coverage are named as <column name>_Coverage
+    :type return_coverage:     bool
     :returns: A DataFrame with data aggregated with the specified aggregation_method (mean by default). Additionally it
               could be filtered based on coverage and have a coverage column depending on the parameters.
     :rtype:   DataFrame
@@ -325,19 +335,36 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
     grouper_obj = data.resample(period, axis=0, closed='left', label='left', base=0,
                                 convention='start', kind='timestamp')
 
-    grouped_data = grouper_obj.agg(aggregation_method)
-    coverage = _get_coverage_series(data, grouper_obj)
+    if wdir_column_names is not None and aggregation_method == 'mean':
+        # separate out wdirs columns for vector averaging if aggregation method of mean is requested
+        wdir_column_names = [wdir_column_names] if isinstance(wdir_column_names, str) else wdir_column_names
+        non_wdir_col_names = []
+        for col_name in data.columns:
+            if col_name not in wdir_column_names:
+                non_wdir_col_names.append(col_name)
+
+        non_wdir_grouped_data = grouper_obj[non_wdir_col_names].agg('mean')
+        non_wdir_coverage = _get_coverage_by_grouper_obj(data[non_wdir_col_names], grouper_obj[non_wdir_col_names])
+
+        wdir_grouped_data = grouper_obj[wdir_column_names].agg(average_wdirs)
+        wdir_coverage = _get_coverage_by_grouper_obj(data[wdir_column_names], grouper_obj[wdir_column_names])
+
+        grouped_data = pd.concat([non_wdir_grouped_data, wdir_grouped_data], axis=1)
+        coverage = pd.concat([non_wdir_coverage, wdir_coverage], axis=1)
+    else:
+        grouped_data = grouper_obj.agg(aggregation_method)
+        coverage = _get_coverage_by_grouper_obj(data, grouper_obj)
 
     grouped_data = grouped_data[coverage >= coverage_threshold]
 
     if return_coverage:
         if isinstance(coverage, pd.DataFrame):
-            coverage.columns = [col_name+"_Coverage" for col_name in coverage.columns]
+            coverage.columns = [col_name + "_Coverage" for col_name in coverage.columns]
         elif isinstance(coverage, pd.Series):
-            coverage = coverage.rename(grouped_data.name+'_Coverage')
+            coverage = coverage.rename(data.name + '_Coverage')
         else:
             raise TypeError("Coverage not calculated correctly. Coverage", coverage)
-        return grouped_data, coverage[coverage >= coverage_threshold]
+        return grouped_data, coverage  # [coverage >= coverage_threshold]
     else:
         return grouped_data
 
