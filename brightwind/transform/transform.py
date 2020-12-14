@@ -630,10 +630,10 @@ def merge_datasets_by_period(data_1, data_2, period,
     :type period:                str or pandas.DateOffset
     :param wdir_column_names_1:  List of wind direction column names. These columns, if the aggregation_method is mean,
                                  will be vector averaged together instead of a straight mean.
-    :type wdir_column_names_1:   list or str
+    :type wdir_column_names_1:   list or str or None
     :param wdir_column_names_2:  List of wind direction column names. These columns, if the aggregation_method is mean,
                                  will be vector averaged together instead of a straight mean.
-    :type wdir_column_names_2:   list or str
+    :type wdir_column_names_2:   list or str or None
     :param aggregation_method_1: Default `mean`, returns the mean of the data for the specified period. Can also
                                  use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median,
                                  product, summation, standard deviation, variance, maximum and minimum respectively.
@@ -649,7 +649,7 @@ def merge_datasets_by_period(data_1, data_2, period,
                                  3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to None by
                                  default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
                                  less than the coverage_threshold are removed.
-    :type coverage_threshold_1:  float
+    :type coverage_threshold_1:  float or None
     :param coverage_threshold_2: Coverage is defined as the ratio of number of data points present in the period and the
                                  maximum number of data points that a period should have. Example, for 10 minute data
                                  resolution and a period of 1 hour, the maximum number of data points in one period is
@@ -657,7 +657,7 @@ def merge_datasets_by_period(data_1, data_2, period,
                                  3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to None by
                                  default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
                                  less than the coverage_threshold are removed.
-    :type coverage_threshold_2:  float
+    :type coverage_threshold_2:  float or None
     :return:                     Merged datasets.
     :rtype:                      pd.DataFrame
 
