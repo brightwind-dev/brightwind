@@ -20,6 +20,7 @@ DATA = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_dat
 DATA_CLND = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 WSPD_COLS = ['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd60mS', 'Spd40mN', 'Spd40mS']
 WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
+MERRA2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
 
 
 def np_array_equal(a, b):
@@ -73,7 +74,7 @@ def test_selective_avg():
 
     # Test Case 5: Sectors overlap error msg
     with pytest.raises(ValueError) as except_info:
-        result = bw.selective_avg(data.Spd1, data.Spd2, data.Dir, boom_dir_1=180, boom_dir_2=185, sector_width=60)
+        bw.selective_avg(data.Spd1, data.Spd2, data.Dir, boom_dir_1=180, boom_dir_2=185, sector_width=60)
     assert str(except_info.value) == "Sectors overlap! Please check your inputs or reduce the size of " \
                                      "your 'sector_width'."
 
@@ -394,6 +395,22 @@ def test_average_data_by_period():
     for i in range(0, 11):
         assert average_monthly_speed.iloc[i].wspd == i + 1
         assert round(average_monthly_speed.iloc[i].wdir, 0) == i * 30
+    # test when only 1 wdir column is sent
+    average_monthly_speed = bw.average_data_by_period(dummy_data['wdir'], period='1M', wdir_column_names='wdir')
+    for i in range(0, 11):
+        assert round(average_monthly_speed.iloc[i], 0) == i * 30
+    # test when the data doesn't actually contain the wdir column name sent
+    with pytest.raises(KeyError) as except_info:
+        bw.average_data_by_period(dummy_data['wspd'], period='1M', wdir_column_names='wdir')
+    assert str(except_info.value) == '"\'wdir\' not in data sent."'
+    with pytest.raises(KeyError) as except_info:
+        bw.average_data_by_period(dummy_data, period='1M', wdir_column_names='wdirXXXXX')
+    assert str(except_info.value) == '"\'wdirXXXXX\' not in data sent."'
+    # test when wdir_column_names sent but aggregation_method is not mean
+    with pytest.raises(KeyError) as except_info:
+        bw.average_data_by_period(dummy_data['wdir'], period='1M', wdir_column_names='wdir', aggregation_method='sum')
+    assert str(except_info.value) == '"Vector averaging is only applied when \'aggregation_method\' is \'mean\'. ' \
+                                     'Either set \'wdir_column_names\' to None or set \'aggregation_method\'=\'mean\'"'
     # test average wind speed and direction for each month with 99% coverage required
     average_monthly_speed = bw.average_data_by_period(dummy_data, period='1M', wdir_column_names='wdir',
                                                       coverage_threshold=0.99, return_coverage=True)
@@ -435,3 +452,54 @@ def test_average_data_by_period():
         assert col_name == count_cov_months[idx][0]
         assert val == count_cov_months[idx][1]
         idx += 1
+
+
+def test_merge_datasets_by_period():
+    mrgd_data = bw.merge_datasets_by_period(DATA_CLND['Spd80mN'], MERRA2['WS50m_m/s'], period='1MS',
+                                            wdir_column_names_1=None, wdir_column_names_2=None,
+                                            coverage_threshold_1=None, coverage_threshold_2=None,
+                                            aggregation_method_1='mean', aggregation_method_2='mean')
+    spd80mn_monthly_mean_list = [9.25346307, 8.90438194, 6.43050216, 6.59887454, 8.72965727,
+                                 5.10815648, 6.96853427, 7.09395587, 8.18052477, 6.66944556,
+                                 6.74182714, 8.90077755, 7.83337582, 9.13450868, 7.48893795,
+                                 7.78338958, 6.49058893, 8.52524884, 6.78224843, 6.7158853,
+                                 7.08256829, 9.47901579, 7.35934137]
+    # data_monthly_index_list = ['2016-01-01', '2016-02-01', '2016-03-01', '2016-04-01',
+    #                            '2016-05-01', '2016-06-01', '2016-07-01', '2016-08-01',
+    #                            '2016-09-01', '2016-10-01', '2016-11-01', '2016-12-01',
+    #                            '2017-01-01', '2017-02-01', '2017-03-01', '2017-04-01',
+    #                            '2017-05-01', '2017-06-01', '2017-07-01', '2017-08-01',
+    #                            '2017-09-01', '2017-10-01', '2017-11-01']
+    spd80mn_monthly_cov_list = [0.71886201, 1., 0.98454301, 1., 0.36536738, 1., 1., 1., 1., 1., 0.93472222, 1.,
+                                0.9858871, 1., 1., 1., 1., 1., 1., 1., 1., 0.99283154, 0.74861111]
+    m2_monthly_mean_list = [9.62391129, 9.01344253, 6.85649462, 6.66197639, 6.99338038,
+                            5.29984306, 6.73991667, 7.11679032, 8.39015556, 6.83381317,
+                            6.84408889, 9.0631707, 8.28869355, 9.2853869, 7.62800806,
+                            7.73957917, 6.63575403, 7.81355417]
+
+    assert len(mrgd_data) == 18
+    for idx, row in enumerate(mrgd_data.iterrows()):
+        assert round(spd80mn_monthly_mean_list[idx], 5) == round(row[1]['Spd80mN'], 5)
+        assert round(spd80mn_monthly_cov_list[idx], 5) == round(row[1]['Spd80mN_Coverage'], 5)
+        assert round(m2_monthly_mean_list[idx], 5) == round(row[1]['WS50m_m/s'], 5)
+
+    mrgd_data = bw.merge_datasets_by_period(DATA_CLND['Spd80mN'], MERRA2['WS50m_m/s'], period='1MS',
+                                            wdir_column_names_1=None, wdir_column_names_2=None,
+                                            coverage_threshold_1=0.99, coverage_threshold_2=1,
+                                            aggregation_method_1='sum', aggregation_method_2='sum')
+    assert len(mrgd_data) == 13
+
+    mrgd_data = bw.merge_datasets_by_period(DATA_CLND['Spd80mN'],
+                                            MERRA2['WS50m_m/s'][MERRA2.index.month.isin([2, 4, 6, 8, 10, 12])],
+                                            period='1MS',
+                                            wdir_column_names_1=None, wdir_column_names_2=None,
+                                            coverage_threshold_1=0.99, coverage_threshold_2=1,
+                                            aggregation_method_1='sum', aggregation_method_2='sum')
+    assert len(mrgd_data) == 9
+
+    mrgd_data = bw.merge_datasets_by_period(DATA_CLND['Dir78mS'], MERRA2['WD50m_deg'],
+                                            period='1MS',
+                                            wdir_column_names_1=['Dir78mS'], wdir_column_names_2='WD50m_deg',
+                                            coverage_threshold_1=0.99, coverage_threshold_2=1,
+                                            aggregation_method_1='mean', aggregation_method_2='mean')
+    assert len(mrgd_data) == 13

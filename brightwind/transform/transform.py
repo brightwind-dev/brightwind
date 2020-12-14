@@ -16,12 +16,11 @@
 
 import numpy as np
 import pandas as pd
-from pandas.tseries.frequencies import to_offset
-import math
 from brightwind.utils import utils
 import warnings
 
 __all__ = ['average_data_by_period',
+           'merge_datasets_by_period',
            'average_wdirs',
            'adjust_slope_offset',
            'scale_wind_speed',
@@ -250,7 +249,7 @@ def _get_coverage_by_grouper_obj(data, grouper_obj):
 def average_data_by_period(data, period, wdir_column_names=None, aggregation_method='mean', coverage_threshold=None,
                            return_coverage=False):
     """
-    Averages the data by the time period specified by period.
+    Averages the data by a time period specified.
 
     Aggregates data by the aggregation_method specified, by default this function averages the data to the period 
     specified.
@@ -259,14 +258,16 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     averaging of wind directions only applies if the aggregation method is 'mean', otherwise it will aggregate based
     on the method sent.
 
+    The data can also by filtered by a coverage threshold to insure a certain amount of data is required in the period.
+
     This function can be used to find hourly, daily, weekly, etc. averages or sums. Can also return coverage and
     filter the returned data by coverage.
 
     It will return NaN for intermediary periods where there is no data.
 
-    :param data:   Data to find average or aggregate of
-    :type data:    pd.Series or pd.DataFrame
-    :param period: Groups data by the period specified here. The following formats are supported
+    :param data:               Data to find average or aggregate of
+    :type data:                pd.Series or pd.DataFrame
+    :param period:             Groups data by the period specified here. The following formats are supported
 
             - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
             - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
@@ -276,7 +277,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
             - Set period to 1A fo annual average
             - Can be a DateOffset object too
 
-    :type period:  str or pandas.DateOffset
+    :type period:              str or pandas.DateOffset
     :param wdir_column_names:  List of wind direction column names. These columns, if the aggregation_method is mean,
                                will be vector averaged together instead of a straight mean.
     :type wdir_column_names:   list or str
@@ -297,25 +298,27 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     :type return_coverage:     bool
     :returns: A DataFrame with data aggregated with the specified aggregation_method (mean by default). Additionally it
               could be filtered based on coverage and have a coverage column depending on the parameters.
-    :rtype:   DataFrame
+    :rtype:   pd.DataFrame
 
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
-        #To find hourly averages
+        # To find hourly averages
         data_hourly = bw.average_data_by_period(data.Spd80mN, period='1H')
 
-        #To find monthly averages
+        # To find monthly averages
         data_monthly = bw.average_data_by_period(data.Spd80mN, period='1M')
 
-        #To filter months where half of the data is missing
+        # To filter months where half of the data is missing
         data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M', coverage_threshold=0.5)
 
-        #To check the coverage for all months
+        # To check the coverage for all months
         data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M', return_coverage=True)
 
+        # To average wind directions by vector averaging
+        data_monthly_wdir_avg = bw.average_data_by_period(data.Dir78mS, period='1M', wdir_column_names='Dir78mS')
 
     """
     coverage_threshold = _validate_coverage_threshold(coverage_threshold)
@@ -336,22 +339,51 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
                                 convention='start', kind='timestamp')
 
     if wdir_column_names is not None and aggregation_method == 'mean':
-        # separate out wdirs columns for vector averaging if aggregation method of mean is requested
+        # do vector averaging on wdirs if aggregation method of mean is requested
         wdir_column_names = [wdir_column_names] if isinstance(wdir_column_names, str) else wdir_column_names
+
+        # check if wdir_column_names are in dataframe, if not raise error
+        if isinstance(data, pd.DataFrame):
+            for wdir_col_name in wdir_column_names:
+                if wdir_col_name not in data.columns:
+                    raise KeyError("'{}' not in data sent.".format(wdir_col_name))
+        else:
+            for wdir_col_name in wdir_column_names:
+                if wdir_col_name != data.name:
+                    raise KeyError("'{}' not in data sent.".format(wdir_col_name))
+
+        # separate out wdirs columns for vector averaging. Only need to do if a DataFrame
         non_wdir_col_names = []
-        for col_name in data.columns:
-            if col_name not in wdir_column_names:
-                non_wdir_col_names.append(col_name)
+        if isinstance(data, pd.DataFrame):
+            # if data is a DataFrame then it may have non_wdir columns and more than just a single wdir column
+            for col_name in data.columns:
+                if col_name not in wdir_column_names:
+                    non_wdir_col_names.append(col_name)
 
-        non_wdir_grouped_data = grouper_obj[non_wdir_col_names].agg('mean')
-        non_wdir_coverage = _get_coverage_by_grouper_obj(data[non_wdir_col_names], grouper_obj[non_wdir_col_names])
+        # average wdir data
+        # if data is a Series grouper_obj doesn't take columns and averaged data is a Series and not a DataFrame.
+        if isinstance(data, pd.DataFrame):
+            wdir_grouped_data = grouper_obj[wdir_column_names].agg(average_wdirs)
+            wdir_coverage = _get_coverage_by_grouper_obj(data[wdir_column_names], grouper_obj[wdir_column_names])
+        else:
+            wdir_grouped_data = grouper_obj.agg(average_wdirs)
+            wdir_coverage = _get_coverage_by_grouper_obj(data, grouper_obj)
 
-        wdir_grouped_data = grouper_obj[wdir_column_names].agg(average_wdirs)
-        wdir_coverage = _get_coverage_by_grouper_obj(data[wdir_column_names], grouper_obj[wdir_column_names])
+        # average non_wdir data if available
+        if non_wdir_col_names:
+            non_wdir_grouped_data = grouper_obj[non_wdir_col_names].agg('mean')
+            non_wdir_coverage = _get_coverage_by_grouper_obj(data[non_wdir_col_names], grouper_obj[non_wdir_col_names])
 
-        grouped_data = pd.concat([non_wdir_grouped_data, wdir_grouped_data], axis=1)
-        coverage = pd.concat([non_wdir_coverage, wdir_coverage], axis=1)
+            grouped_data = pd.concat([non_wdir_grouped_data, wdir_grouped_data], axis=1)
+            coverage = pd.concat([non_wdir_coverage, wdir_coverage], axis=1)
+        else:
+            grouped_data = wdir_grouped_data
+            coverage = wdir_coverage
+    elif wdir_column_names is not None and aggregation_method != 'mean':
+        raise KeyError("Vector averaging is only applied when 'aggregation_method' is 'mean'. Either set " +
+                       "'wdir_column_names' to None or set 'aggregation_method'='mean'")
     else:
+        # group data as normal
         grouped_data = grouper_obj.agg(aggregation_method)
         coverage = _get_coverage_by_grouper_obj(data, grouper_obj)
 
@@ -565,70 +597,103 @@ def average_wdirs(wdirs, wspds=None):
     return avg_wdir
 
 
-def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
-                                      aggregation_method_ref='mean', aggregation_method_target='mean',
-                                      get_coverage=False):
+def merge_datasets_by_period(data_1, data_2, period,
+                             wdir_column_names_1=None, wdir_column_names_2=None,
+                             aggregation_method_1='mean', aggregation_method_2='mean',
+                             coverage_threshold_1=None, coverage_threshold_2=None,):
+    """
+    Merge 2 datasets on a time period by aligning the overlapped aggregated data.
+
+    This is done by
+    1, First finding the minimum overlapping timestamp and rounding that down the the start timestamp
+       of the first averaging period. The datasets are then truncated to start from that timestamp.
+    2, The datasets are then aggregated to the time period by the aggregation method specified for each dataset. If
+       coverage_threshold is specified, each dataset is filtered by that.
+    3, The datasets are then merged and only concurrent timestamps are returned.
+
+    This function utilises the 'average_data_by_period' function.
+
+    :param data_1: First dataset to find average or aggregate of and merge with data_2.
+    :type data_1:  pd.DataFrame or pd.Series
+    :param data_2: Second dataset to find average or aggregate of and merge with data_1.
+    :type data_2:  pd.DataFrame or pd.Series
+    :param period: Groups data by the time period specified here. The following formats are supported
+
+            - Set period to 10min for 10 minute average, 30min for 30 minute average.
+            - Set period to 1H for hourly average, 3H for three hourly average and so on for 4H, 6H etc.
+            - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
+            - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
+            - Set period to 1MS for monthly average with the timestamp at the start of the month.
+            - Set period to 1AS for annual average with the timestamp at the start of the year.
+            - Can be a DateOffset object too
+
+    :type period:                str or pandas.DateOffset
+    :param wdir_column_names_1:  List of wind direction column names. These columns, if the aggregation_method is mean,
+                                 will be vector averaged together instead of a straight mean.
+    :type wdir_column_names_1:   list or str
+    :param wdir_column_names_2:  List of wind direction column names. These columns, if the aggregation_method is mean,
+                                 will be vector averaged together instead of a straight mean.
+    :type wdir_column_names_2:   list or str
+    :param aggregation_method_1: Default `mean`, returns the mean of the data for the specified period. Can also
+                                 use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median,
+                                 product, summation, standard deviation, variance, maximum and minimum respectively.
+    :type aggregation_method_1:  str
+    :param aggregation_method_2: Default `mean`, returns the mean of the data for the specified period. Can also
+                                 use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median,
+                                 product, summation, standard deviation, variance, maximum and minimum respectively.
+    :type aggregation_method_2:  str
+    :param coverage_threshold_1: Coverage is defined as the ratio of number of data points present in the period and the
+                                 maximum number of data points that a period should have. Example, for 10 minute data
+                                 resolution and a period of 1 hour, the maximum number of data points in one period is
+                                 6. But if the number if data points available is only 3 for that hour the coverage is
+                                 3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to None by
+                                 default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
+                                 less than the coverage_threshold are removed.
+    :type coverage_threshold_1:  float
+    :param coverage_threshold_2: Coverage is defined as the ratio of number of data points present in the period and the
+                                 maximum number of data points that a period should have. Example, for 10 minute data
+                                 resolution and a period of 1 hour, the maximum number of data points in one period is
+                                 6. But if the number if data points available is only 3 for that hour the coverage is
+                                 3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to None by
+                                 default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
+                                 less than the coverage_threshold are removed.
+    :type coverage_threshold_2:  float
+    :return:                     Merged datasets.
+    :rtype:                      pd.DataFrame
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        m2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+
+        # To find monthly concurrent averages of two datasets
+        mrgd_data = bw.merge_datasets_by_period(m2[['WS50m_m/s', 'WD50m_deg']], data[['Spd80mN', 'Dir78mS']],
+                                                period='1MS',
+                                                wdir_column_names_1='WD50m_deg', wdir_column_names_2='Dir78mS',
+                                                coverage_threshold_1=0.95, coverage_threshold_2=0.95,
+                                                aggregation_method_1='mean', aggregation_method_2='mean')
+
     """
 
-    :param ref:
-    :param target:
-    :param averaging_prd:
-    :param coverage_threshold:
-    :param aggregation_method_ref:
-    :param aggregation_method_target:
-    :param get_coverage:
-    :return:
-    """
-    ref_overlap, target_overlap = _get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(),
-                                                        averaging_prd)
-    ref_resolution = _get_data_resolution(ref_overlap.index)
-    target_resolution = _get_data_resolution(target_overlap.index)
-    if (to_offset(ref_resolution) != to_offset(averaging_prd)) and \
-            (to_offset(target_resolution) != to_offset(averaging_prd)):
-        # If the ref and target resolutions are not equal to the avg_period then
-        if ref_resolution > target_resolution:
-            target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution),
-                                                    coverage_threshold=1,
-                                                    aggregation_method=aggregation_method_target)
-        if ref_resolution < target_resolution:
-            ref_overlap = average_data_by_period(ref_overlap, to_offset(target_resolution),
-                                                 coverage_threshold=1,
-                                                 aggregation_method=aggregation_method_ref)
-        common_idxs, data_pts = _common_idxs(ref_overlap, target_overlap)
-        ref_overlap = ref_overlap.loc[common_idxs]
-        target_overlap = target_overlap.loc[common_idxs]
+    data_1_overlap, data_2_overlap = _get_overlapping_data(data_1.sort_index().dropna(),
+                                                           data_2.sort_index().dropna(),
+                                                           period)
+    coverage_threshold_1 = _validate_coverage_threshold(coverage_threshold_1)
+    coverage_threshold_2 = _validate_coverage_threshold(coverage_threshold_2)
 
-    if get_coverage:
-        # add on the coverage to the target_overlap
-        return pd.concat([average_data_by_period(ref_overlap, averaging_prd,
-                                                 coverage_threshold=0, aggregation_method=aggregation_method_ref)] +
-                         list(average_data_by_period(target_overlap, averaging_prd,
-                                                     coverage_threshold=0, aggregation_method=aggregation_method_target,
-                                                     return_coverage=True)),
-                         axis=1)
-    else:
-        ref_processed, target_processed = average_data_by_period(ref_overlap, averaging_prd,
-                                                                 coverage_threshold=coverage_threshold,
-                                                                 aggregation_method=aggregation_method_ref), \
-                                          average_data_by_period(target_overlap, averaging_prd,
-                                                                 coverage_threshold=coverage_threshold,
-                                                                 aggregation_method=aggregation_method_target)
-        concurrent_idxs, data_pts = _common_idxs(ref_processed, target_processed)
-        return ref_processed.loc[concurrent_idxs], target_processed.loc[concurrent_idxs]
-
-
-def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.DataFrame, target_spd: pd.DataFrame,
-                                          target_dir: pd.DataFrame, averaging_prd, coverage_threshold):
-    ref_N, ref_E= _compute_wind_vector(ref_spd.sort_index().dropna(), ref_dir.sort_index().dropna().map(math.radians))
-    target_N, target_E = _compute_wind_vector(target_spd.sort_index().dropna(),
-                                              target_dir.sort_index().dropna().map(math.radians))
-    ref_N_avgd, target_N_avgd = _preprocess_data_for_correlations(ref_N, target_N, averaging_prd=averaging_prd,
-                                                                  coverage_threshold=coverage_threshold)
-    ref_E_avgd, target_E_avgd = _preprocess_data_for_correlations(ref_E, target_E, averaging_prd=averaging_prd,
-                                                                  coverage_threshold=coverage_threshold)
-    ref_dir_avgd = np.arctan2(ref_E_avgd, ref_N_avgd).map(math.degrees).map(utils._range_0_to_360)
-    target_dir_avgd = np.arctan2(target_E_avgd, target_N_avgd).map(math.degrees).map(utils._range_0_to_360)
-    return round(ref_dir_avgd.loc[:]), round(target_dir_avgd.loc[:])
+    mrgd_data = pd.concat(list(average_data_by_period(data_1_overlap, period=period,
+                                                      wdir_column_names=wdir_column_names_1,
+                                                      coverage_threshold=coverage_threshold_1,
+                                                      aggregation_method=aggregation_method_1,
+                                                      return_coverage=True)) +
+                          list(average_data_by_period(data_2_overlap, period=period,
+                                                      wdir_column_names=wdir_column_names_2,
+                                                      coverage_threshold=coverage_threshold_2,
+                                                      aggregation_method=aggregation_method_2,
+                                                      return_coverage=True)),
+                          axis=1)
+    return mrgd_data.dropna()
 
 
 def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offset):
