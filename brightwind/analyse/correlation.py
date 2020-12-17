@@ -19,7 +19,7 @@ import pandas as pd
 from pandas.tseries.frequencies import to_offset
 from typing import List
 from brightwind.transform import transform as tf
-from brightwind.analyse.plot import _scatter_plot
+from brightwind.analyse.plot import _scatter_plot  # WHY NOT HAVE THIS AS A PUBLIC FUNCTION?
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from brightwind.analyse.analyse import momm, _binned_direction_series
@@ -33,36 +33,29 @@ __all__ = ['']
 
 
 class CorrelBase:
-    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None,
-                 target_dir=None, preprocess=True):
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None, target_dir=None):
+        # MERGE_DATASETS_BY_PERIOD WILL BREAK FOR MultipleLinearRegression WHEN A LIST OF SERIES IS SENT.
         self.ref_spd = ref_spd
         self.ref_dir = ref_dir
         self.target_spd = target_spd
         self.target_dir = target_dir
         self.averaging_prd = averaging_prd
         self.coverage_threshold = coverage_threshold
-        self.preprocess = preprocess
         # Get the name of the columns so they can be passed around
-        self._ref_spd_col_name = ref_spd.name if ref_spd is not None else None  # MIGHT BREAK FOR MultipleLinearRegression WHEN A LIST OF SERIES IS SENT.
+        self._ref_spd_col_name = ref_spd.name if ref_spd is not None else None  # THIS WILL BREAK WHEN MORE THAN 1
         self._ref_dir_col_name = ref_dir.name if ref_dir is not None else None
         self._tar_spd_col_name = target_spd.name if target_spd is not None else None
         self._tar_dir_col_name = target_dir.name if target_dir is not None else None
-        if preprocess:
-            self.data = CorrelBase._averager(ref_spd, target_spd, averaging_prd, coverage_threshold,
-                                             ref_dir, target_dir)
-        else:
-            self.data = pd.concat([ref_spd, target_spd, ref_dir, target_dir], axis=1, join='inner')
+        self.data = CorrelBase._averager(ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir)
         self.num_data_pts = len(self.data)
+        self.params = {'status': 'not yet run'}
 
     @staticmethod
     def _averager(ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir):
-        data = pd.concat(list(tf._preprocess_data_for_correlations(
-            ref_spd, target_spd, averaging_prd, coverage_threshold)),
-            axis=1, join='inner')
-        if ref_dir is not None and target_dir is not None:
-            data = pd.concat([data] + list(tf._preprocess_dir_data_for_correlations(
-                ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold)),
-                             axis=1, join='inner')
+        data = tf.merge_datasets_by_period(data_1=ref_spd, data_2=target_spd, period=averaging_prd,
+                                           coverage_threshold_1=coverage_threshold,
+                                           coverage_threshold_2=coverage_threshold,
+                                           wdir_column_names_1=ref_dir, wdir_column_names_2=target_dir)
         return data
 
     def show_params(self):
@@ -78,13 +71,12 @@ class CorrelBase:
 
     def synthesize(self, ext_input=None):
         # This will give erroneous result when the averaging period is not a whole number such that ref and target does
-        # bot get aligned -Inder
+        # bot get aligned - Inder
         if ext_input is None:
             output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
                                                              return_coverage=False))
             output = tf.average_data_by_period(self.target_spd, self.averaging_prd,
                                                return_coverage=False).combine_first(output)
-
         else:
             output = self._predict(ext_input)
         if isinstance(output, pd.Series):
@@ -98,61 +90,66 @@ class CorrelBase:
         return 1.0 - (sum((self.data[self._tar_spd_col_name] - self._predict(self.data[self._ref_spd_col_name])) ** 2) /
                       (sum((self.data[self._tar_spd_col_name] - self.data[self._tar_spd_col_name].mean()) ** 2)))
 
-    def get_error_metrics(self):
-        return 0
+    # def get_error_metrics(self):
+    #     raise NotImplementedError
 
 
 class OrdinaryLeastSquares(CorrelBase):
-    """Accepts two DataFrames with timestamps as indexes and averaging period.
+    """
+    Correlate two datasets against each other using the Ordinary Least Squares method. This accepts two wind speed
+    Series with timestamps as indexes and an averaging period which groups the by this time period before
+    performing the correlation.
 
-    :param ref_spd: Series containing reference speed as a column, timestamp as the index.
-    :type ref_spd: pandas.Series
-    :param target_spd: DataFrame containing target speed as a column, timestamp as the index.
-    :type target_spd: pandas.Series
-    :param averaging_prd: Groups data by the period specified by period.
+    :param ref_spd:            Series containing reference wind speed as a column, timestamp as the index.
+    :type ref_spd:             pd.Series
+    :param target_spd:         DataFrame containing target wind speed as a column, timestamp as the index.
+    :type target_spd:          pd.Series
+    :param averaging_prd:      Groups data by the time period specified here. The following formats are supported
 
-            - 2T, 2 min for minutely average
-            - Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
-            - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-            - Set period to 1MS for monthly average
-            - Set period to 1AS fo annual average
+            - Set period to 10min for 10 minute average, 30min for 30 minute average.
+            - Set period to 1H for hourly average, 3H for three hourly average and so on for 4H, 6H etc.
+            - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
+            - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
+            - Set period to 1M for monthly average with the timestamp at the start of the month.
+            - Set period to 1A for annual average with the timestamp at the start of the year.
+            - Can be a DateOffset object too
 
-    :type averaging_prd: string or pandas.DateOffset
+    :type averaging_prd:       str or pd.DateOffset
     :param coverage_threshold: Minimum coverage to include for correlation
-    :type coverage_threshold: float
-    :param preprocess: To average and check for coverage before correlating
-    :type preprocess: bool
-    :returns: An object representing ordinary least squares fit model
+    :type coverage_threshold:  float
+    :returns:                  An object representing ordinary least squares fit model
 
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        m2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+
+        # To find monthly concurrent averages of two datasets
+        ols_cor = bw.Correl.OrdinaryLeastSquares(m2['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
+                                                 coverage_threshold=0.95)
+        ols_cor.run()
+        ols_cor.plot()
 
     """
+    def __init__(self, ref_spd, target_spd, averaging_prd='1H', coverage_threshold=0.9):
+        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold)
 
-    @staticmethod
-    def linear_func(p, x):
-        return (p[0] * x) + p[1]
-
-    def __init__(self, ref_spd, target_spd, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
-        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, preprocess=preprocess)
-        self.params = 'not run yet'
-
-    def __repr(self):
-        return 'Ordinary Least Squares Model' + str(self.params)
+    def __repr__(self):
+        return 'Ordinary Least Squares Model ' + str(self.params)
 
     def run(self, show_params=True):
         p, res = lstsq(np.nan_to_num(self.data[self._ref_spd_col_name].values.flatten()[:, np.newaxis] ** [1, 0]),
                        np.nan_to_num(self.data[self._tar_spd_col_name].values.flatten()))[0:2]
 
-        self.params = {'slope': p[0], 'offset': p[1]}
+        self.params = dict([('slope', p[0]), ('offset', p[1])])
         self.params['r2'] = self.get_r2()
-        self.params['Num data points'] = self.num_data_pts
+        self.params['num_data_points'] = self.num_data_pts
         if show_params:
             self.show_params()
 
-    def _predict(self, x):
-        def linear_function(x, slope, offset):
-            return (x * slope) + offset
-
-        return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
+    def _predict(self, ref_spd):
+        return (ref_spd * self.params['slope']) + self.params['offset']
 
 
 class OrthogonalLeastSquares(CorrelBase):
@@ -175,12 +172,12 @@ class OrthogonalLeastSquares(CorrelBase):
 
     """
 
+    @staticmethod
     def linear_func(p, x):
         return p[0] * x + p[1]
 
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9, preprocess=True):
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, preprocess=preprocess)
-        self.params = 'not run yet'
 
     def __repr__(self):
         return 'Orthogonal Least Squares Model ' + str(self.params)
@@ -192,7 +189,7 @@ class OrthogonalLeastSquares(CorrelBase):
                        np.nan_to_num(np.asarray(fit_data.y)[:, np.newaxis]))[0:2]
         self._model = ODR(fit_data, Model(OrthogonalLeastSquares.linear_func), beta0=[p[0][0], p[1][0]])
         self.out = self._model.run()
-        self.params = {'slope': self.out.beta[0], 'offset': self.out.beta[1]}
+        self.params = dict([('slope', self.out.beta[0]), ('offset', self.out.beta[1])])
         self.params['r2'] = self.get_r2()
         self.params['Num data points'] = self.num_data_pts
         # print("Model output:", self.out.pprint())
@@ -222,7 +219,6 @@ class MultipleLinearRegression(CorrelBase):
         self.data.columns = ['ref_spd_' + str(i + 1) for i in range(0, len(self.ref_spd.columns))] + \
                             [self._tar_spd_col_name]
         self.data = self.data.dropna()
-        self.params = 'not run yet'
 
     def __repr__(self):
         return 'Multiple Linear Regression Model ' + str(self.params)
@@ -271,7 +267,6 @@ class SimpleSpeedRatio(CorrelBase):
         else:
             averaging_prd = to_offset(target_resolution)
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0, preprocess=preprocess)
-        self.params = 'not run yet'
         # self.cutoff = cutoff
         # self._filter()      #Filter low wind speeds
 
@@ -358,7 +353,6 @@ class SpeedSort(CorrelBase):
                                                      direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')
         self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
         self.data = self.data.dropna()
-        self.params = 'not run yet'
 
     def __repr__(self):
         return 'Speed Sort Model ' + str(self.params)
@@ -517,7 +511,6 @@ class SVR(CorrelBase):
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, preprocess=preprocess)
         bw_models = [{'kernel': 'rbf', 'C': 30, 'gamma': 0.01}, {'kernel': 'linear', 'C': 10}]
         self.model = sklearn_SVR(**{**bw_models[bw_model], **sklearn_args})
-        self.params = 'not run yet'
 
     def __repr__(self):
         return 'Support Vector Regression Model ' + str(self.params)
