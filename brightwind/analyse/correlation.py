@@ -106,12 +106,12 @@ class OrdinaryLeastSquares(CorrelBase):
     :type target_spd:          pd.Series
     :param averaging_prd:      Groups data by the time period specified here. The following formats are supported
 
-            - Set period to 10min for 10 minute average, 30min for 30 minute average.
-            - Set period to 1H for hourly average, 3H for three hourly average and so on for 4H, 6H etc.
-            - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
-            - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
-            - Set period to 1M for monthly average with the timestamp at the start of the month.
-            - Set period to 1A for annual average with the timestamp at the start of the year.
+            - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
+            - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
+            - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
+            - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
+            - Set period to '1M' for monthly average with the timestamp at the start of the month.
+            - Set period to '1A' for annual average with the timestamp at the start of the year.
             - Can be a DateOffset object too
 
     :type averaging_prd:       str or pd.DateOffset
@@ -132,7 +132,7 @@ class OrdinaryLeastSquares(CorrelBase):
         ols_cor.plot()
 
     """
-    def __init__(self, ref_spd, target_spd, averaging_prd='1H', coverage_threshold=0.9):
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9):
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold)
 
     def __repr__(self):
@@ -154,30 +154,48 @@ class OrdinaryLeastSquares(CorrelBase):
 
 class OrthogonalLeastSquares(CorrelBase):
     """
-    Accepts two series with timestamps as indexes and averaging period.
+    Correlate two datasets against each other using the Orthogonal Least Squares method. This accepts two wind speed
+    Series with timestamps as indexes and an averaging period which groups the by this time period before
+    performing the correlation.
 
-    :param ref_spd: Series containing reference speed as a column, timestamp as the index
-    :param target_spd: Series containing target speed as a column, timestamp as the index
-    :param averaging_prd: Groups data by the period specified by period.
+    :param ref_spd:            Series containing reference wind speed as a column, timestamp as the index.
+    :type ref_spd:             pd.Series
+    :param target_spd:         DataFrame containing target wind speed as a column, timestamp as the index.
+    :type target_spd:          pd.Series
+    :param averaging_prd:      Groups data by the time period specified here. The following formats are supported
 
-            * 2T, 2 min for minutely average
-            * Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
-            * Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-            * Set period to 1MS for monthly average
-            * Set period to 1AS fo annual average
+            - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
+            - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
+            - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
+            - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
+            - Set period to '1M' for monthly average with the timestamp at the start of the month.
+            - Set period to '1A' for annual average with the timestamp at the start of the year.
+            - Can be a DateOffset object too
 
+    :type averaging_prd:       str or pd.DateOffset
     :param coverage_threshold: Minimum coverage to include for correlation
-    :param preprocess: To average and check for coverage before correlating
-    :returns: Returns an object representing the model
+    :type coverage_threshold:  float
+    :returns:                  An object representing orthogonal least squares fit model
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        m2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+
+        # To find monthly concurrent averages of two datasets
+        orthog_cor = bw.Correl.OrthogonalLeastSquares(m2['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
+                                                      coverage_threshold=0.95)
+        orthog_cor.run()
+        orthog_cor.plot()
 
     """
-
     @staticmethod
     def linear_func(p, x):
         return p[0] * x + p[1]
 
-    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9, preprocess=True):
-        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, preprocess=preprocess)
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9):
+        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold)
 
     def __repr__(self):
         return 'Orthogonal Least Squares Model ' + str(self.params)
@@ -187,20 +205,20 @@ class OrthogonalLeastSquares(CorrelBase):
                             self.data[self._tar_spd_col_name].values.flatten())
         p, res = lstsq(np.nan_to_num(fit_data.x[:, np.newaxis] ** [1, 0]), 
                        np.nan_to_num(np.asarray(fit_data.y)[:, np.newaxis]))[0:2]
-        self._model = ODR(fit_data, Model(OrthogonalLeastSquares.linear_func), beta0=[p[0][0], p[1][0]])
-        self.out = self._model.run()
-        self.params = dict([('slope', self.out.beta[0]), ('offset', self.out.beta[1])])
+        model = ODR(fit_data, Model(OrthogonalLeastSquares.linear_func), beta0=[p[0][0], p[1][0]])
+        output = model.run()
+        self.params = dict([('slope', output.beta[0]), ('offset', output.beta[1])])
         self.params['r2'] = self.get_r2()
-        self.params['Num data points'] = self.num_data_pts
-        # print("Model output:", self.out.pprint())
+        self.params['num_data_points'] = self.num_data_pts
+        # print("Model output:", output.pprint())
         if show_params:
             self.show_params()
 
-    def _predict(self, x):
+    def _predict(self, ref_spd):
         def linear_func_inverted(x, p):
             return OrthogonalLeastSquares.linear_func(p, x)
 
-        return x.transform(linear_func_inverted, p=[self.params['slope'], self.params['offset']])
+        return ref_spd.transform(linear_func_inverted, p=[self.params['slope'], self.params['offset']])
 
 
 class MultipleLinearRegression(CorrelBase):

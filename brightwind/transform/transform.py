@@ -269,12 +269,12 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     :type data:                pd.Series or pd.DataFrame
     :param period:             Groups data by the period specified here. The following formats are supported
 
-            - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
-            - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-            - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
-            - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
-            - Set period to 1M for monthly average
-            - Set period to 1A fo annual average
+            - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
+            - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
+            - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
+            - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
+            - Set period to '1M' for monthly average with the timestamp at the start of the month.
+            - Set period to '1A' for annual average with the timestamp at the start of the year.
             - Can be a DateOffset object too
 
     :type period:              str or pandas.DateOffset
@@ -619,12 +619,12 @@ def merge_datasets_by_period(data_1, data_2, period,
     :type data_2:  pd.DataFrame or pd.Series
     :param period: Groups data by the time period specified here. The following formats are supported
 
-            - Set period to 10min for 10 minute average, 30min for 30 minute average.
-            - Set period to 1H for hourly average, 3H for three hourly average and so on for 4H, 6H etc.
-            - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
-            - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
-            - Set period to 1MS for monthly average with the timestamp at the start of the month.
-            - Set period to 1AS for annual average with the timestamp at the start of the year.
+            - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
+            - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
+            - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
+            - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
+            - Set period to '1M' for monthly average with the timestamp at the start of the month.
+            - Set period to '1A' for annual average with the timestamp at the start of the year.
             - Can be a DateOffset object too
 
     :type period:                str or pandas.DateOffset
