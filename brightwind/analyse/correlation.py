@@ -112,9 +112,8 @@ class OrdinaryLeastSquares(CorrelBase):
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
             - Set period to '1A' for annual average with the timestamp at the start of the year.
-            - Can be a DateOffset object too
 
-    :type averaging_prd:       str or pd.DateOffset
+    :type averaging_prd:       str
     :param coverage_threshold: Minimum coverage to include for correlation
     :type coverage_threshold:  float
     :returns:                  An object representing ordinary least squares fit model
@@ -170,9 +169,8 @@ class OrthogonalLeastSquares(CorrelBase):
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
             - Set period to '1A' for annual average with the timestamp at the start of the year.
-            - Can be a DateOffset object too
 
-    :type averaging_prd:       str or pd.DateOffset
+    :type averaging_prd:       str
     :param coverage_threshold: Minimum coverage to include for correlation
     :type coverage_threshold:  float
     :returns:                  An object representing orthogonal least squares fit model

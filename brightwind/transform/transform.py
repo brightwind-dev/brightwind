@@ -50,6 +50,31 @@ def _compute_wind_vector(wspd, wdir):
     return wspd*np.cos(wdir), wspd*np.sin(wdir)
 
 
+def _freq_str_to_timedelta(period):
+    """
+    Convert a pandas frequency string to a pd.Timedelta.
+
+    This is needed because support for MS and AS was dropped. Pandas frequency strings are available here:
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
+
+    :param period: Frequency string to be converted to a pd.Timedelta
+    :type period:  str
+    :return:       A pd.Timedelta
+    :rtype:        pd.Timedelta
+    """
+    if period[-1] == 'M':
+        as_timedelta = pd.Timedelta(int(period[:-1]), unit='M')
+    elif period[-2:] == 'MS':
+        as_timedelta = pd.Timedelta(int(period[:-2]), unit='M')
+    elif period[-1] == 'A':
+        as_timedelta = pd.Timedelta(365 * int(period[:-1]), unit='D')
+    elif period[-2:] == 'AS':
+        as_timedelta = pd.Timedelta(365 * int(period[:-2]), unit='D')
+    else:
+        as_timedelta = pd.Timedelta(period)
+    return as_timedelta
+
+
 def _convert_days_to_hours(prd):
     return str(int(prd[:-1])*24)+'H'
 
@@ -265,6 +290,9 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
 
     It will return NaN for intermediary periods where there is no data.
 
+    If you wish to do 'upsampling', i.e. convert from hourly to every 10 minutes, please used the pandas resample
+    function directly.
+
     :param data:               Data to find average or aggregate of
     :type data:                pd.Series or pd.DataFrame
     :param period:             Groups data by the period specified here. The following formats are supported
@@ -275,9 +303,8 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
             - Set period to '1A' for annual average with the timestamp at the start of the year.
-            - Can be a DateOffset object too
 
-    :type period:              str or pandas.DateOffset
+    :type period:              str
     :param wdir_column_names:  List of wind direction column names. These columns, if the aggregation_method is mean,
                                will be vector averaged together instead of a straight mean.
     :type wdir_column_names:   list or str
@@ -323,7 +350,6 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     """
     coverage_threshold = _validate_coverage_threshold(coverage_threshold)
 
-    data = data.sort_index()
     if isinstance(period, str):
         if period[-1] == 'D':
             period = _convert_days_to_hours(period)
@@ -335,6 +361,12 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
             period = period+'S'
         if period[-1] == 'Y':
             raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
+
+    # Check that the data resolution is not less than the period specified
+    if _freq_str_to_timedelta(period) < _get_data_resolution(data.index):
+        raise ValueError("The time period specified is less than the temporal resolution of the data. "
+                         "For example, hourly data should not be averaged to 10 minute data.")
+    data = data.sort_index()
     grouper_obj = data.resample(period, axis=0, closed='left', label='left', base=0,
                                 convention='start', kind='timestamp')
 
@@ -625,9 +657,8 @@ def merge_datasets_by_period(data_1, data_2, period,
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
             - Set period to '1A' for annual average with the timestamp at the start of the year.
-            - Can be a DateOffset object too
 
-    :type period:                str or pandas.DateOffset
+    :type period:                str
     :param wdir_column_names_1:  List of wind direction column names. These columns, if the aggregation_method is mean,
                                  will be vector averaged together instead of a straight mean.
     :type wdir_column_names_1:   list or str or None

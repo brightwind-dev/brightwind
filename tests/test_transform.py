@@ -142,6 +142,21 @@ def test_offset_wind_direction_series():
     assert wdir_series_offset.equals(bw.offset_wind_direction(pd.Series([10, 30, np.NaN, 40, 350]), 345))
 
 
+def test_freq_str_to_timedelta():
+    periods = ['1min', '5min', '10min', '15min',
+               '1H', '3H', '6H',
+               '1D', '7D', '1W', '2W',
+               '1MS', '1M', '3M', '6MS',
+               '1AS', '1A', '3A']
+    results = [60.0, 300.0, 600.0, 900.0,
+               3600.0, 10800.0, 21600.0,
+               86400.0, 604800.0, 604800.0, 1209600.0,
+               2629746.0, 2629746.0, 7889238.0, 15778476.0,
+               31536000.0, 31536000.0, 94608000.0]
+    for idx, period in enumerate(periods):
+        assert bw.transform.transform._freq_str_to_timedelta(period).total_seconds() == results[idx]
+
+
 def test_round_timestamp_down_to_averaging_prd():
     timestamp = pd.Timestamp('2016-01-09 11:21:11')
     avg_periods = ['10min', '15min', '1H', '3H', '6H', '1D', '7D', '1W', '1MS', '1AS']
@@ -384,6 +399,11 @@ def test_average_data_by_period():
     bw.average_data_by_period(DATA.Spd80mN, period='2W', coverage_threshold=0.9, return_coverage=True)
     # return coverage without filtering
     bw.average_data_by_period(DATA.Spd80mN, period='2W', return_coverage=True)
+    # Test error msg when period is less than data resolution
+    with pytest.raises(ValueError) as except_info:
+        bw.average_data_by_period(DATA.Spd80mN, period='5min')
+    assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
+                                     "For example, hourly data should not be averaged to 10 minute data."
 
     dummy_data = dummy_data_frame()
     average_monthly_speed = bw.average_data_by_period(dummy_data.wspd, period='1M')
