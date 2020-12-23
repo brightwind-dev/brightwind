@@ -42,7 +42,8 @@ class CorrelBase:
         self.averaging_prd = averaging_prd
         self.coverage_threshold = coverage_threshold
         # Get the name of the columns so they can be passed around
-        self._ref_spd_col_name = ref_spd.name if ref_spd is not None else None  # THIS WILL BREAK WHEN MORE THAN 1
+        self._ref_spd_col_name = ref_spd.name if ref_spd is not None and isinstance(ref_spd, pd.Series) else None
+        self._ref_spd_col_names = ref_spd.columns if ref_spd is not None and isinstance(ref_spd, pd.DataFrame) else None
         self._ref_dir_col_name = ref_dir.name if ref_dir is not None else None
         self._tar_spd_col_name = target_spd.name if target_spd is not None else None
         self._tar_dir_col_name = target_dir.name if target_dir is not None else None
@@ -220,28 +221,22 @@ class OrthogonalLeastSquares(CorrelBase):
 
 
 class MultipleLinearRegression(CorrelBase):
-    def __init__(self, ref_spd: List, target_spd, averaging_prd='1H', coverage_threshold=0.9, preprocess=True):
-        self.ref_spd = pd.concat(ref_spd, axis=1, join='inner')
-        self.target_spd = target_spd
-        self.averaging_prd = averaging_prd
-        self.coverage_threshold = coverage_threshold
-        self.preprocess = preprocess
-        if preprocess:
-            self.data = pd.concat(list(tf._preprocess_data_for_correlations(
-                self.ref_spd, self.target_spd, averaging_prd, coverage_threshold)),
-                axis=1, join='inner')
-        else:
-            self.data = pd.concat(list(self.ref_spd, self.target_spd), axis=1, join='inner')
-        self.data.columns = ['ref_spd_' + str(i + 1) for i in range(0, len(self.ref_spd.columns))] + \
-                            [self._tar_spd_col_name]
-        self.data = self.data.dropna()
+    def __init__(self, ref_spd: List, target_spd, averaging_prd='1H', coverage_threshold=0.9):
+        self.ref_spd = self._merge_ref_spds(ref_spd)
+        CorrelBase.__init__(self, self.ref_spd, target_spd, averaging_prd, coverage_threshold)
 
     def __repr__(self):
         return 'Multiple Linear Regression Model ' + str(self.params)
 
+    @staticmethod
+    def _merge_ref_spds(ref_spds):
+        # ref_spds is a list of pd.Series that may have the same names.
+        for idx, ref_spd in enumerate(ref_spds):
+            ref_spd.name = ref_spd.name + '_' + str(idx + 1)
+        return pd.concat(ref_spds, axis=1, join='inner')
+
     def run(self, show_params=True):
-        p, res = lstsq(np.column_stack((self.data.iloc[:, :len(self.data.columns) - 1].values, 
-                                        np.ones(len(self.data)))), 
+        p, res = lstsq(np.column_stack((self.data[self._ref_spd_col_names].values, np.ones(len(self.data)))),
                        self.data[self._tar_spd_col_name].values.flatten())[0:2]
         self.params = {'slope': p[:-1], 'offset': p[-1]}
         if show_params:
@@ -257,6 +252,7 @@ class MultipleLinearRegression(CorrelBase):
         return x.apply(linear_function, axis=1, slope=self.params['slope'], offset=self.params['offset'])
 
     def synthesize(self, ext_input=None):
+        # CorrelBase.synthesize(self.data ????????????????????????????????????????????????????
         if ext_input is None:
             return pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
                                                                       self.averaging_prd,
@@ -267,11 +263,11 @@ class MultipleLinearRegression(CorrelBase):
 
     def get_r2(self):
         return 1.0 - (sum((self.data[self._tar_spd_col_name] - 
-                           self._predict(self.data.drop([self._tar_spd_col_name], axis=1))) ** 2) / 
+                           self._predict(self.data[self._ref_spd_col_names])) ** 2) /
                       (sum((self.data[self._tar_spd_col_name] - self.data[self._tar_spd_col_name].mean()) ** 2)))
 
-    def plot(self):
-        return "Cannot plot Multiple Linear Regression"
+    def plot(self, title=""):
+        raise NotImplementedError
 
 
 class SimpleSpeedRatio(CorrelBase):
