@@ -28,6 +28,7 @@ from pandas.plotting import register_matplotlib_converters
 from brightwind.utils.utils import _convert_df_to_series
 import re
 import six
+from colormap import rgb2hex, rgb2hls, hls2rgb
 
 register_matplotlib_converters()
 
@@ -103,6 +104,17 @@ class _ColorPalette:
 
 
 COLOR_PALETTE = _ColorPalette()
+
+
+def adjust_color_lightness(r, g, b, factor):
+    h, l, s = rgb2hls(r / 255.0, g / 255.0, b / 255.0)
+    l = max(min(l * factor, 1.0), 0.0)
+    r, g, b = hls2rgb(h, l, s)
+    return rgb2hex(int(r * 255), int(g * 255), int(b * 255))
+
+
+def darken_color(r, g, b, factor=0.1):
+    return adjust_color_lightness(r, g, b, 1 - factor)
 
 
 def plot_monthly_means(data, coverage=None, ylbl=''):
@@ -406,8 +418,13 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
     return scat_plot
 
 
-def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=None, y_label=None):
+def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=None, y_label=None, legend=False,
+                           total_width=0.8, single_width=1):
     from matplotlib.ticker import PercentFormatter
+
+    if type(data) is pd.Series:
+        data = data.to_frame()
+
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     ax.set_xlabel(x_label)
@@ -421,16 +438,40 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     if x_tick_labels is not None:
         ax.set_xticklabels(x_tick_labels)
     if max_y_value is None:
-        ax.set_ylim(0, data.max() * 1.1)
+        ax.set_ylim(0, data.max().max() * 1.1)
     else:
         ax.set_ylim(0, max_y_value)
-    if y_label[0] == '%':
-        ax.yaxis.set_major_formatter(PercentFormatter())
+
+    if y_label:
+        if y_label[0] == '%':
+            ax.yaxis.set_major_formatter(PercentFormatter())
     ax.grid(b=True, axis='y', zorder=0)
-    for frequency, ws_bin in zip(data, x_data):
-        ax.imshow(np.array([[mpl.colors.to_rgb(COLOR_PALETTE.primary)], [mpl.colors.to_rgb(COLOR_PALETTE.primary_80)]]),
-                  interpolation='gaussian', extent=(ws_bin - 0.4, ws_bin + 0.4, 0, frequency), aspect='auto', zorder=3)
-        ax.bar(ws_bin, frequency, edgecolor=COLOR_PALETTE.primary_35, linewidth=0.3, fill=False, zorder=5)
+
+    # Number of bars per group
+    n_bars = len(data.columns)
+    # Bars width
+    bar_width = total_width / n_bars
+    # List containing handles for the drawn bars, used for the legend
+    bars = []
+    # Iterate over all data
+    for i, name in enumerate(data.columns):
+        # The offset in x direction of that bar
+        x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
+        r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(COLOR_PALETTE.color_list[i]))) # hex to rgb format
+
+        for frequency, ws_bin in zip(data[name], x_data):
+            ax.imshow(np.array([[mpl.colors.to_rgb(COLOR_PALETTE.color_list[i])],
+                                [mpl.colors.to_rgb(darken_color(r, g, b, factor=-0.8))]]), interpolation='gaussian',
+                      extent=(ws_bin + x_offset - total_width / n_bars / 2,
+                              ws_bin + x_offset + total_width / n_bars / 2, 0, frequency), aspect='auto', zorder=3)
+            bar = ax.bar(ws_bin + x_offset, frequency, width=bar_width * single_width,
+                         edgecolor=darken_color(r, g, b, factor=-0.35), linewidth=1, fill=False, zorder=5)
+        # Add a handle to the last drawn bar, which we'll need for the legend
+        bars.append(bar[0])
+
+    if legend:
+        ax.legend(bars, data.keys())
+
     plt.close()
     return ax.get_figure()
 
