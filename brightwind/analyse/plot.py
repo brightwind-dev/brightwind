@@ -113,10 +113,6 @@ def adjust_color_lightness(r, g, b, factor):
     return rgb2hex(int(r * 255), int(g * 255), int(b * 255))
 
 
-def darken_color(r, g, b, factor=0.1):
-    return adjust_color_lightness(r, g, b, 1 - factor)
-
-
 def plot_monthly_means(data, coverage=None, ylbl=''):
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
@@ -461,12 +457,15 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
 
         for frequency, ws_bin in zip(data[name], x_data):
             ax.imshow(np.array([[mpl.colors.to_rgb(COLOR_PALETTE.color_list[i])],
-                                [mpl.colors.to_rgb(darken_color(r, g, b, factor=-0.8))]]), interpolation='gaussian',
-                      extent=(ws_bin + x_offset - total_width / n_bars / 2,
-                              ws_bin + x_offset + total_width / n_bars / 2, 0, frequency), aspect='auto', zorder=3)
+                                [mpl.colors.to_rgb(adjust_color_lightness(r, g, b, factor=1.8))]]),
+                      interpolation='gaussian', extent=(ws_bin + x_offset - total_width / n_bars / 2,
+                                                        ws_bin + x_offset + total_width / n_bars / 2, 0, frequency),
+                      aspect='auto', zorder=3)
             bar = ax.bar(ws_bin + x_offset, frequency, width=bar_width * single_width,
-                         edgecolor=darken_color(r, g, b, factor=-0.35), linewidth=1, fill=False, zorder=5)
+                         edgecolor=adjust_color_lightness(r, g, b, factor=1.35), linewidth=1, fill=False, zorder=5)
         # Add a handle to the last drawn bar, which we'll need for the legend
+        bar[0].set_color(COLOR_PALETTE.color_list[i])
+        bar[0].set_fill(True)
         bars.append(bar[0])
 
     if legend:
