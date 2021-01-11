@@ -122,9 +122,9 @@ def adjust_color_lightness(r, g, b, factor):
     :return: color in hex format
     :rtype: hex
     """
-    h, l, s = rgb2hls(r / 255.0, g / 255.0, b / 255.0)
-    l = max(min(l * factor, 1.0), 0.0)
-    r, g, b = hls2rgb(h, l, s)
+    hue, lightness, saturation = rgb2hls(r / 255.0, g / 255.0, b / 255.0)
+    lightness = max(min(lightness * factor, 1.0), 0.0)
+    r, g, b = hls2rgb(hue, lightness, saturation)
     return rgb2hex(int(r * 255), int(g * 255), int(b * 255))
 
 
