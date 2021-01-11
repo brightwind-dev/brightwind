@@ -107,6 +107,21 @@ COLOR_PALETTE = _ColorPalette()
 
 
 def adjust_color_lightness(r, g, b, factor):
+    """
+    Generate the color corresponding to the input primary color corrected by a lightness or darkness defined by the
+    input factor percentage. Lighter colors are obtained with a factor >1 and darker colors with a factor <1.
+
+    :param r:       Intensity of red color between 0 and 255.
+    :type r:        float
+    :param g:       Intensity of green color between 0 and 255.
+    :type g:        float
+    :param b:       Intensity of blue color between 0 and 255.
+    :type b:        float
+    :param factor:  Factor defining the percentage of lightness (>1) or darkness (<1).
+    :type factor:   float
+    :return: color in hex format
+    :rtype: hex
+    """
     h, l, s = rgb2hls(r / 255.0, g / 255.0, b / 255.0)
     l = max(min(l * factor, 1.0), 0.0)
     r, g, b = hls2rgb(h, l, s)
