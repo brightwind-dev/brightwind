@@ -61,26 +61,26 @@ class _ColorPalette:
         'primary_10' for 10% of primary. Gradient goes from 0% (darkest) to 100% (lightest). See
         https://www.w3schools.com/colors/colors_picker.asp for more info.
         """
-        self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb[156/255, 197/255, 55/255]
-        self.secondary = '#2E3743'      # asphalt, rgb[46/255, 55/255, 67/255]
-        self.tertiary = '#9B2B2C'       # red'ish, rgb(155, 43, 44)
-        self.fourth = '#E57925'         # orange'ish, rgb(229, 121, 37)
-        self.fifth = '#F2D869'          # yellow'ish, rgb(242, 216, 105)
+        self.primary = '#9CC537'  # slightly darker than YellowGreen #9acd32, rgb[156/255, 197/255, 55/255]
+        self.secondary = '#2E3743'  # asphalt, rgb[46/255, 55/255, 67/255]
+        self.tertiary = '#9B2B2C'  # red'ish, rgb(155, 43, 44)
+        self.fourth = '#E57925'  # orange'ish, rgb(229, 121, 37)
+        self.fifth = '#F2D869'  # yellow'ish, rgb(242, 216, 105)
         self.sixth = '#AB8D60'
         self.seventh = '#A4D29F'
         self.eighth = '#6E807B'
-        self.ninth = '#3D636F'          # blue grey
+        self.ninth = '#3D636F'  # blue grey
         self.tenth = '#A49E9D'
         self.eleventh = '#DA9BA6'
-        self.primary_10 = '#1F290A'     # darkest green, 10% of primary
-        self.primary_35 = '#6C9023'     # dark green, 35% of primary
-        self.primary_80 = '#D7EBAD'     # light green, 80% of primary
-        self.primary_90 = '#ebf5d6'     # light green, 90% of primary
-        self.primary_95 = '#F5FAEA'     # lightest green, 95% of primary
-        self.secondary_70 = '#6d737b'   # light asphalt
+        self.primary_10 = '#1F290A'  # darkest green, 10% of primary
+        self.primary_35 = '#6C9023'  # dark green, 35% of primary
+        self.primary_80 = '#D7EBAD'  # light green, 80% of primary
+        self.primary_90 = '#ebf5d6'  # light green, 90% of primary
+        self.primary_95 = '#F5FAEA'  # lightest green, 95% of primary
+        self.secondary_70 = '#6d737b'  # light asphalt
 
         _col_map_colors = [self.primary_95,  # lightest primary
-                           self.primary,     # primary
+                           self.primary,  # primary
                            self.primary_10]  # darkest primary
         self._color_map = self._set_col_map(_col_map_colors)
 
@@ -220,7 +220,7 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
         bw.plot_timeseries(data.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=(0, 25))
 
     """
-    plt.rcParams['figure.figsize'] = (15, 8)    # ** this might be setting the global size which isn't good practice ***
+    plt.rcParams['figure.figsize'] = (15, 8)  # ** this might be setting the global size which isn't good practice ***
     if isinstance(data, pd.Series):
         data_to_slice = data.copy(deep=False).to_frame()
     else:
@@ -436,6 +436,11 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     if type(data) is pd.Series:
         data = data.to_frame()
 
+    if len(data.columns) > len(COLOR_PALETTE.color_list):
+        raise ValueError('The numbers of variables to plot is higher than the number of colors implemented '
+                         'in the brightwind library standard COLOR_PALETTE. The number of variables should be lower '
+                         'than {}'.format(len(COLOR_PALETTE.color_list)))
+
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     ax.set_xlabel(x_label)
@@ -468,7 +473,7 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     for i, name in enumerate(data.columns):
         # The offset in x direction of that bar
         x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
-        r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(COLOR_PALETTE.color_list[i]))) # hex to rgb format
+        r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(COLOR_PALETTE.color_list[i])))  # hex to rgb format
 
         for frequency, ws_bin in zip(data[name], x_data):
             ax.imshow(np.array([[mpl.colors.to_rgb(COLOR_PALETTE.color_list[i])],
@@ -500,22 +505,22 @@ def plot_rose(ext_data, plot_label=None):
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.arange(0, 360, 360.0/sectors))
+    ax.set_thetagrids(np.arange(0, 360, 360.0 / sectors))
     sector_mid_points = []
     widths = []
     for i in result.index:
         angular_pos_start = (np.pi / 180.0) * float(i.split('-')[0])
         angular_pos_end = (np.pi / 180.0) * float(i.split('-')[-1])
         if angular_pos_start < angular_pos_end:
-            sector_mid_points.append((angular_pos_start+angular_pos_end)/2.0)
-            widths.append(angular_pos_end-angular_pos_start - (np.pi / 180))
+            sector_mid_points.append((angular_pos_start + angular_pos_end) / 2.0)
+            widths.append(angular_pos_end - angular_pos_start - (np.pi / 180))
         else:
-            sector_mid_points.append((np.pi + (angular_pos_start + angular_pos_end)/2.0) % 360)
-            widths.append(2*np.pi - angular_pos_start + angular_pos_end - (np.pi / 180))
+            sector_mid_points.append((np.pi + (angular_pos_start + angular_pos_end) / 2.0) % 360)
+            widths.append(2 * np.pi - angular_pos_start + angular_pos_end - (np.pi / 180))
     max_contour = (ext_data.max() + ext_data.std())
     contour_spacing = max_contour / 10
     num_digits_to_round = 0
-    while contour_spacing*(10**num_digits_to_round) <= 1:
+    while contour_spacing * (10 ** num_digits_to_round) <= 1:
         num_digits_to_round += 1
     if 0.5 < contour_spacing < 1:
         contour_spacing = 1
@@ -681,11 +686,10 @@ def plot_TI_by_sector(turbulence, wdir, ti):
 
 
 def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'):
-
     result = wind_rose_data.copy(deep=False)
     radians = np.radians(utils._get_dir_sector_mid_pts(scale_variable.index))
     sectors = len(result)
-    fig = plt.figure(figsize=(12, 12),)
+    fig = plt.figure(figsize=(12, 12), )
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
@@ -702,8 +706,8 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
 
     scale_variable_y = np.append(scale_variable, scale_variable[0])
     plot_x = np.append(radians, radians[0])
-    scale_to_fit = max(scale_variable) / max(result/100)
-    wind_rose_r = (result/100) * scale_to_fit
+    scale_to_fit = max(scale_variable) / max(result / 100)
+    wind_rose_r = (result / 100) * scale_to_fit
     bin_edges = np.array(bin_edges)
     width = pd.Series([])
 
@@ -720,7 +724,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
            alpha=0.8, label='Wind_Directional_Frequency')
 
     maxlevel = (max(scale_variable_y)) + max(scale_variable_y) * .1
-    ax.set_thetagrids(radians*180/np.pi)
+    ax.set_thetagrids(radians * 180 / np.pi)
     ax.plot(plot_x, scale_variable_y, color=COLOR_PALETTE.primary, linewidth=4, label=label)
     ax.set_ylim(0, top=maxlevel)
     ax.legend(loc=8, framealpha=1)
@@ -817,7 +821,7 @@ def plot_power_law(avg_alpha, avg_c, wspds, heights, max_plot_height=None, avg_s
     if max_plot_height is None:
         max_plot_height = max(heights)
 
-    plot_heights = np.arange(1, max_plot_height+1, 1)
+    plot_heights = np.arange(1, max_plot_height + 1, 1)
     speeds = avg_c * (plot_heights ** avg_alpha)
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlabel('Speed [m/s]')
@@ -825,7 +829,7 @@ def plot_power_law(avg_alpha, avg_c, wspds, heights, max_plot_height=None, avg_s
     ax.plot(speeds, plot_heights, '-', color=COLOR_PALETTE.primary, label='power_law')
     ax.scatter(wspds, heights, marker='o', color=COLOR_PALETTE.secondary)
     if plot_both is True:
-        plot_heights = np.arange(1, max_plot_height+1, 1)
+        plot_heights = np.arange(1, max_plot_height + 1, 1)
         speeds = avg_slope * np.log(plot_heights) + avg_intercept
         ax.plot(speeds, plot_heights, '-', color=COLOR_PALETTE.secondary, label='log_law')
         ax.scatter(wspds, heights, marker='o', color=COLOR_PALETTE.secondary)
@@ -855,7 +859,6 @@ def plot_log_law(avg_slope, avg_intercept, wspds, heights, max_plot_height=None)
 
 
 def plot_shear_time_of_day(df, calc_method, plot_type='step'):
-
     df_copy = df.copy()
     # colours in use
     colors = [(0.6313725490196078, 0.6470588235294118, 0.6705882352941176, 1.0),  # Jan
@@ -915,7 +918,7 @@ def plot_dist_matrix(matrix, colorbar_label=None, xticklabels=None, yticklabels=
     fig, ax = plt.subplots(figsize=(10, 10))
     cm = ax.pcolormesh(matrix, cmap=COLOR_PALETTE.color_map)
     ax.set(xlim=(0, matrix.shape[1]), ylim=(0, matrix.shape[0]))
-    ax.set(xticks=np.array(range(0, matrix.shape[1]))+0.5, yticks=np.array(range(0, matrix.shape[0])) + 0.5)
+    ax.set(xticks=np.array(range(0, matrix.shape[1])) + 0.5, yticks=np.array(range(0, matrix.shape[0])) + 0.5)
     if xticklabels is not None:
         ax.set_xticklabels(xticklabels)
     if yticklabels is not None:
