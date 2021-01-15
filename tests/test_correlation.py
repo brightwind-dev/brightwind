@@ -97,3 +97,7 @@ def test_orthogonal_least_squares():
     assert round(correl.params['offset'], 5) == correl_hourly_results['offset']
     assert round(correl.params['r2'], 4) == correl_hourly_results['r2']
     assert round(correl.params['num_data_points'], 5) == correl_hourly_results['num_data_points']
+
+
+def test_multiple_linear_regression():
+    correl = bw.Correl.MultipleLinearRegression()

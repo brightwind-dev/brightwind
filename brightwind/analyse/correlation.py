@@ -221,6 +221,42 @@ class OrthogonalLeastSquares(CorrelBase):
 
 
 class MultipleLinearRegression(CorrelBase):
+    """
+    Correlate multiple reference datasets against a target dataset using ordinary least squares. This accepts two wind speed
+    Series with timestamps as indexes and an averaging period which groups the by this time period before
+    performing the correlation.
+
+    :param ref_spd:            Series containing reference wind speed as a column, timestamp as the index.
+    :type ref_spd:             pd.Series
+    :param target_spd:         DataFrame containing target wind speed as a column, timestamp as the index.
+    :type target_spd:          pd.Series
+    :param averaging_prd:      Groups data by the time period specified here. The following formats are supported
+
+            - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
+            - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
+            - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
+            - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
+            - Set period to '1M' for monthly average with the timestamp at the start of the month.
+            - Set period to '1A' for annual average with the timestamp at the start of the year.
+
+    :type averaging_prd:       str
+    :param coverage_threshold: Minimum coverage to include for correlation
+    :type coverage_threshold:  float
+    :returns:                  An object representing orthogonal least squares fit model
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        m2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+
+        # To find monthly concurrent averages of two datasets
+        orthog_cor = bw.Correl.OrthogonalLeastSquares(m2['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
+                                                      coverage_threshold=0.95)
+        orthog_cor.run()
+        orthog_cor.plot()
+
+    """
     def __init__(self, ref_spd: List, target_spd, averaging_prd='1H', coverage_threshold=0.9):
         self.ref_spd = self._merge_ref_spds(ref_spd)
         CorrelBase.__init__(self, self.ref_spd, target_spd, averaging_prd, coverage_threshold)
@@ -252,7 +288,7 @@ class MultipleLinearRegression(CorrelBase):
         return x.apply(linear_function, axis=1, slope=self.params['slope'], offset=self.params['offset'])
 
     def synthesize(self, ext_input=None):
-        # CorrelBase.synthesize(self.data ????????????????????????????????????????????????????
+        # CorrelBase.synthesize(self.data ???????? Why not??????????????????????????????????????
         if ext_input is None:
             return pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
                                                                       self.averaging_prd,
