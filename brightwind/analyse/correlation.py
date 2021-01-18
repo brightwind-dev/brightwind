@@ -98,12 +98,12 @@ class CorrelBase:
 class OrdinaryLeastSquares(CorrelBase):
     """
     Correlate two datasets against each other using the Ordinary Least Squares method. This accepts two wind speed
-    Series with timestamps as indexes and an averaging period which groups the by this time period before
+    Series with timestamps as indexes and an averaging period which merges the datasets by this time period before
     performing the correlation.
 
     :param ref_spd:            Series containing reference wind speed as a column, timestamp as the index.
     :type ref_spd:             pd.Series
-    :param target_spd:         DataFrame containing target wind speed as a column, timestamp as the index.
+    :param target_spd:         Series containing target wind speed as a column, timestamp as the index.
     :type target_spd:          pd.Series
     :param averaging_prd:      Groups data by the time period specified here. The following formats are supported
 
@@ -125,7 +125,7 @@ class OrdinaryLeastSquares(CorrelBase):
         data = bw.load_csv(bw.demo_datasets.demo_data)
         m2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
 
-        # To find monthly concurrent averages of two datasets
+        # Correlate on a monthly basis
         ols_cor = bw.Correl.OrdinaryLeastSquares(m2['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
                                                  coverage_threshold=0.95)
         ols_cor.run()
@@ -155,12 +155,12 @@ class OrdinaryLeastSquares(CorrelBase):
 class OrthogonalLeastSquares(CorrelBase):
     """
     Correlate two datasets against each other using the Orthogonal Least Squares method. This accepts two wind speed
-    Series with timestamps as indexes and an averaging period which groups the by this time period before
+    Series with timestamps as indexes and an averaging period which merges the datasets by this time period before
     performing the correlation.
 
     :param ref_spd:            Series containing reference wind speed as a column, timestamp as the index.
     :type ref_spd:             pd.Series
-    :param target_spd:         DataFrame containing target wind speed as a column, timestamp as the index.
+    :param target_spd:         Series containing target wind speed as a column, timestamp as the index.
     :type target_spd:          pd.Series
     :param averaging_prd:      Groups data by the time period specified here. The following formats are supported
 
@@ -182,7 +182,7 @@ class OrthogonalLeastSquares(CorrelBase):
         data = bw.load_csv(bw.demo_datasets.demo_data)
         m2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
 
-        # To find monthly concurrent averages of two datasets
+        # Correlate on a monthly basis
         orthog_cor = bw.Correl.OrthogonalLeastSquares(m2['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
                                                       coverage_threshold=0.95)
         orthog_cor.run()
@@ -222,13 +222,14 @@ class OrthogonalLeastSquares(CorrelBase):
 
 class MultipleLinearRegression(CorrelBase):
     """
-    Correlate multiple reference datasets against a target dataset using ordinary least squares. This accepts two wind speed
-    Series with timestamps as indexes and an averaging period which groups the by this time period before
-    performing the correlation.
+    Correlate multiple reference datasets against a target dataset using ordinary least squares. This accepts a
+    list of multiple reference wind speeds and a single target wind speed. The wind speed datasets are Pandas
+    Series with timestamps as indexes. Also sen is an averaging period which merges the datasets by this time period
+    before performing the correlation.
 
-    :param ref_spd:            Series containing reference wind speed as a column, timestamp as the index.
-    :type ref_spd:             pd.Series
-    :param target_spd:         DataFrame containing target wind speed as a column, timestamp as the index.
+    :param ref_spd:            A list of Series containing reference wind speed as a column, timestamp as the index.
+    :type ref_spd:             List(pd.Series)
+    :param target_spd:         Series containing target wind speed as a column, timestamp as the index.
     :type target_spd:          pd.Series
     :param averaging_prd:      Groups data by the time period specified here. The following formats are supported
 
@@ -242,19 +243,20 @@ class MultipleLinearRegression(CorrelBase):
     :type averaging_prd:       str
     :param coverage_threshold: Minimum coverage to include for correlation
     :type coverage_threshold:  float
-    :returns:                  An object representing orthogonal least squares fit model
+    :returns:                  An object representing Multiple Linear Regression fit model
 
     **Example usage**
     ::
         import brightwind as bw
         data = bw.load_csv(bw.demo_datasets.demo_data)
-        m2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+        m2_ne = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+        m2_nw = bw.load_csv(bw.demo_datasets.demo_merra2_NW)
 
-        # To find monthly concurrent averages of two datasets
-        orthog_cor = bw.Correl.OrthogonalLeastSquares(m2['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
-                                                      coverage_threshold=0.95)
-        orthog_cor.run()
-        orthog_cor.plot()
+        # Correlate on a monthly basis
+        mul_cor = bw.Correl.MultipleLinearRegression([m2_ne['WS50m_m/s'], m2_ne['WS50m_m/s']], data['Spd80mN'],
+                                                     averaging_prd='1M',
+                                                     coverage_threshold=0.95)
+        mul_cor.run()
 
     """
     def __init__(self, ref_spd: List, target_spd, averaging_prd='1H', coverage_threshold=0.9):

@@ -20,7 +20,8 @@ DATA = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_dat
 DATA_CLND = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 WSPD_COLS = ['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd60mS', 'Spd40mN', 'Spd40mS']
 WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
-MERRA2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+MERRA2_NE = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+MERRA2_NW = bw.load_csv(bw.demo_datasets.demo_merra2_NW)
 
 
 def test_ordinary_least_squares():
@@ -45,7 +46,7 @@ def test_ordinary_least_squares():
     correl_monthly_results_90 = {'slope': 0.99357, 'offset': -0.03654, 'r2': 0.9433, 'num_data_points': 16}
     correl_hourly_results = {'slope': 0.98922, 'offset': -0.03616, 'r2': 0.7379, 'num_data_points': 12369}
 
-    correl = bw.Correl.OrdinaryLeastSquares(MERRA2['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
                                             coverage_threshold=0)
     correl.run()
     assert round(correl.params['slope'], 5) == correl_monthly_results['slope']
@@ -59,7 +60,7 @@ def test_ordinary_least_squares():
         assert round(m2_monthly_mean_list[idx], 5) == round(row[1]['WS50m_m/s'], 5)
 
     # check 90% coverage, checked against Excel
-    correl = bw.Correl.OrdinaryLeastSquares(MERRA2['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
                                             coverage_threshold=0.9)
     correl.run()
     assert round(correl.params['slope'], 5) == correl_monthly_results_90['slope']
@@ -68,7 +69,7 @@ def test_ordinary_least_squares():
     assert round(correl.params['num_data_points'], 5) == correl_monthly_results_90['num_data_points']
 
     # check hourly, checked against Excel
-    correl = bw.Correl.OrdinaryLeastSquares(MERRA2['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1H',
+    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1H',
                                             coverage_threshold=1)
     correl.run()
     assert round(correl.params['slope'], 5) == correl_hourly_results['slope']
@@ -81,7 +82,7 @@ def test_orthogonal_least_squares():
     correl_monthly_results = {'slope': 1.01778, 'offset': -0.13473, 'r2': 0.8098, 'num_data_points': 18}
     correl_hourly_results = {'slope': 1.17829, 'offset': -1.48193, 'r2': 0.711, 'num_data_points': 12369}
 
-    correl = bw.Correl.OrthogonalLeastSquares(MERRA2['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+    correl = bw.Correl.OrthogonalLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
                                               coverage_threshold=0)
     correl.run()
     assert round(correl.params['slope'], 5) == correl_monthly_results['slope']
@@ -90,7 +91,7 @@ def test_orthogonal_least_squares():
     assert round(correl.params['num_data_points'], 5) == correl_monthly_results['num_data_points']
 
     # check hourly
-    correl = bw.Correl.OrthogonalLeastSquares(MERRA2['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1H',
+    correl = bw.Correl.OrthogonalLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1H',
                                               coverage_threshold=1)
     correl.run()
     assert round(correl.params['slope'], 5) == correl_hourly_results['slope']
@@ -100,4 +101,11 @@ def test_orthogonal_least_squares():
 
 
 def test_multiple_linear_regression():
-    correl = bw.Correl.MultipleLinearRegression()
+    correl_monthly_results = {'slope': [2.03723, -0.93837], 'offset': -0.51343}
+    correl = bw.Correl.MultipleLinearRegression([MERRA2_NE['WS50m_m/s'], MERRA2_NW['WS50m_m/s']],
+                                                DATA_CLND['Spd80mN'], averaging_prd='1M',
+                                                coverage_threshold=0.95)
+    correl.run()
+    for idx, slope in enumerate(correl.params['slope']):
+        assert round(slope, 5) == correl_monthly_results['slope'][idx]
+    assert round(correl.params['offset'], 5) == correl_monthly_results['offset']
