@@ -16,7 +16,6 @@
 
 import numpy as np
 import pandas as pd
-from pandas.tseries.frequencies import to_offset
 from typing import List
 from brightwind.transform import transform as tf
 from brightwind.analyse.plot import _scatter_plot  # WHY NOT HAVE THIS AS A PUBLIC FUNCTION?
@@ -27,6 +26,7 @@ from sklearn.svm import SVR as sklearn_SVR
 from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 from brightwind.utils import utils
 import pprint
+import warnings
 
 
 __all__ = ['']
@@ -34,7 +34,6 @@ __all__ = ['']
 
 class CorrelBase:
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None, target_dir=None):
-        # MERGE_DATASETS_BY_PERIOD WILL BREAK FOR MultipleLinearRegression WHEN A LIST OF SERIES IS SENT.
         self.ref_spd = ref_spd
         self.ref_dir = ref_dir
         self.target_spd = target_spd
@@ -308,36 +307,77 @@ class MultipleLinearRegression(CorrelBase):
         raise NotImplementedError
 
 
-class SimpleSpeedRatio(CorrelBase):
-    def __init__(self, ref_spd, target_spd, preprocess=True):
-        ref_resolution, target_resolution = tf._get_data_resolution(ref_spd.index), \
-                                            tf._get_data_resolution(target_spd.index)
-        if ref_resolution > target_resolution:
-            averaging_prd = to_offset(ref_resolution)
-        else:
-            averaging_prd = to_offset(target_resolution)
-        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0, preprocess=preprocess)
-        # self.cutoff = cutoff
-        # self._filter()      #Filter low wind speeds
+class SimpleSpeedRatio:
+    """
+    Calculate the simple speed ratio between overlapping datasets and apply to the MOMM of the reference.
+
+    The simple speed ratio is calculated by finding the limits of the overlapping period between the target and
+    reference datasets. The ratio of the mean wind speed of these two datasets for the overlapping period is
+    calculated i.e. target_overlap_mean / ref_overlap_mean. This ratio is then applied to the Mean of Monthly
+    Means (MOMM) of the complete reference dataset resulting in a long term wind speed for the target dataset.
+
+    This is a "back of the envelope" style long term calculation and is intended to be used as a guide and not
+    to be used in a robust wind resource assessment.
+
+    A warning message will be raised if the data coverage of either the target or the reference overlapping
+    period is poor.
+
+    :param ref_spd:    Series containing reference wind speed as a column, timestamp as the index.
+    :type ref_spd:     pd.Series
+    :param target_spd: Series containing target wind speed as a column, timestamp as the index.
+    :type target_spd:  pd.Series
+    :return:           An object representing the simple speed ratio model
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        m2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+
+        # Calculate the simple speed ratio between overlapping datasets
+        simple_ratio = bw.Correl.SimpleSpeedRatio(m2['WS50m_m/s'], data['Spd80mN'])
+        simple_ratio.run()
+
+    """
+    def __init__(self, ref_spd, target_spd):
+        self.ref_spd = ref_spd
+        self.target_spd = target_spd
+        self._start_ts = tf._get_min_overlap_timestamp(ref_spd.dropna().index, target_spd.dropna().index)
+        self._end_ts = min(ref_spd.dropna().index.max(), ref_spd.dropna().index.max())
+        self.data = ref_spd[self._start_ts:self._end_ts], target_spd[self._start_ts:self._end_ts]
+        self.params = {'status': 'not yet run'}
 
     def __repr__(self):
         return 'Simple Speed Ratio Model ' + str(self.params)
 
-    # def _filter(self):
-    #     if self.cutoff is not None:
-    #         self.data = self.data[(self.data['ref_spd'] >= self.cutoff) & (self.data['target_spd'] >= self.cutoff)]
-
     def run(self, show_params=True):
         self.params = dict()
-        self.params["ratio"] = self.data[self._tar_spd_col_name].mean() / self.data[self._ref_spd_col_name].mean()
+        simple_speed_ratio = self.data[1].mean() / self.data[0].mean()  # target / ref
+        ref_long_term_momm = momm(self.ref_spd)
+
+        # calculate the coverage of the target data to raise warning if poor
+        tar_count = self.data[1].dropna().count()
+        tar_res = tf._get_data_resolution(self.data[1].index)
+        max_pts = (self._end_ts - self._start_ts) / tar_res
+        if tar_res == pd.Timedelta(1, unit='M'):  # if is monthly
+            # round the result to 0 decimal to make whole months.
+            max_pts = np.round(max_pts, 0)
+        target_overlap_coverage = tar_count / max_pts
+
+        self.params["simple_speed_ratio"] = simple_speed_ratio
+        self.params["ref_long_term_momm"] = ref_long_term_momm
+        self.params["target_long_term"] = simple_speed_ratio * ref_long_term_momm
+        self.params["target_overlap_coverage"] = target_overlap_coverage
         if show_params:
             self.show_params()
 
-    def _predict(self, x):
-        def linear_function(x, slope):
-            return x * slope
+        if target_overlap_coverage < 0.9:
+            warnings.warn('\nThe target data overlapping coverage is poor at {}. '
+                          'Please use this calculation with caution.'.format(round(target_overlap_coverage, 3)))
 
-        return x.transform(linear_function, slope=self.params['ratio'])
+    def show_params(self):
+        """Show the dictionary of parameters"""
+        pprint.pprint(self.params)
 
 
 class SpeedSort(CorrelBase):

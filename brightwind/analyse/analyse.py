@@ -246,13 +246,14 @@ def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
     return monthly_df
 
 
-def momm(data: pd.DataFrame, date_from: str = '', date_to: str = ''):
+def momm(data, date_from: str = '', date_to: str = ''):
     """
     Calculates and returns long term reference speed. Accepts a DataFrame
     with timestamps as index column and another column with wind-speed. You can also specify
     date_from and date_to to calculate the long term reference speed for only that period.
 
-    :param data: Pandas DataFrame with timestamp as index and a column with wind-speed
+    :param data: Pandas DataFrame or Series with timestamp as index and a column with wind-speed
+    :type data:  pd.DataFrame or pd.Series
     :param date_from: Start date as string in format YYYY-MM-DD
     :param date_to: End date as string in format YYYY-MM-DD
     :returns: Long term reference speed

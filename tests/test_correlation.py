@@ -2,7 +2,7 @@ import pytest
 import brightwind as bw
 import pandas as pd
 import numpy as np
-import datetime
+import warnings
 
 
 wndspd = 8
@@ -109,3 +109,44 @@ def test_multiple_linear_regression():
     for idx, slope in enumerate(correl.params['slope']):
         assert round(slope, 5) == correl_monthly_results['slope'][idx]
     assert round(correl.params['offset'], 5) == correl_monthly_results['offset']
+
+
+def test_simple_speed_ratio():
+    result = {'simple_speed_ratio': 0.99519,
+              'ref_long_term_momm': 7.70707,
+              'target_long_term': 7.67001,
+              'target_overlap_coverage': 0.95812}
+    ssr = bw.Correl.SimpleSpeedRatio(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'])
+    ssr.run()
+    assert round(ssr.params['simple_speed_ratio'], 5) == result['simple_speed_ratio']
+    assert round(ssr.params['ref_long_term_momm'], 5) == result['ref_long_term_momm']
+    assert round(ssr.params['target_long_term'], 5) == result['target_long_term']
+    assert round(ssr.params['target_overlap_coverage'], 5) == result['target_overlap_coverage']
+
+    # test monthly values
+    result = {'simple_speed_ratio': 1.00127,
+              'ref_long_term_momm': 7.70707,
+              'target_long_term': 7.71684,
+              'target_overlap_coverage': 1.0}
+    ssr = bw.Correl.SimpleSpeedRatio(MERRA2_NE['WS50m_m/s'], bw.monthly_means(DATA_CLND['Spd80mN'],
+                                                                              return_data=True)[1])
+    ssr.run()
+    assert round(ssr.params['simple_speed_ratio'], 5) == result['simple_speed_ratio']
+    assert round(ssr.params['ref_long_term_momm'], 5) == result['ref_long_term_momm']
+    assert round(ssr.params['target_long_term'], 5) == result['target_long_term']
+    assert round(ssr.params['target_overlap_coverage'], 5) == result['target_overlap_coverage']
+
+    # test with loads of data missing within the overlapping period which will throw a warning
+    result = {'simple_speed_ratio': 1.01997,
+              'ref_long_term_momm': 7.70707,
+              'target_long_term': 7.86098,
+              'target_overlap_coverage': 0.52323}
+    with warnings.catch_warnings(record=True) as w:
+        spd80m_even_months = DATA_CLND['Spd80mN'][DATA_CLND.index.month.isin([2, 4, 6, 8, 10, 12])]
+        ssr = bw.Correl.SimpleSpeedRatio(MERRA2_NE['WS50m_m/s'], spd80m_even_months)
+        ssr.run()
+        assert round(ssr.params['simple_speed_ratio'], 5) == result['simple_speed_ratio']
+        assert round(ssr.params['ref_long_term_momm'], 5) == result['ref_long_term_momm']
+        assert round(ssr.params['target_long_term'], 5) == result['target_long_term']
+        assert round(ssr.params['target_overlap_coverage'], 5) == result['target_overlap_coverage']
+        assert len(w) == 1
