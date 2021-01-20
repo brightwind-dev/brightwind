@@ -595,52 +595,52 @@ class SpeedSort(CorrelBase):
             x_label=self._ref_dir_col_name, y_label=self._tar_dir_col_name)
 
 
-class SVR(CorrelBase):
-    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, bw_model=0, preprocess=True,
-                 **sklearn_args):
-        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, preprocess=preprocess)
-        bw_models = [{'kernel': 'rbf', 'C': 30, 'gamma': 0.01}, {'kernel': 'linear', 'C': 10}]
-        self.model = sklearn_SVR(**{**bw_models[bw_model], **sklearn_args})
-
-    def __repr__(self):
-        return 'Support Vector Regression Model ' + str(self.params)
-
-    def run(self, show_params=True):
-        if len(self.data[self._ref_spd_col_name].values.shape) == 1:
-            x = self.data[self._ref_spd_col_name].values.reshape(-1, 1)
-        else:
-            x = self.data[self._ref_spd_col_name].values
-        self.model.fit(x, self.data[self._tar_spd_col_name].values.flatten())
-        self.params = dict()
-        self.params['RMSE'] = -1 * sklearn_cross_val_score(self.model, x,
-                                                           self.data[self._tar_spd_col_name].values.flatten(),
-                                                           scoring='neg_mean_squared_error', cv=3)
-        self.params['MAE'] = -1 * sklearn_cross_val_score(self.model, x,
-                                                          self.data[self._tar_spd_col_name].values.flatten(),
-                                                          scoring='neg_mean_absolute_error', cv=3)
-        self.params['Explained Variance'] = -1 * sklearn_cross_val_score(self.model, x,
-                                                                         self.data[self._tar_spd_col_name].values.flatten(),
-                                                                         scoring='explained_variance', cv=3)
-        if show_params:
-            self.show_params()
-
-    def _predict(self, x):
-        if isinstance(x, pd.Series):
-            X = x.values.reshape(-1, 1)
-            return pd.DataFrame(data=self.model.predict(X), index=x.index)
-        elif isinstance(x, pd.DataFrame):
-            X = x.values
-            return pd.DataFrame(data=self.model.predict(X), index=x.index)
-        else:
-            if not len(x.shape) == 2:
-                raise ValueError("Expected shape of input data (num of data points, number of reference datasets), "
-                                 "but found ", x.shape)
-            else:
-                return self.model.predict(x)
-
-    def plot(self, title=""):
-        """For plotting"""
-        _scatter_plot(self.data[self._ref_spd_col_name].values.flatten(),
-                      self.data[self._tar_spd_col_name].values.flatten(),
-                      self._predict(self.data[self._ref_spd_col_name]).values.flatten(), prediction_marker='.',
-                      x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name)
+class SVR:
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, bw_model=0, **sklearn_args):
+        raise NotImplementedError
+    #     CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold)
+    #     bw_models = [{'kernel': 'rbf', 'C': 30, 'gamma': 0.01}, {'kernel': 'linear', 'C': 10}]
+    #     self.model = sklearn_SVR(**{**bw_models[bw_model], **sklearn_args})
+    #
+    # def __repr__(self):
+    #     return 'Support Vector Regression Model ' + str(self.params)
+    #
+    # def run(self, show_params=True):
+    #     if len(self.data[self._ref_spd_col_name].values.shape) == 1:
+    #         x = self.data[self._ref_spd_col_name].values.reshape(-1, 1)
+    #     else:
+    #         x = self.data[self._ref_spd_col_name].values
+    #     self.model.fit(x, self.data[self._tar_spd_col_name].values.flatten())
+    #     self.params = dict()
+    #     self.params['RMSE'] = -1 * sklearn_cross_val_score(self.model, x,
+    #                                                        self.data[self._tar_spd_col_name].values.flatten(),
+    #                                                        scoring='neg_mean_squared_error', cv=3)
+    #     self.params['MAE'] = -1 * sklearn_cross_val_score(self.model, x,
+    #                                                       self.data[self._tar_spd_col_name].values.flatten(),
+    #                                                       scoring='neg_mean_absolute_error', cv=3)
+    #     self.params['Explained Variance'] = -1 * sklearn_cross_val_score(self.model, x,
+    #                                                                      self.data[self._tar_spd_col_name].values.flatten(),
+    #                                                                      scoring='explained_variance', cv=3)
+    #     if show_params:
+    #         self.show_params()
+    #
+    # def _predict(self, x):
+    #     if isinstance(x, pd.Series):
+    #         X = x.values.reshape(-1, 1)
+    #         return pd.DataFrame(data=self.model.predict(X), index=x.index)
+    #     elif isinstance(x, pd.DataFrame):
+    #         X = x.values
+    #         return pd.DataFrame(data=self.model.predict(X), index=x.index)
+    #     else:
+    #         if not len(x.shape) == 2:
+    #             raise ValueError("Expected shape of input data (num of data points, number of reference datasets), "
+    #                              "but found ", x.shape)
+    #         else:
+    #             return self.model.predict(x)
+    #
+    # def plot(self, title=""):
+    #     """For plotting"""
+    #     _scatter_plot(self.data[self._ref_spd_col_name].values.flatten(),
+    #                   self.data[self._tar_spd_col_name].values.flatten(),
+    #                   self._predict(self.data[self._ref_spd_col_name]).values.flatten(), prediction_marker='.',
+    #                   x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name)
