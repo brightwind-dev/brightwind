@@ -46,19 +46,23 @@ class CorrelBase:
         self._ref_dir_col_name = ref_dir.name if ref_dir is not None else None
         self._tar_spd_col_name = target_spd.name if target_spd is not None else None
         self._tar_dir_col_name = target_dir.name if target_dir is not None else None
-        self.data = CorrelBase._averager(ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir)
+        # Average and merge datasets into one df
+        self.data = CorrelBase._averager(self, ref_spd, target_spd, averaging_prd, coverage_threshold,
+                                         ref_dir, target_dir)
         self.num_data_pts = len(self.data)
         self.params = {'status': 'not yet run'}
 
-    @staticmethod
-    def _averager(ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir):
-        if ref_dir:
-            # concat speed and direction first
-            ref_spd = pd.concat()
+    def _averager(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir):
+        # If directions sent, concat speed and direction first
+        if ref_dir is not None:
+            ref_spd = pd.concat([ref_spd, ref_dir], axis=1)
+        if target_dir is not None:
+            target_spd = pd.concat([target_spd, target_dir], axis=1)
         data = tf.merge_datasets_by_period(data_1=ref_spd, data_2=target_spd, period=averaging_prd,
                                            coverage_threshold_1=coverage_threshold,
                                            coverage_threshold_2=coverage_threshold,
-                                           wdir_column_names_1=ref_dir, wdir_column_names_2=target_dir)
+                                           wdir_column_names_1=self._ref_dir_col_name,
+                                           wdir_column_names_2=self._tar_dir_col_name)
         return data
 
     def show_params(self):
@@ -488,7 +492,7 @@ class SpeedSort(CorrelBase):
         self.sectors = sectors
         self.direction_bin_array = direction_bin_array
         if direction_bin_array is not None:
-            self.sectors = len(direction_bin_array)-1
+            self.sectors = len(direction_bin_array) - 1
         if lt_ref_speed is None:
             self.lt_ref_speed = momm(self.data[self._ref_spd_col_name])
         else:
@@ -505,6 +509,7 @@ class SpeedSort(CorrelBase):
                                                      direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')
         self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
         self.data = self.data.dropna()
+        self.speed_model = dict()
 
     def __repr__(self):
         return 'SpeedSort Model ' + str(self.params)
@@ -558,8 +563,6 @@ class SpeedSort(CorrelBase):
         self.params['Ref_veer_cutoff'] = self.ref_veer_cutoff
         self.params['Target_veer_cutoff'] = self.target_veer_cutoff
         self.params['Overall_average_veer'] = self.overall_veer
-        # print(self.params)
-        self.speed_model = dict()
         for sector, group in self.data.groupby(['ref_dir_bin']):
             # print('Processing sector:', sector)
             self.speed_model[sector] = SpeedSort.SectorSpeedModel(ref_spd=group[self._ref_spd_col_name],
@@ -605,7 +608,7 @@ class SpeedSort(CorrelBase):
         x['sec_veer'] = [sec_veer[i - 1] for i in x['veer_bin']]
         x['multiply_factor'] = [sec_veer[i]-sec_veer[i-1] for i in x['veer_bin']]
         x['adjustment'] = x['sec_veer'] + (x['ratio']*x['multiply_factor'])
-        return (x['dir']+x['adjustment']).sort_index().apply(utils._range_0_to_360)
+        return (x['dir'] + x['adjustment']).sort_index().apply(utils._range_0_to_360)
 
     def _predict(self, x_spd, x_dir):
         x = pd.concat([x_spd.dropna().rename('spd'),
