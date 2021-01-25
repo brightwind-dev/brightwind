@@ -22,8 +22,8 @@ from brightwind.analyse.plot import _scatter_plot  # WHY NOT HAVE THIS AS A PUBL
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from brightwind.analyse.analyse import momm, _binned_direction_series
-from sklearn.svm import SVR as sklearn_SVR
-from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
+# from sklearn.svm import SVR as sklearn_SVR
+# from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 from brightwind.utils import utils
 import pprint
 import warnings
@@ -52,6 +52,9 @@ class CorrelBase:
 
     @staticmethod
     def _averager(ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir):
+        if ref_dir:
+            # concat speed and direction first
+            ref_spd = pd.concat()
         data = tf.merge_datasets_by_period(data_1=ref_spd, data_2=target_spd, period=averaging_prd,
                                            coverage_threshold_1=coverage_threshold,
                                            coverage_threshold_2=coverage_threshold,
@@ -420,9 +423,68 @@ class SpeedSort(CorrelBase):
                           sorted(self.sector_predict(self.sector_ref).values.flatten()))
 
     def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold=0.9, sectors=12,
-                 direction_bin_array=None, lt_ref_speed=None, preprocess=True):
+                 direction_bin_array=None, lt_ref_speed=None):
+        """
+        Correlate two datasets against each other using the SpeedSort method as outlined in 'The SpeedSort, DynaSort
+        and Scatter Wind Correlation Methods, Wind Engineering 29(3):217-242, Ciaran King, Brian Hurley, May 2005'.
+
+        This accepts two wind speed and direction Series with timestamps as indexes and an averaging period which
+        merges the datasets by this time period before performing the correlation.
+
+        :param ref_spd:             Series containing reference wind speed as a column, timestamp as the index.
+        :type ref_spd:              pd.Series
+        :param target_spd:          Series containing target wind speed as a column, timestamp as the index.
+        :type target_spd:           pd.Series
+        :param ref_dir:             Series containing reference wind direction as a column, timestamp as the index.
+        :type ref_dir:              pd.Series
+        :param target_dir:          Series containing target wind direction as a column, timestamp as the index.
+        :type target_dir:           pd.Series
+        :param averaging_prd:       Groups data by the time period specified here. The following formats are supported
+
+                - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
+                - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
+                - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
+                - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
+                - Set period to '1M' for monthly average with the timestamp at the start of the month.
+                - Set period to '1A' for annual average with the timestamp at the start of the year.
+
+        :type averaging_prd:        str
+        :param coverage_threshold:  Minimum coverage to include for correlation
+        :type coverage_threshold:   float
+        :param sectors:             Number of direction sectors to bin in to. The first sector is centered at 0 by
+                                    default. To change that behaviour specify 'direction_bin_array' which overwrites
+                                    'sectors'.
+        :type sectors:              int
+        :param direction_bin_array: An optional parameter where if you want custom direction bins, pass an array
+                                    of the bins. To add custom bins for direction sectors, overwrites sectors. For
+                                    instance, for direction bins [0,120), [120, 215), [215, 360) the list would
+                                    be [0, 120, 215, 360]
+        :type direction_bin_array:  List()
+        :param lt_ref_speed:        An alternative to the long term wind speed for the reference dataset calculated
+                                    using mean of monthly means (MOMM).
+        :type lt_ref_speed:         float or int
+        :returns:                   An object representing the speed sort fit model
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_csv(bw.demo_datasets.demo_data)
+            m2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+
+            # Basic usage on an hourly basis
+            ss_cor = bw.Correl.SpeedSort(m2['WS50m_m/s'], m2['WD50m_deg'], data['Spd80mN'], data['Dir78mS'],
+                                         averaging_prd='1H')
+            ss_cor.run()
+
+
+
+
+            direction_bin_array=[0,90,130,200,360]
+
+
+        """
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
-                            target_dir=target_dir, preprocess=preprocess)
+                            target_dir=target_dir)
         self.sectors = sectors
         self.direction_bin_array = direction_bin_array
         if direction_bin_array is not None:
@@ -445,7 +507,7 @@ class SpeedSort(CorrelBase):
         self.data = self.data.dropna()
 
     def __repr__(self):
-        return 'Speed Sort Model ' + str(self.params)
+        return 'SpeedSort Model ' + str(self.params)
 
     def _randomize_calm_periods(self):
         idxs = self.data[self.data[self._ref_spd_col_name] < 1].index
