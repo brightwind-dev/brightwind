@@ -553,24 +553,24 @@ class SpeedSort(CorrelBase):
     def _avg_veer(self, sector_data):
         sector_data = sector_data[(sector_data[self._ref_spd_col_name] >= self.ref_veer_cutoff) &
                                   (sector_data[self._tar_spd_col_name] >= self.target_veer_cutoff)]
-        return {'average_veer': self._get_veer(sector_data[self._ref_dir_col_name],
-                                               sector_data[self._tar_dir_col_name]).mean(),
+        return {'average_veer': round(self._get_veer(sector_data[self._ref_dir_col_name],
+                                                     sector_data[self._tar_dir_col_name]).mean(), 5),
                 'num_pts_for_veer': len(sector_data[self._ref_dir_col_name])}
 
     def run(self, show_params=True):
         self.params = dict()
-        self.params['Ref_cutoff_for_speed'] = self.cutoff
-        self.params['Ref_veer_cutoff'] = self.ref_veer_cutoff
-        self.params['Target_veer_cutoff'] = self.target_veer_cutoff
-        self.params['Overall_average_veer'] = self.overall_veer
+        self.params['ref_speed_cutoff'] = round(self.cutoff, 5)
+        self.params['ref_veer_cutoff'] = round(self.ref_veer_cutoff, 5)
+        self.params['target_veer_cutoff'] = round(self.target_veer_cutoff, 5)
+        self.params['overall_average_veer'] = round(self.overall_veer, 5)
         for sector, group in self.data.groupby(['ref_dir_bin']):
             # print('Processing sector:', sector)
             self.speed_model[sector] = SpeedSort.SectorSpeedModel(ref_spd=group[self._ref_spd_col_name],
                                                                   target_spd=group[self._tar_spd_col_name],
                                                                   cutoff=self.cutoff)
-            self.params[sector] = {'slope': self.speed_model[sector].params['slope'],
-                                   'offset': self.speed_model[sector].params['offset'],
-                                   'target_cutoff': self.speed_model[sector].target_cutoff,
+            self.params[sector] = {'slope': round(self.speed_model[sector].params['slope'], 5),
+                                   'offset': round(self.speed_model[sector].params['offset'], 5),
+                                   'target_speed_cutoff': round(self.speed_model[sector].target_cutoff, 5),
                                    'num_pts_for_speed_fit': self.speed_model[sector].data_pts,
                                    'num_total_pts': min(group.count())}
             self.params[sector].update(self._avg_veer(group))
