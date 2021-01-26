@@ -1,7 +1,6 @@
 import pytest
 import brightwind as bw
 import pandas as pd
-import numpy as np
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -192,89 +191,3 @@ def test_dist_matrix_by_direction_sector():
     bw.dist_matrix_by_dir_sector(DATA.Spd40mN, DATA.T2m, DATA.Dir38mS,
                                  var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
-
-
-def test_average_wdirs():
-    wdirs = np.array([350, 10])
-    assert bw.average_wdirs(wdirs) == 0.0
-
-    wdirs = np.array([0, 180])
-    assert bw.average_wdirs(wdirs) is np.NaN
-
-    wdirs = np.array([90, 270])
-    assert bw.average_wdirs(wdirs) is np.NaN
-
-    wdirs = np.array([45, 135])
-    assert bw.average_wdirs(wdirs) == 90
-
-    wdirs = np.array([135, 225])
-    assert bw.average_wdirs(wdirs) == 180
-
-    wdirs = np.array([45, 315, 225, 135])
-    assert bw.average_wdirs(wdirs) is np.NaN
-
-    wdirs = np.array([225, 315])
-    assert bw.average_wdirs(wdirs) == 270
-
-    wdirs = np.array([0, 10, 20, 340, 350, 360])
-    assert bw.average_wdirs(wdirs) == 0.0
-
-    wdirs_with_nan = [15, np.nan, 25]
-    assert round(bw.average_wdirs(wdirs_with_nan), 3) == 20.000
-
-    wspds = [3, 4, 5]
-    assert round(bw.average_wdirs(wdirs_with_nan, wspds), 3) == 21.253
-
-    wspds_with_nan = [3, 4, np.nan]
-    assert round(bw.average_wdirs(wdirs_with_nan, wspds_with_nan), 3) == 15.0
-
-    wspds_with_nan = [np.nan, np.nan, np.nan]
-    assert bw.average_wdirs(wdirs_with_nan, wspds_with_nan) is np.NaN
-
-    wspds_with_nan = [3, 4, np.nan]
-    assert round(bw.average_wdirs(pd.Series(wdirs_with_nan), pd.Series(wspds_with_nan)), 3) == 15.0
-
-    wdirs_with_nan = np.array(wdirs_with_nan)
-    assert round(bw.average_wdirs(wdirs_with_nan), 3) == 20.000
-
-    wdirs_with_nan = pd.Series(wdirs_with_nan)
-    assert round(bw.average_wdirs(wdirs_with_nan), 3) == 20.000
-
-    wdirs_series = pd.Series(wdirs)
-    assert bw.average_wdirs(wdirs_series) == 0.0
-
-    wspds = np.array([5, 5, 5, 5, 5, 5])
-    assert bw.average_wdirs(wdirs, wspds) == 0.0
-
-    wspds_series = pd.Series(wspds)
-    assert bw.average_wdirs(wdirs_series, wspds_series) == 0.0
-
-    wspds = np.array([5, 8.5, 10, 10, 6, 5])
-    assert round(bw.average_wdirs(wdirs, wspds), 4) == 0.5774
-
-    wdirs = np.array([[350, 10],
-                      [0, 180],
-                      [90, 270],
-                      [45, 135],
-                      [135, 225],
-                      [15, np.nan]])
-    wdirs_df = pd.DataFrame(wdirs)
-    avg_wdirs = np.round(bw.average_wdirs(wdirs_df).values, 3)
-    avg_wdirs = np.array([x for x in avg_wdirs if x == x])  # remove nans
-    expected_result = [0., np.nan, np.nan, 90., 180., 15.]
-    expected_result = np.array([x for x in expected_result if x == x])  # remove nans
-    for i, j in zip(avg_wdirs, expected_result):
-        assert i == j
-
-    wspds = np.array([[1, 2],
-                      [1, 2],
-                      [1, 2],
-                      [1, 2],
-                      [1, 2],
-                      [np.nan, 2]])
-    wspds_df = pd.DataFrame(wspds)
-    avg_wdirs = np.round(bw.average_wdirs(wdirs_df, wspds_df).values, 2)
-    avg_wdirs = np.array([x for x in avg_wdirs if x == x])  # remove nans
-    expected_result = np.array([3.36, 180., 270., 108.43, 198.43])
-    for i, j in zip(avg_wdirs, expected_result):
-        assert i == j
