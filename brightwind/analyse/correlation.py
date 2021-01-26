@@ -389,15 +389,14 @@ class SimpleSpeedRatio:
 
 class SpeedSort(CorrelBase):
     class SectorSpeedModel:
-        def __init__(self, ref_spd, target_spd, lt_ref_speed=None):
+        def __init__(self, ref_spd, target_spd, cutoff):
             self.sector_ref = ref_spd
             self.sector_target = target_spd
-            self.cutoff = min(0.5 * lt_ref_speed, 4.0)
             x_data = sorted([wdspd for wdspd in self.sector_ref.values.flatten()])
             y_data = sorted([wdspd for wdspd in self.sector_target.values.flatten()])
             start_idx = 0
             for idx, wdspd in enumerate(x_data):
-                if wdspd >= self.cutoff:
+                if wdspd >= cutoff:
                     start_idx = idx
                     break
             x_data = x_data[start_idx:]
@@ -418,13 +417,12 @@ class SpeedSort(CorrelBase):
         def sector_predict(self, x):
             def linear_function(x, slope, offset):
                 return x * slope + offset
-
             return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
 
-        def plot_model(self, title):
-            _scatter_plot(sorted(self.sector_ref.values.flatten()),
-                          sorted(self.sector_target.values.flatten()),
-                          sorted(self.sector_predict(self.sector_ref).values.flatten()))
+        def plot_model(self, title=None):
+            return _scatter_plot(sorted(self.sector_ref.values.flatten()),
+                                 sorted(self.sector_target.values.flatten()),
+                                 sorted(self.sector_predict(self.sector_ref).values.flatten()))
 
     def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold=0.9, sectors=12,
                  direction_bin_array=None, lt_ref_speed=None):
@@ -467,7 +465,7 @@ class SpeedSort(CorrelBase):
         :param lt_ref_speed:        An alternative to the long term wind speed for the reference dataset calculated
                                     using mean of monthly means (MOMM).
         :type lt_ref_speed:         float or int
-        :returns:                   An object representing the speed sort fit model
+        :returns:                   An object representing the SpeedSort fit model
 
         **Example usage**
         ::
@@ -479,13 +477,15 @@ class SpeedSort(CorrelBase):
             ss_cor = bw.Correl.SpeedSort(m2['WS50m_m/s'], m2['WD50m_deg'], data['Spd80mN'], data['Dir78mS'],
                                          averaging_prd='1H')
             ss_cor.run()
+            ss_cor.plot_wind_directions()
+            ss_cor.get_result_table()
+            ss_cor.synthesize()
 
 
-
-
-            direction_bin_array=[0,90,130,200,360]
-
-
+            # Sending an array of direction sectors
+            ss_cor = bw.Correl.SpeedSort(m2['WS50m_m/s'], m2['WD50m_deg'], data['Spd80mN'], data['Dir78mS'],
+                                         averaging_prd='1H', direction_bin_array=[0,90,130,200,360])
+            ss_cor.run()
         """
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
                             target_dir=target_dir)
@@ -567,7 +567,7 @@ class SpeedSort(CorrelBase):
             # print('Processing sector:', sector)
             self.speed_model[sector] = SpeedSort.SectorSpeedModel(ref_spd=group[self._ref_spd_col_name],
                                                                   target_spd=group[self._tar_spd_col_name],
-                                                                  lt_ref_speed=self.lt_ref_speed)
+                                                                  cutoff=self.cutoff)
             self.params[sector] = {'slope': self.speed_model[sector].params['slope'],
                                    'offset': self.speed_model[sector].params['offset'],
                                    'target_cutoff': self.speed_model[sector].target_cutoff,
@@ -588,7 +588,7 @@ class SpeedSort(CorrelBase):
     def plot(self):
         for model in self.speed_model:
             self.speed_model[model].plot_model('Sector ' + str(model))
-        self.plot_wind_vane()
+        return self.plot_wind_directions()
 
     def _predict_dir(self, x_dir):
         sec_veer = []
@@ -643,16 +643,14 @@ class SpeedSort(CorrelBase):
             output = self._predict(input_spd, input_dir)
             dir_output = self._predict_dir(input_dir)
         output[output < 0] = 0
-        return pd.concat([output.rename(self.target_spd.name + "_Synthesized"),
-                          dir_output.rename(self.target_dir.name+"_Synthesized")], axis=1, join='inner')
+        return pd.concat([output.rename(self._tar_spd_col_name + "_Synthesized"),
+                          dir_output.rename(self._tar_dir_col_name + "_Synthesized")], axis=1, join='inner')
 
-    def plot_wind_vane(self):
+    def plot_wind_directions(self):
         """
         Plots reference and target directions in a scatter plot
         """
-
-        # _scatter_plot(self.ref_dir, self.target_dir,title='original data')
-        _scatter_plot(
+        return _scatter_plot(
             self.data[self._ref_dir_col_name][(self.data[self._ref_spd_col_name] > self.cutoff) &
                                               (self.data[self._tar_spd_col_name] > self.cutoff)],
             self.data[self._tar_dir_col_name][(self.data[self._ref_spd_col_name] > self.cutoff) &
