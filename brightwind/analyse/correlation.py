@@ -63,6 +63,8 @@ class CorrelBase:
                                            coverage_threshold_2=coverage_threshold,
                                            wdir_column_names_1=self._ref_dir_col_name,
                                            wdir_column_names_2=self._tar_dir_col_name)
+        if len(data.index) <= 1:
+            raise ValueError("Not enough overlapping data points to perform correlation.")
         return data
 
     def show_params(self):
