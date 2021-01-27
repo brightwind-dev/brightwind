@@ -77,6 +77,17 @@ def test_ordinary_least_squares():
     assert round(correl.params['r2'], 4) == correl_hourly_results['r2']
     assert round(correl.params['num_data_points'], 5) == correl_hourly_results['num_data_points']
 
+    # check aggregation method
+    correl_aggregation_results = {'slope': 5.98789, 'offset': -9.32585, 'r2': 0.9304, 'num_data_points': 12445}
+    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['T2M_degC'], DATA_CLND['T2m'],
+                                            averaging_prd='1H', coverage_threshold=1,
+                                            ref_aggregation_method='sum', target_aggregation_method='sum')
+    correl.run()
+    assert round(correl.params['slope'], 5) == correl_aggregation_results['slope']
+    assert round(correl.params['offset'], 5) == correl_aggregation_results['offset']
+    assert round(correl.params['r2'], 4) == correl_aggregation_results['r2']
+    assert round(correl.params['num_data_points'], 5) == correl_aggregation_results['num_data_points']
+
 
 def test_orthogonal_least_squares():
     correl_monthly_results = {'slope': 1.01778, 'offset': -0.13473, 'r2': 0.8098, 'num_data_points': 18}
@@ -99,6 +110,17 @@ def test_orthogonal_least_squares():
     assert round(correl.params['r2'], 4) == correl_hourly_results['r2']
     assert round(correl.params['num_data_points'], 5) == correl_hourly_results['num_data_points']
 
+    # check aggregation method
+    correl_aggregation_results = {'slope': 6.42434, 'offset': -12.8301, 'r2': 0.9255, 'num_data_points': 12445}
+    correl = bw.Correl.OrthogonalLeastSquares(MERRA2_NE['T2M_degC'], DATA_CLND['T2m'],
+                                              averaging_prd='1H', coverage_threshold=1,
+                                              ref_aggregation_method='sum', target_aggregation_method='sum')
+    correl.run()
+    assert round(correl.params['slope'], 5) == correl_aggregation_results['slope']
+    assert round(correl.params['offset'], 5) == correl_aggregation_results['offset']
+    assert round(correl.params['r2'], 4) == correl_aggregation_results['r2']
+    assert round(correl.params['num_data_points'], 5) == correl_aggregation_results['num_data_points']
+
 
 def test_multiple_linear_regression():
     correl_monthly_results = {'slope': [2.03723, -0.93837], 'offset': -0.51343}
@@ -109,6 +131,17 @@ def test_multiple_linear_regression():
     for idx, slope in enumerate(correl.params['slope']):
         assert round(slope, 5) == correl_monthly_results['slope'][idx]
     assert round(correl.params['offset'], 5) == correl_monthly_results['offset']
+
+    # check aggregation method
+    correl_aggregation_results = {'slope': [5.51666, 0.54769], 'offset': -10.44818, 'num_data_pts': 12445}
+    correl = bw.Correl.MultipleLinearRegression([MERRA2_NE['T2M_degC'], MERRA2_NW['T2M_degC']], DATA_CLND['T2m'],
+                                                averaging_prd='1H', coverage_threshold=1,
+                                                ref_aggregation_method='sum', target_aggregation_method='sum')
+    correl.run()
+    for idx, slope in enumerate(correl.params['slope']):
+        assert round(slope, 5) == correl_aggregation_results['slope'][idx]
+    assert round(correl.params['offset'], 5) == correl_aggregation_results['offset']
+    assert correl.num_data_pts == correl_aggregation_results['num_data_pts']
 
 
 def test_simple_speed_ratio():

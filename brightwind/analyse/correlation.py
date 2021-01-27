@@ -33,13 +33,16 @@ __all__ = ['']
 
 
 class CorrelBase:
-    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None, target_dir=None):
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None, target_dir=None,
+                 ref_aggregation_method='mean', target_aggregation_method='mean'):
         self.ref_spd = ref_spd
         self.ref_dir = ref_dir
         self.target_spd = target_spd
         self.target_dir = target_dir
         self.averaging_prd = averaging_prd
         self.coverage_threshold = coverage_threshold
+        self.ref_aggregation_method = ref_aggregation_method
+        self.target_aggregation_method = target_aggregation_method
         # Get the name of the columns so they can be passed around
         self._ref_spd_col_name = ref_spd.name if ref_spd is not None and isinstance(ref_spd, pd.Series) else None
         self._ref_spd_col_names = ref_spd.columns if ref_spd is not None and isinstance(ref_spd, pd.DataFrame) else None
@@ -48,11 +51,12 @@ class CorrelBase:
         self._tar_dir_col_name = target_dir.name if target_dir is not None else None
         # Average and merge datasets into one df
         self.data = CorrelBase._averager(self, ref_spd, target_spd, averaging_prd, coverage_threshold,
-                                         ref_dir, target_dir)
+                                         ref_dir, target_dir, ref_aggregation_method, target_aggregation_method)
         self.num_data_pts = len(self.data)
         self.params = {'status': 'not yet run'}
 
-    def _averager(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir):
+    def _averager(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir,
+                  ref_aggregation_method, target_aggregation_method):
         # If directions sent, concat speed and direction first
         if ref_dir is not None:
             ref_spd = pd.concat([ref_spd, ref_dir], axis=1)
@@ -62,7 +66,9 @@ class CorrelBase:
                                            coverage_threshold_1=coverage_threshold,
                                            coverage_threshold_2=coverage_threshold,
                                            wdir_column_names_1=self._ref_dir_col_name,
-                                           wdir_column_names_2=self._tar_dir_col_name)
+                                           wdir_column_names_2=self._tar_dir_col_name,
+                                           aggregation_method_1=ref_aggregation_method,
+                                           aggregation_method_2=target_aggregation_method)
         if len(data.index) <= 1:
             raise ValueError("Not enough overlapping data points to perform correlation.")
         return data
@@ -79,6 +85,15 @@ class CorrelBase:
                              x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name)
 
     def synthesize(self, ext_input=None):
+        """
+        Apply the derived correlation model to the reference dataset used to create the model.
+
+        :param ext_input: Optional external dataset to apply the derived correlation model to instead of the original
+                          reference.
+        :type ext_input:  pd.Series or pd.DataFrame
+        :return:          The synthesized dataset.
+        :rtype:           pd.Series or pd.DataFrame
+        """
         # This will give erroneous result when the averaging period is not a whole number such that ref and target does
         # bot get aligned - Inder
         if ext_input is None:
@@ -109,11 +124,11 @@ class OrdinaryLeastSquares(CorrelBase):
     Series with timestamps as indexes and an averaging period which merges the datasets by this time period before
     performing the correlation.
 
-    :param ref_spd:            Series containing reference wind speed as a column, timestamp as the index.
-    :type ref_spd:             pd.Series
-    :param target_spd:         Series containing target wind speed as a column, timestamp as the index.
-    :type target_spd:          pd.Series
-    :param averaging_prd:      Groups data by the time period specified here. The following formats are supported
+    :param ref_spd:                   Series containing reference wind speed as a column, timestamp as the index.
+    :type ref_spd:                    pd.Series
+    :param target_spd:                Series containing target wind speed as a column, timestamp as the index.
+    :type target_spd:                 pd.Series
+    :param averaging_prd:             Groups data by the time period specified here. The following formats are supported
 
             - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
             - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
@@ -122,26 +137,77 @@ class OrdinaryLeastSquares(CorrelBase):
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
             - Set period to '1A' for annual average with the timestamp at the start of the year.
 
-    :type averaging_prd:       str
-    :param coverage_threshold: Minimum coverage to include for correlation
-    :type coverage_threshold:  float
-    :returns:                  An object representing ordinary least squares fit model
+    :type averaging_prd:              str
+    :param coverage_threshold:        Minimum coverage required when aggregating the data to the averaging_prd.
+    :type coverage_threshold:         float
+    :param ref_aggregation_method:    Default `mean`, returns the mean of the data for the specified period. Can also
+                                      use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for
+                                      median, product, summation, standard deviation, variance, maximum and minimum
+                                      respectively.
+    :type ref_aggregation_method:     str
+    :param target_aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also
+                                      use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for
+                                      median, product, summation, standard deviation, variance, maximum and minimum
+                                      respectively.
+    :type target_aggregation_method:  str
+    :returns:                         An object representing ordinary least squares fit model
 
     **Example usage**
     ::
         import brightwind as bw
         data = bw.load_csv(bw.demo_datasets.demo_data)
-        m2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+        m2_ne = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+        m2_nw = bw.load_csv(bw.demo_datasets.demo_merra2_NW)
 
-        # Correlate on a monthly basis
-        ols_cor = bw.Correl.OrdinaryLeastSquares(m2['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
+        # Correlate wind speeds on a monthly basis.
+        ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
                                                  coverage_threshold=0.95)
         ols_cor.run()
+
+        # To plot the scatter plot and line fit.
         ols_cor.plot()
 
+        # To show the resulting parameters.
+        ols_cor.params
+        # or
+        ols_cor.show_params()
+
+        # To calculate the correlation coefficient R^2.
+        ols_cor.get_r2()
+
+        # To synthesize data at the target site.
+        ols_cor.synthesize()
+
+        # To synthesize data at the target site using a different external reference dataset.
+        ols_cor.synthesize(ext_input=m2_nw['WS50m_m/s'])
+
+        # To run the correlation without immediately showing results.
+        ols_cor.run(show_params=False)
+
+        # To retrieve the merged and aggregated data used in the correlation.
+        ols_cor.data
+
+        # To retrieve the number of data points used for the correlation
+        ols_cor.num_data_pts
+
+        # To retrieve the input parameters.
+        ols_cor.averaging_prd
+        ols_cor.coverage_threshold
+        ols_cor.ref_spd
+        ols_cor.ref_aggregation_method
+        ols_cor.target_spd
+        ols_cor.target_aggregation_method
+
+        # Correlate temperature on an hourly basis using a different aggregation method.
+        ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['T2M_degC'], data['T2m'],
+                                                 averaging_prd='1H', coverage_threshold=0,
+                                                 ref_aggregation_method='min', target_aggregation_method='min')
     """
-    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9):
-        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold)
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9,
+                 ref_aggregation_method='mean', target_aggregation_method='mean'):
+        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold,
+                            ref_aggregation_method=ref_aggregation_method,
+                            target_aggregation_method=target_aggregation_method)
 
     def __repr__(self):
         return 'Ordinary Least Squares Model ' + str(self.params)
@@ -166,11 +232,11 @@ class OrthogonalLeastSquares(CorrelBase):
     Series with timestamps as indexes and an averaging period which merges the datasets by this time period before
     performing the correlation.
 
-    :param ref_spd:            Series containing reference wind speed as a column, timestamp as the index.
-    :type ref_spd:             pd.Series
-    :param target_spd:         Series containing target wind speed as a column, timestamp as the index.
-    :type target_spd:          pd.Series
-    :param averaging_prd:      Groups data by the time period specified here. The following formats are supported
+    :param ref_spd:                   Series containing reference wind speed as a column, timestamp as the index.
+    :type ref_spd:                    pd.Series
+    :param target_spd:                Series containing target wind speed as a column, timestamp as the index.
+    :type target_spd:                 pd.Series
+    :param averaging_prd:             Groups data by the time period specified here. The following formats are supported
 
             - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
             - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
@@ -179,30 +245,81 @@ class OrthogonalLeastSquares(CorrelBase):
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
             - Set period to '1A' for annual average with the timestamp at the start of the year.
 
-    :type averaging_prd:       str
-    :param coverage_threshold: Minimum coverage to include for correlation
-    :type coverage_threshold:  float
-    :returns:                  An object representing orthogonal least squares fit model
+    :type averaging_prd:              str
+    :param coverage_threshold:        Minimum coverage required when aggregating the data to the averaging_prd.
+    :type coverage_threshold:         float
+    :param ref_aggregation_method:    Default `mean`, returns the mean of the data for the specified period. Can also
+                                      use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for
+                                      median, product, summation, standard deviation, variance, maximum and minimum
+                                      respectively.
+    :type ref_aggregation_method:     str
+    :param target_aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also
+                                      use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for
+                                      median, product, summation, standard deviation, variance, maximum and minimum
+                                      respectively.
+    :type target_aggregation_method:  str
+    :returns:                         An object representing orthogonal least squares fit model
 
     **Example usage**
     ::
         import brightwind as bw
         data = bw.load_csv(bw.demo_datasets.demo_data)
-        m2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+        m2_ne = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+        m2_nw = bw.load_csv(bw.demo_datasets.demo_merra2_NW)
 
-        # Correlate on a monthly basis
-        orthog_cor = bw.Correl.OrthogonalLeastSquares(m2['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
+        # Correlate wind speeds on a monthly basis.
+        orthog_cor = bw.Correl.OrthogonalLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
                                                       coverage_threshold=0.95)
         orthog_cor.run()
+        # To plot the scatter plot and line fit.
         orthog_cor.plot()
+
+        # To show the resulting parameters.
+        orthog_cor.params
+        # or
+        orthog_cor.show_params()
+
+        # To calculate the correlation coefficient R^2.
+        orthog_cor.get_r2()
+
+        # To synthesize data at the target site.
+        orthog_cor.synthesize()
+
+        # To synthesize data at the target site using a different external reference dataset.
+        orthog_cor.synthesize(ext_input=m2_nw['WS50m_m/s'])
+
+        # To run the correlation without immediately showing results.
+        orthog_cor.run(show_params=False)
+
+        # To retrieve the merged and aggregated data used in the correlation.
+        orthog_cor.data
+
+        # To retrieve the number of data points used for the correlation
+        orthog_cor.num_data_pts
+
+        # To retrieve the input parameters.
+        orthog_cor.averaging_prd
+        orthog_cor.coverage_threshold
+        orthog_cor.ref_spd
+        orthog_cor.ref_aggregation_method
+        orthog_cor.target_spd
+        orthog_cor.target_aggregation_method
+
+        # Correlate temperature on an hourly basis using a different aggregation method.
+        orthog_cor = bw.Correl.OrthogonalLeastSquares(m2_ne['T2M_degC'], data['T2m'],
+                                                      averaging_prd='1H', coverage_threshold=0,
+                                                      ref_aggregation_method='min', target_aggregation_method='min')
 
     """
     @staticmethod
     def linear_func(p, x):
         return p[0] * x + p[1]
 
-    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9):
-        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold)
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9,
+                 ref_aggregation_method='mean', target_aggregation_method='mean'):
+        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold,
+                            ref_aggregation_method=ref_aggregation_method,
+                            target_aggregation_method=target_aggregation_method)
 
     def __repr__(self):
         return 'Orthogonal Least Squares Model ' + str(self.params)
@@ -235,11 +352,11 @@ class MultipleLinearRegression(CorrelBase):
     Series with timestamps as indexes. Also sen is an averaging period which merges the datasets by this time period
     before performing the correlation.
 
-    :param ref_spd:            A list of Series containing reference wind speed as a column, timestamp as the index.
-    :type ref_spd:             List(pd.Series)
-    :param target_spd:         Series containing target wind speed as a column, timestamp as the index.
-    :type target_spd:          pd.Series
-    :param averaging_prd:      Groups data by the time period specified here. The following formats are supported
+    :param ref_spd:                   A list of Series containing reference wind speed as a column, timestamp as the index.
+    :type ref_spd:                    List(pd.Series)
+    :param target_spd:                Series containing target wind speed as a column, timestamp as the index.
+    :type target_spd:                 pd.Series
+    :param averaging_prd:             Groups data by the time period specified here. The following formats are supported
 
             - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
             - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
@@ -248,10 +365,20 @@ class MultipleLinearRegression(CorrelBase):
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
             - Set period to '1A' for annual average with the timestamp at the start of the year.
 
-    :type averaging_prd:       str
-    :param coverage_threshold: Minimum coverage to include for correlation
-    :type coverage_threshold:  float
-    :returns:                  An object representing Multiple Linear Regression fit model
+    :type averaging_prd:              str
+    :param coverage_threshold:        Minimum coverage required when aggregating the data to the averaging_prd.
+    :type coverage_threshold:         float
+    :param ref_aggregation_method:    Default `mean`, returns the mean of the data for the specified period. Can also
+                                      use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for
+                                      median, product, summation, standard deviation, variance, maximum and minimum
+                                      respectively.
+    :type ref_aggregation_method:     str
+    :param target_aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also
+                                      use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for
+                                      median, product, summation, standard deviation, variance, maximum and minimum
+                                      respectively.
+    :type target_aggregation_method:  str
+    :returns:                         An object representing Multiple Linear Regression fit model
 
     **Example usage**
     ::
@@ -266,10 +393,49 @@ class MultipleLinearRegression(CorrelBase):
                                                      coverage_threshold=0.95)
         mul_cor.run()
 
+        # To plot the scatter plot and line fit.
+        mul_cor.plot()
+
+        # To show the resulting parameters.
+        mul_cor.params
+        # or
+        mul_cor.show_params()
+
+        # To calculate the correlation coefficient R^2.
+        mul_cor.get_r2()
+
+        # To synthesize data at the target site.
+        mul_cor.synthesize()
+
+        # To run the correlation without immediately showing results.
+        mul_cor.run(show_params=False)
+
+        # To retrieve the merged and aggregated data used in the correlation.
+        mul_cor.data
+
+        # To retrieve the number of data points used for the correlation
+        mul_cor.num_data_pts
+
+        # To retrieve the input parameters.
+        mul_cor.averaging_prd
+        mul_cor.coverage_threshold
+        mul_cor.ref_spd
+        mul_cor.ref_aggregation_method
+        mul_cor.target_spd
+        mul_cor.target_aggregation_method
+
+        # Correlate temperature on an hourly basis using a different aggregation method.
+        mul_cor = bw.Correl.MultipleLinearRegression([m2_ne['T2M_degC'], m2_nw['T2M_degC']], data['T2m'],
+                                                     averaging_prd='1H', coverage_threshold=0,
+                                                     ref_aggregation_method='min', target_aggregation_method='min')
+
     """
-    def __init__(self, ref_spd: List, target_spd, averaging_prd='1H', coverage_threshold=0.9):
+    def __init__(self, ref_spd: List, target_spd, averaging_prd, coverage_threshold=0.9,
+                 ref_aggregation_method='mean', target_aggregation_method='mean'):
         self.ref_spd = self._merge_ref_spds(ref_spd)
-        CorrelBase.__init__(self, self.ref_spd, target_spd, averaging_prd, coverage_threshold)
+        CorrelBase.__init__(self, self.ref_spd, target_spd, averaging_prd, coverage_threshold,
+                            ref_aggregation_method=ref_aggregation_method,
+                            target_aggregation_method=target_aggregation_method)
 
     def __repr__(self):
         return 'Multiple Linear Regression Model ' + str(self.params)
@@ -297,7 +463,9 @@ class MultipleLinearRegression(CorrelBase):
 
         return x.apply(linear_function, axis=1, slope=self.params['slope'], offset=self.params['offset'])
 
-    def synthesize(self, ext_input=None):
+    def synthesize(self):
+        # def synthesize(self, ext_input=None):     # REMOVE UNTIL FIXED
+        ext_input = None
         # CorrelBase.synthesize(self.data ???????? Why not??????????????????????????????????????
         if ext_input is None:
             return pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],
@@ -453,7 +621,7 @@ class SpeedSort(CorrelBase):
                 - Set period to '1A' for annual average with the timestamp at the start of the year.
 
         :type averaging_prd:        str
-        :param coverage_threshold:  Minimum coverage to include for correlation
+        :param coverage_threshold:  Minimum coverage required when aggregating the data to the averaging_prd.
         :type coverage_threshold:   float
         :param sectors:             Number of direction sectors to bin in to. The first sector is centered at 0 by
                                     default. To change that behaviour specify 'direction_bin_array' which overwrites
