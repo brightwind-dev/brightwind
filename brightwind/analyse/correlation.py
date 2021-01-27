@@ -352,11 +352,11 @@ class MultipleLinearRegression(CorrelBase):
     Series with timestamps as indexes. Also sen is an averaging period which merges the datasets by this time period
     before performing the correlation.
 
-    :param ref_spd:            A list of Series containing reference wind speed as a column, timestamp as the index.
-    :type ref_spd:             List(pd.Series)
-    :param target_spd:         Series containing target wind speed as a column, timestamp as the index.
-    :type target_spd:          pd.Series
-    :param averaging_prd:      Groups data by the time period specified here. The following formats are supported
+    :param ref_spd:                   A list of Series containing reference wind speed as a column, timestamp as the index.
+    :type ref_spd:                    List(pd.Series)
+    :param target_spd:                Series containing target wind speed as a column, timestamp as the index.
+    :type target_spd:                 pd.Series
+    :param averaging_prd:             Groups data by the time period specified here. The following formats are supported
 
             - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
             - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
@@ -365,10 +365,20 @@ class MultipleLinearRegression(CorrelBase):
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
             - Set period to '1A' for annual average with the timestamp at the start of the year.
 
-    :type averaging_prd:       str
-    :param coverage_threshold: Minimum coverage required when aggregating the data to the averaging_prd.
-    :type coverage_threshold:  float
-    :returns:                  An object representing Multiple Linear Regression fit model
+    :type averaging_prd:              str
+    :param coverage_threshold:        Minimum coverage required when aggregating the data to the averaging_prd.
+    :type coverage_threshold:         float
+    :param ref_aggregation_method:    Default `mean`, returns the mean of the data for the specified period. Can also
+                                      use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for
+                                      median, product, summation, standard deviation, variance, maximum and minimum
+                                      respectively.
+    :type ref_aggregation_method:     str
+    :param target_aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also
+                                      use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for
+                                      median, product, summation, standard deviation, variance, maximum and minimum
+                                      respectively.
+    :type target_aggregation_method:  str
+    :returns:                         An object representing Multiple Linear Regression fit model
 
     **Example usage**
     ::
@@ -383,10 +393,49 @@ class MultipleLinearRegression(CorrelBase):
                                                      coverage_threshold=0.95)
         mul_cor.run()
 
+        # To plot the scatter plot and line fit.
+        mul_cor.plot()
+
+        # To show the resulting parameters.
+        mul_cor.params
+        # or
+        mul_cor.show_params()
+
+        # To calculate the correlation coefficient R^2.
+        mul_cor.get_r2()
+
+        # To synthesize data at the target site.
+        mul_cor.synthesize()
+
+        # To run the correlation without immediately showing results.
+        mul_cor.run(show_params=False)
+
+        # To retrieve the merged and aggregated data used in the correlation.
+        mul_cor.data
+
+        # To retrieve the number of data points used for the correlation
+        mul_cor.num_data_pts
+
+        # To retrieve the input parameters.
+        mul_cor.averaging_prd
+        mul_cor.coverage_threshold
+        mul_cor.ref_spd
+        mul_cor.ref_aggregation_method
+        mul_cor.target_spd
+        mul_cor.target_aggregation_method
+
+        # Correlate temperature on an hourly basis using a different aggregation method.
+        mul_cor = bw.Correl.MultipleLinearRegression([m2_ne['T2M_degC'], m2_nw['T2M_degC']], data['T2m'],
+                                                     averaging_prd='1H', coverage_threshold=0,
+                                                     ref_aggregation_method='min', target_aggregation_method='min')
+
     """
-    def __init__(self, ref_spd: List, target_spd, averaging_prd='1H', coverage_threshold=0.9):
+    def __init__(self, ref_spd: List, target_spd, averaging_prd, coverage_threshold=0.9,
+                 ref_aggregation_method='mean', target_aggregation_method='mean'):
         self.ref_spd = self._merge_ref_spds(ref_spd)
-        CorrelBase.__init__(self, self.ref_spd, target_spd, averaging_prd, coverage_threshold)
+        CorrelBase.__init__(self, self.ref_spd, target_spd, averaging_prd, coverage_threshold,
+                            ref_aggregation_method=ref_aggregation_method,
+                            target_aggregation_method=target_aggregation_method)
 
     def __repr__(self):
         return 'Multiple Linear Regression Model ' + str(self.params)
@@ -414,7 +463,9 @@ class MultipleLinearRegression(CorrelBase):
 
         return x.apply(linear_function, axis=1, slope=self.params['slope'], offset=self.params['offset'])
 
-    def synthesize(self, ext_input=None):
+    def synthesize(self):
+        # def synthesize(self, ext_input=None):     # REMOVE UNTIL FIXED
+        ext_input = None
         # CorrelBase.synthesize(self.data ???????? Why not??????????????????????????????????????
         if ext_input is None:
             return pd.concat([self._predict(tf.average_data_by_period(self.ref_spd.loc[:min(self.data.index)],

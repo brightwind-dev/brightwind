@@ -132,6 +132,17 @@ def test_multiple_linear_regression():
         assert round(slope, 5) == correl_monthly_results['slope'][idx]
     assert round(correl.params['offset'], 5) == correl_monthly_results['offset']
 
+    # check aggregation method
+    correl_aggregation_results = {'slope': [5.51666, 0.54769], 'offset': -10.44818, 'num_data_pts': 12445}
+    correl = bw.Correl.MultipleLinearRegression([MERRA2_NE['T2M_degC'], MERRA2_NW['T2M_degC']], DATA_CLND['T2m'],
+                                                averaging_prd='1H', coverage_threshold=1,
+                                                ref_aggregation_method='sum', target_aggregation_method='sum')
+    correl.run()
+    for idx, slope in enumerate(correl.params['slope']):
+        assert round(slope, 5) == correl_aggregation_results['slope'][idx]
+    assert round(correl.params['offset'], 5) == correl_aggregation_results['offset']
+    assert correl.num_data_pts == correl_aggregation_results['num_data_pts']
+
 
 def test_simple_speed_ratio():
     result = {'simple_speed_ratio': 0.99519,
