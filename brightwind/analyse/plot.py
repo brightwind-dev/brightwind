@@ -492,7 +492,7 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
     return scat_plot
 
 
-def plot_subplots_by_direction(ref_spd, target_spd, dir_ref, sectors=12, averaging_prd='10T', **kwargs):
+def plot_scatter_subplots_by_direction(ref_spd, target_spd, dir_ref, sectors=12, averaging_prd='10T', **kwargs):
     """
     Plot scatter subplots of ref_spd versus target_spd for each directional sectors. The averaging period used for
     assessing the correlation can be given as input to the function.
