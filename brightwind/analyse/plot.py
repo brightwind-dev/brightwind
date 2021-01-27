@@ -19,6 +19,7 @@ from matplotlib.colors import LinearSegmentedColormap
 import matplotlib as mpl
 from matplotlib.dates import DateFormatter
 import matplotlib.dates as mdates
+import matplotlib.lines as mlines
 import calendar
 import numpy as np
 import pandas as pd
@@ -210,20 +211,58 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
     return figure
 
 
-def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", prediction_marker='-'):
+def _scatter_subplot(x, y, predicted_y=None, line_of_slope_1=True, x_label=None, y_label=None, prediction_marker='-',
+                     legend=True, title_subplot=None, label_scatter_data=None, label_prediction=None,
+                     color_scatter=COLOR_PALETTE.primary, color_prediction=COLOR_PALETTE.secondary, ax=None):
     """
-    Plots a scatter plot.
-    :param x:
-    :param y:
-    :param predicted_y: A series of predicted y values after applying the correlation to the x series.
-    :param x_label:
-    :param y_label:
-    :param prediction_marker:
-    :return:
+    Plots a scatter subplot between the inputs x and y. The predicted_y data and the line of slope 1 passing through
+    zero are also shown if provided as input of the function.
+    :param x:                   Series to plot on x axis
+    :type x:                    pd.Series
+    :param y:                   Series to plot on y axis
+    :type y:                    pd.Series
+    :param predicted_y:         Series of predicted y values after applying the correlation to the x series.
+    :type predicted_y:          pd.Series
+    :param line_of_slope_1:     Boolean to choose to plot the line with slope one and passing through zero.
+    :type line_of_slope_1:      Bool
+    :param x_label:             Label for the x axis
+    :type x_label:              str or None
+    :param y_label:             Label for the y axis
+    :type y_label:              str or None
+    :param prediction_marker:   Marker to use to plot predicted_y
+    :type prediction_marker:    str
+    :param legend:              Boolean to choose if legend is shown. Note that legend is shown only if predicted_y is
+                                not None
+    :type legend:               Bool
+    :param title_subplot:       Title show on top of the subplot
+    :type title_subplot:        str or None
+    :param label_scatter_data:  Label to assign to scatter data in legend if legend is True. If None then the label
+                                assigned is 'Original'
+    :type label_scatter_data:   str or None
+    :param label_prediction:    Label to assign to prediction data in legend if legend is True. If None then the label
+                                assigned is 'Predicted'
+    :type label_prediction:     str or None
+    :param color_scatter:       Color to assign to scatter data. Default is COLOR_PALETTE.primary
+    :type color_scatter:        str or Hex or Rgb
+    :param color_prediction:    Color to assign to prediction data. Default is COLOR_PALETTE.secondary
+    :type color_prediction:     str or Hex or Rgb
+    :param ax:                  Subplot axes to which assign the subplot to in a plot. If
+    :type ax:                   matplotlib.axes._subplots.AxesSubplot or None
+    :return: Scatter subplot
+    :rtype: matplotlib.axes._subplots.AxesSubplot
     """
-    fig, ax = plt.subplots()
+    if ax is None:
+        ax = plt.gca()
+
+    if label_scatter_data is not None:
+        label_scatter_data = 'Original'
+
+    if label_prediction is not None:
+        label_prediction = 'Predicted'
+
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
+
     no_dots = len(x)
 
     marker_size_max = 216
@@ -236,12 +275,40 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     alpha = -0.0004 * no_dots + max_alpha  # y=mx+c, m = (0.7 - 0.3) / (1000 - 0) i.e. alpha changes up to 1000 dots
     alpha = min_alpha if alpha < min_alpha else alpha
 
-    ax.scatter(x, y, marker='o', color=COLOR_PALETTE.primary, s=marker_size, alpha=alpha, edgecolors='none')
-    fig.set_figwidth(10)
-    fig.set_figheight(10.2)
+    ax.scatter(x, y, marker='o', color=color_scatter, s=marker_size, alpha=alpha,
+               edgecolors='none', label=label_scatter_data)
+
     if predicted_y is not None:
-        ax.plot(x, predicted_y, prediction_marker, color=COLOR_PALETTE.secondary)
-        ax.legend(['Predicted', 'Original'])
+        ax.plot(x, predicted_y, prediction_marker, color=color_prediction, label=label_prediction)
+
+    if line_of_slope_1:
+        line = mlines.Line2D([0, 1], [0, 1], color=COLOR_PALETTE.secondary_70)
+        transform = ax.transAxes
+        line.set_transform(transform)
+        ax.add_line(line)
+
+    if legend:
+        ax.legend()
+
+    if title_subplot is not None:
+        ax.set_title(title_subplot, fontsize=mpl.rcParams['ytick.labelsize'])
+
+    return ax
+
+
+def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", prediction_marker='-'):
+    """
+    Plots a scatter plot.
+    :param x:
+    :param y:
+    :param predicted_y: A series of predicted y values after applying the correlation to the x series.
+    :param x_label:
+    :param y_label:
+    :param prediction_marker:
+    :return:
+    """
+    fig, axes = plt.subplots(figsize=(10, 10.2))
+    ax = _scatter_subplot(x, y, predicted_y, x_label, y_label, prediction_marker, ax=axes)
     plt.close()
     return ax.get_figure()
 
