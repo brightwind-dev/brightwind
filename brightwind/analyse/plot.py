@@ -313,6 +313,24 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     return ax.get_figure()
 
 
+def _get_best_row_col_number_for_subplot(number_subplots):
+    # get all divisors of total number of subplots
+    divs = {1, number_subplots}
+    for i in range(2, int(np.sqrt(number_subplots)) + 1):
+        if number_subplots % i == 0:
+            divs.update((i, number_subplots // i))
+
+    divs_list = sorted(list(divs))
+    # get divisor number closer to sqrt of n_subplots
+    div_closer_to_sqrt = divs[np.argmin([np.abs(np.sqrt(number_subplots) - i) for i in divs_list])]
+    other_divider = number_subplots / div_closer_to_sqrt
+
+    best_row = min(div_closer_to_sqrt, other_divider)
+    best_col = max(div_closer_to_sqrt, other_divider)
+
+    return int(best_row), int(best_col)
+
+
 def plot_scatter(x_series, y_series, x_axis_title=None, y_axis_title=None,
                  x_limits=None, y_limits=None):
     """
