@@ -110,6 +110,17 @@ def test_orthogonal_least_squares():
     assert round(correl.params['r2'], 4) == correl_hourly_results['r2']
     assert round(correl.params['num_data_points'], 5) == correl_hourly_results['num_data_points']
 
+    # check aggregation method
+    correl_aggregation_results = {'slope': 6.42434, 'offset': -12.8301, 'r2': 0.9255, 'num_data_points': 12445}
+    correl = bw.Correl.OrthogonalLeastSquares(MERRA2_NE['T2M_degC'], DATA_CLND['T2m'],
+                                              averaging_prd='1H', coverage_threshold=1,
+                                              ref_aggregation_method='sum', target_aggregation_method='sum')
+    correl.run()
+    assert round(correl.params['slope'], 5) == correl_aggregation_results['slope']
+    assert round(correl.params['offset'], 5) == correl_aggregation_results['offset']
+    assert round(correl.params['r2'], 4) == correl_aggregation_results['r2']
+    assert round(correl.params['num_data_points'], 5) == correl_aggregation_results['num_data_points']
+
 
 def test_multiple_linear_regression():
     correl_monthly_results = {'slope': [2.03723, -0.93837], 'offset': -0.51343}
