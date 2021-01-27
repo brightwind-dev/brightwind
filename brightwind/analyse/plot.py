@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import os
 from brightwind.utils import utils
+import brightwind as bw
 from pandas.plotting import register_matplotlib_converters
 from brightwind.utils.utils import _convert_df_to_series
 import re
@@ -489,6 +490,59 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
     scat_plot.axes[0].plot(x, y, '-', color=COLOR_PALETTE.secondary)
     scat_plot.axes[0].legend(['Reference line', 'Data points'])
     return scat_plot
+
+
+def plot_subplots_by_direction(ref_spd, target_spd, dir_ref, sectors=12, averaging_prd='10T', **kwargs):
+    """
+    Plot scatter subplots of ref_spd versus target_spd for each directional sectors. The averaging period used for
+    assessing the correlation can be given as input to the function.
+
+    :param ref_spd:     Series containing reference speed as a column, timestamp as the index
+    :type ref_spd:      pd.Series
+    :param target_spd:  Series containing target speed as a column, timestamp as the index
+    :type target_spd:   pd.Series
+    :param dir_ref:     Series containing reference direction as a column, timestamp as the index
+    :type dir_ref:      pd.Series
+    :param sectors:     Number of directional sectors
+    :type sectors:      int
+    :param averaging_prd: Groups data by the period specified by period as for brightwind Correl function
+    :type sectors:      str
+    :param kwargs:      Additional keyword arguments for matplotlib.pyplot.subplot
+    :returns: matplotlib.figure.Figure
+
+        """
+    sector = 360 / sectors
+
+    rows, cols = _get_best_row_col_number_for_subplot(sectors)
+    fig, axes = plt.subplots(rows, cols, squeeze=False, sharex=True, sharey=True, **kwargs)
+
+    for i_angle, ax_subplot in zip(np.arange(0, 360, sector), axes.flatten()):
+
+        ratio_min = bw.offset_wind_direction(float(i_angle), - sector / 2)
+        ratio_max = bw.offset_wind_direction(float(i_angle), + sector / 2)
+        if ratio_max > ratio_min:
+            logic_sect = ((dir_ref >= ratio_min) & (dir_ref < ratio_max))
+        else:
+            logic_sect = ((dir_ref >= ratio_min) & (dir_ref <= 360)) | ((dir_ref < ratio_max) & (dir_ref >= 0))
+
+        # define correlation between ref_spd and target_spd for each sector
+        ord_lst_sq = bw.Correl.OrdinaryLeastSquares(ref_spd[logic_sect], target_spd[logic_sect],
+                                                    averaging_prd=averaging_prd)
+
+        # run the correlation
+        ord_lst_sq.run(show_params=False)
+
+        predicted_spd = ord_lst_sq._predict(ord_lst_sq.ref_spd)
+
+        sub = _scatter_subplot(ord_lst_sq.ref_spd, ord_lst_sq.target_spd, predicted_spd,
+                               x_label=None, y_label=None, legend=False,
+                               title_subplot=str(ratio_min) + '-' + str(ratio_max), ax=ax_subplot)
+
+    fig.text(0.5, 0.06, ref_spd.name, va='center', ha='center', fontsize=mtp.rcParams['axes.labelsize'])
+    fig.text(0.06, 0.5, target_spd.name, va='center', ha='center', rotation='vertical',
+             fontsize=mpl.rcParams['axes.labelsize'])
+    plt.close()
+    return fig
 
 
 def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=None, y_label=None):
