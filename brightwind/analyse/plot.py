@@ -478,10 +478,8 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_ti
     if y_axis_title is None:
         y_axis_title = y_wdir_series.name + ' [°]'
     scat_plot = plot_scatter(x_wdir_series, y_wdir_series, x_axis_label=x_axis_title, y_axis_label=y_axis_title,
-                             x_limits=x_limits, y_limits=y_limits)
-    x = [0, 360]
-    y = [0, 360]
-    scat_plot.axes[0].plot(x, y, '-', color=COLOR_PALETTE.secondary)
+                             x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True)
+
     scat_plot.axes[0].legend(['Reference line', 'Data points'])
     return scat_plot
 
@@ -531,11 +529,9 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
         x_axis_title = x_wspd_series.name + ' [m/s]'
     if y_axis_title is None:
         y_axis_title = y_wspd_series.name + ' [m/s]'
-    scat_plot = plot_scatter(x_wspd_series, y_wspd_series, x_axis_title=x_axis_title, y_axis_title=y_axis_title,
-                             x_limits=x_limits, y_limits=y_limits)
-    x = [0, 40]
-    y = [0, 40]
-    scat_plot.axes[0].plot(x, y, '-', color=COLOR_PALETTE.secondary)
+    scat_plot = plot_scatter(x_wspd_series, y_wspd_series, x_axis_label=x_axis_title, y_axis_label=y_axis_title,
+                             x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True)
+
     scat_plot.axes[0].legend(['Reference line', 'Data points'])
     return scat_plot
 
