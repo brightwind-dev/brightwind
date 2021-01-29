@@ -352,25 +352,25 @@ def _get_best_row_col_number_for_subplot(number_subplots):
     return int(best_row), int(best_col)
 
 
-def plot_scatter(x_series, y_series, predicted_y=None, predicted_x=None, line_of_slope_1=False,
+def plot_scatter(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=False,
                  x_label=None, y_label=None, x_limits=None, y_limits=None, prediction_marker='-', **kwargs):
     """
-    Plots a scatter plot of two variable's timeseries.
+    Plots a scatter plot of x and y data. The predicted_y data is also shown if provided as input of the function.
 
-    :param x_series:        The x-axis values or reference variable.
-    :type x_series:         pd.Series
-    :param y_series:        The y-axis values or target variable.
-    :type y_series:         pd.Series
+    :param x:               The x-axis values or reference variable.
+    :type x:                pd.Series or list or np.ndarray
+    :param y:               The y-axis values or target variable.
+    :type y:                pd.Series or list or np.ndarray
     :param predicted_y:     Series or list of predicted y values after applying the correlation to the x series.
-    :type predicted_y:      pd.Series or list
+    :type predicted_y:      pd.Series or list or np.ndarray
     :param predicted_x:     Series or list of x values to plot with predicted_y. If None then the x variable is used.
-    :type predicted_x:      pd.Series or list
+    :type predicted_x:      pd.Series or list or np.ndarray
     :param line_of_slope_1: Boolean to choose to plot the line with slope one and passing through zero.
     :type line_of_slope_1:  Bool
-    :param x_label:    Label for the x-axis. If None, label will be taken from x_series name.
-    :type x_label:     str, None
-    :param y_label:    Label for the y-axis. If None, label will be taken from y_series name.
-    :type y_label:     str, None
+    :param x_label:         Label for the x-axis. If None, label will be taken from x_series name.
+    :type x_label:          str, None
+    :param y_label:         Label for the y-axis. If None, label will be taken from y_series name.
+    :type y_label:          str, None
     :param x_limits:        x-axis min and max limits.
     :type x_limits:         tuple, None
     :param y_limits:        y-axis min and max limits.
@@ -404,31 +404,36 @@ def plot_scatter(x_series, y_series, predicted_y=None, predicted_x=None, line_of
         bw.plot_scatter(data.Spd80mN, data.Spd80mS, line_of_slope_1=True)
 
     """
-    x_series = _convert_df_to_series(x_series)
-    y_series = _convert_df_to_series(y_series)
+    if type(x) is pd.DataFrame:
+        x = _convert_df_to_series(x)
+        y = _convert_df_to_series(y)
+    elif type(x) is np.ndarray or type(x) is list:
+        x = pd.Series(x).rename('x')
+        y = pd.Series(y).rename('y')
 
     if x_label is None:
-        x_label = x_series.name
+        x_label = x.name
     if y_label is None:
-        y_label = y_series.name
+        y_label = y.name
 
     if x_limits is None:
-        x_limits = (round(x_series.min() - 0.5), -(-x_series.max() // 1))
+        x_limits = (round(x.min() - 0.5), -(-x.max() // 1))
     if y_limits is None:
-        y_limits = (round(y_series.min() - 0.5), -(-y_series.max() // 1))
+        y_limits = (round(y.min() - 0.5), -(-y.max() // 1))
 
-    merged_df = pd.concat([x_series, y_series], join='inner', axis=1)
+    merged_df = pd.concat([x, y], join='inner', axis=1)
+    x = merged_df[x.name]
+    y = merged_df[y.name]
 
     if predicted_y is not None:
         legend = True
         if predicted_x is None:
-            predicted_x = merged_df[x_series.name]
+            predicted_x = merged_df[x.name]
     else:
         legend = False
 
     fig, axes = plt.subplots(figsize=(10, 10.2), **kwargs)
-    _scatter_subplot(merged_df[x_series.name], merged_df[y_series.name],
-                     predicted_y=predicted_y, predicted_x=predicted_x, line_of_slope_1=line_of_slope_1,
+    _scatter_subplot(x, y, predicted_y=predicted_y, predicted_x=predicted_x, line_of_slope_1=line_of_slope_1,
                      x_label=x_label, y_label=y_label, x_limits=x_limits, y_limits=y_limits,
                      prediction_marker=prediction_marker, legend=legend, ax=axes)
 
