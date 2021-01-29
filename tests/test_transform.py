@@ -523,3 +523,20 @@ def test_merge_datasets_by_period():
                                             coverage_threshold_1=0.99, coverage_threshold_2=1,
                                             aggregation_method_1='mean', aggregation_method_2='mean')
     assert len(mrgd_data) == 13
+
+    # Test when target data is missing when overlapping timestamp is found.
+    data_spd80mn_even_months = DATA_CLND[['Spd80mN', 'Dir78mS']][DATA_CLND.index.month.isin([2, 4, 6, 8, 10, 12])]
+    mrgd_data = bw.merge_datasets_by_period(MERRA2['WS50m_m/s']['2016-03-03':],
+                                            data_spd80mn_even_months['2016-02-09 00:00:00':],
+                                            period='5D',
+                                            coverage_threshold_1=1, coverage_threshold_2=1,
+                                            aggregation_method_1='mean', aggregation_method_2='mean',
+                                            wdir_column_names_2='Dir78mS')
+    assert mrgd_data.index[0] == pd.to_datetime('2016-04-02 00:00:00')
+
+    mrgd_data = bw.merge_datasets_by_period(MERRA2['WS50m_m/s']['2016-03-03':],
+                                            data_spd80mn_even_months['Spd80mN']['2016-02-09 00:00:00':],
+                                            period='5D',
+                                            coverage_threshold_1=1, coverage_threshold_2=1,
+                                            aggregation_method_1='mean', aggregation_method_2='mean')
+    assert mrgd_data.index[0] == pd.to_datetime('2016-04-02 00:00:00')

@@ -238,6 +238,15 @@ def _get_overlapping_data(df1, df2, averaging_prd=None):
         start = _round_timestamp_down_to_averaging_prd(_get_min_overlap_timestamp(df1.index, df2.index), averaging_prd)
     else:
         start = _get_min_overlap_timestamp(df1.index, df2.index)
+    # If the start timestamp just happens to be missing from the data, add in a NaN so the
+    # averaging will start from this timestamp.
+    if df2[start].empty:
+        df2.loc[pd.to_datetime(start)] = np.NaN
+        df2.sort_index(inplace=True)
+    if df1[start].empty:
+        df1.loc[pd.to_datetime(start)] = np.NaN
+        df1.sort_index(inplace=True)
+
     return df1[start:], df2[start:]
 
 
@@ -706,7 +715,6 @@ def merge_datasets_by_period(data_1, data_2, period,
                                                 aggregation_method_1='mean', aggregation_method_2='mean')
 
     """
-
     data_1_overlap, data_2_overlap = _get_overlapping_data(data_1.sort_index().dropna(),
                                                            data_2.sort_index().dropna(),
                                                            period)
