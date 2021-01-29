@@ -214,7 +214,7 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
 
 
 def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=True,
-                     x_axis_label=None, y_axis_label=None,  x_limits=None, y_limits=None, title_subplot=None,
+                     x_label=None, y_label=None,  x_limits=None, y_limits=None, title_subplot=None,
                      prediction_marker='-', color_scatter=COLOR_PALETTE.primary,
                      color_prediction=COLOR_PALETTE.secondary, legend=True, name_scatter_data=None,
                      name_prediction=None,  ax=None):
@@ -231,10 +231,10 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=T
     :type predicted_x:          pd.Series or list
     :param line_of_slope_1:     Boolean to choose to plot the line with slope one and passing through zero.
     :type line_of_slope_1:      Bool
-    :param x_axis_label:        Label for the x axis
-    :type x_axis_label:         str or None
-    :param y_axis_label:        Label for the y axis
-    :type y_axis_label:         str or None
+    :param x_label:             Label for the x axis
+    :type x_label:              str or None
+    :param y_label:             Label for the y axis
+    :type y_label:              str or None
     :param prediction_marker:   Marker to use to plot predicted_y
     :type prediction_marker:    str
     :param legend:              Boolean to choose if legend is shown. Note that legend is shown only if predicted_y is
@@ -303,8 +303,8 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=T
         high = min(high_x, high_y)
         ax.plot([low, high], [low, high], color=COLOR_PALETTE.secondary_70)
 
-    ax.set_xlabel(x_axis_label)
-    ax.set_ylabel(y_axis_label)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
 
     if legend:
         ax.legend()
@@ -353,7 +353,7 @@ def _get_best_row_col_number_for_subplot(number_subplots):
 
 
 def plot_scatter(x_series, y_series, predicted_y=None, predicted_x=None, line_of_slope_1=False,
-                 x_axis_label=None, y_axis_label=None, x_limits=None, y_limits=None, prediction_marker='-', **kwargs):
+                 x_label=None, y_label=None, x_limits=None, y_limits=None, prediction_marker='-', **kwargs):
     """
     Plots a scatter plot of two variable's timeseries.
 
@@ -367,10 +367,10 @@ def plot_scatter(x_series, y_series, predicted_y=None, predicted_x=None, line_of
     :type predicted_x:      pd.Series or list
     :param line_of_slope_1: Boolean to choose to plot the line with slope one and passing through zero.
     :type line_of_slope_1:  Bool
-    :param x_axis_label:    Label for the x-axis. If None, label will be taken from x_series name.
-    :type x_axis_label:     str, None
-    :param y_axis_label:    Label for the y-axis. If None, label will be taken from y_series name.
-    :type y_axis_label:     str, None
+    :param x_label:    Label for the x-axis. If None, label will be taken from x_series name.
+    :type x_label:     str, None
+    :param y_label:    Label for the y-axis. If None, label will be taken from y_series name.
+    :type y_label:     str, None
     :param x_limits:        x-axis min and max limits.
     :type x_limits:         tuple, None
     :param y_limits:        y-axis min and max limits.
@@ -390,15 +390,15 @@ def plot_scatter(x_series, y_series, predicted_y=None, predicted_x=None, line_of
         bw.plot_scatter(data.Spd80mN, data.Spd80mS)
 
         # To overwrite the default axis titles.
-        bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_axis_label='Dir78mS', y_axis_label='Dir58mS')
+        bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_label='Dir78mS', y_label='Dir58mS')
 
         # To set the x and y axis limits by using a tuple.
-        bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_axis_label='Dir78mS', y_axis_label='Dir58mS',
+        bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_label='Dir78mS', y_label='Dir58mS',
                         x_limits=(50,300), y_limits=(250,300))
 
         # To show a predicted line giving predicted_x and predicted_y data.
         bw.plot_scatter(data.Spd80mN, data.Spd80mS, predicted_y=[0, 15],predicted_x=[0, 10],
-                        x_axis_label="Reference", y_axis_label="Target")
+                        x_label="Reference", y_label="Target")
 
         # To show a line with slope 1 and passing through zero.
         bw.plot_scatter(data.Spd80mN, data.Spd80mS, line_of_slope_1=True)
@@ -407,10 +407,10 @@ def plot_scatter(x_series, y_series, predicted_y=None, predicted_x=None, line_of
     x_series = _convert_df_to_series(x_series)
     y_series = _convert_df_to_series(y_series)
 
-    if x_axis_label is None:
-        x_axis_label = x_series.name
-    if y_axis_label is None:
-        y_axis_label = y_series.name
+    if x_label is None:
+        x_label = x_series.name
+    if y_label is None:
+        y_label = y_series.name
 
     if x_limits is None:
         x_limits = (round(x_series.min() - 0.5), -(-x_series.max() // 1))
@@ -429,7 +429,7 @@ def plot_scatter(x_series, y_series, predicted_y=None, predicted_x=None, line_of
     fig, axes = plt.subplots(figsize=(10, 10.2), **kwargs)
     _scatter_subplot(merged_df[x_series.name], merged_df[y_series.name],
                      predicted_y=predicted_y, predicted_x=predicted_x, line_of_slope_1=line_of_slope_1,
-                     x_axis_label=x_axis_label, y_axis_label=y_axis_label, x_limits=x_limits, y_limits=y_limits,
+                     x_label=x_label, y_label=y_label, x_limits=x_limits, y_limits=y_limits,
                      prediction_marker=prediction_marker, legend=legend, ax=axes)
 
     plt.close()
@@ -477,7 +477,7 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_ti
         x_axis_title = x_wdir_series.name + ' [°]'
     if y_axis_title is None:
         y_axis_title = y_wdir_series.name + ' [°]'
-    scat_plot = plot_scatter(x_wdir_series, y_wdir_series, x_axis_label=x_axis_title, y_axis_label=y_axis_title,
+    scat_plot = plot_scatter(x_wdir_series, y_wdir_series, x_label=x_axis_title, y_label=y_axis_title,
                              x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True)
 
     scat_plot.axes[0].legend(['Reference line', 'Data points'])
@@ -529,7 +529,7 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
         x_axis_title = x_wspd_series.name + ' [m/s]'
     if y_axis_title is None:
         y_axis_title = y_wspd_series.name + ' [m/s]'
-    scat_plot = plot_scatter(x_wspd_series, y_wspd_series, x_axis_label=x_axis_title, y_axis_label=y_axis_title,
+    scat_plot = plot_scatter(x_wspd_series, y_wspd_series, x_label=x_axis_title, y_label=y_axis_title,
                              x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True)
 
     scat_plot.axes[0].legend(['Reference line', 'Data points'])
@@ -611,7 +611,7 @@ def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, s
 
         _scatter_subplot(x[logic_sect], y[logic_sect], predicted_y_input, predicted_x=None,
                          line_of_slope_1=line_of_slope_1, x_limits=x_limits, y_limits=y_limits,
-                         x_axis_label=None, y_axis_label=None, legend=False,
+                         x_label=None, y_label=None, legend=False,
                          title_subplot=str(ratio_min) + '-' + str(ratio_max), ax=ax_subplot)
 
     fig.text(0.5, 0.06, x.name, va='center', ha='center', fontsize=mpl.rcParams['axes.labelsize'])
