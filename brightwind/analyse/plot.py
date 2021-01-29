@@ -36,7 +36,8 @@ register_matplotlib_converters()
 __all__ = ['plot_timeseries',
            'plot_scatter',
            'plot_scatter_wspd',
-           'plot_scatter_wdir']
+           'plot_scatter_wdir',
+           'plot_scatter_by_sector']
 #
 # try:
 #     if 'Gotham Rounded' in \
@@ -212,9 +213,10 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
     return figure
 
 
-def _scatter_subplot(x, y, predicted_y=None, line_of_slope_1=True, x_label=None, y_label=None, prediction_marker='-',
-                     legend=True, title_subplot=None, label_scatter_data=None, label_prediction=None,
-                     color_scatter=COLOR_PALETTE.primary, color_prediction=COLOR_PALETTE.secondary, ax=None):
+def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=True, x_label=None, y_label=None,
+                     prediction_marker='-', legend=True, title_subplot=None, label_scatter_data=None,
+                     label_prediction=None, color_scatter=COLOR_PALETTE.primary,
+                     color_prediction=COLOR_PALETTE.secondary, ax=None):
     """
     Plots a scatter subplot between the inputs x and y. The predicted_y data and the line of slope 1 passing through
     zero are also shown if provided as input of the function.
@@ -222,8 +224,10 @@ def _scatter_subplot(x, y, predicted_y=None, line_of_slope_1=True, x_label=None,
     :type x:                    pd.Series
     :param y:                   Series to plot on y axis
     :type y:                    pd.Series
-    :param predicted_y:         Series of predicted y values after applying the correlation to the x series.
-    :type predicted_y:          pd.Series
+    :param predicted_y:         Series or list of predicted y values after applying the correlation to the x series.
+    :type predicted_y:          pd.Series or list
+    :param predicted_x:         Series or list of x values to plot with predicted_y. If None then the x variable is used.
+    :type predicted_x:          pd.Series or list
     :param line_of_slope_1:     Boolean to choose to plot the line with slope one and passing through zero.
     :type line_of_slope_1:      Bool
     :param x_label:             Label for the x axis
@@ -249,20 +253,17 @@ def _scatter_subplot(x, y, predicted_y=None, line_of_slope_1=True, x_label=None,
     :type color_prediction:     str or Hex or Rgb
     :param ax:                  Subplot axes to which assign the subplot to in a plot. If
     :type ax:                   matplotlib.axes._subplots.AxesSubplot or None
-    :return: Scatter subplot
-    :rtype: matplotlib.axes._subplots.AxesSubplot
+    :return:                    Scatter subplot
+    :rtype:                     matplotlib.axes._subplots.AxesSubplot
     """
     if ax is None:
         ax = plt.gca()
 
-    if label_scatter_data is not None:
+    if label_scatter_data is None:
         label_scatter_data = 'Original'
 
-    if label_prediction is not None:
+    if label_prediction is None:
         label_prediction = 'Predicted'
-
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
 
     no_dots = len(x)
 
@@ -280,13 +281,19 @@ def _scatter_subplot(x, y, predicted_y=None, line_of_slope_1=True, x_label=None,
                edgecolors='none', label=label_scatter_data)
 
     if predicted_y is not None:
-        ax.plot(x, predicted_y, prediction_marker, color=color_prediction, label=label_prediction)
+        if predicted_x is None:
+            predicted_x = x
+
+        ax.plot(predicted_x, predicted_y, prediction_marker, color=color_prediction, label=label_prediction)
 
     if line_of_slope_1:
         line = mlines.Line2D([0, 1], [0, 1], color=COLOR_PALETTE.secondary_70)
         transform = ax.transAxes
         line.set_transform(transform)
         ax.add_line(line)
+
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
 
     if legend:
         ax.legend()
@@ -309,9 +316,10 @@ def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target",
     :return:
     """
     fig, axes = plt.subplots(figsize=(10, 10.2))
-    ax = _scatter_subplot(x, y, predicted_y, x_label, y_label, prediction_marker, ax=axes)
+    _scatter_subplot(x, y, predicted_y=predicted_y, x_label=x_label, y_label=y_label,
+                     prediction_marker=prediction_marker, ax=axes)
     plt.close()
-    return ax.get_figure()
+    return fig
 
 
 def _get_best_row_col_number_for_subplot(number_subplots):
@@ -322,8 +330,9 @@ def _get_best_row_col_number_for_subplot(number_subplots):
             divs.update((i, number_subplots // i))
 
     divs_list = sorted(list(divs))
-    # get divisor number closer to sqrt of n_subplots
-    div_closer_to_sqrt = divs[np.argmin([np.abs(np.sqrt(number_subplots) - i) for i in divs_list])]
+    # get divisor number closer to sqrt of number_subplots
+    diff_to_sqrt = [np.abs(np.sqrt(number_subplots) - i) for i in divs_list]
+    div_closer_to_sqrt = divs_list[np.argmin(diff_to_sqrt)]
     other_divider = number_subplots / div_closer_to_sqrt
 
     best_row = min(div_closer_to_sqrt, other_divider)
@@ -492,54 +501,73 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
     return scat_plot
 
 
-def plot_scatter_subplots_by_direction(ref_spd, target_spd, dir_ref, sectors=12, averaging_prd='10T', **kwargs):
+def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, sectors=12, figure_size=(10, 10.2),
+                           **kwargs):
     """
-    Plot scatter subplots of ref_spd versus target_spd for each directional sectors. The averaging period used for
-    assessing the correlation can be given as input to the function.
+    Plot scatter subplots (with shared x and y axis) of x versus y for each directional sectors. If the predicted
+    correlation timeseries is given as input then this is also plotted in the graph. The line with slope 1 and passing
+    through zero is shown if line_of_slope_1=True
 
-    :param ref_spd:     Series containing reference speed as a column, timestamp as the index
-    :type ref_spd:      pd.Series
-    :param target_spd:  Series containing target speed as a column, timestamp as the index
-    :type target_spd:   pd.Series
-    :param dir_ref:     Series containing reference direction as a column, timestamp as the index
-    :type dir_ref:      pd.Series
-    :param sectors:     Number of directional sectors
-    :type sectors:      int
-    :param averaging_prd: Groups data by the period specified by period as for brightwind Correl function
-    :type sectors:      str
-    :param kwargs:      Additional keyword arguments for matplotlib.pyplot.subplot
-    :returns: matplotlib.figure.Figure
+    :param x:               Series containing reference data
+    :type x:                pd.Series
+    :param y:               Series containing target data
+    :type y:                pd.Series
+    :param wdir:            Series containing reference direction
+    :type wdir:             pd.Series
+    :param predicted_y:     Series of predicted y values after applying the correlation to the x series.
+    :type predicted_y:      pd.Series
+    :param line_of_slope_1: Boolean to choose to plot the line with slope one and passing through zero.
+    :type line_of_slope_1:  Bool
+    :param sectors:         Number of directional sectors
+    :type sectors:          int
+    :type figure_size:      Figure size in tuple format (width, height)
+    :type figure_size:      tuple
+    :param kwargs:          Additional keyword arguments for matplotlib.pyplot.subplot
+    :returns:               matplotlib.figure.Figure
 
-        """
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+
+        # To plot scatter plots by 36 sectors, with the slope 1 line passing through zero, without predicted line
+        # and with axis equal (square subplots)
+        bw.plot_scatter_by_sector(data.Spd1_80m360, data.Spd2_80m180, data.Dir1_78m180, predicted_y=None,
+                                  line_of_slope_1=True, sectors=36, subplot_kw={'aspect':'equal'})
+
+        # To plot scatter plots by 12 sectors, with the slope 1 line passing through zero, with predicted data given
+        # as input as a pd.Series (predicted_y_series) with same index than x data. The input predicted series must
+        # be derived previously for the same sectors used in the plot_scatter_by_sector function
+        bw.plot_scatter_by_sector(data.Spd1_80m360, data.Spd2_80m180, data.Dir1_78m180, predicted_y=predicted_y_series,
+                                  line_of_slope_1=False, sectors=12)
+
+    """
+
     sector = 360 / sectors
 
     rows, cols = _get_best_row_col_number_for_subplot(sectors)
-    fig, axes = plt.subplots(rows, cols, squeeze=False, sharex=True, sharey=True, **kwargs)
+    fig, axes = plt.subplots(rows, cols, squeeze=False, sharex=True, sharey=True, figsize=figure_size, **kwargs)
 
     for i_angle, ax_subplot in zip(np.arange(0, 360, sector), axes.flatten()):
 
         ratio_min = bw.offset_wind_direction(float(i_angle), - sector / 2)
         ratio_max = bw.offset_wind_direction(float(i_angle), + sector / 2)
         if ratio_max > ratio_min:
-            logic_sect = ((dir_ref >= ratio_min) & (dir_ref < ratio_max))
+            logic_sect = ((wdir >= ratio_min) & (wdir < ratio_max))
         else:
-            logic_sect = ((dir_ref >= ratio_min) & (dir_ref <= 360)) | ((dir_ref < ratio_max) & (dir_ref >= 0))
+            logic_sect = ((wdir >= ratio_min) & (wdir <= 360)) | ((wdir < ratio_max) & (wdir >= 0))
 
-        # define correlation between ref_spd and target_spd for each sector
-        ord_lst_sq = bw.Correl.OrdinaryLeastSquares(ref_spd[logic_sect], target_spd[logic_sect],
-                                                    averaging_prd=averaging_prd)
+        if predicted_y is not None:
+            predicted_y_input = predicted_y[logic_sect]
+        else:
+            predicted_y_input = predicted_y
 
-        # run the correlation
-        ord_lst_sq.run(show_params=False)
+        _scatter_subplot(x[logic_sect], y[logic_sect], predicted_y_input, predicted_x=None,
+                         line_of_slope_1=line_of_slope_1, x_label=None, y_label=None, legend=False,
+                         title_subplot=str(ratio_min) + '-' + str(ratio_max), ax=ax_subplot)
 
-        predicted_spd = ord_lst_sq._predict(ord_lst_sq.ref_spd)
-
-        sub = _scatter_subplot(ord_lst_sq.ref_spd, ord_lst_sq.target_spd, predicted_spd,
-                               x_label=None, y_label=None, legend=False,
-                               title_subplot=str(ratio_min) + '-' + str(ratio_max), ax=ax_subplot)
-
-    fig.text(0.5, 0.06, ref_spd.name, va='center', ha='center', fontsize=mtp.rcParams['axes.labelsize'])
-    fig.text(0.06, 0.5, target_spd.name, va='center', ha='center', rotation='vertical',
+    fig.text(0.5, 0.06, x.name, va='center', ha='center', fontsize=mpl.rcParams['axes.labelsize'])
+    fig.text(0.06, 0.5, y.name, va='center', ha='center', rotation='vertical',
              fontsize=mpl.rcParams['axes.labelsize'])
     plt.close()
     return fig
