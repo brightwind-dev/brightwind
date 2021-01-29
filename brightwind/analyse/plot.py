@@ -213,10 +213,11 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
     return figure
 
 
-def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=True, x_label=None, y_label=None,
-                     prediction_marker='-', legend=True, title_subplot=None, label_scatter_data=None,
-                     label_prediction=None, color_scatter=COLOR_PALETTE.primary,
-                     color_prediction=COLOR_PALETTE.secondary, ax=None):
+def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=True,
+                     x_axis_label=None, y_axis_label=None,  x_limits=None, y_limits=None, title_subplot=None,
+                     prediction_marker='-', color_scatter=COLOR_PALETTE.primary,
+                     color_prediction=COLOR_PALETTE.secondary, legend=True, name_scatter_data=None,
+                     name_prediction=None,  ax=None):
     """
     Plots a scatter subplot between the inputs x and y. The predicted_y data and the line of slope 1 passing through
     zero are also shown if provided as input of the function.
@@ -230,10 +231,10 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=T
     :type predicted_x:          pd.Series or list
     :param line_of_slope_1:     Boolean to choose to plot the line with slope one and passing through zero.
     :type line_of_slope_1:      Bool
-    :param x_label:             Label for the x axis
-    :type x_label:              str or None
-    :param y_label:             Label for the y axis
-    :type y_label:              str or None
+    :param x_axis_label:        Label for the x axis
+    :type x_axis_label:         str or None
+    :param y_axis_label:        Label for the y axis
+    :type y_axis_label:         str or None
     :param prediction_marker:   Marker to use to plot predicted_y
     :type prediction_marker:    str
     :param legend:              Boolean to choose if legend is shown. Note that legend is shown only if predicted_y is
@@ -241,12 +242,16 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=T
     :type legend:               Bool
     :param title_subplot:       Title show on top of the subplot
     :type title_subplot:        str or None
-    :param label_scatter_data:  Label to assign to scatter data in legend if legend is True. If None then the label
+    :param name_scatter_data:   Label to assign to scatter data in legend if legend is True. If None then the label
                                 assigned is 'Original'
-    :type label_scatter_data:   str or None
-    :param label_prediction:    Label to assign to prediction data in legend if legend is True. If None then the label
+    :type name_scatter_data:    str or None
+    :param name_prediction:     Label to assign to prediction data in legend if legend is True. If None then the label
                                 assigned is 'Predicted'
-    :type label_prediction:     str or None
+    :type name_prediction:      str or None
+    :param x_limits:            x-axis min and max limits.
+    :type x_limits:             tuple, None
+    :param y_limits:            y-axis min and max limits.
+    :type y_limits:             tuple, None
     :param color_scatter:       Color to assign to scatter data. Default is COLOR_PALETTE.primary
     :type color_scatter:        str or Hex or Rgb
     :param color_prediction:    Color to assign to prediction data. Default is COLOR_PALETTE.secondary
@@ -259,11 +264,11 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=T
     if ax is None:
         ax = plt.gca()
 
-    if label_scatter_data is None:
-        label_scatter_data = 'Original'
+    if name_scatter_data is None:
+        name_scatter_data = 'Original'
 
-    if label_prediction is None:
-        label_prediction = 'Predicted'
+    if name_prediction is None:
+        name_prediction = 'Predicted'
 
     no_dots = len(x)
 
@@ -278,13 +283,13 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=T
     alpha = min_alpha if alpha < min_alpha else alpha
 
     ax.scatter(x, y, marker='o', color=color_scatter, s=marker_size, alpha=alpha,
-               edgecolors='none', label=label_scatter_data)
+               edgecolors='none', label=name_scatter_data)
 
     if predicted_y is not None:
         if predicted_x is None:
             predicted_x = x
 
-        ax.plot(predicted_x, predicted_y, prediction_marker, color=color_prediction, label=label_prediction)
+        ax.plot(predicted_x, predicted_y, prediction_marker, color=color_prediction, label=name_prediction)
 
     if line_of_slope_1:
         line = mlines.Line2D([0, 1], [0, 1], color=COLOR_PALETTE.secondary_70)
@@ -292,14 +297,19 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=T
         line.set_transform(transform)
         ax.add_line(line)
 
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
+    ax.set_xlabel(x_axis_label)
+    ax.set_ylabel(y_axis_label)
 
     if legend:
         ax.legend()
 
     if title_subplot is not None:
         ax.set_title(title_subplot, fontsize=mpl.rcParams['ytick.labelsize'])
+
+    if x_limits is not None:
+        ax.set_xlim(x_limits[0], x_limits[1])
+    if y_limits is not None:
+        ax.set_ylim(y_limits[0], y_limits[1])
 
     return ax
 
@@ -341,25 +351,34 @@ def _get_best_row_col_number_for_subplot(number_subplots):
     return int(best_row), int(best_col)
 
 
-def plot_scatter(x_series, y_series, x_axis_title=None, y_axis_title=None,
-                 x_limits=None, y_limits=None):
+def plot_scatter(x_series, y_series, predicted_y=None, predicted_x=None, line_of_slope_1=False,
+                 x_axis_label=None, y_axis_label=None, x_limits=None, y_limits=None, prediction_marker='-', **kwargs):
     """
     Plots a scatter plot of two variable's timeseries.
 
-    :param x_series: The x-axis values or reference variable.
-    :type x_series: pd.Series
-    :param y_series: The y-axis values or target variable.
-    :type y_series: pd.Series
-    :param x_axis_title: Title for the x-axis. If None, title will be taken from x_series name.
-    :type x_axis_title: str, None
-    :param y_axis_title: Title for the y-axis. If None, title will be taken from y_series name.
-    :type y_axis_title: str, None
-    :param x_limits: x-axis min and max limits.
-    :type x_limits: tuple, None
-    :param y_limits: y-axis min and max limits.
-    :type y_limits: tuple, None
-    :return: scatter plot
-    :rtype: matplotlib.figure.Figure
+    :param x_series:        The x-axis values or reference variable.
+    :type x_series:         pd.Series
+    :param y_series:        The y-axis values or target variable.
+    :type y_series:         pd.Series
+    :param predicted_y:     Series or list of predicted y values after applying the correlation to the x series.
+    :type predicted_y:      pd.Series or list
+    :param predicted_x:     Series or list of x values to plot with predicted_y. If None then the x variable is used.
+    :type predicted_x:      pd.Series or list
+    :param line_of_slope_1: Boolean to choose to plot the line with slope one and passing through zero.
+    :type line_of_slope_1:  Bool
+    :param x_axis_label:    Label for the x-axis. If None, label will be taken from x_series name.
+    :type x_axis_label:     str, None
+    :param y_axis_label:    Label for the y-axis. If None, label will be taken from y_series name.
+    :type y_axis_label:     str, None
+    :param x_limits:        x-axis min and max limits.
+    :type x_limits:         tuple, None
+    :param y_limits:        y-axis min and max limits.
+    :type y_limits:         tuple, None
+    :param prediction_marker:   Marker to use to plot predicted_y
+    :type prediction_marker:    str
+    :param kwargs:          Additional keyword arguments for matplotlib.pyplot.subplot
+    :return:                scatter plot
+    :rtype:                 matplotlib.figure.Figure
 
     **Example usage**
     ::
@@ -370,31 +389,50 @@ def plot_scatter(x_series, y_series, x_axis_title=None, y_axis_title=None,
         bw.plot_scatter(data.Spd80mN, data.Spd80mS)
 
         # To overwrite the default axis titles.
-        bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_axis_title='Dir78mS', y_axis_title='Dir58mS')
+        bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_axis_label='Dir78mS', y_axis_label='Dir58mS')
 
         # To set the x and y axis limits by using a tuple.
-        bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_axis_title='Dir78mS', y_axis_title='Dir58mS',
+        bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_axis_label='Dir78mS', y_axis_label='Dir58mS',
                         x_limits=(50,300), y_limits=(250,300))
+
+        # To show a predicted line giving predicted_x and predicted_y data.
+        bw.plot_scatter(data.Spd80mN, data.Spd80mS, predicted_y=[0, 15],predicted_x=[0, 10],
+                        x_axis_label="Reference", y_axis_label="Target")
+
+        # To show a line with slope 1 and passing through zero.
+        bw.plot_scatter(data.Spd80mN, data.Spd80mS, line_of_slope_1=True)
 
     """
     x_series = _convert_df_to_series(x_series)
     y_series = _convert_df_to_series(y_series)
-    if x_axis_title is None:
-        x_axis_title = x_series.name
-    if y_axis_title is None:
-        y_axis_title = y_series.name
 
-    merged_df = pd.concat([x_series, y_series], join='inner', axis=1)
-    scat_plot = _scatter_plot(merged_df[x_series.name], merged_df[y_series.name],
-                              x_label=x_axis_title, y_label=y_axis_title)
+    if x_axis_label is None:
+        x_axis_label = x_series.name
+    if y_axis_label is None:
+        y_axis_label = y_series.name
 
     if x_limits is None:
         x_limits = (round(x_series.min() - 0.5), -(-x_series.max() // 1))
     if y_limits is None:
         y_limits = (round(y_series.min() - 0.5), -(-y_series.max() // 1))
-    scat_plot.axes[0].set_xlim(x_limits[0], x_limits[1])
-    scat_plot.axes[0].set_ylim(y_limits[0], y_limits[1])
-    return scat_plot
+
+    merged_df = pd.concat([x_series, y_series], join='inner', axis=1)
+
+    if predicted_y is not None:
+        legend = True
+        if predicted_x is None:
+            predicted_x = merged_df[x_series.name]
+    else:
+        legend = False
+
+    fig, axes = plt.subplots(figsize=(10, 10.2), **kwargs)
+    _scatter_subplot(merged_df[x_series.name], merged_df[y_series.name],
+                     predicted_y=predicted_y, predicted_x=predicted_x, line_of_slope_1=line_of_slope_1,
+                     x_axis_label=x_axis_label, y_axis_label=y_axis_label, x_limits=x_limits, y_limits=y_limits,
+                     prediction_marker=prediction_marker, legend=legend, ax=axes)
+
+    plt.close()
+    return fig
 
 
 def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_title=None,
@@ -438,7 +476,7 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_ti
         x_axis_title = x_wdir_series.name + ' [°]'
     if y_axis_title is None:
         y_axis_title = y_wdir_series.name + ' [°]'
-    scat_plot = plot_scatter(x_wdir_series, y_wdir_series, x_axis_title=x_axis_title, y_axis_title=y_axis_title,
+    scat_plot = plot_scatter(x_wdir_series, y_wdir_series, x_axis_label=x_axis_title, y_axis_label=y_axis_title,
                              x_limits=x_limits, y_limits=y_limits)
     x = [0, 360]
     y = [0, 360]
@@ -532,13 +570,13 @@ def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, s
 
         # To plot scatter plots by 36 sectors, with the slope 1 line passing through zero, without predicted line
         # and with axis equal (square subplots)
-        bw.plot_scatter_by_sector(data.Spd1_80m360, data.Spd2_80m180, data.Dir1_78m180, predicted_y=None,
+        bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, predicted_y=None,
                                   line_of_slope_1=True, sectors=36, subplot_kw={'aspect':'equal'})
 
         # To plot scatter plots by 12 sectors, with the slope 1 line passing through zero, with predicted data given
         # as input as a pd.Series (predicted_y_series) with same index than x data. The input predicted series must
         # be derived previously for the same sectors used in the plot_scatter_by_sector function
-        bw.plot_scatter_by_sector(data.Spd1_80m360, data.Spd2_80m180, data.Dir1_78m180, predicted_y=predicted_y_series,
+        bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, predicted_y=predicted_y_series,
                                   line_of_slope_1=False, sectors=12)
 
     """
@@ -563,7 +601,7 @@ def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, s
             predicted_y_input = predicted_y
 
         _scatter_subplot(x[logic_sect], y[logic_sect], predicted_y_input, predicted_x=None,
-                         line_of_slope_1=line_of_slope_1, x_label=None, y_label=None, legend=False,
+                         line_of_slope_1=line_of_slope_1, x_axis_label=None, y_axis_label=None, legend=False,
                          title_subplot=str(ratio_min) + '-' + str(ratio_max), ax=ax_subplot)
 
     fig.text(0.5, 0.06, x.name, va='center', ha='center', fontsize=mpl.rcParams['axes.labelsize'])
