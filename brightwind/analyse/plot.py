@@ -270,6 +270,11 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=T
     if name_prediction is None:
         name_prediction = 'Predicted'
 
+    if x_limits is not None:
+        ax.set_xlim(x_limits[0], x_limits[1])
+    if y_limits is not None:
+        ax.set_ylim(y_limits[0], y_limits[1])
+
     no_dots = len(x)
 
     marker_size_max = 216
@@ -292,10 +297,11 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=T
         ax.plot(predicted_x, predicted_y, prediction_marker, color=color_prediction, label=name_prediction)
 
     if line_of_slope_1:
-        line = mlines.Line2D([0, 1], [0, 1], color=COLOR_PALETTE.secondary_70)
-        transform = ax.transAxes
-        line.set_transform(transform)
-        ax.add_line(line)
+        low_x, high_x = ax.get_xlim()
+        low_y, high_y = ax.get_ylim()
+        low = max(low_x, low_y)
+        high = min(high_x, high_y)
+        ax.plot([low, high], [low, high], color=COLOR_PALETTE.secondary_70)
 
     ax.set_xlabel(x_axis_label)
     ax.set_ylabel(y_axis_label)
@@ -305,11 +311,6 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=T
 
     if title_subplot is not None:
         ax.set_title(title_subplot, fontsize=mpl.rcParams['ytick.labelsize'])
-
-    if x_limits is not None:
-        ax.set_xlim(x_limits[0], x_limits[1])
-    if y_limits is not None:
-        ax.set_ylim(y_limits[0], y_limits[1])
 
     return ax
 
@@ -539,8 +540,8 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
     return scat_plot
 
 
-def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, sectors=12, figure_size=(10, 10.2),
-                           **kwargs):
+def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, sectors=12,
+                           x_limits=None, y_limits=None, figure_size=(10, 10.2), **kwargs):
     """
     Plot scatter subplots (with shared x and y axis) of x versus y for each directional sectors. If the predicted
     correlation timeseries is given as input then this is also plotted in the graph. The line with slope 1 and passing
@@ -558,6 +559,12 @@ def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, s
     :type line_of_slope_1:  Bool
     :param sectors:         Number of directional sectors
     :type sectors:          int
+    :param x_limits:        x-axis min and max limits. Can be set to None to let the code derive the min and max from
+                            the x_wspd_series.
+    :type x_limits:         tuple, None
+    :param y_limits:        y-axis min and max limits. Can be set to None to let the code derive the min and max from
+                            the y_wspd_series.
+    :type y_limits:         tuple, None
     :type figure_size:      Figure size in tuple format (width, height)
     :type figure_size:      tuple
     :param kwargs:          Additional keyword arguments for matplotlib.pyplot.subplot
@@ -584,6 +591,12 @@ def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, s
     sector = 360 / sectors
 
     rows, cols = _get_best_row_col_number_for_subplot(sectors)
+
+    if x_limits is None:
+        x_limits = (round(x.min() - 0.5), -(-x.max() // 1))
+    if y_limits is None:
+        y_limits = (round(y.min() - 0.5), -(-y.max() // 1))
+
     fig, axes = plt.subplots(rows, cols, squeeze=False, sharex=True, sharey=True, figsize=figure_size, **kwargs)
 
     for i_angle, ax_subplot in zip(np.arange(0, 360, sector), axes.flatten()):
@@ -601,7 +614,8 @@ def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, s
             predicted_y_input = predicted_y
 
         _scatter_subplot(x[logic_sect], y[logic_sect], predicted_y_input, predicted_x=None,
-                         line_of_slope_1=line_of_slope_1, x_axis_label=None, y_axis_label=None, legend=False,
+                         line_of_slope_1=line_of_slope_1, x_limits=x_limits, y_limits=y_limits,
+                         x_axis_label=None, y_axis_label=None, legend=False,
                          title_subplot=str(ratio_min) + '-' + str(ratio_max), ax=ax_subplot)
 
     fig.text(0.5, 0.06, x.name, va='center', ha='center', fontsize=mpl.rcParams['axes.labelsize'])
