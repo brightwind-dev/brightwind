@@ -315,24 +315,6 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=T
     return ax
 
 
-def _scatter_plot(x, y, predicted_y=None, x_label="Reference", y_label="Target", prediction_marker='-'):
-    """
-    Plots a scatter plot.
-    :param x:
-    :param y:
-    :param predicted_y: A series of predicted y values after applying the correlation to the x series.
-    :param x_label:
-    :param y_label:
-    :param prediction_marker:
-    :return:
-    """
-    fig, axes = plt.subplots(figsize=(10, 10.2))
-    _scatter_subplot(x, y, predicted_y=predicted_y, x_label=x_label, y_label=y_label,
-                     prediction_marker=prediction_marker, ax=axes)
-    plt.close()
-    return fig
-
-
 def _get_best_row_col_number_for_subplot(number_subplots):
     # get all divisors of total number of subplots
     divs = {1, number_subplots}
