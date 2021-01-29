@@ -17,9 +17,10 @@ wndspd_adj_df = pd.DataFrame([2.0402222222222224, 13.284666666666668, np.NaN, 5.
 wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
 
 DATA = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
-# DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
+DATA_CLND = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 WSPD_COLS = ['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd60mS', 'Spd40mN', 'Spd40mS']
 WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
+MERRA2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
 
 
 def np_array_equal(a, b):
@@ -73,7 +74,7 @@ def test_selective_avg():
 
     # Test Case 5: Sectors overlap error msg
     with pytest.raises(ValueError) as except_info:
-        result = bw.selective_avg(data.Spd1, data.Spd2, data.Dir, boom_dir_1=180, boom_dir_2=185, sector_width=60)
+        bw.selective_avg(data.Spd1, data.Spd2, data.Dir, boom_dir_1=180, boom_dir_2=185, sector_width=60)
     assert str(except_info.value) == "Sectors overlap! Please check your inputs or reduce the size of " \
                                      "your 'sector_width'."
 
@@ -141,6 +142,32 @@ def test_offset_wind_direction_series():
     assert wdir_series_offset.equals(bw.offset_wind_direction(pd.Series([10, 30, np.NaN, 40, 350]), 345))
 
 
+def test_freq_str_to_timedelta():
+    periods = ['1min', '5min', '10min', '15min',
+               '1H', '3H', '6H',
+               '1D', '7D', '1W', '2W',
+               '1MS', '1M', '3M', '6MS',
+               '1AS', '1A', '3A']
+    results = [60.0, 300.0, 600.0, 900.0,
+               3600.0, 10800.0, 21600.0,
+               86400.0, 604800.0, 604800.0, 1209600.0,
+               2629746.0, 2629746.0, 7889238.0, 15778476.0,
+               31536000.0, 31536000.0, 94608000.0]
+    for idx, period in enumerate(periods):
+        assert bw.transform.transform._freq_str_to_timedelta(period).total_seconds() == results[idx]
+
+
+def test_round_timestamp_down_to_averaging_prd():
+    timestamp = pd.Timestamp('2016-01-09 11:21:11')
+    avg_periods = ['10min', '15min', '1H', '3H', '6H', '1D', '7D', '1W', '1MS', '1AS']
+    avg_period_start_timestamps = ['2016-1-9 11:20:00', '2016-1-9 11:15:00', '2016-1-9 11:00:00',
+                                   '2016-1-9 9:00:00', '2016-1-9 6:00:00', '2016-1-9', '2016-1-9',  '2016-1-9',
+                                   '2016-1', '2016']
+    for idx, avg_period in enumerate(avg_periods):
+        assert avg_period_start_timestamps[idx] == \
+               bw.transform.transform._round_timestamp_down_to_averaging_prd(timestamp, avg_period)
+
+
 def test_get_data_resolution():
     import warnings
     series1 = DATA['Spd80mS'].index
@@ -148,6 +175,12 @@ def test_get_data_resolution():
 
     series2 = pd.date_range('2010-01-01', periods=150, freq='H')
     assert bw.transform.transform._get_data_resolution(series2).seconds == 3600
+
+    series1 = bw.average_data_by_period(DATA['Spd80mN'], period='1M', coverage_threshold=0, return_coverage=False)
+    assert bw.transform.transform._get_data_resolution(series1.index) == pd.Timedelta(1, unit='M')
+
+    series1 = bw.average_data_by_period(DATA['Spd80mN'], period='1AS', coverage_threshold=0, return_coverage=False)
+    assert bw.transform.transform._get_data_resolution(series1.index) == pd.Timedelta(365, unit='D')
 
     # hourly series with one instance where difference between adjacent timestamps is 10 min
     series3 = pd.date_range('2010-04-15', '2010-05-01', freq='H').union(pd.date_range('2010-05-01 00:10:00', periods=20,
@@ -218,7 +251,121 @@ def test_offset_timestamps():
                               overwrite=True)
     assert (op.loc['2016-01-10 00:40:00'] == series1.Spd60mN.loc['2016-01-10 00:30:00']).all()
     assert len(op) + 1 == len(series1.Spd60mN)
-    
+
+
+def test_average_wdirs():
+    wdirs = np.array([350, 10])
+    assert bw.average_wdirs(wdirs) == 0.0
+
+    wdirs = np.array([0, 180])
+    assert bw.average_wdirs(wdirs) is np.NaN
+
+    wdirs = np.array([90, 270])
+    assert bw.average_wdirs(wdirs) is np.NaN
+
+    wdirs = np.array([45, 135])
+    assert bw.average_wdirs(wdirs) == 90
+
+    wdirs = np.array([135, 225])
+    assert bw.average_wdirs(wdirs) == 180
+
+    wdirs = np.array([45, 315, 225, 135])
+    assert bw.average_wdirs(wdirs) is np.NaN
+
+    wdirs = np.array([225, 315])
+    assert bw.average_wdirs(wdirs) == 270
+
+    wdirs = np.array([0, 10, 20, 340, 350, 360])
+    assert bw.average_wdirs(wdirs) == 0.0
+
+    wdirs_with_nan = [15, np.nan, 25]
+    assert round(bw.average_wdirs(wdirs_with_nan), 3) == 20.000
+
+    wspds = [3, 4, 5]
+    assert round(bw.average_wdirs(wdirs_with_nan, wspds), 3) == 21.253
+
+    wspds_with_nan = [3, 4, np.nan]
+    assert round(bw.average_wdirs(wdirs_with_nan, wspds_with_nan), 3) == 15.0
+
+    wspds_with_nan = [np.nan, np.nan, np.nan]
+    assert bw.average_wdirs(wdirs_with_nan, wspds_with_nan) is np.NaN
+
+    wspds_with_nan = [3, 4, np.nan]
+    assert round(bw.average_wdirs(pd.Series(wdirs_with_nan), pd.Series(wspds_with_nan)), 3) == 15.0
+
+    wdirs_with_nan = np.array(wdirs_with_nan)
+    assert round(bw.average_wdirs(wdirs_with_nan), 3) == 20.000
+
+    wdirs_with_nan = pd.Series(wdirs_with_nan)
+    assert round(bw.average_wdirs(wdirs_with_nan), 3) == 20.000
+
+    wdirs_series = pd.Series(wdirs)
+    assert bw.average_wdirs(wdirs_series) == 0.0
+
+    wspds = np.array([5, 5, 5, 5, 5, 5])
+    assert bw.average_wdirs(wdirs, wspds) == 0.0
+
+    wspds_series = pd.Series(wspds)
+    assert bw.average_wdirs(wdirs_series, wspds_series) == 0.0
+
+    wspds = np.array([5, 8.5, 10, 10, 6, 5])
+    assert round(bw.average_wdirs(wdirs, wspds), 4) == 0.5774
+
+    wdirs = np.array([[350, 10],
+                      [0, 180],
+                      [90, 270],
+                      [45, 135],
+                      [135, 225],
+                      [15, np.nan]])
+    wdirs_df = pd.DataFrame(wdirs)
+    avg_wdirs = np.round(bw.average_wdirs(wdirs_df).values, 3)
+    avg_wdirs = np.array([x for x in avg_wdirs if x == x])  # remove nans
+    expected_result = [0., np.nan, np.nan, 90., 180., 15.]
+    expected_result = np.array([x for x in expected_result if x == x])  # remove nans
+    for i, j in zip(avg_wdirs, expected_result):
+        assert i == j
+
+    wspds = np.array([[1, 2],
+                      [1, 2],
+                      [1, 2],
+                      [1, 2],
+                      [1, 2],
+                      [np.nan, 2]])
+    wspds_df = pd.DataFrame(wspds)
+    avg_wdirs = np.round(bw.average_wdirs(wdirs_df, wspds_df).values, 2)
+    avg_wdirs = np.array([x for x in avg_wdirs if x == x])  # remove nans
+    expected_result = np.array([3.36, 180., 270., 108.43, 198.43])
+    for i, j in zip(avg_wdirs, expected_result):
+        assert i == j
+
+
+def dummy_data_frame(start_date='2016-01-01T00:00:00', end_date='2016-12-31T11:59:59'):
+    """
+    Returns a DataFrame with wind speed equal to the month of the year, i.e. In January, wind speed = 1 m/s.
+    For use in testing.
+
+    :param start_date: Start date Timestamp, i.e. first index in the DataFrame
+    :type start_date:  Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
+    :param end_date: End date Timestamp, i.e. last index in the DataFrame
+    :type end_date: Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
+    :return: pandas.DataFrame
+    """
+
+    date_times = {'Timestamp': pd.date_range(start_date, end_date, freq='10T')}
+
+    dummy_wind_speeds = []
+    dummy_wdirs = []
+
+    for i, vals in enumerate(date_times['Timestamp']):
+        # get list of each month for each date entry as dummy windspeeds
+        dummy_wind_speeds.append(vals.month)
+        dummy_wdirs.append((vals.month - 1) * 30)
+
+    dummy_wind_speeds_df = pd.DataFrame({'wspd': dummy_wind_speeds, 'wdir': dummy_wdirs}, index=date_times['Timestamp'])
+    dummy_wind_speeds_df.index.name = 'Timestamp'
+
+    return dummy_wind_speeds_df
+
 
 def test_average_data_by_period():
     bw.average_data_by_period(DATA[['Spd80mN']], period='1H')
@@ -252,49 +399,127 @@ def test_average_data_by_period():
     bw.average_data_by_period(DATA.Spd80mN, period='2W', coverage_threshold=0.9, return_coverage=True)
     # return coverage without filtering
     bw.average_data_by_period(DATA.Spd80mN, period='2W', return_coverage=True)
+    # Test error msg when period is less than data resolution
+    with pytest.raises(ValueError) as except_info:
+        bw.average_data_by_period(DATA.Spd80mN, period='5min')
+    assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
+                                     "For example, hourly data should not be averaged to 10 minute data."
 
-    average_monthly_speed = bw.average_data_by_period(dummy_data_frame(), '1M')
-    average_annual_speed = bw.average_data_by_period(dummy_data_frame(), '1As')
-    # round annual wind speed
-    print(round(average_annual_speed, 2))
-
+    dummy_data = dummy_data_frame()
+    average_monthly_speed = bw.average_data_by_period(dummy_data.wspd, period='1M')
     # test average wind speed for each month
     for i in range(0, 11):
-        assert average_monthly_speed.iloc[i].item() == i + 1
+        assert average_monthly_speed.iloc[i] == i + 1
+    # test average wind speed and direction for each month
+    average_monthly_speed = bw.average_data_by_period(dummy_data, period='1M', wdir_column_names='wdir')
+    for i in range(0, 11):
+        assert average_monthly_speed.iloc[i].wspd == i + 1
+        assert round(average_monthly_speed.iloc[i].wdir, 0) == i * 30
+    # test when only 1 wdir column is sent
+    average_monthly_speed = bw.average_data_by_period(dummy_data['wdir'], period='1M', wdir_column_names='wdir')
+    for i in range(0, 11):
+        assert round(average_monthly_speed.iloc[i], 0) == i * 30
+    # test when the data doesn't actually contain the wdir column name sent
+    with pytest.raises(KeyError) as except_info:
+        bw.average_data_by_period(dummy_data['wspd'], period='1M', wdir_column_names='wdir')
+    assert str(except_info.value) == '"\'wdir\' not in data sent."'
+    with pytest.raises(KeyError) as except_info:
+        bw.average_data_by_period(dummy_data, period='1M', wdir_column_names='wdirXXXXX')
+    assert str(except_info.value) == '"\'wdirXXXXX\' not in data sent."'
+    # test when wdir_column_names sent but aggregation_method is not mean
+    with pytest.raises(KeyError) as except_info:
+        bw.average_data_by_period(dummy_data['wdir'], period='1M', wdir_column_names='wdir', aggregation_method='sum')
+    assert str(except_info.value) == '"Vector averaging is only applied when \'aggregation_method\' is \'mean\'. ' \
+                                     'Either set \'wdir_column_names\' to None or set \'aggregation_method\'=\'mean\'"'
+    # test average wind speed and direction for each month with 99% coverage required
+    average_monthly_speed = bw.average_data_by_period(dummy_data, period='1M', wdir_column_names='wdir',
+                                                      coverage_threshold=0.99, return_coverage=True)
+    assert average_monthly_speed[0].count().wspd == 11  # the returned wspd has only 11 months
+    assert average_monthly_speed[1].count().wspd_Coverage == 12  # the returned coverage has 12 months
+
     # test average annual wind speed
-    assert round(average_annual_speed.iloc[0].item(), 1) == 6.5
+    average_annual_speed = bw.average_data_by_period(dummy_data.wspd, period='1AS')
+    assert round(average_annual_speed.iloc[0].item(), 3) == 6.506
+    # average DATA to monthly
+    data_monthly = bw.average_data_by_period(DATA_CLND[WSPD_COLS + WDIR_COLS], period='1MS',
+                                             wdir_column_names=WDIR_COLS,
+                                             aggregation_method='mean', coverage_threshold=0.95, return_coverage=True)
+    count_months = [('Spd80mN', 19),
+                    ('Spd80mS', 17),
+                    ('Spd60mN', 19),
+                    ('Spd60mS', 19),
+                    ('Spd40mN', 19),
+                    ('Spd40mS', 19),
+                    ('Dir78mS', 16),
+                    ('Dir58mS', 8),
+                    ('Dir38mS', 19)]
+    idx = 0
+    for col_name, val in data_monthly[0].count().iteritems():
+        assert col_name == count_months[idx][0]
+        assert val == count_months[idx][1]
+        idx += 1
+    count_cov_months = [('Spd80mN_Coverage', 23),
+                        ('Spd80mS_Coverage', 23),
+                        ('Spd60mN_Coverage', 23),
+                        ('Spd60mS_Coverage', 23),
+                        ('Spd40mN_Coverage', 23),
+                        ('Spd40mS_Coverage', 23),
+                        ('Dir78mS_Coverage', 23),
+                        ('Dir58mS_Coverage', 23),
+                        ('Dir38mS_Coverage', 23)]
+    idx = 0
+    for col_name, val in data_monthly[1].count().iteritems():
+        assert col_name == count_cov_months[idx][0]
+        assert val == count_cov_months[idx][1]
+        idx += 1
 
 
-def dummy_data_frame(start_date='2016-01-01T00:00:00', end_date='2016-12-31T11:59:59'):
-    """
-    Returns a DataFrame with wind speed equal to the month of the year, i.e. In January, wind speed = 1 m/s.
-    For use in testing.
+def test_merge_datasets_by_period():
+    mrgd_data = bw.merge_datasets_by_period(DATA_CLND['Spd80mN'], MERRA2['WS50m_m/s'], period='1MS',
+                                            wdir_column_names_1=None, wdir_column_names_2=None,
+                                            coverage_threshold_1=None, coverage_threshold_2=None,
+                                            aggregation_method_1='mean', aggregation_method_2='mean')
+    spd80mn_monthly_mean_list = [9.25346307, 8.90438194, 6.43050216, 6.59887454, 8.72965727,
+                                 5.10815648, 6.96853427, 7.09395587, 8.18052477, 6.66944556,
+                                 6.74182714, 8.90077755, 7.83337582, 9.13450868, 7.48893795,
+                                 7.78338958, 6.49058893, 8.52524884, 6.78224843, 6.7158853,
+                                 7.08256829, 9.47901579, 7.35934137]
+    # data_monthly_index_list = ['2016-01-01', '2016-02-01', '2016-03-01', '2016-04-01',
+    #                            '2016-05-01', '2016-06-01', '2016-07-01', '2016-08-01',
+    #                            '2016-09-01', '2016-10-01', '2016-11-01', '2016-12-01',
+    #                            '2017-01-01', '2017-02-01', '2017-03-01', '2017-04-01',
+    #                            '2017-05-01', '2017-06-01', '2017-07-01', '2017-08-01',
+    #                            '2017-09-01', '2017-10-01', '2017-11-01']
+    spd80mn_monthly_cov_list = [0.71886201, 1., 0.98454301, 1., 0.36536738, 1., 1., 1., 1., 1., 0.93472222, 1.,
+                                0.9858871, 1., 1., 1., 1., 1., 1., 1., 1., 0.99283154, 0.74861111]
+    m2_monthly_mean_list = [9.62391129, 9.01344253, 6.85649462, 6.66197639, 6.99338038,
+                            5.29984306, 6.73991667, 7.11679032, 8.39015556, 6.83381317,
+                            6.84408889, 9.0631707, 8.28869355, 9.2853869, 7.62800806,
+                            7.73957917, 6.63575403, 7.81355417]
 
-    :param start_date: Start date Timestamp, i.e. first index in the DataFrame
-    :type start_date:  Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
-    :param end_date: End date Timestamp, i.e. last index in the DataFrame
-    :type end_date: Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
-    :return: pandas.DataFrame
-    """
+    assert len(mrgd_data) == 18
+    for idx, row in enumerate(mrgd_data.iterrows()):
+        assert round(spd80mn_monthly_mean_list[idx], 5) == round(row[1]['Spd80mN'], 5)
+        assert round(spd80mn_monthly_cov_list[idx], 5) == round(row[1]['Spd80mN_Coverage'], 5)
+        assert round(m2_monthly_mean_list[idx], 5) == round(row[1]['WS50m_m/s'], 5)
 
-    date_times = {'Timestamp': pd.date_range(start_date, end_date, freq='10T')}
+    mrgd_data = bw.merge_datasets_by_period(DATA_CLND['Spd80mN'], MERRA2['WS50m_m/s'], period='1MS',
+                                            wdir_column_names_1=None, wdir_column_names_2=None,
+                                            coverage_threshold_1=0.99, coverage_threshold_2=1,
+                                            aggregation_method_1='sum', aggregation_method_2='sum')
+    assert len(mrgd_data) == 13
 
-    dummy_wind_speeds = []
+    mrgd_data = bw.merge_datasets_by_period(DATA_CLND['Spd80mN'],
+                                            MERRA2['WS50m_m/s'][MERRA2.index.month.isin([2, 4, 6, 8, 10, 12])],
+                                            period='1MS',
+                                            wdir_column_names_1=None, wdir_column_names_2=None,
+                                            coverage_threshold_1=0.99, coverage_threshold_2=1,
+                                            aggregation_method_1='sum', aggregation_method_2='sum')
+    assert len(mrgd_data) == 9
 
-    for i, vals in date_times.items():
-        # get list of each month for each date entry as dummy windspeeds
-        dummy_wind_speeds.append(date_times[i].month)
-
-    dummy_wind_speeds_df = pd.DataFrame(pd.DataFrame(dummy_wind_speeds).iloc[0])
-    # change column name
-    dummy_wind_speeds_df.columns = ['Mean Wind Speed']
-    # create data frame from dates
-    dummy_df = pd.DataFrame(date_times)
-    # add mean wind speeds to dataframe
-    dummy_df['Mean Wind Speed'] = dummy_wind_speeds_df['Mean Wind Speed']
-    # change dates to datetime values
-    dummy_df['Timestamp'] = pd.DatetimeIndex(dummy_df['Timestamp'])
-    # set date times as index of data frame
-    dummy_df.set_index('Timestamp', inplace=True)
-
-    return dummy_df
+    mrgd_data = bw.merge_datasets_by_period(DATA_CLND['Dir78mS'], MERRA2['WD50m_deg'],
+                                            period='1MS',
+                                            wdir_column_names_1=['Dir78mS'], wdir_column_names_2='WD50m_deg',
+                                            coverage_threshold_1=0.99, coverage_threshold_2=1,
+                                            aggregation_method_1='mean', aggregation_method_2='mean')
+    assert len(mrgd_data) == 13
