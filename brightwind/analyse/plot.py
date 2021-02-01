@@ -220,16 +220,17 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=F
                      name_prediction=None,  ax=None):
     """
     Plots a scatter subplot between the inputs x and y. The predicted_y data and the line of slope 1 passing through
-    zero are also shown if provided as input of the function.
+    the origin are also shown if provided as input of the function.
+
     :param x:                   Series to plot on x axis
     :type x:                    pd.Series
     :param y:                   Series to plot on y axis
     :type y:                    pd.Series
     :param predicted_y:         Series or list of predicted y values after applying the correlation to the x series.
-    :type predicted_y:          pd.Series or list
-    :param predicted_x:         Series or list of x values to plot with predicted_y. If None then the x variable is used.
-    :type predicted_x:          pd.Series or list
-    :param line_of_slope_1:     Boolean to choose to plot the line with slope one and passing through zero.
+    :type predicted_y:          pd.Series or list or None
+    :param predicted_x:         X values to plot with predicted_y. If None then the x variable is used.
+    :type predicted_x:          pd.Series or list or None
+    :param line_of_slope_1:     Boolean to choose to plot the line with slope one and passing through the origin.
     :type line_of_slope_1:      Bool
     :param x_label:             Label for the x axis
     :type x_label:              str or None
@@ -258,7 +259,7 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=F
     :type color_prediction:     str or Hex or Rgb
     :param ax:                  Subplot axes to which assign the subplot to in a plot. If
     :type ax:                   matplotlib.axes._subplots.AxesSubplot or None
-    :return:                    Scatter subplot
+    :return:                    A scatter subplot
     :rtype:                     matplotlib.axes._subplots.AxesSubplot
 
      **Example usage**
@@ -281,7 +282,7 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=F
         fig, axes = plt.subplots(1, 1)
         scat_plot = bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, ax=axes)
         scat_plot = bw.analyse.plot._scatter_subplot(data.Spd60mN, data.Spd60mS, ax=axes,
-                                               color_scatter=COLOR_PALETTE.secondary)
+                                               color_scatter=bw.analyse.plot.COLOR_PALETTE.tertiary)
         scat_plot.axes.legend(['Data1', 'Data2'])
 
         # To set the x and y axis limits by using a tuple.
@@ -295,7 +296,7 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=F
         bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, predicted_y=[0, 15], predicted_x=[0, 10],
                         color_prediction = 'r', x_label="Reference", y_label="Target", ax=axes)
 
-        # To show the line with slope 1 passing through zero.
+        # To show the line with slope 1 passing through the origin.
         fig, axes = plt.subplots(1, 1)
         bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, line_of_slope_1=True, ax=axes)
 
@@ -382,29 +383,29 @@ def plot_scatter(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=False
     """
     Plots a scatter plot of x and y data. The predicted_y data is also shown if provided as input of the function.
 
-    :param x:               The x-axis values or reference variable.
-    :type x:                pd.Series or list or np.ndarray
-    :param y:               The y-axis values or target variable.
-    :type y:                pd.Series or list or np.ndarray
-    :param predicted_y:     Series or list of predicted y values after applying the correlation to the x series.
-    :type predicted_y:      pd.Series or list or np.ndarray
-    :param predicted_x:     Series or list of x values to plot with predicted_y. If None then the x variable is used.
-    :type predicted_x:      pd.Series or list or np.ndarray
-    :param line_of_slope_1: Boolean to choose to plot the line with slope one and passing through zero.
-    :type line_of_slope_1:  Bool
-    :param x_label:         Label for the x-axis. If None, label will be taken from x_series name.
-    :type x_label:          str, None
-    :param y_label:         Label for the y-axis. If None, label will be taken from y_series name.
-    :type y_label:          str, None
-    :param x_limits:        x-axis min and max limits.
-    :type x_limits:         tuple, None
-    :param y_limits:        y-axis min and max limits.
-    :type y_limits:         tuple, None
+    :param x:                   The x-axis values or reference variable.
+    :type x:                    pd.Series or list or np.array
+    :param y:                   The y-axis values or target variable.
+    :type y:                    pd.Series or list or np.array
+    :param predicted_y:         Series or list of predicted y values after applying the correlation to the x series.
+    :type predicted_y:          pd.Series or list or np.array or None
+    :param predicted_x:         X values to plot with predicted_y. If None then the x variable is used.
+    :type predicted_x:          pd.Series or list or np.array or None
+    :param line_of_slope_1:     Boolean to choose to plot the line with slope one and passing through the origin.
+    :type line_of_slope_1:      Bool
+    :param x_label:             Label for the x-axis. If None, label will be taken from x_series name.
+    :type x_label:              str, None
+    :param y_label:             Label for the y-axis. If None, label will be taken from y_series name.
+    :type y_label:              str, None
+    :param x_limits:            x-axis min and max limits.
+    :type x_limits:             tuple, None
+    :param y_limits:            y-axis min and max limits.
+    :type y_limits:             tuple, None
     :param prediction_marker:   Marker to use to plot predicted_y
     :type prediction_marker:    str
-    :param kwargs:          Additional keyword arguments for matplotlib.pyplot.subplot
-    :return:                scatter plot
-    :rtype:                 matplotlib.figure.Figure
+    :param kwargs:              Additional keyword arguments for matplotlib.pyplot.subplot
+    :return:                    A scatter plot
+    :rtype:                     matplotlib.figure.Figure
 
     **Example usage**
     ::
@@ -425,7 +426,7 @@ def plot_scatter(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=False
         bw.plot_scatter(data.Spd80mN, data.Spd80mS, predicted_y=[0, 15],predicted_x=[0, 10],
                         x_label="Reference", y_label="Target")
 
-        # To show a line with slope 1 and passing through zero.
+        # To show a line with slope 1 and passing through the origin.
         bw.plot_scatter(data.Spd80mN, data.Spd80mS, line_of_slope_1=True)
     """
     if type(x) is pd.DataFrame:
@@ -470,20 +471,20 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_ti
     """
     Plots a scatter plot of two wind direction timeseries and adds a line from 0,0 to 360,360.
 
-    :param x_wdir_series: The x-axis values or reference wind directions.
-    :type x_wdir_series: pd.Series
-    :param y_wdir_series: The y-axis values or target wind directions.
-    :type y_wdir_series: pd.Series
-    :param x_axis_title: Title for the x-axis. If None, title will be taken from x_wdir_series name.
-    :type x_axis_title: str, None
-    :param y_axis_title: Title for the y-axis. If None, title will be taken from y_wdir_series name.
-    :type y_axis_title: str, None
-    :param x_limits: x-axis min and max limits.
-    :type x_limits: tuple
-    :param y_limits: y-axis min and max limits.
-    :type y_limits: tuple
-    :return: scatter plot
-    :rtype: matplotlib.figure.Figure
+    :param x_wdir_series:            The x-axis values or reference wind directions.
+    :type x_wdir_series:             pd.Series
+    :param y_wdir_series:            The y-axis values or target wind directions.
+    :type y_wdir_series:             pd.Series
+    :param x_axis_title:             Title for the x-axis. If None, title will be taken from x_wdir_series name.
+    :type x_axis_title:              str, None
+    :param y_axis_title:             Title for the y-axis. If None, title will be taken from y_wdir_series name.
+    :type y_axis_title:              str, None
+    :param x_limits:                 x-axis min and max limits.
+    :type x_limits:                  tuple
+    :param y_limits:                 y-axis min and max limits.
+    :type y_limits:                  tuple
+    :return:                         A scatter plot
+    :rtype:                          matplotlib.figure.Figure
 
     **Example usage**
     ::
@@ -521,21 +522,21 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
     basic 'plot_scatter()' function when using normalised wind speeds.
 
     :param x_wspd_series: The x-axis values or reference wind speeds.
-    :type x_wspd_series: pd.Series
+    :type x_wspd_series:  pd.Series
     :param y_wspd_series: The y-axis values or target wind speeds.
-    :type y_wspd_series: pd.Series
-    :param x_axis_title: Title for the x-axis. If None, title will be taken from x_wspd_series name.
-    :type x_axis_title: str, None
-    :param y_axis_title: Title for the y-axis. If None, title will be taken from y_wspd_series name.
-    :type y_axis_title: str, None
-    :param x_limits: x-axis min and max limits. Can be set to None to let the code derive the min and max from
-                     the x_wspd_series.
-    :type x_limits: tuple, None
-    :param y_limits: y-axis min and max limits. Can be set to None to let the code derive the min and max from
-                     the y_wspd_series.
-    :type y_limits: tuple, None
-    :return: scatter plot
-    :rtype: matplotlib.figure.Figure
+    :type y_wspd_series:  pd.Series
+    :param x_axis_title:  Title for the x-axis. If None, title will be taken from x_wspd_series name.
+    :type x_axis_title:   str, None
+    :param y_axis_title:  Title for the y-axis. If None, title will be taken from y_wspd_series name.
+    :type y_axis_title:   str, None
+    :param x_limits:      x-axis min and max limits. Can be set to None to let the code derive the min and max from
+                          the x_wspd_series.
+    :type x_limits:       tuple, None
+    :param y_limits:      y-axis min and max limits. Can be set to None to let the code derive the min and max from
+                          the y_wspd_series.
+    :type y_limits:       tuple, None
+    :return:              A scatter plot
+    :rtype:               matplotlib.figure.Figure
 
     **Example usage**
     ::
@@ -568,19 +569,19 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
 def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, sectors=12,
                            x_limits=None, y_limits=None, figure_size=(10, 10.2), **kwargs):
     """
-    Plot scatter subplots (with shared x and y axis) of x versus y for each directional sectors. If the predicted
+    Plot scatter subplots (with shared x and y axis) of x versus y for each directional sector. If the predicted
     correlation timeseries is given as input then this is also plotted in the graph. The line with slope 1 and passing
-    through zero is shown if line_of_slope_1=True
+    through the origin is shown if line_of_slope_1=True
 
-    :param x:               Series containing reference data
+    :param x:               The x-axis values or reference variable.
     :type x:                pd.Series
-    :param y:               Series containing target data
+    :param y:               The y-axis values or target variable.
     :type y:                pd.Series
-    :param wdir:            Series containing reference direction
+    :param wdir:            Timeseries of wind directions.
     :type wdir:             pd.Series
     :param predicted_y:     Series of predicted y values after applying the correlation to the x series.
     :type predicted_y:      pd.Series
-    :param line_of_slope_1: Boolean to choose to plot the line with slope one and passing through zero.
+    :param line_of_slope_1: Boolean to choose to plot the line with slope one and passing through the origin.
     :type line_of_slope_1:  Bool
     :param sectors:         Number of directional sectors
     :type sectors:          int
@@ -600,12 +601,12 @@ def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, s
         import brightwind as bw
         data = bw.load_csv(bw.demo_datasets.demo_data)
 
-        # To plot scatter plots by 36 sectors, with the slope 1 line passing through zero, without predicted line
+        # To plot scatter plots by 36 sectors, with the slope 1 line passing through the origin, without predicted line
         # and with axis equal (square subplots)
         bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, predicted_y=None,
                                   line_of_slope_1=True, sectors=36, subplot_kw={'aspect':'equal'})
 
-        # To plot scatter plots by 12 sectors, with the slope 1 line passing through zero, with predicted data given
+        # To plot scatter plots by 12 sectors, with the slope 1 line passing through the origin, with predicted data given
         # as input as a pd.Series (predicted_y_series) with same index than x data. The input predicted series must
         # be derived previously for the same sectors used in the plot_scatter_by_sector function
         bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, predicted_y=predicted_y_series,
