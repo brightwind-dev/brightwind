@@ -213,7 +213,7 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
     return figure
 
 
-def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=True,
+def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=False,
                      x_label=None, y_label=None,  x_limits=None, y_limits=None, title_subplot=None,
                      prediction_marker='-', color_scatter=COLOR_PALETTE.primary,
                      color_prediction=COLOR_PALETTE.secondary, legend=True, name_scatter_data=None,
@@ -260,6 +260,49 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=T
     :type ax:                   matplotlib.axes._subplots.AxesSubplot or None
     :return:                    Scatter subplot
     :rtype:                     matplotlib.axes._subplots.AxesSubplot
+
+     **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+
+        # To plot only one subplot in a figure with axis equal
+        fig, axes = plt.subplots(1, 1, subplot_kw={'aspect':'equal'})
+        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, ax=axes)
+
+        # To plot multiple subplots in a figure without legend and with x and y labels
+        fig, axes = plt.subplots(1, 2)
+        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, ax=axes[0], legend=False,
+                                         x_label='Spd80mN', y_label='Spd80mS')
+        bw.analyse.plot._scatter_subplot(data.Dir78mS, data.Dir58mS, ax=axes[1], legend=False,
+                                         x_label='Dir78mS', y_label='Dir58mS')
+
+        # To plot multiple scatters in the same subplot in a figure and set the legend
+        fig, axes = plt.subplots(1, 1)
+        scat_plot = bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, ax=axes)
+        scat_plot = bw.analyse.plot._scatter_subplot(data.Spd60mN, data.Spd60mS, ax=axes,
+                                               color_scatter=COLOR_PALETTE.secondary)
+        scat_plot.axes.legend(['Data1', 'Data2'])
+
+        # To set the x and y axis limits by using a tuple.
+        fig, axes = plt.subplots(1, 1)
+        bw.analyse.plot._scatter_subplot(data.Dir78mS, data.Dir58mS, x_label='Dir78mS', y_label='Dir58mS',
+                        x_limits=(50,300), y_limits=(250,300), ax=axes)
+
+        # To show a predicted line giving predicted_x and predicted_y data, assign the color of the prediction line and
+        # set the x and y labels
+        fig, axes = plt.subplots(1, 1)
+        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, predicted_y=[0, 15], predicted_x=[0, 10],
+                        color_prediction = 'r', x_label="Reference", y_label="Target", ax=axes)
+
+        # To show the line with slope 1 passing through zero.
+        fig, axes = plt.subplots(1, 1)
+        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, line_of_slope_1=True, ax=axes)
+
+        # To set the name of the scatter data and of the prediction.
+        fig, axes = plt.subplots(1, 1)
+        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, predicted_y=[0, 15], predicted_x=[0, 10],
+                                         name_scatter_data='Data scatter', name_prediction='linear prediction', ax=axes)
     """
     if ax is None:
         ax = plt.gca()
@@ -384,7 +427,6 @@ def plot_scatter(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=False
 
         # To show a line with slope 1 and passing through zero.
         bw.plot_scatter(data.Spd80mN, data.Spd80mS, line_of_slope_1=True)
-
     """
     if type(x) is pd.DataFrame:
         x = _convert_df_to_series(x)
@@ -568,6 +610,9 @@ def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, s
         # be derived previously for the same sectors used in the plot_scatter_by_sector function
         bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, predicted_y=predicted_y_series,
                                   line_of_slope_1=False, sectors=12)
+
+        # To plot scatter plots by 12 sectors, and set the figure size.
+        bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, sectors=12, figure_size=(15, 10.2))
 
     """
 
