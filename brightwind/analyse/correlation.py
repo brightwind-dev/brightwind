@@ -142,11 +142,6 @@ class CorrelBase:
             output.columns = [self.target_spd.name + "_Synthesized"]
             return output
 
-    def get_r2(self):
-        """Returns the r2 score of the model"""
-        return 1.0 - (sum((self.data[self._tar_spd_col_name] - self._predict(self.data[self._ref_spd_col_name])) ** 2) /
-                      (sum((self.data[self._tar_spd_col_name] - self.data[self._tar_spd_col_name].mean()) ** 2)))
-
     # def get_error_metrics(self):
     #     raise NotImplementedError
 
@@ -236,27 +231,61 @@ class OrdinaryLeastSquares(CorrelBase):
                                                  averaging_prd='1H', coverage_threshold=0,
                                                  ref_aggregation_method='min', target_aggregation_method='min')
     """
-    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9,
-                 ref_aggregation_method='mean', target_aggregation_method='mean'):
-        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold,
+
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9, ref_dir=None, sectors=12,
+                 direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean'):
+        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
                             ref_aggregation_method=ref_aggregation_method,
                             target_aggregation_method=target_aggregation_method)
+
+        if ref_dir is not None:
+            self.sectors = sectors
+            self.direction_bin_array = direction_bin_array
+            if direction_bin_array is not None:
+                self.sectors = len(direction_bin_array) - 1
+            self.ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
+                                                         direction_bin_array=self.direction_bin_array
+                                                         ).rename('ref_dir_bin')
+            self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
+            self.data = self.data.dropna()
 
     def __repr__(self):
         return 'Ordinary Least Squares Model ' + str(self.params)
 
-    def run(self, show_params=True):
-        p, res = lstsq(np.nan_to_num(self.data[self._ref_spd_col_name].values.flatten()[:, np.newaxis] ** [1, 0]),
-                       np.nan_to_num(self.data[self._tar_spd_col_name].values.flatten()))[0:2]
+    def _leastsquare(self, ref_spd, target_spd):
+        p, res = lstsq(np.nan_to_num(ref_spd.values.flatten()[:, np.newaxis] ** [1, 0]),
+                       np.nan_to_num(target_spd.values.flatten()))[0:2]
+        return p[0], p[1]
 
-        self.params = dict([('slope', p[0]), ('offset', p[1])])
-        self.params['r2'] = self.get_r2()
-        self.params['num_data_points'] = self.num_data_pts
+    def run(self, show_params=True):
+        if self.ref_dir is None:
+            slope, offset = self._leastsquare(ref_spd=self.data[self._ref_spd_col_name],
+                                              target_spd=self.data[self._tar_spd_col_name])
+            self.params = dict([('slope', slope), ('offset', offset)])
+            self.params['r2'] = self.get_r2()
+            self.params['num_data_points'] = self.num_data_pts
+
+        elif type(self.ref_dir) is pd.Series:
+            self.params = dict()
+            for sector, group in self.data.groupby(['ref_dir_bin']):
+                # print('Processing sector:', sector)
+                slope, offset = self._leastsquare(ref_spd=group[self._ref_spd_col_name],
+                                                  target_spd=group[self._tar_spd_col_name])
+                self.params[sector] = {'slope': slope,
+                                       'offset': offset,
+                                       'r2': self.get_r2(),
+                                       'num_data_points': self.num_data_pts}
+
         if show_params:
             self.show_params()
 
     def _predict(self, ref_spd):
         return (ref_spd * self.params['slope']) + self.params['offset']
+
+    def get_r2(self):
+        """Returns the r2 score of the model"""
+        return 1.0 - (sum((self.data[self._tar_spd_col_name] - self._predict(self.data[self._ref_spd_col_name])) ** 2) /
+                      (sum((self.data[self._tar_spd_col_name] - self.data[self._tar_spd_col_name].mean()) ** 2)))
 
 
 class OrthogonalLeastSquares(CorrelBase):
@@ -376,6 +405,11 @@ class OrthogonalLeastSquares(CorrelBase):
             return OrthogonalLeastSquares.linear_func(p, x)
 
         return ref_spd.transform(linear_func_inverted, p=[self.params['slope'], self.params['offset']])
+
+    def get_r2(self):
+        """Returns the r2 score of the model"""
+        return 1.0 - (sum((self.data[self._tar_spd_col_name] - self._predict(self.data[self._ref_spd_col_name])) ** 2) /
+                      (sum((self.data[self._tar_spd_col_name] - self.data[self._tar_spd_col_name].mean()) ** 2)))
 
 
 class MultipleLinearRegression(CorrelBase):
