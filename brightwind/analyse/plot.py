@@ -213,50 +213,49 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
     return figure
 
 
-def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=False,
-                     x_label=None, y_label=None,  x_limits=None, y_limits=None, title_subplot=None,
-                     prediction_marker='-', color_scatter=COLOR_PALETTE.primary,
-                     color_prediction=COLOR_PALETTE.secondary, legend=True, name_scatter_data=None,
-                     name_prediction=None,  ax=None):
+def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False,
+                     x_label=None, y_label=None,  x_limits=None, y_limits=None, subplot_title=None,
+                     trendline_dots=False, scatter_color=COLOR_PALETTE.primary,
+                     trendline_color=COLOR_PALETTE.secondary, legend=True, scatter_name=None,
+                     trendline_name=None, ax=None):
     """
-    Plots a scatter subplot between the inputs x and y. The predicted_y data and the line of slope 1 passing through
+    Plots a scatter subplot between the inputs x and y. The trendline_y data and the line of slope 1 passing through
     the origin are also shown if provided as input of the function.
 
     :param x:                   Series to plot on x axis
     :type x:                    pd.Series
     :param y:                   Series to plot on y axis
     :type y:                    pd.Series
-    :param predicted_y:         Series or list of predicted y values after applying the correlation to the x series.
-    :type predicted_y:          pd.Series or list or None
-    :param predicted_x:         X values to plot with predicted_y. If None then the x variable is used.
-    :type predicted_x:          pd.Series or list or None
+    :param trendline_y:         Series or list of trendline y values after applying the correlation to the x series.
+    :type trendline_y:          pd.Series or list or None
+    :param trendline_x:         X values to plot with trendline_y. If None then the x variable is used.
+    :type trendline_x:          pd.Series or list or None
     :param line_of_slope_1:     Boolean to choose to plot the line with slope one and passing through the origin.
     :type line_of_slope_1:      Bool
     :param x_label:             Label for the x axis
     :type x_label:              str or None
     :param y_label:             Label for the y axis
     :type y_label:              str or None
-    :param prediction_marker:   Marker to use to plot predicted_y
-    :type prediction_marker:    str
-    :param legend:              Boolean to choose if legend is shown. Note that legend is shown only if predicted_y is
-                                not None
+    :param trendline_dots:      Boolean to chose if marker to use for the trendline is dot-line or a line
+    :type trendline_dots:       Bool
+    :param legend:              Boolean to choose if legend is shown.
     :type legend:               Bool
-    :param title_subplot:       Title show on top of the subplot
-    :type title_subplot:        str or None
-    :param name_scatter_data:   Label to assign to scatter data in legend if legend is True. If None then the label
-                                assigned is 'Original'
-    :type name_scatter_data:    str or None
-    :param name_prediction:     Label to assign to prediction data in legend if legend is True. If None then the label
-                                assigned is 'Predicted'
-    :type name_prediction:      str or None
+    :param subplot_title:       Title show on top of the subplot
+    :type subplot_title:        str or None
+    :param scatter_name:        Label to assign to scatter data in legend if legend is True. If None then the label
+                                assigned is 'Data points'
+    :type scatter_name:         str or None
+    :param trendline_name:      Label to assign to trendline data in legend if legend is True. If None then the label
+                                assigned is 'Regression line'
+    :type trendline_name:       str or None
     :param x_limits:            x-axis min and max limits.
     :type x_limits:             tuple, None
     :param y_limits:            y-axis min and max limits.
     :type y_limits:             tuple, None
-    :param color_scatter:       Color to assign to scatter data. Default is COLOR_PALETTE.primary
-    :type color_scatter:        str or Hex or Rgb
-    :param color_prediction:    Color to assign to prediction data. Default is COLOR_PALETTE.secondary
-    :type color_prediction:     str or Hex or Rgb
+    :param scatter_color:       Color to assign to scatter data. Default is COLOR_PALETTE.primary
+    :type scatter_color:        str or Hex or Rgb
+    :param trendline_color:     Color to assign to trendline data. Default is COLOR_PALETTE.secondary
+    :type trendline_color:      str or Hex or Rgb
     :param ax:                  Subplot axes to which assign the subplot to in a plot. If
     :type ax:                   matplotlib.axes._subplots.AxesSubplot or None
     :return:                    A scatter subplot
@@ -282,7 +281,7 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=F
         fig, axes = plt.subplots(1, 1)
         scat_plot = bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, ax=axes)
         scat_plot = bw.analyse.plot._scatter_subplot(data.Spd60mN, data.Spd60mS, ax=axes,
-                                               color_scatter=bw.analyse.plot.COLOR_PALETTE.tertiary)
+                                                     scatter_color=bw.analyse.plot.COLOR_PALETTE.tertiary)
         scat_plot.axes.legend(['Data1', 'Data2'])
 
         # To set the x and y axis limits by using a tuple.
@@ -290,29 +289,34 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=F
         bw.analyse.plot._scatter_subplot(data.Dir78mS, data.Dir58mS, x_label='Dir78mS', y_label='Dir58mS',
                         x_limits=(50,300), y_limits=(250,300), ax=axes)
 
-        # To show a predicted line giving predicted_x and predicted_y data, assign the color of the prediction line and
+        # To show a trendline giving trendline_x and trendline_y data, assign the color of the trendline and
         # set the x and y labels
         fig, axes = plt.subplots(1, 1)
-        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, predicted_y=[0, 15], predicted_x=[0, 10],
-                        color_prediction = 'r', x_label="Reference", y_label="Target", ax=axes)
+        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, trendline_y=[0, 15], trendline_x=[0, 10],
+                        trendline_color = 'r', x_label="Reference", y_label="Target", ax=axes)
 
         # To show the line with slope 1 passing through the origin.
         fig, axes = plt.subplots(1, 1)
         bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, line_of_slope_1=True, ax=axes)
 
-        # To set the name of the scatter data and of the prediction.
+        # To set the name of the scatter data and of the trendline.
         fig, axes = plt.subplots(1, 1)
-        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, predicted_y=[0, 15], predicted_x=[0, 10],
-                                         name_scatter_data='Data scatter', name_prediction='linear prediction', ax=axes)
+        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, trendline_y=[0, 15], trendline_x=[0, 10],
+                                         scatter_name='Data scatter', trendline_name='Regression line', ax=axes)
     """
     if ax is None:
         ax = plt.gca()
 
-    if name_scatter_data is None:
-        name_scatter_data = 'Original'
+    if scatter_name is None:
+        scatter_name = 'Data_points'
 
-    if name_prediction is None:
-        name_prediction = 'Predicted'
+    if trendline_name is None:
+        trendline_name = 'Regression line'
+
+    if trendline_dots is True:
+        trendline_marker = '.-'
+    else:
+        trendline_marker = '-'
 
     if x_limits is not None:
         ax.set_xlim(x_limits[0], x_limits[1])
@@ -331,21 +335,21 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=F
     alpha = -0.0004 * no_dots + max_alpha  # y=mx+c, m = (0.7 - 0.3) / (1000 - 0) i.e. alpha changes up to 1000 dots
     alpha = min_alpha if alpha < min_alpha else alpha
 
-    ax.scatter(x, y, marker='o', color=color_scatter, s=marker_size, alpha=alpha,
-               edgecolors='none', label=name_scatter_data)
+    ax.scatter(x, y, marker='o', color=scatter_color, s=marker_size, alpha=alpha,
+               edgecolors='none', label=scatter_name)
 
-    if predicted_y is not None:
-        if predicted_x is None:
-            predicted_x = x
+    if trendline_y is not None:
+        if trendline_x is None:
+            trendline_x = x
 
-        ax.plot(predicted_x, predicted_y, prediction_marker, color=color_prediction, label=name_prediction)
+        ax.plot(trendline_x, trendline_y, trendline_marker, color=trendline_color, label=trendline_name)
 
     if line_of_slope_1:
         low_x, high_x = ax.get_xlim()
         low_y, high_y = ax.get_ylim()
         low = max(low_x, low_y)
         high = min(high_x, high_y)
-        ax.plot([low, high], [low, high], color=COLOR_PALETTE.secondary_70)
+        ax.plot([low, high], [low, high], color=COLOR_PALETTE.secondary_70, label='1:1 line')
 
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
@@ -353,8 +357,8 @@ def _scatter_subplot(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=F
     if legend:
         ax.legend()
 
-    if title_subplot is not None:
-        ax.set_title(title_subplot, fontsize=mpl.rcParams['ytick.labelsize'])
+    if subplot_title is not None:
+        ax.set_title(subplot_title, fontsize=mpl.rcParams['ytick.labelsize'])
 
     return ax
 
@@ -378,19 +382,19 @@ def _get_best_row_col_number_for_subplot(number_subplots):
     return int(best_row), int(best_col)
 
 
-def plot_scatter(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=False,
-                 x_label=None, y_label=None, x_limits=None, y_limits=None, prediction_marker='-', **kwargs):
+def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False,
+                 x_label=None, y_label=None, x_limits=None, y_limits=None, trendline_dots=False, **kwargs):
     """
-    Plots a scatter plot of x and y data. The predicted_y data is also shown if provided as input of the function.
+    Plots a scatter plot of x and y data. The trendline_y data is also shown if provided as input of the function.
 
     :param x:                   The x-axis values or reference variable.
     :type x:                    pd.Series or list or np.array
     :param y:                   The y-axis values or target variable.
     :type y:                    pd.Series or list or np.array
-    :param predicted_y:         Series or list of predicted y values after applying the correlation to the x series.
-    :type predicted_y:          pd.Series or list or np.array or None
-    :param predicted_x:         X values to plot with predicted_y. If None then the x variable is used.
-    :type predicted_x:          pd.Series or list or np.array or None
+    :param trendline_y:         Series or list of trendline y values after applying the correlation to the x series.
+    :type trendline_y:          pd.Series or list or np.array or None
+    :param trendline_x:         X values to plot with trendline_y. If None then the x variable is used.
+    :type trendline_x:          pd.Series or list or np.array or None
     :param line_of_slope_1:     Boolean to choose to plot the line with slope one and passing through the origin.
     :type line_of_slope_1:      Bool
     :param x_label:             Label for the x-axis. If None, label will be taken from x_series name.
@@ -401,8 +405,8 @@ def plot_scatter(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=False
     :type x_limits:             tuple, None
     :param y_limits:            y-axis min and max limits.
     :type y_limits:             tuple, None
-    :param prediction_marker:   Marker to use to plot predicted_y
-    :type prediction_marker:    str
+    :param trendline_dots:      Boolean to chose if marker to use for the trendline is dot-line or a line
+    :type trendline_dots:       Bool
     :param kwargs:              Additional keyword arguments for matplotlib.pyplot.subplot
     :return:                    A scatter plot
     :rtype:                     matplotlib.figure.Figure
@@ -422,8 +426,8 @@ def plot_scatter(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=False
         bw.plot_scatter(data.Dir78mS, data.Dir58mS, x_label='Dir78mS', y_label='Dir58mS',
                         x_limits=(50,300), y_limits=(250,300))
 
-        # To show a predicted line giving predicted_x and predicted_y data.
-        bw.plot_scatter(data.Spd80mN, data.Spd80mS, predicted_y=[0, 15],predicted_x=[0, 10],
+        # To show a trendline line giving trendline_x and trendline_y data.
+        bw.plot_scatter(data.Spd80mN, data.Spd80mS, trendline_y=[0, 15],trendline_x=[0, 10],
                         x_label="Reference", y_label="Target")
 
         # To show a line with slope 1 and passing through the origin.
@@ -450,23 +454,26 @@ def plot_scatter(x, y, predicted_y=None, predicted_x=None, line_of_slope_1=False
     x = merged_df[x.name]
     y = merged_df[y.name]
 
-    if predicted_y is not None:
+    if trendline_y is not None:
         legend = True
-        if predicted_x is None:
-            predicted_x = merged_df[x.name]
+        if trendline_x is None:
+            trendline_x = merged_df[x.name]
     else:
         legend = False
 
+    if line_of_slope_1 is True:
+        legend = True
+
     fig, axes = plt.subplots(figsize=(10, 10.2), **kwargs)
-    _scatter_subplot(x, y, predicted_y=predicted_y, predicted_x=predicted_x, line_of_slope_1=line_of_slope_1,
+    _scatter_subplot(x, y, trendline_y=trendline_y, trendline_x=trendline_x, line_of_slope_1=line_of_slope_1,
                      x_label=x_label, y_label=y_label, x_limits=x_limits, y_limits=y_limits,
-                     prediction_marker=prediction_marker, legend=legend, ax=axes)
+                     trendline_dots=trendline_dots, legend=legend, ax=axes)
 
     plt.close()
     return fig
 
 
-def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_title=None,
+def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_label=None, y_label=None,
                       x_limits=(0, 360), y_limits=(0, 360)):
     """
     Plots a scatter plot of two wind direction timeseries and adds a line from 0,0 to 360,360.
@@ -475,10 +482,10 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_ti
     :type x_wdir_series:             pd.Series
     :param y_wdir_series:            The y-axis values or target wind directions.
     :type y_wdir_series:             pd.Series
-    :param x_axis_title:             Title for the x-axis. If None, title will be taken from x_wdir_series name.
-    :type x_axis_title:              str, None
-    :param y_axis_title:             Title for the y-axis. If None, title will be taken from y_wdir_series name.
-    :type y_axis_title:              str, None
+    :param x_label:                  Title for the x-axis. If None, title will be taken from x_wdir_series name.
+    :type x_label:                   str, None
+    :param y_label:                  Title for the y-axis. If None, title will be taken from y_wdir_series name.
+    :type y_label:                   str, None
     :param x_limits:                 x-axis min and max limits.
     :type x_limits:                  tuple
     :param y_limits:                 y-axis min and max limits.
@@ -495,26 +502,26 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_axis_title=None, y_axis_ti
         bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS)
 
         #To overwrite the default axis titles.
-        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS, x_axis_title='Wind direction at 78m',
-                             y_axis_title='Wind direction at 58m')
+        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS, x_label='Wind direction at 78m',
+                             y_label='Wind direction at 58m')
 
         #To set the x and y axis limits by using a tuple.
-        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS, x_axis_title='Reference', y_axis_title='Target',
+        bw.plot_scatter_wdir(data.Dir78mS, data.Dir58mS, x_label='Reference', y_label='Target',
                              x_limits=(50,300), y_limits=(250,300))
 
     """
-    if x_axis_title is None:
-        x_axis_title = x_wdir_series.name + ' [°]'
-    if y_axis_title is None:
-        y_axis_title = y_wdir_series.name + ' [°]'
-    scat_plot = plot_scatter(x_wdir_series, y_wdir_series, x_label=x_axis_title, y_label=y_axis_title,
+    if x_label is None:
+        x_label = x_wdir_series.name + ' [°]'
+    if y_label is None:
+        y_label = y_wdir_series.name + ' [°]'
+    scat_plot = plot_scatter(x_wdir_series, y_wdir_series, x_label=x_label, y_label=y_label,
                              x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True)
 
     scat_plot.axes[0].legend(['Reference line', 'Data points'])
     return scat_plot
 
 
-def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_title=None,
+def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_label=None, y_label=None,
                       x_limits=(0, 30), y_limits=(0, 30)):
     """
     Plots a scatter plot of two wind speed timeseries and adds a reference line from 0,0 to 40,40. This should
@@ -525,10 +532,10 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
     :type x_wspd_series:  pd.Series
     :param y_wspd_series: The y-axis values or target wind speeds.
     :type y_wspd_series:  pd.Series
-    :param x_axis_title:  Title for the x-axis. If None, title will be taken from x_wspd_series name.
-    :type x_axis_title:   str, None
-    :param y_axis_title:  Title for the y-axis. If None, title will be taken from y_wspd_series name.
-    :type y_axis_title:   str, None
+    :param x_label:       Title for the x-axis. If None, title will be taken from x_wspd_series name.
+    :type x_label:        str, None
+    :param y_label:       Title for the y-axis. If None, title will be taken from y_wspd_series name.
+    :type y_label:        str, None
     :param x_limits:      x-axis min and max limits. Can be set to None to let the code derive the min and max from
                           the x_wspd_series.
     :type x_limits:       tuple, None
@@ -547,29 +554,29 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_axis_title=None, y_axis_ti
         bw.plot_scatter_wspd(data.Spd80mN, data.Spd80mS)
 
         # To overwrite the default axis titles.
-        bw.plot_scatter_wspd(data.Spd80mN, data.Spd80mS, x_axis_title='Speed at 80m North',
-                             y_axis_title='Speed at 80m South')
+        bw.plot_scatter_wspd(data.Spd80mN, data.Spd80mS, x_label='Speed at 80m North',
+                             y_label='Speed at 80m South')
 
         # To set the x and y axis limits by using a tuple.
-        bw.plot_scatter_wspd(data.Spd80mN, data.Spd80mS, x_axis_title='Speed at 80m North',
-                             y_axis_title='Speed at 80m South', x_limits=(0,25), y_limits=(0,25))
+        bw.plot_scatter_wspd(data.Spd80mN, data.Spd80mS, x_label='Speed at 80m North',
+                             y_label='Speed at 80m South', x_limits=(0,25), y_limits=(0,25))
 
     """
-    if x_axis_title is None:
+    if x_label is None:
         x_axis_title = x_wspd_series.name + ' [m/s]'
-    if y_axis_title is None:
+    if y_label is None:
         y_axis_title = y_wspd_series.name + ' [m/s]'
-    scat_plot = plot_scatter(x_wspd_series, y_wspd_series, x_label=x_axis_title, y_label=y_axis_title,
+    scat_plot = plot_scatter(x_wspd_series, y_wspd_series, x_label=x_label, y_label=y_label,
                              x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True)
 
     scat_plot.axes[0].legend(['Reference line', 'Data points'])
     return scat_plot
 
 
-def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, sectors=12,
+def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, sectors=12,
                            x_limits=None, y_limits=None, figure_size=(10, 10.2), **kwargs):
     """
-    Plot scatter subplots (with shared x and y axis) of x versus y for each directional sector. If the predicted
+    Plot scatter subplots (with shared x and y axis) of x versus y for each directional sector. If the trendline
     correlation timeseries is given as input then this is also plotted in the graph. The line with slope 1 and passing
     through the origin is shown if line_of_slope_1=True
 
@@ -579,8 +586,8 @@ def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, s
     :type y:                pd.Series
     :param wdir:            Timeseries of wind directions.
     :type wdir:             pd.Series
-    :param predicted_y:     Series of predicted y values after applying the correlation to the x series.
-    :type predicted_y:      pd.Series
+    :param trendline_y:     Series of trendline y values after applying the correlation to the x series.
+    :type trendline_y:      pd.Series
     :param line_of_slope_1: Boolean to choose to plot the line with slope one and passing through the origin.
     :type line_of_slope_1:  Bool
     :param sectors:         Number of directional sectors
@@ -601,15 +608,15 @@ def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, s
         import brightwind as bw
         data = bw.load_csv(bw.demo_datasets.demo_data)
 
-        # To plot scatter plots by 36 sectors, with the slope 1 line passing through the origin, without predicted line
+        # To plot scatter plots by 36 sectors, with the slope 1 line passing through the origin, without trendline
         # and with axis equal (square subplots)
-        bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, predicted_y=None,
+        bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, trendline_y=None,
                                   line_of_slope_1=True, sectors=36, subplot_kw={'aspect':'equal'})
 
-        # To plot scatter plots by 12 sectors, with the slope 1 line passing through the origin, with predicted data given
-        # as input as a pd.Series (predicted_y_series) with same index than x data. The input predicted series must
+        # To plot scatter plots by 12 sectors, with the slope 1 line passing through the origin, with trendline data
+        # given as input as a pd.Series (trendline_y) with same index than x data. The input trendline series must
         # be derived previously for the same sectors used in the plot_scatter_by_sector function
-        bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, predicted_y=predicted_y_series,
+        bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, trendline_y=trendline_y,
                                   line_of_slope_1=False, sectors=12)
 
         # To plot scatter plots by 12 sectors, and set the figure size.
@@ -637,15 +644,15 @@ def plot_scatter_by_sector(x, y, wdir, predicted_y=None, line_of_slope_1=True, s
         else:
             logic_sect = ((wdir >= ratio_min) & (wdir <= 360)) | ((wdir < ratio_max) & (wdir >= 0))
 
-        if predicted_y is not None:
-            predicted_y_input = predicted_y[logic_sect]
+        if trendline_y is not None:
+            trendline_y_input = trendline_y[logic_sect]
         else:
-            predicted_y_input = predicted_y
+            trendline_y_input = trendline_y
 
-        _scatter_subplot(x[logic_sect], y[logic_sect], predicted_y_input, predicted_x=None,
+        _scatter_subplot(x[logic_sect], y[logic_sect], trendline_y_input, trendline_x=None,
                          line_of_slope_1=line_of_slope_1, x_limits=x_limits, y_limits=y_limits,
                          x_label=None, y_label=None, legend=False,
-                         title_subplot=str(ratio_min) + '-' + str(ratio_max), ax=ax_subplot)
+                         subplot_title=str(round(ratio_min, 0)) + ' - ' + str(round(ratio_max, 0)), ax=ax_subplot)
 
     fig.text(0.5, 0.06, x.name, va='center', ha='center', fontsize=mpl.rcParams['axes.labelsize'])
     fig.text(0.06, 0.5, y.name, va='center', ha='center', rotation='vertical',
