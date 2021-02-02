@@ -85,25 +85,58 @@ class CorrelBase:
                             self._predict(self.data[self._ref_spd_col_name]),
                             x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name)
 
-    def synthesize(self, ext_input=None):
-        """
-        Apply the derived correlation model to the reference dataset used to create the model.
+    def _get_synth_start_dates(self):
+        none_even_freq = ['5H', '7H', '9H', '10H', '11H', '13H', '14H', '15H', '16H', '17H', '18H', '19H',
+                          '20H', '21H', '22H', '23H', 'D', 'W']
+        if any(freq in self.averaging_prd for freq in none_even_freq):
+            ref_time_array = pd.date_range(start=self.data.index[0], freq='-' + self.averaging_prd,
+                                           end=self.ref_spd.index[0])
+            ref_start_date = ref_time_array[-1]
+            tar_time_array = pd.date_range(start=self.data.index[0], freq='-' + self.averaging_prd,
+                                           end=self.target_spd.index[0])
+            tar_start_date = tar_time_array[-1]
+        else:
+            ref_start_date = self.ref_spd.index[0]
+            tar_start_date = self.target_spd.index[0]
+        return ref_start_date, tar_start_date
 
-        :param ext_input: Optional external dataset to apply the derived correlation model to instead of the original
-                          reference.
-        :type ext_input:  pd.Series or pd.DataFrame
-        :return:          The synthesized dataset.
-        :rtype:           pd.Series or pd.DataFrame
+    def synthesize(self, ext_input=None, ref_coverage_threshold=None, target_coverage_threshold=None):
         """
-        # This will give erroneous result when the averaging period is not a whole number such that ref and target does
-        # bot get aligned - Inder
+        Apply the derived correlation model to the reference dataset used to create the model. The resulting synthesized
+        dataset is spliced with the target dataset. That is, where a target value is available, it is used instead of
+        the synthesized value.
+
+        :param ext_input:                 Optional external dataset to apply the derived correlation model to instead
+                                          of the original reference. If this is used, the resulting synthesized
+                                          dataset is not spliced with the target dataset.
+        :type ext_input:                  pd.Series or pd.DataFrame
+        :param ref_coverage_threshold:    Minimum coverage required when aggregating the reference data to calculate
+                                          the synthesised data. If None, it uses the coverage_threshold supplied to the
+                                          correlation model.
+        :type ref_coverage_threshold:     float
+        :param target_coverage_threshold: Minimum coverage required when aggregating the target data to splice with
+                                          the calculated synthesised data. If None, it uses the coverage_threshold
+                                          supplied to the correlation model.
+        :type target_coverage_threshold:  float
+        :return:                          The synthesized dataset.
+        :rtype:                           pd.Series or pd.DataFrame
+        """
+        if ref_coverage_threshold is None:
+            ref_coverage_threshold = self.coverage_threshold
+        if target_coverage_threshold is None:
+            target_coverage_threshold = self.coverage_threshold
+
         if ext_input is None:
-            output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
-                                                             return_coverage=False))
-            output = tf.average_data_by_period(self.target_spd, self.averaging_prd,
-                                               return_coverage=False).combine_first(output)
+            ref_start_date, target_start_date = self._get_synth_start_dates()
+            synth_data = self._predict(tf.average_data_by_period(self.ref_spd[ref_start_date:], self.averaging_prd,
+                                                                 coverage_threshold=ref_coverage_threshold,
+                                                                 return_coverage=False))
+            output = tf.average_data_by_period(self.target_spd[target_start_date:], self.averaging_prd,
+                                               coverage_threshold=target_coverage_threshold,
+                                               return_coverage=False).combine_first(synth_data)
         else:
             output = self._predict(ext_input)
+
         if isinstance(output, pd.Series):
             return output.to_frame(name=self.target_spd.name + "_Synthesized")
         else:
