@@ -173,8 +173,8 @@ def test_orthogonal_least_squares():
     correl = bw.Correl.OrthogonalLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
                                               coverage_threshold=0)
     correl.run()
-    assert round(correl.params['slope'], 5) == correl_monthly_results['slope']
-    assert round(correl.params['offset'], 5) == correl_monthly_results['offset']
+    assert round(correl.params['slope'], 3) == round(correl_monthly_results['slope'], 3)
+    assert round(correl.params['offset'], 3) == round(correl_monthly_results['offset'], 3)
     assert round(correl.params['r2'], 4) == correl_monthly_results['r2']
     assert round(correl.params['num_data_points'], 5) == correl_monthly_results['num_data_points']
 
