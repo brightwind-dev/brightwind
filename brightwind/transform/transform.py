@@ -240,10 +240,10 @@ def _get_overlapping_data(df1, df2, averaging_prd=None):
         start = _get_min_overlap_timestamp(df1.index, df2.index)
     # If the start timestamp just happens to be missing from the data, add in a NaN so the
     # averaging will start from this timestamp.
-    if df2[start].empty:
+    if not (df2.index == start).any():
         df2.loc[pd.to_datetime(start)] = np.NaN
         df2.sort_index(inplace=True)
-    if df1[start].empty:
+    if not (df1.index == start).any():
         df1.loc[pd.to_datetime(start)] = np.NaN
         df1.sort_index(inplace=True)
 
