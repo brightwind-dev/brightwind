@@ -226,7 +226,7 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
     :type x:                    pd.Series
     :param y:                   Series to plot on y axis
     :type y:                    pd.Series
-    :param trendline_y:         Series or list of trendline y values after applying the correlation to the x series.
+    :param trendline_y:         Series or list of trendline_y values after applying the correlation to the x series.
     :type trendline_y:          pd.Series or list or None
     :param trendline_x:         X values to plot with trendline_y. If None then the x variable is used.
     :type trendline_x:          pd.Series or list or None
@@ -314,7 +314,7 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
         trendline_name = 'Regression line'
 
     if trendline_dots is True:
-        trendline_marker = '.-'
+        trendline_marker = 'o-'
     else:
         trendline_marker = '-'
 
@@ -435,9 +435,12 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
     """
     if type(x) is pd.DataFrame:
         x = _convert_df_to_series(x)
-        y = _convert_df_to_series(y)
     elif type(x) is np.ndarray or type(x) is list:
         x = pd.Series(x).rename('x')
+
+    if type(y) is pd.DataFrame:
+        y = _convert_df_to_series(y)
+    elif type(y) is np.ndarray or type(y) is list:
         y = pd.Series(y).rename('y')
 
     if x_label is None:
@@ -563,9 +566,9 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_label=None, y_label=None,
 
     """
     if x_label is None:
-        x_axis_title = x_wspd_series.name + ' [m/s]'
+        x_label = x_wspd_series.name + ' [m/s]'
     if y_label is None:
-        y_axis_title = y_wspd_series.name + ' [m/s]'
+        y_label = y_wspd_series.name + ' [m/s]'
     scat_plot = plot_scatter(x_wspd_series, y_wspd_series, x_label=x_label, y_label=y_label,
                              x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True)
 
@@ -652,7 +655,7 @@ def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, s
         _scatter_subplot(x[logic_sect], y[logic_sect], trendline_y_input, trendline_x=None,
                          line_of_slope_1=line_of_slope_1, x_limits=x_limits, y_limits=y_limits,
                          x_label=None, y_label=None, legend=False,
-                         subplot_title=str(round(ratio_min, 0)) + ' - ' + str(round(ratio_max, 0)), ax=ax_subplot)
+                         subplot_title=str(round(ratio_min)) + ' - ' + str(round(ratio_max)), ax=ax_subplot)
 
     fig.text(0.5, 0.06, x.name, va='center', ha='center', fontsize=mpl.rcParams['axes.labelsize'])
     fig.text(0.06, 0.5, y.name, va='center', ha='center', rotation='vertical',
