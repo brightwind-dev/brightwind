@@ -860,7 +860,7 @@ class SpeedSort(CorrelBase):
                                               (self.data[self._tar_spd_col_name] > self.cutoff)],
             self.data[self._tar_dir_col_name][(self.data[self._ref_spd_col_name] > self.cutoff) &
                                               (self.data[self._tar_spd_col_name] > self.cutoff)],
-            x_axis_title=self._ref_dir_col_name, y_axis_title=self._tar_dir_col_name)
+            x_label=self._ref_dir_col_name, y_label=self._tar_dir_col_name)
 
 
 class SVR:
@@ -910,5 +910,5 @@ class SVR:
     #     """For plotting"""
     #     plot_scatter(self.data[self._ref_spd_col_name],
     #                  self.data[self._tar_spd_col_name],
-    #                  self._predict(self.data[self._ref_spd_col_name]), prediction_marker='.',
+    #                  self._predict(self.data[self._ref_spd_col_name]), trendline_dots=True,
     #                  x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name)
