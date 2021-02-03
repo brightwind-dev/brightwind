@@ -213,8 +213,14 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
     return figure
 
 
+def _derive_axes_limits_for_scatter_plot(x, y):
+    x_min, x_max = (round(x.min() - 0.5), -(-x.max() // 1))
+    y_min, y_max = (round(y.min() - 0.5), -(-y.max() // 1))
+    return x_min, x_max, y_min, y_max
+
+
 def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False,
-                     x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=False, subplot_title=None,
+                     x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=True, subplot_title=None,
                      trendline_dots=False, scatter_color=COLOR_PALETTE.primary,
                      trendline_color=COLOR_PALETTE.secondary, legend=True, scatter_name=None,
                      trendline_name=None, ax=None):
@@ -240,7 +246,8 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
     :type x_limits:             tuple, None
     :param y_limits:            y-axis min and max limits.
     :type y_limits:             tuple, None
-    :param axes_equal:          Boolean to set the subplot axes to be equal
+    :param axes_equal:          Boolean to set the units for the x and y axes to be equal. If x_limits and y_limits are
+                                both None then the two axes limits are set to be the same.
     :type axes_equal:           Bool
     :param subplot_title:       Title show on top of the subplot
     :type subplot_title:        str or None
@@ -268,9 +275,9 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
         import brightwind as bw
         data = bw.load_csv(bw.demo_datasets.demo_data)
 
-        # To plot only one subplot in a figure with axis equal
+        # To plot only one subplot in a figure without axis equal
         fig, axes = plt.subplots(1, 1)
-        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, axes_equal=True, ax=axes)
+        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, axes_equal=False, ax=axes)
 
         # To plot multiple subplots in a figure without legend and with x and y labels
         fig, axes = plt.subplots(1, 2)
@@ -320,10 +327,23 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
     else:
         trendline_marker = '-'
 
-    if x_limits is not None:
-        ax.set_xlim(x_limits[0], x_limits[1])
-    if y_limits is not None:
-        ax.set_ylim(y_limits[0], y_limits[1])
+    x_min, x_max, y_min, y_max = _derive_axes_limits_for_scatter_plot(x, y)
+
+    if axes_equal:
+        ax.set_aspect('equal')
+        if x_limits is None and y_limits is None:
+            axes_min = min(x_min, y_min)
+            axes_max = max(x_max, y_max)
+            x_limits = (axes_min, axes_max)
+            y_limits = (axes_min, axes_max)
+
+    if x_limits is None:
+        x_limits = (x_min, x_max)
+    if y_limits is None:
+        y_limits = (y_min, y_max)
+
+    ax.set_xlim(x_limits[0], x_limits[1])
+    ax.set_ylim(y_limits[0], y_limits[1])
 
     no_dots = len(x)
 
@@ -362,9 +382,6 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
     if subplot_title is not None:
         ax.set_title(subplot_title, fontsize=mpl.rcParams['ytick.labelsize'])
 
-    if axes_equal:
-        ax.set_aspect('equal')
-
     return ax
 
 
@@ -388,7 +405,7 @@ def _get_best_row_col_number_for_subplot(number_subplots):
 
 
 def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False,
-                 x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=False,
+                 x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=True,
                  trendline_dots=False, **kwargs):
     """
     Plots a scatter plot of x and y data. The trendline_y data is also shown if provided as input of the function.
@@ -411,7 +428,8 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
     :type x_limits:             tuple, None
     :param y_limits:            y-axis min and max limits.
     :type y_limits:             tuple, None
-    :param axes_equal:          Boolean to set the axes of the plot to be equal
+    :param axes_equal:          Boolean to set the units for the x and y axes to be equal. If x_limits and y_limits are
+                                both None then the two axes limits are set to be the same.
     :type axes_equal:           Bool
     :param trendline_dots:      Boolean to chose if marker to use for the trendline is dot-line or a line
     :type trendline_dots:       Bool
@@ -441,8 +459,8 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
         # To show a line with slope 1 and passing through the origin.
         bw.plot_scatter(data.Spd80mN, data.Spd80mS, line_of_slope_1=True)
 
-         # To set the plot axes as equal.
-         bw.plot_scatter(data.Spd80mN, data.Spd80mS, axes_equal=True)
+         # To set the plot axes as not equal.
+         bw.plot_scatter(data.Spd80mN, data.Spd80mS, axes_equal=False)
     """
     if type(x) is pd.DataFrame:
         x = _convert_df_to_series(x)
@@ -458,11 +476,6 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
         x_label = x.name
     if y_label is None:
         y_label = y.name
-
-    if x_limits is None:
-        x_limits = (round(x.min() - 0.5), -(-x.max() // 1))
-    if y_limits is None:
-        y_limits = (round(y.min() - 0.5), -(-y.max() // 1))
 
     merged_df = pd.concat([x, y], join='inner', axis=1)
     x = merged_df[x.name]
@@ -612,7 +625,8 @@ def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, s
     :param y_limits:        y-axis min and max limits. Can be set to None to let the code derive the min and max from
                             the y_wspd_series.
     :type y_limits:         tuple, None
-    :param axes_equal:      Boolean to set the axes of all subplots to be equal
+    :param axes_equal:      Boolean to set the units for the x and y axes to be equal. If x_limits and y_limits are
+                            both None then the two axes limits are set to be the same.
     :type axes_equal:       Bool
     :param figure_size:     Figure size in tuple format (width, height)
     :type figure_size:      tuple
@@ -625,9 +639,9 @@ def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, s
         data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # To plot scatter plots by 36 sectors, with the slope 1 line passing through the origin, without trendline
-        # and with axes equal (square subplots)
+        # and with axes not equal
         bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, trendline_y=None,
-                                  line_of_slope_1=True, sectors=36, axes_equal=True)
+                                  line_of_slope_1=True, sectors=36, axes_equal=False)
 
         # To plot scatter plots by 12 sectors, with the slope 1 line passing through the origin, with trendline data
         # given as input as a pd.Series (trendline_y) with same index than x data. The input trendline series must
@@ -640,15 +654,33 @@ def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, s
         bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, sectors=12, figure_size=(15, 10.2))
 
     """
+    if type(x) is pd.DataFrame:
+        x = _convert_df_to_series(x)
+    elif type(x) is np.ndarray or type(x) is list:
+        x = pd.Series(x).rename('x')
+
+    if type(y) is pd.DataFrame:
+        y = _convert_df_to_series(y)
+    elif type(y) is np.ndarray or type(y) is list:
+        y = pd.Series(y).rename('y')
 
     sector = 360 / sectors
 
     rows, cols = _get_best_row_col_number_for_subplot(sectors)
 
+    x_min, x_max, y_min, y_max = _derive_axes_limits_for_scatter_plot(x, y)
+
+    if axes_equal:
+        if x_limits is None and y_limits is None:
+            axes_min = min(x_min, y_min)
+            axes_max = max(x_max, y_max)
+            x_limits = (axes_min, axes_max)
+            y_limits = (axes_min, axes_max)
+
     if x_limits is None:
-        x_limits = (round(x.min() - 0.5), -(-x.max() // 1))
+        x_limits = (x_min, x_max)
     if y_limits is None:
-        y_limits = (round(y.min() - 0.5), -(-y.max() // 1))
+        y_limits = (y_min, y_max)
 
     fig, axes = plt.subplots(rows, cols, squeeze=False, sharex=True, sharey=True, figsize=figure_size, **kwargs)
 

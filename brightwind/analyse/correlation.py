@@ -83,7 +83,7 @@ class CorrelBase:
         return plot_scatter(self.data[self._ref_spd_col_name],
                             self.data[self._tar_spd_col_name],
                             self._predict(self.data[self._ref_spd_col_name]),
-                            x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name)
+                            x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name, line_of_slope_1=True)
 
     def _get_synth_start_dates(self):
         none_even_freq = ['5H', '7H', '9H', '10H', '11H', '13H', '14H', '15H', '16H', '17H', '18H', '19H',
