@@ -163,8 +163,8 @@ class CorrelBase:
                 for params_dict in self.params:
                     if params_dict['num_data_points'] > 1:
                         logic_sect = self._get_logic_dir_sector(ref_dir=ref_averaged[self._ref_dir_col_name],
-                                                                sector_min=params_dict['sector_max'],
-                                                                sector_max=params_dict['sector_min'])
+                                                                sector_min=params_dict['sector_min'],
+                                                                sector_max=params_dict['sector_max'])
 
                         synth_data[logic_sect] = self._predict(ref_spd=ref_averaged[self._ref_spd_col_name][logic_sect],
                                                                slope=params_dict['slope'], offset=params_dict['offset'])
