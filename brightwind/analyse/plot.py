@@ -214,7 +214,7 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
 
 
 def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False,
-                     x_label=None, y_label=None, x_limits=None, y_limits=None, subplot_title=None,
+                     x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=False, subplot_title=None,
                      trendline_dots=False, scatter_color=COLOR_PALETTE.primary,
                      trendline_color=COLOR_PALETTE.secondary, legend=True, scatter_name=None,
                      trendline_name=None, ax=None):
@@ -240,6 +240,8 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
     :type x_limits:             tuple, None
     :param y_limits:            y-axis min and max limits.
     :type y_limits:             tuple, None
+    :param axes_equal:          Boolean to set the subplot axes to be equal
+    :type axes_equal:           Bool
     :param subplot_title:       Title show on top of the subplot
     :type subplot_title:        str or None
     :param trendline_dots:      Boolean to chose if marker to use for the trendline is dot-line or a line
@@ -267,8 +269,8 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
         data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # To plot only one subplot in a figure with axis equal
-        fig, axes = plt.subplots(1, 1, subplot_kw={'aspect':'equal'})
-        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, ax=axes)
+        fig, axes = plt.subplots(1, 1)
+        bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, axes_equal=True, ax=axes)
 
         # To plot multiple subplots in a figure without legend and with x and y labels
         fig, axes = plt.subplots(1, 2)
@@ -360,6 +362,9 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
     if subplot_title is not None:
         ax.set_title(subplot_title, fontsize=mpl.rcParams['ytick.labelsize'])
 
+    if axes_equal:
+        ax.set_aspect('equal')
+
     return ax
 
 
@@ -383,7 +388,8 @@ def _get_best_row_col_number_for_subplot(number_subplots):
 
 
 def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False,
-                 x_label=None, y_label=None, x_limits=None, y_limits=None, trendline_dots=False, **kwargs):
+                 x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=False,
+                 trendline_dots=False, **kwargs):
     """
     Plots a scatter plot of x and y data. The trendline_y data is also shown if provided as input of the function.
 
@@ -405,6 +411,8 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
     :type x_limits:             tuple, None
     :param y_limits:            y-axis min and max limits.
     :type y_limits:             tuple, None
+    :param axes_equal:          Boolean to set the axes of the plot to be equal
+    :type axes_equal:           Bool
     :param trendline_dots:      Boolean to chose if marker to use for the trendline is dot-line or a line
     :type trendline_dots:       Bool
     :param kwargs:              Additional keyword arguments for matplotlib.pyplot.subplot
@@ -432,6 +440,9 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
 
         # To show a line with slope 1 and passing through the origin.
         bw.plot_scatter(data.Spd80mN, data.Spd80mS, line_of_slope_1=True)
+
+         # To set the plot axes as equal.
+         bw.plot_scatter(data.Spd80mN, data.Spd80mS, axes_equal=True)
     """
     if type(x) is pd.DataFrame:
         x = _convert_df_to_series(x)
@@ -469,7 +480,7 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
 
     fig, axes = plt.subplots(figsize=(10, 10.2), **kwargs)
     _scatter_subplot(x, y, trendline_y=trendline_y, trendline_x=trendline_x, line_of_slope_1=line_of_slope_1,
-                     x_label=x_label, y_label=y_label, x_limits=x_limits, y_limits=y_limits,
+                     x_label=x_label, y_label=y_label, x_limits=x_limits, y_limits=y_limits, axes_equal=axes_equal,
                      trendline_dots=trendline_dots, legend=legend, ax=axes)
 
     plt.close()
@@ -577,7 +588,7 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_label=None, y_label=None,
 
 
 def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, sectors=12,
-                           x_limits=None, y_limits=None, figure_size=(10, 10.2), **kwargs):
+                           x_limits=None, y_limits=None, axes_equal=True, figure_size=(10, 10.2), **kwargs):
     """
     Plot scatter subplots (with shared x and y axis) of x versus y for each directional sector. If a trendline
     timeseries is given as input then this is also plotted in the graph. The line with slope 1 and passing
@@ -601,7 +612,9 @@ def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, s
     :param y_limits:        y-axis min and max limits. Can be set to None to let the code derive the min and max from
                             the y_wspd_series.
     :type y_limits:         tuple, None
-    :type figure_size:      Figure size in tuple format (width, height)
+    :param axes_equal:      Boolean to set the axes of all subplots to be equal
+    :type axes_equal:       Bool
+    :param figure_size:     Figure size in tuple format (width, height)
     :type figure_size:      tuple
     :param kwargs:          Additional keyword arguments for matplotlib.pyplot.subplot
     :returns:               matplotlib.figure.Figure
@@ -614,7 +627,7 @@ def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, s
         # To plot scatter plots by 36 sectors, with the slope 1 line passing through the origin, without trendline
         # and with axes equal (square subplots)
         bw.plot_scatter_by_sector(data.Spd80mN, data.Spd80mS, data.Dir78mS, trendline_y=None,
-                                  line_of_slope_1=True, sectors=36, subplot_kw={'aspect':'equal'})
+                                  line_of_slope_1=True, sectors=36, axes_equal=True)
 
         # To plot scatter plots by 12 sectors, with the slope 1 line passing through the origin, with trendline data
         # given as input as a pd.Series (trendline_y) with same index than x data. The input trendline series must
@@ -654,9 +667,10 @@ def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, s
             trendline_y_input = trendline_y
 
         _scatter_subplot(x[logic_sect], y[logic_sect], trendline_y_input, trendline_x=None,
-                         line_of_slope_1=line_of_slope_1, x_limits=x_limits, y_limits=y_limits,
-                         x_label=None, y_label=None, legend=False,
-                         subplot_title=str(round(ratio_min)) + '-' + str(round(ratio_max)), ax=ax_subplot)
+                         line_of_slope_1=line_of_slope_1, x_label=None, y_label=None,
+                         x_limits=x_limits, y_limits=y_limits, axes_equal=axes_equal,
+                         subplot_title=str(round(ratio_min)) + '-' + str(round(ratio_max)),
+                         legend=False, ax=ax_subplot)
 
     fig.text(0.5, 0.06, x.name, va='center', ha='center', fontsize=mpl.rcParams['axes.labelsize'])
     fig.text(0.06, 0.5, y.name, va='center', ha='center', rotation='vertical',
