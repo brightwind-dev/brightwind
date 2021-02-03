@@ -18,7 +18,8 @@ import numpy as np
 import pandas as pd
 from typing import List
 from brightwind.transform import transform as tf
-from brightwind.analyse.plot import _scatter_plot  # WHY NOT HAVE THIS AS A PUBLIC FUNCTION?
+from brightwind.analyse.plot import plot_scatter
+from brightwind.analyse.plot import plot_scatter_wdir
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from brightwind.analyse.analyse import momm, _binned_direction_series
@@ -79,10 +80,10 @@ class CorrelBase:
 
     def plot(self, title=""):
         """For plotting"""
-        return _scatter_plot(self.data[self._ref_spd_col_name].values.flatten(),
-                             self.data[self._tar_spd_col_name].values.flatten(),
-                             self._predict(self.data[self._ref_spd_col_name]).values.flatten(),
-                             x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name)
+        return plot_scatter(self.data[self._ref_spd_col_name],
+                            self.data[self._tar_spd_col_name],
+                            self._predict(self.data[self._ref_spd_col_name]),
+                            x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name, line_of_slope_1=True)
 
     def _get_synth_start_dates(self):
         none_even_freq = ['5H', '7H', '9H', '10H', '11H', '13H', '14H', '15H', '16H', '17H', '18H', '19H',
@@ -630,9 +631,10 @@ class SpeedSort(CorrelBase):
             return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
 
         def plot_model(self, title=None):
-            return _scatter_plot(sorted(self.sector_ref.values.flatten()),
-                                 sorted(self.sector_target.values.flatten()),
-                                 sorted(self.sector_predict(self.sector_ref).values.flatten()))
+            return plot_scatter(self.sector_ref,
+                                self.sector_target,
+                                self.sector_predict(self.sector_ref),
+                                x_label=self.sector_ref.name, y_label=self.sector_target.name)
 
     def __init__(self, ref_spd, ref_dir, target_spd, target_dir, averaging_prd, coverage_threshold=0.9, sectors=12,
                  direction_bin_array=None, lt_ref_speed=None):
@@ -860,7 +862,7 @@ class SpeedSort(CorrelBase):
         """
         Plots reference and target directions in a scatter plot
         """
-        return _scatter_plot(
+        return plot_scatter_wdir(
             self.data[self._ref_dir_col_name][(self.data[self._ref_spd_col_name] > self.cutoff) &
                                               (self.data[self._tar_spd_col_name] > self.cutoff)],
             self.data[self._tar_dir_col_name][(self.data[self._ref_spd_col_name] > self.cutoff) &
@@ -913,7 +915,7 @@ class SVR:
     #
     # def plot(self, title=""):
     #     """For plotting"""
-    #     _scatter_plot(self.data[self._ref_spd_col_name].values.flatten(),
-    #                   self.data[self._tar_spd_col_name].values.flatten(),
-    #                   self._predict(self.data[self._ref_spd_col_name]).values.flatten(), prediction_marker='.',
-    #                   x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name)
+    #     plot_scatter(self.data[self._ref_spd_col_name],
+    #                  self.data[self._tar_spd_col_name],
+    #                  self._predict(self.data[self._ref_spd_col_name]), trendline_dots=True,
+    #                  x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name)
