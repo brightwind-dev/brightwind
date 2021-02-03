@@ -91,10 +91,17 @@ class CorrelBase:
         if any(freq in self.averaging_prd for freq in none_even_freq):
             ref_time_array = pd.date_range(start=self.data.index[0], freq='-' + self.averaging_prd,
                                            end=self.ref_spd.index[0])
-            ref_start_date = ref_time_array[-1]
+            if ref_time_array.empty:
+                ref_start_date = self.data.index[0]
+            else:
+                ref_start_date = ref_time_array[-1]
+
             tar_time_array = pd.date_range(start=self.data.index[0], freq='-' + self.averaging_prd,
                                            end=self.target_spd.index[0])
-            tar_start_date = tar_time_array[-1]
+            if tar_time_array.empty:
+                tar_start_date = self.data.index[0]
+            else:
+                tar_start_date = tar_time_array[-1]
         else:
             ref_start_date = self.ref_spd.index[0]
             tar_start_date = self.target_spd.index[0]
