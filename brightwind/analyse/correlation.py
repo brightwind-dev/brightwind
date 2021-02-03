@@ -22,6 +22,7 @@ from brightwind.analyse.plot import _scatter_plot  # WHY NOT HAVE THIS AS A PUBL
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from brightwind.analyse.analyse import momm, _binned_direction_series
+from brightwind.transform.transform import offset_wind_direction
 # from sklearn.svm import SVR as sklearn_SVR
 # from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 from brightwind.utils import utils
@@ -247,13 +248,31 @@ class OrdinaryLeastSquares(CorrelBase):
 
         if ref_dir is not None:
             self.sectors = sectors
-            self.direction_bin_array = direction_bin_array
-            if direction_bin_array is not None:
+            if direction_bin_array is None:
+                direction_bin_array = utils.get_direction_bin_array(sectors)
+                step = np.median(np.diff(direction_bin_array))
+                dir_sector_max = [angle for i, angle in enumerate(direction_bin_array)
+                                  if offset_wind_direction(float(angle), step/2) > direction_bin_array[i-1]]
+                dir_sector_min = dir_sector_max.copy()
+                dir_sector_min.insert(0, dir_sector_min.pop())
+
+            else:
                 self.sectors = len(direction_bin_array) - 1
+                dir_sector_max = direction_bin_array[1:]
+                dir_sector_min = direction_bin_array[:-1]
+
+            self.direction_bin_array = direction_bin_array
+
             self.ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
                                                          direction_bin_array=self.direction_bin_array
                                                          ).rename('ref_dir_bin')
+
+            self.dir_sector_max = [dir_sector_max[sector_num-1] for sector_num in self.ref_dir_bins.values.flatten()]
+            self.dir_sector_min = [dir_sector_min[sector_num-1] for sector_num in self.ref_dir_bins.values.flatten()]
+
             self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
+            self.data['dir_sector_min'] = self.dir_sector_min
+            self.data['dir_sector_max'] = self.dir_sector_max
             self.data = self.data.dropna()
 
     def __repr__(self):
@@ -274,17 +293,27 @@ class OrdinaryLeastSquares(CorrelBase):
             self.params['num_data_points'] = self.num_data_pts
 
         elif type(self.ref_dir) is pd.Series:
-            self.params = dict()
+            self.params = []
             for sector, group in self.data.groupby(['ref_dir_bin']):
                 # print('Processing sector:', sector)
-                slope, offset = self._leastsquare(ref_spd=group[self._ref_spd_col_name],
-                                                  target_spd=group[self._tar_spd_col_name])
-                self.params[sector] = {'slope': slope,
-                                       'offset': offset,
-                                       'r2': self.get_r2(target_spd=group[self._tar_spd_col_name],
-                                                         predict_spd=self._predict(ref_spd=group[self._ref_spd_col_name],
-                                                                                   slope=slope, offset=offset)),
-                                       'num_data_points': self.num_data_pts}
+                if len(group) > 1:
+                    slope, offset = self._leastsquare(ref_spd=group[self._ref_spd_col_name],
+                                                      target_spd=group[self._tar_spd_col_name])
+                    r2 = self.get_r2(target_spd=group[self._tar_spd_col_name],
+                                     predict_spd=self._predict(ref_spd=group[self._ref_spd_col_name],
+                                     slope=slope, offset=offset))
+                else:
+                    slope = np.nan
+                    offset = np.nan
+                    r2 = np.nan
+
+                self.params.append({'slope': slope,
+                                    'offset': offset,
+                                    'r2': r2,
+                                    'num_data_points': len(group[self._tar_spd_col_name]),
+                                    'sector_min': group['dir_sector_min'].unique()[0],
+                                    'sector_max': group['dir_sector_max'].unique()[0],
+                                    'sector_number': sector})
 
         if show_params:
             self.show_params()
