@@ -269,7 +269,8 @@ class OrdinaryLeastSquares(CorrelBase):
             slope, offset = self._leastsquare(ref_spd=self.data[self._ref_spd_col_name],
                                               target_spd=self.data[self._tar_spd_col_name])
             self.params = dict([('slope', slope), ('offset', offset)])
-            self.params['r2'] = self.get_r2()
+            self.params['r2'] = self.get_r2(target_spd=self.data[self._tar_spd_col_name],
+                                            predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]))
             self.params['num_data_points'] = self.num_data_pts
 
         elif type(self.ref_dir) is pd.Series:
@@ -280,19 +281,25 @@ class OrdinaryLeastSquares(CorrelBase):
                                                   target_spd=group[self._tar_spd_col_name])
                 self.params[sector] = {'slope': slope,
                                        'offset': offset,
-                                       'r2': self.get_r2(),
+                                       'r2': self.get_r2(target_spd=group[self._tar_spd_col_name],
+                                                         predict_spd=self._predict(ref_spd=group[self._ref_spd_col_name],
+                                                                                   slope=slope, offset=offset)),
                                        'num_data_points': self.num_data_pts}
 
         if show_params:
             self.show_params()
 
-    def _predict(self, ref_spd):
-        return (ref_spd * self.params['slope']) + self.params['offset']
+    def _predict(self, ref_spd, slope=None, offset=None):
+        if slope is None:
+            slope = self.params['slope']
+        if offset is None:
+            offset = self.params['offset']
+        return ref_spd * slope + offset
 
-    def get_r2(self):
+    def get_r2(self, target_spd, predict_spd):
         """Returns the r2 score of the model"""
-        return 1.0 - (sum((self.data[self._tar_spd_col_name] - self._predict(self.data[self._ref_spd_col_name])) ** 2) /
-                      (sum((self.data[self._tar_spd_col_name] - self.data[self._tar_spd_col_name].mean()) ** 2)))
+        return 1.0 - (sum((target_spd - predict_spd) ** 2) /
+                      (sum((target_spd - target_spd.mean()) ** 2)))
 
 
 class OrthogonalLeastSquares(CorrelBase):

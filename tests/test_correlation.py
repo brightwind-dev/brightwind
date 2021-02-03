@@ -259,7 +259,7 @@ def test_simple_speed_ratio():
         assert round(ssr.params['ref_long_term_momm'], 5) == result['ref_long_term_momm']
         assert round(ssr.params['target_long_term'], 5) == result['target_long_term']
         assert round(ssr.params['target_overlap_coverage'], 5) == result['target_overlap_coverage']
-        assert len(w) == 1
+        assert UserWarning in [warning.category for warning in w ]
 
 
 def test_speed_sort():
