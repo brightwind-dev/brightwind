@@ -108,6 +108,15 @@ class CorrelBase:
             tar_start_date = self.target_spd.index[0]
         return ref_start_date, tar_start_date
 
+    def _get_logic_dir_sector(self, ref_dir, sector_min, sector_max):
+
+        if sector_max > sector_min:
+            logic_sector = ((ref_dir >= sector_min) & (ref_dir < sector_max))
+        else:
+            logic_sector = ((ref_dir >= sector_min) & (ref_dir <= 360)) | \
+                           ((ref_dir < sector_max) & (ref_dir >= 0))
+        return logic_sector
+
     def synthesize(self, ext_input=None, ref_coverage_threshold=None, target_coverage_threshold=None):
         """
         Apply the derived correlation model to the reference dataset used to create the model. The resulting synthesized
@@ -136,14 +145,36 @@ class CorrelBase:
 
         if ext_input is None:
             ref_start_date, target_start_date = self._get_synth_start_dates()
-            synth_data = self._predict(tf.average_data_by_period(self.ref_spd[ref_start_date:], self.averaging_prd,
-                                                                 coverage_threshold=ref_coverage_threshold,
-                                                                 return_coverage=False))
-            output = tf.average_data_by_period(self.target_spd[target_start_date:], self.averaging_prd,
-                                               coverage_threshold=target_coverage_threshold,
-                                               return_coverage=False).combine_first(synth_data)
+
+            target_spd_averaged = tf.average_data_by_period(self.target_spd[target_start_date:], self.averaging_prd,
+                                                            coverage_threshold=target_coverage_threshold,
+                                                            return_coverage=False)
+            if self.ref_dir is None:
+                ref_spd_averaged = tf.average_data_by_period(self.ref_spd[ref_start_date:], self.averaging_prd,
+                                                             coverage_threshold=ref_coverage_threshold,
+                                                             return_coverage=False)
+                synth_data = self._predict(ref_spd_averaged)
+            else:
+                ref_df = pd.concat([self.ref_spd, self.ref_dir], axis=1, join='inner')
+                ref_averaged = tf.average_data_by_period(ref_df[ref_start_date:], self.averaging_prd,
+                                                         coverage_threshold=ref_coverage_threshold,
+                                                         return_coverage=False)
+                synth_data = ref_averaged[self._ref_spd_col_name].copy() * np.nan
+                for params_dict in self.params:
+                    if params_dict['num_data_points'] > 1:
+                        logic_sect = self._get_logic_dir_sector(ref_dir=ref_averaged[self._ref_dir_col_name],
+                                                                sector_min=params_dict['sector_max'],
+                                                                sector_max=params_dict['sector_min'])
+
+                        synth_data[logic_sect] = self._predict(ref_spd=ref_averaged[self._ref_spd_col_name][logic_sect],
+                                                               slope=params_dict['slope'], offset=params_dict['offset'])
+            output = target_spd_averaged.combine_first(synth_data)
+
         else:
-            output = self._predict(ext_input)
+            if self.ref_dir is None:
+                output = self._predict(ext_input)
+            else:
+                raise NotImplementedError
 
         if isinstance(output, pd.Series):
             return output.to_frame(name=self.target_spd.name + "_Synthesized")
@@ -177,6 +208,8 @@ class OrdinaryLeastSquares(CorrelBase):
     :type averaging_prd:              str
     :param coverage_threshold:        Minimum coverage required when aggregating the data to the averaging_prd.
     :type coverage_threshold:         float
+    :param ref_dir:                   Series containing reference wind direction as a column, timestamp as the index.
+    :type ref_dir:                    pd.Series
     :param ref_aggregation_method:    Default `mean`, returns the mean of the data for the specified period. Can also
                                       use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for
                                       median, product, summation, standard deviation, variance, maximum and minimum
