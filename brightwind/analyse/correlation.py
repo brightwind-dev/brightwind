@@ -163,6 +163,7 @@ class CorrelBase:
             else:
                 ref_df = pd.concat([self.ref_spd, self.ref_dir], axis=1, join='inner')
                 ref_averaged = tf.average_data_by_period(ref_df[ref_start_date:], self.averaging_prd,
+                                                         wdir_column_names=self._ref_dir_col_name,
                                                          coverage_threshold=ref_coverage_threshold,
                                                          return_coverage=False)
                 synth_data = ref_averaged[self._ref_spd_col_name].copy() * np.nan
