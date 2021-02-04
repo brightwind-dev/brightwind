@@ -840,15 +840,17 @@ class SpeedSort(CorrelBase):
 
     def synthesize(self, input_spd=None, input_dir=None):
         # This will give erroneous result when the averaging period is not a whole number such that ref and target does
-        # bot get aligned -Inder
+        # both get aligned -Inder
         if input_spd is None and input_dir is None:
             output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
                                                              return_coverage=False),
                                    tf.average_data_by_period(self.ref_dir, self.averaging_prd,
+                                                             wdir_column_names=self._ref_dir_col_name,
                                                              return_coverage=False))
             output = tf.average_data_by_period(self.target_spd, self.averaging_prd,
                                                return_coverage=False).combine_first(output)
             dir_output = self._predict_dir(tf.average_data_by_period(self.ref_dir, self.averaging_prd,
+                                                                     wdir_column_names=self._ref_dir_col_name,
                                                                      return_coverage=False))
 
         else:
