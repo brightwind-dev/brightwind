@@ -37,8 +37,7 @@ __all__ = ['load_csv',
            'LoadBrightdata',
            'load_cleaning_file',
            'apply_cleaning',
-           'apply_cleaning_windographer',
-           'load_wra_data_model']
+           'apply_cleaning_windographer']
 
 
 def _list_files(folder_path, file_type):
@@ -1498,27 +1497,3 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
         pd.options.mode.chained_assignment = 'warn'
 
     return data
-
-
-def load_wra_data_model(wra_data_model):
-    """
-    Load a IEA Wind Resource Assessment Data Model.
-
-    The IEA Wind: Task 43 Work Package 4 WRA Data Model was first released in January 2021. Versions of the Data Model
-    Schema can be found at https://github.com/IEA-Task-43/digital_wra_data_standard
-
-    *** SHOULD INCLUDE CHECKING AGAINST THE JSON SCHEMA (WHICH WOULD MEAN GETTING THE CORRECT VERSION FROM GITHUB)
-        AND MAKE SURE PROPER JSON
-    :param wra_data_model: The filepath to an implementation of the WRA Data Model as a .json file or a json string.
-    :type wra_data_model:  str
-    :return:               Python Dict
-    :rtype:                Dict
-    """
-    # Assess whether filepath or json str sent.
-    if '.json' == wra_data_model[-5:]:
-        if _is_file(wra_data_model):
-            with open(wra_data_model) as json_file:
-                dm = json.load(json_file)
-    else:
-        dm = json.loads(wra_data_model)
-    return dm

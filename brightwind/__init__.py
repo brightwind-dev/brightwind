@@ -1,4 +1,5 @@
 from .load.load import *
+from .load.wra_data_model import DataModel
 from .analyse import correlation as Correl
 from .analyse.shear import *
 from .analyse.analyse import *
