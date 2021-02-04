@@ -18,8 +18,7 @@ import numpy as np
 import pandas as pd
 from typing import List
 from brightwind.transform import transform as tf
-from brightwind.analyse.plot import plot_scatter
-from brightwind.analyse.plot import plot_scatter_wdir
+from brightwind.analyse.plot import plot_scatter, plot_scatter_by_sector, plot_scatter_wdir
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from brightwind.analyse.analyse import momm, _binned_direction_series
@@ -81,10 +80,17 @@ class CorrelBase:
 
     def plot(self, title=""):
         """For plotting"""
-        return plot_scatter(self.data[self._ref_spd_col_name],
-                            self.data[self._tar_spd_col_name],
-                            self._predict(self.data[self._ref_spd_col_name]),
-                            x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name, line_of_slope_1=True)
+        if self.ref_dir is None:
+            return plot_scatter(self.data[self._ref_spd_col_name],
+                                self.data[self._tar_spd_col_name],
+                                self._predict(self.data[self._ref_spd_col_name]),
+                                x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name, line_of_slope_1=True)
+        else:
+            """For plotting scatter by sector"""
+            return plot_scatter_by_sector(self.data[self._ref_spd_col_name],
+                                          self.data[self._tar_spd_col_name],
+                                          self.data[self._ref_dir_col_name],
+                                          trendline_y=self.predict_ref_spd, sectors=self.sectors)
 
     def _get_synth_start_dates(self):
         none_even_freq = ['5H', '7H', '9H', '10H', '11H', '13H', '14H', '15H', '16H', '17H', '18H', '19H',
@@ -328,19 +334,24 @@ class OrdinaryLeastSquares(CorrelBase):
 
         elif type(self.ref_dir) is pd.Series:
             self.params = []
+            predict_ref_spd = pd.Series()
             for sector, group in self.data.groupby(['ref_dir_bin']):
                 # print('Processing sector:', sector)
                 if len(group) > 1:
                     slope, offset = self._leastsquare(ref_spd=group[self._ref_spd_col_name],
                                                       target_spd=group[self._tar_spd_col_name])
+                    predict_ref_spd_sector = self._predict(ref_spd=group[self._ref_spd_col_name],
+                                                           slope=slope, offset=offset)
                     r2 = self.get_r2(target_spd=group[self._tar_spd_col_name],
-                                     predict_spd=self._predict(ref_spd=group[self._ref_spd_col_name],
-                                     slope=slope, offset=offset))
+                                     predict_spd=predict_ref_spd_sector)
                 else:
                     slope = np.nan
                     offset = np.nan
                     r2 = np.nan
+                    predict_ref_spd_sector = self._predict(ref_spd=group[self._ref_spd_col_name],
+                                                           slope=slope, offset=offset)
 
+                predict_ref_spd = pd.concat([predict_ref_spd, predict_ref_spd_sector])
                 self.params.append({'slope': slope,
                                     'offset': offset,
                                     'r2': r2,
@@ -348,6 +359,7 @@ class OrdinaryLeastSquares(CorrelBase):
                                     'sector_min': group['dir_sector_min'].unique()[0],
                                     'sector_max': group['dir_sector_max'].unique()[0],
                                     'sector_number': sector})
+            self.predict_ref_spd = predict_ref_spd.sort_index(ascending=True)
 
         if show_params:
             self.show_params()
