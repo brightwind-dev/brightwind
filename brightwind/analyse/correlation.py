@@ -90,7 +90,7 @@ class CorrelBase:
             return plot_scatter_by_sector(self.data[self._ref_spd_col_name],
                                           self.data[self._tar_spd_col_name],
                                           self.data[self._ref_dir_col_name],
-                                          trendline_y=self.predict_ref_spd, sectors=self.sectors)
+                                          trendline_y=self._predict_ref_spd, sectors=self.sectors)
 
     def _get_synth_start_dates(self):
         none_even_freq = ['5H', '7H', '9H', '10H', '11H', '13H', '14H', '15H', '16H', '17H', '18H', '19H',
@@ -114,8 +114,8 @@ class CorrelBase:
             tar_start_date = self.target_spd.index[0]
         return ref_start_date, tar_start_date
 
-    def _get_logic_dir_sector(self, ref_dir, sector_min, sector_max):
-
+    @staticmethod
+    def _get_logic_dir_sector(ref_dir, sector_min, sector_max):
         if sector_max > sector_min:
             logic_sector = ((ref_dir >= sector_min) & (ref_dir < sector_max))
         else:
@@ -249,9 +249,6 @@ class OrdinaryLeastSquares(CorrelBase):
         # or
         ols_cor.show_params()
 
-        # To calculate the correlation coefficient R^2.
-        ols_cor.get_r2()
-
         # To synthesize data at the target site.
         ols_cor.synthesize()
 
@@ -296,8 +293,8 @@ class OrdinaryLeastSquares(CorrelBase):
                                   if offset_wind_direction(float(angle), step/2) > direction_bin_array[i-1]]
                 dir_sector_min = dir_sector_max.copy()
                 dir_sector_min.insert(0, dir_sector_min.pop())
-
             else:
+                # RAISE NOTIMPLEMENTED ERROR?
                 self.sectors = len(direction_bin_array) - 1
                 dir_sector_max = direction_bin_array[1:]
                 dir_sector_min = direction_bin_array[:-1]
@@ -315,11 +312,13 @@ class OrdinaryLeastSquares(CorrelBase):
             self.data['dir_sector_min'] = self.dir_sector_min
             self.data['dir_sector_max'] = self.dir_sector_max
             self.data = self.data.dropna()
+            self._predict_ref_spd = pd.Series()
 
     def __repr__(self):
         return 'Ordinary Least Squares Model ' + str(self.params)
 
-    def _leastsquare(self, ref_spd, target_spd):
+    @staticmethod
+    def _leastsquare(ref_spd, target_spd):
         p, res = lstsq(np.nan_to_num(ref_spd.values.flatten()[:, np.newaxis] ** [1, 0]),
                        np.nan_to_num(target_spd.values.flatten()))[0:2]
         return p[0], p[1]
@@ -329,13 +328,11 @@ class OrdinaryLeastSquares(CorrelBase):
             slope, offset = self._leastsquare(ref_spd=self.data[self._ref_spd_col_name],
                                               target_spd=self.data[self._tar_spd_col_name])
             self.params = dict([('slope', slope), ('offset', offset)])
-            self.params['r2'] = self.get_r2(target_spd=self.data[self._tar_spd_col_name],
-                                            predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]))
+            self.params['r2'] = self._get_r2(target_spd=self.data[self._tar_spd_col_name],
+                                             predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]))
             self.params['num_data_points'] = self.num_data_pts
-
         elif type(self.ref_dir) is pd.Series:
             self.params = []
-            predict_ref_spd = pd.Series()
             for sector, group in self.data.groupby(['ref_dir_bin']):
                 # print('Processing sector:', sector)
                 if len(group) > 1:
@@ -343,8 +340,8 @@ class OrdinaryLeastSquares(CorrelBase):
                                                       target_spd=group[self._tar_spd_col_name])
                     predict_ref_spd_sector = self._predict(ref_spd=group[self._ref_spd_col_name],
                                                            slope=slope, offset=offset)
-                    r2 = self.get_r2(target_spd=group[self._tar_spd_col_name],
-                                     predict_spd=predict_ref_spd_sector)
+                    r2 = self._get_r2(target_spd=group[self._tar_spd_col_name],
+                                      predict_spd=predict_ref_spd_sector)
                 else:
                     slope = np.nan
                     offset = np.nan
@@ -352,7 +349,7 @@ class OrdinaryLeastSquares(CorrelBase):
                     predict_ref_spd_sector = self._predict(ref_spd=group[self._ref_spd_col_name],
                                                            slope=slope, offset=offset)
 
-                predict_ref_spd = pd.concat([predict_ref_spd, predict_ref_spd_sector])
+                self._predict_ref_spd = pd.concat([self._predict_ref_spd, predict_ref_spd_sector])
                 self.params.append({'slope': slope,
                                     'offset': offset,
                                     'r2': r2,
@@ -360,7 +357,7 @@ class OrdinaryLeastSquares(CorrelBase):
                                     'sector_min': group['dir_sector_min'].unique()[0],
                                     'sector_max': group['dir_sector_max'].unique()[0],
                                     'sector_number': sector})
-            self.predict_ref_spd = predict_ref_spd.sort_index(ascending=True)
+            self._predict_ref_spd.sort_index(ascending=True, inplace=True)
 
         if show_params:
             self.show_params()
@@ -372,7 +369,8 @@ class OrdinaryLeastSquares(CorrelBase):
             offset = self.params['offset']
         return ref_spd * slope + offset
 
-    def get_r2(self, target_spd, predict_spd):
+    @staticmethod
+    def _get_r2(target_spd, predict_spd):
         """Returns the r2 score of the model"""
         return 1.0 - (sum((target_spd - predict_spd) ** 2) /
                       (sum((target_spd - target_spd.mean()) ** 2)))
