@@ -101,20 +101,30 @@ class CorrelBase:
         """Show the dictionary of parameters"""
         pprint.pprint(self.params)
 
-    def plot(self, title="", figure_size=(10, 10.2)):
-        """For plotting"""
+    def plot(self, figure_size=(10, 10.2)):
+        """
+        Plots scatter plot of reference versus target speed data. If ref_dir is given as input to the correlation then
+        the plot is showing scatter subplots for each sector. The trendline and the line of slope 1 passing through
+        the origin are also shown on each plot.
+
+        :param figure_size:     Figure size in tuple format (width, height)
+        :type figure_size:      tuple
+        :returns:               matplotlib.figure.Figure
+        """
+
         if self.ref_dir is None:
             return plot_scatter(self.data[self._ref_spd_col_name],
                                 self.data[self._tar_spd_col_name],
                                 self._predict(self.data[self._ref_spd_col_name]),
-                                x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name, line_of_slope_1=True)
+                                x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name,
+                                line_of_slope_1=True, figure_size=figure_size)
         else:
             """For plotting scatter by sector"""
             return plot_scatter_by_sector(self.data[self._ref_spd_col_name],
                                           self.data[self._tar_spd_col_name],
                                           self.data[self._ref_dir_col_name],
                                           trendline_y=self._predict_ref_spd, sectors=self.sectors,
-                                          figure_size=figure_size)
+                                          line_of_slope_1=True, figure_size=figure_size)
 
     def _get_synth_start_dates(self):
         none_even_freq = ['5H', '7H', '9H', '10H', '11H', '13H', '14H', '15H', '16H', '17H', '18H', '19H',
