@@ -116,6 +116,12 @@ class CorrelBase:
         return ref_start_date, tar_start_date
 
     @staticmethod
+    def _get_r2(target_spd, predict_spd):
+        """Returns the r2 score of the model"""
+        return 1.0 - (sum((target_spd - predict_spd) ** 2) /
+                      (sum((target_spd - target_spd.mean()) ** 2)))
+
+    @staticmethod
     def _get_logic_dir_sector(ref_dir, sector_min, sector_max):
         if sector_max > sector_min:
             logic_sector = ((ref_dir >= sector_min) & (ref_dir < sector_max))
@@ -377,12 +383,6 @@ class OrdinaryLeastSquares(CorrelBase):
             offset = self.params['offset']
         return ref_spd * slope + offset
 
-    @staticmethod
-    def _get_r2(target_spd, predict_spd):
-        """Returns the r2 score of the model"""
-        return 1.0 - (sum((target_spd - predict_spd) ** 2) /
-                      (sum((target_spd - target_spd.mean()) ** 2)))
-
 
 class OrthogonalLeastSquares(CorrelBase):
     """
@@ -438,7 +438,7 @@ class OrthogonalLeastSquares(CorrelBase):
         orthog_cor.show_params()
 
         # To calculate the correlation coefficient R^2.
-        orthog_cor.get_r2()
+        orthog_cor._get_r2()
 
         # To synthesize data at the target site.
         orthog_cor.synthesize()
@@ -490,7 +490,8 @@ class OrthogonalLeastSquares(CorrelBase):
         model = ODR(fit_data, Model(OrthogonalLeastSquares.linear_func), beta0=[p[0][0], p[1][0]])
         output = model.run()
         self.params = dict([('slope', output.beta[0]), ('offset', output.beta[1])])
-        self.params['r2'] = self.get_r2()
+        self.params['r2'] = self._get_r2(target_spd=self.data[self._tar_spd_col_name],
+                                         predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]))
         self.params['num_data_points'] = self.num_data_pts
         # print("Model output:", output.pprint())
         if show_params:
@@ -501,11 +502,6 @@ class OrthogonalLeastSquares(CorrelBase):
             return OrthogonalLeastSquares.linear_func(p, x)
 
         return ref_spd.transform(linear_func_inverted, p=[self.params['slope'], self.params['offset']])
-
-    def get_r2(self):
-        """Returns the r2 score of the model"""
-        return 1.0 - (sum((self.data[self._tar_spd_col_name] - self._predict(self.data[self._ref_spd_col_name])) ** 2) /
-                      (sum((self.data[self._tar_spd_col_name] - self.data[self._tar_spd_col_name].mean()) ** 2)))
 
 
 class MultipleLinearRegression(CorrelBase):
