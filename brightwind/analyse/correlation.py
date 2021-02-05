@@ -823,18 +823,18 @@ class SpeedSort(CorrelBase):
         return (x['dir'] + x['adjustment']).sort_index().apply(utils._range_0_to_360)
 
     def _predict(self, x_spd, x_dir):
-        x = pd.concat([x_spd.dropna().rename('spd'),
-                       _binned_direction_series(x_dir.dropna(), self.sectors,
+        x = pd.concat([x_spd.rename('spd'),
+                       _binned_direction_series(x_dir, self.sectors,
                                                 direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')],
-                      axis=1, join='inner')
-        prediction = pd.DataFrame()
-        first = True
+                      axis=1, join='inner').dropna()
+        prediction = pd.Series().rename('spd')
         for sector, data in x.groupby(['ref_dir_bin']):
-            if first is True:
-                first = False
-                prediction = self.speed_model[sector].sector_predict(data['spd'])
+            if sector in list(self.speed_model.keys()):
+                prediction_spd = self.speed_model[sector].sector_predict(data['spd'])
             else:
-                prediction = pd.concat([prediction, self.speed_model[sector].sector_predict(data['spd'])], axis=0)
+                prediction_spd = data['spd'] * np.nan
+
+            prediction = pd.concat([prediction, prediction_spd], axis=0)
 
         return prediction.sort_index()
 
