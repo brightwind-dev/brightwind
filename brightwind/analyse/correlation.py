@@ -35,7 +35,7 @@ __all__ = ['']
 
 class CorrelBase:
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None, target_dir=None,
-                 ref_aggregation_method='mean', target_aggregation_method='mean'):
+                 sectors=12, direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean'):
         self.ref_spd = ref_spd
         self.ref_dir = ref_dir
         self.target_spd = target_spd
@@ -55,6 +55,29 @@ class CorrelBase:
                                          ref_dir, target_dir, ref_aggregation_method, target_aggregation_method)
         self.num_data_pts = len(self.data)
         self.params = {'status': 'not yet run'}
+
+        # The self variables defined below are defined for OrdinaryLeastSquares, OrthogonalLeastSquares and SpeedSort
+        if ref_dir is not None:
+            self.sectors = sectors
+            self.direction_bin_array = direction_bin_array
+
+            if direction_bin_array is None:
+                sector_direction_bins = utils.get_direction_bin_array(sectors)
+                step = float(max(np.unique(np.diff(sector_direction_bins))))
+                self._dir_sector_max = [angle for i, angle in enumerate(sector_direction_bins)
+                                        if offset_wind_direction(float(angle), step/2) > sector_direction_bins[i-1]]
+                self._dir_sector_min = self._dir_sector_max.copy()
+                self._dir_sector_min.insert(0, self._dir_sector_min.pop())
+            else:
+                raise NotImplementedError("Analysis using direction_bin_array input not implemented yet.")
+                # self.sectors = len(direction_bin_array) - 1
+                # dir_sector_max = direction_bin_array[1:]
+                # dir_sector_min = direction_bin_array[:-1]
+
+            self._ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
+                                                          direction_bin_array=self.direction_bin_array
+                                                          ).rename('ref_dir_bin')
+            self._predict_ref_spd = pd.Series()
 
     def _averager(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir,
                   ref_aggregation_method, target_aggregation_method):
@@ -302,30 +325,9 @@ class OrdinaryLeastSquares(CorrelBase):
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9, ref_dir=None, sectors=12,
                  direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean'):
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
+                            sectors=sectors, direction_bin_array=direction_bin_array,
                             ref_aggregation_method=ref_aggregation_method,
                             target_aggregation_method=target_aggregation_method)
-
-        if ref_dir is not None:
-            self.sectors = sectors
-            self.direction_bin_array = direction_bin_array
-
-            if direction_bin_array is None:
-                sector_direction_bins = utils.get_direction_bin_array(sectors)
-                step = float(max(np.unique(np.diff(sector_direction_bins))))
-                self._dir_sector_max = [angle for i, angle in enumerate(sector_direction_bins)
-                                        if offset_wind_direction(float(angle), step/2) > sector_direction_bins[i-1]]
-                self._dir_sector_min = self._dir_sector_max.copy()
-                self._dir_sector_min.insert(0, self._dir_sector_min.pop())
-            else:
-                raise NotImplementedError
-                # self.sectors = len(direction_bin_array) - 1
-                # dir_sector_max = direction_bin_array[1:]
-                # dir_sector_min = direction_bin_array[:-1]
-
-            self._ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
-                                                          direction_bin_array=self.direction_bin_array
-                                                          ).rename('ref_dir_bin')
-            self._predict_ref_spd = pd.Series()
 
     def __repr__(self):
         return 'Ordinary Least Squares Model ' + str(self.params)
@@ -818,11 +820,8 @@ class SpeedSort(CorrelBase):
             ss_cor.run()
         """
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
-                            target_dir=target_dir)
-        self.sectors = sectors
-        self.direction_bin_array = direction_bin_array
-        if direction_bin_array is not None:
-            self.sectors = len(direction_bin_array) - 1
+                            target_dir=target_dir, sectors=sectors, direction_bin_array=direction_bin_array)
+
         if lt_ref_speed is None:
             self.lt_ref_speed = momm(self.data[self._ref_spd_col_name])
         else:
@@ -835,10 +834,6 @@ class SpeedSort(CorrelBase):
         # for low ref_speed and high target_speed recalculate direction sector
         self._adjust_low_reference_speed_dir()
 
-        self.ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
-                                                     direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')
-        self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
-        self.data = self.data.dropna()
         self.speed_model = dict()
 
     def __repr__(self):
@@ -893,7 +888,8 @@ class SpeedSort(CorrelBase):
         self.params['ref_veer_cutoff'] = round(self.ref_veer_cutoff, 5)
         self.params['target_veer_cutoff'] = round(self.target_veer_cutoff, 5)
         self.params['overall_average_veer'] = round(self.overall_veer, 5)
-        for sector, group in self.data.groupby(['ref_dir_bin']):
+        for sector, group in pd.concat([self.data, self._ref_dir_bins],
+                                       axis=1, join='inner').dropna().groupby(['ref_dir_bin']):
             # print('Processing sector:', sector)
             self.speed_model[sector] = SpeedSort.SectorSpeedModel(ref_spd=group[self._ref_spd_col_name],
                                                                   target_spd=group[self._tar_spd_col_name],
