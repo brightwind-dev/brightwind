@@ -78,7 +78,7 @@ class CorrelBase:
         """Show the dictionary of parameters"""
         pprint.pprint(self.params)
 
-    def plot(self, title=""):
+    def plot(self, title="", figure_size=(10, 10.2)):
         """For plotting"""
         if self.ref_dir is None:
             return plot_scatter(self.data[self._ref_spd_col_name],
@@ -90,7 +90,8 @@ class CorrelBase:
             return plot_scatter_by_sector(self.data[self._ref_spd_col_name],
                                           self.data[self._tar_spd_col_name],
                                           self.data[self._ref_dir_col_name],
-                                          trendline_y=self._predict_ref_spd, sectors=self.sectors)
+                                          trendline_y=self._predict_ref_spd, sectors=self.sectors,
+                                          figure_size=figure_size)
 
     def _get_synth_start_dates(self):
         none_even_freq = ['5H', '7H', '9H', '10H', '11H', '13H', '14H', '15H', '16H', '17H', '18H', '19H',
@@ -217,6 +218,15 @@ class OrdinaryLeastSquares(CorrelBase):
     :type coverage_threshold:         float
     :param ref_dir:                   Series containing reference wind direction as a column, timestamp as the index.
     :type ref_dir:                    pd.Series
+    :param sectors:                   Number of direction sectors to bin in to. The first sector is centered at 0 by
+                                      default. To change that behaviour specify 'direction_bin_array' which overwrites
+                                      'sectors'.
+    :type sectors:                    int
+    :param direction_bin_array:       An optional parameter where if you want custom direction bins, pass an array
+                                      of the bins. To add custom bins for direction sectors, overwrites sectors. For
+                                      instance, for direction bins [0,120), [120, 215), [215, 360) the list would
+                                      be [0, 120, 215, 360]
+    :type direction_bin_array:        List()
     :param ref_aggregation_method:    Default `mean`, returns the mean of the data for the specified period. Can also
                                       use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for
                                       median, product, summation, standard deviation, variance, maximum and minimum
@@ -276,6 +286,11 @@ class OrdinaryLeastSquares(CorrelBase):
         ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['T2M_degC'], data['T2m'],
                                                  averaging_prd='1H', coverage_threshold=0,
                                                  ref_aggregation_method='min', target_aggregation_method='min')
+
+        # Correlate by directional sector, using 36 sectors.
+        correl = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'],
+                                                ref_dir=m2_ne['WD50m_deg'], averaging_prd='1D',
+                                                coverage_threshold=0.9, sectors=36)
     """
 
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9, ref_dir=None, sectors=12,
@@ -286,32 +301,24 @@ class OrdinaryLeastSquares(CorrelBase):
 
         if ref_dir is not None:
             self.sectors = sectors
-            if direction_bin_array is None:
-                direction_bin_array = utils.get_direction_bin_array(sectors)
-                step = np.median(np.diff(direction_bin_array))
-                dir_sector_max = [angle for i, angle in enumerate(direction_bin_array)
-                                  if offset_wind_direction(float(angle), step/2) > direction_bin_array[i-1]]
-                dir_sector_min = dir_sector_max.copy()
-                dir_sector_min.insert(0, dir_sector_min.pop())
-            else:
-                # RAISE NOTIMPLEMENTED ERROR?
-                self.sectors = len(direction_bin_array) - 1
-                dir_sector_max = direction_bin_array[1:]
-                dir_sector_min = direction_bin_array[:-1]
-
             self.direction_bin_array = direction_bin_array
 
-            self.ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
-                                                         direction_bin_array=self.direction_bin_array
-                                                         ).rename('ref_dir_bin')
+            if direction_bin_array is None:
+                sector_direction_bins = utils.get_direction_bin_array(sectors)
+                step = float(max(np.unique(np.diff(sector_direction_bins))))
+                self._dir_sector_max = [angle for i, angle in enumerate(sector_direction_bins)
+                                        if offset_wind_direction(float(angle), step/2) > sector_direction_bins[i-1]]
+                self._dir_sector_min = self._dir_sector_max.copy()
+                self._dir_sector_min.insert(0, self._dir_sector_min.pop())
+            else:
+                raise NotImplementedError
+                # self.sectors = len(direction_bin_array) - 1
+                # dir_sector_max = direction_bin_array[1:]
+                # dir_sector_min = direction_bin_array[:-1]
 
-            self.dir_sector_max = [dir_sector_max[sector_num-1] for sector_num in self.ref_dir_bins.values.flatten()]
-            self.dir_sector_min = [dir_sector_min[sector_num-1] for sector_num in self.ref_dir_bins.values.flatten()]
-
-            self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
-            self.data['dir_sector_min'] = self.dir_sector_min
-            self.data['dir_sector_max'] = self.dir_sector_max
-            self.data = self.data.dropna()
+            self._ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
+                                                          direction_bin_array=self.direction_bin_array
+                                                          ).rename('ref_dir_bin')
             self._predict_ref_spd = pd.Series()
 
     def __repr__(self):
@@ -333,7 +340,8 @@ class OrdinaryLeastSquares(CorrelBase):
             self.params['num_data_points'] = self.num_data_pts
         elif type(self.ref_dir) is pd.Series:
             self.params = []
-            for sector, group in self.data.groupby(['ref_dir_bin']):
+            for sector, group in pd.concat([self.data, self._ref_dir_bins],
+                                           axis=1, join='inner').dropna().groupby(['ref_dir_bin']):
                 # print('Processing sector:', sector)
                 if len(group) > 1:
                     slope, offset = self._leastsquare(ref_spd=group[self._ref_spd_col_name],
@@ -354,8 +362,8 @@ class OrdinaryLeastSquares(CorrelBase):
                                     'offset': offset,
                                     'r2': r2,
                                     'num_data_points': len(group[self._tar_spd_col_name]),
-                                    'sector_min': group['dir_sector_min'].unique()[0],
-                                    'sector_max': group['dir_sector_max'].unique()[0],
+                                    'sector_min': self._dir_sector_min[sector-1],
+                                    'sector_max': self._dir_sector_max[sector-1],
                                     'sector_number': sector})
             self._predict_ref_spd.sort_index(ascending=True, inplace=True)
 
