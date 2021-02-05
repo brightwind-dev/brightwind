@@ -106,7 +106,16 @@ def test_ordinary_least_squares():
                                             coverage_threshold=0.9, sectors=4)
     correl.run()
     correl.plot()
-    assert correl_monthly_by_sector_results == correl.params
+    assert len(correl_monthly_by_sector_results) == len(correl.params)
+
+    for test_param, param in zip(correl_monthly_by_sector_results, correl.params):
+        assert round(test_param['slope'], 5) == round(param['slope'], 5)
+        assert round(test_param['offset'], 5) == round(param['offset'], 5)
+        assert round(test_param['r2'], 5) == round(param['r2'], 5)
+        assert test_param['num_data_points'] == param['num_data_points']
+        assert test_param['sector_min'] == param['sector_min']
+        assert test_param['sector_max'] == param['sector_max']
+        assert test_param['sector_number'] == param['sector_number']
 
 
 def test_synthesize():
