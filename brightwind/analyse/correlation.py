@@ -110,6 +110,27 @@ class CorrelBase:
         :param figure_size:     Figure size in tuple format (width, height)
         :type figure_size:      tuple
         :returns:               matplotlib.figure.Figure
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_csv(bw.demo_datasets.demo_data)
+            m2_ne = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+            m2_nw = bw.load_csv(bw.demo_datasets.demo_merra2_NW)
+
+            # Correlate by directional sector, using 36 sectors.
+            ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'],
+                                                ref_dir=m2_ne['WD50m_deg'], averaging_prd='1D',
+                                                coverage_threshold=0.9, sectors=36)
+            ols_cor.run()
+
+            # To plot the scatter subplots by directional sectors, the trendline and the line of slope 1 passing
+            # through the origin
+            ols_cor.plot()
+
+            # To set the figure size
+            ols_cor.plot(figure_size=(20, 20.2))
+
         """
 
         if self.ref_dir is None:
@@ -327,7 +348,7 @@ class OrdinaryLeastSquares(CorrelBase):
                                                  ref_aggregation_method='min', target_aggregation_method='min')
 
         # Correlate by directional sector, using 36 sectors.
-        correl = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'],
+        ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'],
                                                 ref_dir=m2_ne['WD50m_deg'], averaging_prd='1D',
                                                 coverage_threshold=0.9, sectors=36)
     """
