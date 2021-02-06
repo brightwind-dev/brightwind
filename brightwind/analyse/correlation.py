@@ -104,35 +104,34 @@ class CorrelBase:
     def plot(self, figure_size=(10, 10.2)):
         """
         Plots scatter plot of reference versus target speed data. If ref_dir is given as input to the correlation then
-        the plot is showing scatter subplots for each sector. The trendline and the line of slope 1 passing through
-        the origin are also shown on each plot.
+        the plot is showing scatter subplots for each sector. The regression line and the line of slope 1 passing
+        through the origin are also shown on each plot.
 
-        :param figure_size:     Figure size in tuple format (width, height)
-        :type figure_size:      tuple
-        :returns:               matplotlib.figure.Figure
+        :param figure_size: Figure size in tuple format (width, height)
+        :type figure_size:  tuple
+        :returns:           A matplotlib figure
+        :rtype:             matplotlib.figure.Figure
 
         **Example usage**
         ::
             import brightwind as bw
             data = bw.load_csv(bw.demo_datasets.demo_data)
             m2_ne = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
-            m2_nw = bw.load_csv(bw.demo_datasets.demo_merra2_NW)
 
             # Correlate by directional sector, using 36 sectors.
             ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'],
-                                                ref_dir=m2_ne['WD50m_deg'], averaging_prd='1D',
-                                                coverage_threshold=0.9, sectors=36)
+                                                     ref_dir=m2_ne['WD50m_deg'], averaging_prd='1D',
+                                                     coverage_threshold=0.9, sectors=36)
             ols_cor.run()
 
-            # To plot the scatter subplots by directional sectors, the trendline and the line of slope 1 passing
-            # through the origin
+            # To plot the scatter subplots by directional sectors, the regression line and the line of
+            # slope 1 passing through the origin
             ols_cor.plot()
 
             # To set the figure size
             ols_cor.plot(figure_size=(20, 20.2))
 
         """
-
         if self.ref_dir is None:
             return plot_scatter(self.data[self._ref_spd_col_name],
                                 self.data[self._tar_spd_col_name],
@@ -146,6 +145,21 @@ class CorrelBase:
                                           self.data[self._ref_dir_col_name],
                                           trendline_y=self._predict_ref_spd, sectors=self.sectors,
                                           line_of_slope_1=True, figure_size=figure_size)
+
+    @staticmethod
+    def _get_r2(target_spd, predict_spd):
+        """Returns the r2 score of the model"""
+        return 1.0 - (sum((target_spd - predict_spd) ** 2) /
+                      (sum((target_spd - target_spd.mean()) ** 2)))
+
+    @staticmethod
+    def _get_logic_dir_sector(ref_dir, sector_min, sector_max):
+        if sector_max > sector_min:
+            logic_sector = ((ref_dir >= sector_min) & (ref_dir < sector_max))
+        else:
+            logic_sector = ((ref_dir >= sector_min) & (ref_dir <= 360)) | \
+                           ((ref_dir < sector_max) & (ref_dir >= 0))
+        return logic_sector
 
     def _get_synth_start_dates(self):
         none_even_freq = ['5H', '7H', '9H', '10H', '11H', '13H', '14H', '15H', '16H', '17H', '18H', '19H',
@@ -168,21 +182,6 @@ class CorrelBase:
             ref_start_date = self.ref_spd.index[0]
             tar_start_date = self.target_spd.index[0]
         return ref_start_date, tar_start_date
-
-    @staticmethod
-    def _get_r2(target_spd, predict_spd):
-        """Returns the r2 score of the model"""
-        return 1.0 - (sum((target_spd - predict_spd) ** 2) /
-                      (sum((target_spd - target_spd.mean()) ** 2)))
-
-    @staticmethod
-    def _get_logic_dir_sector(ref_dir, sector_min, sector_max):
-        if sector_max > sector_min:
-            logic_sector = ((ref_dir >= sector_min) & (ref_dir < sector_max))
-        else:
-            logic_sector = ((ref_dir >= sector_min) & (ref_dir <= 360)) | \
-                           ((ref_dir < sector_max) & (ref_dir >= 0))
-        return logic_sector
 
     def synthesize(self, ext_input=None, ref_coverage_threshold=None, target_coverage_threshold=None):
         """
@@ -237,7 +236,6 @@ class CorrelBase:
                         synth_data[logic_sect] = self._predict(ref_spd=ref_averaged[self._ref_spd_col_name][logic_sect],
                                                                slope=params_dict['slope'], offset=params_dict['offset'])
             output = target_spd_averaged.combine_first(synth_data)
-
         else:
             if self.ref_dir is None:
                 output = self._predict(ext_input)
@@ -311,8 +309,11 @@ class OrdinaryLeastSquares(CorrelBase):
                                                  coverage_threshold=0.95)
         ols_cor.run()
 
-        # To plot the scatter plot and line fit.
+        # To plot the scatter plot and regression line.
         ols_cor.plot()
+
+        # To change the plot's size.
+        ols_cor.plot(figure_size=(12,15))
 
         # To show the resulting parameters.
         ols_cor.params
@@ -351,8 +352,8 @@ class OrdinaryLeastSquares(CorrelBase):
         ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'],
                                                 ref_dir=m2_ne['WD50m_deg'], averaging_prd='1D',
                                                 coverage_threshold=0.9, sectors=36)
-    """
 
+    """
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9, ref_dir=None, sectors=12,
                  direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean'):
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
@@ -462,16 +463,17 @@ class OrthogonalLeastSquares(CorrelBase):
         orthog_cor = bw.Correl.OrthogonalLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
                                                       coverage_threshold=0.95)
         orthog_cor.run()
-        # To plot the scatter plot and line fit.
-        orthog_cor.plot()
+
+        # To plot the scatter plot and regression line.
+        ols_cor.plot()
+
+        # To change the plot's size.
+        ols_cor.plot(figure_size=(12,15))
 
         # To show the resulting parameters.
         orthog_cor.params
         # or
         orthog_cor.show_params()
-
-        # To calculate the correlation coefficient R^2.
-        orthog_cor._get_r2()
 
         # To synthesize data at the target site.
         orthog_cor.synthesize()
@@ -672,7 +674,7 @@ class MultipleLinearRegression(CorrelBase):
                            self._predict(self.data[self._ref_spd_col_names])) ** 2) /
                       (sum((self.data[self._tar_spd_col_name] - self.data[self._tar_spd_col_name].mean()) ** 2)))
 
-    def plot(self, title=""):
+    def plot(self, figure_size=(10, 10.2)):
         raise NotImplementedError
 
 
@@ -781,7 +783,7 @@ class SpeedSort(CorrelBase):
                 return x * slope + offset
             return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
 
-        def plot_model(self, title=None):
+        def plot_model(self):
             return plot_scatter(self.sector_ref,
                                 self.sector_target,
                                 self.sector_predict(self.sector_ref),
@@ -844,11 +846,11 @@ class SpeedSort(CorrelBase):
             ss_cor.get_result_table()
             ss_cor.synthesize()
 
-
             # Sending an array of direction sectors
             ss_cor = bw.Correl.SpeedSort(m2['WS50m_m/s'], m2['WD50m_deg'], data['Spd80mN'], data['Dir78mS'],
                                          averaging_prd='1H', direction_bin_array=[0,90,130,200,360])
             ss_cor.run()
+
         """
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
                             target_dir=target_dir, sectors=sectors, direction_bin_array=direction_bin_array)
