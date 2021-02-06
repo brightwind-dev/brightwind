@@ -214,8 +214,8 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
 
 
 def _derive_axes_limits_for_scatter_plot(x, y):
-    x_min, x_max = (round(x.min() - 0.5), -(-x.max() // 1))
-    y_min, y_max = (round(y.min() - 0.5), -(-y.max() // 1))
+    x_min, x_max = (round(np.nanmin(x) - 0.5), -(-np.nanmax(x) // 1))
+    y_min, y_max = (round(np.nanmin(y) - 0.5), -(-np.nanmax(y) // 1))
     return x_min, x_max, y_min, y_max
 
 
@@ -228,14 +228,14 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
     Plots a scatter subplot between the inputs x and y. The trendline_y data and the line of slope 1 passing through
     the origin are also shown if provided as input of the function.
 
-    :param x:                   Series to plot on x axis
-    :type x:                    pd.Series
-    :param y:                   Series to plot on y axis
-    :type y:                    pd.Series
-    :param trendline_y:         Series or list of trendline_y values to plot a trendline.
-    :type trendline_y:          pd.Series or list or None
+    :param x:                   The x-axis values or reference variable.
+    :type x:                    pd.Series or list np.array
+    :param y:                   The y-axis values or target variable.
+    :type y:                    pd.Series or list or np.array
+    :param trendline_y:         Series or list or np.array of trendline y values.
+    :type trendline_y:          pd.Series or list or np.array or None
     :param trendline_x:         X values to plot with trendline_y. If None then the x variable is used.
-    :type trendline_x:          pd.Series or list or None
+    :type trendline_x:          pd.Series or list or np.array or None
     :param line_of_slope_1:     Boolean to choose to plot the line with slope one and passing through the origin.
     :type line_of_slope_1:      Bool
     :param x_label:             Label for the x axis
@@ -327,7 +327,8 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
     else:
         trendline_marker = '-'
 
-    x_min, x_max, y_min, y_max = _derive_axes_limits_for_scatter_plot(x, y)
+    if x_limits is None or y_limits is None:
+        x_min, x_max, y_min, y_max = _derive_axes_limits_for_scatter_plot(x, y)
 
     if axes_equal:
         ax.set_aspect('equal')
@@ -405,7 +406,7 @@ def _get_best_row_col_number_for_subplot(number_subplots):
 
 
 def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False,
-                 x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=True,
+                 x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=True, figure_size=(10, 10.2),
                  trendline_dots=False, **kwargs):
     """
     Plots a scatter plot of x and y data. The trendline_y data is also shown if provided as input of the function.
@@ -433,6 +434,8 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
     :type axes_equal:           Bool
     :param trendline_dots:      Boolean to chose if marker to use for the trendline is dot-line or a line
     :type trendline_dots:       Bool
+    :param figure_size:         Figure size in tuple format (width, height)
+    :type figure_size:          tuple
     :param kwargs:              Additional keyword arguments for matplotlib.pyplot.subplot
     :return:                    A scatter plot
     :rtype:                     matplotlib.figure.Figure
@@ -491,7 +494,7 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
     if line_of_slope_1 is True:
         legend = True
 
-    fig, axes = plt.subplots(figsize=(10, 10.2), **kwargs)
+    fig, axes = plt.subplots(figsize=figure_size, **kwargs)
     _scatter_subplot(x, y, trendline_y=trendline_y, trendline_x=trendline_x, line_of_slope_1=line_of_slope_1,
                      x_label=x_label, y_label=y_label, x_limits=x_limits, y_limits=y_limits, axes_equal=axes_equal,
                      trendline_dots=trendline_dots, legend=legend, ax=axes)
