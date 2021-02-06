@@ -1,5 +1,5 @@
 #     brightwind is a library that provides wind analysts with easy to use tools for working with meteorological data.
-#     Copyright (C) 2018 Stephen Holleran, Inder Preet
+#     Copyright (C) 2021 Stephen Holleran
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,7 @@ import os
 import json
 
 
-__all__ = ['DataModel']
+__all__ = ['Station']
 
 
 def _flatten_sensor_dict(sensor):
@@ -166,9 +166,10 @@ def _format_sensor_table(meas_points, table_type='full'):
     return sensors_table_report
 
 
-class DataModel:
+class Station:
     class __DotDict(dict):
-        """dot.notation access to dictionary attributes
+        """
+        dot.notation access to dictionary attributes
         dotmap is n alternative library https://github.com/drgrib/dotmap
         """
         __getattr__ = dict.get
@@ -177,7 +178,7 @@ class DataModel:
 
     def __init__(self, wra_data_model):
         """
-        Load a IEA Wind Resource Assessment Data Model.
+        Create a Station object by loading in an IEA Wind Resource Assessment Data Model.
 
         The IEA Wind: Task 43 Work Package 4 WRA Data Model was first released in January 2021. Versions of the
         Data Model Schema can be found at https://github.com/IEA-Task-43/digital_wra_data_standard
@@ -191,29 +192,30 @@ class DataModel:
         """
         self.__data_model = self._load_wra_data_model(wra_data_model)
         # self.__header = self._get_header()
-        self.__header = self._Header(self.__data_model)
-        self.__schema = self._get_schema(self.__header.info)
-        self.__measurement_locations = self._MeasurementLocations(self.__data_model)
-        self.__logger_config = self._LoggerConfig(self.__measurement_locations.data_model)
-        self.__measurements = self._Measurements(self.__measurement_locations.data_model)
-        self.__wspds = self._Wspds(self.__data_model)
+        self.__header = _Header(dm=self.__data_model)
+        self.__schema = self._get_schema(version=self.__header.info['version'])
+        self.__measurement_location = _MeasurementLocation(dm=self.__data_model)
+        self.__logger_configs = _LoggerConfigs(dm_measurement_loc=self.__measurement_location.data_model)
+        self.__measurements = _Measurements(dm_measurement_loc=self.__measurement_location.data_model)
+        self.__wspds = _Wspds(dm_measurement_loc=self.__measurement_location.data_model)
 
     @staticmethod
     def _load_wra_data_model(wra_data_model):
         """
         Load a IEA Wind Resource Assessment Data Model.
 
-        The IEA Wind: Task 43 Work Package 4 WRA Data Model was first released in January 2021. Versions of the Data Model
-        Schema can be found at https://github.com/IEA-Task-43/digital_wra_data_standard
+        The IEA Wind: Task 43 Work Package 4 WRA Data Model was first released in January 2021. Versions of the
+        Data Model Schema can be found at https://github.com/IEA-Task-43/digital_wra_data_standard
 
         *** SHOULD INCLUDE CHECKING AGAINST THE JSON SCHEMA (WHICH WOULD MEAN GETTING THE CORRECT VERSION FROM GITHUB)
             AND MAKE SURE PROPER JSON
         :param wra_data_model: The filepath to an implementation of the WRA Data Model as a .json file or a json string.
         :type wra_data_model:  str
-        :return:               Python Dict
-        :rtype:                Dict
+        :return:               Python dictionary of the data model.
+        :rtype:                dict
         """
         # Assess whether filepath or json str sent.
+        dm = dict()
         if '.json' == wra_data_model[-5:]:
             if _is_file(wra_data_model):
                 with open(wra_data_model) as json_file:
@@ -226,18 +228,20 @@ class DataModel:
     #     return self.data_model
 
     @staticmethod
-    def _get_schema(dm_header_info):
+    def _get_schema(version):
         """
         Get the JSON Schema from GitHub based on the version number in the data model.
 
-        :param dm_header_info: The header information from the data model json file.
-        :return:               The IEA Wind Task 43 WRA Data Model Schema.
-        :rtype:                Dict
+        :param version: The version from the header information from the data model json file.
+        :type version:  str
+        :return:        The IEA Wind Task 43 WRA Data Model Schema.
+        :rtype:         dict
         """
-        schema_link = 'https://github.com/IEA-Task-43/digital_wra_data_standard/releases/download/v{}/iea43_wra_data_model.schema.json'
-        version = dm_header_info['version']
+        schema_link = 'https://github.com/IEA-Task-43/digital_wra_data_standard/releases/download/v{}' \
+                      '/iea43_wra_data_model.schema.json'
         # THE VERSION NUMBER IN THE DEMO MODEL IS INCORRECT
-        version = '0.1.0-2021.01'
+        if version != '0.1.0-2021.01':
+            version = '0.1.0-2021.01'
         response = requests.get(schema_link.format(version))
         if response.status_code == 404:
             raise ValueError('Schema could not be downloaded from GitHub. Please check the version number in the '
@@ -267,12 +271,12 @@ class DataModel:
         return self.__header
 
     @property
-    def measurement_locations(self):
-        return self.__measurement_locations
+    def measurement_location(self):
+        return self.__measurement_location
 
     @property
-    def logger_config(self):
-        return self.__logger_config
+    def logger_configs(self):
+        return self.__logger_configs
 
     @property
     def measurements(self):
@@ -282,137 +286,150 @@ class DataModel:
     def wspds(self):
         return self.__wspds
 
-    class _Header:
-        def __init__(self, dm):
-            """
-            Extract the header info from the data model and return either a dict or table
 
-            """
-            index = []
-            col_value = []
-            header_dict = {}
-            for key, value in dm.items():
-                if key != 'measurement_location':
-                    index.append(key)
-                    col_value.append(value)
-                    header_dict[key] = value
-            self._info = header_dict
-            self._index = index
-            self._col_value = col_value
+class _Header:
+    def __init__(self, dm):
+        """
+        Extract the header info from the data model and return either a dict or table
 
-        @property
-        def info(self):
-            return self._info
+        """
+        index = []
+        col_value = []
+        header_dict = {}
+        for key, value in dm.items():
+            if key != 'measurement_location':
+                index.append(key)
+                col_value.append(value)
+                header_dict[key] = value
+        self._info = header_dict
+        self._index = index
+        self._col_value = col_value
 
-        @property
-        def table(self):
-            df = pd.DataFrame({'': self._col_value}, index=self._index)
-            df_styled = df.style.set_properties(**{'text-align': 'left'})
-            df_styled = df_styled.set_table_styles([dict(selector='th', props=[('text-align', 'left')])])
-            return df_styled
+    @property
+    def info(self):
+        return self._info
 
-    class _MeasurementLocations:
-        def __init__(self, dm):
-            self._data_model = dm.get('measurement_location')
-
-        @property
-        def data_model(self):
-            return self._data_model
-
-        @property
-        def table(self):
-            # Rename for column headings?
-            meas_locs = []
-            for meas_loc in self._data_model:
-                meas_locs.append({
-                    'Name': meas_loc['name'],
-                    'Latitude [ddeg]': meas_loc['latitude_ddeg'],
-                    'Longitude [ddeg]': meas_loc['longitude_ddeg'],
-                    'Measurement Station Type': meas_loc['measurement_station_type_id'],
-                    'Notes': meas_loc['notes'],
-                    'Date of Update': meas_loc['update_at'],
-                    'Mast Geometry': meas_loc['mast_properties']['mast_geometry_id'],
-                    'Mast Height [m]': meas_loc['mast_properties']['mast_height_m'],
-                    'Mast OEM': meas_loc['mast_properties']['mast_oem']
-                })
-            meas_locs_df = pd.DataFrame(meas_locs)
-            meas_locs_df.set_index('Name', inplace=True)
-            return meas_locs_df
-
-    class _LoggerConfig:
-        def __init__(self, dm_measurements):
-            self._data_model = dm_measurements[0].get('logger_main_config')
-
-        @property
-        def data_model(self):
-            """
-            This is the original data model unchanged from this level down.
-
-            :return: The data model from this level down.
-            :rtype:  Dict or List
-            """
-            return self._data_model
-
-        @property
-        def table(self):
-            # for logger_config in self._data_model:
-            log_configs_df = pd.DataFrame(self._data_model)
-            log_configs_df.set_index('logger_name', inplace=True)
-            return log_configs_df
+    @property
+    def table(self):
+        df = pd.DataFrame({'': self._col_value}, index=self._index)
+        df_styled = df.style.set_properties(**{'text-align': 'left'})
+        df_styled = df_styled.set_table_styles([dict(selector='th', props=[('text-align', 'left')])])
+        return df_styled
 
 
+class _MeasurementLocation:
+    def __init__(self, dm):
+        self._data_model = dm.get('measurement_location')[0]
+
+    @property
+    def data_model(self):
+        return self._data_model
+
+    @property
+    def table(self):
+        # Rename for column headings?
+        if self._data_model.get('mast_properties') is None:
+            mast_gemoetry = 'Unknown'
+            mast_height = 'Unknown'
+            mast_oem = 'Unknown'
+        else:
+            mast_gemoetry = self._data_model.get('mast_properties').get('mast_geometry_id')
+            mast_height = self._data_model.get('mast_properties').get('mast_height_m')
+            mast_oem = self._data_model.get('mast_properties').get('mast_oem')
+        meas_locs = [{
+                'Name': self._data_model['name'],
+                'Latitude [ddeg]': self._data_model['latitude_ddeg'],
+                'Longitude [ddeg]': self._data_model['longitude_ddeg'],
+                'Measurement Station Type': self._data_model['measurement_station_type_id'],
+                'Notes': self._data_model['notes'],
+                'Date of Update': self._data_model['update_at'],
+                'Mast Geometry': mast_gemoetry,
+                'Mast Height [m]': mast_height,
+                'Mast OEM': mast_oem
+            }]
+        meas_locs_df = pd.DataFrame(meas_locs)
+        meas_locs_df.set_index('Name', inplace=True)
+        return meas_locs_df
+
+
+class _LoggerConfigs:
+    def __init__(self, dm_measurement_loc):
+        self._data_model = dm_measurement_loc.get('logger_main_config')
+
+    @property
+    def data_model(self):
+        """
+        This is the original data model unchanged from this level down.
+
+        :return: The data model from this level down.
+        :rtype:  Dict or List
+        """
+        return self._data_model
+
+    @property
+    def table(self):
+        # for logger_config in self._data_model:
+        log_configs_df = pd.DataFrame(self._data_model)
+        log_configs_df.set_index('logger_name', inplace=True)
+        return log_configs_df
 
 
 
 
 
-    class _Measurements:
-        def __init__(self, dm_measurements):
-            # for meas_loc in dm['measurement_location']:
-            self._data_model = _get_meas_points(dm_measurements[0].get('measurement_point'))
 
-        @property
-        def data_model(self):
-            return self._data_model
 
-        @property
-        def table(self):
-            sensors_table = _format_sensor_table(self._data_model, table_type='meas_points')
-            return sensors_table.drop_duplicates()
+class _Measurements:
+    def __init__(self, dm_measurement_loc):
+        # for meas_loc in dm['measurement_location']:
+        self._data_model = _get_meas_points(dm_measurement_loc.get('measurement_point'))
 
-        @property
-        def table_detailed(self):
-            sensors_table = _format_sensor_table(self._data_model)
-            return sensors_table
+    @property
+    def data_model(self):
+        return self._data_model
 
-    class _Wspds:
-        def __init__(self, dm):
-            """
-            Extract the wind speed measurement points
+    @property
+    def table(self):
+        sensors_table = _format_sensor_table(self._data_model, table_type='meas_points')
+        return sensors_table.drop_duplicates()
 
-            """
-            meas_points = _get_meas_points(dm.get('measurement_location')[0].get('measurement_point'))
-            wspds = []
-            for meas_point in meas_points:
-                if meas_point.get('measurement_type_id') == 'wind_speed':
-                    wspds.append(meas_point)
-            self._data_model = wspds
+    @property
+    def table_detailed(self):
+        sensors_table = _format_sensor_table(self._data_model)
+        return sensors_table
 
-        @property
-        def data_model(self):
-            return self._data_model
 
-        @property
-        def names(self):
-            wspd_names = []
-            for wspd in self._data_model:
-                if wspd.get('name') not in wspd_names:
-                    wspd_names.append(wspd.get('name'))
-            return wspd_names
+class _Wspds:
+    def __init__(self, dm_measurement_loc):
+        """
+        Extract the wind speed measurement points
 
-        @property
-        def table(self):
-            sensors_table = _format_sensor_table(self._data_model, table_type='speed_info')
-            return sensors_table.drop_duplicates()
+        :param dm_measurement_loc: The measurement location from the WRA Data Model
+        :type dm_measurement_loc:  Dict
+
+        """
+        meas_points = _get_meas_points(dm_measurement_loc.get('measurement_point'))
+        wspds = []
+        for meas_point in meas_points:
+            if meas_point.get('measurement_type_id') == 'wind_speed':
+                wspds.append(meas_point)
+        self._data_model = wspds
+
+    @property
+    def data_model(self):
+        return self._data_model
+
+    @property
+    def names(self):
+        wspd_names = []
+        for wspd in self._data_model:
+            if wspd.get('name') not in wspd_names:
+                wspd_names.append(wspd.get('name'))
+        return wspd_names
+
+    @property
+    def table(self):
+        sensors_table = _format_sensor_table(self._data_model, table_type='speed_info')
+        return sensors_table.drop_duplicates()
 
 
