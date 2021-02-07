@@ -170,6 +170,8 @@ def _get_title(property_name, schema):
     """
     Get the title for the property name from the WRA Data Model Schema.
 
+    If the property name is not found it will return itself.
+
     *** Bug: 'sensitivity' finds 'Logger Sensitivity' when it could be 'Calibration Sensitivity' ***
 
     :param property_name: The property name to find.
@@ -179,7 +181,6 @@ def _get_title(property_name, schema):
     :return:              The title as stated in the schema.
     :rtype:               str
     """
-    not_found = 'not_found'
     # search through definitions first
     if schema.get('definitions') is not None:
         if property_name in schema.get('definitions').keys():
@@ -193,14 +194,15 @@ def _get_title(property_name, schema):
             if v.get('type') is not None and 'array' in v['type']:
                 # move down into an array
                 result = _get_title(property_name, v['items'])
-                if result != not_found:
+                if result != property_name:
                     return result
             elif v.get('type') is not None and 'object' in v['type']:
                 # move down into an object
                 result = _get_title(property_name, v)
-                if result != not_found:
+                if result != property_name:
                     return result
-    return not_found
+    # can't find the property_name in the schema, return itself
+    return property_name
 
 
 class Station:
@@ -233,7 +235,8 @@ class Station:
         # self.__header = self._get_header()
         self.__header = _Header(dm=self.__data_model, schema=self.__schema)
         self.__measurement_location = _MeasurementLocation(dm=self.__data_model)
-        self.__logger_configs = _LoggerConfigs(dm_measurement_loc=self.__measurement_location.data_model)
+        self.__logger_configs = _LoggerConfigs(dm_measurement_loc=self.__measurement_location.data_model,
+                                               schema=self.__schema)
         self.__measurements = _Measurements(dm_measurement_loc=self.__measurement_location.data_model)
         self.__wspds = _Wspds(dm_measurement_loc=self.__measurement_location.data_model)
 
@@ -353,11 +356,7 @@ class _Header:
         # get titles for each property
         titles = []
         for key in self._keys:
-            title = _get_title(key, self._schema)
-            if title == 'not_found':
-                titles.append(key)
-            else:
-                titles.append(title)
+            titles.append(_get_title(key, self._schema))
         df = pd.DataFrame({'': self._values}, index=titles)
         df_styled = df.style.set_properties(**{'text-align': 'left'})
         df_styled = df_styled.set_table_styles([dict(selector='th', props=[('text-align', 'left')])])
@@ -403,8 +402,9 @@ class _MeasurementLocation:
 
 
 class _LoggerConfigs:
-    def __init__(self, dm_measurement_loc):
+    def __init__(self, dm_measurement_loc, schema):
         self._data_model = dm_measurement_loc.get('logger_main_config')
+        self._schema = schema
 
     @property
     def data_model(self):
@@ -418,9 +418,15 @@ class _LoggerConfigs:
 
     @property
     def table(self):
-        # for logger_config in self._data_model:
-        log_configs_df = pd.DataFrame(self._data_model)
-        log_configs_df.set_index('logger_name', inplace=True)
+        # build a replica list of loggers which have the schema titles
+        temp_loggers = []
+        temp_logger = {}
+        for logger in self._data_model:
+            for k, v in logger.items():
+                temp_logger[_get_title(k, self._schema)] = v
+            temp_loggers.append(temp_logger)
+        log_configs_df = pd.DataFrame(temp_loggers)
+        log_configs_df.set_index('Logger Name', inplace=True)
         return log_configs_df
 
 

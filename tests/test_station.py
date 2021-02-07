@@ -20,7 +20,8 @@ def test_get_title():
         "reference_unit": "Reference Unit",
         "vane_dead_band_orientation_deg": "Vane Dead Band Orientation [deg]",
         "author": "Author",
-        "date_from": "Date From"
+        "date_from": "Date From",
+        "author2": "author2"
     }
     for name, title in property_name_title.items():
         assert bw.load.station._get_title(name, SCHEMA) == title
