@@ -166,6 +166,43 @@ def _format_sensor_table(meas_points, table_type='full'):
     return sensors_table_report
 
 
+def _get_title(property_name, schema):
+    """
+    Get the title for the property name from the WRA Data Model Schema.
+
+    *** Bug: 'sensitivity' finds 'Logger Sensitivity' when it could be 'Calibration Sensitivity' ***
+
+    :param property_name: The property name to find.
+    :type property_name:  str
+    :param schema:        The WRA Data Model Schema.
+    :type schema:         dict
+    :return:              The title as stated in the schema.
+    :rtype:               str
+    """
+    not_found = 'not_found'
+    # search through definitions first
+    if schema.get('definitions') is not None:
+        if property_name in schema.get('definitions').keys():
+            return schema.get('definitions').get(property_name).get('title')
+    # search through properties
+    if schema.get('properties') is not None:
+        if property_name in schema.get('properties').keys():
+            return schema.get('properties').get(property_name).get('title')
+        # if not found in properties, loop through properties to find an array or object to move down to
+        for k, v in schema.get('properties').items():
+            if v.get('type') is not None and 'array' in v['type']:
+                # move down into an array
+                result = _get_title(property_name, v['items'])
+                if result != not_found:
+                    return result
+            elif v.get('type') is not None and 'object' in v['type']:
+                # move down into an object
+                result = _get_title(property_name, v)
+                if result != not_found:
+                    return result
+    return not_found
+
+
 class Station:
     class __DotDict(dict):
         """
@@ -191,9 +228,10 @@ class Station:
         :rtype:                DataModel
         """
         self.__data_model = self._load_wra_data_model(wra_data_model)
+        version = self.__data_model.get('version')
+        self.__schema = self._get_schema(version=version)
         # self.__header = self._get_header()
-        self.__header = _Header(dm=self.__data_model)
-        self.__schema = self._get_schema(version=self.__header.info['version'])
+        self.__header = _Header(dm=self.__data_model, schema=self.__schema)
         self.__measurement_location = _MeasurementLocation(dm=self.__data_model)
         self.__logger_configs = _LoggerConfigs(dm_measurement_loc=self.__measurement_location.data_model)
         self.__measurements = _Measurements(dm_measurement_loc=self.__measurement_location.data_model)
@@ -288,22 +326,23 @@ class Station:
 
 
 class _Header:
-    def __init__(self, dm):
+    def __init__(self, dm, schema):
         """
         Extract the header info from the data model and return either a dict or table
 
         """
-        index = []
-        col_value = []
+        self._schema = schema
+        keys = []
+        values = []
         header_dict = {}
         for key, value in dm.items():
             if key != 'measurement_location':
-                index.append(key)
-                col_value.append(value)
+                keys.append(key)
+                values.append(value)
                 header_dict[key] = value
         self._info = header_dict
-        self._index = index
-        self._col_value = col_value
+        self._keys = keys
+        self._values = values
 
     @property
     def info(self):
@@ -311,7 +350,15 @@ class _Header:
 
     @property
     def table(self):
-        df = pd.DataFrame({'': self._col_value}, index=self._index)
+        # get titles for each property
+        titles = []
+        for key in self._keys:
+            title = _get_title(key, self._schema)
+            if title == 'not_found':
+                titles.append(key)
+            else:
+                titles.append(title)
+        df = pd.DataFrame({'': self._values}, index=titles)
         df_styled = df.style.set_properties(**{'text-align': 'left'})
         df_styled = df_styled.set_table_styles([dict(selector='th', props=[('text-align', 'left')])])
         return df_styled
@@ -319,6 +366,9 @@ class _Header:
 
 class _MeasurementLocation:
     def __init__(self, dm):
+        if len(dm.get('measurement_location')) > 1:
+            raise Exception('More than one measurement location found in the data model. Only processing'
+                            'the first one found. Please remove extra measurement locations.')
         self._data_model = dm.get('measurement_location')[0]
 
     @property
@@ -329,11 +379,11 @@ class _MeasurementLocation:
     def table(self):
         # Rename for column headings?
         if self._data_model.get('mast_properties') is None:
-            mast_gemoetry = 'Unknown'
+            mast_geometry = 'Unknown'
             mast_height = 'Unknown'
             mast_oem = 'Unknown'
         else:
-            mast_gemoetry = self._data_model.get('mast_properties').get('mast_geometry_id')
+            mast_geometry = self._data_model.get('mast_properties').get('mast_geometry_id')
             mast_height = self._data_model.get('mast_properties').get('mast_height_m')
             mast_oem = self._data_model.get('mast_properties').get('mast_oem')
         meas_locs = [{
@@ -343,7 +393,7 @@ class _MeasurementLocation:
                 'Measurement Station Type': self._data_model['measurement_station_type_id'],
                 'Notes': self._data_model['notes'],
                 'Date of Update': self._data_model['update_at'],
-                'Mast Geometry': mast_gemoetry,
+                'Mast Geometry': mast_geometry,
                 'Mast Height [m]': mast_height,
                 'Mast OEM': mast_oem
             }]
@@ -372,11 +422,6 @@ class _LoggerConfigs:
         log_configs_df = pd.DataFrame(self._data_model)
         log_configs_df.set_index('logger_name', inplace=True)
         return log_configs_df
-
-
-
-
-
 
 
 class _Measurements:
@@ -431,5 +476,3 @@ class _Wspds:
     def table(self):
         sensors_table = _format_sensor_table(self._data_model, table_type='speed_info')
         return sensors_table.drop_duplicates()
-
-
