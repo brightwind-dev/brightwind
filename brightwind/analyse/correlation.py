@@ -18,11 +18,11 @@ import numpy as np
 import pandas as pd
 from typing import List
 from brightwind.transform import transform as tf
-from brightwind.analyse.plot import plot_scatter
-from brightwind.analyse.plot import plot_scatter_wdir
+from brightwind.analyse.plot import plot_scatter, plot_scatter_by_sector, plot_scatter_wdir
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from brightwind.analyse.analyse import momm, _binned_direction_series
+from brightwind.transform.transform import offset_wind_direction
 # from sklearn.svm import SVR as sklearn_SVR
 # from sklearn.model_selection import cross_val_score as sklearn_cross_val_score
 from brightwind.utils import utils
@@ -35,7 +35,7 @@ __all__ = ['']
 
 class CorrelBase:
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None, target_dir=None,
-                 ref_aggregation_method='mean', target_aggregation_method='mean'):
+                 sectors=12, direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean'):
         self.ref_spd = ref_spd
         self.ref_dir = ref_dir
         self.target_spd = target_spd
@@ -55,6 +55,29 @@ class CorrelBase:
                                          ref_dir, target_dir, ref_aggregation_method, target_aggregation_method)
         self.num_data_pts = len(self.data)
         self.params = {'status': 'not yet run'}
+
+        # The self variables defined below are defined for OrdinaryLeastSquares, OrthogonalLeastSquares and SpeedSort
+        if ref_dir is not None:
+            self.sectors = sectors
+            self.direction_bin_array = direction_bin_array
+
+            if direction_bin_array is None:
+                sector_direction_bins = utils.get_direction_bin_array(sectors)
+                step = float(max(np.unique(np.diff(sector_direction_bins))))
+                self._dir_sector_max = [angle for i, angle in enumerate(sector_direction_bins)
+                                        if offset_wind_direction(float(angle), step/2) > sector_direction_bins[i-1]]
+                self._dir_sector_min = self._dir_sector_max.copy()
+                self._dir_sector_min.insert(0, self._dir_sector_min.pop())
+            else:
+                raise NotImplementedError("Analysis using direction_bin_array input not implemented yet.")
+                # self.sectors = len(direction_bin_array) - 1
+                # dir_sector_max = direction_bin_array[1:]
+                # dir_sector_min = direction_bin_array[:-1]
+
+            self._ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
+                                                          direction_bin_array=self.direction_bin_array
+                                                          ).rename('ref_dir_bin')
+            self._predict_ref_spd = pd.Series()
 
     def _averager(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir,
                   ref_aggregation_method, target_aggregation_method):
@@ -78,12 +101,65 @@ class CorrelBase:
         """Show the dictionary of parameters"""
         pprint.pprint(self.params)
 
-    def plot(self, title=""):
-        """For plotting"""
-        return plot_scatter(self.data[self._ref_spd_col_name],
-                            self.data[self._tar_spd_col_name],
-                            self._predict(self.data[self._ref_spd_col_name]),
-                            x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name, line_of_slope_1=True)
+    def plot(self, figure_size=(10, 10.2)):
+        """
+        Plots scatter plot of reference versus target speed data. If ref_dir is given as input to the correlation then
+        the plot is showing scatter subplots for each sector. The regression line and the line of slope 1 passing
+        through the origin are also shown on each plot.
+
+        :param figure_size: Figure size in tuple format (width, height)
+        :type figure_size:  tuple
+        :returns:           A matplotlib figure
+        :rtype:             matplotlib.figure.Figure
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_csv(bw.demo_datasets.demo_data)
+            m2_ne = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+
+            # Correlate by directional sector, using 36 sectors.
+            ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'],
+                                                     ref_dir=m2_ne['WD50m_deg'], averaging_prd='1D',
+                                                     coverage_threshold=0.9, sectors=36)
+            ols_cor.run()
+
+            # To plot the scatter subplots by directional sectors, the regression line and the line of
+            # slope 1 passing through the origin
+            ols_cor.plot()
+
+            # To set the figure size
+            ols_cor.plot(figure_size=(20, 20.2))
+
+        """
+        if self.ref_dir is None:
+            return plot_scatter(self.data[self._ref_spd_col_name],
+                                self.data[self._tar_spd_col_name],
+                                self._predict(self.data[self._ref_spd_col_name]),
+                                x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name,
+                                line_of_slope_1=True, figure_size=figure_size)
+        else:
+            """For plotting scatter by sector"""
+            return plot_scatter_by_sector(self.data[self._ref_spd_col_name],
+                                          self.data[self._tar_spd_col_name],
+                                          self.data[self._ref_dir_col_name],
+                                          trendline_y=self._predict_ref_spd, sectors=self.sectors,
+                                          line_of_slope_1=True, figure_size=figure_size)
+
+    @staticmethod
+    def _get_r2(target_spd, predict_spd):
+        """Returns the r2 score of the model"""
+        return 1.0 - (sum((target_spd - predict_spd) ** 2) /
+                      (sum((target_spd - target_spd.mean()) ** 2)))
+
+    @staticmethod
+    def _get_logic_dir_sector(ref_dir, sector_min, sector_max):
+        if sector_max > sector_min:
+            logic_sector = ((ref_dir >= sector_min) & (ref_dir < sector_max))
+        else:
+            logic_sector = ((ref_dir >= sector_min) & (ref_dir <= 360)) | \
+                           ((ref_dir < sector_max) & (ref_dir >= 0))
+        return logic_sector
 
     def _get_synth_start_dates(self):
         none_even_freq = ['5H', '7H', '9H', '10H', '11H', '13H', '14H', '15H', '16H', '17H', '18H', '19H',
@@ -135,25 +211,42 @@ class CorrelBase:
 
         if ext_input is None:
             ref_start_date, target_start_date = self._get_synth_start_dates()
-            synth_data = self._predict(tf.average_data_by_period(self.ref_spd[ref_start_date:], self.averaging_prd,
-                                                                 coverage_threshold=ref_coverage_threshold,
-                                                                 return_coverage=False))
-            output = tf.average_data_by_period(self.target_spd[target_start_date:], self.averaging_prd,
-                                               coverage_threshold=target_coverage_threshold,
-                                               return_coverage=False).combine_first(synth_data)
+
+            target_spd_averaged = tf.average_data_by_period(self.target_spd[target_start_date:], self.averaging_prd,
+                                                            coverage_threshold=target_coverage_threshold,
+                                                            return_coverage=False)
+            if self.ref_dir is None:
+                ref_spd_averaged = tf.average_data_by_period(self.ref_spd[ref_start_date:], self.averaging_prd,
+                                                             coverage_threshold=ref_coverage_threshold,
+                                                             return_coverage=False)
+                synth_data = self._predict(ref_spd_averaged)
+            else:
+                ref_df = pd.concat([self.ref_spd, self.ref_dir], axis=1, join='inner')
+                ref_averaged = tf.average_data_by_period(ref_df[ref_start_date:], self.averaging_prd,
+                                                         wdir_column_names=self._ref_dir_col_name,
+                                                         coverage_threshold=ref_coverage_threshold,
+                                                         return_coverage=False)
+                synth_data = ref_averaged[self._ref_spd_col_name].copy() * np.nan
+                for params_dict in self.params:
+                    if params_dict['num_data_points'] > 1:
+                        logic_sect = self._get_logic_dir_sector(ref_dir=ref_averaged[self._ref_dir_col_name],
+                                                                sector_min=params_dict['sector_min'],
+                                                                sector_max=params_dict['sector_max'])
+
+                        synth_data[logic_sect] = self._predict(ref_spd=ref_averaged[self._ref_spd_col_name][logic_sect],
+                                                               slope=params_dict['slope'], offset=params_dict['offset'])
+            output = target_spd_averaged.combine_first(synth_data)
         else:
-            output = self._predict(ext_input)
+            if self.ref_dir is None:
+                output = self._predict(ext_input)
+            else:
+                raise NotImplementedError
 
         if isinstance(output, pd.Series):
             return output.to_frame(name=self.target_spd.name + "_Synthesized")
         else:
             output.columns = [self.target_spd.name + "_Synthesized"]
             return output
-
-    def get_r2(self):
-        """Returns the r2 score of the model"""
-        return 1.0 - (sum((self.data[self._tar_spd_col_name] - self._predict(self.data[self._ref_spd_col_name])) ** 2) /
-                      (sum((self.data[self._tar_spd_col_name] - self.data[self._tar_spd_col_name].mean()) ** 2)))
 
     # def get_error_metrics(self):
     #     raise NotImplementedError
@@ -181,6 +274,17 @@ class OrdinaryLeastSquares(CorrelBase):
     :type averaging_prd:              str
     :param coverage_threshold:        Minimum coverage required when aggregating the data to the averaging_prd.
     :type coverage_threshold:         float
+    :param ref_dir:                   Series containing reference wind direction as a column, timestamp as the index.
+    :type ref_dir:                    pd.Series
+    :param sectors:                   Number of direction sectors to bin in to. The first sector is centered at 0 by
+                                      default. To change that behaviour specify 'direction_bin_array' which overwrites
+                                      'sectors'.
+    :type sectors:                    int
+    :param direction_bin_array:       An optional parameter where if you want custom direction bins, pass an array
+                                      of the bins. To add custom bins for direction sectors, overwrites sectors. For
+                                      instance, for direction bins [0,120), [120, 215), [215, 360) the list would
+                                      be [0, 120, 215, 360]
+    :type direction_bin_array:        List()
     :param ref_aggregation_method:    Default `mean`, returns the mean of the data for the specified period. Can also
                                       use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for
                                       median, product, summation, standard deviation, variance, maximum and minimum
@@ -205,16 +309,16 @@ class OrdinaryLeastSquares(CorrelBase):
                                                  coverage_threshold=0.95)
         ols_cor.run()
 
-        # To plot the scatter plot and line fit.
+        # To plot the scatter plot and regression line.
         ols_cor.plot()
+
+        # To change the plot's size.
+        ols_cor.plot(figure_size=(12,15))
 
         # To show the resulting parameters.
         ols_cor.params
         # or
         ols_cor.show_params()
-
-        # To calculate the correlation coefficient R^2.
-        ols_cor.get_r2()
 
         # To synthesize data at the target site.
         ols_cor.synthesize()
@@ -243,28 +347,75 @@ class OrdinaryLeastSquares(CorrelBase):
         ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['T2M_degC'], data['T2m'],
                                                  averaging_prd='1H', coverage_threshold=0,
                                                  ref_aggregation_method='min', target_aggregation_method='min')
+
+        # Correlate by directional sector, using 36 sectors.
+        ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'],
+                                                ref_dir=m2_ne['WD50m_deg'], averaging_prd='1D',
+                                                coverage_threshold=0.9, sectors=36)
+
     """
-    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9,
-                 ref_aggregation_method='mean', target_aggregation_method='mean'):
-        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold,
+    def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9, ref_dir=None, sectors=12,
+                 direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean'):
+        CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
+                            sectors=sectors, direction_bin_array=direction_bin_array,
                             ref_aggregation_method=ref_aggregation_method,
                             target_aggregation_method=target_aggregation_method)
 
     def __repr__(self):
         return 'Ordinary Least Squares Model ' + str(self.params)
 
-    def run(self, show_params=True):
-        p, res = lstsq(np.nan_to_num(self.data[self._ref_spd_col_name].values.flatten()[:, np.newaxis] ** [1, 0]),
-                       np.nan_to_num(self.data[self._tar_spd_col_name].values.flatten()))[0:2]
+    @staticmethod
+    def _leastsquare(ref_spd, target_spd):
+        p, res = lstsq(np.nan_to_num(ref_spd.values.flatten()[:, np.newaxis] ** [1, 0]),
+                       np.nan_to_num(target_spd.values.flatten()))[0:2]
+        return p[0], p[1]
 
-        self.params = dict([('slope', p[0]), ('offset', p[1])])
-        self.params['r2'] = self.get_r2()
-        self.params['num_data_points'] = self.num_data_pts
+    def run(self, show_params=True):
+        if self.ref_dir is None:
+            slope, offset = self._leastsquare(ref_spd=self.data[self._ref_spd_col_name],
+                                              target_spd=self.data[self._tar_spd_col_name])
+            self.params = dict([('slope', slope), ('offset', offset)])
+            self.params['r2'] = self._get_r2(target_spd=self.data[self._tar_spd_col_name],
+                                             predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]))
+            self.params['num_data_points'] = self.num_data_pts
+        elif type(self.ref_dir) is pd.Series:
+            self.params = []
+            for sector, group in pd.concat([self.data, self._ref_dir_bins],
+                                           axis=1, join='inner').dropna().groupby(['ref_dir_bin']):
+                # print('Processing sector:', sector)
+                if len(group) > 1:
+                    slope, offset = self._leastsquare(ref_spd=group[self._ref_spd_col_name],
+                                                      target_spd=group[self._tar_spd_col_name])
+                    predict_ref_spd_sector = self._predict(ref_spd=group[self._ref_spd_col_name],
+                                                           slope=slope, offset=offset)
+                    r2 = self._get_r2(target_spd=group[self._tar_spd_col_name],
+                                      predict_spd=predict_ref_spd_sector)
+                else:
+                    slope = np.nan
+                    offset = np.nan
+                    r2 = np.nan
+                    predict_ref_spd_sector = self._predict(ref_spd=group[self._ref_spd_col_name],
+                                                           slope=slope, offset=offset)
+
+                self._predict_ref_spd = pd.concat([self._predict_ref_spd, predict_ref_spd_sector])
+                self.params.append({'slope': slope,
+                                    'offset': offset,
+                                    'r2': r2,
+                                    'num_data_points': len(group[self._tar_spd_col_name]),
+                                    'sector_min': self._dir_sector_min[sector-1],
+                                    'sector_max': self._dir_sector_max[sector-1],
+                                    'sector_number': sector})
+            self._predict_ref_spd.sort_index(ascending=True, inplace=True)
+
         if show_params:
             self.show_params()
 
-    def _predict(self, ref_spd):
-        return (ref_spd * self.params['slope']) + self.params['offset']
+    def _predict(self, ref_spd, slope=None, offset=None):
+        if slope is None:
+            slope = self.params['slope']
+        if offset is None:
+            offset = self.params['offset']
+        return ref_spd * slope + offset
 
 
 class OrthogonalLeastSquares(CorrelBase):
@@ -312,16 +463,17 @@ class OrthogonalLeastSquares(CorrelBase):
         orthog_cor = bw.Correl.OrthogonalLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
                                                       coverage_threshold=0.95)
         orthog_cor.run()
-        # To plot the scatter plot and line fit.
-        orthog_cor.plot()
+
+        # To plot the scatter plot and regression line.
+        ols_cor.plot()
+
+        # To change the plot's size.
+        ols_cor.plot(figure_size=(12,15))
 
         # To show the resulting parameters.
         orthog_cor.params
         # or
         orthog_cor.show_params()
-
-        # To calculate the correlation coefficient R^2.
-        orthog_cor.get_r2()
 
         # To synthesize data at the target site.
         orthog_cor.synthesize()
@@ -373,7 +525,8 @@ class OrthogonalLeastSquares(CorrelBase):
         model = ODR(fit_data, Model(OrthogonalLeastSquares.linear_func), beta0=[p[0][0], p[1][0]])
         output = model.run()
         self.params = dict([('slope', output.beta[0]), ('offset', output.beta[1])])
-        self.params['r2'] = self.get_r2()
+        self.params['r2'] = self._get_r2(target_spd=self.data[self._tar_spd_col_name],
+                                         predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]))
         self.params['num_data_points'] = self.num_data_pts
         # print("Model output:", output.pprint())
         if show_params:
@@ -521,7 +674,7 @@ class MultipleLinearRegression(CorrelBase):
                            self._predict(self.data[self._ref_spd_col_names])) ** 2) /
                       (sum((self.data[self._tar_spd_col_name] - self.data[self._tar_spd_col_name].mean()) ** 2)))
 
-    def plot(self, title=""):
+    def plot(self, figure_size=(10, 10.2)):
         raise NotImplementedError
 
 
@@ -630,7 +783,7 @@ class SpeedSort(CorrelBase):
                 return x * slope + offset
             return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
 
-        def plot_model(self, title=None):
+        def plot_model(self):
             return plot_scatter(self.sector_ref,
                                 self.sector_target,
                                 self.sector_predict(self.sector_ref),
@@ -693,18 +846,15 @@ class SpeedSort(CorrelBase):
             ss_cor.get_result_table()
             ss_cor.synthesize()
 
-
             # Sending an array of direction sectors
             ss_cor = bw.Correl.SpeedSort(m2['WS50m_m/s'], m2['WD50m_deg'], data['Spd80mN'], data['Dir78mS'],
                                          averaging_prd='1H', direction_bin_array=[0,90,130,200,360])
             ss_cor.run()
+
         """
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
-                            target_dir=target_dir)
-        self.sectors = sectors
-        self.direction_bin_array = direction_bin_array
-        if direction_bin_array is not None:
-            self.sectors = len(direction_bin_array) - 1
+                            target_dir=target_dir, sectors=sectors, direction_bin_array=direction_bin_array)
+
         if lt_ref_speed is None:
             self.lt_ref_speed = momm(self.data[self._ref_spd_col_name])
         else:
@@ -717,10 +867,6 @@ class SpeedSort(CorrelBase):
         # for low ref_speed and high target_speed recalculate direction sector
         self._adjust_low_reference_speed_dir()
 
-        self.ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
-                                                     direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')
-        self.data = pd.concat([self.data, self.ref_dir_bins], axis=1, join='inner')
-        self.data = self.data.dropna()
         self.speed_model = dict()
 
     def __repr__(self):
@@ -775,7 +921,8 @@ class SpeedSort(CorrelBase):
         self.params['ref_veer_cutoff'] = round(self.ref_veer_cutoff, 5)
         self.params['target_veer_cutoff'] = round(self.target_veer_cutoff, 5)
         self.params['overall_average_veer'] = round(self.overall_veer, 5)
-        for sector, group in self.data.groupby(['ref_dir_bin']):
+        for sector, group in pd.concat([self.data, self._ref_dir_bins],
+                                       axis=1, join='inner').dropna().groupby(['ref_dir_bin']):
             # print('Processing sector:', sector)
             self.speed_model[sector] = SpeedSort.SectorSpeedModel(ref_spd=group[self._ref_spd_col_name],
                                                                   target_spd=group[self._tar_spd_col_name],

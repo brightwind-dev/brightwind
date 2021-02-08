@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import warnings
 
-
 wndspd = 8
 wndspd_df = pd.DataFrame([2, 13, np.NaN, 5, 8])
 wndspd_series = pd.Series([2, 13, np.NaN, 5, 8])
@@ -45,6 +44,18 @@ def test_ordinary_least_squares():
     correl_monthly_results = {'slope': 0.91963, 'offset': 0.61137, 'r2': 0.8192, 'num_data_points': 18}
     correl_monthly_results_90 = {'slope': 0.99357, 'offset': -0.03654, 'r2': 0.9433, 'num_data_points': 16}
     correl_hourly_results = {'slope': 0.98922, 'offset': -0.03616, 'r2': 0.7379, 'num_data_points': 12369}
+    correl_monthly_by_sector_results = [{'num_data_points': 54, 'offset': -1.2344603199476245, 'r2': 0.8783996355797528,
+                                         'sector_max': 45.0, 'sector_min': 315.0, 'sector_number': 1,
+                                         'slope': 1.1638279733401182},
+                                        {'num_data_points': 92, 'offset': -0.055627810879849644,
+                                         'r2': 0.7757314640946426, 'sector_max': 135.0, 'sector_min': 45.0,
+                                         'sector_number': 2, 'slope': 0.9021112054525899},
+                                        {'num_data_points': 157, 'offset': -0.3483428410889726,
+                                         'r2': 0.8956396609535162, 'sector_max': 225.0, 'sector_min': 135.0,
+                                         'sector_number': 3, 'slope': 1.0287715500843069},
+                                        {'num_data_points': 206, 'offset': -0.08618395596626072,
+                                         'r2': 0.9304631940882327, 'sector_max': 315.0, 'sector_min': 225.0,
+                                         'sector_number': 4, 'slope': 1.028330085357324}]
 
     correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
                                             coverage_threshold=0)
@@ -83,78 +94,114 @@ def test_ordinary_least_squares():
                                             averaging_prd='1H', coverage_threshold=1,
                                             ref_aggregation_method='sum', target_aggregation_method='sum')
     correl.run()
+    correl.plot()
     assert round(correl.params['slope'], 5) == correl_aggregation_results['slope']
     assert round(correl.params['offset'], 5) == correl_aggregation_results['offset']
     assert round(correl.params['r2'], 4) == correl_aggregation_results['r2']
     assert round(correl.params['num_data_points'], 5) == correl_aggregation_results['num_data_points']
 
+    # check correlation by sector
+    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'],
+                                            ref_dir=MERRA2_NE['WD50m_deg'], averaging_prd='1D',
+                                            coverage_threshold=0.9, sectors=4)
+    correl.run()
+    correl.plot()
+    assert len(correl_monthly_by_sector_results) == len(correl.params)
+
+    for test_param, param in zip(correl_monthly_by_sector_results, correl.params):
+        assert round(test_param['slope'], 5) == round(param['slope'], 5)
+        assert round(test_param['offset'], 5) == round(param['offset'], 5)
+        assert round(test_param['r2'], 5) == round(param['r2'], 5)
+        assert test_param['num_data_points'] == param['num_data_points']
+        assert test_param['sector_min'] == param['sector_min']
+        assert test_param['sector_max'] == param['sector_max']
+        assert test_param['sector_number'] == param['sector_number']
+
 
 def test_synthesize():
-    # Test the synthesise for when the target data starts before the reference data.
-    result = {'Spd80mN_Synthesized': {'2016-02-11 00:00:00': 8.63072777777779,
-                                      '2016-02-21 00:00:00': 6.086831018518519,
-                                      '2016-03-02 00:00:00': 7.086503567981888,
-                                      '2016-03-12 00:00:00': 4.897541212360702,
-                                      '2016-03-22 00:00:00': 7.877298272421463,
-                                      '2016-04-01 00:00:00': 6.656276388888899,
-                                      '2016-04-11 00:00:00': 6.580104166666677,
-                                      '2016-04-21 00:00:00': 6.560243055555553,
-                                      '2016-05-01 00:00:00': 9.291759676888642,
-                                      '2016-05-11 00:00:00': 6.9470544917454085,
-                                      '2016-05-21 00:00:00': 4.797701636789135,
-                                      '2016-05-31 00:00:00': 3.7033950617284,
-                                      '2016-06-10 00:00:00': 4.693395138888888,
-                                      '2016-06-20 00:00:00': 6.504886805555568,
-                                      '2016-06-30 00:00:00': 7.931319444444444,
-                                      '2016-07-10 00:00:00': 7.283383011447513,
-                                      '2016-07-20 00:00:00': 5.323442197823473,
-                                      '2016-07-30 00:00:00': 8.539987847222225,
-                                      '2016-08-09 00:00:00': 6.592088888888887,
-                                      '2016-08-19 00:00:00': 6.016320833333339,
-                                      '2016-08-29 00:00:00': 8.502877314814816,
-                                      '2016-09-08 00:00:00': 8.54020632973431,
-                                      '2016-09-18 00:00:00': 8.501560364828546,
-                                      '2016-09-28 00:00:00': 7.811264880952389,
-                                      '2016-10-08 00:00:00': 6.903861805555553,
-                                      '2016-10-18 00:00:00': 6.173363194444445,
-                                      '2016-10-28 00:00:00': 5.325427083333329,
-                                      '2016-11-07 00:00:00': 7.738058265264794,
-                                      '2016-11-17 00:00:00': 5.2015049295114775,
-                                      '2016-11-27 00:00:00': 4.868479166666669,
-                                      '2016-12-07 00:00:00': 8.218102083333324,
-                                      '2016-12-17 00:00:00': 11.669419444444442,
-                                      '2016-12-27 00:00:00': 9.56760277777779,
-                                      '2017-01-06 00:00:00': 10.327056125191662,
-                                      '2017-01-16 00:00:00': 6.409178834121811,
-                                      '2017-01-26 00:00:00': 11.439151041666667,
-                                      '2017-02-05 00:00:00': 7.978196527777766,
-                                      '2017-02-15 00:00:00': 9.767215972222225,
-                                      '2017-02-25 00:00:00': 8.138878472222219,
-                                      '2017-03-07 00:00:00': 8.615134869947957,
-                                      '2017-03-17 00:00:00': 8.324815182745093,
-                                      '2017-03-27 00:00:00': 8.092620833333331,
-                                      '2017-04-06 00:00:00': 8.858566666666677,
-                                      '2017-04-16 00:00:00': 6.926072916666661,
-                                      '2017-04-26 00:00:00': 7.038437500000004,
-                                      '2017-05-06 00:00:00': 6.628228690007795,
-                                      '2017-05-16 00:00:00': 5.694735248634614,
-                                      '2017-05-26 00:00:00': 6.418529513888895,
-                                      '2017-06-05 00:00:00': 9.88184374999999,
-                                      '2017-06-15 00:00:00': 7.639711111111101,
-                                      '2017-06-25 00:00:00': 9.144633101851865,
-                                      '2017-07-05 00:00:00': np.NaN,
-                                      '2017-07-15 00:00:00': np.NaN,
-                                      '2017-07-25 00:00:00': 7.127115740740741,
-                                      '2017-08-04 00:00:00': 6.4158555555555505,
-                                      '2017-08-14 00:00:00': 7.510521527777763,
-                                      '2017-08-24 00:00:00': 5.943415798611104,
-                                      '2017-09-03 00:00:00': np.NaN,
-                                      '2017-09-13 00:00:00': np.NaN,
-                                      '2017-09-23 00:00:00': 12.601222222222226,
-                                      '2017-10-03 00:00:00': 9.425352777777784,
-                                      '2017-10-13 00:00:00': 9.466307638888878,
-                                      '2017-10-23 00:00:00': 8.84323971518988}}
+    result_ord_lst_sq = {'Spd80mN_Synthesized': {'2016-02-11 00:00:00': 8.63072777777779,
+                                                 '2016-02-21 00:00:00': 6.086831018518519,
+                                                 '2016-03-02 00:00:00': 7.086503567981888,
+                                                 '2016-03-12 00:00:00': 4.897541212360702,
+                                                 '2016-03-22 00:00:00': 7.877298272421463,
+                                                 '2016-04-01 00:00:00': 6.656276388888899,
+                                                 '2016-04-11 00:00:00': 6.580104166666677,
+                                                 '2016-04-21 00:00:00': 6.560243055555553,
+                                                 '2016-05-01 00:00:00': 9.291759676888642,
+                                                 '2016-05-11 00:00:00': 6.9470544917454085,
+                                                 '2016-05-21 00:00:00': 4.797701636789135,
+                                                 '2016-05-31 00:00:00': 3.7033950617284,
+                                                 '2016-06-10 00:00:00': 4.693395138888888,
+                                                 '2016-06-20 00:00:00': 6.504886805555568,
+                                                 '2016-06-30 00:00:00': 7.931319444444444,
+                                                 '2016-07-10 00:00:00': 7.283383011447513,
+                                                 '2016-07-20 00:00:00': 5.323442197823473,
+                                                 '2016-07-30 00:00:00': 8.539987847222225,
+                                                 '2016-08-09 00:00:00': 6.592088888888887,
+                                                 '2016-08-19 00:00:00': 6.016320833333339,
+                                                 '2016-08-29 00:00:00': 8.502877314814816,
+                                                 '2016-09-08 00:00:00': 8.54020632973431,
+                                                 '2016-09-18 00:00:00': 8.501560364828546,
+                                                 '2016-09-28 00:00:00': 7.811264880952389,
+                                                 '2016-10-08 00:00:00': 6.903861805555553,
+                                                 '2016-10-18 00:00:00': 6.173363194444445,
+                                                 '2016-10-28 00:00:00': 5.325427083333329,
+                                                 '2016-11-07 00:00:00': 7.738058265264794,
+                                                 '2016-11-17 00:00:00': 5.2015049295114775,
+                                                 '2016-11-27 00:00:00': 4.868479166666669,
+                                                 '2016-12-07 00:00:00': 8.218102083333324,
+                                                 '2016-12-17 00:00:00': 11.669419444444442,
+                                                 '2016-12-27 00:00:00': 9.56760277777779,
+                                                 '2017-01-06 00:00:00': 10.327056125191662,
+                                                 '2017-01-16 00:00:00': 6.409178834121811,
+                                                 '2017-01-26 00:00:00': 11.439151041666667,
+                                                 '2017-02-05 00:00:00': 7.978196527777766,
+                                                 '2017-02-15 00:00:00': 9.767215972222225,
+                                                 '2017-02-25 00:00:00': 8.138878472222219,
+                                                 '2017-03-07 00:00:00': 8.615134869947957,
+                                                 '2017-03-17 00:00:00': 8.324815182745093,
+                                                 '2017-03-27 00:00:00': 8.092620833333331,
+                                                 '2017-04-06 00:00:00': 8.858566666666677,
+                                                 '2017-04-16 00:00:00': 6.926072916666661,
+                                                 '2017-04-26 00:00:00': 7.038437500000004,
+                                                 '2017-05-06 00:00:00': 6.628228690007795,
+                                                 '2017-05-16 00:00:00': 5.694735248634614,
+                                                 '2017-05-26 00:00:00': 6.418529513888895,
+                                                 '2017-06-05 00:00:00': 9.88184374999999,
+                                                 '2017-06-15 00:00:00': 7.639711111111101,
+                                                 '2017-06-25 00:00:00': 9.144633101851865,
+                                                 '2017-07-05 00:00:00': np.NaN,
+                                                 '2017-07-15 00:00:00': np.NaN,
+                                                 '2017-07-25 00:00:00': 7.127115740740741,
+                                                 '2017-08-04 00:00:00': 6.4158555555555505,
+                                                 '2017-08-14 00:00:00': 7.510521527777763,
+                                                 '2017-08-24 00:00:00': 5.943415798611104,
+                                                 '2017-09-03 00:00:00': np.NaN,
+                                                 '2017-09-13 00:00:00': np.NaN,
+                                                 '2017-09-23 00:00:00': 12.601222222222226,
+                                                 '2017-10-03 00:00:00': 9.425352777777784,
+                                                 '2017-10-13 00:00:00': 9.466307638888878,
+                                                 '2017-10-23 00:00:00': 8.84323971518988}}
+    result_ord_lst_sq_dir = {'Spd80mN_Synthesized': {'2016-03-01': np.NaN,
+                                                     '2016-04-01': 6.598875,
+                                                     '2016-05-01': np.NaN,
+                                                     '2016-06-01': 5.108156,
+                                                     '2016-07-01': 6.319782,
+                                                     '2016-08-01': 7.093956,
+                                                     '2016-09-01': np.NaN,
+                                                     '2016-10-01': 6.669446,
+                                                     '2016-11-01': np.NaN,
+                                                     '2016-12-01': 8.900778,
+                                                     '2017-01-01': 9.501281,
+                                                     '2017-02-01': 9.134509,
+                                                     '2017-03-01': np.NaN,
+                                                     '2017-04-01': 7.783390,
+                                                     '2017-05-01': np.NaN,
+                                                     '2017-06-01': 8.525249,
+                                                     '2017-08-01': 6.715885,
+                                                     '2017-10-01': 9.479016}}
     data_spd80mn_even_months = DATA_CLND['Spd80mN'][DATA_CLND.index.month.isin([2, 4, 6, 8, 10, 12])]
+    # Test the synthesise for when the target data starts before the reference data.
     correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s']['2016-03-02 00:00:00':],
                                             data_spd80mn_even_months['2016-02-09 11:20:00':],
                                             averaging_prd='10D',
@@ -162,8 +209,19 @@ def test_synthesize():
     correl.run(show_params=False)
     synth = correl.synthesize(target_coverage_threshold=0)
 
-    for idx, row in pd.DataFrame(result).iterrows():
+    for idx, row in pd.DataFrame(result_ord_lst_sq).iterrows():
         assert str(row[0]) == str(synth.loc[idx][0])
+
+    # Test the synthesise for when the ref_dir is given as input.
+    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s']['2016-03-02 00:00:00':],
+                                            data_spd80mn_even_months['2016-02-09 11:20:00':],
+                                            ref_dir=MERRA2_NE['WD50m_deg'], averaging_prd='1M',
+                                            coverage_threshold=0.9, sectors=12)
+    correl.run(show_params=False)
+    synth = correl.synthesize()
+
+    for idx, row in pd.DataFrame(result_ord_lst_sq_dir).iterrows():
+        assert str(row[0]) == str(round(synth.loc[idx][0], 6))
 
 
 def test_orthogonal_least_squares():
@@ -173,8 +231,8 @@ def test_orthogonal_least_squares():
     correl = bw.Correl.OrthogonalLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
                                               coverage_threshold=0)
     correl.run()
-    assert round(correl.params['slope'], 5) == correl_monthly_results['slope']
-    assert round(correl.params['offset'], 5) == correl_monthly_results['offset']
+    assert round(correl.params['slope'], 3) == round(correl_monthly_results['slope'], 3)
+    assert round(correl.params['offset'], 3) == round(correl_monthly_results['offset'], 3)
     assert round(correl.params['r2'], 4) == correl_monthly_results['r2']
     assert round(correl.params['num_data_points'], 5) == correl_monthly_results['num_data_points']
 
@@ -259,7 +317,7 @@ def test_simple_speed_ratio():
         assert round(ssr.params['ref_long_term_momm'], 5) == result['ref_long_term_momm']
         assert round(ssr.params['target_long_term'], 5) == result['target_long_term']
         assert round(ssr.params['target_overlap_coverage'], 5) == result['target_overlap_coverage']
-        assert len(w) == 1
+        assert UserWarning in [warning.category for warning in w]
 
 
 def test_speed_sort():
