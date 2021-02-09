@@ -24,6 +24,7 @@ __all__ = ['average_data_by_period',
            'average_wdirs',
            'adjust_slope_offset',
            'scale_wind_speed',
+           'apply_wind_vane_deadband_offset',
            'offset_wind_direction',
            'selective_avg',
            'offset_timestamps',
@@ -934,6 +935,85 @@ def offset_wind_direction(wdir, offset: float):
         return wdir.add(offset).applymap(utils._range_0_to_360)
     elif isinstance(wdir, pd.Series):
         return wdir.add(offset).apply(utils._range_0_to_360)
+
+
+def apply_wind_vane_deadband_offset(data, meas_sensor_configs, inplace=False):
+    """
+    Apply deadband offsets to the wind vanes using the brightwind offset_wind_direction function. This function
+    automatically applies the deadband offset based on the meas sensor configs provided.
+
+    :param data:                Timeseries data.
+    :type data:                 pd.DataFrame or pd.Series
+    :param meas_sensor_configs: Measurement points information and sensor configurations extracted from the
+                                BrightWind platform using the merlin get_meas_sensor_configs() function.
+    :type meas_sensor_configs:  list(dict())
+    :param inplace:             If 'inplace' is True, the original direction data, contained in 'data', will be
+                                modified and replaced with the adjusted direction data. If 'inplace' is False, the
+                                original data will not be touched and instead a new object containing the adjusted
+                                direction data is created. To store this adjusted direction data, please ensure it is
+                                assigned to a new variable.
+    :type inplace:              Boolean
+    :return:                    Data with adjusted wind direction by the deadband orientation.
+    :rtype:                     pd.DataFrame or pd.Series
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        import merlin
+
+        meas_loc_uuid = '9344e576-6d5a-45f0-9750-2a7528ebfa14'
+        data = bw.load.load._LoadBWPlatform.get_data(meas_loc_uuid)
+        meas_sensor_configs = merlin.get_meas_sensor_configs(meas_loc_uuid, remove_duplicates=False)
+
+        # adjust wind directions by the deadband orientation, applying inplace
+        merlin.apply_wind_vane_deadband_offset(data, meas_sensor_configs, inplace=True)
+        print('\nWind vane deadband offset adjustment is completed.')
+
+        # adjust wind direction by the deadband orientation, and assign to new variable
+        data_wspds_adj = merlin.apply_wind_vane_deadband_offset(data, meas_sensor_configs)
+
+    """
+    data = data.copy(deep=True) if inplace is False else data
+
+    wdir_in_dataset = False
+
+    df = pd.DataFrame(data) if type(data) == pd.Series else data
+
+    for meas_sensor_config in meas_sensor_configs:
+        if meas_sensor_config['measurement_type_id'] == 'wind_direction':
+            if meas_sensor_config['name'] in df.columns:
+                wdir_in_dataset = True
+                if meas_sensor_config['date_to'] is None or meas_sensor_config['date_to'] == '2100-12-31':
+                    date_to_txt = 'the end of dataset'
+                else:
+                    date_to_txt = meas_sensor_config['date_to']
+
+                if meas_sensor_config.get('vane_dead_band_orientation_deg'):
+                    df[meas_sensor_config['name']][meas_sensor_config['date_from']:meas_sensor_config['date_to']] = \
+                        offset_wind_direction(
+                            df[meas_sensor_config['name']][meas_sensor_config['date_from']:meas_sensor_config['date_to']],
+                            float(meas_sensor_config['vane_dead_band_orientation_deg']))
+                    print('{0} adjusted by {1} degrees from {2} to {3} to account for deadband orientation.'
+                          .format(bold(meas_sensor_config['name']),
+                                  bold(str(meas_sensor_config['vane_dead_band_orientation_deg'])),
+                                  bold(meas_sensor_config['date_from']),
+                                  bold(date_to_txt)))
+                else:
+                    print('{} has dead_band_orientation value set as None from {} to {}.'
+                          .format(bold(meas_sensor_config['name']),
+                                  bold(meas_sensor_config['date_from']),
+                                  bold(date_to_txt)))
+            else:
+                print('{} is not found in data.'.format(bold(meas_sensor_config['name'])))
+
+    if wdir_in_dataset is False:
+        print('No wind direction measurement type found in the configurations.')
+
+    # if a Series is sent, send back a Series
+    if type(data) == pd.Series:
+        df = df[df.columns[0]]
+
+    return df
 
 
 def _selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2,
