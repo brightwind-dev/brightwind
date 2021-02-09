@@ -205,30 +205,31 @@ def _get_title(property_name, schema):
     return property_name
 
 
+# class __DotDict(dict):
+#     """
+#     dot.notation access to dictionary attributes
+#     dotmap is n alternative library https://github.com/drgrib/dotmap
+#     """
+#     __getattr__ = dict.get
+#     __setattr__ = dict.__setitem__
+#     __delattr__ = dict.__delitem__
+
+
 class Station:
-    class __DotDict(dict):
-        """
-        dot.notation access to dictionary attributes
-        dotmap is n alternative library https://github.com/drgrib/dotmap
-        """
-        __getattr__ = dict.get
-        __setattr__ = dict.__setitem__
-        __delattr__ = dict.__delitem__
+    """
+    Create a Station object by loading in an IEA Wind Resource Assessment Data Model.
 
+    The IEA Wind: Task 43 Work Package 4 WRA Data Model was first released in January 2021. Versions of the
+    Data Model Schema can be found at https://github.com/IEA-Task-43/digital_wra_data_standard
+
+    The Schema associated with this data model file will be downloaded from GitHub and used to parse the data model.
+
+    :param wra_data_model: The filepath to an implementation of the WRA Data Model as a .json file or a json string.
+    :type wra_data_model:  str
+    :return:               A simplified object to represent the data model
+    :rtype:                DataModel
+    """
     def __init__(self, wra_data_model):
-        """
-        Create a Station object by loading in an IEA Wind Resource Assessment Data Model.
-
-        The IEA Wind: Task 43 Work Package 4 WRA Data Model was first released in January 2021. Versions of the
-        Data Model Schema can be found at https://github.com/IEA-Task-43/digital_wra_data_standard
-
-        The Schema associated with this data model file will be downloaded from GitHub and used to parse the data model.
-
-        :param wra_data_model: The filepath to an implementation of the WRA Data Model as a .json file or a json string.
-        :type wra_data_model:  str
-        :return:               A simplified object to represent the data model
-        :rtype:                DataModel
-        """
         self.__data_model = self._load_wra_data_model(wra_data_model)
         version = self.__data_model.get('version')
         self.__schema = self._get_schema(version=version)
@@ -239,6 +240,7 @@ class Station:
                                                schema=self.__schema)
         self.__measurements = _Measurements(dm_measurement_loc=self.__measurement_location.data_model)
         self.__wspds = _Wspds(dm_measurement_loc=self.__measurement_location.data_model)
+        self.__wdirs = _Wdirs(dm_measurement_loc=self.__measurement_location.data_model)
 
     @staticmethod
     def _load_wra_data_model(wra_data_model):
@@ -326,6 +328,10 @@ class Station:
     @property
     def wspds(self):
         return self.__wspds
+
+    @property
+    def wdirs(self):
+        return self.__wdirs
 
 
 class _Header:
@@ -465,13 +471,13 @@ class _Wspds:
             if meas_point.get('measurement_type_id') == 'wind_speed':
                 wspds.append(meas_point)
         self._data_model = wspds
+        self._names = self._get_names()
 
     @property
     def data_model(self):
         return self._data_model
 
-    @property
-    def names(self):
+    def _get_names(self):
         wspd_names = []
         for wspd in self._data_model:
             if wspd.get('name') not in wspd_names:
@@ -479,6 +485,53 @@ class _Wspds:
         return wspd_names
 
     @property
+    def names(self):
+        return self._names
+
+    def get_heights(self):
+        wspd_heights = []
+        for wspd_name in self.names:
+            for wspd in self._data_model:
+                if wspd.get('name') == wspd_name:
+                    wspd_heights.append(wspd.get('height_m'))
+                    break
+        return wspd_heights
+
+    @property
     def table(self):
         sensors_table = _format_sensor_table(self._data_model, table_type='speed_info')
+        return sensors_table.drop_duplicates()
+
+
+class _Wdirs:
+    def __init__(self, dm_measurement_loc):
+        """
+        Extract the wind speed measurement points
+
+        :param dm_measurement_loc: The measurement location from the WRA Data Model
+        :type dm_measurement_loc:  Dict
+
+        """
+        meas_points = _get_meas_points(dm_measurement_loc.get('measurement_point'))
+        wdirs = []
+        for meas_point in meas_points:
+            if meas_point.get('measurement_type_id') == 'wind_direction':
+                wdirs.append(meas_point)
+        self._data_model = wdirs
+
+    @property
+    def data_model(self):
+        return self._data_model
+
+    @property
+    def names(self):
+        wdir_names = []
+        for wdir in self._data_model:
+            if wdir.get('name') not in wdir_names:
+                wdir_names.append(wdir.get('name'))
+        return wdir_names
+
+    @property
+    def table(self):
+        sensors_table = _format_sensor_table(self._data_model, table_type='direction_info')
         return sensors_table.drop_duplicates()
