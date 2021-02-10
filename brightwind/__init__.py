@@ -1,5 +1,5 @@
 from .load.load import *
-from .load.station import Station
+from .load.station import MeasurementStation, plot_meas_loc_on_gmap
 from .analyse import correlation as Correl
 from .analyse.shear import *
 from .analyse.analyse import *

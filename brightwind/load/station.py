@@ -16,14 +16,17 @@
 
 
 from brightwind.load.load import _is_file
+from brightwind.analyse.plot import COLOR_PALETTE
 import pandas as pd
 import numpy as np
 import requests
 import os
 import json
+import gmaps
 
 
-__all__ = ['Station']
+__all__ = ['MeasurementStation',
+           'plot_meas_loc_on_gmap']
 
 
 def _flatten_sensor_dict(sensor):
@@ -109,12 +112,12 @@ def _get_meas_points(meas_points):
 
 def _format_sensor_table(meas_points, table_type='full'):
     if table_type == 'full':
-        header = ['name', 'measurement_units', 'oem',
+        header = ['name', 'measurement_units', 'oem', 'model',
                   'height_m', 'boom_orientation_deg', 'vane_dead_band_orientation_deg',
                   'date_from', 'date_to', 'connection_channel', 'sen_config_height_m', 'slope', 'offset',
                   'calibration_slope',
                   'calibration_offset']
-        header_for_report = ['Instrument Name', 'Units', 'Sensor OEM',
+        header_for_report = ['Instrument Name', 'Units', 'Sensor OEM', 'Sensor Model',
                              'Height [m]', 'Boom Orient. [deg, mag N]', 'Dead Band Orient. [deg, mag N]',
                              'Date From', 'Date To', 'Logger Channel', 'Logger Stated Height [m]', 'Logger Slope',
                              'Logger Offset', 'Calibration Slope',
@@ -125,19 +128,19 @@ def _format_sensor_table(meas_points, table_type='full'):
     elif table_type == 'speed_info':
         header = ['name', 'measurement_units', 'oem', 'model', 'sensor_serial_number',
                   'height_m', 'boom_orientation_deg',
-                  'date_from', 'date_to', 'slope', 'offset', 'calibration_slope',
-                  'calibration_offset', 'measurement_type_id']
+                  'date_from', 'date_to', 'connection_channel', 'slope', 'offset',
+                  'calibration_slope', 'calibration_offset', 'measurement_type_id']
         header_for_report = ['Instrument Name', 'Units', 'Sensor Make', 'Sensor Model', 'Serial No',
                              'Height [m]', 'Boom Orient. [deg, mag N]',
-                             'Date From', 'Date To', 'Logger Slope', 'Logger Offset', 'Calibration Slope',
-                             'Calibration Offset', 'measurement_type_id']
+                             'Date From', 'Date To', 'Logger Channel', 'Logger Slope', 'Logger Offset',
+                             'Calibration Slope', 'Calibration Offset', 'measurement_type_id']
     elif table_type == 'direction_info':
         header = ['name', 'measurement_units', 'oem', 'model', 'sensor_serial_number',
                   'height_m', 'boom_orientation_deg', 'vane_dead_band_orientation_deg',
-                  'date_from', 'date_to', 'offset', 'measurement_type_id']
+                  'date_from', 'date_to', 'connection_channel', 'offset', 'measurement_type_id']
         header_for_report = ['Instrument Name', 'Units', 'Sensor Make', 'Sensor Model', 'Serial No',
                              'Height [m]', 'Boom Orient. [deg, mag N]', 'Dead Band Orient. [deg, mag N]',
-                             'Date From', 'Date To', 'Logger Offset', 'measurement_type_id']
+                             'Date From', 'Date To', 'Logger Channel', 'Logger Offset', 'measurement_type_id']
 
     sensors_table_report = pd.DataFrame(meas_points)
 
@@ -205,6 +208,130 @@ def _get_title(property_name, schema):
     return property_name
 
 
+def _create_coord_dict(name, latitude, longitude):
+    return {'name': name, 'coords': (latitude, longitude)}
+
+
+def plot_meas_loc_on_gmap(meas_loc_data_model, reference_nodes=None, map_type='TERRAIN',
+                          zoom_level=9, rename_label=True):
+    """
+    Visualise on Google maps image the location of one or more measurement locations and reference data nodes.
+
+    # Requirement for the function is to have gmaps library installed, instructions to install it are at the link below:
+    # https://jupyter-gmaps.readthedocs.io/en/latest/install.html
+
+    :param meas_loc_data_model:       one or more measurement locations as extracted from the BrightWind platform
+    :type meas_loc_data_model:        dict or list(dict) or Dataframe
+    :param reference_nodes: merra2 or/and era5 reference nodes. If both reference datasets are provided then they
+                            must be given as input as list of lists. ie. reference_nodes=[merra2_nodes, era5_nodes]
+    :type reference_nodes:  list or list(list)
+    :param map_type:        Google maps base map types to use for the image. Google maps offers three different base
+                            map types: 'SATELLITE', 'HYBRID', 'TERRAIN'
+                            (see https://jupyter-gmaps.readthedocs.io/en/latest/tutorial.html)
+    :type map_type:         str
+    :param zoom_level:      Google maps zoom_level to use for the image.
+                            (see https://jupyter-gmaps.readthedocs.io/en/latest/tutorial.html)
+    :type zoom_level:       int
+    :param rename_label:    Rename the reference dataset labels using the label_nodes_with_bearing function before
+                            reporting the labels on the google maps image.
+    :type rename_label:     Boolean, default True
+
+    :return:                Google maps image with input measurement and reference nodes locations.
+    :rtype:                 fig
+
+    **Example usage**
+    ::
+        import merlin
+
+        meas_locs = [{'plant_uuid': 'xxxxx',
+                    'latitude': 53.0,
+                    'longitude': -7.1,
+                    'measurement_station_type': 'mast',
+                    'name': 'Test-MM1',
+                    'notes': None},
+                    {'plant_uuid': 'xxxxx',
+                    'latitude': 53.5,
+                    'longitude': -7.1,
+                    'measurement_station_type': 'mast',
+                    'name': 'Test-MM2',
+                    'notes': None}]
+
+        merlin.gis.plot_nodes_on_gmap(meas_locs[0])
+
+        merlin.gis.plot_nodes_on_gmap(meas_locs)
+
+        merlin.gis.plot_points_on_gmap(meas_locs, reference_nodes=merra2_nodes)
+
+        merlin.gis.plot_nodes_on_gmap(meas_locs, reference_nodes=[merra2_nodes, era5_nodes])
+    """
+    gmaps_api_key = 'AIzaSyDvGrLQhqTDK24DmP-75RzmNEd6NMK5Svk'
+    gmaps.configure(api_key=gmaps_api_key)
+    ref_colors = {'merra2': COLOR_PALETTE.fourth, 'era5': COLOR_PALETTE.primary}  # colors used for merra2 and era5 nodes
+    figure_layout = {
+        'width': '900px',
+        'height': '600px',
+        'margin': '0 auto 0 auto',
+        'padding': '1px'
+    }
+
+    # Plot meas locations
+    meas_locs_list_points = []
+    if type(meas_loc_data_model) == pd.DataFrame:
+        for meas_loc in meas_loc_data_model.itertuples():
+            point = _create_coord_dict(meas_loc.name, meas_loc.latitude, meas_loc.longitude)
+            meas_locs_list_points.append(point)
+    elif type(meas_loc_data_model) == dict:
+        point = _create_coord_dict(meas_loc_data_model['name'], meas_loc_data_model['latitude_ddeg'],
+                                   meas_loc_data_model['longitude_ddeg'])
+        meas_locs_list_points.append(point)
+    elif type(meas_loc_data_model) == list:
+        for meas_loc in meas_loc_data_model:
+            point = _create_coord_dict(meas_loc['name'], meas_loc['latitude_ddeg'], meas_loc['longitude_ddeg'])
+            meas_locs_list_points.append(point)
+    else:
+        raise TypeError('Error with format of meas_loc, please input dataframe or dictionary or list of dictionaries')
+
+    # print('NOTE: Click on the measurement location markers to visualise the labels.')
+
+    # Assign center of figure as first meas_loc in list
+    fig = gmaps.figure(center=meas_locs_list_points[0]['coords'], map_type=map_type,
+                       zoom_level=zoom_level, layout=figure_layout)
+
+    for i_color, meas_loc in enumerate(meas_locs_list_points):
+        marker = gmaps.marker_layer([meas_loc['coords']],
+                                    info_box_content=meas_loc['name'],
+                                    display_info_box=True)
+        # marker = gmaps.symbol_layer([meas_loc['coords']], fill_color=COLOR_PALETTE.color_list[i_color + 2],
+        #                             stroke_color=COLOR_PALETTE.color_list[i_color + 2], scale=3,
+        #                             info_box_content=meas_loc['name'],
+        #                             display_info_box=True)
+        fig.add_layer(marker)
+
+    # Plot reference nodes
+    if reference_nodes:
+        raise NotImplementedError
+        # if reference_nodes is a list, because only one reference dataset is given as input,
+        # then convert it to a list of list
+        # if not any(isinstance(element, list) for element in reference_nodes):
+        #     reference_nodes = [reference_nodes]
+        # for reanalysis_nodes in reference_nodes:
+        #     reanalysis_nodes = label_nodes_with_bearing(meas_locs, reanalysis_nodes) \
+        #         if rename_label else reanalysis_nodes
+        #     # loop through all nodes of each reanalysis dataset (ie merra2_nodes)
+        #     for node in reanalysis_nodes:
+        #         if node.dataset in ref_colors.keys():
+        #             node_color = ref_colors[node.dataset]
+        #         else:
+        #             node_color = 'white'
+        #
+        #         ref_marker = gmaps.symbol_layer([(node.latitude, node.longitude)], fill_color='black',
+        #                                         stroke_color=node_color, stroke_opacity=0.7, scale=5,
+        #                                         info_box_content=node.label, display_info_box=True)
+        #         fig.add_layer(ref_marker)
+
+    return fig
+
+
 # class __DotDict(dict):
 #     """
 #     dot.notation access to dictionary attributes
@@ -215,7 +342,7 @@ def _get_title(property_name, schema):
 #     __delattr__ = dict.__delitem__
 
 
-class Station:
+class MeasurementStation:
     """
     Create a Station object by loading in an IEA Wind Resource Assessment Data Model.
 
@@ -397,7 +524,7 @@ class _MeasurementLocation:
                 'Longitude [ddeg]': self._data_model['longitude_ddeg'],
                 'Measurement Station Type': self._data_model['measurement_station_type_id'],
                 'Notes': self._data_model['notes'],
-                'Date of Update': self._data_model['update_at'],
+                # 'Date of Update': self._data_model['update_at'],
                 'Mast Geometry': mast_geometry,
                 'Mast Height [m]': mast_height,
                 'Mast OEM': mast_oem
