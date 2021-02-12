@@ -10,7 +10,8 @@ __all__ = ['demo_data',
            'demo_windographer_flagging_log',
            'demo_windographer_flagging_log2',
            'demo_cleaning_file',
-           'demo_wra_data_model_schema']
+           'demo_wra_data_model_schema',
+           'demo_wra_data_model']
 
 demo_data = os.path.join(os.path.dirname(__file__), 'demo_data.csv')
 demo_campbell_scientific_data = os.path.join(os.path.dirname(__file__), 'campbell_scientific_demo_data.csv')
@@ -26,6 +27,7 @@ demo_windographer_flagging_log2 = os.path.join(os.path.dirname(__file__), 'windo
 demo_cleaning_file = os.path.join(os.path.dirname(__file__), 'demo_cleaning_file.csv')
 
 demo_wra_data_model_schema = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model.schema.json')
+demo_wra_data_model = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model.json')
 
 
 def datasets_available():

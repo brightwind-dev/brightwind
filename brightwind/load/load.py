@@ -16,6 +16,7 @@
 
 import pandas as pd
 import numpy as np
+from brightwind.utils import utils
 import datetime
 import requests
 from typing import List
@@ -459,12 +460,6 @@ def _append_files_together(source_folder, assembled_file_name, file_type, append
     return
 
 
-def _get_environment_variable(name):
-    if name not in os.environ:
-        raise Exception('{} environmental variable is not set.'.format(name))
-    return os.getenv(name)
-
-
 class LoadBrightdata:
 
     _BASE_URI = 'http://api.brightwindanalysis.com/brightdata/'
@@ -500,8 +495,8 @@ class LoadBrightdata:
         :param query_params: dictionary of the query parameters to be sent
         :return: List(Node)
         """
-        username = _get_environment_variable('BRIGHTDATA_USERNAME')
-        password = _get_environment_variable('BRIGHTDATA_PASSWORD')
+        username = utils.get_environment_variable('BRIGHTDATA_USERNAME')
+        password = utils.get_environment_variable('BRIGHTDATA_PASSWORD')
 
         uri = LoadBrightdata._BASE_URI + sub_uri
 
@@ -918,8 +913,8 @@ class _LoadBWPlatform:
 
     @staticmethod
     def _get_token():
-        username = _get_environment_variable('BW_PLATFORM_USERNAME')
-        password = _get_environment_variable('BW_PLATFORM_PASSWORD')
+        username = utils.get_environment_variable('BW_PLATFORM_USERNAME')
+        password = utils.get_environment_variable('BW_PLATFORM_PASSWORD')
 
         params = {'username': username, 'password': password}
         if not _LoadBWPlatform._ACCESS_TOKEN.get('token') or (_LoadBWPlatform._ACCESS_TOKEN['issued_at'].timestamp()
