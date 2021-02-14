@@ -208,6 +208,103 @@ def _get_title(property_name, schema):
     return property_name
 
 
+def _extract_keys_to_unique_list(lists_of_dictionaries):
+    merged_list = list(lists_of_dictionaries[0].keys())
+    for idx, d in enumerate(lists_of_dictionaries):
+        if idx != 0:
+            merged_list = merged_list + list(set(list(d.keys())) - set(merged_list))
+    return merged_list
+
+
+def _rename_keys(dictionary, schema, keys_to_rename, rename_keys_with_leading=None):
+    """
+    Rename any keys found in the provided list by inserting the leading text before it's title found from the schema.
+
+    :param dictionary: The dictionary containing the keys to rename.
+    :type dictionary:  dict
+    :param keys_to_rename: List of specific keys to rename
+    :type keys_to_rename:  list(str)
+    :param schema: Data model schema
+    :type schema:  dict
+    :param rename_keys_with_leading: Text string to place before the key's name pulled from the schema.
+    :type rename_keys_with_leading:  str or None
+    :return: The dictionary with the keys renamed.
+    :rtype:  dict
+    """
+    renamed_dict = {}
+    for k, v in dictionary.items():
+        if k in keys_to_rename:
+            if rename_keys_with_leading is not None:
+                renamed_dict[rename_keys_with_leading + ' ' + _get_title(k, schema)] = v
+            else:
+                renamed_dict[_get_title(k, schema)] = v
+        else:
+            renamed_dict[k] = v
+    return renamed_dict
+
+
+def _merge_two_dicts(x, y):
+    """
+    Given two dictionaries, merge them into a new dict as a shallow copy.
+    """
+    z = x.copy()
+    z.update(y)
+    return z
+
+
+def _filter_parent_level(dictionary):
+    """
+    Pull only the parent the parent level keys and values i.e. do not return any child lists or dictionaries.
+
+    :param dictionary:
+    :return:
+    """
+    parent = {}
+    for key, value in dictionary.items():
+        if (type(value) != list) and (type(value) != dict):
+            parent.update({key: value})
+    return parent
+
+
+def _flatten_dict(dictionary, property_to_bring_up=None, keys_to_rename=None, rename_keys_with_leading=None,
+                  schema=None):
+    """
+    Bring a child level in a dictionary up to the parent level.
+
+    This is usually when there is an array of child levels and so the parent level is repeated.
+
+    keys_to_rename=['notes', 'update_at'],
+    rename_keys_with_leading='Mast'
+
+    :param dictionary:
+    :param property_to_bring_up:
+    :param keys_to_rename:
+    :param rename_keys_with_leading:
+    :param schema:
+    :return: A list of merged dictionaries
+    :rtype: list
+    """
+    result = []
+    parent = _filter_parent_level(dictionary)
+    for key, value in dictionary.items():
+        if (type(value) == list) and (key == property_to_bring_up):
+            for item in value:
+                child = _filter_parent_level(item)
+                if keys_to_rename is not None:
+                    child = _rename_keys(child, keys_to_rename=keys_to_rename,
+                                         rename_keys_with_leading=rename_keys_with_leading, schema=schema)
+                result.append(_merge_two_dicts(parent, child))
+        if (type(value) == dict) and (key == property_to_bring_up):
+            child = _filter_parent_level(value)
+            if keys_to_rename is not None:
+                child = _rename_keys(child, keys_to_rename=keys_to_rename,
+                                     rename_keys_with_leading=rename_keys_with_leading, schema=schema)
+            result.append(_merge_two_dicts(parent, child))
+    if not result:
+        result.append(parent)
+    return result
+
+
 def _create_coord_dict(name, latitude, longitude):
     return {'name': name, 'coords': (latitude, longitude)}
 
@@ -314,10 +411,11 @@ class MeasurementStation:
         self.__header = _Header(dm=self.__data_model, schema=self.__schema)
         self.__meas_loc_data_model = self._get_meas_loc_data_model(dm=self.__data_model)
         self.__logger_configs = _LoggerConfigs(meas_loc_dm=self.__meas_loc_data_model,
-                                               schema=self.__schema)
-        self.__measurements = _Measurements(meas_loc_dm=self.__meas_loc_data_model)
-        self.__wspds = _Wspds(meas_loc_dm=self.__meas_loc_data_model)
-        self.__wdirs = _Wdirs(meas_loc_dm=self.__meas_loc_data_model)
+                                               schema=self.__schema, station_type=self.type)
+        if self.type in ['mast']:
+            self.__measurements = _Measurements(meas_loc_dm=self.__meas_loc_data_model)
+            self.__wspds = _Wspds(meas_loc_dm=self.__meas_loc_data_model)
+            self.__wdirs = _Wdirs(meas_loc_dm=self.__meas_loc_data_model)
 
     # def __getattr__(self):
     #     return self.data_model
@@ -412,40 +510,33 @@ class MeasurementStation:
     def type(self):
         return self.__meas_loc_data_model.get('measurement_station_type_id')
 
-    @property
-    def table(self):
-        keys = []
-        values = []
-        for k, v in self.__meas_loc_data_model.items():
-            if k == 'mast_properties':
-                # if mast_properties we need to step down another level
-                for k2, v2 in v.items():
-                    if k2 != 'mast_section_geometry':
-                        if k2 == 'notes':
-                            keys.append('Mast Notes')
-                            values.append(v2)
-                        elif k2 == 'update_at':
-                            keys.append('Mast Date of Update')
-                            values.append(v2)
-                        else:
-                            keys.append(k2)
-                            values.append(v2)
-            elif k == 'vertical_profiler_properties':
-                # if vertical_profiler_properties we need to step down another level
-                for k2, v2 in v[0].items():
-                    if k2 != 'update_at' or k2 != 'notes':
-                        keys.append(k2)
-                        values.append(v2)
-            elif k != 'logger_main_config' and k != 'measurement_point':
-                keys.append(k)
-                values.append(v)
-        titles = []
-        for key in keys:
-            titles.append(_get_title(key, self.__schema))
-        df = pd.DataFrame({'': values}, index=titles)
-        df_styled = df.style.set_properties(**{'text-align': 'left'})
-        df_styled = df_styled.set_table_styles([dict(selector='th', props=[('text-align', 'left')])])
-        return df_styled
+    def get_table(self, horizontal_table_orientation=False):
+        list_for_df = []
+        if self.type == 'mast':
+            list_for_df = _flatten_dict(self.__meas_loc_data_model, property_to_bring_up='mast_properties',
+                                        keys_to_rename=['notes', 'update_at'],
+                                        rename_keys_with_leading='Mast', schema=self.__schema)
+        elif self.type in ['lidar', 'sodar', 'flidar']:
+            list_for_df = _flatten_dict(self.__meas_loc_data_model, property_to_bring_up='vertical_profiler_properties',
+                                        keys_to_rename=['notes', 'update_at'],
+                                        rename_keys_with_leading='Vert. Prof. Prop.', schema=self.__schema)
+        if horizontal_table_orientation:
+            list_for_df_with_titles = []
+            for row in list_for_df:
+                list_for_df_with_titles.append(_rename_keys(row, schema=self.__schema, keys_to_rename=list(row.keys()),
+                                                            rename_keys_with_leading=None))
+            df = pd.DataFrame(list_for_df_with_titles, columns=_extract_keys_to_unique_list(list_for_df_with_titles))
+        else:
+            df = pd.DataFrame()
+            for idx, row in enumerate(list_for_df):
+                titles = []
+                for key in row.keys():
+                    titles.append(_get_title(key, self.__schema))
+                df_temp = pd.DataFrame({idx + 1: list(row.values())}, index=titles)
+                df = pd.concat([df, df_temp], axis=1, sort=False)
+            df = df.style.set_properties(**{'text-align': 'left'})
+            df = df.set_table_styles([dict(selector='th', props=[('text-align', 'left')])])
+        return df
 
     @property
     def header(self):
@@ -505,9 +596,10 @@ class _Header:
 
 
 class _LoggerConfigs:
-    def __init__(self, meas_loc_dm, schema):
+    def __init__(self, meas_loc_dm, schema, station_type):
         self._data_model = meas_loc_dm.get('logger_main_config')
         self._schema = schema
+        self._type = station_type
 
     @property
     def data_model(self):
@@ -519,17 +611,37 @@ class _LoggerConfigs:
         """
         return self._data_model
 
-    @property
-    def table(self):
-        temp_loggers = []
-        temp_logger = {}
-        for logger in self._data_model:
-            for k, v in logger.items():
-                temp_logger[_get_title(k, self._schema)] = v
-            temp_loggers.append(temp_logger)
-        log_configs_df = pd.DataFrame(temp_loggers)
-        log_configs_df.set_index('Logger Name', inplace=True)
-        return log_configs_df
+    def get_table(self, horizontal_table_orientation=False):
+        list_for_df = []
+        if self._type == 'mast':
+            # if mast, there are no child dictionaries
+            list_for_df = self._data_model  # logger config data model is already a list
+        elif self._type in ['lidar', 'flidar']:
+            for log_config in self._data_model:
+                log_configs_flat = _flatten_dict(log_config, property_to_bring_up='lidar_config',
+                                                 keys_to_rename=['date_from', 'date_to', 'notes', 'update_at'],
+                                                 rename_keys_with_leading='Lidar Specific Configs',
+                                                 schema=self._schema)
+                for log_config_flat in log_configs_flat:
+                    list_for_df.append(log_config_flat)
+        if horizontal_table_orientation:
+            list_for_df_with_titles = []
+            for row in list_for_df:
+                list_for_df_with_titles.append(_rename_keys(row, schema=self._schema, keys_to_rename=list(row.keys()),
+                                                            rename_keys_with_leading=None))
+            df = pd.DataFrame(list_for_df_with_titles, columns=_extract_keys_to_unique_list(list_for_df_with_titles))
+            df.set_index('Logger Name', inplace=True)
+        else:
+            df = pd.DataFrame()
+            for idx, row in enumerate(list_for_df):
+                titles = []
+                for key in row.keys():
+                    titles.append(_get_title(key, self._schema))
+                df_temp = pd.DataFrame({idx + 1: list(row.values())}, index=titles)
+                df = pd.concat([df, df_temp], axis=1, sort=False)
+            df = df.style.set_properties(**{'text-align': 'left'})
+            df = df.set_table_styles([dict(selector='th', props=[('text-align', 'left')])])
+        return df
 
 
 class _Measurements:
