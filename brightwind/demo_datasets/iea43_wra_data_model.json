@@ -2,7 +2,7 @@
   "author": "Stephen Holleran",
   "organisation": "brightwind",
   "date": "2020-06-07",
-  "version": "0.0.0-2020.07",
+  "version": "0.1.0-2021.01",
   "plant_name": "A Name of Wind Farm",
   "plant_type": "onshore_wind",
   "measurement_location": [{
