@@ -3,8 +3,15 @@ import brightwind as bw
 import pandas as pd
 import numpy as np
 import warnings
+import json
 
-SCHEMA = bw.Station._get_schema(bw.demo_datasets.demo_wra_data_model_schema)
+
+def _get_schema():
+    with open(bw.demo_datasets.demo_wra_data_model_schema) as json_file:
+        schema = json.load(json_file)
+    return schema
+
+SCHEMA = _get_schema()
 
 
 def test_get_title():
