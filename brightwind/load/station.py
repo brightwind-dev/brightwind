@@ -1007,10 +1007,10 @@ class _Measurements:
             df.fillna('-', inplace=True)
         elif detailed is True:
             cols_required = ['name', 'oem', 'model', 'sensor_type_id', 'sensor.serial_number',
-                             'height_m', 'boom_orientation_deg', 'mounting_type_id',
-                             'date_from', 'date_to', 'connection_channel',
+                             'height_m', 'boom_orientation_deg',
+                             'date_from', 'date_to', 'connection_channel', 'measurement_units_id',
                              'sensor_config.slope', 'sensor_config.offset', 'calibration.slope', 'calibration.offset',
-                             'sensor.notes']
+                             'sensor_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
@@ -1036,6 +1036,10 @@ class _Measurements:
             avail_cols = [col for col in columns_to_show if col in temp_df.columns]
             if not avail_cols:
                 raise KeyError('No data to show from the list of columns provided')
+            # Drop all rows that have no data for the avail_cols
+            temp_df.dropna(axis=0, subset=avail_cols, how='all', inplace=True)
+            if temp_df.empty:
+                raise KeyError('No data to show from the list of columns provided')
             # Name needs to be included in the grouping but 'date_from' and 'date_to' should not be
             # as we filter for them later
             required_in_avail_cols = {'include': ['name'], 'remove': ['date_from', 'date_to']}
@@ -1047,6 +1051,7 @@ class _Measurements:
                     avail_cols.remove(remove_col)
             # Remove duplicates resulting from other info been dropped.
             temp_df.sort_values(['name', 'date_from'], ascending=[True, True], inplace=True)
+            temp_df.fillna('-', inplace=True)  # groupby drops nan so need to fill them in
             # group duplicate data for the columns available
             grouped_by_avail_cols = temp_df.groupby(avail_cols)
             # get date_to from the last row in each group to assign to the first row.
@@ -1057,7 +1062,6 @@ class _Measurements:
             df.set_index('name', inplace=True)
             df.sort_values(['name', 'date_from'], ascending=[True, True], inplace=True)
             df.replace(DATE_INSTEAD_OF_NONE, '-', inplace=True)
-            df.fillna('-', inplace=True)
         return df
 
     @property

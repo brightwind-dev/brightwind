@@ -10,7 +10,7 @@
     "latitude_ddeg": 53.5,
     "longitude_ddeg": -8,
     "measurement_station_type_id": "mast",
-    "notes": "I can write anything I want here.",
+    "notes": "New mast.",
     "update_at": "2020-04-18T18:13:00",
     "mast_properties": {
       "mast_geometry_id": "lattice_triangle",
@@ -18,7 +18,7 @@
       "mast_serial_number": "MM01234",
       "mast_model": "SLX80m",
       "mast_height_m": 78.5,
-      "notes": "I can write anything I want here.",
+      "notes": "Mast notes.",
       "update_at": "2020-04-18T18:13:00",
       "mast_section_geometry": [{
         "uuid": "bf078172-bbb6-48fe-ac1f-c6605dffb1b5",
@@ -31,7 +31,7 @@
         "lattice_number_of_diagonal_bracing_members": 2,
         "lattice_bracing_member_height_mm": 900,
         "lattice_has_horizontal_member": false,
-        "notes": "I can write anything I want here.",
+        "notes": "Same geometry for the whole mast.",
         "update_at": "2020-04-18T18:13:00"
       }]
     },
@@ -51,7 +51,7 @@
       "averaging_period_minutes": 10,
       "timestamp_is_end_of_period": false,
       "clock_is_auto_synced": true,
-      "notes": "I can write anything I want here.",
+      "notes": "Logger notes.",
       "update_at": "2020-04-18T18:13:00"
     }],
     "measurement_point": [{
@@ -59,7 +59,6 @@
       "measurement_type_id": "wind_speed",
       "height_m": 80.1,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 0.04573,
@@ -71,32 +70,28 @@
         "connection_channel": "CH1",
         "date_from": "2020-04-12T12:00:00",
         "date_to": "2020-04-15T00:00:00",
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH1Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
+            "notes": "Connected to CH1.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH1SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH1Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH1Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       },{
@@ -109,32 +104,28 @@
         "connection_channel": "CH1",
         "date_from": "2020-04-15T00:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
+        "notes": "Corrected offset.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH1Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH1SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH1Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH1Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -148,7 +139,6 @@
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
         "update_at": "2020-04-18T18:13:00",
-        "notes": "First Class Advanced",
         "calibration": [{
           "slope": 0.04573,
           "offset": 0.2419,
@@ -159,7 +149,7 @@
           "calibration_organisation": "Deutsche WindGuard",
           "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
           "uncertainty_k_factor": 2,
-          "notes": "I can write anything I want here.",
+          "notes": "Calibrated months before installation.",
           "update_at": "2020-04-18T18:13:00",
           "calibration_uncertainty": [{
               "reference_bin": 4,
@@ -232,7 +222,7 @@
         "distance_from_mast_to_sensor_mm": 2470,
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
+        "notes": "NW anemometer.",
         "update_at": "2020-04-18T18:13:00"
       }],
       "interference_structures": [{
@@ -242,7 +232,7 @@
         "distance_from_mast_centre_mm": 900,
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
+        "notes": "Lightning rod is NE of mast.",
         "update_at": "2020-04-18T18:13:00"
       }]
     },{
@@ -250,7 +240,7 @@
       "measurement_type_id": "wind_speed",
       "height_m": 80.2,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
+      "notes": "SE anemometer.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 0.04568,
@@ -262,32 +252,27 @@
         "connection_channel": "CH2",
         "date_from": "2020-04-12T12:00:00",
         "date_to": "2020-04-18T00:00:00",
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH2Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH2SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH2Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH2Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       },{
@@ -300,32 +285,28 @@
         "connection_channel": "CH2",
         "date_from": "2020-04-18T00:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
+        "notes": "Replaced anemometer.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH2Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH2SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH2Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH2Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -350,7 +331,6 @@
           "calibration_organisation": "Deutsche WindGuard",
           "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
           "uncertainty_k_factor": 2,
-          "notes": "I can write anything I want here.",
           "update_at": "2020-04-18T18:13:00",
           "calibration_uncertainty": [{
               "reference_bin": 4,
@@ -416,7 +396,7 @@
         "date_from": "2020-04-18T00:00:00",
         "date_to": null,
         "update_at": "2020-04-18T18:13:00",
-        "notes": "First Class Advanced",
+        "notes": "Replaced anemometer.",
         "calibration": [{
           "slope": 0.04575,
           "offset": 0.2497,
@@ -427,7 +407,7 @@
           "calibration_organisation": "Deutsche WindGuard",
           "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
           "uncertainty_k_factor": 2,
-          "notes": "I can write anything I want here.",
+          "notes": "Replaced anemometer.",
           "update_at": "2020-04-18T18:13:00",
           "calibration_uncertainty": [{
               "reference_bin": 4,
@@ -500,7 +480,7 @@
         "distance_from_mast_to_sensor_mm": 2470,
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
+        "notes": "Replaced anemometer but kept same mounting.",
         "update_at": "2020-04-18T18:13:00"
       }],
       "interference_structures": [{
@@ -510,7 +490,6 @@
         "distance_from_mast_centre_mm": 900,
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00"
       }]
     },{
@@ -518,7 +497,6 @@
       "measurement_type_id": "wind_speed",
       "height_m": 60.1,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 0.04666,
@@ -530,32 +508,27 @@
         "connection_channel": "CH3",
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH3Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH3SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH3Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH3Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -569,7 +542,6 @@
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
         "update_at": "2020-04-18T18:13:00",
-        "notes": "First Class Advanced",
         "calibration": [{
           "slope": 0.04666,
           "offset": 0.2416,
@@ -580,7 +552,6 @@
           "calibration_organisation": "Deutsche WindGuard",
           "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
           "uncertainty_k_factor": 2,
-          "notes": "I can write anything I want here.",
           "update_at": "2020-04-18T18:13:00",
           "calibration_uncertainty": [{
               "reference_bin": 4,
@@ -653,7 +624,6 @@
         "distance_from_mast_to_sensor_mm": 2470,
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00"
       }]
     },{
@@ -661,7 +631,6 @@
       "measurement_type_id": "wind_speed",
       "height_m": 60.2,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 0.04777,
@@ -673,32 +642,27 @@
         "connection_channel": "CH4",
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH4Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH4SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH4Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH4Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -712,72 +676,11 @@
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
         "update_at": "2020-04-18T18:13:00",
-        "notes": "First Class Advanced",
         "calibration": [{
           "slope": 0.04777,
           "offset": 0.2417,
-          "sensitivity": null,
-          "report_file_name": "file name.pdf",
-          "report_link": null,
-          "date_of_calibration": "2019-12-06",
-          "calibration_organisation": "Deutsche WindGuard",
-          "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
-          "uncertainty_k_factor": 2,
-          "notes": "I can write anything I want here.",
-          "update_at": "2020-04-18T18:13:00",
-          "calibration_uncertainty": [{
-              "reference_bin": 4,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-            },{
-              "reference_bin": 5.93,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-            },{
-              "reference_bin": 7.93,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-            },{
-              "reference_bin": 9.92,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-            },{
-              "reference_bin": 11.9,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-            },{
-              "reference_bin": 13.88,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-            },{
-              "reference_bin": 15.88,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-            },{
-              "reference_bin": 14.88,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-            },{
-              "reference_bin": 12.88,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-            },{
-              "reference_bin": 10.91,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-            },{
-              "reference_bin": 8.91,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-            },{
-              "reference_bin": 6.92,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-            },{
-              "reference_bin": 4.98,
-              "reference_unit": "m/s",
-              "uncertainty": 0.1
-          }]
+          "notes": "Don't have a source.",
+          "update_at": "2020-04-18T18:13:00"
         }]
       }],
       "mounting_arrangement": [{
@@ -796,7 +699,6 @@
         "distance_from_mast_to_sensor_mm": 2470,
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00"
       }]
     },{
@@ -804,7 +706,6 @@
       "measurement_type_id": "wind_speed",
       "height_m": 40.1,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 0.04888,
@@ -816,32 +717,27 @@
         "connection_channel": "CH5",
         "date_from": "2020-04-12T12:00:00",
         "date_to": "2020-04-18T00:00:00",
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH5Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH5SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH5Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH5Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       },{
@@ -854,32 +750,28 @@
         "connection_channel": "CH14",
         "date_from": "2020-04-18T00:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
+        "notes": "Connected to CH14.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH14Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH14SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH14Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH14Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -893,7 +785,6 @@
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
         "update_at": "2020-04-18T18:13:00",
-        "notes": "First Class Advanced",
         "calibration": [{
           "slope": 0.04888,
           "offset": 0.2418,
@@ -904,7 +795,6 @@
           "calibration_organisation": "Deutsche WindGuard",
           "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
           "uncertainty_k_factor": 2,
-          "notes": "I can write anything I want here.",
           "update_at": "2020-04-18T18:13:00",
           "calibration_uncertainty": [{
               "reference_bin": 4,
@@ -977,7 +867,6 @@
         "distance_from_mast_to_sensor_mm": 2470,
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00"
       }]
     },{
@@ -985,7 +874,7 @@
       "measurement_type_id": "wind_speed",
       "height_m": 30.1,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
+      "notes": "Incorrectly installed at 30m.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 0.04999,
@@ -997,32 +886,27 @@
         "connection_channel": "CH6",
         "date_from": "2020-04-12T12:00:00",
         "date_to": "2020-04-18T00:00:00",
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH6Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH6SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH6Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH6Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -1036,7 +920,6 @@
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
         "update_at": "2020-04-18T18:13:00",
-        "notes": "First Class Advanced",
         "calibration": [{
           "slope": 0.04999,
           "offset": 0.2419,
@@ -1047,7 +930,6 @@
           "calibration_organisation": "Deutsche WindGuard",
           "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
           "uncertainty_k_factor": 2,
-          "notes": "I can write anything I want here.",
           "update_at": "2020-04-18T18:13:00",
           "calibration_uncertainty": [{
               "reference_bin": 4,
@@ -1120,7 +1002,6 @@
         "distance_from_mast_to_sensor_mm": 2470,
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00"
       }]
     },{
@@ -1147,25 +1028,21 @@
             "column_name": "CH13Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH13SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH13Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH13Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -1179,7 +1056,6 @@
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
         "update_at": "2020-04-18T18:13:00",
-        "notes": "First Class Advanced",
         "calibration": [{
           "slope": 0.04999,
           "offset": 0.2419,
@@ -1190,7 +1066,6 @@
           "calibration_organisation": "Deutsche WindGuard",
           "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
           "uncertainty_k_factor": 2,
-          "notes": "I can write anything I want here.",
           "update_at": "2020-04-18T18:13:00",
           "calibration_uncertainty": [{
               "reference_bin": 4,
@@ -1271,7 +1146,6 @@
       "measurement_type_id": "wind_direction",
       "height_m": 76.1,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 0.351,
@@ -1283,32 +1157,27 @@
         "connection_channel": "CH7",
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH7Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH7SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH7Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH7Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -1322,7 +1191,6 @@
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
         "update_at": "2020-04-18T18:13:00",
-        "notes": "I can write anything I want here.",
         "calibration": null
       }],
       "mounting_arrangement": [{
@@ -1341,7 +1209,6 @@
         "distance_from_mast_to_sensor_mm": 2470,
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00"
       }]
     },{
@@ -1349,7 +1216,6 @@
       "measurement_type_id": "wind_direction",
       "height_m": 56.1,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 0.351,
@@ -1361,32 +1227,27 @@
         "connection_channel": "CH8",
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH8Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH8SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH8Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH8Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -1400,7 +1261,6 @@
         "date_from": "2020-04-12T12:00:00",
         "date_to": "2020-04-18T00:00:00",
         "update_at": "2020-04-18T18:13:00",
-        "notes": "I can write anything I want here.",
         "calibration": null
       },{
         "oem": "NRG",
@@ -1431,7 +1291,6 @@
         "distance_from_mast_to_sensor_mm": 2470,
         "date_from": "2020-04-12T12:00:00",
         "date_to": "2020-04-18T00:00:00",
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00"
       },{
         "mast_section_geometry_uuid": "bf078172-bbb6-48fe-ac1f-c6605dffb1b5",
@@ -1457,7 +1316,6 @@
       "measurement_type_id": "air_temperature",
       "height_m": 78,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 0.136,
@@ -1469,32 +1327,27 @@
         "connection_channel": "CH9",
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH9Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH9SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH9Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH9Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -1517,7 +1370,6 @@
       "measurement_type_id": "air_temperature",
       "height_m": 5,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 100,
@@ -1529,32 +1381,27 @@
         "connection_channel": "CH10",
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH10Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH10SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH10Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH10Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -1577,7 +1424,6 @@
       "measurement_type_id": "relative_humidity",
       "height_m": 5,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 100,
@@ -1589,32 +1435,27 @@
         "connection_channel": "CH11",
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH11Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH11SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH11Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH11Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -1637,7 +1478,6 @@
       "measurement_type_id": "air_pressure",
       "height_m": 76,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 0.4255,
@@ -1649,32 +1489,27 @@
         "connection_channel": "CH12",
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH12Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH12SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH12Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH12Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
@@ -1697,7 +1532,7 @@
       "measurement_type_id": "voltage",
       "height_m": null,
       "height_reference_id": "ground_level",
-      "notes": "I can write anything I want here.",
+      "notes": "Logger battery voltage.",
       "update_at": "2020-04-18T18:13:00",
       "sensor_config": [{
         "slope": 0.021,
@@ -1709,32 +1544,27 @@
         "connection_channel": "CH15",
         "date_from": "2020-04-12T12:00:00",
         "date_to": null,
-        "notes": "I can write anything I want here.",
         "update_at": "2020-04-18T18:13:00",
         "column_name": [
           {
             "column_name": "CH15Avg",
             "statistic_type_id": "avg",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH15SD",
             "statistic_type_id": "sd",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH15Min",
             "statistic_type_id": "min",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
           },{
             "column_name": "CH15Max",
             "statistic_type_id": "max",
             "is_ignored": false,
-            "notes": "I can write anything I want here.",
             "update_at": "2020-04-18T18:13:00"
         }]
       }],
