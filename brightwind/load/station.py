@@ -18,11 +18,9 @@
 from brightwind.load.load import _is_file
 from brightwind.utils import utils
 import pandas as pd
-import numpy as np
 import requests
 import json
 import gmaps
-from dotmap import DotMap
 
 
 __all__ = ['MeasurementStation',
@@ -202,6 +200,7 @@ def plot_meas_loc_on_gmap(meas_station, map_type='TERRAIN',
 
     **Example usage**
     ::
+        import brightwind as bw
         mm1 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
         bw.plot_meas_loc_on_gmap(mm1)
 
@@ -245,7 +244,7 @@ def _replace_none_date(list_or_dict):
     elif isinstance(list_or_dict, dict):
         for date_str in ['date_from', 'date_to']:
             if list_or_dict.get(date_str) is None:
-                list_or_dict[date_str] = '2100-12-31'
+                list_or_dict[date_str] = DATE_INSTEAD_OF_NONE
     return list_or_dict
 
 
@@ -306,17 +305,18 @@ def _get_title(property_name, schema, property_section=None):
     return property_name
 
 
-def _rename_keys(dictionary, schema):
+def _rename_to_title(list_or_dict, schema):
     """
-    Rename the keys in a dictionary with the title from the schema. If there are prefixes from raising a child
-    property up to a parent level, this will find the normal schema title and add the prefixed title to it.
+    Rename the names in a list to it's equivalent title in the schema or the keys in a dictionary. If there are
+    prefixes from raising a child property up to a parent level, this will find the normal schema title and add
+    the prefixed title to it.
 
-    :param dictionary:                   Dictionary with keys to rename.
-    :type dictionary:                    dict
-    :param schema:                       The WRA Data Model Schema.
-    :type schema:                        dict
-    :return:                             A renamed dictionary.
-    :rtype:                              dict
+    :param list_or_dict: List of names or dictionary with keys to rename.
+    :type list_or_dict:  list or dict
+    :param schema:       The WRA Data Model Schema.
+    :type schema:        dict
+    :return:             A renamed list or keys in dictionary.
+    :rtype:              list or dict
     """
     prefixed_names = {}
     # find all possible prefixed names and build a dict to contain it and the separator and title.
@@ -325,23 +325,42 @@ def _rename_keys(dictionary, schema):
             prefixed_name = key + PREFIX_DICT[key]['prefix_separator'] + col
             prefixed_names[prefixed_name] = {'prefix_separator': PREFIX_DICT[key]['prefix_separator'],
                                              'title_prefix': PREFIX_DICT[key]['title_prefix']}
-    renamed_dict = {}
-    for k, v in dictionary.items():
-        if k in list(prefixed_names.keys()):
-            # break out the property name and the name, get the title and then add title_prefix to it.
-            property_section = k[0:k.find(prefixed_names[k]['prefix_separator'])]
-            property_name = k[k.find(prefixed_names[k]['prefix_separator']) + 1:]
-            if k in ['sensor_config.slope', 'sensor_config.offset', 'sensor_config.sensitivity',
-                     'calibration.slope', 'calibration.offset', 'calibration.sensitivity']:
-                # Special cases don't add a title prefix as there is already one in the schema title
-                renamed_dict[_get_title(property_name, schema, property_section)] = v
+    if isinstance(list_or_dict, dict):
+        renamed_dict = {}
+        for k, v in list_or_dict.items():
+            if k in list(prefixed_names.keys()):
+                # break out the property name and the name, get the title and then add title_prefix to it.
+                property_section = k[0:k.find(prefixed_names[k]['prefix_separator'])]
+                property_name = k[k.find(prefixed_names[k]['prefix_separator']) + 1:]
+                if k in ['sensor_config.slope', 'sensor_config.offset', 'sensor_config.sensitivity',
+                         'calibration.slope', 'calibration.offset', 'calibration.sensitivity']:
+                    # Special cases don't add a title prefix as there is already one in the schema title
+                    renamed_dict[_get_title(property_name, schema, property_section)] = v
+                else:
+                    renamed_dict[prefixed_names[k]['title_prefix'] + _get_title(property_name, schema,
+                                                                                property_section)] = v
             else:
-                renamed_dict[prefixed_names[k]['title_prefix'] + _get_title(property_name, schema, property_section)] \
-                    = v
-        else:
-            # if not in the list of prefixed_names then just find the title as normal.
-            renamed_dict[_get_title(k, schema)] = v
-    return renamed_dict
+                # if not in the list of prefixed_names then just find the title as normal.
+                renamed_dict[_get_title(k, schema)] = v
+        return renamed_dict
+    elif isinstance(list_or_dict, list):
+        renamed_list = []
+        for name in list_or_dict:
+            if name in list(prefixed_names.keys()):
+                # break out the property name and the name, get the title and then add title_prefix to it.
+                property_section = name[0:name.find(prefixed_names[name]['prefix_separator'])]
+                property_name = name[name.find(prefixed_names[name]['prefix_separator']) + 1:]
+                if name in ['sensor_config.slope', 'sensor_config.offset', 'sensor_config.sensitivity',
+                            'calibration.slope', 'calibration.offset', 'calibration.sensitivity']:
+                    # Special cases don't add a title prefix as there is already one in the schema title
+                    renamed_list.append(_get_title(property_name, schema, property_section))
+                else:
+                    renamed_list.append(prefixed_names[name]['title_prefix'] + _get_title(property_name, schema,
+                                                                                          property_section))
+            else:
+                # if not in the list of prefixed_names then just find the title as normal.
+                renamed_list.append(_get_title(name, schema))
+        return renamed_list
 
 
 def _extract_keys_to_unique_list(lists_of_dictionaries):
@@ -440,6 +459,8 @@ def _raise_child(dictionary, child_to_raise):
     :param child_to_raise:
     :return:
     """
+    if dictionary is None:
+        return None
     new_dict = dictionary.copy()
     for key, value in dictionary.items():
         if (key == child_to_raise) and (value is not None):
@@ -529,6 +550,21 @@ PREFIX_DICT = {
                            'date_from', 'date_to', 'notes', 'update_at']
     }
 }
+DATE_INSTEAD_OF_NONE = '2100-12-31'
+SENSOR_TYPE_ORDER = ['anemometer', '2d_ultrasonic', '3d_ultrasonic', 'propeller_anemometer', 'gill_propeller',
+                     'wind_vane', 'pyranometer', 'pyrheliometer', 'thermometer', 'hygrometer', 'barometer',
+                     'rain_gauge', 'voltmeter', 'ammeter',
+                     'ice_detection_sensor', 'fog_sensor', 'illuminance_sensor', 'gps', 'compass', 'other']
+MEAS_TYPE_ORDER = ['wind_speed', 'wind_direction', 'vertical_wind_speed',
+                   'global_horizontal_irradiance', 'direct_normal_irradiance', 'diffuse_horizontal_irradiance',
+                   'global_tilted_irradiance', 'global_normal_irradiance', 'soiling_loss_index', 'illuminance',
+                   'wind_speed_turbulence',
+                   'air_temperature', 'temperature', 'relative_humidity', 'air_pressure', 'precipitation',
+                   'ice_detection', 'voltage', 'current',
+                   'fog', 'carrier_to_noise_ratio', 'doppler_spectral_broadening',
+                   'gps_coordinates', 'orientation', 'compass_direction', 'true_north_offset',
+                   'elevation', 'altitude', 'azimuth', 'status', 'counter', 'availability', 'quality',
+                   'tilt_x', 'tilt_y', 'tilt_z', 'timestamp', 'other']
 
 
 class MeasurementStation:
@@ -557,9 +593,9 @@ class MeasurementStation:
                                                schema=self.__schema, station_type=self.type)
         self.__measurements = _Measurements(meas_loc_dm=self.__meas_loc_data_model, schema=self.__schema)
         # if self.type in ['mast']:
-            # self.__wspds = _Wspds(meas_loc_dm=self.__meas_loc_data_model)
-            # self.__wdirs = _Wdirs(meas_loc_dm=self.__meas_loc_data_model)
-            # self.__mast_section_geometry = _MastSectionGeometry()
+        #     self.__wspds = _Wspds(meas_loc_dm=self.__meas_loc_data_model)
+        #     self.__wdirs = _Wdirs(meas_loc_dm=self.__meas_loc_data_model)
+        #     self.__mast_section_geometry = _MastSectionGeometry()
 
     # def __getattr__(self):
     #     return self.data_model
@@ -679,20 +715,20 @@ class MeasurementStation:
         if horizontal_table_orientation:
             list_for_df_with_titles = []
             if isinstance(list_for_df, dict):
-                list_for_df_with_titles = [_rename_keys(dictionary=list_for_df, schema=self.__schema)]
+                list_for_df_with_titles = [_rename_to_title(list_or_dict=list_for_df, schema=self.__schema)]
             elif isinstance(list_for_df, list):
                 for row in list_for_df:
-                    list_for_df_with_titles.append(_rename_keys(dictionary=row, schema=self.__schema))
+                    list_for_df_with_titles.append(_rename_to_title(list_or_dict=row, schema=self.__schema))
             df = pd.DataFrame(list_for_df_with_titles, columns=_extract_keys_to_unique_list(list_for_df_with_titles))
             df.set_index('Name', inplace=True)
         elif horizontal_table_orientation is False:
             if isinstance(list_for_df, dict):
                 # if a dictionary, it only has 1 row of data
-                titles = list(_rename_keys(dictionary=list_for_df, schema=self.__schema).keys())
+                titles = list(_rename_to_title(list_or_dict=list_for_df, schema=self.__schema).keys())
                 df = pd.DataFrame({1: list(list_for_df.values())}, index=titles)
             elif isinstance(list_for_df, list):
                 for idx, row in enumerate(list_for_df):
-                    titles = list(_rename_keys(dictionary=row, schema=self.__schema).keys())
+                    titles = list(_rename_to_title(list_or_dict=row, schema=self.__schema).keys())
                     df_temp = pd.DataFrame({idx + 1: list(row.values())}, index=titles)
                     df = pd.concat([df, df_temp], axis=1, sort=False)
             df = df.style.set_properties(**{'text-align': 'left'})
@@ -812,12 +848,12 @@ class _LoggerConfigs:
         if horizontal_table_orientation:
             list_for_df_with_titles = []
             for row in list_for_df:
-                list_for_df_with_titles.append(_rename_keys(dictionary=row, schema=self._schema))
+                list_for_df_with_titles.append(_rename_to_title(list_or_dict=row, schema=self._schema))
             df = pd.DataFrame(list_for_df_with_titles, columns=_extract_keys_to_unique_list(list_for_df_with_titles))
             df.set_index('Logger Name', inplace=True)
         elif horizontal_table_orientation is False:
             for idx, row in enumerate(list_for_df):
-                titles = list(_rename_keys(dictionary=row, schema=self._schema).keys())
+                titles = list(_rename_to_title(list_or_dict=row, schema=self._schema).keys())
                 df_temp = pd.DataFrame({idx + 1: list(row.values())}, index=titles)
                 df = pd.concat([df, df_temp], axis=1, sort=False)
             df = df.style.set_properties(**{'text-align': 'left'})
@@ -835,8 +871,6 @@ class _Measurements:
         self._meas_data_model = meas_loc_dm.get('measurement_point')
         self._schema = schema
         self.__meas_properties = self.__get_properties()
-        self.__sensor_cfgs = self.__get_sensor_cfgs()
-        self.__sensors = self.__get_sensors()
 
     @property
     def data_model(self):
@@ -849,23 +883,34 @@ class _Measurements:
         return meas_props
 
     @staticmethod
-    def __meas_point_merge(sensor_cfgs, sensors, mount_arrgmts):
+    def __meas_point_merge(sensor_cfgs, sensors=None, mount_arrgmts=None):
+        """
+
+        :param sensor_cfgs:
+        :type sensor_cfgs:  list
+        :param sensors:
+        :type sensors:  list
+        :param mount_arrgmts:
+        :return:
+        """
         sensor_cfgs = _replace_none_date(sensor_cfgs)
         sensors = _replace_none_date(sensors)
         mount_arrgmts = _replace_none_date(mount_arrgmts)
         date_from = [sen_config.get('date_from') for sen_config in sensor_cfgs]
         date_to = [sen_config.get('date_to') for sen_config in sensor_cfgs]
-        for sensor in sensors:
-            date_from.append(sensor.get('date_from'))
-            date_to.append(sensor.get('date_to'))
-        for mntg_arrang in mount_arrgmts:
-            date_from.append(mntg_arrang['date_from'])
-            date_to.append(mntg_arrang['date_to'])
-        print('date_to =', date_to)
+        if sensors is not None:
+            for sensor in sensors:
+                date_from.append(sensor.get('date_from'))
+                date_to.append(sensor.get('date_to'))
+        if mount_arrgmts is not None:
+            for mount_arrgmt in mount_arrgmts:
+                date_from.append(mount_arrgmt['date_from'])
+                date_to.append(mount_arrgmt['date_to'])
+        # print('date_to =', date_to)
         date_from.extend(date_to)
         dates = list(set(date_from))
         dates.sort()
-        print('dates =', dates)
+        # print('dates =', dates)
         meas_point_flattened = []
         for i in range(len(dates) - 1):
             print(i, dates[i])
@@ -874,80 +919,150 @@ class _Measurements:
                 if (sen_config['date_from'] <= dates[i]) & (sen_config.get('date_to') > dates[i]):
                     good_sen_config = sen_config.copy()
             if good_sen_config != {}:
-                for sensor in sensors:
-                    if (sensor['date_from'] <= dates[i]) & (sensor['date_to'] > dates[i]):
-                        good_sen_config.update(sensor)
-                for mntg_arrang in mount_arrgmts:
-                    print('filtering dates of mounting arrangements')
-                    print('mntg_arrang[date_from]:', mntg_arrang['date_from'])
-                    print('mntg_arrang[date_to]:', mntg_arrang['date_to'])
-                    if (mntg_arrang['date_from'] <= dates[i]) & (mntg_arrang['date_to'] > dates[i]):
-                        print('updating with mount_arrang')
-                        good_sen_config.update(mntg_arrang)
+                if sensors is not None:
+                    for sensor in sensors:
+                        if (sensor['date_from'] <= dates[i]) & (sensor['date_to'] > dates[i]):
+                            good_sen_config.update(sensor)
+                if mount_arrgmts is not None:
+                    for mntg_arrang in mount_arrgmts:
+                        print('filtering dates of mounting arrangements')
+                        print('mntg_arrang[date_from]:', mntg_arrang['date_from'])
+                        print('mntg_arrang[date_to]:', mntg_arrang['date_to'])
+                        if (mntg_arrang['date_from'] <= dates[i]) & (mntg_arrang['date_to'] > dates[i]):
+                            print('updating with mount_arrang')
+                            good_sen_config.update(mntg_arrang)
                 good_sen_config['date_to'] = dates[i + 1]
                 good_sen_config['date_from'] = dates[i]
                 meas_point_flattened.append(good_sen_config)
+        # REPLACE DATE_TO IF EQUALS 'DATE_INSTEAD_OF_NONE'
         return meas_point_flattened
 
     def __get_properties(self):
         meas_props = []
-        for meas_point in self._meas_data_model[1:2]:
-            # col_names_raised = _raise_child(meas_point, child_to_raise='column_name',
-            #                                 keys_to_prefix=PREFIX_DICT['column_name']['keys_to_prefix'],
-            #                                 prefix_keys_with=PREFIX_DICT['column_name']['prefix'])
-            # sen_cfgs = _raise_child(col_names_raised, child_to_raise='sensor_config',
+        for meas_point in self._meas_data_model:
+            print(meas_point['name'])
+            # col_names_raised = _raise_child(meas_point, child_to_raise='column_name')
+            # sen_cfgs = _raise_child(col_names_raised, child_to_raise='sensor_config')
             sen_cfgs = _raise_child(meas_point, child_to_raise='sensor_config')
             calib_raised = _raise_child(meas_point, child_to_raise='calibration')
-            sensors = _raise_child(calib_raised, child_to_raise='sensor')
+            if calib_raised is None:
+                sensors = _raise_child(meas_point, child_to_raise='sensor')
+            else:
+                sensors = _raise_child(calib_raised, child_to_raise='sensor')
             mounting_arrangements = _raise_child(meas_point, child_to_raise='mounting_arrangement')
-            print(mounting_arrangements[0])
-            meas_point_flattened = self.__meas_point_merge(sen_cfgs, sensors, mounting_arrangements)
-        return meas_point_flattened
 
-    def __get_sensor_cfgs(self):
-        # put in a loop for each measurement and then join together
-        # col_names_raised = _raise_child(self._meas_data_model[1], child_to_raise='column_name',
-        #                                 keys_to_prefix=PREFIX_DICT['column_name']['keys_to_prefix'],
-        #                                 prefix_keys_with=PREFIX_DICT['column_name']['prefix'])
-        sen_cfgs = _raise_child(self._meas_data_model[1], child_to_raise='sensor_config')
-        return sen_cfgs
+            if mounting_arrangements is None:
+                meas_point_merged = self.__meas_point_merge(sensor_cfgs=sen_cfgs, sensors=sensors)
+            else:
+                meas_point_merged = self.__meas_point_merge(sensor_cfgs=sen_cfgs, sensors=sensors,
+                                                            mount_arrgmts=mounting_arrangements)
+            for merged_meas_point in meas_point_merged:
+                meas_props.append(merged_meas_point)
+        return meas_props
 
-    def __get_sensors(self):
-        calib_raised = _raise_child(self._meas_data_model[1], child_to_raise='calibration')
-        sensors = _raise_child(calib_raised, child_to_raise='sensor')
-        return sensors
+    def get_table(self, detailed=False, columns_to_show=None):
+        """
+        Get tables to show information about the measurements made.
 
-    def get_table(self, detailed=False):
+        :param detailed:        For a more detailed table that includes how the sensor is programmed into the logger,
+                                information about the sensor itself and how it is mounted on the mast if it was.
+        :type detailed:         bool
+        :param columns_to_show: Optionally provide a list of column names you want to see in a table. This list
+                                should be pulled from the list of keys available in the measurements.properties.
+                                'name', 'date_from' and 'date_to' are always included.
+        :type columns_to_show:  list(str) or None
+        :return:                A table showing information about the measurements made by this measurement station.
+        :rtype:                 pd.DataFrame
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            mm1 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
+            mm1.measurements.get_table()
+
+        To get a more detailed table::
+            mm1.measurements.get_table(detailed=True)
+
+        To make your own table::
+            columns = ['calibration.slope', 'calibration.offset', 'calibration.report_file_name', 'date_of_calibration',
+                       'calibration_organisation', 'place_of_calibration', 'calibration.uncertainty_k_factor',
+                       'calibration.notes', 'calibration.update_at']
+            mm1.measurements.get_table(columns_to_show=columns)
+
+        """
         df = pd.DataFrame()
-        if detailed is False:
+        if detailed is False and columns_to_show is None:
+            # default summary table
             list_for_df = self.__get_parent_properties()
             list_for_df_with_titles = []
             for row in list_for_df:
-                list_for_df_with_titles.append(_rename_keys(row, schema=self._schema))
+                list_for_df_with_titles.append(_rename_to_title(list_or_dict=row, schema=self._schema))
             df = pd.DataFrame(list_for_df_with_titles, columns=_extract_keys_to_unique_list(list_for_df_with_titles))
+            # order rows
+            order_index = dict(zip(MEAS_TYPE_ORDER, range(len(MEAS_TYPE_ORDER))))
+            df['meas_type_rank'] = df['Measurement Type'].map(order_index)
+            df.sort_values(['meas_type_rank', 'Height [m]'], ascending=[True, False], inplace=True)
+            df.drop('meas_type_rank', 1, inplace=True)
             df.set_index('Name', inplace=True)
             df.fillna('-', inplace=True)
-            df.sort_values(['Measurement Type', 'Height [m]'], ascending=[False, False], inplace=True)
         elif detailed is True:
-            # Need to bring up properties from sensor_configs and sensor and sensor/calibration
-            cols_required = ['name', 'oem', 'model', 'sensor_type_id', 'serial_number', 'boom_orientation_deg',
-                             'date_from', 'date_to', 'connection_channel', 'height_m',
+            cols_required = ['name', 'oem', 'model', 'sensor_type_id', 'sensor.serial_number',
+                             'height_m', 'boom_orientation_deg', 'mounting_type_id',
+                             'date_from', 'date_to', 'connection_channel',
                              'sensor_config.slope', 'sensor_config.offset', 'calibration.slope', 'calibration.offset',
                              'sensor.notes']
-            df = _format_sensor_table(self._meas_data_model)
+            df = pd.DataFrame(self.__meas_properties)
+            # get what is common from both lists and use this to filter df
+            cols_required = [col for col in cols_required if col in df.columns]
+            df = df[cols_required]
+            # order rows
+            if 'sensor_type_id' in df.columns:
+                order_index = dict(zip(SENSOR_TYPE_ORDER, range(len(SENSOR_TYPE_ORDER))))
+                df['sensor_rank'] = df['sensor_type_id'].map(order_index)
+                df.sort_values(['sensor_rank', 'height_m'], ascending=[True, False], inplace=True)
+                df.drop('sensor_rank', 1, inplace=True)
+            else:
+                df.sort_values(['name', 'height_m'], ascending=[True, False], inplace=True)
+            # get titles
+            title_cols = _rename_to_title(list_or_dict=list(df.columns), schema=self._schema)
+            df.columns = title_cols
+            # tidy up
+            df.set_index('Name', inplace=True)
+            df.fillna('-', inplace=True)
+            df.replace(DATE_INSTEAD_OF_NONE, '-', inplace=True)
+        elif columns_to_show is not None:
+            temp_df = pd.DataFrame(self.__meas_properties)
+            # select the common columns that are available
+            avail_cols = [col for col in columns_to_show if col in temp_df.columns]
+            if not avail_cols:
+                raise KeyError('No data to show from the list of columns provided')
+            # Name needs to be included in the grouping but 'date_from' and 'date_to' should not be
+            # as we filter for them later
+            required_in_avail_cols = {'include': ['name'], 'remove': ['date_from', 'date_to']}
+            for include_col in required_in_avail_cols['include']:
+                if include_col not in avail_cols:
+                    avail_cols.insert(0, include_col)
+            for remove_col in required_in_avail_cols['remove']:
+                if remove_col in avail_cols:
+                    avail_cols.remove(remove_col)
+            # Remove duplicates resulting from other info been dropped.
+            temp_df.sort_values(['name', 'date_from'], ascending=[True, True], inplace=True)
+            # group duplicate data for the columns available
+            grouped_by_avail_cols = temp_df.groupby(avail_cols)
+            # get date_to from the last row in each group to assign to the first row.
+            new_date_to = grouped_by_avail_cols.last()['date_to']
+            df = grouped_by_avail_cols.first()[['date_from', 'date_to']]
+            df['date_to'] = new_date_to
+            df.reset_index(level=avail_cols, inplace=True)
+            df.set_index('name', inplace=True)
+            df.sort_values(['name', 'date_from'], ascending=[True, True], inplace=True)
+            df.replace(DATE_INSTEAD_OF_NONE, '-', inplace=True)
+            df.fillna('-', inplace=True)
         return df
 
     @property
     def properties(self):
         return self.__meas_properties
-
-    @property
-    def sensor_cfgs(self):
-        return self.__sensor_cfgs
-
-    @property
-    def sensors(self):
-        return self.__sensors
 
 
 class _Wspds:
