@@ -885,13 +885,17 @@ class _Measurements:
     @staticmethod
     def __meas_point_merge(sensor_cfgs, sensors=None, mount_arrgmts=None):
         """
+        Merge the properties from sensor_cfgs, sensors and mounting_arrangements. This will account for when
+        each property was changed over time.
 
-        :param sensor_cfgs:
-        :type sensor_cfgs:  list
-        :param sensors:
-        :type sensors:  list
-        :param mount_arrgmts:
-        :return:
+        :param sensor_cfgs:   Sensor cfgs properties
+        :type sensor_cfgs:    list
+        :param sensors:       Sensor properties
+        :type sensors:        list
+        :param mount_arrgmts: Mounting arrangement properties
+        :type mount_arrgmts:  list
+        :return:              The properties merged together.
+        :rtype:               list(dict)
         """
         sensor_cfgs = _replace_none_date(sensor_cfgs)
         sensors = _replace_none_date(sensors)
@@ -906,14 +910,11 @@ class _Measurements:
             for mount_arrgmt in mount_arrgmts:
                 date_from.append(mount_arrgmt['date_from'])
                 date_to.append(mount_arrgmt['date_to'])
-        # print('date_to =', date_to)
         date_from.extend(date_to)
         dates = list(set(date_from))
         dates.sort()
-        # print('dates =', dates)
-        meas_point_flattened = []
+        meas_points_merged = []
         for i in range(len(dates) - 1):
-            print(i, dates[i])
             good_sen_config = {}
             for sen_config in sensor_cfgs:
                 if (sen_config['date_from'] <= dates[i]) & (sen_config.get('date_to') > dates[i]):
@@ -924,23 +925,21 @@ class _Measurements:
                         if (sensor['date_from'] <= dates[i]) & (sensor['date_to'] > dates[i]):
                             good_sen_config.update(sensor)
                 if mount_arrgmts is not None:
-                    for mntg_arrang in mount_arrgmts:
-                        print('filtering dates of mounting arrangements')
-                        print('mntg_arrang[date_from]:', mntg_arrang['date_from'])
-                        print('mntg_arrang[date_to]:', mntg_arrang['date_to'])
-                        if (mntg_arrang['date_from'] <= dates[i]) & (mntg_arrang['date_to'] > dates[i]):
-                            print('updating with mount_arrang')
-                            good_sen_config.update(mntg_arrang)
+                    for mount_arrgmt in mount_arrgmts:
+                        if (mount_arrgmt['date_from'] <= dates[i]) & (mount_arrgmt['date_to'] > dates[i]):
+                            good_sen_config.update(mount_arrgmt)
                 good_sen_config['date_to'] = dates[i + 1]
                 good_sen_config['date_from'] = dates[i]
-                meas_point_flattened.append(good_sen_config)
-        # REPLACE DATE_TO IF EQUALS 'DATE_INSTEAD_OF_NONE'
-        return meas_point_flattened
+                meas_points_merged.append(good_sen_config)
+        # replace 'date_to' if equals to 'DATE_INSTEAD_OF_NONE'
+        for meas_point in meas_points_merged:
+            if meas_point.get('date_to') is not None and meas_point.get('date_to') == DATE_INSTEAD_OF_NONE:
+                meas_point['date_to'] = None
+        return meas_points_merged
 
     def __get_properties(self):
         meas_props = []
         for meas_point in self._meas_data_model:
-            print(meas_point['name'])
             # col_names_raised = _raise_child(meas_point, child_to_raise='column_name')
             # sen_cfgs = _raise_child(col_names_raised, child_to_raise='sensor_config')
             sen_cfgs = _raise_child(meas_point, child_to_raise='sensor_config')
@@ -960,19 +959,73 @@ class _Measurements:
                 meas_props.append(merged_meas_point)
         return meas_props
 
-    def get_table(self, detailed=False, columns_to_show=None):
+    def _get_table_for_cols(self, columns_to_show):
+        """
+        Get table of measurements for specific columns.
+        :param columns_to_show: Columns required to show in table.
+        :type columns_to_show:  list(str)
+        :return:                Table as a pandas DataFrame
+        :rtype:                 pd.DataFrame
+        """
+        temp_df = pd.DataFrame(self.__meas_properties)
+        # select the common columns that are available
+        avail_cols = [col for col in columns_to_show if col in temp_df.columns]
+        if not avail_cols:
+            raise KeyError('No data to show from the list of columns provided')
+        # Drop all rows that have no data for the avail_cols
+        temp_df.dropna(axis=0, subset=avail_cols, how='all', inplace=True)
+        if temp_df.empty:
+            raise KeyError('No data to show from the list of columns provided')
+        # Name needs to be included in the grouping but 'date_from' and 'date_to' should not be
+        # as we filter for them later
+        required_in_avail_cols = {'include': ['name'], 'remove': ['date_from', 'date_to']}
+        for include_col in required_in_avail_cols['include']:
+            if include_col not in avail_cols:
+                avail_cols.insert(0, include_col)
+        for remove_col in required_in_avail_cols['remove']:
+            if remove_col in avail_cols:
+                avail_cols.remove(remove_col)
+        # Remove duplicates resulting from other info been dropped.
+        temp_df.sort_values(['name', 'date_from'], ascending=[True, True], inplace=True)
+        temp_df.fillna('-', inplace=True)  # groupby drops nan so need to fill them in
+        # group duplicate data for the columns available
+        grouped_by_avail_cols = temp_df.groupby(avail_cols)
+        # get date_to from the last row in each group to assign to the first row.
+        new_date_to = grouped_by_avail_cols.last()['date_to']
+        df = grouped_by_avail_cols.first()[['date_from', 'date_to']]
+        df['date_to'] = new_date_to
+        df.reset_index(level=avail_cols, inplace=True)
+        df.sort_values(['name', 'date_from'], ascending=[True, True], inplace=True)
+        # get titles
+        title_cols = _rename_to_title(list_or_dict=list(df.columns), schema=self._schema)
+        df.columns = title_cols
+        df.set_index('Name', inplace=True)
+        df.replace(DATE_INSTEAD_OF_NONE, '-', inplace=True)
+        return df
+
+    def get_table(self, detailed=False, wind_speeds=False, wind_directions=False, calibrations=False,
+                  mounting_arrangements=False, columns_to_show=None):
         """
         Get tables to show information about the measurements made.
 
-        :param detailed:        For a more detailed table that includes how the sensor is programmed into the logger,
-                                information about the sensor itself and how it is mounted on the mast if it was.
-        :type detailed:         bool
-        :param columns_to_show: Optionally provide a list of column names you want to see in a table. This list
-                                should be pulled from the list of keys available in the measurements.properties.
-                                'name', 'date_from' and 'date_to' are always included.
-        :type columns_to_show:  list(str) or None
-        :return:                A table showing information about the measurements made by this measurement station.
-        :rtype:                 pd.DataFrame
+        :param detailed:              For a more detailed table that includes how the sensor is programmed into the logger,
+                                      information about the sensor itself and how it is mounted on the mast if it was.
+        :type detailed:               bool
+        :param wind_speeds:           Wind speed specific details.
+        :type wind_speeds:            bool
+        :param wind_directions:       Wind speed specific details.
+        :type wind_directions:        bool
+        :param calibrations:          Wind speed specific details.
+        :type calibrations:           bool
+        :param mounting_arrangements: Wind speed specific details.
+        :type mounting_arrangements:  bool
+        :param columns_to_show:       Optionally provide a list of column names you want to see in a table. This list
+                                      should be pulled from the list of keys available in the measurements.properties.
+                                      'name', 'date_from' and 'date_to' are always inserted so no need to include them
+                                      in your list.
+        :type columns_to_show:        list(str) or None
+        :return:                      A table showing information about the measurements made by this measurement station.
+        :rtype:                       pd.DataFrame
 
         **Example usage**
         ::
@@ -983,15 +1036,26 @@ class _Measurements:
         To get a more detailed table::
             mm1.measurements.get_table(detailed=True)
 
+        To get wind speed specific details::
+            mm1.measurements.get_table(wind_speeds=True)
+
+        To get wind speed specific details::
+            mm1.measurements.get_table(wind_directions=True)
+
+        To get calibration specific details::
+            mm1.measurements.get_table(calibrations=True)
+
+        To get mounting specific details::
+            mm1.measurements.get_table(mounting_arrangements=True)
+
         To make your own table::
-            columns = ['calibration.slope', 'calibration.offset', 'calibration.report_file_name', 'date_of_calibration',
-                       'calibration_organisation', 'place_of_calibration', 'calibration.uncertainty_k_factor',
-                       'calibration.notes', 'calibration.update_at']
+            columns = ['calibration.slope', 'calibration.offset', 'calibration.report_file_name', 'date_of_calibration']
             mm1.measurements.get_table(columns_to_show=columns)
 
         """
         df = pd.DataFrame()
-        if detailed is False and columns_to_show is None:
+        if detailed is False and wind_speeds is False and wind_directions is False \
+                and calibrations is False and mounting_arrangements is False and columns_to_show is None:
             # default summary table
             list_for_df = self.__get_parent_properties()
             list_for_df_with_titles = []
@@ -1030,38 +1094,62 @@ class _Measurements:
             df.set_index('Name', inplace=True)
             df.fillna('-', inplace=True)
             df.replace(DATE_INSTEAD_OF_NONE, '-', inplace=True)
-        elif columns_to_show is not None:
-            temp_df = pd.DataFrame(self.__meas_properties)
-            # select the common columns that are available
-            avail_cols = [col for col in columns_to_show if col in temp_df.columns]
-            if not avail_cols:
-                raise KeyError('No data to show from the list of columns provided')
-            # Drop all rows that have no data for the avail_cols
-            temp_df.dropna(axis=0, subset=avail_cols, how='all', inplace=True)
-            if temp_df.empty:
-                raise KeyError('No data to show from the list of columns provided')
-            # Name needs to be included in the grouping but 'date_from' and 'date_to' should not be
-            # as we filter for them later
-            required_in_avail_cols = {'include': ['name'], 'remove': ['date_from', 'date_to']}
-            for include_col in required_in_avail_cols['include']:
-                if include_col not in avail_cols:
-                    avail_cols.insert(0, include_col)
-            for remove_col in required_in_avail_cols['remove']:
-                if remove_col in avail_cols:
-                    avail_cols.remove(remove_col)
-            # Remove duplicates resulting from other info been dropped.
-            temp_df.sort_values(['name', 'date_from'], ascending=[True, True], inplace=True)
-            temp_df.fillna('-', inplace=True)  # groupby drops nan so need to fill them in
-            # group duplicate data for the columns available
-            grouped_by_avail_cols = temp_df.groupby(avail_cols)
-            # get date_to from the last row in each group to assign to the first row.
-            new_date_to = grouped_by_avail_cols.last()['date_to']
-            df = grouped_by_avail_cols.first()[['date_from', 'date_to']]
-            df['date_to'] = new_date_to
-            df.reset_index(level=avail_cols, inplace=True)
-            df.set_index('name', inplace=True)
-            df.sort_values(['name', 'date_from'], ascending=[True, True], inplace=True)
+        elif wind_speeds is True:
+            cols_required = ['name', 'measurement_type_id', 'oem', 'model', 'sensor.serial_number', 'is_heated',
+                             'height_m', 'boom_orientation_deg', 'mounting_type_id',
+                             'date_from', 'date_to', 'connection_channel',
+                             'sensor_config.slope', 'sensor_config.offset', 'calibration.slope', 'calibration.offset',
+                             'sensor_config.notes', 'sensor.notes']
+            df = pd.DataFrame(self.__meas_properties)
+            # get what is common from both lists and use this to filter df
+            cols_required = [col for col in cols_required if col in df.columns]
+            df = df[cols_required]
+            df = df[df['measurement_type_id'] == 'wind_speed']
+            df.drop('measurement_type_id', 1, inplace=True)
+            # order rows
+            df.sort_values(['height_m', 'name'], ascending=[False, True], inplace=True)
+            # get titles
+            title_cols = _rename_to_title(list_or_dict=list(df.columns), schema=self._schema)
+            df.columns = title_cols
+            # tidy up
+            df.set_index('Name', inplace=True)
+            df.fillna('-', inplace=True)
             df.replace(DATE_INSTEAD_OF_NONE, '-', inplace=True)
+        elif wind_directions is True:
+            cols_required = ['name', 'measurement_type_id', 'oem', 'model', 'sensor.serial_number', 'is_heated',
+                             'height_m', 'boom_orientation_deg', 'vane_dead_band_orientation_deg',
+                             'orientation_reference_id',
+                             'date_from', 'date_to', 'connection_channel',
+                             'sensor_config.slope', 'sensor_config.offset',
+                             'sensor_config.notes', 'sensor.notes']
+            df = pd.DataFrame(self.__meas_properties)
+            # get what is common from both lists and use this to filter df
+            cols_required = [col for col in cols_required if col in df.columns]
+            df = df[cols_required]
+            df = df[df['measurement_type_id'] == 'wind_direction']
+            df.drop('measurement_type_id', 1, inplace=True)
+            # order rows
+            df.sort_values(['height_m', 'name'], ascending=[False, True], inplace=True)
+            # get titles
+            title_cols = _rename_to_title(list_or_dict=list(df.columns), schema=self._schema)
+            df.columns = title_cols
+            # tidy up
+            df.set_index('Name', inplace=True)
+            df.fillna('-', inplace=True)
+            df.replace(DATE_INSTEAD_OF_NONE, '-', inplace=True)
+        elif calibrations is True:
+            cols_required = ['calibration.slope', 'calibration.offset', 'calibration.report_file_name',
+                             'date_of_calibration', 'calibration_organisation', 'place_of_calibration',
+                             'calibration.uncertainty_k_factor', 'calibration.update_at', 'calibration.notes']
+            df = self._get_table_for_cols(cols_required)
+        elif mounting_arrangements is True:
+            cols_required = ['mounting_type_id', 'boom_orientation_deg', 'orientation_reference_id', 'boom_oem',
+                             'boom_model', 'boom_diameter_mm', 'boom_length_mm', 'distance_from_mast_to_sensor_mm',
+                             'upstand_height_mm', 'upstand_diameter_mm', 'vane_dead_band_orientation_deg',
+                             'mounting_arrangement.notes']
+            df = self._get_table_for_cols(cols_required)
+        elif columns_to_show is not None:
+            df = self._get_table_for_cols(columns_to_show)
         return df
 
     @property
