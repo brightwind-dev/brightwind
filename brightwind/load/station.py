@@ -17,9 +17,11 @@
 
 from brightwind.load.load import _is_file
 from brightwind.utils import utils
+import numpy as np
 import pandas as pd
 import requests
 import json
+import copy
 import gmaps
 
 
@@ -597,16 +599,14 @@ class MeasurementStation:
         #     self.__wdirs = _Wdirs(meas_loc_dm=self.__meas_loc_data_model)
         #     self.__mast_section_geometry = _MastSectionGeometry()
 
-    # def __getattr__(self):
-    #     return self.data_model
+    def __getitem__(self, item):
+        return self.__meas_loc_properties[item]
 
-    # @data_model.setter
-    # def data_model(self, a):
-    #     self.__data_model = a
+    def __iter__(self):
+        return iter(self.__meas_loc_properties)
 
-    # def _get_header(self):
-    #     # extract the header info from the _Header class
-    #     return self._Header(self.__data_model)
+    def __repr__(self):
+        return repr(self.__meas_loc_properties)
 
     @staticmethod
     def _load_wra_data_model(wra_data_model):
@@ -762,7 +762,8 @@ class MeasurementStation:
 
     @property
     def mast_section_geometry(self):
-        return self.__mast_section_geometry
+        return 'Not yet implemented.'
+        # return self.__mast_section_geometry
 
 
 class _Header:
@@ -783,6 +784,15 @@ class _Header:
         self._header_properties = header_dict
         self._keys = keys
         self._values = values
+
+    def __getitem__(self, item):
+        return self._header_properties[item]
+
+    def __iter__(self):
+        return iter(self._header_properties)
+
+    def __repr__(self):
+        return repr(self._header_properties)
 
     @property
     def properties(self):
@@ -805,6 +815,15 @@ class _LoggerConfigs:
         self._schema = schema
         self._type = station_type
         self.__log_cfg_properties = self.__get_properties()
+
+    def __getitem__(self, item):
+        return self.__log_cfg_properties[item]
+
+    def __iter__(self):
+        return iter(self.__log_cfg_properties)
+
+    def __repr__(self):
+        return repr(self.__log_cfg_properties)
 
     @property
     def data_model(self):
@@ -871,6 +890,39 @@ class _Measurements:
         self._meas_data_model = meas_loc_dm.get('measurement_point')
         self._schema = schema
         self.__meas_properties = self.__get_properties()
+        self.__meas_dict = self.__get_properties_as_dict()
+
+    # Making _Measurements emulate a dictionary.
+    # Not using super(_Measurements, self).__init__(*arg, **kw) as I do not want the user to __setitem__,
+    # __delitem__, clear, update or pop. Therefore, writing out the specific behaviour I want for the dictionary.
+
+    def __getitem__(self, key):
+        return self.__meas_dict[key]
+
+    def __iter__(self):
+        return iter(self.__meas_dict)
+
+    def __repr__(self):
+        return repr(self.__meas_dict)
+
+    def __len__(self):
+        return len(self.__meas_dict)
+
+    def __contains__(self, key):
+        return key in self.__meas_dict
+
+    # Don't allow copy as user needs to use copy.deepcopy to copy the dictionary, might also confuse with the object.
+    # def copy(self):
+    #     return self.__meas_dict.copy()
+
+    def keys(self):
+        return self.__meas_dict.keys()
+
+    def values(self):
+        return self.__meas_dict.values()
+
+    def items(self):
+        return self.__meas_dict.items()
 
     @property
     def data_model(self):
@@ -881,6 +933,44 @@ class _Measurements:
         for meas_point in self._meas_data_model:
             meas_props.append(_filter_parent_level(meas_point))
         return meas_props
+
+    @property
+    def properties(self):
+        return self.__meas_properties
+
+    @property
+    def names(self):
+        """
+        The names of all the measurements.
+
+        :return: The list of names.
+        :rtype:  list(str)
+        """
+        return self.__get_names()
+
+    @property
+    def wspds(self):
+        return self.__get_properties_as_dict(measurement_type_id='wind_speed')
+
+    @property
+    def wspd_names(self):
+        return self.__get_names(measurement_type_id='wind_speed')
+
+    @property
+    def wspd_heights(self):
+        return self.get_heights(measurement_type_id='wind_speed')
+
+    @property
+    def wdirs(self):
+        return self.__get_properties_as_dict(measurement_type_id='wind_direction')
+
+    @property
+    def wdir_names(self):
+        return self.__get_names(measurement_type_id='wind_direction')
+
+    @property
+    def wdir_heights(self):
+        return self.get_heights(measurement_type_id='wind_direction')
 
     @staticmethod
     def __meas_point_merge(sensor_cfgs, sensors=None, mount_arrgmts=None):
@@ -959,7 +1049,30 @@ class _Measurements:
                 meas_props.append(merged_meas_point)
         return meas_props
 
-    def _get_table_for_cols(self, columns_to_show):
+    def __get_properties_as_dict(self, measurement_type_id=None):
+        """
+        Get the flattened properties as a dictionary with name as the key. This is for easy use for accessing a
+        measurement point.
+
+        e.g. mm1.measurements['Spd1']
+
+        :return: Flattened properties as a dictionary
+        :rtype:  dict
+        """
+        meas_dict = {}
+        merged_properties = copy.deepcopy(self.__meas_properties)
+        for meas_point in merged_properties:
+            meas_point_name = meas_point['name']
+            if meas_point['measurement_type_id'] == measurement_type_id or measurement_type_id is None:
+                if meas_point_name in meas_dict.keys():
+                    del meas_point['name']
+                    meas_dict[meas_point_name].append(meas_point)
+                else:
+                    del meas_point['name']
+                    meas_dict[meas_point_name] = [meas_point]
+        return meas_dict
+
+    def __get_table_for_cols(self, columns_to_show):
         """
         Get table of measurements for specific columns.
         :param columns_to_show: Columns required to show in table.
@@ -1141,101 +1254,76 @@ class _Measurements:
             cols_required = ['calibration.slope', 'calibration.offset', 'calibration.report_file_name',
                              'date_of_calibration', 'calibration_organisation', 'place_of_calibration',
                              'calibration.uncertainty_k_factor', 'calibration.update_at', 'calibration.notes']
-            df = self._get_table_for_cols(cols_required)
+            df = self.__get_table_for_cols(cols_required)
         elif mounting_arrangements is True:
             cols_required = ['mounting_type_id', 'boom_orientation_deg', 'orientation_reference_id', 'boom_oem',
                              'boom_model', 'boom_diameter_mm', 'boom_length_mm', 'distance_from_mast_to_sensor_mm',
                              'upstand_height_mm', 'upstand_diameter_mm', 'vane_dead_band_orientation_deg',
                              'mounting_arrangement.notes']
-            df = self._get_table_for_cols(cols_required)
+            df = self.__get_table_for_cols(cols_required)
         elif columns_to_show is not None:
-            df = self._get_table_for_cols(columns_to_show)
+            df = self.__get_table_for_cols(columns_to_show)
         return df
 
-    @property
-    def properties(self):
-        return self.__meas_properties
-
-
-class _Wspds:
-    def __init__(self, meas_loc_dm):
+    def __get_names(self, measurement_type_id=None):
         """
-        Extract the wind speed measurement points
+        Get the names of measurements for a particular measurement_type or all of them if measurement_type_id is None.
 
-        :param meas_loc_dm: The measurement location from the WRA Data Model
-        :type meas_loc_dm:  Dict
-
+        :param measurement_type_id: The measurement_type_id to filter for the names.
+        :type measurement_type_id:  str or None
+        :return:                    The list of names.
+        :rtype:                     list(str)
         """
-        meas_points = _get_meas_points(meas_loc_dm.get('measurement_point'))
-        wspds = []
-        for meas_point in meas_points:
-            if meas_point.get('measurement_type_id') == 'wind_speed':
-                wspds.append(meas_point)
-        self._data_model = wspds
-        self._names = self._get_names()
+        names = []
+        for meas_point in self.__meas_properties:  # use __meas_properties as it is a list and holds it's order
+            meas_type = meas_point.get('measurement_type_id')
+            meas_name = meas_point.get('name')
+            if measurement_type_id is not None:
+                if meas_type is not None and meas_type in measurement_type_id:
+                    if meas_name not in names:
+                        names.append(meas_point.get('name'))
+            else:
+                if meas_name not in names:
+                    names.append(meas_point.get('name'))
+        return names
 
-    @property
-    def data_model(self):
-        return self._data_model
+    def get_heights(self, names=None, measurement_type_id=None):
+        """
+        Get the heights of the measurements.
 
-    def _get_names(self):
-        wspd_names = []
-        for wspd in self._data_model:
-            if wspd.get('name') not in wspd_names:
-                wspd_names.append(wspd.get('name'))
-        return wspd_names
+        A list of measurement names can be provided to filter the results. If names are provided
+        the measurement_type_id is ignored.
 
-    @property
-    def names(self):
-        return self._names
+        A measurement_type_id can be provided to filter the results. Measurement types available can be
+        found by running the following after initialisation:
+        MeasurementStation.measurements.get_table()
 
-    def get_heights(self):
-        wspd_heights = []
-        for wspd_name in self.names:
-            for wspd in self._data_model:
-                if wspd.get('name') == wspd_name:
-                    wspd_heights.append(wspd.get('height_m'))
+        :param names:               Optional list of measurement names to filter by.
+        :type names:                list(str) or str or None
+        :param measurement_type_id: Optional measurement type to filter by.
+        :type measurement_type_id:  str
+        :return:                    The heights of the measurements.
+        :rtype:                     list(float)
+        """
+        heights = []
+        if names is None:
+            names = self.__get_names(measurement_type_id=measurement_type_id)
+        if isinstance(names, str):
+            names = [names]
+        for name in names:
+            name_found = False  # used to fill in a NaN if the name isn't found to keep consistent order
+            for meas_point in self.__meas_properties:  # use __meas_properties as it is a list and holds it's order
+                if meas_point['name'] == name and meas_point.get('height_m') is not None:
+                    heights.append(meas_point['height_m'])
+                    name_found = True
                     break
-        return wspd_heights
-
-    @property
-    def table(self):
-        sensors_table = _format_sensor_table(self._data_model, table_type='speed_info')
-        return sensors_table.drop_duplicates()
-
-
-class _Wdirs:
-    def __init__(self, meas_loc_dm):
-        """
-        Extract the wind speed measurement points
-
-        :param meas_loc_dm: The measurement location from the WRA Data Model
-        :type meas_loc_dm:  Dict
-
-        """
-        meas_points = _get_meas_points(meas_loc_dm.get('measurement_point'))
-        wdirs = []
-        for meas_point in meas_points:
-            if meas_point.get('measurement_type_id') == 'wind_direction':
-                wdirs.append(meas_point)
-        self._data_model = wdirs
-
-    @property
-    def data_model(self):
-        return self._data_model
-
-    @property
-    def names(self):
-        wdir_names = []
-        for wdir in self._data_model:
-            if wdir.get('name') not in wdir_names:
-                wdir_names.append(wdir.get('name'))
-        return wdir_names
-
-    @property
-    def table(self):
-        sensors_table = _format_sensor_table(self._data_model, table_type='direction_info')
-        return sensors_table.drop_duplicates()
+                elif meas_point['name'] == name and meas_point.get('height_m') is None:
+                    heights.append(np.NaN)
+                    name_found = True
+                    break
+            if name_found is False:
+                heights.append(np.NaN)
+        return heights
 
 
 class _MastSectionGeometry:
