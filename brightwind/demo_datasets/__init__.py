@@ -10,7 +10,8 @@ __all__ = ['demo_data',
            'demo_windographer_flagging_log',
            'demo_windographer_flagging_log2',
            'demo_cleaning_file',
-           'demo_wra_data_model_schema',
+           'iea43_wra_data_model_schema',
+           'iea43_wra_data_model',
            'demo_wra_data_model']
 
 demo_data = os.path.join(os.path.dirname(__file__), 'demo_data.csv')
@@ -26,8 +27,11 @@ demo_windographer_flagging_log = os.path.join(os.path.dirname(__file__), 'windog
 demo_windographer_flagging_log2 = os.path.join(os.path.dirname(__file__), 'windographer_flagging_log2.txt')
 demo_cleaning_file = os.path.join(os.path.dirname(__file__), 'demo_cleaning_file.csv')
 
-demo_wra_data_model_schema = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model.schema.json')
-demo_wra_data_model = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model.json')
+iea43_wra_data_model_schema = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model.schema.json')
+iea43_wra_data_model = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model.json')
+demo_wra_data_model = os.path.join(os.path.dirname(__file__), 'demo_data_data_model.json')
+
+demo_data_adjusted = os.path.join(os.path.dirname(__file__), 'demo_data_adjusted.csv')
 
 
 def datasets_available():

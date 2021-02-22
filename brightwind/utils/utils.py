@@ -122,3 +122,14 @@ def get_environment_variable(name):
     if name not in os.environ:
         raise Exception('{} environmental variable is not set.'.format(name))
     return os.getenv(name)
+
+
+def bold(text):
+    """
+    Function to return text as bold
+
+    :param text: str to bold
+    :type text: str
+    :return: str in bold
+    """
+    return '\x1b[1;30m'+text+'\x1b[0m' if text else '\x1b[1;30m'+'\x1b[0m'

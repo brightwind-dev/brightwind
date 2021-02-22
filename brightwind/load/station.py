@@ -1049,6 +1049,15 @@ class _Measurements:
                 meas_props.append(merged_meas_point)
         return meas_props
 
+    def __get_properties_by_type(self, measurement_type_id):
+        merged_properties = copy.deepcopy(self.__meas_properties)
+        meas_list = []
+        for meas_point in merged_properties:
+            meas_type = meas_point.get('measurement_type_id')
+            if meas_type is not None and meas_type == measurement_type_id:
+                meas_list.append(meas_point)
+        return meas_list
+
     def __get_properties_as_dict(self, measurement_type_id=None):
         """
         Get the flattened properties as a dictionary with name as the key. This is for easy use for accessing a
@@ -1065,10 +1074,8 @@ class _Measurements:
             meas_point_name = meas_point['name']
             if meas_point['measurement_type_id'] == measurement_type_id or measurement_type_id is None:
                 if meas_point_name in meas_dict.keys():
-                    del meas_point['name']
                     meas_dict[meas_point_name].append(meas_point)
                 else:
-                    del meas_point['name']
                     meas_dict[meas_point_name] = [meas_point]
         return meas_dict
 

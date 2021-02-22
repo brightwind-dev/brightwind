@@ -18,6 +18,8 @@ wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.NaN, 5
 
 DATA = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
 DATA_CLND = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
+STATION = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
+DATA_ADJUSTED = bw.load_csv(bw.demo_datasets.demo_data_adjusted)
 WSPD_COLS = ['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd60mS', 'Spd40mN', 'Spd40mS']
 WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
 MERRA2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
@@ -140,6 +142,17 @@ def test_offset_wind_direction_df():
 def test_offset_wind_direction_series():
     wdir_series_offset = pd.Series([355, 15, np.NaN, 25, 335])
     assert wdir_series_offset.equals(bw.offset_wind_direction(pd.Series([10, 30, np.NaN, 40, 350]), 345))
+
+
+def test_apply_wind_vane_dead_band_offset():
+    data1 = bw.apply_wind_vane_deadband_offset(DATA['Dir78mS'], STATION.measurements)
+    data = bw.apply_wind_vane_deadband_offset(DATA, STATION.measurements)
+
+    assert((DATA_ADJUSTED[WDIR_COLS].fillna(0).round(10) ==
+            data[WDIR_COLS].fillna(0).round(10)).all()).all()
+
+    assert (data1.fillna(0).round(10) ==
+            data['Dir78mS'].fillna(0).round(10)).all()
 
 
 def test_freq_str_to_timedelta():

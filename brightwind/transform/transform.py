@@ -17,6 +17,9 @@
 import numpy as np
 import pandas as pd
 from brightwind.utils import utils
+from brightwind.load.station import _Measurements
+from brightwind.load.station import DATE_INSTEAD_OF_NONE
+import copy
 import warnings
 
 __all__ = ['average_data_by_period',
@@ -786,17 +789,6 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
         raise error
 
 
-def bold(text):
-    """
-    Function to return text as bold
-
-    :param text: str to bold
-    :type text: str
-    :return: str in bold
-    """
-    return '\x1b[1;30m'+text+'\x1b[0m' if text else '\x1b[1;30m'+'\x1b[0m'
-
-
 def _extract_none_dict_variables_from_list(input_dict, list_variables):
     return [key for key in list_variables if input_dict[key] is None]
 
@@ -937,82 +929,112 @@ def offset_wind_direction(wdir, offset: float):
         return wdir.add(offset).apply(utils._range_0_to_360)
 
 
-def apply_wind_vane_deadband_offset(data, meas_sensor_configs, inplace=False):
+def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
     """
     Apply deadband offsets to the wind vanes using the brightwind offset_wind_direction function. This function
-    automatically applies the deadband offset based on the meas sensor configs provided.
+    automatically applies the deadband offset based on the measurements properties provided.
 
-    :param data:                Timeseries data.
-    :type data:                 pd.DataFrame or pd.Series
-    :param meas_sensor_configs: Measurement points information and sensor configurations extracted from the
-                                BrightWind platform using the merlin get_meas_sensor_configs() function.
-    :type meas_sensor_configs:  list(dict())
-    :param inplace:             If 'inplace' is True, the original direction data, contained in 'data', will be
-                                modified and replaced with the adjusted direction data. If 'inplace' is False, the
-                                original data will not be touched and instead a new object containing the adjusted
-                                direction data is created. To store this adjusted direction data, please ensure it is
-                                assigned to a new variable.
-    :type inplace:              Boolean
-    :return:                    Data with adjusted wind direction by the deadband orientation.
-    :rtype:                     pd.DataFrame or pd.Series
+    Note: Be careful not to run this more than once in an assessment as it will apply an offset again.
+
+    :param data:         Timeseries data.
+    :type data:          pd.DataFrame or pd.Series
+    :param measurements: Measurement information extracted from a WRA Data Model using bw.MeasurementStation
+    :type measurements:  list or dict or _Measurements
+    :param inplace:      If 'inplace' is True, the original direction data, contained in 'data', will be
+                         modified and replaced with the adjusted direction data. If 'inplace' is False, the
+                         original data will not be touched and instead a new DataFrame containing the adjusted
+                         direction data is created. To store this adjusted direction data, please ensure it is
+                         assigned to a new variable.
+    :type inplace:       bool
+    :return:             Data with adjusted wind direction by the deadband orientation.
+    :rtype:              pd.DataFrame or pd.Series
 
     **Example usage**
     ::
         import brightwind as bw
-        import merlin
 
-        meas_loc_uuid = '9344e576-6d5a-45f0-9750-2a7528ebfa14'
-        data = bw.load.load._LoadBWPlatform.get_data(meas_loc_uuid)
-        meas_sensor_configs = merlin.get_meas_sensor_configs(meas_loc_uuid, remove_duplicates=False)
+        mm1 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
-        # adjust wind directions by the deadband orientation, applying inplace
-        merlin.apply_wind_vane_deadband_offset(data, meas_sensor_configs, inplace=True)
+    Adjust wind directions by the deadband orientation, applying inplace::
+        bw.apply_wind_vane_deadband_offset(data, mm1.measurements, inplace=True)
         print('\nWind vane deadband offset adjustment is completed.')
 
-        # adjust wind direction by the deadband orientation, and assign to new variable
-        data_wspds_adj = merlin.apply_wind_vane_deadband_offset(data, meas_sensor_configs)
+    Adjust wind direction by the deadband orientation, and assign to new variable::
+        data_deadband_adj = bw.apply_wind_vane_deadband_offset(data, mm1.measurements)
+
+    Send just the wind direction properties::
+        bw.apply_wind_vane_deadband_offset(data, mm1.measurements.wdirs, inplace=True)
+        print('\nWind vane deadband offset adjustment is completed.')
+
+    Send a specific wind direction property::
+        bw.apply_wind_vane_deadband_offset(data, mm1.measurements['Dir78mS'], inplace=True)
+        print('\nWind vane deadband offset adjustment is completed.')
+
+    Send a specific wind direction property and data column::
+        bw.apply_wind_vane_deadband_offset(data['Dir78mS'], mm1.measurements['Dir78mS'], inplace=True)
+        print('\nWind vane deadband offset adjustment is completed.')
 
     """
+    # Depending on what is sent, get wdir properties into a list of properties
+    wdirs_properties = []
+    if isinstance(measurements, _Measurements):
+        merged_properties = copy.deepcopy(measurements.properties)
+        for meas_point in merged_properties:
+            meas_type = meas_point.get('measurement_type_id')
+            if meas_type is not None and meas_type == 'wind_direction':
+                wdirs_properties.append(meas_point)
+    elif isinstance(measurements, dict):
+        for name, properties in measurements.items():
+            for prop in properties:
+                meas_type = prop.get('measurement_type_id')
+                if meas_type is not None and meas_type == 'wind_direction':
+                    wdirs_properties.append(prop)
+    elif isinstance(measurements, list):
+        for prop in measurements:
+            meas_type = prop.get('measurement_type_id')
+            if meas_type is not None and meas_type == 'wind_direction':
+                wdirs_properties.append(prop)
+    if not wdirs_properties:
+        raise ValueError('No wind direction measurements found.')
+
+    # copy the data if needed
     data = data.copy(deep=True) if inplace is False else data
-
     wdir_in_dataset = False
-
     df = pd.DataFrame(data) if type(data) == pd.Series else data
 
-    for meas_sensor_config in meas_sensor_configs:
-        if meas_sensor_config['measurement_type_id'] == 'wind_direction':
-            if meas_sensor_config['name'] in df.columns:
-                wdir_in_dataset = True
-                if meas_sensor_config['date_to'] is None or meas_sensor_config['date_to'] == '2100-12-31':
-                    date_to_txt = 'the end of dataset'
-                else:
-                    date_to_txt = meas_sensor_config['date_to']
-
-                if meas_sensor_config.get('vane_dead_band_orientation_deg'):
-                    df[meas_sensor_config['name']][meas_sensor_config['date_from']:meas_sensor_config['date_to']] = \
-                        offset_wind_direction(
-                            df[meas_sensor_config['name']][meas_sensor_config['date_from']:meas_sensor_config['date_to']],
-                            float(meas_sensor_config['vane_dead_band_orientation_deg']))
-                    print('{0} adjusted by {1} degrees from {2} to {3} to account for deadband orientation.'
-                          .format(bold(meas_sensor_config['name']),
-                                  bold(str(meas_sensor_config['vane_dead_band_orientation_deg'])),
-                                  bold(meas_sensor_config['date_from']),
-                                  bold(date_to_txt)))
-                else:
-                    print('{} has dead_band_orientation value set as None from {} to {}.'
-                          .format(bold(meas_sensor_config['name']),
-                                  bold(meas_sensor_config['date_from']),
-                                  bold(date_to_txt)))
+    # Apply the offset
+    for wdir_prop in wdirs_properties:
+        if wdir_prop['name'] in df.columns:
+            wdir_in_dataset = True
+            if wdir_prop['date_to'] is None or wdir_prop['date_to'] == DATE_INSTEAD_OF_NONE:
+                date_to_txt = 'the end of dataset'
             else:
-                print('{} is not found in data.'.format(bold(meas_sensor_config['name'])))
+                date_to_txt = wdir_prop['date_to']
+            print('date_to_txt:\t', date_to_txt)
+
+            if wdir_prop.get('vane_dead_band_orientation_deg'):
+                df[wdir_prop['name']][wdir_prop['date_from']:wdir_prop['date_to']] = \
+                    offset_wind_direction(df[wdir_prop['name']][wdir_prop['date_from']:wdir_prop['date_to']],
+                                          float(wdir_prop['vane_dead_band_orientation_deg']))
+                print('{0} adjusted by {1} degrees from {2} to {3} to account for deadband orientation.'
+                      .format(utils.bold(wdir_prop['name']),
+                              utils.bold(str(wdir_prop['vane_dead_band_orientation_deg'])),
+                              utils.bold(wdir_prop['date_from']),
+                              utils.bold(date_to_txt)))
+            else:
+                print('{} has dead_band_orientation value set as None from {} to {}.'
+                      .format(utils.bold(wdir_prop['name']),
+                              utils.bold(wdir_prop['date_from']),
+                              utils.bold(date_to_txt)))
+        else:
+            print('{} is not found in data.'.format(utils.bold(wdir_prop['name'])))
 
     if wdir_in_dataset is False:
-        print('No wind direction measurement type found in the configurations.')
-
+        print('No wind direction measurement type found in the data.')
     # if a Series is sent, send back a Series
     if type(data) == pd.Series:
         df = df[df.columns[0]]
-
     return df
 
 
