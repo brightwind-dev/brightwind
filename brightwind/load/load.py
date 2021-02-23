@@ -1109,7 +1109,8 @@ class LoadBrightHub:
         meas_loc_df = meas_loc_df[required_cols]
         meas_loc_df.set_index(['name'], inplace=True)
         meas_loc_df.sort_index(ascending=True, inplace=True)
-        meas_loc_df.rename(columns={'uuid': 'measurement_station_uuid'}, inplace=True)
+        meas_loc_df.rename(columns={'uuid': 'measurement_station_uuid',
+                                    'measurement_station_type_id': 'measurement_station_type'}, inplace=True)
         return meas_loc_df
 
     @staticmethod
