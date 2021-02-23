@@ -952,25 +952,55 @@ class SpeedSort(CorrelBase):
             self.speed_model[model].plot_model('Sector ' + str(model))
         return self.plot_wind_directions()
 
+    @staticmethod
+    def _linear_interpolation(xa, xb, ya, yb, xc):
+        m = (xc - xa) / (xb - xa)
+        yc = (yb - ya) * m + ya
+        return yc
+
     def _predict_dir(self, x_dir):
-        sec_veer = []
-        for i in range(1, self.sectors+1):
-            sec_veer.append(self.params[i]['average_veer'])
-        # Add additional entry for first sector
-        sec_veer.append(self.params[1]['average_veer'])
-        if self.direction_bin_array is None:
-            veer_bins = [i*(360/self.sectors) for i in range(0, self.sectors+1)]
-        else:
-            veer_bins = [self.direction_bin_array[i]+self.direction_bin_array[i+1]/2.0
-                         for i in range(0, len(self.direction_bin_array)-1)]
-        x = pd.concat([x_dir.dropna().rename('dir'), _binned_direction_series(x_dir.dropna(), self.sectors,
-                       direction_bin_array=veer_bins).rename('veer_bin')], axis=1, join='inner')
-        x['sec_mid_pt'] = [veer_bins[i-1] for i in x['veer_bin']]
-        x['ratio'] = (x['dir'] - x['sec_mid_pt'])/(360.0/self.sectors)
-        x['sec_veer'] = [sec_veer[i - 1] for i in x['veer_bin']]
-        x['multiply_factor'] = [sec_veer[i]-sec_veer[i-1] for i in x['veer_bin']]
-        x['adjustment'] = x['sec_veer'] + (x['ratio']*x['multiply_factor'])
-        return (x['dir'] + x['adjustment']).sort_index().apply(utils._range_0_to_360)
+
+        x_dir = x_dir.dropna().rename('dir')
+        sec_veers = []
+        veer_bins = []
+        # Calculate middle point of each sector, as each sectoral veer is applied at the mid-point of the sector.
+        for key in self.params.keys():
+            if type(key) is int:
+                sec_veers.append(self.params[key]['average_veer'])
+                if self.params[key]['sector_min'] < self.params[key]['sector_max']:
+                    veer_bins.append((self.params[key]['sector_min'] + self.params[key]['sector_max']) / 2)
+                else:
+                    veer_bins.append(offset_wind_direction(self.params[key]['sector_max'],
+                                                           float(360 - self.params[key]['sector_max']
+                                                                 + self.params[key]['sector_min']) / 2))
+        # If first sector is centered at 0, duplicate veer value for the 360 angle.
+        if veer_bins[0] == float(360):
+            veer_bins[0] = float(0)
+            veer_bins.append(float(360))
+            sec_veers.append(sec_veers[0])
+
+        if self.direction_bin_array is not None:
+            # If first sector is not centered at 0 and 0 and 360 are the extremes of the direction_bin_array
+            # then the first and the last sectors are taken into account for deriving the veer as for code below.
+            if (0 in self.direction_bin_array) and (360 in self.direction_bin_array):
+                sec_veers.insert(0, self._linear_interpolation(0 - (360 - veer_bins[-1]), veer_bins[0],
+                                                               sec_veers[-1], sec_veers[0], 0))
+                sec_veers.append(self._linear_interpolation(veer_bins[-1], 360 + veer_bins[0],
+                                                            sec_veers[-1], sec_veers[1], 360))
+                veer_bins.insert(0, 0)
+                veer_bins.append(360)
+
+        # The veer correction is derived linear interpolating the veer between two mid-points of near sectors.
+        adjustment = x_dir.rename('adjustment').copy() * np.nan
+        for i in range(1, len(veer_bins)):
+            logic_sect = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                    sector_min=veer_bins[i - 1],
+                                                    sector_max=veer_bins[i])
+
+            adjustment[logic_sect] = self._linear_interpolation(veer_bins[i - 1], veer_bins[i],
+                                                                sec_veers[i - 1], sec_veers[i],
+                                                                x_dir[logic_sect])
+        return offset_wind_direction(x_dir, adjustment).sort_index()
 
     def _predict(self, x_spd, x_dir):
         x = pd.concat([x_spd.rename('spd'),
