@@ -71,8 +71,8 @@ class CorrelBase:
             else:
                 raise NotImplementedError("Analysis using direction_bin_array input not implemented yet.")
                 # self.sectors = len(direction_bin_array) - 1
-                # dir_sector_max = direction_bin_array[1:]
-                # dir_sector_min = direction_bin_array[:-1]
+                # self._dir_sector_max = direction_bin_array[1:]
+                # self._dir_sector_min = direction_bin_array[:-1]
 
             self._ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
                                                           direction_bin_array=self.direction_bin_array
@@ -931,7 +931,10 @@ class SpeedSort(CorrelBase):
                                    'offset': round(self.speed_model[sector].params['offset'], 5),
                                    'target_speed_cutoff': round(self.speed_model[sector].target_cutoff, 5),
                                    'num_pts_for_speed_fit': self.speed_model[sector].data_pts,
-                                   'num_total_pts': min(group.count())}
+                                   'num_total_pts': min(group.count()),
+                                   'sector_min': self._dir_sector_min[sector - 1],
+                                   'sector_max': self._dir_sector_max[sector - 1],
+                                   }
             self.params[sector].update(self._avg_veer(group))
         if show_params:
             self.show_params()
