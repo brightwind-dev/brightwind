@@ -1009,7 +1009,6 @@ class LoadBrightHub:
                 "{}/plants/{}".format(LoadBrightHub.__BASE_URI, plant_uuid),
                 headers={"authorization": LoadBrightHub._get_id_token()}
             )
-        plants.json()
 
         if plants.headers.get('content-type') != 'application/json.':
             plants.raise_for_status()
@@ -1073,7 +1072,6 @@ class LoadBrightHub:
                 "{}/measurement-locations/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
                 headers={"authorization": LoadBrightHub._get_id_token()}
             )
-        measurement_locations.json()
 
         if measurement_locations.headers.get('content-type') != 'application/json.':
             measurement_locations.raise_for_status()
@@ -1092,20 +1090,67 @@ class LoadBrightHub:
 
     @staticmethod
     def get_measurement_start_end_dates(measurement_station_uuid):
+        """
+        Get the start and end dates for the period of measurements for a particular measurement station.
+
+        :param measurement_station_uuid: Filter for a specific measurement station be sending it's uuid. This
+                                         preferences over plant_uuid.
+        :type measurement_station_uuid:  str
+        :return:                         The start and end dates. E.g. {'start_date': '2015-12-22T00:01:00',
+                                                                        'end_date': '2016-12-19T23:01:00'}
+        :rtype:                          dict
+        """
         start_end_dates = requests.get(
             "{}/start-end-dates/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
             headers={"authorization": LoadBrightHub._get_id_token()}
         )
-        start_end_dates.json()
+
+        if start_end_dates.headers.get('content-type') != 'application/json.':
+            start_end_dates.raise_for_status()
+        start_end_dates_json = start_end_dates.json()
+        if 'Error' in start_end_dates_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
+            raise ValueError(start_end_dates_json['Error'])
+
         return start_end_dates.json()
 
     @staticmethod
-    def get_data_model(plant_uuid):
+    def get_data_model(measurement_station_uuid):
+        """
+        Get the IEA Wind: Task 43 WRA Data Model for the measurement station.
+
+        Information about the data model can be found at: https://github.com/IEA-Task-43/digital_wra_data_standard
+
+        :param measurement_station_uuid: Filter for a specific measurement station be sending it's uuid. This
+                                         preferences over plant_uuid.
+        :type measurement_station_uuid:  str
+        :return:                         The data model for the measurement station.
+        :rtype:                          dict
+
+        **Example usage**
+        ::
+            import brightwind as bw
+
+        To get all available measurement stations::
+            bw.LoadBrightHub.get_measurement_stations()
+
+        To get the data model for a specific measurement station::
+            data_model_json - bw.LoadBrightHub.get_data_model(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
+
+        Using the data model::
+            bw.LoadBrightHub.get_measurement_stations(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
+
+        """
         data_model = requests.get(
-            "{}/data-model/{}".format(LoadBrightHub.__BASE_URI, plant_uuid),
+            "{}/data-model/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
             headers={"authorization": LoadBrightHub._get_id_token()}
         )
-        data_model.json()
+
+        if data_model.headers.get('content-type') != 'application/json.':
+            data_model.raise_for_status()
+        data_model_json = data_model.json()
+        if 'Error' in data_model_json:  # catch if error comes back e.g. measurement_location_uuid isn't found
+            raise ValueError(data_model_json['Error'])
+
         return data_model.json()
 
     # Pulling the timeseries data.

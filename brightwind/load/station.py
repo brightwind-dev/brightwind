@@ -247,6 +247,7 @@ def _raise_child(dictionary, child_to_raise):
     :param child_to_raise:
     :return:
     """
+    # ACCOUNT FOR 'DATE_OF_CALIBRATION' WHEN RAISING UP MULTIPLE CALIBRATIONS
     if dictionary is None:
         return None
     new_dict = dictionary.copy()
