@@ -1,6 +1,6 @@
 {
   "author": "Brighthub",
-  "organisation": "BrightWind",
+  "organisation": "Brightwind",
   "date": "2021-02-23",
   "version": "0.1.0-2021.01",
   "measurement_location": [
@@ -689,8 +689,8 @@
           ],
           "sensor_config": [
             {
-              "slope": 0.072,
-              "offset": 100,
+              "slope": 0.351,
+              "offset": 0,
               "sensitivity": null,
               "measurement_units_id": "deg",
               "height_m": 78,
@@ -775,8 +775,8 @@
           ],
           "sensor_config": [
             {
-              "slope": 0.075,
-              "offset": 100,
+              "slope": 0.351,
+              "offset": 0,
               "sensitivity": null,
               "measurement_units_id": "deg",
               "height_m": 58,
@@ -804,8 +804,8 @@
               ]
             },
             {
-              "slope": 0.07499,
-              "offset": 100,
+              "slope": 0.351,
+              "offset": 0,
               "sensitivity": null,
               "measurement_units_id": "deg",
               "height_m": 58,
@@ -878,7 +878,7 @@
           ],
           "sensor_config": [
             {
-              "slope": 1,
+              "slope": 0.351,
               "offset": 0,
               "sensitivity": null,
               "measurement_units_id": "deg",
