@@ -10,8 +10,18 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
 ## [Unreleased]
+-
+
+## [2.0.0]
 - Major changes, notably
   - Incorporating the IEA WIND Task 43 WRA Data Model
+  - Adding APIs to pull data from the BrightHub platform www.brightwindhub.com
+  - Change license to MIT
+  - Correl - add linear regression by direction sector
+  - Correl - add different aggregation methods to both ref and target
+  - better function to average wind directions
+  - Bug fixes
+
 
 ## [1.0.0]
 - Initial release
