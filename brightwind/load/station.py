@@ -295,6 +295,7 @@ def _raise_child(dictionary, child_to_raise):
     :param child_to_raise:
     :return:
     """
+    # ACCOUNT FOR 'DATE_OF_CALIBRATION' WHEN RAISING UP MULTIPLE CALIBRATIONS
     if not dictionary:
         return None
     new_dict = dictionary.copy()
@@ -413,10 +414,12 @@ class MeasurementStation:
 
     The Schema associated with this data model file will be downloaded from GitHub and used to parse the data model.
 
-    :param wra_data_model: The filepath to an implementation of the WRA Data Model as a .json file or a json string.
-    :type wra_data_model:  str
+    :param wra_data_model: The filepath to an implementation of the WRA Data Model as a .json file or
+                           a json formatted string or
+                           a dictionary format of the data model.
+    :type wra_data_model:  str or dict
     :return:               A simplified object to represent the data model
-    :rtype:                DataModel
+    :rtype:                MeasurementStation
     """
     def __init__(self, wra_data_model: str):
         self.__data_model = self._load_wra_data_model(wra_data_model)
@@ -453,19 +456,24 @@ class MeasurementStation:
 
         *** SHOULD INCLUDE CHECKING AGAINST THE JSON SCHEMA (WHICH WOULD MEAN GETTING THE CORRECT VERSION FROM GITHUB)
             AND MAKE SURE PROPER JSON
-        :param wra_data_model: The filepath to an implementation of the WRA Data Model as a .json file or a json string.
-        :type wra_data_model:  str
+
+        :param wra_data_model: The filepath to an implementation of the WRA Data Model as a .json file or
+                               a json formatted string or
+                               a dictionary format of the data model.
         :return:               Python dictionary of the data model.
         :rtype:                dict
         """
         # Assess whether filepath or json str sent.
         dm = dict()
-        if '.json' == wra_data_model[-5:]:
+        if isinstance(wra_data_model, str) and '.json' == wra_data_model[-5:]:
             if _is_file(wra_data_model):
                 with open(wra_data_model) as json_file:
                     dm = json.load(json_file)
-        else:
+        elif isinstance(wra_data_model, str):
             dm = json.loads(wra_data_model)
+        else:
+            # it is most likely already a dict so return itself
+            dm = wra_data_model
         return dm
 
     @staticmethod
