@@ -16,6 +16,7 @@
 
 
 from brightwind.load.load import _is_file
+from typing import Dict, Any, List
 import numpy as np
 import pandas as pd
 import requests
@@ -31,12 +32,12 @@ def _replace_none_date(list_or_dict):
         return renamed
     elif isinstance(list_or_dict, dict):
         for date_str in ['date_from', 'date_to']:
-            if list_or_dict.get(date_str) is None:
+            if not list_or_dict.get(date_str):
                 list_or_dict[date_str] = DATE_INSTEAD_OF_NONE
     return list_or_dict
 
 
-def _get_title(property_name, schema, property_section=None):
+def _get_title(property_name: str, schema: Dict[str, Any], property_section: str=None):
     """
     Get the title for the property name from the WRA Data Model Schema. Optionally, you can send the section of the
     schema where the property should be found. This avoids finding the wrong property name when the name
@@ -55,45 +56,67 @@ def _get_title(property_name, schema, property_section=None):
     :rtype:                  str
     """
     # search through definitions first
-    if schema.get('definitions') is not None:
-        if property_name in schema.get('definitions').keys():
+    if schema.get('definitions') and schema.get('definitions').get(property_name):
             return schema.get('definitions').get(property_name).get('title')
     # search through properties
-    if schema.get('properties') is not None:
+    schema_properties = schema.get('properties')
+    if schema_properties:
         # is property_name in the main properties
-        if property_name in schema.get('properties').keys() and property_section is None:
-            return schema.get('properties').get(property_name).get('title')
+        schema_property_name = schema_properties.get(property_name)
+        if  schema_property_name and not property_section:
+            return schema_property_name.get('title')
         # is property_section part of the main properties
-        if property_section in schema.get('properties').keys():
-            property_type = schema.get('properties').get(property_section).get('type')
-            if property_type is not None and 'array' in property_type:
-                # move down into an array
-                result = _get_title(property_name, schema.get('properties').get(property_section)['items'])
-                if result != property_name:
-                    return result
-            elif property_type is not None and 'object' in property_type:
-                # move down into an object
-                result = _get_title(property_name, schema.get('properties').get(property_section))
-                if result != property_name:
-                    return result
+        schema_property_section = schema_properties.get(property_section)
+        if schema_property_section:
+            # property_type = schema_property_section.get('type')
+            # if property_type and 'array' in property_type:
+            #     # move down into an array
+            #     result = _get_title(property_name, schema_property_section['items'])
+            #     if result != property_name:
+            #         return result
+            # elif property_type and 'object' in property_type:
+            #     # move down into an object
+            #     result = _get_title(property_name, schema_property_section)
+            #     if result != property_name:
+            #         return result
+            result = _find_title_in_arrays_and_objects(schema_property_section, property_name)
+            if result: 
+                return result
         # don't recognise either property_name or property_section.
         # loop through each property to find an array or object to move down to
-        for k, v in schema.get('properties').items():
-            if v.get('type') is not None and 'array' in v['type']:
-                # move down into an array
-                result = _get_title(property_name, v['items'], property_section)
-                if result != property_name:
-                    return result
-            elif v.get('type') is not None and 'object' in v['type']:
-                # move down into an object
-                result = _get_title(property_name, v, property_section)
-                if result != property_name:
-                    return result
+        for k, v in schema_properties.items():
+            # if v.get('type') is not None and 'array' in v['type']:
+            #     # move down into an array
+            #     result = _get_title(property_name, v['items'], property_section)
+            #     if result != property_name:
+            #         return result
+            # elif v.get('type') is not None and 'object' in v['type']:
+            #     # move down into an object
+            #     result = _get_title(property_name, v, property_section)
+            #     if result != property_name:
+            #         return result
+            result = _find_title_in_arrays_and_objects(v, property_name, property_section)
+            if result:
+                return result
     # can't find the property_name in the schema, return itself
     return property_name
 
+# obj to check type, property_name, property_section
+def _find_title_in_arrays_and_objects(obj: Dict[str, Any], property_name: str, property_section: str=None):
+    property_type = obj.get('type')
+    if property_type and 'array' in property_type:
+        # move down into an array
+        result = _get_title(property_name, obj['items'], property_section)
+        if result != property_name:
+            return result
+    elif property_type and 'object' in property_type:
+        # move down into an object
+        result = _get_title(property_name, obj, property_section)
+        if result != property_name:
+            return result
 
-def _rename_to_title(list_or_dict, schema):
+
+def _rename_to_title(list_or_dict:Any, schema: Dict[str, Any]):
     """
     Rename the names in a list to it's equivalent title in the schema or the keys in a dictionary. If there are
     prefixes from raising a child property up to a parent level, this will find the normal schema title and add
@@ -116,39 +139,60 @@ def _rename_to_title(list_or_dict, schema):
     if isinstance(list_or_dict, dict):
         renamed_dict = {}
         for k, v in list_or_dict.items():
-            if k in list(prefixed_names.keys()):
-                # break out the property name and the name, get the title and then add title_prefix to it.
-                property_section = k[0:k.find(prefixed_names[k]['prefix_separator'])]
-                property_name = k[k.find(prefixed_names[k]['prefix_separator']) + 1:]
-                if k in ['sensor_config.slope', 'sensor_config.offset', 'sensor_config.sensitivity',
-                         'calibration.slope', 'calibration.offset', 'calibration.sensitivity']:
-                    # Special cases don't add a title prefix as there is already one in the schema title
-                    renamed_dict[_get_title(property_name, schema, property_section)] = v
-                else:
-                    renamed_dict[prefixed_names[k]['title_prefix'] + _get_title(property_name, schema,
-                                                                                property_section)] = v
-            else:
-                # if not in the list of prefixed_names then just find the title as normal.
-                renamed_dict[_get_title(k, schema)] = v
+            # if k in list(prefixed_names.keys()):
+            #     # break out the property name and the name, get the title and then add title_prefix to it.
+            #     property_section = k[0:k.find(prefixed_names[k]['prefix_separator'])]
+            #     property_name = k[k.find(prefixed_names[k]['prefix_separator']) + 1:]
+            #     if k in PROPERTIES_WITH_PREFIX:
+            #         # Special cases don't add a title prefix as there is already one in the schema title
+            #         renamed_dict[_get_title(property_name, schema, property_section)] = v
+            #     else:
+            #         renamed_dict[prefixed_names[k]['title_prefix'] + _get_title(property_name, schema,
+            #                                                                     property_section)] = v
+            # else:
+            #     # if not in the list of prefixed_names then just find the title as normal.
+            #     renamed_dict[_get_title(k, schema)] = v
+            _form_prefixed_names(prefixed_names, k, schema, renamed_dict, v)
         return renamed_dict
     elif isinstance(list_or_dict, list):
         renamed_list = []
         for name in list_or_dict:
-            if name in list(prefixed_names.keys()):
-                # break out the property name and the name, get the title and then add title_prefix to it.
-                property_section = name[0:name.find(prefixed_names[name]['prefix_separator'])]
-                property_name = name[name.find(prefixed_names[name]['prefix_separator']) + 1:]
-                if name in ['sensor_config.slope', 'sensor_config.offset', 'sensor_config.sensitivity',
-                            'calibration.slope', 'calibration.offset', 'calibration.sensitivity']:
-                    # Special cases don't add a title prefix as there is already one in the schema title
-                    renamed_list.append(_get_title(property_name, schema, property_section))
-                else:
-                    renamed_list.append(prefixed_names[name]['title_prefix'] + _get_title(property_name, schema,
-                                                                                          property_section))
-            else:
-                # if not in the list of prefixed_names then just find the title as normal.
-                renamed_list.append(_get_title(name, schema))
+            # if name in list(prefixed_names.keys()):
+            #     # break out the property name and the name, get the title and then add title_prefix to it.
+            #     property_section = name[0:name.find(prefixed_names[name]['prefix_separator'])]
+            #     property_name = name[name.find(prefixed_names[name]['prefix_separator']) + 1:]
+            #     if name in PROPERTIES_WITH_PREFIX:
+            #         # Special cases don't add a title prefix as there is already one in the schema title
+            #         renamed_list.append(_get_title(property_name, schema, property_section))
+            #     else:
+            #         renamed_list.append(prefixed_names[name]['title_prefix'] + _get_title(property_name, schema,
+            #                                                                               property_section))
+            # else:
+            #     # if not in the list of prefixed_names then just find the title as normal.
+            #     renamed_list.append(_get_title(name, schema))
+
+            _form_prefixed_names(prefixed_names, name, schema, renamed_list)
         return renamed_list
+
+
+
+def _form_prefixed_names(prefixed_names: Dict[str, Any], key: str, schema: Dict[str, Any], result, value=None):
+
+    if key in prefixed_names:
+        # break out the property name and the name, get the title and then add title_prefix to it.
+        property_section = key[0:key.find(prefixed_names[key]['prefix_separator'])]
+        property_name = key[key.find(prefixed_names[key]['prefix_separator']) + 1:]
+        # Special cases don't add a title prefix as there is already one in the schema title
+        schema_title = _get_title(property_name, schema, property_section) if key in PROPERTIES_WITH_PREFIX else prefixed_names[key]['title_prefix'] + _get_title(property_name, schema, property_section)
+    else:
+        schema_title = _get_title(key, schema)
+    
+    # add the title into the result - dict or list
+    if isinstance(result, dict):
+        result[schema_title] = value
+    else:
+        result.append(schema_title)
+
 
 
 def _extract_keys_to_unique_list(lists_of_dictionaries):
@@ -160,11 +204,15 @@ def _extract_keys_to_unique_list(lists_of_dictionaries):
     :return: Merged list of keys into a unique list.
     :rtype:  list
     """
-    merged_list = list(lists_of_dictionaries[0].keys())
-    for idx, d in enumerate(lists_of_dictionaries):
-        if idx != 0:
-            merged_list = merged_list + list(set(list(d.keys())) - set(merged_list))
-    return merged_list
+    # merged_list = list(lists_of_dictionaries[0].keys())
+    # for idx, d in enumerate(lists_of_dictionaries):
+    #     if idx != 0:
+    #         merged_list = merged_list + list(set(list(d.keys())) - set(merged_list))
+    # return merged_list
+    merged_keys = set()
+    for dictionary in lists_of_dictionaries:
+        merged_keys.update(set(dictionary.keys()))
+    return list(merged_keys)
 
 
 def _add_prefix(dictionary, property_section):
@@ -203,8 +251,8 @@ def _filter_parent_level(dictionary):
     """
     parent = {}
     for key, value in dictionary.items():
-        if (type(value) != list) and (type(value) != dict) and (value is not None):
-            parent.update({key: value})
+        if not (isinstance(value, list) and isinstance(value, dict)) and value:
+            parent[key] = value
     return parent
 
 
@@ -224,12 +272,12 @@ def _flatten_dict(dictionary, property_to_bring_up):
     result = []
     parent = _filter_parent_level(dictionary)
     for key, value in dictionary.items():
-        if (type(value) == list) and (key == property_to_bring_up):
+        if isinstance(value, list) and key == property_to_bring_up:
             for item in value:
                 child = _filter_parent_level(item)
                 child = _add_prefix(child, property_section=property_to_bring_up)
                 result.append(_merge_two_dicts(parent, child))
-        if (type(value) == dict) and (key == property_to_bring_up):
+        if isinstance(value, dict) and key == property_to_bring_up:
             child = _filter_parent_level(value)
             child = _add_prefix(child, property_section=property_to_bring_up)
             # return a dictionary and not a list
@@ -247,22 +295,22 @@ def _raise_child(dictionary, child_to_raise):
     :param child_to_raise:
     :return:
     """
-    if dictionary is None:
+    if not dictionary:
         return None
     new_dict = dictionary.copy()
     for key, value in dictionary.items():
-        if (key == child_to_raise) and (value is not None):
+        if (key == child_to_raise) and value:
             # Found the key to raise. Flattening dictionary.
             return _flatten_dict(dictionary, child_to_raise)
     # didn't find the child to raise. search down through each nested dict or list
     for key, value in dictionary.items():
-        if (type(value) == dict) and (value is not None):
+        if isinstance(value, dict) and value:
             # 'key' is a dict, looping through it's own keys.
             flattened_dicts = _raise_child(value, child_to_raise)
             if flattened_dicts:
                 new_dict[key] = flattened_dicts
                 return new_dict
-        elif (type(value) == list) and (value is not None):
+        elif isinstance(value, list) and value:
             # 'key' is a list, looping through it's items.
             temp_list = []
             for idx, item in enumerate(value):
@@ -353,7 +401,8 @@ MEAS_TYPE_ORDER = ['wind_speed', 'wind_direction', 'vertical_wind_speed',
                    'gps_coordinates', 'orientation', 'compass_direction', 'true_north_offset',
                    'elevation', 'altitude', 'azimuth', 'status', 'counter', 'availability', 'quality',
                    'tilt_x', 'tilt_y', 'tilt_z', 'timestamp', 'other']
-
+PROPERTIES_WITH_PREFIX = ['sensor_config.slope', 'sensor_config.offset', 'sensor_config.sensitivity',
+                         'calibration.slope', 'calibration.offset', 'calibration.sensitivity']
 
 class MeasurementStation:
     """
@@ -369,7 +418,7 @@ class MeasurementStation:
     :return:               A simplified object to represent the data model
     :rtype:                DataModel
     """
-    def __init__(self, wra_data_model):
+    def __init__(self, wra_data_model: str):
         self.__data_model = self._load_wra_data_model(wra_data_model)
         version = self.__data_model.get('version')
         self.__schema = self._get_schema(version=version)
@@ -395,7 +444,7 @@ class MeasurementStation:
         return repr(self.__meas_loc_properties)
 
     @staticmethod
-    def _load_wra_data_model(wra_data_model):
+    def _load_wra_data_model(wra_data_model: str):
         """
         Load a IEA Wind Resource Assessment Data Model.
 
@@ -477,6 +526,7 @@ class MeasurementStation:
         meas_loc_prop = []
         if self.type == 'mast':
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model, property_to_bring_up='mast_properties')
+        # this list can be a constant
         elif self.type in ['lidar', 'sodar', 'flidar']:
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model,
                                           property_to_bring_up='vertical_profiler_properties')
@@ -778,11 +828,11 @@ class _Measurements:
         mount_arrgmts = _replace_none_date(mount_arrgmts)
         date_from = [sen_config.get('date_from') for sen_config in sensor_cfgs]
         date_to = [sen_config.get('date_to') for sen_config in sensor_cfgs]
-        if sensors is not None:
+        if sensors:
             for sensor in sensors:
                 date_from.append(sensor.get('date_from'))
                 date_to.append(sensor.get('date_to'))
-        if mount_arrgmts is not None:
+        if mount_arrgmts:
             for mount_arrgmt in mount_arrgmts:
                 date_from.append(mount_arrgmt['date_from'])
                 date_to.append(mount_arrgmt['date_to'])
@@ -793,23 +843,25 @@ class _Measurements:
         for i in range(len(dates) - 1):
             good_sen_config = {}
             for sen_config in sensor_cfgs:
-                if (sen_config['date_from'] <= dates[i]) & (sen_config.get('date_to') > dates[i]):
+                # & is bitwise -> the operands would just be True/False hence using and is fine
+                if (sen_config['date_from'] <= dates[i]) and (sen_config.get('date_to') > dates[i]):
                     good_sen_config = sen_config.copy()
-            if good_sen_config != {}:
-                if sensors is not None:
+            # empty dict is falsy -> != {} check is not required
+            if good_sen_config:
+                if sensors:
                     for sensor in sensors:
-                        if (sensor['date_from'] <= dates[i]) & (sensor['date_to'] > dates[i]):
+                        if (sensor['date_from'] <= dates[i]) and (sensor['date_to'] > dates[i]):
                             good_sen_config.update(sensor)
-                if mount_arrgmts is not None:
+                if mount_arrgmts:
                     for mount_arrgmt in mount_arrgmts:
-                        if (mount_arrgmt['date_from'] <= dates[i]) & (mount_arrgmt['date_to'] > dates[i]):
+                        if (mount_arrgmt['date_from'] <= dates[i]) and (mount_arrgmt['date_to'] > dates[i]):
                             good_sen_config.update(mount_arrgmt)
                 good_sen_config['date_to'] = dates[i + 1]
                 good_sen_config['date_from'] = dates[i]
                 meas_points_merged.append(good_sen_config)
         # replace 'date_to' if equals to 'DATE_INSTEAD_OF_NONE'
         for meas_point in meas_points_merged:
-            if meas_point.get('date_to') is not None and meas_point.get('date_to') == DATE_INSTEAD_OF_NONE:
+            if meas_point.get('date_to') and meas_point.get('date_to') == DATE_INSTEAD_OF_NONE:
                 meas_point['date_to'] = None
         return meas_points_merged
 
@@ -820,13 +872,13 @@ class _Measurements:
             # sen_cfgs = _raise_child(col_names_raised, child_to_raise='sensor_config')
             sen_cfgs = _raise_child(meas_point, child_to_raise='sensor_config')
             calib_raised = _raise_child(meas_point, child_to_raise='calibration')
-            if calib_raised is None:
+            if not calib_raised:
                 sensors = _raise_child(meas_point, child_to_raise='sensor')
             else:
                 sensors = _raise_child(calib_raised, child_to_raise='sensor')
             mounting_arrangements = _raise_child(meas_point, child_to_raise='mounting_arrangement')
 
-            if mounting_arrangements is None:
+            if not mounting_arrangements:
                 meas_point_merged = self.__meas_point_merge(sensor_cfgs=sen_cfgs, sensors=sensors)
             else:
                 meas_point_merged = self.__meas_point_merge(sensor_cfgs=sen_cfgs, sensors=sensors,
@@ -840,7 +892,7 @@ class _Measurements:
         meas_list = []
         for meas_point in merged_properties:
             meas_type = meas_point.get('measurement_type_id')
-            if meas_type is not None and meas_type == measurement_type_id:
+            if meas_type and meas_type == measurement_type_id:
                 meas_list.append(meas_point)
         return meas_list
 
@@ -858,7 +910,7 @@ class _Measurements:
         merged_properties = copy.deepcopy(self.__meas_properties)
         for meas_point in merged_properties:
             meas_point_name = meas_point['name']
-            if meas_point['measurement_type_id'] == measurement_type_id or measurement_type_id is None:
+            if meas_point['measurement_type_id'] == measurement_type_id or not measurement_type_id:
                 if meas_point_name in meas_dict.keys():
                     meas_dict[meas_point_name].append(meas_point)
                 else:
@@ -909,6 +961,7 @@ class _Measurements:
         df.replace(DATE_INSTEAD_OF_NONE, '-', inplace=True)
         return df
 
+    # can this function be split into smaller ones?
     def get_table(self, detailed=False, wind_speeds=False, wind_directions=False, calibrations=False,
                   mounting_arrangements=False, columns_to_show=None):
         """
@@ -960,8 +1013,8 @@ class _Measurements:
 
         """
         df = pd.DataFrame()
-        if detailed is False and wind_speeds is False and wind_directions is False \
-                and calibrations is False and mounting_arrangements is False and columns_to_show is None:
+        if not (detailed and wind_speeds and wind_directions \
+                and calibrations and mounting_arrangements and columns_to_show):
             # default summary table
             list_for_df = self.__get_parent_properties()
             list_for_df_with_titles = []
@@ -975,7 +1028,7 @@ class _Measurements:
             df.drop('meas_type_rank', 1, inplace=True)
             df.set_index('Name', inplace=True)
             df.fillna('-', inplace=True)
-        elif detailed is True:
+        elif detailed:
             cols_required = ['name', 'oem', 'model', 'sensor_type_id', 'sensor.serial_number',
                              'height_m', 'boom_orientation_deg',
                              'date_from', 'date_to', 'connection_channel', 'measurement_units_id',
@@ -1000,7 +1053,7 @@ class _Measurements:
             df.set_index('Name', inplace=True)
             df.fillna('-', inplace=True)
             df.replace(DATE_INSTEAD_OF_NONE, '-', inplace=True)
-        elif wind_speeds is True:
+        elif wind_speeds:
             cols_required = ['name', 'measurement_type_id', 'oem', 'model', 'sensor.serial_number', 'is_heated',
                              'height_m', 'boom_orientation_deg', 'mounting_type_id',
                              'date_from', 'date_to', 'connection_channel',
@@ -1021,7 +1074,7 @@ class _Measurements:
             df.set_index('Name', inplace=True)
             df.fillna('-', inplace=True)
             df.replace(DATE_INSTEAD_OF_NONE, '-', inplace=True)
-        elif wind_directions is True:
+        elif wind_directions:
             cols_required = ['name', 'measurement_type_id', 'oem', 'model', 'sensor.serial_number', 'is_heated',
                              'height_m', 'boom_orientation_deg', 'vane_dead_band_orientation_deg',
                              'orientation_reference_id',
@@ -1043,18 +1096,18 @@ class _Measurements:
             df.set_index('Name', inplace=True)
             df.fillna('-', inplace=True)
             df.replace(DATE_INSTEAD_OF_NONE, '-', inplace=True)
-        elif calibrations is True:
+        elif calibrations:
             cols_required = ['calibration.slope', 'calibration.offset', 'calibration.report_file_name',
                              'date_of_calibration', 'calibration_organisation', 'place_of_calibration',
                              'calibration.uncertainty_k_factor', 'calibration.update_at', 'calibration.notes']
             df = self.__get_table_for_cols(cols_required)
-        elif mounting_arrangements is True:
+        elif mounting_arrangements:
             cols_required = ['mounting_type_id', 'boom_orientation_deg', 'orientation_reference_id', 'boom_oem',
                              'boom_model', 'boom_diameter_mm', 'boom_length_mm', 'distance_from_mast_to_sensor_mm',
                              'upstand_height_mm', 'upstand_diameter_mm', 'vane_dead_band_orientation_deg',
                              'mounting_arrangement.notes']
             df = self.__get_table_for_cols(cols_required)
-        elif columns_to_show is not None:
+        elif columns_to_show:
             df = self.__get_table_for_cols(columns_to_show)
         return df
 
@@ -1071,8 +1124,8 @@ class _Measurements:
         for meas_point in self.__meas_properties:  # use __meas_properties as it is a list and holds it's order
             meas_type = meas_point.get('measurement_type_id')
             meas_name = meas_point.get('name')
-            if measurement_type_id is not None:
-                if meas_type is not None and meas_type in measurement_type_id:
+            if measurement_type_id:
+                if meas_type and meas_type in measurement_type_id:
                     if meas_name not in names:
                         names.append(meas_point.get('name'))
             else:
@@ -1099,22 +1152,22 @@ class _Measurements:
         :rtype:                     list(float)
         """
         heights = []
-        if names is None:
+        if not names:
             names = self.__get_names(measurement_type_id=measurement_type_id)
         if isinstance(names, str):
             names = [names]
         for name in names:
             name_found = False  # used to fill in a NaN if the name isn't found to keep consistent order
             for meas_point in self.__meas_properties:  # use __meas_properties as it is a list and holds it's order
-                if meas_point['name'] == name and meas_point.get('height_m') is not None:
+                if meas_point['name'] == name and meas_point.get('height_m'):
                     heights.append(meas_point['height_m'])
                     name_found = True
                     break
-                elif meas_point['name'] == name and meas_point.get('height_m') is None:
+                elif meas_point['name'] == name and not meas_point.get('height_m'):
                     heights.append(np.NaN)
                     name_found = True
                     break
-            if name_found is False:
+            if not name_found:
                 heights.append(np.NaN)
         return heights
 
