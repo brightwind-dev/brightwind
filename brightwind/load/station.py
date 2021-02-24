@@ -22,6 +22,8 @@ import requests
 import json
 import copy
 
+__all__ = ['MeasurementStation']
+
 
 def _replace_none_date(list_or_dict):
     if isinstance(list_or_dict, list):

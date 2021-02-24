@@ -96,6 +96,6 @@ A test dataset is included in this repository and is used to test functions in t
 ### Contributing
 If you wish to be involved or find out more please contact stephen@brightwindanalysis.com.
 
-More information can be found in the [community](https://brightwind-dev.github.io/brightwind-docs/community.html) section of the website.
+More information can be found in the [contributing.md](https://github.com/brightwind-dev/brightwind/blob/master/contributing.md) section of the website.
 
 <br>

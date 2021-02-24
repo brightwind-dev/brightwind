@@ -974,13 +974,16 @@ class LoadBrightHub:
         ::
             import brightwind as bw
 
-        To get all available plants::
+        To get all available plants
+        ::
             bw.LoadBrightHub.get_plants()
 
-        To get all available offshore plants::
+        To get all available offshore plants
+        ::
             bw.LoadBrightHub.get_plants(plant_type='offshore_wind')
 
-        To get a specific plant::
+        To get a specific plant
+        ::
             bw.LoadBrightHub.get_plants(plant_uuid='7a58497e-bee1-42a2-8084-c47a5cf213b7')
 
         """
@@ -1050,13 +1053,16 @@ class LoadBrightHub:
         ::
             import brightwind as bw
 
-        To get all available measurement stations::
+        To get all available measurement stations
+        ::
             bw.LoadBrightHub.get_measurement_stations()
 
-        To get all available measurement stations for a specific plant::
+        To get all available measurement stations for a specific plant
+        ::
             bw.LoadBrightHub.get_measurement_stations(plant_uuid='7a58497e-bee1-42a2-8084-c47a5cf213b7')
 
-        To get a specific measurement station::
+        To get a specific measurement station
+        ::
             bw.LoadBrightHub.get_measurement_stations(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
 
         """
@@ -1140,13 +1146,16 @@ class LoadBrightHub:
         ::
             import brightwind as bw
 
-        To get all available measurement stations::
+        To get all available measurement stations
+        ::
             bw.LoadBrightHub.get_measurement_stations()
 
-        To get the data model for a specific measurement station::
+        To get the data model for a specific measurement station
+        ::
             data_model_json - bw.LoadBrightHub.get_data_model(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
 
-        Using the data model::
+        Using the data model
+        ::
             demo_mast = bw.MeasurementStation(data_model_json)
             demo_mast.get_table()
 
@@ -1193,23 +1202,28 @@ class LoadBrightHub:
         ::
             import brightwind as bw
 
-        To get all available measurement stations to pick out the measurement station's uuid::
+        To get all available measurement stations to pick out the measurement station's uuid
+        ::
             bw.LoadBrightHub.get_measurement_stations()
 
-        To get all the data for the specific measurement station::
+        To get all the data for the specific measurement station
+        ::
             data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
             data.head()
 
-        To get data for a specific time period::
+        To get data for a specific time period
+        ::
             data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
                                              date_from='2016-06-01',
                                              date_to='2016-07-01')
 
-        To get data from a specific date::
+        To get data from a specific date
+        ::
             data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
                                              date_from='2016-06-01')
 
-        To get data up to a specific date::
+        To get data up to a specific date
+        ::
             data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
                                              date_to='2016-07-01')
 

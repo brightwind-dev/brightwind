@@ -8,7 +8,7 @@ Community
 
 If you wish to be involved or find out more please contact stephen@brightwindanalysis.com.
 
-Most contributors use the PyCharm IDE and follow the built in PyCharm code style.
+More information can be found in the [contributing.md](https://github.com/brightwind-dev/brightwind/blob/master/contributing.md) section of the website.
 
 
 .. toctree::

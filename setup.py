@@ -27,14 +27,14 @@ setup(
     # Update version number here, below and in _init_.py:
     version=get_version("brightwind/__init__.py"),
     packages=['brightwind', 'brightwind.load', 'brightwind.utils', 'brightwind.export', 'brightwind.analyse',
-              'brightwind.transform'],  # , 'brightwind.datasets'],
+              'brightwind.transform', 'brightwind.demo_datasets'],
     package_data={
         # If any package contains *.mplstyle or *.txt files, include them:
-        '': ['*.mplstyle'],  # , 'datasets/demo/*.csv', 'datasets/demo/*.txt'],
+        '': ['*.mplstyle', 'demo_datasets/*.csv', 'demo_datasets/*.txt', 'demo_datasets/*.json'],
     },
     url='https://github.com/brightwind-dev/brightwind.git',
-    # Update version number here:
-    download_url='https://github.com/brightwind-dev/brightwind/archive/v1.0.0.tar.gz',
+    # UPDATE VERSION NUMBER HERE:
+    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.0.0.tar.gz',
     license='MIT',
     author='Stephen Holleran of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
