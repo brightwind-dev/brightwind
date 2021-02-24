@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import os
 
 __all__ = ['slice_data']
 
@@ -98,3 +99,20 @@ def _convert_df_to_series(df):
     elif isinstance(df, pd.DataFrame) and df.shape[1] > 1:
         raise TypeError('DataFrame cannot be converted to a Series as it contains more than 1 column.')
     return df
+
+
+def get_environment_variable(name):
+    if name not in os.environ:
+        raise Exception('{} environmental variable is not set.'.format(name))
+    return os.getenv(name)
+
+
+def bold(text):
+    """
+    Function to return text as bold
+
+    :param text: str to bold
+    :type text: str
+    :return: str in bold
+    """
+    return '\x1b[1;30m'+text+'\x1b[0m' if text else '\x1b[1;30m'+'\x1b[0m'

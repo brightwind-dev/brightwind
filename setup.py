@@ -54,7 +54,9 @@ setup(
         'six>= 1.12.0',
         'python-dateutil>=2.8.0',
         'ipywidgets>=7.4.2',
-        'ipython>=7.4.0'
+        'ipython>=7.4.0',
+        'gmaps>=0.9.0',
+        'boto3>=1.9.66'
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",

@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 from brightwind.utils import utils
+from brightwind.load.station import _Measurements
+from brightwind.load.station import DATE_INSTEAD_OF_NONE
+import copy
 import warnings
 
 __all__ = ['average_data_by_period',
@@ -8,9 +11,11 @@ __all__ = ['average_data_by_period',
            'average_wdirs',
            'adjust_slope_offset',
            'scale_wind_speed',
+           'apply_wind_vane_deadband_offset',
            'offset_wind_direction',
            'selective_avg',
-           'offset_timestamps']
+           'offset_timestamps',
+           'apply_wspd_slope_offset_adj']
 
 
 def _validate_coverage_threshold(coverage_threshold):
@@ -269,7 +274,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     """
     Averages the data by a time period specified.
 
-    Aggregates data by the aggregation_method specified, by default this function averages the data to the period 
+    Aggregates data by the aggregation_method specified, by default this function averages the data to the period
     specified.
 
     A list of wind direction column names can be sent to identify which columns should be vector averaged. This vector
@@ -305,7 +310,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
                                use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median,
                                product, summation, standard deviation, variance, maximum and minimum respectively.
     :type aggregation_method:  str
-    :param coverage_threshold: Coverage is defined as the ratio of number of data points present in the period and the 
+    :param coverage_threshold: Coverage is defined as the ratio of number of data points present in the period and the
                                maximum number of data points that a period should have. Example, for 10 minute data
                                resolution and a period of 1 hour, the maximum number of data points in one period is 6.
                                But if the number if data points available is only 3 for that hour the coverage is
@@ -768,6 +773,158 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
         raise error
 
 
+def _get_consistent_properties_format(measurements, measurement_type_id):
+    """
+    From the options of:
+        mm1.measurements
+        mm1.measurements.wdirs
+        mm1.measurements['Dir78mS']
+    return a consistent list of properties for the measurement_type_id.
+
+    :param measurements:        Measurement information extracted from a WRA Data Model using bw.MeasurementStation
+    :type measurements:         list or dict or _Measurements
+    :param measurement_type_id: The measurement_type_id to filter for.
+    :type measurement_type_id:  str
+    :return:                    All the properties as a list
+    :rtype:                     list
+    """
+    property_list = []
+    if isinstance(measurements, _Measurements):
+        merged_properties = copy.deepcopy(measurements.properties)
+        for meas_point in merged_properties:
+            meas_type = meas_point.get('measurement_type_id')
+            if meas_type is not None and meas_type == measurement_type_id:
+                property_list.append(meas_point)
+    elif isinstance(measurements, dict):
+        for name, properties in measurements.items():
+            for prop in properties:
+                meas_type = prop.get('measurement_type_id')
+                if meas_type is not None and meas_type == measurement_type_id:
+                    property_list.append(prop)
+    elif isinstance(measurements, list):
+        for prop in measurements:
+            meas_type = prop.get('measurement_type_id')
+            if meas_type is not None and meas_type == measurement_type_id:
+                property_list.append(prop)
+    return property_list
+
+
+def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
+    """
+    Automatically apply wind speed calibration slope and offset adjustments to the timeseries data when they
+    differ from the logger programmed slope and offsets. The slope and offset information for each measurement
+    and time period is contained in the measurements instance from bw.MeasurementStation.
+
+    This uses the brightwind 'adjust_slope_offset()' function to apply the actual adjustment to the data.
+
+    Note: Be careful not to run this more than once in an assessment, when using inplace=True, as it will
+          apply the adjustment again.
+
+    :param data:         Timeseries data.
+    :type data:          pd.DataFrame or pd.Series
+    :param measurements: Measurement information extracted from a WRA Data Model using bw.MeasurementStation
+    :type measurements:  list or dict or _Measurements
+    :param inplace:      If 'inplace' is True, the original direction data, contained in 'data', will be
+                         modified and replaced with the adjusted direction data. If 'inplace' is False, the
+                         original data will not be touched and instead a new DataFrame containing the adjusted
+                         direction data is created. To store this adjusted direction data, please ensure it is
+                         assigned to a new variable.
+    :type inplace:       bool
+    :return:             Data with adjusted wind speeds.
+    :rtype:              pd.DataFrame or pd.Series
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        mm1 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+
+    Adjust wind speeds when the calibration slope and offset differ from the logger
+    programmed slope and offset, applying inplace::
+        bw.apply_wspd_slope_offset_adj(data, mm1.measurements, inplace=True)
+
+    Adjust wind speeds and assign to new variable::
+        data_calib_adj = bw.apply_wspd_slope_offset_adj(data, mm1.measurements)
+
+    Send just the wind speed properties::
+        bw.apply_wspd_slope_offset_adj(data, mm1.measurements.wspds, inplace=True)
+
+    Send a specific wind speed property::
+        bw.apply_wspd_slope_offset_adj(data, mm1.measurements['Spd60mS'], inplace=True)
+
+    Send a specific wind direction property and data column::
+        bw.apply_wspd_slope_offset_adj(data['Spd60mS'], mm1.measurements['Spd60mS'], inplace=True)
+
+    """
+    # Depending on what is sent, get wspd properties into a list of properties
+    wspd_properties = _get_consistent_properties_format(measurements, 'wind_speed')
+    if not wspd_properties:
+        raise ValueError('No wind speed measurements found.')
+
+    # copy the data if needed
+    data = data.copy(deep=True) if inplace is False else data
+    wspd_in_dataset = False
+    df = pd.DataFrame(data) if type(data) == pd.Series else data
+
+    # Apply the adjustment
+    for wspd_prop in wspd_properties:
+        name = wspd_prop['name']
+        if name in df.columns:
+            wspd_in_dataset = True
+            date_to = wspd_prop.get('date_to')
+            date_from = wspd_prop.get('date_from')
+            if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+                date_to_txt = 'the end of dataset'
+            else:
+                date_to_txt = date_to
+
+            variables = {
+                'slope': 'sensor_config.slope',
+                'offset': 'sensor_config.offset',
+                'cal_slope': 'calibration.slope',
+                'cal_offset': 'calibration.offset'
+            }
+            none_variables = [v for v in variables.values() if wspd_prop.get(v) is None]
+
+            if none_variables:
+                print("{} has {} value set as None. Slope and offset adjustment can't be applied "
+                      "from {} to {}.\n".format(utils.bold(name), utils.bold(', '.join(none_variables)),
+                                                utils.bold(date_from),
+                                                utils.bold(date_to_txt)))
+            elif float(wspd_prop[variables['slope']]) != float(wspd_prop[variables['cal_slope']]) or \
+                    float(wspd_prop[variables['offset']]) != float(wspd_prop[variables['cal_offset']]):
+                try:
+                    df[name][date_from:date_to] = \
+                        adjust_slope_offset(df[name][date_from:date_to],
+                                            current_slope=float(wspd_prop[variables['slope']]),
+                                            current_offset=float(wspd_prop[variables['offset']]),
+                                            new_slope=float(wspd_prop[variables['cal_slope']]),
+                                            new_offset=float(wspd_prop[variables['cal_offset']]))
+                    print('{} has slope and offset adjustment applied from {} to {}.\n'
+                          .format(utils.bold(name), utils.bold(date_from),
+                                  utils.bold(date_to_txt)))
+                except TypeError:
+                    print('{} has TypeError with logger or calibration slope and offset values. Skipping.\n'
+                          .format(utils.bold(name)))
+                except Exception as error_msg:
+                    print(error_msg)
+            else:
+                print('{} logger slope and offsets are equal to calibration slope and offsets from '
+                      '{} to {}.\n'.format(utils.bold(name),
+                                           utils.bold(date_from),
+                                           utils.bold(date_to_txt)))
+        else:
+            print('{} is not found in data.\n'.format(utils.bold(name)))
+
+    if wspd_in_dataset is False:
+        print('No wind speed measurement type found in the configurations.')
+    # if a Series is sent, send back a Series
+    if type(data) == pd.Series:
+        df = df[df.columns[0]]
+    return df
+
+
 def scale_wind_speed(spd, scale_factor: float):
     """
     Scales wind speed by the scale_factor
@@ -783,17 +940,133 @@ def scale_wind_speed(spd, scale_factor: float):
 
 def offset_wind_direction(wdir, offset: float):
     """
-    Add/ subtract offset from wind direction. Keeps the ranges between 0 to 360
+    Add or subtract offset from wind direction. Keeps the ranges between 0 to 360
+
     :param wdir: Series or data frame or a single direction to offset
     :param offset: Offset in degrees can be negative or positive
     :return: Series or Dataframe or single value with offsetted directions
     """
-    if isinstance(wdir, float):
+    if isinstance(wdir, float) or isinstance(wdir, int):
         return utils._range_0_to_360(wdir + offset)
     elif isinstance(wdir, pd.DataFrame):
         return wdir.add(offset).applymap(utils._range_0_to_360)
     elif isinstance(wdir, pd.Series):
         return wdir.add(offset).apply(utils._range_0_to_360)
+
+
+def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
+    """
+    Automatically apply deadband offsets of the wind vanes to the timeseries data. The deadband orientation
+    information for each wind direction measurement and time period is contained in the measurements
+    instance from bw.MeasurementStation.
+
+    This uses the brightwind 'offset_wind_direction()' function to apply the actual adjustment to the data.
+
+    Note: Be careful not to run this more than once in an assessment, when using inplace=True, as it will
+          apply an offset again.
+
+    If there is a value in the logger for an offset, then the wind direction data has already been adjusted
+    by this amount. This may or may not be equal to the deadband offset. Therefore, the adjustment to be made should
+    make up the difference to equal a deadband offset. E.g.
+
+            offset to be applied = deadband - logger offset
+
+    This function accounts for this adjustment.
+
+    :param data:         Timeseries data.
+    :type data:          pd.DataFrame or pd.Series
+    :param measurements: Measurement information extracted from a WRA Data Model using bw.MeasurementStation
+    :type measurements:  list or dict or _Measurements
+    :param inplace:      If 'inplace' is True, the original direction data, contained in 'data', will be
+                         modified and replaced with the adjusted direction data. If 'inplace' is False, the
+                         original data will not be touched and instead a new DataFrame containing the adjusted
+                         direction data is created. To store this adjusted direction data, please ensure it is
+                         assigned to a new variable.
+    :type inplace:       bool
+    :return:             Data with adjusted wind direction by the deadband orientation.
+    :rtype:              pd.DataFrame or pd.Series
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        mm1 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+
+    Adjust wind directions by the deadband orientation, applying inplace::
+        bw.apply_wind_vane_deadband_offset(data, mm1.measurements, inplace=True)
+        print('\nWind vane deadband offset adjustment is completed.')
+
+    Adjust wind direction by the deadband orientation, and assign to new variable::
+        data_deadband_adj = bw.apply_wind_vane_deadband_offset(data, mm1.measurements)
+
+    Send just the wind direction properties::
+        bw.apply_wind_vane_deadband_offset(data, mm1.measurements.wdirs, inplace=True)
+        print('\nWind vane deadband offset adjustment is completed.')
+
+    Send a specific wind direction property::
+        bw.apply_wind_vane_deadband_offset(data, mm1.measurements['Dir78mS'], inplace=True)
+        print('\nWind vane deadband offset adjustment is completed.')
+
+    Send a specific wind direction property and data column::
+        bw.apply_wind_vane_deadband_offset(data['Dir78mS'], mm1.measurements['Dir78mS'], inplace=True)
+        print('\nWind vane deadband offset adjustment is completed.')
+
+    """
+    # Depending on what is sent, get wdir properties into a list of properties
+    wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
+    if not wdirs_properties:
+        raise ValueError('No wind direction measurements found.')
+
+    # copy the data if needed
+    data = data.copy(deep=True) if inplace is False else data
+    wdir_in_dataset = False
+    df = pd.DataFrame(data) if type(data) == pd.Series else data
+
+    # Apply the offset
+    for wdir_prop in wdirs_properties:
+        name = wdir_prop['name']
+        if name in df.columns:
+            wdir_in_dataset = True
+            date_to = wdir_prop.get('date_to')
+            if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+                date_to_txt = 'the end of dataset'
+            else:
+                date_to_txt = date_to
+
+            deadband = wdir_prop.get('vane_dead_band_orientation_deg')
+            date_from = wdir_prop['date_from']
+            # Account for a logger offset
+            logger_offset = wdir_prop.get('sensor_config.offset')
+            offset = deadband
+            additional_comment_txt = 'to account for deadband'
+            if logger_offset is not None and logger_offset != 0 and deadband is not None:
+                offset = offset_wind_direction(float(deadband), offset=-float(logger_offset))
+                additional_comment_txt = additional_comment_txt + ' and logger offset'
+
+            if offset:
+                df[name][date_from:date_to] = \
+                    offset_wind_direction(df[name][date_from:date_to],
+                                          float(offset))
+                print('{0} adjusted by {1} degrees from {2} to {3} {4}.\n'
+                      .format(utils.bold(name), utils.bold(str(offset)),
+                              utils.bold(date_from), utils.bold(date_to_txt), additional_comment_txt))
+            elif offset == 0:
+                print('{} has an offset to be applied of 0 from {} to {} {}.\n'
+                      .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt),
+                              additional_comment_txt))
+            else:
+                print('{} has dead_band_orientation of None from {} to {}.\n'
+                      .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt)))
+        else:
+            print('{} is not found in data.\n'.format(utils.bold(name)))
+
+    if wdir_in_dataset is False:
+        print('No wind direction measurement type found in the data.\n')
+    # if a Series is sent, send back a Series
+    if type(data) == pd.Series:
+        df = df[df.columns[0]]
+    return df
 
 
 def _selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2,
