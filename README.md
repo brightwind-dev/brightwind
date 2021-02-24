@@ -57,12 +57,7 @@ as the underlying code is open-sourced, there is no reason why this file cannot 
 <br>
 
 ##### License
-The library is licensed under the GNU Lesser General Public License v3.0. It is the
-intention to allow commercial products or services to be built on top of this
-library but any modifications to the library itself should be kept open-sourced.
-Keeping this open-sourced will ensure that the library becomes the de facto
-library used by wind analysts, establishing a common, standard industry wide
-toolset for wind data processing .
+The library is licensed under the MIT license.
 
 <br>
 

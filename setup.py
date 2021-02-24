@@ -35,8 +35,8 @@ setup(
     url='https://github.com/brightwind-dev/brightwind.git',
     # Update version number here:
     download_url='https://github.com/brightwind-dev/brightwind/archive/v1.0.0.tar.gz',
-    license='GNU Lesser General Public License v3 or later (LGPLv3+)',
-    author='Stephen Holleran and Inder Preet of BrightWind Ltd',
+    license='MIT',
+    author='Stephen Holleran of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
     description='Scripts for wind resource data processing.',
     long_description=long_description,
@@ -59,6 +59,6 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
-        "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+        "License :: OSI Approved :: MIT License",
     ],
 )
