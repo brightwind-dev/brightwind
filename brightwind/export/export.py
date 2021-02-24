@@ -45,7 +45,7 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, folder_path=Non
     **Example Usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
         wind_rose, freq_tab = bw.freq_table(df.Spd80mN, df.Dir78mS, return_data=True)
         bw.export_tab_file(freq_tab, 80, 54.2, -7.6, file_name='campbell_tab_file', folder_path=r'C:\\some\\folder\\')
 
@@ -123,7 +123,7 @@ def export_csv(data, file_name=None, folder_path=None, **kwargs):
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
         folder = r'C:\\some\\folder\\'
 
         # to export a .csv file with a specified name to a specific folder

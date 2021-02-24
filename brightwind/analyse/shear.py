@@ -560,9 +560,9 @@ class Shear:
             :type sectors: int
             :param direction_bin_array: Specific array of directional bins to be used. If None, bins are calculated
                                         by 360/sectors.
-            :type direction_bin_array: array
+            :type direction_bin_array: list or array
             :param direction_bin_labels: Labels to be given to the above direction_bin array.
-            :type direction_bin_labels: array
+            :type direction_bin_labels: list or array
             :return: BySector object containing calculated alpha/roughness coefficient values, a plot and other data.
             :rtype: BySector object
 

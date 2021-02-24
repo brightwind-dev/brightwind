@@ -6,8 +6,7 @@ from brightwind.analyse import plot as plt
 from brightwind.utils.utils import _convert_df_to_series
 import matplotlib
 
-__all__ = ['concurrent_coverage',
-           'monthly_means',
+__all__ = ['monthly_means',
            'momm',
            'dist',
            'dist_matrix',
@@ -22,8 +21,7 @@ __all__ = ['concurrent_coverage',
            'basic_stats',
            'TI',
            'sector_ratio',
-           'calc_air_density',
-           'average_wdirs']
+           'calc_air_density']
 
 
 def dist_matrix(var_series, x_series, y_series,
@@ -169,37 +167,6 @@ def dist_matrix(var_series, x_series, y_series,
         return heatmap
 
 
-def concurrent_coverage(ref, target, averaging_prd, aggregation_method_target='mean'):
-    """
-    Accepts ref and target data and returns the coverage of concurrent data.
-
-    :param ref: Reference data
-    :type ref: pandas.Series
-    :param target: Target data
-    :type target: pandas.Series
-    :param averaging_prd: Groups data by the period specified by period.
-
-            * 2T, 2 min for minutely average
-            * Set period to 1D for a daily average, 3D for three hourly average, similarly 5D, 7D, 15D etc.
-            * Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
-            * Set period to 1M for monthly average
-            * Set period to 1AS fo annual average
-
-    :type averaging_prd: str
-    :param aggregation_method_target: (Optional) Calculates mean of the data for the given averaging_prd by default.
-            Can be changed to 'sum', 'std', 'max', 'min', etc. or a user defined function
-    :return: A DataFrame with concurrent coverage and resolution of the new data. The columns with coverage are named as
-            <column name>_Coverage
-
-    """
-    coverage_df = tf._preprocess_data_for_correlations(ref=ref, target=target, averaging_prd=averaging_prd,
-                                                       coverage_threshold=0,
-                                                       aggregation_method_target=aggregation_method_target,
-                                                       get_coverage=True)
-    coverage_df.columns = ["Coverage" if "_Coverage" in col else col for col in coverage_df.columns]
-    return coverage_df
-
-
 def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: float):
     """
     :rtype: np.float64
@@ -262,13 +229,14 @@ def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
     return monthly_df
 
 
-def momm(data: pd.DataFrame, date_from: str = '', date_to: str = ''):
+def momm(data, date_from: str = '', date_to: str = ''):
     """
     Calculates and returns long term reference speed. Accepts a DataFrame
     with timestamps as index column and another column with wind-speed. You can also specify
     date_from and date_to to calculate the long term reference speed for only that period.
 
-    :param data: Pandas DataFrame with timestamp as index and a column with wind-speed
+    :param data: Pandas DataFrame or Series with timestamp as index and a column with wind-speed
+    :type data:  pd.DataFrame or pd.Series
     :param date_from: Start date as string in format YYYY-MM-DD
     :param date_to: End date as string in format YYYY-MM-DD
     :returns: Long term reference speed
@@ -339,7 +307,7 @@ def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         #For distribution of %frequency of wind speeds
         dist = bw.dist(data.Spd40mN, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
@@ -408,7 +376,7 @@ def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         freq_dist_plot, freq_dist = bw.dist_of_wind_speed(data.Spd80mN, return_data=True)
 
@@ -491,7 +459,7 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
 
         rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS, return_data=True)
 
@@ -609,7 +577,7 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # Simple use
         bw.dist_matrix_by_dir_sector(data.T2m, data.Spd80mN, data.Dir38mS)
@@ -712,7 +680,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
 
         #Simple use
         rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
@@ -843,7 +811,7 @@ def coverage(data, period='1M', aggregation_method='mean'):
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
 
         #To find hourly coverage
         data_hourly = bw.coverage(data.Spd80mN, period='1H')
@@ -885,7 +853,7 @@ def basic_stats(data):
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
         bw.basic_stats(data)
         bw.basic_stats(data['Gust_Max_1'])
 
@@ -915,7 +883,7 @@ def dist_12x24(var_series, aggregation_method='mean', var_name_label=None, retur
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # For 12x24 table of means
         graph, table12x24 = bw.dist_12x24(data.Spd40mN, var_name_label='wind speed [m/s]', return_data=True)
@@ -1128,7 +1096,7 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         #For plotting both booms
         bw.sector_ratio(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, boom_dir_1=0, boom_dir_2=180)
@@ -1191,7 +1159,7 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         import brightwind as bw
 
         #For a series of air densities
-        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
         air_density = bw.calc_air_density(data.T2m, data.P2m)
 
         #For a single value
@@ -1199,8 +1167,6 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
 
         #For a single value with ref and site elevation
         bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200)
-
-
 
     """
 
@@ -1218,54 +1184,3 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         raise TypeError('elevation_ref should be a number')
     else:
         return ref_air_density
-
-
-def average_wdirs(wdirs, wspds=None):
-    """
-    Average wind directions together using vector averaging.
-
-    :param wdirs: Wind directions to calculate the average of
-    :type wdirs:  list or array or np.array or pd.Series
-    :param wspds: Wind speeds for the magnitude of the wind direction vector.
-                  If not provided the magnitude is assumed to be unity.
-                  If a list or an array is sent they must be the same length as wdirs.
-    :type wspds:  list or array or np.array or pd.Series
-    :return:      Average wind direction for the wind directions provided.
-    :rtype:       float
-
-
-    **Example usage**
-    ::
-        wdirs = np.array([350, 10])
-        bw.average_wdirs(wdirs)
-
-        wdirs_series = pd.Series(wdirs)
-        bw.average_wdirs(wdirs_series)
-
-        wspds = [5, 6]
-        bw.average_wdirs(wdirs, wspds)
-
-
-    Note:
-    The reason [0, 180] results in 90 and not NaN is because the sin of 180 is not quite zero which results in not
-    ending back exactly where you started and so gives 90. Similarly if 10, 190 is sent the mean of the sin is slightly
-    negative (-6.9e-17) instead of zero which results in 270 instead of NaN. Similar for cosine when 90, 270 sent.
-    Solution is to round both sin and cos to 5 decimal places to make them zero.
-    """
-
-    if wspds is None:
-        sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5))  # sin of each angle, East component
-        cosine = np.mean(np.round(np.cos(np.deg2rad(wdirs)), 5))  # cos of each angle, North component
-    else:
-        sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5) * wspds)  # sin of each angle, East component
-        cosine = np.mean(np.round(np.cos(np.deg2rad(wdirs)), 5) * wspds)  # cos of each angle, North component
-
-    # If both sine and cosine result in zero then all the directions cancel and you end up where you started which
-    # means there is no wind direction => return NaN
-    if sine == 0 and cosine == 0:
-        avg_dir = np.NaN
-    else:
-        avg_dir = np.rad2deg(np.arctan2(sine, cosine)) % 360
-        if avg_dir == 360.0:  # preference to have 0 returned instead of 360
-            avg_dir = 0.0
-    return avg_dir

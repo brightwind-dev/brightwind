@@ -1,0 +1,21 @@
+### OS and Editor Files ###
+.DS_Store
+.vscode
+.idea
+
+### Flask ###
+instance/
+
+### Python Libraries ###
+__pycache__/
+*.pyc
+/.mypy_cache
+build/
+dist/
+
+### Local Files ###
+tmp/
+log/
+tests/temp/*
+brightwind.egg-info/
+**/.ipynb_checkpoints
