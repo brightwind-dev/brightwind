@@ -1019,17 +1019,18 @@ class SpeedSort(CorrelBase):
         return prediction.sort_index()
 
     def synthesize(self, input_spd=None, input_dir=None):
-        # This will give erroneous result when the averaging period is not a whole number such that ref and target does
-        # both get aligned -Inder
+
         if input_spd is None and input_dir is None:
-            output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
+            ref_start_date, target_start_date = self._get_synth_start_dates()
+
+            output = self._predict(tf.average_data_by_period(self.ref_spd[ref_start_date:], self.averaging_prd,
                                                              return_coverage=False),
-                                   tf.average_data_by_period(self.ref_dir, self.averaging_prd,
+                                   tf.average_data_by_period(self.ref_dir[ref_start_date:], self.averaging_prd,
                                                              wdir_column_names=self._ref_dir_col_name,
                                                              return_coverage=False))
-            output = tf.average_data_by_period(self.target_spd, self.averaging_prd,
+            output = tf.average_data_by_period(self.target_spd[target_start_date:], self.averaging_prd,
                                                return_coverage=False).combine_first(output)
-            dir_output = self._predict_dir(tf.average_data_by_period(self.ref_dir, self.averaging_prd,
+            dir_output = self._predict_dir(tf.average_data_by_period(self.ref_dir[ref_start_date:], self.averaging_prd,
                                                                      wdir_column_names=self._ref_dir_col_name,
                                                                      return_coverage=False))
 
