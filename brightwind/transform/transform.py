@@ -290,7 +290,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     """
     Averages the data by a time period specified.
 
-    Aggregates data by the aggregation_method specified, by default this function averages the data to the period 
+    Aggregates data by the aggregation_method specified, by default this function averages the data to the period
     specified.
 
     A list of wind direction column names can be sent to identify which columns should be vector averaged. This vector
@@ -326,7 +326,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
                                use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median,
                                product, summation, standard deviation, variance, maximum and minimum respectively.
     :type aggregation_method:  str
-    :param coverage_threshold: Coverage is defined as the ratio of number of data points present in the period and the 
+    :param coverage_threshold: Coverage is defined as the ratio of number of data points present in the period and the
                                maximum number of data points that a period should have. Example, for 10 minute data
                                resolution and a period of 1 hour, the maximum number of data points in one period is 6.
                                But if the number if data points available is only 3 for that hour the coverage is
@@ -953,12 +953,13 @@ def scale_wind_speed(spd, scale_factor: float):
 
 def offset_wind_direction(wdir, offset: float):
     """
-    Add/ subtract offset from wind direction. Keeps the ranges between 0 to 360
+    Add or subtract offset from wind direction. Keeps the ranges between 0 to 360
+
     :param wdir: Series or data frame or a single direction to offset
     :param offset: Offset in degrees can be negative or positive
     :return: Series or Dataframe or single value with offsetted directions
     """
-    if isinstance(wdir, float):
+    if isinstance(wdir, float) or isinstance(wdir, int):
         return utils._range_0_to_360(wdir + offset)
     elif isinstance(wdir, pd.DataFrame):
         return wdir.add(offset).applymap(utils._range_0_to_360)
@@ -976,6 +977,14 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
 
     Note: Be careful not to run this more than once in an assessment, when using inplace=True, as it will
           apply an offset again.
+
+    If there is a value in the logger for an offset, then the wind direction data has already been adjusted
+    by this amount. This may or may not be equal to the deadband offset. Therefore, the adjustment to be made should
+    make up the difference to equal a deadband offset. E.g.
+
+            offset to be applied = deadband - logger offset
+
+    This function accounts for this adjustment.
 
     :param data:         Timeseries data.
     :type data:          pd.DataFrame or pd.Series
@@ -1029,29 +1038,37 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
 
     # Apply the offset
     for wdir_prop in wdirs_properties:
-        if wdir_prop['name'] in df.columns:
+        name = wdir_prop['name']
+        if name in df.columns:
             wdir_in_dataset = True
-            if wdir_prop['date_to'] is None or wdir_prop['date_to'] == DATE_INSTEAD_OF_NONE:
+            date_to = wdir_prop.get('date_to')
+            if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
                 date_to_txt = 'the end of dataset'
             else:
-                date_to_txt = wdir_prop['date_to']
+                date_to_txt = date_to
 
-            if wdir_prop.get('vane_dead_band_orientation_deg'):
-                df[wdir_prop['name']][wdir_prop['date_from']:wdir_prop['date_to']] = \
-                    offset_wind_direction(df[wdir_prop['name']][wdir_prop['date_from']:wdir_prop['date_to']],
-                                          float(wdir_prop['vane_dead_band_orientation_deg']))
-                print('{0} adjusted by {1} degrees from {2} to {3} to account for deadband orientation.'
-                      .format(utils.bold(wdir_prop['name']),
-                              utils.bold(str(wdir_prop['vane_dead_band_orientation_deg'])),
-                              utils.bold(wdir_prop['date_from']),
-                              utils.bold(date_to_txt)))
+            deadband = wdir_prop.get('vane_dead_band_orientation_deg')
+            date_from = wdir_prop['date_from']
+            # Account for a logger offset
+            logger_offset = wdir_prop.get('sensor_config.offset')
+            offset = deadband
+            additional_comment_txt = ''
+            if logger_offset or logger_offset != 0 and deadband:
+                offset = offset_wind_direction(float(deadband), offset=-float(logger_offset))
+                additional_comment_txt = ' and logger offset'
+
+            if offset:
+                df[name][date_from:date_to] = \
+                    offset_wind_direction(df[name][date_from:date_to],
+                                          float(offset))
+                print('{0} adjusted by {1} degrees from {2} to {3} to account for deadband orientation{4}.'
+                      .format(utils.bold(name), utils.bold(str(offset)),
+                              utils.bold(date_from), utils.bold(date_to_txt), additional_comment_txt))
             else:
                 print('{} has dead_band_orientation value set as None from {} to {}.'
-                      .format(utils.bold(wdir_prop['name']),
-                              utils.bold(wdir_prop['date_from']),
-                              utils.bold(date_to_txt)))
+                      .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt)))
         else:
-            print('{} is not found in data.'.format(utils.bold(wdir_prop['name'])))
+            print('{} is not found in data.'.format(utils.bold(name)))
 
     if wdir_in_dataset is False:
         print('No wind direction measurement type found in the data.')
