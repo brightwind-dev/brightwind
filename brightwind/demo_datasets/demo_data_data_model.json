@@ -1,22 +1,20 @@
 {
-  "author": "Brighthub",
-  "organisation": "Brightwind",
-  "date": "2021-02-19",
+  "author": "BrightHub",
+  "organisation": "BrightWind",
+  "date": "2021-02-24",
   "version": "0.1.0-2021.01",
-  "plant_name": "Demo Site",
-  "plant_type": "onshore_wind",
   "measurement_location": [
     {
-      "name": "Demo-MM1",
+      "name": "Demo Mast",
       "latitude_ddeg": 53.3049,
       "longitude_ddeg": -6.212,
       "measurement_station_type_id": "mast",
-      "notes": null,
-      "update_at": "2021-02-19T13:29:37",
+      "notes": "A fabricated dataset located at our office.",
+      "update_at": "2021-02-24T17:04:34",
       "logger_main_config": [
         {
-          "logger_model_name": null,
-          "logger_oem_id": "other",
+          "logger_model_name": "CR1000",
+          "logger_oem_id": "Campbell Scientific",
           "logger_serial_number": "1234567",
           "logger_id": "L1234567",
           "logger_name": "demo",
@@ -26,12 +24,12 @@
           "enclosure_lock_details": null,
           "data_transfer_details": null,
           "offset_from_utc_hrs": null,
-          "sampling_rate_sec": null,
+          "sampling_rate_sec": 3,
           "averaging_period_minutes": 10,
           "timestamp_is_end_of_period": null,
           "clock_is_auto_synced": null,
           "notes": null,
-          "update_at": "2021-02-19T13:29:37"
+          "update_at": "2021-02-24T17:04:34"
         }
       ],
       "measurement_point": [
@@ -41,7 +39,7 @@
           "height_m": 80,
           "height_reference_id": "ground_level",
           "notes": null,
-          "update_at": "2021-02-19T13:29:37",
+          "update_at": "2021-02-24T17:04:35",
           "mounting_arrangement": [
             {
               "mast_section_geometry_uuid": null,
@@ -60,7 +58,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:37"
+              "update_at": "2021-02-24T17:04:35"
             }
           ],
           "sensor": [
@@ -74,7 +72,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:40",
+              "update_at": "2021-02-24T17:04:37",
               "calibration": [
                 {
                   "slope": 0.046,
@@ -87,7 +85,7 @@
                   "place_of_calibration": null,
                   "uncertainty_k_factor": null,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:40"
+                  "update_at": "2021-02-24T17:04:37"
                 }
               ]
             }
@@ -104,28 +102,28 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:43",
+              "update_at": "2021-02-24T17:04:39",
               "column_name": [
                 {
                   "column_name": "Spd80mNStd",
                   "statistic_type_id": "sd",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:43"
+                  "update_at": "2021-02-24T17:04:39"
                 },
                 {
                   "column_name": "Spd80mN",
                   "statistic_type_id": "avg",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:43"
+                  "update_at": "2021-02-24T17:04:39"
                 },
                 {
                   "column_name": "Spd80mNMax",
                   "statistic_type_id": "max",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:43"
+                  "update_at": "2021-02-24T17:04:39"
                 }
               ]
             }
@@ -137,7 +135,7 @@
           "height_m": 80,
           "height_reference_id": "ground_level",
           "notes": null,
-          "update_at": "2021-02-19T13:29:38",
+          "update_at": "2021-02-24T17:04:35",
           "mounting_arrangement": [
             {
               "mast_section_geometry_uuid": null,
@@ -156,12 +154,12 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:38"
+              "update_at": "2021-02-24T17:04:35"
             }
           ],
           "sensor": [
             {
-              "oem": "NRG",
+              "oem": "Met One Instruments",
               "model": "40C",
               "serial_number": "02468",
               "sensor_type_id": "anemometer",
@@ -170,7 +168,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:40",
+              "update_at": "2021-02-24T17:04:37",
               "calibration": [
                 {
                   "slope": 0.84449,
@@ -183,7 +181,7 @@
                   "place_of_calibration": null,
                   "uncertainty_k_factor": null,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:40"
+                  "update_at": "2021-02-24T17:04:37"
                 }
               ]
             }
@@ -200,28 +198,28 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:44",
+              "update_at": "2021-02-24T17:04:39",
               "column_name": [
                 {
                   "column_name": "Spd80mS",
                   "statistic_type_id": "avg",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:44"
+                  "update_at": "2021-02-24T17:04:39"
                 },
                 {
                   "column_name": "Spd80mSMax",
                   "statistic_type_id": "max",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:44"
+                  "update_at": "2021-02-24T17:04:39"
                 },
                 {
                   "column_name": "Spd80mSStd",
                   "statistic_type_id": "sd",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:44"
+                  "update_at": "2021-02-24T17:04:39"
                 }
               ]
             }
@@ -233,7 +231,7 @@
           "height_m": 60,
           "height_reference_id": "ground_level",
           "notes": null,
-          "update_at": "2021-02-19T13:29:38",
+          "update_at": "2021-02-24T17:04:35",
           "mounting_arrangement": [
             {
               "mast_section_geometry_uuid": null,
@@ -252,21 +250,21 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:38"
+              "update_at": "2021-02-24T17:04:35"
             }
           ],
           "sensor": [
             {
               "oem": "Thies",
               "model": "First Class Advanced",
-              "serial_number": "0654321",
+              "serial_number": "0654322",
               "sensor_type_id": "anemometer",
               "instrument_poi_height_mm": null,
               "is_heated": null,
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:40",
+              "update_at": "2021-02-24T17:04:37",
               "calibration": [
                 {
                   "slope": 0.46049,
@@ -279,7 +277,7 @@
                   "place_of_calibration": null,
                   "uncertainty_k_factor": null,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:41"
+                  "update_at": "2021-02-24T17:04:37"
                 }
               ]
             }
@@ -291,33 +289,33 @@
               "sensitivity": null,
               "measurement_units_id": "m/s",
               "height_m": 59.9,
-              "serial_number": "0654321",
+              "serial_number": "0654322",
               "connection_channel": null,
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:44",
+              "update_at": "2021-02-24T17:04:40",
               "column_name": [
                 {
                   "column_name": "Spd60mNStd",
                   "statistic_type_id": "sd",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:44"
+                  "update_at": "2021-02-24T17:04:40"
                 },
                 {
                   "column_name": "Spd60mNMax",
                   "statistic_type_id": "max",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:44"
+                  "update_at": "2021-02-24T17:04:40"
                 },
                 {
                   "column_name": "Spd60mN",
                   "statistic_type_id": "avg",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:44"
+                  "update_at": "2021-02-24T17:04:40"
                 }
               ]
             }
@@ -329,235 +327,7 @@
           "height_m": 60,
           "height_reference_id": "ground_level",
           "notes": null,
-          "update_at": "2021-02-19T13:29:38",
-          "mounting_arrangement": [
-            {
-              "mast_section_geometry_uuid": null,
-              "mounting_type_id": "side",
-              "boom_orientation_deg": 180,
-              "vane_dead_band_orientation_deg": null,
-              "orientation_reference_id": "magnetic_north",
-              "tilt_angle_deg": null,
-              "boom_oem": null,
-              "boom_model": null,
-              "upstand_height_mm": null,
-              "upstand_diameter_mm": null,
-              "boom_diameter_mm": null,
-              "boom_length_mm": null,
-              "distance_from_mast_to_sensor_mm": null,
-              "date_from": "2016-01-09T15:30:00",
-              "date_to": "2016-01-09T15:30:00",
-              "notes": null,
-              "update_at": "2021-02-19T13:29:38"
-            }
-          ],
-          "sensor": [
-            {
-              "oem": "Thies",
-              "model": "First Class Advanced",
-              "serial_number": "013456",
-              "sensor_type_id": "anemometer",
-              "instrument_poi_height_mm": null,
-              "is_heated": null,
-              "date_from": "2016-01-09T15:30:00",
-              "date_to": null,
-              "notes": null,
-              "update_at": "2021-02-19T13:29:41",
-              "calibration": [
-                {
-                  "slope": 0.04591,
-                  "offset": 0.25539,
-                  "sensitivity": null,
-                  "report_file_name": "Test Report",
-                  "report_link": null,
-                  "date_of_calibration": "2015-12-22",
-                  "calibration_organisation": "Deutsche WindGuard",
-                  "place_of_calibration": null,
-                  "uncertainty_k_factor": null,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:41"
-                }
-              ]
-            }
-          ],
-          "sensor_config": [
-            {
-              "slope": 0.0459,
-              "offset": 0.2554,
-              "sensitivity": null,
-              "measurement_units_id": "m/s",
-              "height_m": 59.9,
-              "serial_number": "013456",
-              "connection_channel": null,
-              "date_from": "2016-01-09T15:30:00",
-              "date_to": "2017-01-04T17:59:00",
-              "notes": null,
-              "update_at": "2021-02-19T13:29:45",
-              "column_name": [
-                {
-                  "column_name": "Spd40mS",
-                  "statistic_type_id": "avg",
-                  "is_ignored": false,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:45"
-                },
-                {
-                  "column_name": "Spd40mSStd",
-                  "statistic_type_id": "sd",
-                  "is_ignored": false,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:45"
-                },
-                {
-                  "column_name": "Spd40mSMax",
-                  "statistic_type_id": "max",
-                  "is_ignored": false,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:45"
-                }
-              ]
-            },
-            {
-              "slope": 0.04591,
-              "offset": 0.25539,
-              "sensitivity": null,
-              "measurement_units_id": "m/s",
-              "height_m": 59.9,
-              "serial_number": "013456",
-              "connection_channel": null,
-              "date_from": "2017-01-04T18:00:00",
-              "date_to": null,
-              "notes": null,
-              "update_at": "2021-02-19T13:29:45",
-              "column_name": [
-                {
-                  "column_name": "Spd40mS",
-                  "statistic_type_id": "avg",
-                  "is_ignored": false,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:45"
-                },
-                {
-                  "column_name": "Spd40mSStd",
-                  "statistic_type_id": "sd",
-                  "is_ignored": false,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:45"
-                },
-                {
-                  "column_name": "Spd40mSMax",
-                  "statistic_type_id": "max",
-                  "is_ignored": false,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:45"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Spd40mN",
-          "measurement_type_id": "wind_speed",
-          "height_m": 40,
-          "height_reference_id": "ground_level",
-          "notes": null,
-          "update_at": "2021-02-19T13:29:38",
-          "mounting_arrangement": [
-            {
-              "mast_section_geometry_uuid": null,
-              "mounting_type_id": "side",
-              "boom_orientation_deg": 360,
-              "vane_dead_band_orientation_deg": null,
-              "orientation_reference_id": "magnetic_north",
-              "tilt_angle_deg": null,
-              "boom_oem": null,
-              "boom_model": null,
-              "upstand_height_mm": null,
-              "upstand_diameter_mm": null,
-              "boom_diameter_mm": null,
-              "boom_length_mm": null,
-              "distance_from_mast_to_sensor_mm": null,
-              "date_from": "2016-01-09T15:30:00",
-              "date_to": null,
-              "notes": null,
-              "update_at": "2021-02-19T13:29:38"
-            }
-          ],
-          "sensor": [
-            {
-              "oem": "NRG",
-              "model": "40C",
-              "serial_number": "013457",
-              "sensor_type_id": "anemometer",
-              "instrument_poi_height_mm": null,
-              "is_heated": null,
-              "date_from": "2016-01-09T15:30:00",
-              "date_to": null,
-              "notes": null,
-              "update_at": "2021-02-19T13:29:41",
-              "calibration": [
-                {
-                  "slope": 0.8446,
-                  "offset": 0.321,
-                  "sensitivity": null,
-                  "report_file_name": "Test Report",
-                  "report_link": null,
-                  "date_of_calibration": "2015-12-22",
-                  "calibration_organisation": "Deutsche WindGuard",
-                  "place_of_calibration": null,
-                  "uncertainty_k_factor": null,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:41"
-                }
-              ]
-            }
-          ],
-          "sensor_config": [
-            {
-              "slope": 0.8446,
-              "offset": 0.321,
-              "sensitivity": null,
-              "measurement_units_id": "m/s",
-              "height_m": 40,
-              "serial_number": "013457",
-              "connection_channel": null,
-              "date_from": "2016-01-09T15:30:00",
-              "date_to": null,
-              "notes": null,
-              "update_at": "2021-02-19T13:29:45",
-              "column_name": [
-                {
-                  "column_name": "Spd40mN",
-                  "statistic_type_id": "avg",
-                  "is_ignored": false,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:45"
-                },
-                {
-                  "column_name": "Spd40mNStd",
-                  "statistic_type_id": "sd",
-                  "is_ignored": false,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:45"
-                },
-                {
-                  "column_name": "Spd40mNMax",
-                  "statistic_type_id": "max",
-                  "is_ignored": false,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:45"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Spd40mS",
-          "measurement_type_id": "wind_speed",
-          "height_m": 40,
-          "height_reference_id": "ground_level",
-          "notes": null,
-          "update_at": "2021-02-19T13:29:38",
+          "update_at": "2021-02-24T17:04:35",
           "mounting_arrangement": [
             {
               "mast_section_geometry_uuid": null,
@@ -576,7 +346,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:38"
+              "update_at": "2021-02-24T17:04:35"
             }
           ],
           "sensor": [
@@ -590,7 +360,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:41",
+              "update_at": "2021-02-24T17:04:37",
               "calibration": [
                 {
                   "slope": 0.04567,
@@ -603,7 +373,7 @@
                   "place_of_calibration": null,
                   "uncertainty_k_factor": null,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:41"
+                  "update_at": "2021-02-24T17:04:37"
                 }
               ]
             }
@@ -620,28 +390,256 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:45",
+              "update_at": "2021-02-24T17:04:40",
               "column_name": [
                 {
                   "column_name": "Spd60mS",
                   "statistic_type_id": "avg",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:45"
+                  "update_at": "2021-02-24T17:04:40"
                 },
                 {
                   "column_name": "Spd60mSStd",
                   "statistic_type_id": "sd",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:45"
+                  "update_at": "2021-02-24T17:04:40"
                 },
                 {
                   "column_name": "Spd60mSMax",
                   "statistic_type_id": "max",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:45"
+                  "update_at": "2021-02-24T17:04:40"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd40mN",
+          "measurement_type_id": "wind_speed",
+          "height_m": 40,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2021-02-24T17:04:35",
+          "mounting_arrangement": [
+            {
+              "mast_section_geometry_uuid": null,
+              "mounting_type_id": "side",
+              "boom_orientation_deg": 360,
+              "vane_dead_band_orientation_deg": null,
+              "orientation_reference_id": "magnetic_north",
+              "tilt_angle_deg": null,
+              "boom_oem": null,
+              "boom_model": null,
+              "upstand_height_mm": null,
+              "upstand_diameter_mm": null,
+              "boom_diameter_mm": null,
+              "boom_length_mm": null,
+              "distance_from_mast_to_sensor_mm": null,
+              "date_from": "2016-01-09T15:30:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2021-02-24T17:04:35"
+            }
+          ],
+          "sensor": [
+            {
+              "oem": "Met One Instruments",
+              "model": "40C",
+              "serial_number": "013457",
+              "sensor_type_id": "anemometer",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "date_from": "2016-01-09T15:30:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2021-02-24T17:04:37",
+              "calibration": [
+                {
+                  "slope": 0.8446,
+                  "offset": 0.321,
+                  "sensitivity": null,
+                  "report_file_name": "Test Report",
+                  "report_link": null,
+                  "date_of_calibration": "2015-12-22",
+                  "calibration_organisation": "Deutsche WindGuard",
+                  "place_of_calibration": null,
+                  "uncertainty_k_factor": null,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:37"
+                }
+              ]
+            }
+          ],
+          "sensor_config": [
+            {
+              "slope": 0.8446,
+              "offset": 0.321,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 40,
+              "serial_number": "013457",
+              "connection_channel": null,
+              "date_from": "2016-01-09T15:30:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2021-02-24T17:04:40",
+              "column_name": [
+                {
+                  "column_name": "Spd40mN",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:40"
+                },
+                {
+                  "column_name": "Spd40mNStd",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:40"
+                },
+                {
+                  "column_name": "Spd40mNMax",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:40"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd40mS",
+          "measurement_type_id": "wind_speed",
+          "height_m": 40,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2021-02-24T17:04:35",
+          "mounting_arrangement": [
+            {
+              "mast_section_geometry_uuid": null,
+              "mounting_type_id": "side",
+              "boom_orientation_deg": 180,
+              "vane_dead_band_orientation_deg": null,
+              "orientation_reference_id": "magnetic_north",
+              "tilt_angle_deg": null,
+              "boom_oem": null,
+              "boom_model": null,
+              "upstand_height_mm": null,
+              "upstand_diameter_mm": null,
+              "boom_diameter_mm": null,
+              "boom_length_mm": null,
+              "distance_from_mast_to_sensor_mm": null,
+              "date_from": "2016-01-09T15:30:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2021-02-24T17:04:35"
+            }
+          ],
+          "sensor": [
+            {
+              "oem": "Thies",
+              "model": "First Class Advanced",
+              "serial_number": "013456",
+              "sensor_type_id": "anemometer",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "date_from": "2016-01-09T15:30:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2021-02-24T17:04:38",
+              "calibration": [
+                {
+                  "slope": 0.04591,
+                  "offset": 0.25539,
+                  "sensitivity": null,
+                  "report_file_name": "Test Report",
+                  "report_link": null,
+                  "date_of_calibration": "2015-12-22",
+                  "calibration_organisation": "Deutsche WindGuard",
+                  "place_of_calibration": null,
+                  "uncertainty_k_factor": null,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:38"
+                }
+              ]
+            }
+          ],
+          "sensor_config": [
+            {
+              "slope": 0.0459,
+              "offset": 0.2554,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 59.9,
+              "serial_number": "013456",
+              "connection_channel": null,
+              "date_from": "2016-01-09T15:30:00",
+              "date_to": "2017-01-04T17:59:00",
+              "notes": null,
+              "update_at": "2021-02-24T17:04:41",
+              "column_name": [
+                {
+                  "column_name": "Spd40mS",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:41"
+                },
+                {
+                  "column_name": "Spd40mSStd",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:41"
+                },
+                {
+                  "column_name": "Spd40mSMax",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:41"
+                }
+              ]
+            },
+            {
+              "slope": 0.04591,
+              "offset": 0.25539,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 59.9,
+              "serial_number": "013456",
+              "connection_channel": null,
+              "date_from": "2017-01-04T18:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2021-02-24T17:04:41",
+              "column_name": [
+                {
+                  "column_name": "Spd40mS",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:41"
+                },
+                {
+                  "column_name": "Spd40mSStd",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:41"
+                },
+                {
+                  "column_name": "Spd40mSMax",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:41"
                 }
               ]
             }
@@ -653,7 +651,81 @@
           "height_m": 78,
           "height_reference_id": "ground_level",
           "notes": null,
-          "update_at": "2021-02-19T13:29:39",
+          "update_at": "2021-02-24T17:04:36",
+          "mounting_arrangement": [
+            {
+              "mast_section_geometry_uuid": null,
+              "mounting_type_id": "side",
+              "boom_orientation_deg": 180,
+              "vane_dead_band_orientation_deg": 180,
+              "orientation_reference_id": "magnetic_north",
+              "tilt_angle_deg": null,
+              "boom_oem": null,
+              "boom_model": null,
+              "upstand_height_mm": null,
+              "upstand_diameter_mm": null,
+              "boom_diameter_mm": null,
+              "boom_length_mm": null,
+              "distance_from_mast_to_sensor_mm": null,
+              "date_from": "2016-01-09T15:30:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2021-02-24T17:04:36"
+            }
+          ],
+          "sensor": [
+            {
+              "oem": null,
+              "model": "First Class",
+              "serial_number": "098765",
+              "sensor_type_id": "wind_vane",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "date_from": "2016-01-09T15:30:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2021-02-24T17:04:38"
+            }
+          ],
+          "sensor_config": [
+            {
+              "slope": 0.351,
+              "offset": 180,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 78,
+              "serial_number": "098765",
+              "connection_channel": null,
+              "date_from": "2016-01-09T15:30:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2021-02-24T17:04:41",
+              "column_name": [
+                {
+                  "column_name": "Dir78mS",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:41"
+                },
+                {
+                  "column_name": "Dir78mSStd",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:41"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dir58mS",
+          "measurement_type_id": "wind_direction",
+          "height_m": 58,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2021-02-24T17:04:36",
           "mounting_arrangement": [
             {
               "mast_section_geometry_uuid": null,
@@ -672,81 +744,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:39"
-            }
-          ],
-          "sensor": [
-            {
-              "oem": null,
-              "model": "First Class",
-              "serial_number": "098765",
-              "sensor_type_id": "wind_vane",
-              "instrument_poi_height_mm": null,
-              "is_heated": null,
-              "date_from": "2016-01-09T15:30:00",
-              "date_to": null,
-              "notes": null,
-              "update_at": "2021-02-19T13:29:42"
-            }
-          ],
-          "sensor_config": [
-            {
-              "slope": 0.072,
-              "offset": 100,
-              "sensitivity": null,
-              "measurement_units_id": "deg",
-              "height_m": 78,
-              "serial_number": "098765",
-              "connection_channel": null,
-              "date_from": "2016-01-09T15:30:00",
-              "date_to": null,
-              "notes": null,
-              "update_at": "2021-02-19T13:29:46",
-              "column_name": [
-                {
-                  "column_name": "Dir78mS",
-                  "statistic_type_id": "avg",
-                  "is_ignored": false,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:46"
-                },
-                {
-                  "column_name": "Dir78mSStd",
-                  "statistic_type_id": "sd",
-                  "is_ignored": false,
-                  "notes": null,
-                  "update_at": "2021-02-19T13:29:46"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Dir58mS",
-          "measurement_type_id": "wind_direction",
-          "height_m": 58,
-          "height_reference_id": "ground_level",
-          "notes": null,
-          "update_at": "2021-02-19T13:29:39",
-          "mounting_arrangement": [
-            {
-              "mast_section_geometry_uuid": null,
-              "mounting_type_id": "side",
-              "boom_orientation_deg": 180,
-              "vane_dead_band_orientation_deg": null,
-              "orientation_reference_id": "magnetic_north",
-              "tilt_angle_deg": null,
-              "boom_oem": null,
-              "boom_model": null,
-              "upstand_height_mm": null,
-              "upstand_diameter_mm": null,
-              "boom_diameter_mm": null,
-              "boom_length_mm": null,
-              "distance_from_mast_to_sensor_mm": null,
-              "date_from": "2016-01-09T15:30:00",
-              "date_to": "2016-01-09T15:30:00",
-              "notes": null,
-              "update_at": "2021-02-19T13:29:39"
+              "update_at": "2021-02-24T17:04:36"
             }
           ],
           "sensor": [
@@ -760,7 +758,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": "2017-01-04T17:59:00",
               "notes": null,
-              "update_at": "2021-02-19T13:29:42"
+              "update_at": "2021-02-24T17:04:38"
             },
             {
               "oem": null,
@@ -772,13 +770,13 @@
               "date_from": "2017-01-04T18:00:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:42"
+              "update_at": "2021-02-24T17:04:38"
             }
           ],
           "sensor_config": [
             {
-              "slope": 0.075,
-              "offset": 100,
+              "slope": 0.351,
+              "offset": 0,
               "sensitivity": null,
               "measurement_units_id": "deg",
               "height_m": 58,
@@ -787,27 +785,27 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": "2017-01-04T17:59:00",
               "notes": null,
-              "update_at": "2021-02-19T13:29:46",
+              "update_at": "2021-02-24T17:04:42",
               "column_name": [
                 {
                   "column_name": "Dir58mSStd",
                   "statistic_type_id": "sd",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:46"
+                  "update_at": "2021-02-24T17:04:42"
                 },
                 {
                   "column_name": "Dir58mS",
                   "statistic_type_id": "avg",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:46"
+                  "update_at": "2021-02-24T17:04:42"
                 }
               ]
             },
             {
-              "slope": 0.07499,
-              "offset": 100,
+              "slope": 0.351,
+              "offset": 0,
               "sensitivity": null,
               "measurement_units_id": "deg",
               "height_m": 58,
@@ -816,21 +814,21 @@
               "date_from": "2017-01-04T18:00:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:46",
+              "update_at": "2021-02-24T17:04:42",
               "column_name": [
                 {
                   "column_name": "Dir58mSStd",
                   "statistic_type_id": "sd",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:46"
+                  "update_at": "2021-02-24T17:04:42"
                 },
                 {
                   "column_name": "Dir58mS",
                   "statistic_type_id": "avg",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:46"
+                  "update_at": "2021-02-24T17:04:42"
                 }
               ]
             }
@@ -842,13 +840,13 @@
           "height_m": 38,
           "height_reference_id": "ground_level",
           "notes": null,
-          "update_at": "2021-02-19T13:29:39",
+          "update_at": "2021-02-24T17:04:36",
           "mounting_arrangement": [
             {
               "mast_section_geometry_uuid": null,
               "mounting_type_id": "side",
               "boom_orientation_deg": 180,
-              "vane_dead_band_orientation_deg": null,
+              "vane_dead_band_orientation_deg": 0,
               "orientation_reference_id": "magnetic_north",
               "tilt_angle_deg": null,
               "boom_oem": null,
@@ -861,12 +859,12 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:39"
+              "update_at": "2021-02-24T17:04:36"
             }
           ],
           "sensor": [
             {
-              "oem": "NRG",
+              "oem": "Met One Instruments",
               "model": "024A",
               "serial_number": "A4567",
               "sensor_type_id": "wind_vane",
@@ -875,12 +873,12 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:42"
+              "update_at": "2021-02-24T17:04:38"
             }
           ],
           "sensor_config": [
             {
-              "slope": 1,
+              "slope": 0.351,
               "offset": 0,
               "sensitivity": null,
               "measurement_units_id": "deg",
@@ -890,21 +888,21 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:46",
+              "update_at": "2021-02-24T17:04:42",
               "column_name": [
                 {
                   "column_name": "Dir38mSStd",
                   "statistic_type_id": "sd",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:46"
+                  "update_at": "2021-02-24T17:04:42"
                 },
                 {
                   "column_name": "Dir38mS",
                   "statistic_type_id": "avg",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:46"
+                  "update_at": "2021-02-24T17:04:42"
                 }
               ]
             }
@@ -916,7 +914,7 @@
           "height_m": 2,
           "height_reference_id": "ground_level",
           "notes": null,
-          "update_at": "2021-02-19T13:29:39",
+          "update_at": "2021-02-24T17:04:36",
           "mounting_arrangement": [
             {
               "mast_section_geometry_uuid": null,
@@ -935,7 +933,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:39"
+              "update_at": "2021-02-24T17:04:36"
             }
           ],
           "sensor": [
@@ -949,7 +947,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:42"
+              "update_at": "2021-02-24T17:04:38"
             }
           ],
           "sensor_config": [
@@ -964,14 +962,14 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:47",
+              "update_at": "2021-02-24T17:04:42",
               "column_name": [
                 {
                   "column_name": "T2m",
                   "statistic_type_id": "avg",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:47"
+                  "update_at": "2021-02-24T17:04:42"
                 }
               ]
             }
@@ -983,7 +981,7 @@
           "height_m": 2,
           "height_reference_id": "ground_level",
           "notes": null,
-          "update_at": "2021-02-19T13:29:40",
+          "update_at": "2021-02-24T17:04:36",
           "mounting_arrangement": [
             {
               "mast_section_geometry_uuid": null,
@@ -1002,7 +1000,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:40"
+              "update_at": "2021-02-24T17:04:36"
             }
           ],
           "sensor": [
@@ -1016,7 +1014,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:43"
+              "update_at": "2021-02-24T17:04:38"
             }
           ],
           "sensor_config": [
@@ -1024,21 +1022,21 @@
               "slope": 0.5,
               "offset": 600,
               "sensitivity": null,
-              "measurement_units_id": "V",
+              "measurement_units_id": "mbar",
               "height_m": null,
               "serial_number": null,
               "connection_channel": null,
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:47",
+              "update_at": "2021-02-24T17:04:43",
               "column_name": [
                 {
                   "column_name": "P2m",
                   "statistic_type_id": "avg",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:47"
+                  "update_at": "2021-02-24T17:04:43"
                 }
               ]
             }
@@ -1050,7 +1048,7 @@
           "height_m": 2,
           "height_reference_id": "ground_level",
           "notes": null,
-          "update_at": "2021-02-19T13:29:39",
+          "update_at": "2021-02-24T17:04:36",
           "mounting_arrangement": [
             {
               "mast_section_geometry_uuid": null,
@@ -1069,7 +1067,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:39"
+              "update_at": "2021-02-24T17:04:36"
             }
           ],
           "sensor": [
@@ -1083,7 +1081,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:42"
+              "update_at": "2021-02-24T17:04:38"
             }
           ],
           "sensor_config": [
@@ -1098,14 +1096,14 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:47",
+              "update_at": "2021-02-24T17:04:42",
               "column_name": [
                 {
                   "column_name": "RH2m",
                   "statistic_type_id": "avg",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:47"
+                  "update_at": "2021-02-24T17:04:42"
                 }
               ]
             }
@@ -1117,7 +1115,7 @@
           "height_m": null,
           "height_reference_id": "ground_level",
           "notes": null,
-          "update_at": "2021-02-19T13:29:40",
+          "update_at": "2021-02-24T17:04:37",
           "sensor": [
             {
               "oem": "Ammonit",
@@ -1129,7 +1127,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:43"
+              "update_at": "2021-02-24T17:04:39"
             }
           ],
           "sensor_config": [
@@ -1144,14 +1142,14 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:48",
+              "update_at": "2021-02-24T17:04:43",
               "column_name": [
                 {
                   "column_name": "BattMin",
                   "statistic_type_id": "min",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:48"
+                  "update_at": "2021-02-24T17:04:43"
                 }
               ]
             }
@@ -1163,7 +1161,7 @@
           "height_m": null,
           "height_reference_id": "ground_level",
           "notes": null,
-          "update_at": "2021-02-19T13:29:40",
+          "update_at": "2021-02-24T17:04:36",
           "sensor": [
             {
               "oem": null,
@@ -1175,7 +1173,7 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:43"
+              "update_at": "2021-02-24T17:04:39"
             }
           ],
           "sensor_config": [
@@ -1190,14 +1188,14 @@
               "date_from": "2016-01-09T15:30:00",
               "date_to": null,
               "notes": null,
-              "update_at": "2021-02-19T13:29:48",
+              "update_at": "2021-02-24T17:04:43",
               "column_name": [
                 {
                   "column_name": "PrcpTot",
                   "statistic_type_id": "sum",
                   "is_ignored": false,
                   "notes": null,
-                  "update_at": "2021-02-19T13:29:48"
+                  "update_at": "2021-02-24T17:04:43"
                 }
               ]
             }
@@ -1205,5 +1203,7 @@
         }
       ]
     }
-  ]
+  ],
+  "plant_name": "Demo Site",
+  "plant_type": "onshore_wind"
 }

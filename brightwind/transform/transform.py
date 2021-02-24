@@ -885,12 +885,15 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
 
     # Apply the adjustment
     for wspd_prop in wspd_properties:
-        if wspd_prop['name'] in df.columns:
+        name = wspd_prop['name']
+        if name in df.columns:
             wspd_in_dataset = True
-            if wspd_prop['date_to'] is None or wspd_prop['date_to'] == DATE_INSTEAD_OF_NONE:
+            date_to = wspd_prop.get('date_to')
+            date_from = wspd_prop.get('date_from')
+            if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
                 date_to_txt = 'the end of dataset'
             else:
-                date_to_txt = wspd_prop['date_to']
+                date_to_txt = date_to
 
             variables = {
                 'slope': 'sensor_config.slope',
@@ -902,33 +905,33 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
 
             if none_variables:
                 print("{} has {} value set as None. Slope and offset adjustment can't be applied "
-                      "from {} to {}.\n".format(utils.bold(wspd_prop['name']), utils.bold(', '.join(none_variables)),
-                                                utils.bold(wspd_prop['date_from']),
+                      "from {} to {}.\n".format(utils.bold(name), utils.bold(', '.join(none_variables)),
+                                                utils.bold(date_from),
                                                 utils.bold(date_to_txt)))
             elif float(wspd_prop[variables['slope']]) != float(wspd_prop[variables['cal_slope']]) or \
                     float(wspd_prop[variables['offset']]) != float(wspd_prop[variables['cal_offset']]):
                 try:
-                    df[wspd_prop['name']][wspd_prop['date_from']:wspd_prop['date_to']] = \
-                        adjust_slope_offset(df[wspd_prop['name']][wspd_prop['date_from']:wspd_prop['date_to']],
+                    df[name][date_from:date_to] = \
+                        adjust_slope_offset(df[name][date_from:date_to],
                                             current_slope=float(wspd_prop[variables['slope']]),
                                             current_offset=float(wspd_prop[variables['offset']]),
                                             new_slope=float(wspd_prop[variables['cal_slope']]),
                                             new_offset=float(wspd_prop[variables['cal_offset']]))
                     print('{} has slope and offset adjustment applied from {} to {}.\n'
-                          .format(utils.bold(wspd_prop['name']), utils.bold(wspd_prop['date_from']),
+                          .format(utils.bold(name), utils.bold(date_from),
                                   utils.bold(date_to_txt)))
                 except TypeError:
                     print('{} has TypeError with logger or calibration slope and offset values. Skipping.\n'
-                          .format(utils.bold(wspd_prop['name'])))
+                          .format(utils.bold(name)))
                 except Exception as error_msg:
                     print(error_msg)
             else:
                 print('{} logger slope and offsets are equal to calibration slope and offsets from '
-                      '{} to {}.\n'.format(utils.bold(wspd_prop['name']),
-                                           utils.bold(wspd_prop['date_from']),
+                      '{} to {}.\n'.format(utils.bold(name),
+                                           utils.bold(date_from),
                                            utils.bold(date_to_txt)))
         else:
-            print('{} is not found in data.\n'.format(utils.bold(wspd_prop['name'])))
+            print('{} is not found in data.\n'.format(utils.bold(name)))
 
     if wspd_in_dataset is False:
         print('No wind speed measurement type found in the configurations.')
@@ -1052,26 +1055,30 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
             # Account for a logger offset
             logger_offset = wdir_prop.get('sensor_config.offset')
             offset = deadband
-            additional_comment_txt = ''
-            if logger_offset or logger_offset != 0 and deadband:
+            additional_comment_txt = 'to account for deadband'
+            if logger_offset is not None and logger_offset != 0 and deadband is not None:
                 offset = offset_wind_direction(float(deadband), offset=-float(logger_offset))
-                additional_comment_txt = ' and logger offset'
+                additional_comment_txt = additional_comment_txt + ' and logger offset'
 
             if offset:
                 df[name][date_from:date_to] = \
                     offset_wind_direction(df[name][date_from:date_to],
                                           float(offset))
-                print('{0} adjusted by {1} degrees from {2} to {3} to account for deadband orientation{4}.'
+                print('{0} adjusted by {1} degrees from {2} to {3} {4}.\n'
                       .format(utils.bold(name), utils.bold(str(offset)),
                               utils.bold(date_from), utils.bold(date_to_txt), additional_comment_txt))
+            elif offset == 0:
+                print('{} has an offset to be applied of 0 from {} to {} {}.\n'
+                      .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt),
+                              additional_comment_txt))
             else:
-                print('{} has dead_band_orientation value set as None from {} to {}.'
+                print('{} has dead_band_orientation of None from {} to {}.\n'
                       .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt)))
         else:
-            print('{} is not found in data.'.format(utils.bold(name)))
+            print('{} is not found in data.\n'.format(utils.bold(name)))
 
     if wdir_in_dataset is False:
-        print('No wind direction measurement type found in the data.')
+        print('No wind direction measurement type found in the data.\n')
     # if a Series is sent, send back a Series
     if type(data) == pd.Series:
         df = df[df.columns[0]]

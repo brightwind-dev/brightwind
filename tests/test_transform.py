@@ -130,18 +130,18 @@ def test_adjust_slope_offset_arg_wndspd_series_str():
 
 
 def test_apply_wspd_slope_offset_adj():
-    # data = bw.apply_wspd_slope_offset_adj(DATA, STATION.measurements)
-    # assert((DATA_ADJUSTED[WSPD_COLS].fillna(0).round(5) ==
-    #         data[WSPD_COLS].fillna(0).round(5)).all()).all()
+    data = bw.apply_wspd_slope_offset_adj(DATA, STATION.measurements)
+    assert((DATA_ADJUSTED[WSPD_COLS].fillna(0).round(5) ==
+            data[WSPD_COLS].fillna(0).round(5)).all()).all()
 
     wspd_cols_that_work = ['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd40mN']
     data2 = bw.apply_wspd_slope_offset_adj(DATA[wspd_cols_that_work], STATION.measurements)
     assert((DATA_ADJUSTED[wspd_cols_that_work].fillna(0).round(5) ==
             data2[wspd_cols_that_work].fillna(0).round(5)).all()).all()
 
-    # data1 = bw.apply_wspd_slope_offset_adj(DATA['Spd60mS'], STATION.measurements['Spd60mS'])
-    # assert (data1.fillna(0).round(10) ==
-    #         DATA_ADJUSTED['Spd60mS'].fillna(0).round(10)).all()
+    data1 = bw.apply_wspd_slope_offset_adj(DATA['Spd60mS'], STATION.measurements['Spd60mS'])
+    assert (data1.fillna(0).round(10) ==
+            DATA_ADJUSTED['Spd60mS'].fillna(0).round(10)).all()
 
 
 def test_offset_wind_direction_float():

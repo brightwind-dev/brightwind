@@ -247,7 +247,7 @@ def _raise_child(dictionary, child_to_raise):
     :param child_to_raise:
     :return:
     """
-    # ACCOUNT FOR 'DATE_OF_CALIBRATION' WHEN RAISING UP MULTIPLE CALIBRATIONS
+    # FUTURE DEV: ACCOUNT FOR 'DATE_OF_CALIBRATION' WHEN RAISING UP MULTIPLE CALIBRATIONS
     if dictionary is None:
         return None
     new_dict = dictionary.copy()
@@ -376,17 +376,13 @@ class MeasurementStation:
         self.__data_model = self._load_wra_data_model(wra_data_model)
         version = self.__data_model.get('version')
         self.__schema = self._get_schema(version=version)
-        # self.__header = self._get_header()
         self.__header = _Header(dm=self.__data_model, schema=self.__schema)
         self.__meas_loc_data_model = self._get_meas_loc_data_model(dm=self.__data_model)
         self.__meas_loc_properties = self.__get_properties()
         self.__logger_configs = _LoggerConfigs(meas_loc_dm=self.__meas_loc_data_model,
                                                schema=self.__schema, station_type=self.type)
         self.__measurements = _Measurements(meas_loc_dm=self.__meas_loc_data_model, schema=self.__schema)
-        # if self.type in ['mast']:
-        #     self.__wspds = _Wspds(meas_loc_dm=self.__meas_loc_data_model)
-        #     self.__wdirs = _Wdirs(meas_loc_dm=self.__meas_loc_data_model)
-        #     self.__mast_section_geometry = _MastSectionGeometry()
+        # self.__mast_section_geometry = _MastSectionGeometry()
 
     def __getitem__(self, item):
         return self.__meas_loc_properties[item]
@@ -545,14 +541,6 @@ class MeasurementStation:
     @property
     def measurements(self):
         return self.__measurements
-
-    @property
-    def wspds(self):
-        return self.__wspds
-
-    @property
-    def wdirs(self):
-        return self.__wdirs
 
     @property
     def mast_section_geometry(self):

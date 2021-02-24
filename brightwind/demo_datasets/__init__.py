@@ -31,7 +31,7 @@ iea43_wra_data_model_schema = os.path.join(os.path.dirname(__file__), 'iea43_wra
 iea43_wra_data_model = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model.json')
 demo_wra_data_model = os.path.join(os.path.dirname(__file__), 'demo_data_data_model.json')
 
-demo_data_adjusted_for_testing = os.path.join(os.path.dirname(__file__), 'demo_data_adjusted.csv')
+demo_data_adjusted_for_testing = os.path.join(os.path.dirname(__file__), 'demo_data_adjusted_for_testing.csv')
 
 
 def datasets_available():
