@@ -200,6 +200,33 @@ def test_synthesize():
                                                      '2017-06-01': 8.525249,
                                                      '2017-08-01': 6.715885,
                                                      '2017-10-01': 9.479016}}
+    result_speed_sort = {'Spd80mN_Synthesized': {'2016-03-01': np.NaN,
+                                                 '2016-04-01': 6.598875,
+                                                 '2016-05-01': np.NaN,
+                                                 '2016-06-01': 5.108156,
+                                                 '2016-07-01': np.NaN,
+                                                 '2016-08-01': 7.093956,
+                                                 '2016-09-01': np.NaN,
+                                                 '2016-10-01': 6.669446,
+                                                 '2016-11-01': np.NaN,
+                                                 '2016-12-01': 8.900778,
+                                                 '2017-01-01': np.NaN,
+                                                 '2017-02-01': 9.134509,
+                                                 '2017-03-01': np.NaN},
+                         'Dir78mS_Synthesized': {'2016-03-01': np.NaN,
+                                                 '2016-04-01': 318.639591,
+                                                 '2016-05-01': np.NaN,
+                                                 '2016-06-01': 129.720897,
+                                                 '2016-07-01': np.NaN,
+                                                 '2016-08-01': 235.377543,
+                                                 '2016-09-01': 223.965222,
+                                                 '2016-10-01': 114.451746,
+                                                 '2016-11-01': np.NaN,
+                                                 '2016-12-01': 219.815444,
+                                                 '2017-01-01': 237.667123,
+                                                 '2017-02-01': 197.538174,
+                                                 '2017-03-01': np.NaN}}
+
     data_spd80mn_even_months = DATA_CLND['Spd80mN'][DATA_CLND.index.month.isin([2, 4, 6, 8, 10, 12])]
     # Test the synthesise for when the target data starts before the reference data.
     correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s']['2016-03-02 00:00:00':],
@@ -221,6 +248,19 @@ def test_synthesize():
     synth = correl.synthesize()
 
     for idx, row in pd.DataFrame(result_ord_lst_sq_dir).iterrows():
+        assert str(row[0]) == str(round(synth.loc[idx][0], 6))
+
+    # Test the synthesise when SpeedSort correlation is used.
+    correl = bw.Correl.SpeedSort(MERRA2_NE['WS50m_m/s']['2016-03-02 00:00:00':'2017-03-02 00:00:00'],
+                                 MERRA2_NE['WD50m_deg']['2016-03-02 00:00:00':'2017-03-02 00:00:00'],
+                                 DATA_CLND['Spd80mN'][DATA_CLND.index.month.isin([2, 4, 6, 8, 10, 12])],
+                                 DATA_CLND['Dir78mS'][DATA_CLND.index.month.isin([2, 4, 6, 8, 10, 12])],
+                                 averaging_prd='1M', coverage_threshold=0.9, sectors=12)
+    correl.run(show_params=False)
+    synth = correl.synthesize()
+
+    for idx, row in pd.DataFrame(result_speed_sort).iterrows():
+        print(idx)
         assert str(row[0]) == str(round(synth.loc[idx][0], 6))
 
 

@@ -55,8 +55,8 @@ class CorrelBase:
             else:
                 raise NotImplementedError("Analysis using direction_bin_array input not implemented yet.")
                 # self.sectors = len(direction_bin_array) - 1
-                # dir_sector_max = direction_bin_array[1:]
-                # dir_sector_min = direction_bin_array[:-1]
+                # self._dir_sector_max = direction_bin_array[1:]
+                # self._dir_sector_min = direction_bin_array[:-1]
 
             self._ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
                                                           direction_bin_array=self.direction_bin_array
@@ -915,7 +915,10 @@ class SpeedSort(CorrelBase):
                                    'offset': round(self.speed_model[sector].params['offset'], 5),
                                    'target_speed_cutoff': round(self.speed_model[sector].target_cutoff, 5),
                                    'num_pts_for_speed_fit': self.speed_model[sector].data_pts,
-                                   'num_total_pts': min(group.count())}
+                                   'num_total_pts': min(group.count()),
+                                   'sector_min': self._dir_sector_min[sector - 1],
+                                   'sector_max': self._dir_sector_max[sector - 1],
+                                   }
             self.params[sector].update(self._avg_veer(group))
         if show_params:
             self.show_params()
@@ -933,53 +936,136 @@ class SpeedSort(CorrelBase):
             self.speed_model[model].plot_model('Sector ' + str(model))
         return self.plot_wind_directions()
 
+    @staticmethod
+    def _linear_interpolation(xa, xb, ya, yb, xc):
+        m = (xc - xa) / (xb - xa)
+        yc = (yb - ya) * m + ya
+        return yc
+
     def _predict_dir(self, x_dir):
-        sec_veer = []
-        for i in range(1, self.sectors+1):
-            sec_veer.append(self.params[i]['average_veer'])
-        # Add additional entry for first sector
-        sec_veer.append(self.params[1]['average_veer'])
+
+        x_dir = x_dir.dropna().rename('dir')
+
+        sector_min = []
+        sector_max = []
         if self.direction_bin_array is None:
-            veer_bins = [i*(360/self.sectors) for i in range(0, self.sectors+1)]
+            # First sector is centered at 0.
+            step = 360/self.sectors
+            veer_bins = list(map(float, np.arange(0, 360 + step, step)))
+            for veer_bin in veer_bins:
+                sector_min.append(offset_wind_direction(veer_bin, -float(step/2)))
+                sector_max.append(offset_wind_direction(veer_bin, float(step/2)))
+
+            sec_veers = np.empty(np.shape(veer_bins))
+            sec_veers[:] = np.nan
+            sec_veers = list(sec_veers)
+            for key in self.params.keys():
+                if type(key) is int:
+                    if self.params[key]['sector_min'] in sector_min:
+                        sec_veers[sector_min.index(self.params[key]['sector_min'])] = self.params[key]['average_veer']
+            if (0 in veer_bins) and (360 in veer_bins):
+                sec_veers[-1] = sec_veers[0]
+
         else:
-            veer_bins = [self.direction_bin_array[i]+self.direction_bin_array[i+1]/2.0
-                         for i in range(0, len(self.direction_bin_array)-1)]
-        x = pd.concat([x_dir.dropna().rename('dir'), _binned_direction_series(x_dir.dropna(), self.sectors,
-                       direction_bin_array=veer_bins).rename('veer_bin')], axis=1, join='inner')
-        x['sec_mid_pt'] = [veer_bins[i-1] for i in x['veer_bin']]
-        x['ratio'] = (x['dir'] - x['sec_mid_pt'])/(360.0/self.sectors)
-        x['sec_veer'] = [sec_veer[i - 1] for i in x['veer_bin']]
-        x['multiply_factor'] = [sec_veer[i]-sec_veer[i-1] for i in x['veer_bin']]
-        x['adjustment'] = x['sec_veer'] + (x['ratio']*x['multiply_factor'])
-        return (x['dir'] + x['adjustment']).sort_index().apply(utils._range_0_to_360)
+            veer_bins = []
+            sec_veers = []
+            # Calculate middle point of each sector, as each sectoral veer is applied at the mid-point of the sector.
+            for key in self.params.keys():
+                if type(key) is int:
+                    sec_veers.append(self.params[key]['average_veer'])
+                    sector_min.append(self.params[key]['sector_min'])
+                    sector_max.append(self.params[key]['sector_max'])
+                    if self.params[key]['sector_min'] < self.params[key]['sector_max']:
+                        veer_bins.append((self.params[key]['sector_min'] + self.params[key]['sector_max']) / 2)
+                    else:
+                        veer_bins.append(offset_wind_direction(self.params[key]['sector_max'],
+                                                               float(360 - self.params[key]['sector_max']
+                                                                     + self.params[key]['sector_min']) / 2))
+
+            # If first sector is not centered at 0 and 0 and 360 are the extremes of the direction_bin_array
+            # then the first and the last sectors are taken into account for deriving the veer as for code below.
+            if (0 in self.direction_bin_array) and (360 in self.direction_bin_array):
+                sec_veers.insert(0, self._linear_interpolation(0 - (360 - veer_bins[-1]), veer_bins[0],
+                                                               sec_veers[-1], sec_veers[0], 0))
+                sec_veers.append(self._linear_interpolation(veer_bins[-1], 360 + veer_bins[0],
+                                                            sec_veers[-1], sec_veers[1], 360))
+                veer_bins.insert(0, 0)
+                veer_bins.append(360)
+                sector_min.insert(0, sector_min[-1])
+                sector_min.append(sector_min[0])
+                sector_max.insert(0, sector_max[0])
+                sector_max.append(sector_max[0])
+
+        # The veer correction is derived linear interpolating the veer between two mid-points of near sectors.
+        adjustment = x_dir.rename('adjustment').copy() * np.nan
+        for i in range(1, len(veer_bins)):
+
+            if np.isnan(sec_veers[i - 1]) and not np.isnan(sec_veers[i]):
+                logic_sect_mid_min_sector = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                                       sector_min=sector_min[i],
+                                                                       sector_max=veer_bins[i])
+                if logic_sect_mid_min_sector.sum() > 0:
+                    adjustment[logic_sect_mid_min_sector] = offset_wind_direction(
+                                x_dir[logic_sect_mid_min_sector] * 0, sec_veers[i])
+
+            if np.isnan(sec_veers[i]) and not np.isnan(sec_veers[i - 1]):
+                logic_sect_mid_max_sector = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                                       sector_min=veer_bins[i],
+                                                                       sector_max=sector_max[i])
+                if logic_sect_mid_max_sector.sum() > 0:
+                    adjustment[logic_sect_mid_max_sector] = offset_wind_direction(
+                                x_dir[logic_sect_mid_max_sector] * 0, sec_veers[i])
+
+            if i < len(veer_bins) - 1:
+                if not np.isnan(sec_veers[i]) and (np.isnan(sec_veers[i - 1]) and np.isnan(sec_veers[i + 1])):
+                    logic_sect_min_max_sector = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                                           sector_min=sector_min[i],
+                                                                           sector_max=sector_max[i])
+                    if logic_sect_min_max_sector.sum() > 0:
+                        adjustment[logic_sect_min_max_sector] = offset_wind_direction(
+                            x_dir[logic_sect_min_max_sector] * 0, sec_veers[i])
+
+            logic_sect_mid_point = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                              sector_min=veer_bins[i - 1],
+                                                              sector_max=veer_bins[i])
+
+            if logic_sect_mid_point.sum() != 0 and not (np.isnan(sec_veers[i]) or np.isnan(sec_veers[i - 1])):
+                adjustment[logic_sect_mid_point] = self._linear_interpolation(veer_bins[i - 1], veer_bins[i],
+                                                                              sec_veers[i - 1], sec_veers[i],
+                                                                              x_dir[logic_sect_mid_point])
+
+        return offset_wind_direction(x_dir, adjustment).sort_index()
 
     def _predict(self, x_spd, x_dir):
-        x = pd.concat([x_spd.dropna().rename('spd'),
-                       _binned_direction_series(x_dir.dropna(), self.sectors,
+        x = pd.concat([x_spd.rename('spd'),
+                       _binned_direction_series(x_dir, self.sectors,
                                                 direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')],
-                      axis=1, join='inner')
-        prediction = pd.DataFrame()
-        first = True
+                      axis=1, join='inner').dropna()
+        prediction = pd.Series().rename('spd')
         for sector, data in x.groupby(['ref_dir_bin']):
-            if first is True:
-                first = False
-                prediction = self.speed_model[sector].sector_predict(data['spd'])
+            if sector in list(self.speed_model.keys()):
+                prediction_spd = self.speed_model[sector].sector_predict(data['spd'])
             else:
-                prediction = pd.concat([prediction, self.speed_model[sector].sector_predict(data['spd'])], axis=0)
+                prediction_spd = data['spd'] * np.nan
+
+            prediction = pd.concat([prediction, prediction_spd], axis=0)
 
         return prediction.sort_index()
 
     def synthesize(self, input_spd=None, input_dir=None):
-        # This will give erroneous result when the averaging period is not a whole number such that ref and target does
-        # bot get aligned -Inder
+
         if input_spd is None and input_dir is None:
-            output = self._predict(tf.average_data_by_period(self.ref_spd, self.averaging_prd,
+            ref_start_date, target_start_date = self._get_synth_start_dates()
+
+            output = self._predict(tf.average_data_by_period(self.ref_spd[ref_start_date:], self.averaging_prd,
                                                              return_coverage=False),
-                                   tf.average_data_by_period(self.ref_dir, self.averaging_prd,
+                                   tf.average_data_by_period(self.ref_dir[ref_start_date:], self.averaging_prd,
+                                                             wdir_column_names=self._ref_dir_col_name,
                                                              return_coverage=False))
-            output = tf.average_data_by_period(self.target_spd, self.averaging_prd,
+            output = tf.average_data_by_period(self.target_spd[target_start_date:], self.averaging_prd,
                                                return_coverage=False).combine_first(output)
-            dir_output = self._predict_dir(tf.average_data_by_period(self.ref_dir, self.averaging_prd,
+            dir_output = self._predict_dir(tf.average_data_by_period(self.ref_dir[ref_start_date:], self.averaging_prd,
+                                                                     wdir_column_names=self._ref_dir_col_name,
                                                                      return_coverage=False))
 
         else:
