@@ -1025,6 +1025,22 @@ class SpeedSort(CorrelBase):
                         adjustment[logic_sect_min_max_sector] = offset_wind_direction(
                             x_dir[logic_sect_min_max_sector] * 0, sec_veers[i])
 
+                elif not np.isnan(sec_veers[i]) and np.isnan(sec_veers[i + 1]):
+                    logic_sect_mid_max_sector = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                                           sector_min=veer_bins[i],
+                                                                           sector_max=sector_max[i])
+                    if logic_sect_mid_max_sector.sum() > 0:
+                        adjustment[logic_sect_mid_max_sector] = offset_wind_direction(
+                            x_dir[logic_sect_mid_max_sector] * 0, sec_veers[i])
+
+            elif (sector_min[i] == sector_min[0]) and np.isnan(sec_veers[1]) and not np.isnan(sec_veers[i]):
+                logic_sect_min_max_sector = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                                       sector_min=veer_bins[i],
+                                                                       sector_max=sector_max[i])
+                if logic_sect_min_max_sector.sum() > 0:
+                    adjustment[logic_sect_min_max_sector] = offset_wind_direction(
+                        x_dir[logic_sect_min_max_sector] * 0, sec_veers[i])
+
             logic_sect_mid_point = self._get_logic_dir_sector(ref_dir=x_dir,
                                                               sector_min=veer_bins[i - 1],
                                                               sector_max=veer_bins[i])
