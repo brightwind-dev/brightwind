@@ -27,16 +27,16 @@ setup(
     # Update version number here, below and in _init_.py:
     version=get_version("brightwind/__init__.py"),
     packages=['brightwind', 'brightwind.load', 'brightwind.utils', 'brightwind.export', 'brightwind.analyse',
-              'brightwind.transform'],  # , 'brightwind.datasets'],
+              'brightwind.transform', 'brightwind.demo_datasets'],
     package_data={
         # If any package contains *.mplstyle or *.txt files, include them:
-        '': ['*.mplstyle'],  # , 'datasets/demo/*.csv', 'datasets/demo/*.txt'],
+        '': ['*.mplstyle', 'demo_datasets/*.csv', 'demo_datasets/*.txt', 'demo_datasets/*.json'],
     },
     url='https://github.com/brightwind-dev/brightwind.git',
-    # Update version number here:
-    download_url='https://github.com/brightwind-dev/brightwind/archive/v1.0.0.tar.gz',
-    license='GNU Lesser General Public License v3 or later (LGPLv3+)',
-    author='Stephen Holleran and Inder Preet of BrightWind Ltd',
+    # UPDATE VERSION NUMBER HERE:
+    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.0.0.tar.gz',
+    license='MIT',
+    author='Stephen Holleran of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
     description='Scripts for wind resource data processing.',
     long_description=long_description,
@@ -54,11 +54,13 @@ setup(
         'six>= 1.12.0',
         'python-dateutil>=2.8.0',
         'ipywidgets>=7.4.2',
-        'ipython>=7.4.0'
+        'ipython>=7.4.0',
+        'gmaps>=0.9.0',
+        'boto3>=1.9.66'
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
-        "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+        "License :: OSI Approved :: MIT License",
     ],
 )

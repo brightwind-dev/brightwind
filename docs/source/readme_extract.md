@@ -41,12 +41,7 @@ as the underlying code is open-sourced, there is no reason why this file cannot 
 <br>
 
 #### License
-The library is licensed under the GNU Lesser General Public License v3.0. It is the
-intention to allow commercial products or services to be built on top of this
-library but any modifications to the library itself should be kept open-sourced.
-Keeping this open-sourced will ensure that the library becomes the de facto
-library used by wind analysts, establishing a common, standard industry wide
-toolset for wind data processing .
+The library is licensed under the MIT license.
 
 <br>
 
@@ -59,12 +54,11 @@ A test dataset is included in this repository and is used to test functions in t
 |:------------------ |:-------------|:-----|
 | Demo data          | Anonymous | A modified 2 year met mast dataset in various logger formats along with associated 18-yr MERRA-2 data. |
 
-These demo datasets can be downloaded from [Dropbox](https://www.dropbox.com/sh/5davq0335t6ytgk/AADKFgFrp0f3yDhhFcYzB8eia?dl=0)
-and saved in a local folder.
+<br>
 
 #### Contributing
 If you wish to be involved or find out more please contact stephen@brightwindanalysis.com.
 
-More information can be found on the [Community](community.html) section.
+More information can be found in the [contributing.md](https://github.com/brightwind-dev/brightwind/blob/master/contributing.md) section of the website.
 
 <br>
