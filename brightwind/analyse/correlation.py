@@ -43,9 +43,9 @@ class CorrelBase:
         # The self variables defined below are defined for OrdinaryLeastSquares, OrthogonalLeastSquares and SpeedSort
         if ref_dir is not None:
             self.sectors = sectors
-            self.direction_bin_array = direction_bin_array
 
             if direction_bin_array is None:
+                self.direction_bin_array = direction_bin_array
                 sector_direction_bins = utils.get_direction_bin_array(sectors)
                 step = float(max(np.unique(np.diff(sector_direction_bins))))
                 self._dir_sector_max = [angle for i, angle in enumerate(sector_direction_bins)
@@ -54,12 +54,18 @@ class CorrelBase:
                 self._dir_sector_min.insert(0, self._dir_sector_min.pop())
             else:
                 raise NotImplementedError("Analysis using direction_bin_array input not implemented yet.")
+                # self.direction_bin_array = direction_bin_array.copy()
                 # self.sectors = len(direction_bin_array) - 1
-                # self._dir_sector_max = direction_bin_array[1:]
-                # self._dir_sector_min = direction_bin_array[:-1]
+                # if 0 not in direction_bin_array:
+                #     direction_bin_array.insert(0, 0)
+                # if 360 not in direction_bin_array:
+                #     direction_bin_array.append(360)
+
+                self._dir_sector_max = direction_bin_array[1:]
+                self._dir_sector_min = direction_bin_array[:-1]
 
             self._ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
-                                                          direction_bin_array=self.direction_bin_array
+                                                          direction_bin_array=direction_bin_array
                                                           ).rename('ref_dir_bin')
             self._predict_ref_spd = pd.Series()
 
@@ -949,7 +955,7 @@ class SpeedSort(CorrelBase):
         sector_min = []
         sector_max = []
         if self.direction_bin_array is None:
-            # First sector is centered at 0.
+            # First sector is centered at 0 and all sectors are equally spaced.
             step = 360/self.sectors
             veer_bins = list(map(float, np.arange(0, 360 + step, step)))
             for veer_bin in veer_bins:
@@ -967,14 +973,16 @@ class SpeedSort(CorrelBase):
                 sec_veers[-1] = sec_veers[0]
 
         else:
+            # Sectors are as for user input and can be not centered at 0 and not equally spaced. There isn't however
+            # any gap between sectors.
             veer_bins = []
             sec_veers = []
-            # Calculate middle point of each sector, as each sectoral veer is applied at the mid-point of the sector.
             for key in self.params.keys():
                 if type(key) is int:
                     sec_veers.append(self.params[key]['average_veer'])
                     sector_min.append(self.params[key]['sector_min'])
                     sector_max.append(self.params[key]['sector_max'])
+                    # Calculate middle point of each sector.
                     if self.params[key]['sector_min'] < self.params[key]['sector_max']:
                         veer_bins.append((self.params[key]['sector_min'] + self.params[key]['sector_max']) / 2)
                     else:
@@ -991,15 +999,18 @@ class SpeedSort(CorrelBase):
                                                             sec_veers[-1], sec_veers[1], 360))
                 veer_bins.insert(0, 0)
                 veer_bins.append(360)
-                sector_min.insert(0, sector_min[-1])
-                sector_min.append(sector_min[0])
-                sector_max.insert(0, sector_max[0])
-                sector_max.append(sector_max[0])
+                sector_min.insert(0, 0)
+                sector_min.append(360)
+                sector_max.insert(0, 0)
+                sector_max.append(360)
 
         # The veer correction is derived linear interpolating the veer between two mid-points of near sectors.
         adjustment = x_dir.rename('adjustment').copy() * np.nan
         for i in range(1, len(veer_bins)):
 
+            # If wind direction is missing for some sectors then the veer value for these sector is NaN. The adjustment
+            # for not Nan veer sectors is set at equal to the veer at the mid point if veer for nearby sectors is NaN
+            # otherwise the adjustment is derived interpolating between two veer values from nearby sectors.
             if np.isnan(sec_veers[i - 1]) and not np.isnan(sec_veers[i]):
                 logic_sect_mid_min_sector = self._get_logic_dir_sector(ref_dir=x_dir,
                                                                        sector_min=sector_min[i],
@@ -1025,6 +1036,23 @@ class SpeedSort(CorrelBase):
                         adjustment[logic_sect_min_max_sector] = offset_wind_direction(
                             x_dir[logic_sect_min_max_sector] * 0, sec_veers[i])
 
+                elif not np.isnan(sec_veers[i]) and np.isnan(sec_veers[i + 1]):
+                    logic_sect_mid_max_sector = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                                           sector_min=veer_bins[i],
+                                                                           sector_max=sector_max[i])
+                    if logic_sect_mid_max_sector.sum() > 0:
+                        adjustment[logic_sect_mid_max_sector] = offset_wind_direction(
+                            x_dir[logic_sect_mid_max_sector] * 0, sec_veers[i])
+
+            elif (sector_min[i] == sector_min[0]) and np.isnan(sec_veers[1]) and not np.isnan(sec_veers[i]):
+                logic_sect_min_max_sector = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                                       sector_min=veer_bins[i],
+                                                                       sector_max=sector_max[i])
+                if logic_sect_min_max_sector.sum() > 0:
+                    adjustment[logic_sect_min_max_sector] = offset_wind_direction(
+                        x_dir[logic_sect_min_max_sector] * 0, sec_veers[i])
+
+            # Adjustment is derived interpolating between two veer values from nearby sectors
             logic_sect_mid_point = self._get_logic_dir_sector(ref_dir=x_dir,
                                                               sector_min=veer_bins[i - 1],
                                                               sector_max=veer_bins[i])
