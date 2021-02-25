@@ -43,9 +43,9 @@ class CorrelBase:
         # The self variables defined below are defined for OrdinaryLeastSquares, OrthogonalLeastSquares and SpeedSort
         if ref_dir is not None:
             self.sectors = sectors
-            self.direction_bin_array = direction_bin_array
 
             if direction_bin_array is None:
+                self.direction_bin_array = direction_bin_array
                 sector_direction_bins = utils.get_direction_bin_array(sectors)
                 step = float(max(np.unique(np.diff(sector_direction_bins))))
                 self._dir_sector_max = [angle for i, angle in enumerate(sector_direction_bins)
@@ -54,12 +54,18 @@ class CorrelBase:
                 self._dir_sector_min.insert(0, self._dir_sector_min.pop())
             else:
                 raise NotImplementedError("Analysis using direction_bin_array input not implemented yet.")
+                # self.direction_bin_array = direction_bin_array.copy()
                 # self.sectors = len(direction_bin_array) - 1
-                # self._dir_sector_max = direction_bin_array[1:]
-                # self._dir_sector_min = direction_bin_array[:-1]
+                # if 0 not in direction_bin_array:
+                #     direction_bin_array.insert(0, 0)
+                # if 360 not in direction_bin_array:
+                #     direction_bin_array.append(360)
+
+                self._dir_sector_max = direction_bin_array[1:]
+                self._dir_sector_min = direction_bin_array[:-1]
 
             self._ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
-                                                          direction_bin_array=self.direction_bin_array
+                                                          direction_bin_array=direction_bin_array
                                                           ).rename('ref_dir_bin')
             self._predict_ref_spd = pd.Series()
 
@@ -993,10 +999,10 @@ class SpeedSort(CorrelBase):
                                                             sec_veers[-1], sec_veers[1], 360))
                 veer_bins.insert(0, 0)
                 veer_bins.append(360)
-                sector_min.insert(0, sector_min[-1])
-                sector_min.append(sector_min[0])
-                sector_max.insert(0, sector_max[0])
-                sector_max.append(sector_max[0])
+                sector_min.insert(0, 0)
+                sector_min.append(360)
+                sector_max.insert(0, 0)
+                sector_max.append(360)
 
         # The veer correction is derived linear interpolating the veer between two mid-points of near sectors.
         adjustment = x_dir.rename('adjustment').copy() * np.nan
