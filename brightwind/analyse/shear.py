@@ -619,9 +619,11 @@ class Shear:
 
                 w = wspds.iloc[:, i]
                 plot, mean_wspds[i] = dist_by_dir_sector(w, wdir, direction_bin_array=direction_bin_array,
+                                                         sectors=sectors,
                                                          aggregation_method='mean', return_data=True)
 
                 plot, count[i] = dist_by_dir_sector(w, wdir, direction_bin_array=direction_bin_array,
+                                                    sectors=sectors,
                                                     aggregation_method='count', return_data=True)
 
                 if i == 0:
@@ -634,6 +636,7 @@ class Shear:
             count_df = count_df.mean(axis=1)
             wind_rose_plot, wind_rose_dist = dist_by_dir_sector(wspds.iloc[:, 0], wdir,
                                                                 direction_bin_array=direction_bin_array,
+                                                                sectors=sectors,
                                                                 direction_bin_labels=direction_bin_labels,
                                                                 return_data=True)
             if calc_method == 'power_law':
@@ -642,6 +645,7 @@ class Shear:
 
                 wind_rose_plot, wind_rose_dist = dist_by_dir_sector(wspds.iloc[:, 0], wdir,
                                                                     direction_bin_array=direction_bin_array,
+                                                                    sectors=sectors,
                                                                     direction_bin_labels=direction_bin_labels,
                                                                     return_data=True)
 
