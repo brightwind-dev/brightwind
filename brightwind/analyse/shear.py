@@ -677,7 +677,7 @@ class Shear:
             self.sectors = sectors
             self.calc_method = calc_method
             self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
-                                           direction_bin_array = direction_bin_array)
+                                           direction_bin_array=direction_bin_array)
 
         @property
         def alpha(self):
@@ -980,7 +980,7 @@ class Shear:
 
         if self.origin == 'BySector':
 
-            # initilise series for later use
+            # initialise series for later use
             bin_edges = pd.Series([])
             by_sector = pd.Series([])
 
@@ -1120,7 +1120,19 @@ class Shear:
 
     @staticmethod
     def _create_info(self, heights, min_speed, cvg, direction_bin_array=None, segments_per_day=None,
-                    segment_start_time=None):
+                     segment_start_time=None):
+        """
+        Create the info dict that is returned to the user.
+
+        :param self:
+        :param heights:
+        :param min_speed:
+        :param cvg:
+        :param direction_bin_array:
+        :param segments_per_day:
+        :param segment_start_time:
+        :return:
+        """
 
         info = {}
         input_data = {}
@@ -1137,7 +1149,7 @@ class Shear:
             input_data['segment_start_time'] = int(segment_start_time)
 
         if self.origin == 'BySector':
-            input_wind_dir = {'heights': float((re.findall(r'\d+', str(self.wdir.name))[0])),
+            input_wind_dir = {'heights': None,
                               'column_names': str(self.wdir.name)}
             input_data['input_wind_dir'] = input_wind_dir
             input_data['sectors'] = self.sectors
