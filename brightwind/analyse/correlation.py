@@ -961,25 +961,43 @@ class SpeedSort(CorrelBase):
     def _predict_dir(self, x_dir):
 
         x_dir = x_dir.dropna().rename('dir')
-        sec_veers = []
-        veer_bins = []
-        # Calculate middle point of each sector, as each sectoral veer is applied at the mid-point of the sector.
-        for key in self.params.keys():
-            if type(key) is int:
-                sec_veers.append(self.params[key]['average_veer'])
-                if self.params[key]['sector_min'] < self.params[key]['sector_max']:
-                    veer_bins.append((self.params[key]['sector_min'] + self.params[key]['sector_max']) / 2)
-                else:
-                    veer_bins.append(offset_wind_direction(self.params[key]['sector_max'],
-                                                           float(360 - self.params[key]['sector_max']
-                                                                 + self.params[key]['sector_min']) / 2))
-        # If first sector is centered at 0, duplicate veer value for the 360 angle.
-        if veer_bins[0] == float(360):
-            veer_bins[0] = float(0)
-            veer_bins.append(float(360))
-            sec_veers.append(sec_veers[0])
 
-        if self.direction_bin_array is not None:
+        sector_min = []
+        sector_max = []
+        if self.direction_bin_array is None:
+            # First sector is centered at 0.
+            step = 360/self.sectors
+            veer_bins = list(map(float, np.arange(0, 360 + step, step)))
+            for veer_bin in veer_bins:
+                sector_min.append(offset_wind_direction(veer_bin, -float(step/2)))
+                sector_max.append(offset_wind_direction(veer_bin, float(step/2)))
+
+            sec_veers = np.empty(np.shape(veer_bins))
+            sec_veers[:] = np.nan
+            sec_veers = list(sec_veers)
+            for key in self.params.keys():
+                if type(key) is int:
+                    if self.params[key]['sector_min'] in sector_min:
+                        sec_veers[sector_min.index(self.params[key]['sector_min'])] = self.params[key]['average_veer']
+            if (0 in veer_bins) and (360 in veer_bins):
+                sec_veers[-1] = sec_veers[0]
+
+        else:
+            veer_bins = []
+            sec_veers = []
+            # Calculate middle point of each sector, as each sectoral veer is applied at the mid-point of the sector.
+            for key in self.params.keys():
+                if type(key) is int:
+                    sec_veers.append(self.params[key]['average_veer'])
+                    sector_min.append(self.params[key]['sector_min'])
+                    sector_max.append(self.params[key]['sector_max'])
+                    if self.params[key]['sector_min'] < self.params[key]['sector_max']:
+                        veer_bins.append((self.params[key]['sector_min'] + self.params[key]['sector_max']) / 2)
+                    else:
+                        veer_bins.append(offset_wind_direction(self.params[key]['sector_max'],
+                                                               float(360 - self.params[key]['sector_max']
+                                                                     + self.params[key]['sector_min']) / 2))
+
             # If first sector is not centered at 0 and 0 and 360 are the extremes of the direction_bin_array
             # then the first and the last sectors are taken into account for deriving the veer as for code below.
             if (0 in self.direction_bin_array) and (360 in self.direction_bin_array):
@@ -989,17 +1007,49 @@ class SpeedSort(CorrelBase):
                                                             sec_veers[-1], sec_veers[1], 360))
                 veer_bins.insert(0, 0)
                 veer_bins.append(360)
+                sector_min.insert(0, sector_min[-1])
+                sector_min.append(sector_min[0])
+                sector_max.insert(0, sector_max[0])
+                sector_max.append(sector_max[0])
 
         # The veer correction is derived linear interpolating the veer between two mid-points of near sectors.
         adjustment = x_dir.rename('adjustment').copy() * np.nan
         for i in range(1, len(veer_bins)):
-            logic_sect = self._get_logic_dir_sector(ref_dir=x_dir,
-                                                    sector_min=veer_bins[i - 1],
-                                                    sector_max=veer_bins[i])
 
-            adjustment[logic_sect] = self._linear_interpolation(veer_bins[i - 1], veer_bins[i],
-                                                                sec_veers[i - 1], sec_veers[i],
-                                                                x_dir[logic_sect])
+            if np.isnan(sec_veers[i - 1]) and not np.isnan(sec_veers[i]):
+                logic_sect_mid_min_sector = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                                       sector_min=sector_min[i],
+                                                                       sector_max=veer_bins[i])
+                if logic_sect_mid_min_sector.sum() > 0:
+                    adjustment[logic_sect_mid_min_sector] = offset_wind_direction(
+                                x_dir[logic_sect_mid_min_sector] * 0, sec_veers[i])
+
+            if np.isnan(sec_veers[i]) and not np.isnan(sec_veers[i - 1]):
+                logic_sect_mid_max_sector = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                                       sector_min=veer_bins[i],
+                                                                       sector_max=sector_max[i])
+                if logic_sect_mid_max_sector.sum() > 0:
+                    adjustment[logic_sect_mid_max_sector] = offset_wind_direction(
+                                x_dir[logic_sect_mid_max_sector] * 0, sec_veers[i])
+
+            if i < len(veer_bins) - 1:
+                if not np.isnan(sec_veers[i]) and (np.isnan(sec_veers[i - 1]) and np.isnan(sec_veers[i + 1])):
+                    logic_sect_min_max_sector = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                                           sector_min=sector_min[i],
+                                                                           sector_max=sector_max[i])
+                    if logic_sect_min_max_sector.sum() > 0:
+                        adjustment[logic_sect_min_max_sector] = offset_wind_direction(
+                            x_dir[logic_sect_min_max_sector] * 0, sec_veers[i])
+
+            logic_sect_mid_point = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                              sector_min=veer_bins[i - 1],
+                                                              sector_max=veer_bins[i])
+
+            if logic_sect_mid_point.sum() != 0 and not (np.isnan(sec_veers[i]) or np.isnan(sec_veers[i - 1])):
+                adjustment[logic_sect_mid_point] = self._linear_interpolation(veer_bins[i - 1], veer_bins[i],
+                                                                              sec_veers[i - 1], sec_veers[i],
+                                                                              x_dir[logic_sect_mid_point])
+
         return offset_wind_direction(x_dir, adjustment).sort_index()
 
     def _predict(self, x_spd, x_dir):
