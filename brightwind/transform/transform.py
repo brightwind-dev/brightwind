@@ -239,11 +239,14 @@ def _get_overlapping_data(df1, df2, averaging_prd=None):
     return df1[start:], df2[start:]
 
 
-def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
+def _max_coverage_count(data_index, averaged_data_index, data_timestep=None)->pd.Series:
     """
     For a given resolution of data finds the maximum number of data points in the averaging period
     """
-    data_res = _get_data_resolution(data_index)
+    if data_timestep is None:
+        data_res = _get_data_resolution(data_index)
+    else:
+        data_res = data_timestep
 
     max_pts = (averaged_data_index.to_series().diff().shift(-1)) / data_res
     # Fill in the last in the list as it is a NaT
@@ -255,7 +258,7 @@ def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
     return max_pts
 
 
-def _get_coverage_by_grouper_obj(data, grouper_obj):
+def _get_coverage_by_grouper_obj(data, grouper_obj, data_timestep=None):
     """
     Counts the number of data points in the grouper_obj relative to the maximum possible
 
@@ -263,14 +266,18 @@ def _get_coverage_by_grouper_obj(data, grouper_obj):
     :type  data: pd.DataFrame or pd.Series
     :param grouper_obj: The object that has grouped the data already. The mean, sum, count, etc. can then be found.
     :type  grouper_obj: pd.DatetimeIndexResampler
+    :param data_timestep: Data frequency to give as input if the coverage of the data timeseries is extremely low
+                          and it is not possible to define the most common time interval between timestamps
+    :type data_timestep:  None or Timedelta
     :return:
     """
-    coverage = grouper_obj.count().divide(_max_coverage_count(data.index, grouper_obj.mean().index), axis=0)
+    coverage = grouper_obj.count().divide(_max_coverage_count(data.index, grouper_obj.mean().index,
+                                                              data_timestep=data_timestep), axis=0)
     return coverage
 
 
 def average_data_by_period(data, period, wdir_column_names=None, aggregation_method='mean', coverage_threshold=None,
-                           return_coverage=False):
+                           return_coverage=False, data_timestep=None):
     """
     Averages the data by a time period specified.
 
@@ -321,9 +328,13 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     :param return_coverage:    If True appends and additional column in the DataFrame returned, with coverage calculated
                                for each period. The columns with coverage are named as <column name>_Coverage
     :type return_coverage:     bool
-    :returns: A DataFrame with data aggregated with the specified aggregation_method (mean by default). Additionally it
-              could be filtered based on coverage and have a coverage column depending on the parameters.
-    :rtype:   pd.DataFrame
+    :param data_timestep:      Data frequency to give as input if the coverage of the data timeseries is extremely low
+                               and it is not possible to define the most common time interval between timestamps
+    :type data_timestep:       None or Timedelta
+    :returns:                  A DataFrame with data aggregated with the specified aggregation_method (mean by default).
+                               Additionally it could be filtered based on coverage and have a coverage column depending
+                               on the parameters.
+    :rtype:                    pd.DataFrame
 
     **Example usage**
     ::
@@ -361,9 +372,10 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
             raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
 
     # Check that the data resolution is not less than the period specified
-    if _freq_str_to_timedelta(period) < _get_data_resolution(data.index):
-        raise ValueError("The time period specified is less than the temporal resolution of the data. "
-                         "For example, hourly data should not be averaged to 10 minute data.")
+    if data_timestep is None:
+        if _freq_str_to_timedelta(period) < _get_data_resolution(data.index):
+            raise ValueError("The time period specified is less than the temporal resolution of the data. "
+                             "For example, hourly data should not be averaged to 10 minute data.")
     data = data.sort_index()
     grouper_obj = data.resample(period, axis=0, closed='left', label='left', base=0,
                                 convention='start', kind='timestamp')
@@ -394,15 +406,17 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
         # if data is a Series grouper_obj doesn't take columns and averaged data is a Series and not a DataFrame.
         if isinstance(data, pd.DataFrame):
             wdir_grouped_data = grouper_obj[wdir_column_names].agg(average_wdirs)
-            wdir_coverage = _get_coverage_by_grouper_obj(data[wdir_column_names], grouper_obj[wdir_column_names])
+            wdir_coverage = _get_coverage_by_grouper_obj(data[wdir_column_names], grouper_obj[wdir_column_names],
+                                                         data_timestep=data_timestep)
         else:
             wdir_grouped_data = grouper_obj.agg(average_wdirs)
-            wdir_coverage = _get_coverage_by_grouper_obj(data, grouper_obj)
+            wdir_coverage = _get_coverage_by_grouper_obj(data, grouper_obj, data_timestep=data_timestep)
 
         # average non_wdir data if available
         if non_wdir_col_names:
             non_wdir_grouped_data = grouper_obj[non_wdir_col_names].agg('mean')
-            non_wdir_coverage = _get_coverage_by_grouper_obj(data[non_wdir_col_names], grouper_obj[non_wdir_col_names])
+            non_wdir_coverage = _get_coverage_by_grouper_obj(data[non_wdir_col_names], grouper_obj[non_wdir_col_names],
+                                                             data_timestep=data_timestep)
 
             grouped_data = pd.concat([non_wdir_grouped_data, wdir_grouped_data], axis=1)
             coverage = pd.concat([non_wdir_coverage, wdir_coverage], axis=1)
@@ -415,7 +429,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     else:
         # group data as normal
         grouped_data = grouper_obj.agg(aggregation_method)
-        coverage = _get_coverage_by_grouper_obj(data, grouper_obj)
+        coverage = _get_coverage_by_grouper_obj(data, grouper_obj, data_timestep=data_timestep)
 
     grouped_data = grouped_data[coverage >= coverage_threshold]
 
