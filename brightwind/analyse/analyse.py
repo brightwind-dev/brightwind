@@ -772,9 +772,10 @@ def time_continuity_gaps(data):
     filtered = continuity[['Date From', 'Date To']][continuity['Days Lost'] != resolution_days]
     days_lost_series = continuity['Days Lost'][continuity['Days Lost'] != resolution_days]
 
-    # where timestamp is smaller than resolution because it is an irregular time-step then set Days Lost as Nan.
+    # where time interval between timestamps is smaller than resolution because it is an irregular time-step
+    # set Days Lost as Nan.
     days_lost_series[days_lost_series < resolution_days] = np.nan
-    # where timestamp is bigger than resolution then remove resolution (ie 10 min) from Days Lost.
+    # where time interval between timestamps is bigger than resolution remove resolution (ie 10 min) from Days Lost.
     days_lost_series[days_lost_series > resolution_days] = \
         days_lost_series[days_lost_series > resolution_days] - resolution_days
     filtered['Days Lost'] = days_lost_series
