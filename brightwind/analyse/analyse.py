@@ -762,21 +762,24 @@ def time_continuity_gaps(data):
     """
     indexes = data.dropna(how='all').index
     resolution = tf._get_data_resolution(indexes)
+    resolution_days = resolution / pd.Timedelta('1 days')
     # print(resolution)
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1],
                                'Date To': indexes.values.flatten()[1:]})
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
 
     # Remove indexes where no days are lost before returning
-    filtered = continuity[continuity['Days Lost'] != (resolution / pd.Timedelta('1 days'))]
+    filtered = continuity[['Date From', 'Date To']][continuity['Days Lost'] != resolution_days]
+    days_lost_series = continuity['Days Lost'][continuity['Days Lost'] != resolution_days]
 
-    # where only one timestamp is lost replace 0 by resolution lost.
-    data_gaps_table = pd.DataFrame({'Date From': filtered['Date From'].values + resolution,
-                                    'Date To': filtered['Date To'].values - resolution})
-    data_gaps_table['Days Lost'] = (data_gaps_table['Date To'] - data_gaps_table['Date From']) / pd.Timedelta('1 days')
-    data_gaps_table.replace(0, (resolution / pd.Timedelta('1 days')), inplace=True)
+    # where timestamp is smaller than resolution because it is an irregular time-step then set Days Lost as Nan.
+    days_lost_series[days_lost_series < resolution_days] = np.nan
+    # where timestamp is bigger than resolution then remove resolution (ie 10 min) from Days Lost.
+    days_lost_series[days_lost_series > resolution_days] = \
+        days_lost_series[days_lost_series > resolution_days] - resolution_days
+    filtered['Days Lost'] = days_lost_series
 
-    return data_gaps_table
+    return filtered
 
 
 def coverage(data, period='1M', aggregation_method='mean'):
