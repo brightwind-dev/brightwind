@@ -174,7 +174,7 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
-def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]', data_timestep=None):
+def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]', data_resolution=None):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
@@ -188,9 +188,9 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     :type return_coverage: bool
     :param ylabel: Label for the y-axis, Wind speed [m/s] by default
     :type   ylabel: str
-    :param data_timestep: Data frequency to give as input if the coverage of the data timeseries is extremely low
-                          and it is not possible to define the most common time interval between timestamps
-    :type data_timestep:  None or pd.Timedelta
+    :param data_resolution: Data resolution to give as input if the coverage of the data timeseries is extremely low
+                            and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:  None or pd.Timedelta
     :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
         the first element is plot and second is data pertaining to monthly means.
 
@@ -214,7 +214,7 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
 
     """
 
-    df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True, data_timestep=data_timestep)
+    df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True, data_resolution=data_resolution)
     if return_data and not return_coverage:
         return plt.plot_monthly_means(df, ylbl=ylabel), df
     if return_coverage:
@@ -782,7 +782,7 @@ def time_continuity_gaps(data):
     return filtered
 
 
-def coverage(data, period='1M', aggregation_method='mean', data_timestep=None):
+def coverage(data, period='1M', aggregation_method='mean', data_resolution=None):
     """
     Get the data coverage over the period specified.
 
@@ -808,9 +808,9 @@ def coverage(data, period='1M', aggregation_method='mean', data_timestep=None):
         `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product, summation,
         standard deviation, variance, maximum and minimum respectively.
     :type aggregation_method: str
-    :param data_timestep: Data frequency to give as input if the coverage of the data timeseries is extremely low
-                          and it is not possible to define the most common time interval between timestamps
-    :type data_timestep:  None or pd.Timedelta
+    :param data_resolution: Data resolution to give as input if the coverage of the data timeseries is extremely low
+                            and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:  None or pd.Timedelta
     :return: A DataFrame with data aggregated with the specified aggregation_method (mean by default) and coverage.
             The columns with coverage are named as <column name>_Coverage
 
@@ -838,7 +838,7 @@ def coverage(data, period='1M', aggregation_method='mean', data_timestep=None):
     """
 
     return tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,
-                                     return_coverage=True, data_timestep=data_timestep)[1]
+                                     return_coverage=True, data_resolution=data_resolution)[1]
 
 
 def basic_stats(data):

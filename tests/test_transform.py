@@ -510,7 +510,7 @@ def test_average_data_by_period():
     data_test.sort_index(inplace=True)
     data_monthly, coverage_monthly = bw.average_data_by_period(data_test, period='1M', wdir_column_names='Dir78mS',
                                                                return_coverage=True,
-                                                               data_timestep=pd.Timedelta('10 min'))
+                                                               data_resolution=pd.Timedelta('10 min'))
     table_count = data_test.resample('1MS', axis=0, closed='left', label='left', base=0,
                                      convention='start', kind='timestamp').count()
     assert (table_count['Dir78mS']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Dir78mS_Coverage']['2016-01-01']
