@@ -268,7 +268,7 @@ def _get_coverage_by_grouper_obj(data, grouper_obj, data_timestep=None):
     :type  grouper_obj: pd.DatetimeIndexResampler
     :param data_timestep: Data frequency to give as input if the coverage of the data timeseries is extremely low
                           and it is not possible to define the most common time interval between timestamps
-    :type data_timestep:  None or Timedelta
+    :type data_timestep:  None or pd.Timedelta
     :return:
     """
     coverage = grouper_obj.count().divide(_max_coverage_count(data.index, grouper_obj.mean().index,
@@ -330,7 +330,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     :type return_coverage:     bool
     :param data_timestep:      Data frequency to give as input if the coverage of the data timeseries is extremely low
                                and it is not possible to define the most common time interval between timestamps
-    :type data_timestep:       None or Timedelta
+    :type data_timestep:       None or pd.Timedelta
     :returns:                  A DataFrame with data aggregated with the specified aggregation_method (mean by default).
                                Additionally it could be filtered based on coverage and have a coverage column depending
                                on the parameters.
@@ -355,6 +355,11 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
 
         # To average wind directions by vector averaging
         data_monthly_wdir_avg = bw.average_data_by_period(data.Dir78mS, period='1M', wdir_column_names='Dir78mS')
+
+        # To check the coverage for all months giving as input the data frequency as 10 min if data coverage is
+        # extremely low and it is not possible to define the most common time interval between timestamps
+        data_monthly_irregular = bw.average_data_by_period(data.Spd80mN, period='1M', return_coverage=True,
+                                                           data_timestep=pd.Timedelta('10 min'))
 
     """
     coverage_threshold = _validate_coverage_threshold(coverage_threshold)
