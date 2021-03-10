@@ -501,6 +501,23 @@ def test_average_data_by_period():
         assert val == count_cov_months[idx][1]
         idx += 1
 
+    # test when very low coverage timeseries is used
+    data_test = DATA[['Spd80mN', 'Spd80mS', 'Dir78mS']][:'2016-03-31']
+    data_test.reset_index(inplace=True)
+    drop_indices = np.random.choice(data_test.index, 11800, replace=False)
+    data_test = data_test.drop(drop_indices)
+    data_test.set_index('Timestamp', inplace=True)
+    data_test.sort_index(inplace=True)
+    data_monthly, coverage_monthly = bw.average_data_by_period(data_test, period='1M', wdir_column_names='Dir78mS',
+                                                               return_coverage=True,
+                                                               data_timestep=pd.Timedelta('10 min'))
+    table_count = data_test.resample('1MS', axis=0, closed='left', label='left', base=0,
+                                     convention='start', kind='timestamp').count()
+    assert (table_count['Dir78mS']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Dir78mS_Coverage']['2016-01-01']
+            ) < 1e-5
+    assert (table_count['Spd80mN']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Spd80mN_Coverage']['2016-01-01']
+            ) < 1e-5
+
 
 def test_merge_datasets_by_period():
     mrgd_data = bw.merge_datasets_by_period(DATA_CLND['Spd80mN'], MERRA2['WS50m_m/s'], period='1MS',
