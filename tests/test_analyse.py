@@ -46,6 +46,7 @@ def test_time_continuity_gaps():
     assert abs(gaps.iloc[1, 2] - 0.305556) < 1e-5
 
     # test for when timesteps are irregular
+    # THIS WILL RAISE 3 WARNINGS.
     data_test = DATA.copy()
     data_test.reset_index(inplace=True)
     data_test['Timestamp'][10] = data_test['Timestamp'][10] + pd.Timedelta('1 min')
