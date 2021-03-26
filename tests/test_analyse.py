@@ -61,6 +61,15 @@ def test_time_continuity_gaps():
     assert np.isnan(gaps_irregular.iloc[1, 2])
     assert abs(gaps_irregular.iloc[2, 2] - 0.006250) < 1e-5
 
+    # test for monthly timeseries
+    data_monthly = bw.average_data_by_period(DATA[DATA.index.month.isin([1, 3, 4, 5, 6, 7, 8, 10, 12])],
+                                             period='1M').dropna()
+    gaps_irregular = bw.time_continuity_gaps(data_monthly)
+    assert gaps_irregular.iloc[0, 0] == pd.Timestamp('2016-01-01')
+    assert gaps_irregular.iloc[1, 1] == pd.Timestamp('2016-10-01')
+    assert gaps_irregular.iloc[1, 2] == 30
+    assert gaps_irregular.iloc[0, 2] == 29
+
 
 def test_dist_12x24():
     bw.dist_12x24(DATA[['Spd40mN']], return_data=True)
