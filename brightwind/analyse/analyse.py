@@ -768,15 +768,28 @@ def time_continuity_gaps(data):
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
 
     # Remove indexes where no days are lost before returning
-    filtered = continuity[['Date From', 'Date To']][continuity['Days Lost'] != resolution_days]
-    days_lost_series = continuity['Days Lost'][continuity['Days Lost'] != resolution_days]
+    if resolution == pd.Timedelta(1, unit='M'):
+        index_filter = ~continuity['Days Lost'].isin([28, 29, 30, 31])
+    elif resolution == pd.Timedelta(365, unit='D'):
+        raise NotImplementedError("time_continuity_gaps calculation not implemented yet "
+                                  "for timeseries with yearly resolution.")
+    else:
+        index_filter = continuity['Days Lost'] != resolution_days
+
+    filtered = continuity[['Date From', 'Date To']][index_filter]
+    days_lost_series = continuity['Days Lost'][index_filter]
 
     # where time interval between timestamps is smaller than resolution because it is an irregular time-step
     # set Days Lost as Nan.
     days_lost_series[days_lost_series < resolution_days] = np.nan
     # where time interval between timestamps is bigger than resolution remove resolution (ie 10 min) from Days Lost.
-    days_lost_series[days_lost_series > resolution_days] = \
-        days_lost_series[days_lost_series > resolution_days] - resolution_days
+    if resolution == pd.Timedelta(1, unit='M'):
+        days_lost_series[days_lost_series > resolution_days] = \
+            days_lost_series[days_lost_series > resolution_days] - filtered['Date From'][
+                days_lost_series > resolution_days].dt.daysinmonth
+    else:
+        days_lost_series[days_lost_series > resolution_days] = \
+            days_lost_series[days_lost_series > resolution_days] - resolution_days
     filtered['Days Lost'] = days_lost_series
 
     return filtered
