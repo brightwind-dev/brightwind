@@ -736,33 +736,43 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
 
 def time_continuity_gaps(data):
     """
-    Returns the start and end timestamps just before and after the missing data periods. Also days lost.
+    Returns a table listing all the time gaps in the data that are not equal to the derived temporal resolution.
+
+    For gaps that are greater than the derived temporal resolution the lost data in days is calculated. For gaps
+    less than the derived temporal resolution displays a NaN. These may be caused by some irregular time stamps.
+
+    The gaps are defined by showing the start and end timestamps just before and after the missing data periods.
 
     A missing data period is one where data is not available for some consecutive timestamps. This breaks
-    time continuity of the data. The function calculates the sampling period (resolution) of the data by
+    time continuity of the data. The function derives the temporal resolution of the data by
     finding the most common time difference between consecutive timestamps. Then it searches where the time
-    difference between consecutive timestamps does not match the sampling period, this is the missing data period.
+    difference between consecutive timestamps does not match the resolution, this is the missing data period.
+
     It returns a DataFrame where the first column is the starting timestamp of the missing period (timestamp recorded
-    before the gap) and the second column is the end date of the missing period (timestamp recorded after the gap).
+    immediately before the gap) and the second column is the end date of the missing period (timestamp recorded
+    immediately after the gap).
+
     An additional column also shows how many days of data were lost in a missing period.
 
-    :param data:    Data for checking continuity, timestamp must be the index
-    :type data:     pandas.Series or pandas.DataFrame
-    :return:        A DataFrame with the start and end timestamps of missing gaps in the data along with the size of the
-                    gap in days lost.
-    :rtype:         pandas.DataFrame
+    :param data: Data for checking continuity, timestamp must be the index
+    :type data:  pd.Series or pd.DataFrame
+    :return:     A table listing all the time gaps in the data that are not equal to the derived
+                 temporal resolution.
+    :rtype:      pd.DataFrame
 
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.shell_flats_80m_csv)
-        bw.time_continuity_gaps(data['WS70mA100NW_Avg'])
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        bw.time_continuity_gaps(data)
+
+        bw.time_continuity_gaps(data['Spd80mN'])
 
     """
     indexes = data.dropna(how='all').index
     resolution = tf._get_data_resolution(indexes)
     resolution_days = resolution / pd.Timedelta('1 days')
-    # print(resolution)
+
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1],
                                'Date To': indexes.values.flatten()[1:]})
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
