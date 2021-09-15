@@ -1,6 +1,7 @@
 import pytest
 import brightwind as bw
 import pandas as pd
+import numpy as np
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -37,12 +38,37 @@ def test_basic_stats():
 
 def test_time_continuity_gaps():
     gaps = bw.time_continuity_gaps(DATA['Spd80mN'])
-    assert gaps.iloc[0, 0] == pd.Timestamp('2016-03-09 06:20:00')
-    assert gaps.iloc[0, 1] == pd.Timestamp('2016-03-09 10:20:00')
-    assert gaps.iloc[1, 0] == pd.Timestamp('2016-03-29 23:50:00')
-    assert gaps.iloc[1, 1] == pd.Timestamp('2016-03-30 07:00:00')
-    assert abs(gaps.iloc[0, 2] - 0.166667) < 1e-5
-    assert abs(gaps.iloc[1, 2] - 0.298611) < 1e-5
+    assert gaps.iloc[0, 0] == pd.Timestamp('2016-03-09 06:10:00')
+    assert gaps.iloc[0, 1] == pd.Timestamp('2016-03-09 10:30:00')
+    assert gaps.iloc[1, 0] == pd.Timestamp('2016-03-29 23:40:00')
+    assert gaps.iloc[1, 1] == pd.Timestamp('2016-03-30 07:10:00')
+    assert abs(gaps.iloc[0, 2] - 0.173611) < 1e-5
+    assert abs(gaps.iloc[1, 2] - 0.305556) < 1e-5
+
+    # test for when timesteps are irregular
+    # THIS WILL RAISE 3 WARNINGS.
+    data_test = DATA.copy()
+    data_test.reset_index(inplace=True)
+    data_test['Timestamp'][10] = data_test['Timestamp'][10] + pd.Timedelta('1 min')
+    data_test['Timestamp'][20] = data_test['Timestamp'][20] + pd.Timedelta('9 min')
+    data_test.set_index('Timestamp', inplace=True)
+    gaps_irregular = bw.time_continuity_gaps(data_test)
+    assert gaps_irregular.iloc[0, 0] == pd.Timestamp('2016-01-09 18:10:00')
+    assert gaps_irregular.iloc[0, 1] == pd.Timestamp('2016-01-09 18:21:00')
+    assert gaps_irregular.iloc[1, 0] == pd.Timestamp('2016-01-09 18:21:00')
+    assert gaps_irregular.iloc[1, 1] == pd.Timestamp('2016-01-09 18:30:00')
+    assert abs(gaps_irregular.iloc[0, 2] - 0.000694) < 1e-5
+    assert np.isnan(gaps_irregular.iloc[1, 2])
+    assert abs(gaps_irregular.iloc[2, 2] - 0.006250) < 1e-5
+
+    # test for monthly timeseries
+    data_monthly = bw.average_data_by_period(DATA[DATA.index.month.isin([1, 3, 4, 5, 6, 7, 8, 10, 12])],
+                                             period='1M').dropna()
+    gaps_irregular = bw.time_continuity_gaps(data_monthly)
+    assert gaps_irregular.iloc[0, 0] == pd.Timestamp('2016-01-01')
+    assert gaps_irregular.iloc[1, 1] == pd.Timestamp('2016-10-01')
+    assert gaps_irregular.iloc[1, 2] == 30
+    assert gaps_irregular.iloc[0, 2] == 29
 
 
 def test_dist_12x24():
