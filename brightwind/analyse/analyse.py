@@ -752,7 +752,9 @@ def time_continuity_gaps(data):
     immediately before the gap) and the second column is the end date of the missing period (timestamp recorded
     immediately after the gap).
 
-    An additional column also shows how many days of data were lost in a missing period.
+    An additional column also shows how many days of data were lost in a missing period. This is not a difference 
+    in the two available timestamps. It gives the actual amount of data missing e.g. if the two timestamps were 
+    2020-01-01 01:10 and 2020-01-01 01:50 the days lost will equate to a 30 min of missing data and not 40 min.
 
     :param data: Data for checking continuity, timestamp must be the index
     :type data:  pd.Series or pd.DataFrame
