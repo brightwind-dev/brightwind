@@ -109,6 +109,7 @@ def test_coverage():
     assert round(bw.coverage(data1.Spd80mS, period='1M',
                              data_resolution=pd.Timedelta('10min')).values[0], 8) == 0.00179211
 
+
 def test_dist_by_dir_sector():
     bw.dist_by_dir_sector(DATA[['Spd40mN']], DATA[['Dir38mS']])
     bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS)
