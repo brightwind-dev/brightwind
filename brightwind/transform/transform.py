@@ -649,7 +649,8 @@ def average_wdirs(wdirs, wspds=None):
 def merge_datasets_by_period(data_1, data_2, period,
                              wdir_column_names_1=None, wdir_column_names_2=None,
                              aggregation_method_1='mean', aggregation_method_2='mean',
-                             coverage_threshold_1=None, coverage_threshold_2=None, data_resolution=None):
+                             coverage_threshold_1=None, coverage_threshold_2=None, data_1_resolution=None,
+                             data_2_resolution=None):
     """
     Merge 2 datasets on a time period by aligning the overlapped aggregated data.
 
@@ -706,9 +707,14 @@ def merge_datasets_by_period(data_1, data_2, period,
                                  default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
                                  less than the coverage_threshold are removed.
     :type coverage_threshold_2:  float or None
-    :param data_resolution:      Data resolution to give as input if the coverage of the data timeseries is extremely
-                                 low and it is not possible to define the most common time interval between timestamps
-    :type data_resolution:       None or pd.Timedelta
+    :param data_1_resolution:    Data resolution of first dataset to give as input if the coverage of the data
+                                 timeseries is extremely low and it is not possible to define the most common time
+                                 interval between timestamps
+    :type data_1_resolution:     None or pd.Timedelta
+    :param data_2_resolution:    Data resolution of second dataset to give as input if the coverage of the data
+                                 timeseries is extremely low and it is not possible to define the most common
+                                 time interval between timestamps
+    :type data_2_resolution:     None or pd.Timedelta
     :return:                     Merged datasets.
     :rtype:                      pd.DataFrame
 
@@ -736,12 +742,12 @@ def merge_datasets_by_period(data_1, data_2, period,
                                                       wdir_column_names=wdir_column_names_1,
                                                       coverage_threshold=coverage_threshold_1,
                                                       aggregation_method=aggregation_method_1,
-                                                      return_coverage=True, data_resolution=data_resolution)) +
+                                                      return_coverage=True, data_resolution=data_1_resolution)) +
                           list(average_data_by_period(data_2_overlap, period=period,
                                                       wdir_column_names=wdir_column_names_2,
                                                       coverage_threshold=coverage_threshold_2,
                                                       aggregation_method=aggregation_method_2,
-                                                      return_coverage=True, data_resolution=data_resolution)),
+                                                      return_coverage=True, data_resolution=data_2_resolution)),
                           axis=1)
     return mrgd_data.dropna()
 
