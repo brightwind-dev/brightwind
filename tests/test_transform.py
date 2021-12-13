@@ -518,6 +518,30 @@ def test_average_data_by_period():
     assert (table_count['Spd80mN']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Spd80mN_Coverage']['2016-01-01']
             ) < 1e-5
 
+    data1 = DATA[:'2016-01-10'].copy()
+    data1.reset_index(inplace=True)
+    drop_indices = np.array([60, 36, 140, 16, 101, 40, 158, 122, 151, 34, 117, 159, 26,
+                             169, 132, 124, 98, 141, 127, 100, 115, 119, 59, 17, 166, 61,
+                             10, 106, 57, 13, 187, 174, 28, 63, 85, 130, 23, 148, 0,
+                             145, 8, 149, 185, 170, 73, 9, 79, 65, 136, 6, 54, 172,
+                             108, 29, 107, 102, 123, 168, 89, 182, 173, 167, 125, 33, 114,
+                             113, 84, 41, 110, 30, 179, 43, 134, 142, 171, 155, 25, 135,
+                             163, 92, 183, 49, 104, 46, 68, 116, 53, 87, 184, 146, 153,
+                             1, 77, 164, 161, 165, 94, 4, 58, 103, 19, 2, 48, 88,
+                             152, 96, 82, 55, 32, 42, 15, 51, 70, 3, 147, 78, 86,
+                             69, 131, 144, 181, 45, 31, 175, 97, 21, 143, 186, 137, 120,
+                             176, 80, 156, 14, 105, 47, 67, 22, 12, 128, 71, 5, 139,
+                             81, 154, 62, 121, 27, 39, 91, 75, 112, 66, 93, 38, 44,
+                             177, 99, 11, 76, 64, 35, 56, 109, 83, 90, 162, 50, 180,
+                             52, 72, 129, 111, 157, 150, 20, 24, 118, 178, 160])
+    data1 = data1.drop(drop_indices)
+    data1 = data1.set_index('Timestamp')
+    assert (bw.average_data_by_period(data1.Spd80mS, period='10min', data_resolution=pd.Timedelta('10 min')).dropna() ==
+            data1.Spd80mS).all()
+    with pytest.raises(ValueError) as except_info:
+        bw.average_data_by_period(data1.Spd80mS, period='10min')
+    assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
+                                     "For example, hourly data should not be averaged to 10 minute data."
 
 def test_merge_datasets_by_period():
     mrgd_data = bw.merge_datasets_by_period(DATA_CLND['Spd80mN'], MERRA2['WS50m_m/s'], period='1MS',
