@@ -1,6 +1,7 @@
 import pytest
 import brightwind as bw
 import pandas as pd
+import numpy as np
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -87,6 +88,26 @@ def test_coverage():
     bw.coverage(DATA.Spd80mN, period='1M', aggregation_method='var')
     assert True
 
+    data1 = DATA[:'2016-01-10'].copy()
+    data1.reset_index(inplace=True)
+    drop_indices = np.array([0, 66, 96, 43, 10, 21, 84, 11, 58, 120, 78, 166, 148,
+                             176, 31, 93, 114, 107, 17, 49, 110, 16, 130, 69, 106, 18,
+                             12, 77, 67, 29, 81, 28, 118, 95, 54, 179, 169, 72, 144,
+                             90, 38, 92, 142, 30, 45, 151, 126, 42, 73, 171, 99, 83,
+                             157, 75, 60, 82, 162, 22, 128, 52, 123, 153, 36, 20, 170,
+                             65, 152, 61, 140, 85, 111, 8, 37, 121, 63, 112, 141, 183,
+                             168, 74, 88, 119, 156, 51, 180, 143, 79, 134, 124, 117, 109,
+                             108, 86, 161, 155, 9, 182, 50, 3, 150, 138, 19, 15, 40,
+                             97, 158, 24, 113, 39, 1, 137, 4, 13, 57, 5, 35, 187,
+                             172, 47, 132, 122, 116, 33, 6, 181, 62, 133, 32, 25, 89,
+                             34, 94, 46, 14, 185, 76, 101, 100, 98, 167, 125, 164, 26,
+                             136, 139, 174, 127, 104, 80, 2, 178, 160, 173, 41, 59, 163,
+                             175, 64, 145, 27, 55, 149, 70, 146, 147, 103, 184, 165, 44,
+                             23, 115, 48, 68, 102, 53, 7, 129, 56, 135, 91])
+    data1 = data1.drop(drop_indices)
+    data1 = data1.set_index('Timestamp')
+    assert round(bw.coverage(data1.Spd80mS, period='1M',
+                             data_resolution=pd.Timedelta('10min')).values[0], 8) == 0.00179211
 
 def test_dist_by_dir_sector():
     bw.dist_by_dir_sector(DATA[['Spd40mN']], DATA[['Dir38mS']])
