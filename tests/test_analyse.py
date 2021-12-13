@@ -17,6 +17,16 @@ def test_monthly_means():
     bw.monthly_means(DATA.Spd80mN, return_data=True)
     assert True
 
+    data_monthly = bw.average_data_by_period(DATA.Spd80mS, period='1M')
+    data_monthly = data_monthly[data_monthly.index.month.isin([2, 4, 6, 8])]
+    _, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
+                                            data_resolution=pd.Timedelta('1M'))
+    assert (monthly_mean_data.dropna() == data_monthly).all()
+    with pytest.raises(ValueError) as except_info:
+        bw.monthly_means(data_monthly, return_data=True)
+    assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
+                                     "For example, hourly data should not be averaged to 10 minute data."
+
 
 def test_sector_ratio():
     bw.sector_ratio(DATA['Spd80mN'], DATA['Spd80mS'], DATA['Dir78mS'], sectors=72, boom_dir_1=0,
