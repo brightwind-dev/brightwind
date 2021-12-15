@@ -212,6 +212,11 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
         monthly_means_plot, monthly_means = bw.monthly_means(data.WS80mWS425NW_Avg, return_coverage=True)
         monthly_means_plot
 
+        # To find coverage giving as input the data resolution as 10 min if data coverage is extremely low and
+        # it is not possible to define the most common time interval between timestamps
+        monthly_means_plot, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
+                                                                 data_resolution=pd.Timedelta('1M'))
+
     """
 
     df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True, data_resolution=data_resolution)
@@ -830,6 +835,10 @@ def coverage(data, period='1M', aggregation_method='mean', data_resolution=None)
 
         #To find monthly_coverage of variance
         data_monthly_var = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')
+
+        # To find monthly_coverage giving as input the data resolution as 10 min if data coverage is extremely low and
+        # it is not possible to define the most common time interval between timestamps
+        bw.coverage(data1.Spd80mS, period='1M', data_resolution=pd.Timedelta('10min'))
 
 
     See Also

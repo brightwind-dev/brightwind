@@ -17,7 +17,7 @@ def test_monthly_means():
     assert list(round(bw.monthly_means(DATA[WSPD_COLS], return_data=True)[1][
                       :'2016-01-01'], 5).values[0]) == [9.25346, 9.22915, 8.51025, 8.68109, 8.10126, 8.20393]
     assert round(bw.monthly_means(DATA.Spd80mN, return_data=True)[1], 5)[0] == 9.25346
-
+    # input data_resolution
     data_monthly = bw.average_data_by_period(DATA.Spd80mS, period='1M')
     data_monthly = data_monthly[data_monthly.index.month.isin([2, 4, 6, 8])]
     _, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
