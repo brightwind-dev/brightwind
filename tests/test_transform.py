@@ -543,6 +543,7 @@ def test_average_data_by_period():
     assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
                                      "For example, hourly data should not be averaged to 10 minute data."
 
+
 def test_merge_datasets_by_period():
     mrgd_data = bw.merge_datasets_by_period(DATA_CLND['Spd80mN'], MERRA2['WS50m_m/s'], period='1MS',
                                             wdir_column_names_1=None, wdir_column_names_2=None,
