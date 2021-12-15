@@ -14,9 +14,9 @@ def test_monthly_means():
     bw.monthly_means(DATA)
     bw.monthly_means(DATA[['Spd80mN']])
 
-    bw.monthly_means(DATA[WSPD_COLS], return_data=True)
-    bw.monthly_means(DATA.Spd80mN, return_data=True)
-    assert True
+    assert list(round(bw.monthly_means(DATA[WSPD_COLS], return_data=True)[1][
+                      :'2016-01-01'], 5).values[0]) == [9.25346, 9.22915, 8.51025, 8.68109, 8.10126, 8.20393]
+    assert round(bw.monthly_means(DATA.Spd80mN, return_data=True)[1], 5)[0] == 9.25346
 
     data_monthly = bw.average_data_by_period(DATA.Spd80mS, period='1M')
     data_monthly = data_monthly[data_monthly.index.month.isin([2, 4, 6, 8])]
@@ -80,14 +80,14 @@ def test_ti_twelve_by_24():
 
 def test_coverage():
     # hourly coverage
-    assert bw.coverage(DATA[['Spd80mN']], period='1H')[
-           '2016-01-09 17:00':'2016-01-09 17:30'].values[0][0] == 0.8333333333333334
-    assert bw.coverage(DATA.Spd80mN, period='1H')[
-           '2016-01-09 17:00':'2016-01-09 17:30'].values[0] == 0.8333333333333334
+    assert round(bw.coverage(DATA[['Spd80mN']], period='1H')[
+           '2016-01-09 17:00':'2016-01-09 17:30'].values[0][0], 5) == 0.83333
+    assert round(bw.coverage(DATA.Spd80mN, period='1H')[
+           '2016-01-09 17:00':'2016-01-09 17:30'].values[0], 5) == 0.83333
     # monthly_coverage
-    assert bw.coverage(DATA.Spd80mN, period='1M')['2016-05-01'] == 0.36536738351254483
+    assert round(bw.coverage(DATA.Spd80mN, period='1M')['2016-05-01'], 5) == 0.36537
     # monthly_coverage of variance
-    assert bw.coverage(DATA.Spd80mN, period='1M', aggregation_method='var')['2016-05-01'] == 0.36536738351254483
+    assert round(bw.coverage(DATA.Spd80mN, period='1M', aggregation_method='var')['2016-05-01'], 5) == 0.36537
     # input data_resolution
     data1 = DATA[:'2016-01-10'].copy()
     data1.reset_index(inplace=True)
