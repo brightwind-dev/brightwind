@@ -730,16 +730,16 @@ def merge_datasets_by_period(data_1, data_2, period,
                                                 wdir_column_names_1='WD50m_deg', wdir_column_names_2='Dir78mS',
                                                 coverage_threshold_1=0.95, coverage_threshold_2=0.95,
                                                 aggregation_method_1='mean', aggregation_method_2='mean')
-        # To find monthly concurrent averages of two datasets giving as input the data resolution as 10 min if
-        # data coverage is extremely low and it is not possible to define the most common time interval between
-        # timestamps
-        mrgd_data = bw.merge_datasets_by_period(MERRA2[['WS50m_m/s', 'WD50m_deg']], data[['Spd80mN', 'Dir78mS']],
-                                            period='1MS',
-                                            wdir_column_names_1='WD50m_deg', wdir_column_names_2='Dir78mS',
-                                            coverage_threshold_1=0, coverage_threshold_2=0,
-                                            aggregation_method_1='mean', aggregation_method_2='mean',
-                                            data_1_resolution=pd.Timedelta('1H'),
-                                            data_2_resolution=pd.Timedelta('10min'))
+        # To find monthly concurrent averages of two datasets giving as input the data resolution as 1 hour for data_1
+        # and 10 min for data_2 if data coverage is extremely low and it is not possible to define the most common time
+        # interval between timestamps for each dataset.
+        mrgd_data = bw.merge_datasets_by_period(m2[['WS50m_m/s', 'WD50m_deg']], data[['Spd80mN', 'Dir78mS']],
+                                                period='1MS',
+                                                wdir_column_names_1='WD50m_deg', wdir_column_names_2='Dir78mS',
+                                                coverage_threshold_1=0, coverage_threshold_2=0,
+                                                aggregation_method_1='mean', aggregation_method_2='mean',
+                                                data_1_resolution=pd.Timedelta('1H'),
+                                                data_2_resolution=pd.Timedelta('10min'))
 
     """
     data_1_overlap, data_2_overlap = _get_overlapping_data(data_1.sort_index().dropna(),

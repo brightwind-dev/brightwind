@@ -197,7 +197,7 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.shell_flats_80m_csv)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         monthly_means_plot, monthly_means = bw.monthly_means(data, return_data=True)
         print("Monthly means data for all the columns:")
@@ -206,14 +206,16 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
         monthly_means_plot
 
         # For a single column only
-        bw.monthly_means(data.WS80mWS425NW_Avg)
+        bw.monthly_means(data.Spd80mS)
 
         # Return coverage
-        monthly_means_plot, monthly_means = bw.monthly_means(data.WS80mWS425NW_Avg, return_coverage=True)
+        monthly_means_plot, monthly_means = bw.monthly_means(data.Spd80mS, return_coverage=True)
         monthly_means_plot
 
-        # To find coverage giving as input the data resolution as 10 min if data coverage is extremely low and
+        # To find coverage giving as input the data resolution as 1 month if data coverage is extremely low and
         # it is not possible to define the most common time interval between timestamps
+        data_monthly = bw.average_data_by_period(data.Spd80mS, period='1M')
+        data_monthly = data_monthly[data_monthly.index.month.isin([2, 4, 6, 8])]
         monthly_means_plot, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
                                                                  data_resolution=pd.Timedelta('1M'))
 
