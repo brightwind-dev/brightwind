@@ -80,14 +80,15 @@ def test_ti_twelve_by_24():
 
 def test_coverage():
     # hourly coverage
-    bw.coverage(DATA[['Spd80mN']], period='1H')
-    bw.coverage(DATA.Spd80mN, period='1H')
+    assert bw.coverage(DATA[['Spd80mN']], period='1H')[
+           '2016-01-09 17:00':'2016-01-09 17:30'].values[0][0] == 0.8333333333333334
+    assert bw.coverage(DATA.Spd80mN, period='1H')[
+           '2016-01-09 17:00':'2016-01-09 17:30'].values[0] == 0.8333333333333334
     # monthly_coverage
-    bw.coverage(DATA.Spd80mN, period='1M')
+    assert bw.coverage(DATA.Spd80mN, period='1M')['2016-05-01'] == 0.36536738351254483
     # monthly_coverage of variance
-    bw.coverage(DATA.Spd80mN, period='1M', aggregation_method='var')
-    assert True
-
+    assert bw.coverage(DATA.Spd80mN, period='1M', aggregation_method='var')['2016-05-01'] == 0.36536738351254483
+    # input data_resolution
     data1 = DATA[:'2016-01-10'].copy()
     data1.reset_index(inplace=True)
     drop_indices = np.array([0, 66, 96, 43, 10, 21, 84, 11, 58, 120, 78, 166, 148,
