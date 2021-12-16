@@ -10,8 +10,10 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
 ## [Unreleased]
-- iss #297 Added option to give as input the data_resolution to average_data_by_period, monthly_means, coverage and 
-  merge_datasets_by_period functions
+- Update behaviour of `time_continuity_gaps` to find any gap that
+is not equal to the derived temporal resolution.
+- Added `data_resolution` argument to `average_data_by_period`, `monthly_means`, `coverage` and 
+  `merge_datasets_by_period` functions (Issue #[297](https://github.com/brightwind-dev/brightwind/issues/297))
 
 ## [2.0.0]
 - Major changes, notably

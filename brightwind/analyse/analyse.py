@@ -746,45 +746,73 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
 
 def time_continuity_gaps(data):
     """
-    Returns the start and end timestamps of missing data periods. Also days lost.
+    Returns a table listing all the time gaps in the data that are not equal to the derived temporal resolution.
+
+    For gaps that are greater than the derived temporal resolution the lost data in days is calculated. For gaps
+    less than the derived temporal resolution displays a NaN. These may be caused by some irregular time stamps.
+
+    The gaps are defined by showing the start and end timestamps just before and after the missing data periods.
 
     A missing data period is one where data is not available for some consecutive timestamps. This breaks
-    time continuity of the data. The function calculates the sampling period (resolution) of the data by
+    time continuity of the data. The function derives the temporal resolution of the data by
     finding the most common time difference between consecutive timestamps. Then it searches where the time
-    difference between consecutive timestamps does not match the sampling period, this is the missing data period.
-    It returns a DataFrame where the first column is the starting timestamp of the missing period and the second
-    column is the end date of the missing period. An additional column also shows how many days of data were lost
-    in a missing period.
+    difference between consecutive timestamps does not match the resolution, this is the missing data period.
 
+    It returns a DataFrame where the first column is the starting timestamp of the missing period (timestamp recorded
+    immediately before the gap) and the second column is the end date of the missing period (timestamp recorded
+    immediately after the gap).
+
+    An additional column also shows how many days of data were lost in a missing period. This is not a difference 
+    in the two available timestamps. It gives the actual amount of data missing e.g. if the two timestamps were 
+    2020-01-01 01:10 and 2020-01-01 01:50 the days lost will equate to a 30 min of missing data and not 40 min.
 
     :param data: Data for checking continuity, timestamp must be the index
-    :type data: pandas.Series or pandas.DataFrame
-    :return: A DataFrame with the start and end timestamps of missing gaps in the data along with the size of the gap
-        in days lost.
-    :rtype: pandas.DataFrame
+    :type data:  pd.Series or pd.DataFrame
+    :return:     A table listing all the time gaps in the data that are not equal to the derived
+                 temporal resolution.
+    :rtype:      pd.DataFrame
 
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.shell_flats_80m_csv)
-        bw.time_continuity_gaps(data['WS70mA100NW_Avg'])
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        bw.time_continuity_gaps(data)
+
+        bw.time_continuity_gaps(data['Spd80mN'])
 
     """
     indexes = data.dropna(how='all').index
     resolution = tf._get_data_resolution(indexes)
-    # print(resolution)
+    resolution_days = resolution / pd.Timedelta('1 days')
+
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1],
                                'Date To': indexes.values.flatten()[1:]})
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
 
     # Remove indexes where no days are lost before returning
-    filtered = continuity[continuity['Days Lost'] != (tf._get_data_resolution(indexes) / pd.Timedelta('1 days'))]
+    if resolution == pd.Timedelta(1, unit='M'):
+        index_filter = ~continuity['Days Lost'].isin([28, 29, 30, 31])
+    elif resolution == pd.Timedelta(365, unit='D'):
+        raise NotImplementedError("time_continuity_gaps calculation not implemented yet "
+                                  "for timeseries with yearly resolution.")
+    else:
+        index_filter = continuity['Days Lost'] != resolution_days
 
-    # where only one timestamp is lost replace 0 by resolution lost.
-    filtered['Date From'] = filtered['Date From'] + resolution
-    filtered['Date To'] = filtered['Date To'] - resolution
-    filtered['Days Lost'] = (filtered['Date To'] - filtered['Date From']) / pd.Timedelta('1 days')
-    filtered.replace(0, (tf._get_data_resolution(indexes) / pd.Timedelta('1 days')), inplace=True)
+    filtered = continuity[['Date From', 'Date To']][index_filter]
+    days_lost_series = continuity['Days Lost'][index_filter]
+
+    # where time interval between timestamps is smaller than resolution because it is an irregular time-step
+    # set Days Lost as Nan.
+    days_lost_series[days_lost_series < resolution_days] = np.nan
+    # where time interval between timestamps is bigger than resolution remove resolution (ie 10 min) from Days Lost.
+    if resolution == pd.Timedelta(1, unit='M'):
+        days_lost_series[days_lost_series > resolution_days] = \
+            days_lost_series[days_lost_series > resolution_days] - filtered['Date From'][
+                days_lost_series > resolution_days].dt.daysinmonth
+    else:
+        days_lost_series[days_lost_series > resolution_days] = \
+            days_lost_series[days_lost_series > resolution_days] - resolution_days
+    filtered['Days Lost'] = days_lost_series
 
     return filtered
 
