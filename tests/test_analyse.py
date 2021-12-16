@@ -14,9 +14,19 @@ def test_monthly_means():
     bw.monthly_means(DATA)
     bw.monthly_means(DATA[['Spd80mN']])
 
-    bw.monthly_means(DATA[WSPD_COLS], return_data=True)
-    bw.monthly_means(DATA.Spd80mN, return_data=True)
-    assert True
+    assert list(round(bw.monthly_means(DATA[WSPD_COLS], return_data=True)[1][
+                      :'2016-01-01'], 5).values[0]) == [9.25346, 9.22915, 8.51025, 8.68109, 8.10126, 8.20393]
+    assert round(bw.monthly_means(DATA.Spd80mN, return_data=True)[1], 5)[0] == 9.25346
+    # input data_resolution
+    data_monthly = bw.average_data_by_period(DATA.Spd80mS, period='1M')
+    data_monthly = data_monthly[data_monthly.index.month.isin([2, 4, 6, 8])]
+    _, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
+                                            data_resolution=pd.Timedelta('1M'))
+    assert (monthly_mean_data.dropna() == data_monthly).all()
+    with pytest.raises(ValueError) as except_info:
+        bw.monthly_means(data_monthly, return_data=True)
+    assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
+                                     "For example, hourly data should not be averaged to 10 minute data."
 
 
 def test_sector_ratio():
@@ -95,13 +105,35 @@ def test_ti_twelve_by_24():
 
 def test_coverage():
     # hourly coverage
-    bw.coverage(DATA[['Spd80mN']], period='1H')
-    bw.coverage(DATA.Spd80mN, period='1H')
+    assert round(bw.coverage(DATA[['Spd80mN']], period='1H')[
+           '2016-01-09 17:00':'2016-01-09 17:30'].values[0][0], 5) == 0.83333
+    assert round(bw.coverage(DATA.Spd80mN, period='1H')[
+           '2016-01-09 17:00':'2016-01-09 17:30'].values[0], 5) == 0.83333
     # monthly_coverage
-    bw.coverage(DATA.Spd80mN, period='1M')
+    assert round(bw.coverage(DATA.Spd80mN, period='1M')['2016-05-01'], 5) == 0.36537
     # monthly_coverage of variance
-    bw.coverage(DATA.Spd80mN, period='1M', aggregation_method='var')
-    assert True
+    assert round(bw.coverage(DATA.Spd80mN, period='1M', aggregation_method='var')['2016-05-01'], 5) == 0.36537
+    # input data_resolution
+    data1 = DATA[:'2016-01-10'].copy()
+    data1.reset_index(inplace=True)
+    drop_indices = np.array([0, 66, 96, 43, 10, 21, 84, 11, 58, 120, 78, 166, 148,
+                             176, 31, 93, 114, 107, 17, 49, 110, 16, 130, 69, 106, 18,
+                             12, 77, 67, 29, 81, 28, 118, 95, 54, 179, 169, 72, 144,
+                             90, 38, 92, 142, 30, 45, 151, 126, 42, 73, 171, 99, 83,
+                             157, 75, 60, 82, 162, 22, 128, 52, 123, 153, 36, 20, 170,
+                             65, 152, 61, 140, 85, 111, 8, 37, 121, 63, 112, 141, 183,
+                             168, 74, 88, 119, 156, 51, 180, 143, 79, 134, 124, 117, 109,
+                             108, 86, 161, 155, 9, 182, 50, 3, 150, 138, 19, 15, 40,
+                             97, 158, 24, 113, 39, 1, 137, 4, 13, 57, 5, 35, 187,
+                             172, 47, 132, 122, 116, 33, 6, 181, 62, 133, 32, 25, 89,
+                             34, 94, 46, 14, 185, 76, 101, 100, 98, 167, 125, 164, 26,
+                             136, 139, 174, 127, 104, 80, 2, 178, 160, 173, 41, 59, 163,
+                             175, 64, 145, 27, 55, 149, 70, 146, 147, 103, 184, 165, 44,
+                             23, 115, 48, 68, 102, 53, 7, 129, 56, 135, 91])
+    data1 = data1.drop(drop_indices)
+    data1 = data1.set_index('Timestamp')
+    assert round(bw.coverage(data1.Spd80mS, period='1M',
+                             data_resolution=pd.Timedelta('10min')).values[0], 8) == 0.00179211
 
 
 def test_dist_by_dir_sector():

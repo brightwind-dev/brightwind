@@ -239,11 +239,14 @@ def _get_overlapping_data(df1, df2, averaging_prd=None):
     return df1[start:], df2[start:]
 
 
-def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
+def _max_coverage_count(data_index, averaged_data_index, data_resolution=None)->pd.Series:
     """
     For a given resolution of data finds the maximum number of data points in the averaging period
     """
-    data_res = _get_data_resolution(data_index)
+    if data_resolution is None:
+        data_res = _get_data_resolution(data_index)
+    else:
+        data_res = data_resolution
 
     max_pts = (averaged_data_index.to_series().diff().shift(-1)) / data_res
     # Fill in the last in the list as it is a NaT
@@ -255,22 +258,26 @@ def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
     return max_pts
 
 
-def _get_coverage_by_grouper_obj(data, grouper_obj):
+def _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=None):
     """
     Counts the number of data points in the grouper_obj relative to the maximum possible
 
-    :param data: The data to find the coverage for.
-    :type  data: pd.DataFrame or pd.Series
-    :param grouper_obj: The object that has grouped the data already. The mean, sum, count, etc. can then be found.
-    :type  grouper_obj: pd.DatetimeIndexResampler
+    :param data:            The data to find the coverage for.
+    :type  data:            pd.DataFrame or pd.Series
+    :param grouper_obj:     The object that has grouped the data already. The mean, sum, count, etc. can then be found.
+    :type  grouper_obj:     pd.DatetimeIndexResampler
+    :param data_resolution: Data resolution to give as input if the coverage of the data timeseries is extremely low
+                            and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:  None or pd.Timedelta
     :return:
     """
-    coverage = grouper_obj.count().divide(_max_coverage_count(data.index, grouper_obj.mean().index), axis=0)
+    coverage = grouper_obj.count().divide(_max_coverage_count(data.index, grouper_obj.mean().index,
+                                                              data_resolution=data_resolution), axis=0)
     return coverage
 
 
 def average_data_by_period(data, period, wdir_column_names=None, aggregation_method='mean', coverage_threshold=None,
-                           return_coverage=False):
+                           return_coverage=False, data_resolution=None):
     """
     Averages the data by a time period specified.
 
@@ -321,9 +328,13 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     :param return_coverage:    If True appends and additional column in the DataFrame returned, with coverage calculated
                                for each period. The columns with coverage are named as <column name>_Coverage
     :type return_coverage:     bool
-    :returns: A DataFrame with data aggregated with the specified aggregation_method (mean by default). Additionally it
-              could be filtered based on coverage and have a coverage column depending on the parameters.
-    :rtype:   pd.DataFrame
+    :param data_resolution:    Data resolution to give as input if the coverage of the data timeseries is extremely low
+                               and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:     None or pd.Timedelta
+    :returns:                  A DataFrame with data aggregated with the specified aggregation_method (mean by default).
+                               Additionally it could be filtered based on coverage and have a coverage column depending
+                               on the parameters.
+    :rtype:                    pd.DataFrame
 
     **Example usage**
     ::
@@ -345,6 +356,11 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
         # To average wind directions by vector averaging
         data_monthly_wdir_avg = bw.average_data_by_period(data.Dir78mS, period='1M', wdir_column_names='Dir78mS')
 
+        # To check the coverage for all months giving as input the data resolution as 10 min if data coverage is
+        # extremely low and it is not possible to define the most common time interval between timestamps
+        data_monthly_irregular = bw.average_data_by_period(data.Spd80mN, period='1M', return_coverage=True,
+                                                           data_resolution=pd.Timedelta('10 min'))
+
     """
     coverage_threshold = _validate_coverage_threshold(coverage_threshold)
 
@@ -361,9 +377,10 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
             raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
 
     # Check that the data resolution is not less than the period specified
-    if _freq_str_to_timedelta(period) < _get_data_resolution(data.index):
-        raise ValueError("The time period specified is less than the temporal resolution of the data. "
-                         "For example, hourly data should not be averaged to 10 minute data.")
+    if data_resolution is None:
+        if _freq_str_to_timedelta(period) < _get_data_resolution(data.index):
+            raise ValueError("The time period specified is less than the temporal resolution of the data. "
+                             "For example, hourly data should not be averaged to 10 minute data.")
     data = data.sort_index()
     grouper_obj = data.resample(period, axis=0, closed='left', label='left', base=0,
                                 convention='start', kind='timestamp')
@@ -394,15 +411,17 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
         # if data is a Series grouper_obj doesn't take columns and averaged data is a Series and not a DataFrame.
         if isinstance(data, pd.DataFrame):
             wdir_grouped_data = grouper_obj[wdir_column_names].agg(average_wdirs)
-            wdir_coverage = _get_coverage_by_grouper_obj(data[wdir_column_names], grouper_obj[wdir_column_names])
+            wdir_coverage = _get_coverage_by_grouper_obj(data[wdir_column_names], grouper_obj[wdir_column_names],
+                                                         data_resolution=data_resolution)
         else:
             wdir_grouped_data = grouper_obj.agg(average_wdirs)
-            wdir_coverage = _get_coverage_by_grouper_obj(data, grouper_obj)
+            wdir_coverage = _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=data_resolution)
 
         # average non_wdir data if available
         if non_wdir_col_names:
             non_wdir_grouped_data = grouper_obj[non_wdir_col_names].agg('mean')
-            non_wdir_coverage = _get_coverage_by_grouper_obj(data[non_wdir_col_names], grouper_obj[non_wdir_col_names])
+            non_wdir_coverage = _get_coverage_by_grouper_obj(data[non_wdir_col_names], grouper_obj[non_wdir_col_names],
+                                                             data_resolution=data_resolution)
 
             grouped_data = pd.concat([non_wdir_grouped_data, wdir_grouped_data], axis=1)
             coverage = pd.concat([non_wdir_coverage, wdir_coverage], axis=1)
@@ -415,7 +434,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     else:
         # group data as normal
         grouped_data = grouper_obj.agg(aggregation_method)
-        coverage = _get_coverage_by_grouper_obj(data, grouper_obj)
+        coverage = _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=data_resolution)
 
     grouped_data = grouped_data[coverage >= coverage_threshold]
 
@@ -630,7 +649,8 @@ def average_wdirs(wdirs, wspds=None):
 def merge_datasets_by_period(data_1, data_2, period,
                              wdir_column_names_1=None, wdir_column_names_2=None,
                              aggregation_method_1='mean', aggregation_method_2='mean',
-                             coverage_threshold_1=None, coverage_threshold_2=None,):
+                             coverage_threshold_1=None, coverage_threshold_2=None, data_1_resolution=None,
+                             data_2_resolution=None):
     """
     Merge 2 datasets on a time period by aligning the overlapped aggregated data.
 
@@ -687,6 +707,14 @@ def merge_datasets_by_period(data_1, data_2, period,
                                  default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
                                  less than the coverage_threshold are removed.
     :type coverage_threshold_2:  float or None
+    :param data_1_resolution:    Data resolution of first dataset to give as input if the coverage of the data
+                                 timeseries is extremely low and it is not possible to define the most common time
+                                 interval between timestamps
+    :type data_1_resolution:     None or pd.Timedelta
+    :param data_2_resolution:    Data resolution of second dataset to give as input if the coverage of the data
+                                 timeseries is extremely low and it is not possible to define the most common
+                                 time interval between timestamps
+    :type data_2_resolution:     None or pd.Timedelta
     :return:                     Merged datasets.
     :rtype:                      pd.DataFrame
 
@@ -702,6 +730,16 @@ def merge_datasets_by_period(data_1, data_2, period,
                                                 wdir_column_names_1='WD50m_deg', wdir_column_names_2='Dir78mS',
                                                 coverage_threshold_1=0.95, coverage_threshold_2=0.95,
                                                 aggregation_method_1='mean', aggregation_method_2='mean')
+        # To find monthly concurrent averages of two datasets giving as input the data resolution as 1 hour for data_1
+        # and 10 min for data_2 if data coverage is extremely low and it is not possible to define the most common time
+        # interval between timestamps for each dataset.
+        mrgd_data = bw.merge_datasets_by_period(m2[['WS50m_m/s', 'WD50m_deg']], data[['Spd80mN', 'Dir78mS']],
+                                                period='1MS',
+                                                wdir_column_names_1='WD50m_deg', wdir_column_names_2='Dir78mS',
+                                                coverage_threshold_1=0, coverage_threshold_2=0,
+                                                aggregation_method_1='mean', aggregation_method_2='mean',
+                                                data_1_resolution=pd.Timedelta('1H'),
+                                                data_2_resolution=pd.Timedelta('10min'))
 
     """
     data_1_overlap, data_2_overlap = _get_overlapping_data(data_1.sort_index().dropna(),
@@ -714,12 +752,12 @@ def merge_datasets_by_period(data_1, data_2, period,
                                                       wdir_column_names=wdir_column_names_1,
                                                       coverage_threshold=coverage_threshold_1,
                                                       aggregation_method=aggregation_method_1,
-                                                      return_coverage=True)) +
+                                                      return_coverage=True, data_resolution=data_1_resolution)) +
                           list(average_data_by_period(data_2_overlap, period=period,
                                                       wdir_column_names=wdir_column_names_2,
                                                       coverage_threshold=coverage_threshold_2,
                                                       aggregation_method=aggregation_method_2,
-                                                      return_coverage=True)),
+                                                      return_coverage=True, data_resolution=data_2_resolution)),
                           axis=1)
     return mrgd_data.dropna()
 

@@ -174,7 +174,7 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
-def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]'):
+def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]', data_resolution=None):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
@@ -188,13 +188,16 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     :type return_coverage: bool
     :param ylabel: Label for the y-axis, Wind speed [m/s] by default
     :type   ylabel: str
+    :param data_resolution: Data resolution to give as input if the coverage of the data timeseries is extremely low
+                            and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:  None or pd.Timedelta
     :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
         the first element is plot and second is data pertaining to monthly means.
 
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.shell_flats_80m_csv)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         monthly_means_plot, monthly_means = bw.monthly_means(data, return_data=True)
         print("Monthly means data for all the columns:")
@@ -203,15 +206,22 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
         monthly_means_plot
 
         # For a single column only
-        bw.monthly_means(data.WS80mWS425NW_Avg)
+        bw.monthly_means(data.Spd80mS)
 
         # Return coverage
-        monthly_means_plot, monthly_means = bw.monthly_means(data.WS80mWS425NW_Avg, return_coverage=True)
+        monthly_means_plot, monthly_means = bw.monthly_means(data.Spd80mS, return_coverage=True)
         monthly_means_plot
+
+        # To find coverage giving as input the data resolution as 1 month if data coverage is extremely low and
+        # it is not possible to define the most common time interval between timestamps
+        data_monthly = bw.average_data_by_period(data.Spd80mS, period='1M')
+        data_monthly = data_monthly[data_monthly.index.month.isin([2, 4, 6, 8])]
+        monthly_means_plot, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
+                                                                 data_resolution=pd.Timedelta('1M'))
 
     """
 
-    df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True)
+    df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True, data_resolution=data_resolution)
     if return_data and not return_coverage:
         return plt.plot_monthly_means(df, ylbl=ylabel), df
     if return_coverage:
@@ -807,7 +817,7 @@ def time_continuity_gaps(data):
     return filtered
 
 
-def coverage(data, period='1M', aggregation_method='mean'):
+def coverage(data, period='1M', aggregation_method='mean', data_resolution=None):
     """
     Get the data coverage over the period specified.
 
@@ -833,6 +843,9 @@ def coverage(data, period='1M', aggregation_method='mean'):
         `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product, summation,
         standard deviation, variance, maximum and minimum respectively.
     :type aggregation_method: str
+    :param data_resolution: Data resolution to give as input if the coverage of the data timeseries is extremely low
+                            and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:  None or pd.Timedelta
     :return: A DataFrame with data aggregated with the specified aggregation_method (mean by default) and coverage.
             The columns with coverage are named as <column name>_Coverage
 
@@ -853,6 +866,10 @@ def coverage(data, period='1M', aggregation_method='mean'):
         #To find monthly_coverage of variance
         data_monthly_var = bw.coverage(data.Spd80mN, period='1M', aggregation_method='var')
 
+        # To find monthly_coverage giving as input the data resolution as 10 min if data coverage is extremely low and
+        # it is not possible to define the most common time interval between timestamps
+        bw.coverage(data1.Spd80mS, period='1M', data_resolution=pd.Timedelta('10min'))
+
 
     See Also
     --------
@@ -860,7 +877,7 @@ def coverage(data, period='1M', aggregation_method='mean'):
     """
 
     return tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,
-                                     return_coverage=True)[1]
+                                     return_coverage=True, data_resolution=data_resolution)[1]
 
 
 def basic_stats(data):
