@@ -10,7 +10,8 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
 ## [Unreleased]
--
+- iss #297 Added option to give as input the data_resolution to average_data_by_period, monthly_means, coverage and 
+  merge_datasets_by_period functions
 
 ## [2.0.0]
 - Major changes, notably
