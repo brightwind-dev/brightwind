@@ -190,7 +190,7 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     :type   ylabel: str
     :param data_resolution: Data resolution to give as input if the coverage of the data timeseries is extremely low
                             and it is not possible to define the most common time interval between timestamps
-    :type data_resolution:  None or pd.Timedelta
+    :type data_resolution:  None or pd.DateOffset
     :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
         the first element is plot and second is data pertaining to monthly means.
 
@@ -217,7 +217,7 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
         data_monthly = bw.average_data_by_period(data.Spd80mS, period='1M')
         data_monthly = data_monthly[data_monthly.index.month.isin([2, 4, 6, 8])]
         monthly_means_plot, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
-                                                                 data_resolution=pd.Timedelta('1M'))
+                                                                 data_resolution=pd.DateOffset(months=1))
 
     """
 
@@ -783,16 +783,19 @@ def time_continuity_gaps(data):
     """
     indexes = data.dropna(how='all').index
     resolution = tf._get_data_resolution(indexes)
-    resolution_days = resolution / pd.Timedelta('1 days')
+    # If the data resolution is `1 month` or `1 year`, then the resolution will 
+    # dependent on which month or year. Hence, this rather hacky way to approach it
+    resolution_days = (indexes[0] + resolution - indexes[0]) / pd.Timedelta('1 days')
 
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1],
                                'Date To': indexes.values.flatten()[1:]})
     continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
 
     # Remove indexes where no days are lost before returning
-    if resolution == pd.Timedelta(1, unit='M'):
+    
+    if resolution.kwds == {'months': 1}:
         index_filter = ~continuity['Days Lost'].isin([28, 29, 30, 31])
-    elif resolution == pd.Timedelta(365, unit='D'):
+    elif resolution.kwds == {'years':1}:
         raise NotImplementedError("time_continuity_gaps calculation not implemented yet "
                                   "for timeseries with yearly resolution.")
     else:
@@ -805,7 +808,7 @@ def time_continuity_gaps(data):
     # set Days Lost as Nan.
     days_lost_series[days_lost_series < resolution_days] = np.nan
     # where time interval between timestamps is bigger than resolution remove resolution (ie 10 min) from Days Lost.
-    if resolution == pd.Timedelta(1, unit='M'):
+    if resolution == pd.DateOffset(months=1):
         days_lost_series[days_lost_series > resolution_days] = \
             days_lost_series[days_lost_series > resolution_days] - filtered['Date From'][
                 days_lost_series > resolution_days].dt.daysinmonth
@@ -816,7 +819,7 @@ def time_continuity_gaps(data):
 
     return filtered
 
-
+ 
 def coverage(data, period='1M', aggregation_method='mean', data_resolution=None):
     """
     Get the data coverage over the period specified.
@@ -845,7 +848,7 @@ def coverage(data, period='1M', aggregation_method='mean', data_resolution=None)
     :type aggregation_method: str
     :param data_resolution: Data resolution to give as input if the coverage of the data timeseries is extremely low
                             and it is not possible to define the most common time interval between timestamps
-    :type data_resolution:  None or pd.Timedelta
+    :type data_resolution:  None or pd.DateOffset
     :return: A DataFrame with data aggregated with the specified aggregation_method (mean by default) and coverage.
             The columns with coverage are named as <column name>_Coverage
 
@@ -868,7 +871,7 @@ def coverage(data, period='1M', aggregation_method='mean', data_resolution=None)
 
         # To find monthly_coverage giving as input the data resolution as 10 min if data coverage is extremely low and
         # it is not possible to define the most common time interval between timestamps
-        bw.coverage(data1.Spd80mS, period='1M', data_resolution=pd.Timedelta('10min'))
+        bw.coverage(data1.Spd80mS, period='1M', data_resolution=pd.DateOffset(minutes=10))
 
 
     See Also

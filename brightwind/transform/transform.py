@@ -1,5 +1,7 @@
+import datetime
 import numpy as np
 import pandas as pd
+from pandas.tseries.offsets import DateOffset
 from brightwind.utils import utils
 from brightwind.load.station import _Measurements
 from brightwind.load.station import DATE_INSTEAD_OF_NONE
@@ -39,29 +41,42 @@ def _compute_wind_vector(wspd, wdir):
     return wspd*np.cos(wdir), wspd*np.sin(wdir)
 
 
-def _freq_str_to_timedelta(period):
+def _freq_str_to_DateOffset(period):
     """
-    Convert a pandas frequency string to a pd.Timedelta.
+    Convert a pandas frequency string to a pd.DateOffset.
 
-    This is needed because support for MS and AS was dropped. Pandas frequency strings are available here:
-    https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
+    (Deprecated) Previously the freq str was converted to pd.timeDelta whose support
+    for 'M' (month) and 'Y' (year) has been deprecated in Pandas as they have variable
+    number of days and hence the pd.timeDelta depends on which year or month.
 
     :param period: Frequency string to be converted to a pd.Timedelta
     :type period:  str
-    :return:       A pd.Timedelta
-    :rtype:        pd.Timedelta
+    :return:       A pd.DateOffset
+    :rtype:        pd.DateOffset
     """
     if period[-1] == 'M':
-        as_timedelta = pd.Timedelta(int(period[:-1]), unit='M')
+        as_dateOffset = pd.DateOffset(months=int(period[:-1]))
     elif period[-2:] == 'MS':
-        as_timedelta = pd.Timedelta(int(period[:-2]), unit='M')
+        as_dateOffset = pd.DateOffset(months=int(period[:-2]))
     elif period[-1] == 'A':
-        as_timedelta = pd.Timedelta(365 * int(period[:-1]), unit='D')
+        as_dateOffset = pd.DateOffset(years=float(period[:-1]))
     elif period[-2:] == 'AS':
-        as_timedelta = pd.Timedelta(365 * int(period[:-2]), unit='D')
+        as_dateOffset = pd.DateOffset(years=float(period[:-2]))
+    elif period[-1:] == 'W':
+        as_dateOffset = pd.DateOffset(weeks=float(period[:-1]))
+    elif period[-1:] == 'D':
+        as_dateOffset = pd.DateOffset(days=float(period[:-1]))
+    elif period[-1:] == 'H':
+        as_dateOffset = pd.DateOffset(hours=float(period[:-1]))
+    elif period[-1:] == 'T':
+        as_dateOffset = pd.DateOffset(minutes=float(period[:-1]))
+    elif period[-3:] == 'min':
+        as_dateOffset = pd.DateOffset(minutes=float(period[:-3]))
+    elif period[-1:] == 'S':
+        as_dateOffset = pd.DateOffset(seconds=float(period[:-1]))
     else:
-        as_timedelta = pd.Timedelta(period)
-    return as_timedelta
+        raise ValueError('{} period not recognized. Only units "M", "MS", "A", "AS", "W", "D", "H", "T", "min", "S" are recognized')
+    return as_dateOffset
 
 
 def _convert_days_to_hours(prd):
@@ -96,8 +111,13 @@ def _get_data_resolution(data_idx):
     averaging period.
 
     The algorithm finds the most common time difference between consecutive time stamps and returns the
-    most common time stamp.
+    most common time frequency. The expected frequency will be one of 'seconds', 'minutes', 'hours', 'days',
+    'weeks', 'months', 'years'.
 
+
+    (Deprecated). Pandas `timedelta` will no longer be used to support the date resolution as it cannot reliably
+    represent months or years (due to irregular number of days). This functionality has been deprecated from the
+    underlying Pandas library starting in version 1+
     This function will return a specific Timedelta if a resolution of month or year is identified due to months and
     years having irregular numbers of days. These will be:
     - For monthly data:     pd.Timedelta(1, unit='M')       i.e. 30.436875 days
@@ -108,8 +128,8 @@ def _get_data_resolution(data_idx):
 
     :param data_idx: Timeseries index of a pd.DataFrame or pd.Series.
     :type data_idx:  pd.DataFrame.index or pd.Series.index
-    :return:         A time delta object which represents the time difference between consecutive timestamps.
-    :rtype:          pd.Timedelta
+    :return:         A date offset object which represents the time difference between consecutive timestamps.
+    :rtype:          pd.DateOffset
 
     **Example usage**
     ::
@@ -119,30 +139,40 @@ def _get_data_resolution(data_idx):
         resolution = bw.transform.transform._get_data_resolution(data.Spd80mS.index)
 
         # To check the number of seconds in resolution
-        print(resolution.seconds)
+        print(resolution.kwds)
 
         # To check if the resolution is monthly
-        resolution == pd.Timedelta(1, unit='M')
+        resolution == pd.DateOffset(months=1)
 
 
     """
+    # ** Strongly suggestion using pandas infer_freq function for this in future revision.
     time_diff_btw_timestamps = data_idx.to_series().diff()
     most_freq_time_diff = time_diff_btw_timestamps.mode().values[0]
     most_freq_time_diff = pd.to_timedelta(most_freq_time_diff)  # convert np.timedelta64 to pd.Timedelta
     minimum_time_diff = time_diff_btw_timestamps.min()
 
     if most_freq_time_diff.days in [28, 29, 30, 31]:    # check if monthly first
-        return pd.Timedelta(1, unit='M')
+        return pd.DateOffset(months=1)
     elif most_freq_time_diff.days in [365, 366]:        # then if yearly
-        return pd.Timedelta(365, unit='D')
-
+        return pd.DateOffset(years=1)
+    
     if minimum_time_diff != most_freq_time_diff:
         warnings.warn('\nFrequency of input data may not be determined correctly. Most frequent time '
                       'difference between adjacent timestamps does not match minimum time difference.\n'
                       'Most frequent time difference is:\t{0}\n'
                       'Minimum time difference is:\t\t{1}\n'
                       'Returning most frequent time difference.'.format(most_freq_time_diff, minimum_time_diff))
-    return most_freq_time_diff
+
+    if most_freq_time_diff.days>=1 and most_freq_time_diff.days<28:
+        return pd.DateOffset(days=most_freq_time_diff.total_seconds()/(60./24.0))
+    elif most_freq_time_diff.days<1 and most_freq_time_diff.total_seconds() >= 60*60:
+        return pd.DateOffset(hours=most_freq_time_diff.total_seconds()/(60.*60))
+    elif most_freq_time_diff.total_seconds() < (60*60):
+        return pd.DateOffset(minutes=most_freq_time_diff.total_seconds()/60.)
+    else:
+        return pd.DateOffset(seconds=most_freq_time_diff.total_seconds())
+
 
 
 def _round_down_to_multiple(num, divisor):
@@ -243,18 +273,18 @@ def _max_coverage_count(data_index, averaged_data_index, data_resolution=None)->
     """
     For a given resolution of data finds the maximum number of data points in the averaging period
     """
-    if data_resolution is None:
+
+    # If the input is not a pd.DateOffset (which is the valid way of representing time offsets)
+    if not isinstance(data_resolution, pd.DateOffset):
         data_res = _get_data_resolution(data_index)
     else:
         data_res = data_resolution
 
-    max_pts = (averaged_data_index.to_series().diff().shift(-1)) / data_res
-    # Fill in the last in the list as it is a NaT
-    max_pts[-1] = (((averaged_data_index[-1] + 1 * averaged_data_index[-1].freq) - averaged_data_index[-1]) /
-                   data_res)
-    if data_res == pd.Timedelta(1, unit='M'):
-        # The data resolution is monthly, therefore round the result to 0 decimal to make whole months.
-        max_pts = np.round(max_pts, 0)
+    averaged_data_res = averaged_data_index.freq or _get_data_resolution(averaged_data_index)
+
+    time_delta = averaged_data_index.map(lambda x: x + data_res) - averaged_data_index
+    max_pts = (averaged_data_index.map(lambda x: x + averaged_data_res) - averaged_data_index)/time_delta
+
     return max_pts
 
 
@@ -268,7 +298,7 @@ def _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=None):
     :type  grouper_obj:     pd.DatetimeIndexResampler
     :param data_resolution: Data resolution to give as input if the coverage of the data timeseries is extremely low
                             and it is not possible to define the most common time interval between timestamps
-    :type data_resolution:  None or pd.Timedelta
+    :type data_resolution:  None or pd.DateOffset
     :return:
     """
     coverage = grouper_obj.count().divide(_max_coverage_count(data.index, grouper_obj.mean().index,
@@ -330,7 +360,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     :type return_coverage:     bool
     :param data_resolution:    Data resolution to give as input if the coverage of the data timeseries is extremely low
                                and it is not possible to define the most common time interval between timestamps
-    :type data_resolution:     None or pd.Timedelta
+    :type data_resolution:     None or pd.DateOffset
     :returns:                  A DataFrame with data aggregated with the specified aggregation_method (mean by default).
                                Additionally it could be filtered based on coverage and have a coverage column depending
                                on the parameters.
@@ -359,7 +389,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
         # To check the coverage for all months giving as input the data resolution as 10 min if data coverage is
         # extremely low and it is not possible to define the most common time interval between timestamps
         data_monthly_irregular = bw.average_data_by_period(data.Spd80mN, period='1M', return_coverage=True,
-                                                           data_resolution=pd.Timedelta('10 min'))
+                                                           data_resolution=pd.DateOffset(minutes=10))
 
     """
     coverage_threshold = _validate_coverage_threshold(coverage_threshold)
@@ -375,10 +405,10 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
             period = period+'S'
         if period[-1] == 'Y':
             raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
-
+    
     # Check that the data resolution is not less than the period specified
     if data_resolution is None:
-        if _freq_str_to_timedelta(period) < _get_data_resolution(data.index):
+        if data.index[0] + _freq_str_to_DateOffset(period) < data.index[0] + _get_data_resolution(data.index):
             raise ValueError("The time period specified is less than the temporal resolution of the data. "
                              "For example, hourly data should not be averaged to 10 minute data.")
     data = data.sort_index()
@@ -435,7 +465,6 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
         # group data as normal
         grouped_data = grouper_obj.agg(aggregation_method)
         coverage = _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=data_resolution)
-
     grouped_data = grouped_data[coverage >= coverage_threshold]
 
     if return_coverage:
@@ -710,11 +739,11 @@ def merge_datasets_by_period(data_1, data_2, period,
     :param data_1_resolution:    Data resolution of first dataset to give as input if the coverage of the data
                                  timeseries is extremely low and it is not possible to define the most common time
                                  interval between timestamps
-    :type data_1_resolution:     None or pd.Timedelta
+    :type data_1_resolution:     None or pd.DateOffset
     :param data_2_resolution:    Data resolution of second dataset to give as input if the coverage of the data
                                  timeseries is extremely low and it is not possible to define the most common
                                  time interval between timestamps
-    :type data_2_resolution:     None or pd.Timedelta
+    :type data_2_resolution:     None or pd.DateOffset
     :return:                     Merged datasets.
     :rtype:                      pd.DataFrame
 
@@ -738,8 +767,8 @@ def merge_datasets_by_period(data_1, data_2, period,
                                                 wdir_column_names_1='WD50m_deg', wdir_column_names_2='Dir78mS',
                                                 coverage_threshold_1=0, coverage_threshold_2=0,
                                                 aggregation_method_1='mean', aggregation_method_2='mean',
-                                                data_1_resolution=pd.Timedelta('1H'),
-                                                data_2_resolution=pd.Timedelta('10min'))
+                                                data_1_resolution=pd.DateOffset(hours=1),
+                                                data_2_resolution=pd.DateOffset(minutes=10))
 
     """
     data_1_overlap, data_2_overlap = _get_overlapping_data(data_1.sort_index().dropna(),
@@ -1287,14 +1316,14 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             date_from='2016-01-01 01:40:00')
 
     """
-    import datetime
+    
     date_from = pd.to_datetime(date_from)
     date_to = pd.to_datetime(date_to)
 
     if isinstance(data, pd.Timestamp) or isinstance(data, datetime.date)\
             or isinstance(data, datetime.time)\
             or isinstance(data, datetime.datetime):
-        return data + pd.Timedelta(offset)
+        return data + _freq_str_to_DateOffset(offset)
 
     if isinstance(data, pd.DatetimeIndex):
         original = pd.to_datetime(data.values)
@@ -1305,7 +1334,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
         if pd.isnull(date_to):
             date_to = data[-1]
 
-        shifted_slice = original[(original >= date_from) & (original <= date_to)] + pd.Timedelta(offset)
+        shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_DateOffset(offset)
         shifted = original[original < date_from].append(shifted_slice)
         shifted = shifted.append(original[original > date_to])
         shifted = shifted.drop_duplicates().sort_values()
@@ -1324,7 +1353,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             if pd.isnull(date_to):
                 date_to = data.index[-1]
 
-            shifted_slice = original[(original >= date_from) & (original <= date_to)] + pd.Timedelta(offset)
+            shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_DateOffset(offset)
             intersection_front = original[(original < date_from)].intersection(shifted_slice)
             intersection_back = original[(original > date_to)].intersection(shifted_slice)
             if overwrite:
@@ -1334,8 +1363,8 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
                 sec2 = original[original > date_to].drop(intersection_back)
                 shifted = (sec1.append(shifted_slice)).append(sec2)
             else:
-                df_copy = df_copy.drop(intersection_front - pd.Timedelta(offset), axis=0)
-                df_copy = df_copy.drop(intersection_back - pd.Timedelta(offset), axis=0)
+                df_copy = df_copy.drop(intersection_front - _freq_str_to_DateOffset(offset), axis=0)
+                df_copy = df_copy.drop(intersection_back - _freq_str_to_DateOffset(offset), axis=0)
                 sec_mid = shifted_slice.drop(intersection_front).drop(intersection_back)
                 shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original > date_to)])
             df_copy.index = shifted
