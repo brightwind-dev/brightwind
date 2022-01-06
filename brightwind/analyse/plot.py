@@ -987,7 +987,8 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
     return ax.get_figure()
 
 
-def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1):
+def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, boom_dir_1=-1, boom_dir_2=-1, col_names,
+                      ax=None, radial_limits=None):
     """
     Accepts a DataFrame table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
     by sector. Optionally can include anemometer boom directions also.
@@ -1004,24 +1005,33 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     :param col_names: A list of strings containing column names of wind speeds, first string is divisor and second is
         dividend
     :type col_names: list(str)
+    :param ax: Subplot axes to which the subplot is assinged in a plot. If None subplot is displayed on its own.
+    :type ax: matplotlib.axes._subplots.AxesSubplot or None
+    :param radial_limits: the min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
+    :type radial_limits: tuple or list
+
     :returns A speed ratio plot showing average speed ratio by sector and scatter of individual data points.
 
     """
 
-    # modify to be _sector_ratio_subplot
+    if ax is None:
+        ax = plt.gca(polar=True)
+
+    if radial_limits is None:
+        max_level = sec_ratio_dist['Mean_Sector_Ratio'].max() + 0.05
+        min_level = sec_ratio_dist['Mean_Sector_Ratio'].min() - 0.1
+    else:
+        max_level = max(radial_limits)
+        min_level = min(radial_limits)
+    ax.set_ylim(min_level, max_level)
 
     radians = np.radians(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
-    fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
     ax.plot(np.append(radians, radians[0]), sec_ratio_dist['Mean_Sector_Ratio'].append(sec_ratio_dist.iloc[0]),
             color=COLOR_PALETTE.primary, linewidth=4)
-    # Get max and min levels and set chart axes
-    max_level = sec_ratio_dist['Mean_Sector_Ratio'].max() + 0.05
-    min_level = sec_ratio_dist['Mean_Sector_Ratio'].min() - 0.1
-    ax.set_ylim(min_level, max_level)
+
     # Add boom dimensions to chart, if required
     width = np.pi / 108
     radii = max_level
@@ -1046,10 +1056,10 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
                                                                            col_names[0], boom_dir_1)
         annotate = True
     if annotate:
-        ax.annotate(annotation_text, xy=(0.5, 0.035), xycoords='figure fraction', horizontalalignment='center')
+        ax.set_title(annotation_text, y=-0.1, fontsize=plt.rcParams['ytick.labelsize'])
     ax.scatter(np.radians(wdir), sec_ratio, color=COLOR_PALETTE.secondary, alpha=0.3, s=1)
-    plt.close()
-    return ax.get_figure()
+
+    return ax
 
 
 def plot_power_law(avg_alpha, avg_c, wspds, heights, max_plot_height=None, avg_slope=None, avg_intercept=None,
