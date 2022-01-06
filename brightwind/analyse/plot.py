@@ -1007,6 +1007,9 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     :returns A speed ratio plot showing average speed ratio by sector and scatter of individual data points.
 
     """
+
+    # modify to be _sector_ratio_subplot
+
     radians = np.radians(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
