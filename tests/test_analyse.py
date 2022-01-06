@@ -35,6 +35,13 @@ def test_sector_ratio():
     bw.sector_ratio(DATA[['Spd40mN']], DATA.Spd60mN, wdir=DATA[['Dir38mS']])
     bw.sector_ratio(DATA.Spd40mN, DATA.Spd60mN, wdir=DATA.Dir38mS,
                     direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=160, boom_dir_2=340)
+    bw.sector_ratio(DATA.Spd80mN, DATA.Spd80mS, wdir=DATA.Dir78mS, radial_limits=(0.8, 1.2),
+                    figure_size=(10,10))
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN']], DATA[['Spd80mS', 'Spd60mS']],
+                    DATA['Dir78mS'], boom_dir_1=0, boom_dir_2=180, figure_size=(25,25))
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']], DATA[['Spd80mS', 'Spd60mS', 'Spd40mS']],
+                    DATA[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180,
+                    figure_size=(25,25))
     assert True
 
 
