@@ -987,24 +987,87 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
     return ax.get_figure()
 
 
-def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, boom_dir_1=-1, boom_dir_2=-1, col_names,
-                      ax=None, radial_limits=None):
+def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1,
+                      radial_limits=None, figure_size=(10,10), **kwargs):
     """
-    Accepts a DataFrame table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
-    by sector. Optionally can include anemometer boom directions also.
+    Accepts multiple ratio of anemometer pairs per sector, a wind direction, multiple distributions of anemometer ratio
+    pairs per sector, along with 2 anemometer names, and plots the speed ratio by sector. Optionally can include
+    anemometer boom directions also.
+
+    :param sec_ratio: Sector_ratios
+    :type sec_ratio: pandas.Series or dict
+    :param wdir: Direction series
+    :type wdir: pandas.Series
+    :param sec_ratio_dist: DataFrames from SectorRatio.by_sector()
+    :type sec_ratio_dist: pandas.Series or dict
+    :param col_names: A list of strings containing column names of wind speeds, first string is divisor and second is
+                      dividend
+    :type col_names: list(str)
+    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to -1.
+    :type boom_dir_1: float
+    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1.
+    :type boom_dir_2: float
+    :param radial_limits: the min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
+    :type radial_limits: tuple or list
+
+    :returns A speed ratio plot showing average speed ratio by sector and scatter of individual data points.
+
+    """
+
+    if type(sec_ratio) == pd.core.series.Series:
+        sec_ratio = {0: sec_ratio}
+
+    wdir = pd.DataFrame(wdir)
+
+    if len(wdir.columns) != 1:
+        if len(wdir.columns) != len(sec_ratio):
+            raise ValueError('Number of anemometers does not match number of wind vanes. Please ensure there is one ' +
+                             'direction vane per anemometer pair or include one direcion vane only to be used for ' +
+                             'all anemometer pairs.')
+
+    row, col = _get_best_row_col_number_for_subplot(len(sec_ratio))
+    fig, axes = plt.subplots(row, col, figsize=figure_size, subplot_kw={'projection': 'polar'}, **kwargs)
+
+    if (len(sec_ratio)) > 1:
+        axes = axes.flatten()
+    else:
+        axes = [axes]
+
+    for pair in sec_ratio:
+        if len(wdir.columns) == 1:
+            wd = _convert_df_to_series(wdir).dropna()
+        else:
+            wd = _convert_df_to_series(wd.iloc[:, pair]).dropna()
+
+        common_idx = sec_ratio[pair].index.intersection(wd.index)
+
+        _plot_sector_ratio_subplot(sec_ratio[pair].loc[common_idx], wd.loc[common_idx], sec_ratio_dist[pair],
+                                   col_names[pair], boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2,
+                                   ax=axes[pair], radial_limits=radial_limits)
+        plt.close()
+
+    return fig
+
+def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1,
+                               ax=None, radial_limits=None):
+    """
+    Accepts a ratio of anemometers per sector, a wind direction, a distribution of anemometer ratios per sector,
+    along with 2 anemometer names, and returns an axis object to plot the speed ratio by sector. Optionally can
+    include anemometer boom directions also.
+
     :param sec_ratio: Series of sector_ratios
     :type sec_ratio: pandas.Series
     :param wdir: Direction series
     :type wdir: pandas.Series
     :param sec_ratio_dist: DataFrame from SectorRatio.by_sector()
-    :type sec_ratio_dist; pandas.Series
+    :type sec_ratio_dist: pandas.Series
+    :param col_names: A list of strings containing column names of wind speeds, first string is divisor and second is
+                      dividend
+    :type col_names: list(str)
     :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to -1.
     :type boom_dir_1: float
     :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1.
     :type boom_dir_2: float
-    :param col_names: A list of strings containing column names of wind speeds, first string is divisor and second is
-        dividend
-    :type col_names: list(str)
     :param ax: Subplot axes to which the subplot is assinged in a plot. If None subplot is displayed on its own.
     :type ax: matplotlib.axes._subplots.AxesSubplot or None
     :param radial_limits: the min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
