@@ -1108,7 +1108,7 @@ def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
 
 
 def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_array=None, boom_dir_1=-1,
-                 boom_dir_2=-1, return_data=False, radial_limits=None, figure_size=(15,15), **kwargs):
+                 boom_dir_2=-1, return_data=False, radial_limits=None, figure_size=(10,10), **kwargs):
     """
     Calculates the wind speed ratio of two wind speed time series and plots this ratio, averaged by direction sector,
     in a polar plot using a wind direction time series. The averaged ratio by sector can be optionally returned
@@ -1172,6 +1172,15 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
         bw.sector_ratio(data[['Spd80mN', 'Spd60mN', 'Spd40mN']], data[['Spd80mS', 'Spd60mS', 'Spd40mS']],
                         data[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25,25))
 
+        # To return the data of multiple sector ratio plots
+        sector_ratio(data[['Spd80mN', 'Spd60mN', 'Spd40mN']], data[['Spd80mS', 'Spd60mS', 'Spd40mS']],
+                     data[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25,25),
+                     return_data=True)
+
+        # To return the data only of one sector ratio plot
+        fig, num = sector_ratio(data['Spd80mN'], data['Spd80mS'], data['Dir78mS'], boom_dir_1=0, boom_dir_2=180,
+                                return_data=True)
+        num
     """
 
     ws_1 = pd.DataFrame(wspd_1)
@@ -1179,50 +1188,53 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     wd = pd.DataFrame(wdir)
 
     if len(ws_1.columns) != len(ws_2.columns):
-        err = 'Error: Number of anemometers is uneven. Please ensure same number of anemometers in wspd_1 and wspd_2.'
-        return err
+        raise ValueError('Number of anemometers is uneven. ' +
+                         'Please ensure same number of anemometers in wspd_1 and wspd_2.')
 
     if len(wd.columns) != 1:
         if len(wd.columns) != len(ws_1.columns):
-            err = 'Error: Number of anemometers does not match number of wind vanes. Please ensure there is one direction vane per anemometer pair or include one direcion vane one to be used for all anemometer pairs.'
-            return err
+            raise ValueError('Number of anemometers does not match number of wind vanes. ' +
+                             'Please ensure there is one direction vane per anemometer pair or ' +
+                             'include one direcion vane only to be used for all anemometer pairs.')
 
-    row, col = _get_best_row_col_number_for_subplot(len(ws_1.columns))
-    fig, axes = matplotlib.pyplot.subplots(row, col, figsize=figure_size, subplot_kw={'projection': 'polar'}, **kwargs)
+    keys = range(len(ws_1.columns))
+    sec_rats = {}
+    sec_rats_dists = {}
+    col_names = {}
 
-    if (len(ws_1.columns)) > 1:
-        axes = axes.flatten()
-    else:
-        axes = [axes]
-
-    for sensor, ax_subplot in zip(range(len(ws_1.columns)), axes):
-        wspd_1 = _convert_df_to_series(ws_1.iloc[:, sensor]).dropna()
-        wspd_2 = _convert_df_to_series(ws_2.iloc[:, sensor]).dropna()
+    for sensor_pair in keys:
+        wspd_1 = _convert_df_to_series(ws_1.iloc[:, sensor_pair]).dropna()
+        wspd_2 = _convert_df_to_series(ws_2.iloc[:, sensor_pair]).dropna()
 
         if len(wd.columns) == 1:
             wdir = _convert_df_to_series(wd).dropna()
         else:
-            wdir = _convert_df_to_series(wd.iloc[:, sensor]).dropna()
-
-
+            wdir = _convert_df_to_series(wd.iloc[:, sensor_pair]).dropna()
 
         sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
-        common_idxs = sec_rat.index.intersection(wdir.index)
-        sec_rat_plot, sec_rat_dist = dist_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
-                                                        aggregation_method='mean', direction_bin_array=direction_bin_array,
-                                                        direction_bin_labels=None,return_data=True)
+        sec_rats[sensor_pair] = sec_rat
+        col_names[sensor_pair] = [wspd_1.name, wspd_2.name]
+
+        common_idx = sec_rat.index.intersection(wdir.index)
+
+        sec_rat_plot, sec_rat_dist = dist_by_dir_sector(sec_rat.loc[common_idx], wdir.loc[common_idx], sectors=sectors,
+                                                        aggregation_method='mean',
+                                                        direction_bin_array=direction_bin_array,
+                                                        direction_bin_labels=None, return_data=True)
         matplotlib.pyplot.close()
         sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
+        sec_rats_dists[sensor_pair] = sec_rat_dist
 
-        plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sec_rat_dist, [wspd_1.name, wspd_2.name],
-                              boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2,
-                              ax=ax_subplot, radial_limits=None)
+        fig = plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir, sec_ratio_dist=sec_rats_dists, col_names=col_names,
+                                boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2,
+                                radial_limits=radial_limits, figure_size=figure_size)
 
-        matplotlib.pyplot.close()
-
-        if return_data:
-            return fig, sec_rat_dist
-        return fig
+    if return_data:
+        if len(sec_rats_dists) == 1:
+            return fig, sec_rats_dists[0]
+        else:
+            return fig, sec_rats_dists
+    return fig
 
 
 def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=None, lapse_rate=-0.113,
