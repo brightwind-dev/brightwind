@@ -795,7 +795,7 @@ def time_continuity_gaps(data):
     
     if resolution.kwds == {'months': 1}:
         index_filter = ~continuity['Days Lost'].isin([28, 29, 30, 31])
-    elif resolution.kwds == {'years':1}:
+    elif resolution.kwds == {'years': 1}:
         raise NotImplementedError("time_continuity_gaps calculation not implemented yet "
                                   "for timeseries with yearly resolution.")
     else:

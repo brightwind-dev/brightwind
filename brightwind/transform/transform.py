@@ -41,42 +41,43 @@ def _compute_wind_vector(wspd, wdir):
     return wspd*np.cos(wdir), wspd*np.sin(wdir)
 
 
-def _freq_str_to_DateOffset(period):
+def _freq_str_to_dateoffset(period):
     """
     Convert a pandas frequency string to a pd.DateOffset.
 
-    (Deprecated) Previously the freq str was converted to pd.timeDelta whose support
+    (Deprecated) Previously the freq str was converted to pd.Timedelta whose support
     for 'M' (month) and 'Y' (year) has been deprecated in Pandas as they have variable
-    number of days and hence the pd.timeDelta depends on which year or month.
+    number of days and hence the pd.Timedelta depends on which year or month.
 
-    :param period: Frequency string to be converted to a pd.Timedelta
+    :param period: Frequency string to be converted to a pd.DateOffset
     :type period:  str
     :return:       A pd.DateOffset
     :rtype:        pd.DateOffset
     """
     if period[-1] == 'M':
-        as_dateOffset = pd.DateOffset(months=int(period[:-1]))
+        as_dateoffset = pd.DateOffset(months=int(period[:-1]))
     elif period[-2:] == 'MS':
-        as_dateOffset = pd.DateOffset(months=int(period[:-2]))
+        as_dateoffset = pd.DateOffset(months=int(period[:-2]))
     elif period[-1] == 'A':
-        as_dateOffset = pd.DateOffset(years=float(period[:-1]))
+        as_dateoffset = pd.DateOffset(years=float(period[:-1]))
     elif period[-2:] == 'AS':
-        as_dateOffset = pd.DateOffset(years=float(period[:-2]))
+        as_dateoffset = pd.DateOffset(years=float(period[:-2]))
     elif period[-1:] == 'W':
-        as_dateOffset = pd.DateOffset(weeks=float(period[:-1]))
+        as_dateoffset = pd.DateOffset(weeks=float(period[:-1]))
     elif period[-1:] == 'D':
-        as_dateOffset = pd.DateOffset(days=float(period[:-1]))
+        as_dateoffset = pd.DateOffset(days=float(period[:-1]))
     elif period[-1:] == 'H':
-        as_dateOffset = pd.DateOffset(hours=float(period[:-1]))
+        as_dateoffset = pd.DateOffset(hours=float(period[:-1]))
     elif period[-1:] == 'T':
-        as_dateOffset = pd.DateOffset(minutes=float(period[:-1]))
+        as_dateoffset = pd.DateOffset(minutes=float(period[:-1]))
     elif period[-3:] == 'min':
-        as_dateOffset = pd.DateOffset(minutes=float(period[:-3]))
+        as_dateoffset = pd.DateOffset(minutes=float(period[:-3]))
     elif period[-1:] == 'S':
-        as_dateOffset = pd.DateOffset(seconds=float(period[:-1]))
+        as_dateoffset = pd.DateOffset(seconds=float(period[:-1]))
     else:
-        raise ValueError('{} period not recognized. Only units "M", "MS", "A", "AS", "W", "D", "H", "T", "min", "S" are recognized')
-    return as_dateOffset
+        raise ValueError('{} period not recognized. Only units "M", "MS", "A", "AS", "W", "D", "H", "T", "min", "S" '
+                         'are recognized')
+    return as_dateoffset
 
 
 def _convert_days_to_hours(prd):
@@ -113,7 +114,6 @@ def _get_data_resolution(data_idx):
     The algorithm finds the most common time difference between consecutive time stamps and returns the
     most common time frequency. The expected frequency will be one of 'seconds', 'minutes', 'hours', 'days',
     'weeks', 'months', 'years'.
-
 
     (Deprecated). Pandas `timedelta` will no longer be used to support the date resolution as it cannot reliably
     represent months or years (due to irregular number of days). This functionality has been deprecated from the
@@ -164,15 +164,14 @@ def _get_data_resolution(data_idx):
                       'Minimum time difference is:\t\t{1}\n'
                       'Returning most frequent time difference.'.format(most_freq_time_diff, minimum_time_diff))
 
-    if most_freq_time_diff.days>=1 and most_freq_time_diff.days<28:
+    if most_freq_time_diff.days >= 1 and most_freq_time_diff.days < 28:
         return pd.DateOffset(days=most_freq_time_diff.total_seconds()/(60./24.0))
-    elif most_freq_time_diff.days<1 and most_freq_time_diff.total_seconds() >= 60*60:
+    elif most_freq_time_diff.days < 1 and most_freq_time_diff.total_seconds() >= 60*60:
         return pd.DateOffset(hours=most_freq_time_diff.total_seconds()/(60.*60))
     elif most_freq_time_diff.total_seconds() < (60*60):
         return pd.DateOffset(minutes=most_freq_time_diff.total_seconds()/60.)
     else:
         return pd.DateOffset(seconds=most_freq_time_diff.total_seconds())
-
 
 
 def _round_down_to_multiple(num, divisor):
@@ -408,7 +407,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     
     # Check that the data resolution is not less than the period specified
     if data_resolution is None:
-        if data.index[0] + _freq_str_to_DateOffset(period) < data.index[0] + _get_data_resolution(data.index):
+        if data.index[0] + _freq_str_to_dateoffset(period) < data.index[0] + _get_data_resolution(data.index):
             raise ValueError("The time period specified is less than the temporal resolution of the data. "
                              "For example, hourly data should not be averaged to 10 minute data.")
     data = data.sort_index()
@@ -1323,7 +1322,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
     if isinstance(data, pd.Timestamp) or isinstance(data, datetime.date)\
             or isinstance(data, datetime.time)\
             or isinstance(data, datetime.datetime):
-        return data + _freq_str_to_DateOffset(offset)
+        return data + _freq_str_to_dateoffset(offset)
 
     if isinstance(data, pd.DatetimeIndex):
         original = pd.to_datetime(data.values)
@@ -1334,7 +1333,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
         if pd.isnull(date_to):
             date_to = data[-1]
 
-        shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_DateOffset(offset)
+        shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_dateoffset(offset)
         shifted = original[original < date_from].append(shifted_slice)
         shifted = shifted.append(original[original > date_to])
         shifted = shifted.drop_duplicates().sort_values()
@@ -1353,7 +1352,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             if pd.isnull(date_to):
                 date_to = data.index[-1]
 
-            shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_DateOffset(offset)
+            shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_dateoffset(offset)
             intersection_front = original[(original < date_from)].intersection(shifted_slice)
             intersection_back = original[(original > date_to)].intersection(shifted_slice)
             if overwrite:
@@ -1363,8 +1362,8 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
                 sec2 = original[original > date_to].drop(intersection_back)
                 shifted = (sec1.append(shifted_slice)).append(sec2)
             else:
-                df_copy = df_copy.drop(intersection_front - _freq_str_to_DateOffset(offset), axis=0)
-                df_copy = df_copy.drop(intersection_back - _freq_str_to_DateOffset(offset), axis=0)
+                df_copy = df_copy.drop(intersection_front - _freq_str_to_dateoffset(offset), axis=0)
+                df_copy = df_copy.drop(intersection_back - _freq_str_to_dateoffset(offset), axis=0)
                 sec_mid = shifted_slice.drop(intersection_front).drop(intersection_back)
                 shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original > date_to)])
             df_copy.index = shifted

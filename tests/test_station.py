@@ -11,6 +11,7 @@ def _get_schema():
         schema = json.load(json_file)
     return schema
 
+
 SCHEMA = _get_schema()
 
 

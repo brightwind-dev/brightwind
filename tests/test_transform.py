@@ -171,7 +171,7 @@ def test_apply_wind_vane_dead_band_offset():
             data['Dir78mS'].fillna(0).round(10)).all()
 
 
-def test_freq_str_to_DateOffset():
+def test_freq_str_to_dateoffset():
     # Excluding monthly periods and above as it will depend on which month or year
     periods = ['1min', '5min', '10min', '15min',
                '1H', '3H', '6H',
@@ -182,10 +182,11 @@ def test_freq_str_to_DateOffset():
                86400.0, 604800.0, 604800.0, 1209600.0]
 
     for idx, period in enumerate(periods):
-        if type(bw.transform.transform._freq_str_to_DateOffset(period)) == pd.DateOffset:
+        if type(bw.transform.transform._freq_str_to_dateoffset(period)) == pd.DateOffset:
             # The data frequency is returned as a DateOffset. The time delta can be in seconds
             # can be derived adding the date offset to an actual date.
-            assert (ref_date + bw.transform.transform._freq_str_to_DateOffset(period) - ref_date).total_seconds() == results[idx]
+            assert (ref_date + bw.transform.transform._freq_str_to_dateoffset(period) - ref_date
+                    ).total_seconds() == results[idx]
 
 
 def test_round_timestamp_down_to_averaging_prd():
@@ -540,8 +541,8 @@ def test_average_data_by_period():
                              52, 72, 129, 111, 157, 150, 20, 24, 118, 178, 160])
     data1 = data1.drop(drop_indices)
     data1 = data1.set_index('Timestamp')
-    assert (bw.average_data_by_period(data1.Spd80mS, period='10min', data_resolution=pd.DateOffset(minutes=10)).dropna() ==
-            data1.Spd80mS).all()
+    assert (bw.average_data_by_period(data1.Spd80mS, period='10min', data_resolution=pd.DateOffset(minutes=10)).dropna()
+            == data1.Spd80mS).all()
     with pytest.raises(ValueError) as except_info:
         bw.average_data_by_period(data1.Spd80mS, period='10min')
     assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
