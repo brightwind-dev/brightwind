@@ -1095,13 +1095,16 @@ class SpeedSort(CorrelBase):
             dir_output = self._predict_dir(tf.average_data_by_period(self.ref_dir[ref_start_date:], self.averaging_prd,
                                                                      wdir_column_names=self._ref_dir_col_name,
                                                                      return_coverage=False))
+            dir_output = tf.average_data_by_period(self.target_dir[target_start_date:], self.averaging_prd,
+                                                   wdir_column_names=self._tar_dir_col_name,
+                                                   return_coverage=False).combine_first(dir_output)
 
         else:
             output = self._predict(input_spd, input_dir)
             dir_output = self._predict_dir(input_dir)
         output[output < 0] = 0
         return pd.concat([output.rename(self._tar_spd_col_name + "_Synthesized"),
-                          dir_output.rename(self._tar_dir_col_name + "_Synthesized")], axis=1, join='inner')
+                          dir_output.rename(self._tar_dir_col_name + "_Synthesized")], axis=1, join='outer')
 
     def plot_wind_directions(self):
         """
