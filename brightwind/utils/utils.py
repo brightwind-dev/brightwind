@@ -116,3 +116,73 @@ def bold(text):
     :return: str in bold
     """
     return '\x1b[1;30m'+text+'\x1b[0m' if text else '\x1b[1;30m'+'\x1b[0m'
+
+
+def _rename_equal_elements_between_two_inputs(input1, input2, input1_suffix=None):
+    """
+    Rename string elements of input1 if equal to any of the input2. The input1_suffix is added to the input1 strings
+    in common with input2. Note that both input1 and input2 must contain unique elements.
+
+    :param input1:          Input1 string or list of strings
+    :type input1:           str or list(str)
+    :param input2:          Input2 string or list of strings
+    :type input2:           str or list(str)
+    :param input1_suffix:   Input1 suffix to add to the input1 strings in common with input2. If None than the suffix
+                            '_1' is used
+    :type input1_suffix:    None or str
+    :returns input1_new:    String or list of strings with renamed elements if any string is in common with input2
+    :rtype:                 str or list(str)
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        input1 = ['Spd80mNT', 'Spd80mN', 'Spd50mN', 'Spd60mN']
+        input2 = ['Spd80mN', 'Spd50mN']
+        bw.utils.utils._rename_equal_elements_between_two_inputs(input1, input2)
+        # ['Spd80mNT', 'Spd80mN_1', 'Spd50mN_1', 'Spd60mN']
+
+        bw.utils.utils._rename_equal_elements_between_two_inputs('Spd80mN, input2, input1_suffix='_ref')
+        # 'Spd80mN_ref'
+
+    """
+    if type(input1) is list:
+        if len(set(input1)) < len(input1):
+            raise ValueError(
+                'input1 = {} contains duplicate strings. A list with unique elements should be used.'.format(input1))
+    elif type(input1) is not str and input1 is not None:
+        raise TypeError('input1 is a {} type. A str or a list of str should be used instead.'.format(
+            bold(type(input1).__name__)))
+
+    if type(input2) is list:
+        if len(set(input2)) < len(input2):
+            raise ValueError(
+                'input2 = {} contains duplicate strings. A list with unique elements should be used.'.format(input2))
+    elif type(input2) is not str and input2 is not None:
+        raise TypeError('input2 is a {} type. A str or a list of str should be used instead.'.format(
+            bold(type(input2).__name__)))
+
+    if input1_suffix is None:
+        input1_suffix = '_1'
+    elif type(input1_suffix) is not str:
+        raise TypeError('input1_suffix is a {} type. A string should be used instead.'.format(
+            bold(type(input1_suffix).__name__)))
+
+    if input1 is not None and input2 is not None:
+        if type(input1) is str and type(input2) is str:
+            if input1 == input2:
+                input1 = input1 + input1_suffix
+        elif type(input1) is list and type(input2) is str:
+            if len([i for i, s in enumerate(input1) if input2 == s]) == 1:
+                input1[input1.index(input2)] = input1[input1.index(input2)] + input1_suffix
+        elif type(input2) is list and type(input1) is str:
+            if len([i for i, s in enumerate(input2) if input1 == s]) == 1:
+                input1 = input1 + input1_suffix
+        elif type(input1) is list and type(input2) is list:
+            if any(map(lambda v: v in input2, input1)):
+                input1 = list(map(lambda v: v + input1_suffix if v in input2 else v, input1))
+
+    input1_new = input1
+
+    return input1_new
+

@@ -20,6 +20,7 @@ __all__ = ['']
 class CorrelBase:
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None, target_dir=None,
                  sectors=12, direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean'):
+
         self.ref_spd = ref_spd
         self.ref_dir = ref_dir
         self.target_spd = target_spd
@@ -34,9 +35,28 @@ class CorrelBase:
         self._ref_dir_col_name = ref_dir.name if ref_dir is not None else None
         self._tar_spd_col_name = target_spd.name if target_spd is not None else None
         self._tar_dir_col_name = target_dir.name if target_dir is not None else None
+
+        # Rename speed reference column name(s) if equal to target column name
+        if isinstance(ref_spd, pd.Series) and self._ref_spd_col_name is not None:
+            self._ref_spd_col_name = utils._rename_equal_elements_between_two_inputs(self._ref_spd_col_name,
+                                                                                     self._tar_spd_col_name,
+                                                                                     input1_suffix='_ref')
+            self.ref_spd = self.ref_spd.rename(self._ref_spd_col_name)
+        elif isinstance(ref_spd, pd.DataFrame) and self._ref_spd_col_names is not None:
+            self._ref_spd_col_names = utils._rename_equal_elements_between_two_inputs(list(self._ref_spd_col_names),
+                                                                                      self._tar_spd_col_name,
+                                                                                      input1_suffix='_ref')
+            self.ref_spd.columns = self._ref_spd_col_names
+        # Rename direction reference column name if equal to target column name
+        if self._ref_dir_col_name is not None and self._tar_dir_col_name is not None:
+            self._ref_dir_col_name = utils._rename_equal_elements_between_two_inputs(self._ref_dir_col_name,
+                                                                                     self._tar_dir_col_name,
+                                                                                     input1_suffix='_ref')
+            self.ref_dir = self.ref_dir.rename(self._ref_dir_col_name)
+
         # Average and merge datasets into one df
-        self.data = CorrelBase._averager(self, ref_spd, target_spd, averaging_prd, coverage_threshold,
-                                         ref_dir, target_dir, ref_aggregation_method, target_aggregation_method)
+        self.data = CorrelBase._averager(self, self.ref_spd, target_spd, averaging_prd, coverage_threshold,
+                                         self.ref_dir, target_dir, ref_aggregation_method, target_aggregation_method)
         self.num_data_pts = len(self.data)
         self.params = {'status': 'not yet run'}
 
@@ -536,7 +556,8 @@ class MultipleLinearRegression(CorrelBase):
     Series with timestamps as indexes. Also sen is an averaging period which merges the datasets by this time period
     before performing the correlation.
 
-    :param ref_spd:                   A list of Series containing reference wind speed as a column, timestamp as the index.
+    :param ref_spd:                   A list of Series containing reference wind speed as a column, timestamp as the
+                                      index.
     :type ref_spd:                    List(pd.Series)
     :param target_spd:                Series containing target wind speed as a column, timestamp as the index.
     :type target_spd:                 pd.Series
