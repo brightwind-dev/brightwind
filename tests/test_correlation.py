@@ -263,6 +263,29 @@ def test_synthesize():
         print(idx)
         assert str(row[0]) == str(round(synth.loc[idx][0], 6))
 
+    # Test the synthesise when SpeedSort correlation is used using 10 min averaging period.
+    data_test = DATA_CLND[['Spd80mN', 'Spd60mN', 'Dir78mS', 'Dir58mS']].copy()
+    data_test['Dir78mS']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.NaN
+    data_test['Spd80mN']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.NaN
+    data_test['Dir58mS']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.NaN
+    data_test['Spd60mN']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.NaN
+    ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir58mS'],
+                                 averaging_prd='10min')
+    ss_cor.run()
+    data_synt = ss_cor.synthesize()
+    assert (~data_synt['Dir58mS_Synthesized']['2016-01-09 18:00:00':'2016-01-09 19:10:00'].isnull()
+            ).all() and data_test['Dir58mS']['2016-01-09 18:00:00':'2016-01-09 19:10:00'].isnull().all()
+    assert (~data_synt['Spd60mN_Synthesized']['2016-01-09 18:00:00':'2016-01-09 19:10:00'].isnull()
+            ).all() and data_test['Spd60mN']['2016-01-09 18:00:00':'2016-01-09 19:10:00'].isnull().all()
+    assert ((data_synt['Spd60mN_Synthesized']['2016-01-09 18:00:00':'2016-01-09 18:30:00'] /
+            [7.46707, 8.12027, 9.29721, 9.77779] - 1) < 1e-6).all()
+    assert ((data_synt['Dir58mS_Synthesized']['2016-01-09 18:00:00':'2016-01-09 18:30:00'] /
+            [116.34621159, 115.74488287, 120.15381789, 115.54469266] - 1) < 1e-6).all()
+    assert (data_synt['Spd60mN_Synthesized']['2016-01-09 17:10:00':'2016-01-09 17:40:00']
+            == data_test['Spd60mN']['2016-01-09 17:10:00':'2016-01-09 17:40:00']).all()
+    assert (data_synt['Dir58mS_Synthesized']['2016-01-09 17:10:00':'2016-01-09 17:40:00']
+            == data_test['Dir58mS']['2016-01-09 17:10:00':'2016-01-09 17:40:00']).all()
+
 
 def test_orthogonal_least_squares():
     correl_monthly_results = {'slope': 1.01778, 'offset': -0.13473, 'r2': 0.8098, 'num_data_points': 18}
