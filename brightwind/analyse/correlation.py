@@ -648,9 +648,12 @@ class MultipleLinearRegression(CorrelBase):
     @staticmethod
     def _merge_ref_spds(ref_spds):
         # ref_spds is a list of pd.Series that may have the same names.
-        for idx, ref_spd in enumerate(ref_spds):
-            ref_spd.name = ref_spd.name + '_' + str(idx + 1)
-        return pd.concat(ref_spds, axis=1, join='inner')
+        df = pd.concat(ref_spds, axis=1, join='inner')
+        cols = pd.Series(df.columns)
+        for dup in cols[cols.duplicated()].unique():
+            cols[cols[cols == dup].index.values.tolist()] = [dup + '_' + str(i) for i in range(sum(cols == dup))]
+        df.columns = cols
+        return df
 
     def run(self, show_params=True):
         p, res = lstsq(np.column_stack((self.data[self._ref_spd_col_names].values, np.ones(len(self.data)))),
