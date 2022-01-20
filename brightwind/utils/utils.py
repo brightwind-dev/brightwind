@@ -142,7 +142,7 @@ def _rename_equal_elements_between_two_inputs(input1, input2, input1_suffix=None
         bw.utils.utils._rename_equal_elements_between_two_inputs(input1, input2)
         # ['Spd80mNT', 'Spd80mN_1', 'Spd50mN_1', 'Spd60mN']
 
-        bw.utils.utils._rename_equal_elements_between_two_inputs('Spd80mN, input2, input1_suffix='_ref')
+        bw.utils.utils._rename_equal_elements_between_two_inputs('Spd80mN', input2, input1_suffix='_ref')
         # 'Spd80mN_ref'
 
     """
