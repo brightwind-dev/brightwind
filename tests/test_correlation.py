@@ -286,6 +286,20 @@ def test_synthesize():
     assert (data_synt['Dir58mS_Synthesized']['2016-01-09 17:10:00':'2016-01-09 17:40:00']
             == data_test['Dir58mS']['2016-01-09 17:10:00':'2016-01-09 17:40:00']).all()
 
+    # Test the synthesise when SpeedSort correlation is used and ref_dir and target_dir are the same
+    ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir78mS'],
+                                 averaging_prd='10min')
+    ss_cor.run(show_params=False)
+    data_synt = ss_cor.synthesize()
+    assert (data_synt['Dir78mS_Synthesized'].dropna() == data_test['Dir78mS'].dropna()).all()
+
+    # Test the synthesise when SpeedSort correlation is used and ref_spd and target_spd are the same
+    ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd80mN'], data_test['Dir58mS'],
+                                 averaging_prd='10min')
+    ss_cor.run(show_params=False)
+    data_synt = ss_cor.synthesize()
+    assert (data_synt['Spd80mN_Synthesized'].dropna() == data_test['Spd80mN'].dropna()).all()
+
 
 def test_orthogonal_least_squares():
     correl_monthly_results = {'slope': 1.01778, 'offset': -0.13473, 'r2': 0.8098, 'num_data_points': 18}
