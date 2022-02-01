@@ -118,19 +118,18 @@ def bold(text):
     return '\x1b[1;30m'+text+'\x1b[0m' if text else '\x1b[1;30m'+'\x1b[0m'
 
 
-def _rename_equal_elements_between_two_inputs(input1, input2, input1_suffix=None):
+def _rename_equal_elements_between_two_inputs(input1, input2, input1_suffix='_1'):
     """
     Rename string elements of input1 if equal to any of the input2. The input1_suffix is added to the input1 strings
     in common with input2. Note that both input1 and input2 must contain unique elements.
 
-    :param input1:          Input1 string or list of strings
+    :param input1:          Input1 string or list of strings.
     :type input1:           str or list(str)
-    :param input2:          Input2 string or list of strings
+    :param input2:          Input2 string or list of strings.
     :type input2:           str or list(str)
-    :param input1_suffix:   Input1 suffix to add to the input1 strings in common with input2. If None than the suffix
-                            '_1' is used
+    :param input1_suffix:   Input1 suffix to add to the input1 strings in common with input2. Default suffix is '_1'.
     :type input1_suffix:    None or str
-    :returns input1_new:    String or list of strings with renamed elements if any string is in common with input2
+    :returns input1_new:    String or list of strings with renamed elements if any string is in common with input2.
     :rtype:                 str or list(str)
 
     **Example usage**
@@ -162,9 +161,7 @@ def _rename_equal_elements_between_two_inputs(input1, input2, input1_suffix=None
         raise TypeError('input2 is a {} type. A str or a list of str should be used instead.'.format(
             bold(type(input2).__name__)))
 
-    if input1_suffix is None:
-        input1_suffix = '_1'
-    elif type(input1_suffix) is not str:
+    if type(input1_suffix) is not str:
         raise TypeError('input1_suffix is a {} type. A string should be used instead.'.format(
             bold(type(input1_suffix).__name__)))
 

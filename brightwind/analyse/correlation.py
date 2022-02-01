@@ -36,23 +36,9 @@ class CorrelBase:
         self._tar_spd_col_name = target_spd.name if target_spd is not None else None
         self._tar_dir_col_name = target_dir.name if target_dir is not None else None
 
-        # Rename speed reference column name(s) if equal to target column name
-        if isinstance(ref_spd, pd.Series) and self._ref_spd_col_name is not None:
-            self._ref_spd_col_name = utils._rename_equal_elements_between_two_inputs(self._ref_spd_col_name,
-                                                                                     self._tar_spd_col_name,
-                                                                                     input1_suffix='_ref')
-            self.ref_spd = self.ref_spd.rename(self._ref_spd_col_name)
-        elif isinstance(ref_spd, pd.DataFrame) and self._ref_spd_col_names is not None:
-            self._ref_spd_col_names = utils._rename_equal_elements_between_two_inputs(list(self._ref_spd_col_names),
-                                                                                      self._tar_spd_col_name,
-                                                                                      input1_suffix='_ref')
-            self.ref_spd.columns = self._ref_spd_col_names
-        # Rename direction reference column name if equal to target column name
-        if self._ref_dir_col_name is not None and self._tar_dir_col_name is not None:
-            self._ref_dir_col_name = utils._rename_equal_elements_between_two_inputs(self._ref_dir_col_name,
-                                                                                     self._tar_dir_col_name,
-                                                                                     input1_suffix='_ref')
-            self.ref_dir = self.ref_dir.rename(self._ref_dir_col_name)
+        # Rename speed and direction reference column name(s) if any equal to target column name
+        self.ref_spd, self._ref_spd_col_name, self._ref_spd_col_names, self.ref_dir, self._ref_dir_col_name = \
+            self._rename_duplicated_columns()
 
         # Average and merge datasets into one df
         self.data = CorrelBase._averager(self, self.ref_spd, target_spd, averaging_prd, coverage_threshold,
@@ -170,6 +156,27 @@ class CorrelBase:
             logic_sector = ((ref_dir >= sector_min) & (ref_dir <= 360)) | \
                            ((ref_dir < sector_max) & (ref_dir >= 0))
         return logic_sector
+
+    def _rename_duplicated_columns(self):
+        # Rename speed reference column name(s) if equal to target column name
+        if isinstance(self.ref_spd, pd.Series) and self._ref_spd_col_name is not None:
+            self._ref_spd_col_name = utils._rename_equal_elements_between_two_inputs(self._ref_spd_col_name,
+                                                                                     self._tar_spd_col_name,
+                                                                                     input1_suffix='_ref')
+            self.ref_spd = self.ref_spd.rename(self._ref_spd_col_name)
+        elif isinstance(self.ref_spd, pd.DataFrame) and self._ref_spd_col_names is not None:
+            self._ref_spd_col_names = utils._rename_equal_elements_between_two_inputs(list(self._ref_spd_col_names),
+                                                                                      self._tar_spd_col_name,
+                                                                                      input1_suffix='_ref')
+            self.ref_spd.columns = self._ref_spd_col_names
+        # Rename direction reference column name if equal to target column name
+        if self._ref_dir_col_name is not None and self._tar_dir_col_name is not None:
+            self._ref_dir_col_name = utils._rename_equal_elements_between_two_inputs(self._ref_dir_col_name,
+                                                                                     self._tar_dir_col_name,
+                                                                                     input1_suffix='_ref')
+            self.ref_dir = self.ref_dir.rename(self._ref_dir_col_name)
+
+        return self.ref_spd, self._ref_spd_col_name, self._ref_spd_col_names, self.ref_dir, self._ref_dir_col_name
 
     def _get_synth_start_dates(self):
         none_even_freq = ['5H', '7H', '9H', '10H', '11H', '13H', '14H', '15H', '16H', '17H', '18H', '19H',
