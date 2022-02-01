@@ -461,8 +461,8 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
 
     # if x and y names are the same then rename pd.Series names to be unique
     if x.name == y.name:
-        x = x.rename(x.name + '_0')
-        y = y.rename(y.name + '_1')
+        x = x.rename(x.name + '_x')
+        y = y.rename(y.name + '_y')
 
     if x_label is None:
         x_label = x.name
