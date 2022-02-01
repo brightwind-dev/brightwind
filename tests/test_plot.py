@@ -30,6 +30,7 @@ def test_plot_scatter():
                          x_limits=(50, 300), y_limits=(250, 300))
     bw.plot_scatter_wspd(DATA.Spd80mN, DATA.Spd80mS, x_label='Speed at 80m North',
                          y_label='Speed at 80m South', x_limits=(0, 25), y_limits=(0, 25))
+    bw.plot_scatter_wspd(DATA.Spd80mN, DATA.Spd80mN, x_limits=(0, 25), y_limits=(0, 25))
 
     assert True
 
