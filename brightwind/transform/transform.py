@@ -1,7 +1,6 @@
 import datetime
 import numpy as np
 import pandas as pd
-from pandas.tseries.offsets import DateOffset
 from brightwind.utils import utils
 from brightwind.load.station import _Measurements
 from brightwind.load.station import DATE_INSTEAD_OF_NONE
@@ -45,9 +44,9 @@ def _freq_str_to_dateoffset(period):
     """
     Convert a pandas frequency string to a pd.DateOffset.
 
-    (Deprecated) Previously the freq str was converted to pd.Timedelta whose support
-    for 'M' (month) and 'Y' (year) has been deprecated in Pandas as they have variable
-    number of days and hence the pd.Timedelta depends on which year or month.
+    (Deprecated) Previously the freq str was converted to pd.Timedelta whose support for 'M' (month) and 'Y' (year)
+    has been deprecated in Pandas as they have variable number of days and hence the pd.Timedelta depends on
+    which year or month.
 
     :param period: Frequency string to be converted to a pd.DateOffset
     :type period:  str
@@ -75,8 +74,8 @@ def _freq_str_to_dateoffset(period):
     elif period[-1:] == 'S':
         as_dateoffset = pd.DateOffset(seconds=float(period[:-1]))
     else:
-        raise ValueError('{} period not recognized. Only units "M", "MS", "A", "AS", "W", "D", "H", "T", "min", "S" '
-                         'are recognized')
+        raise ValueError('"{}" period not recognized. Only units "M", "MS", "A", "AS", "W", "D", "H", "T", "min", "S" '
+                         'are recognized'.format(period))
     return as_dateoffset
 
 
@@ -115,13 +114,13 @@ def _get_data_resolution(data_idx):
     most common time frequency. The expected frequency will be one of 'seconds', 'minutes', 'hours', 'days',
     'weeks', 'months', 'years'.
 
-    (Deprecated). Pandas `timedelta` will no longer be used to support the date resolution as it cannot reliably
-    represent months or years (due to irregular number of days). This functionality has been deprecated from the
-    underlying Pandas library starting in version 1+
-    This function will return a specific Timedelta if a resolution of month or year is identified due to months and
-    years having irregular numbers of days. These will be:
-    - For monthly data:     pd.Timedelta(1, unit='M')       i.e. 30.436875 days
-    - For annual data:      pd.Timedelta(365, unit='D')     i.e. 365 days
+    (Deprecated). Pandas `Timedelta` will no longer be used to support the annual and monthly data resolution as
+    it cannot reliably represent months or years (due to irregular number of days). The underlying functionality
+    has been deprecated from the Pandas library starting in version 1+.
+        This function will return a specific Timedelta if a resolution of month or year is identified due to months and
+        years having irregular numbers of days. These will be:
+        - For monthly data:     pd.Timedelta(1, unit='M')       i.e. 30.436875 days
+        - For annual data:      pd.Timedelta(365, unit='D')     i.e. 365 days
 
     The function also checks the most common time difference against the minimum time difference. If they
     do not match it shows a warning. It is suggested to manually look at the data if such a warning is shown.
@@ -139,6 +138,9 @@ def _get_data_resolution(data_idx):
         resolution = bw.transform.transform._get_data_resolution(data.Spd80mS.index)
 
         # To check the number of seconds in resolution
+        print((data.index[0] + resolution - data.index[0]).seconds)
+
+        # To check the unit of resolution
         print(resolution.kwds)
 
         # To check if the resolution is monthly
@@ -268,14 +270,16 @@ def _get_overlapping_data(df1, df2, averaging_prd=None):
     return df1[start:], df2[start:]
 
 
-def _max_coverage_count(data_index, averaged_data_index, data_resolution=None)->pd.Series:
+def _max_coverage_count(data_index, averaged_data_index, data_resolution=None) -> pd.Float64Index:
     """
     For a given resolution of data finds the maximum number of data points in the averaging period
     """
 
-    # If the input is not a pd.DateOffset (which is the valid way of representing time offsets)
-    if not isinstance(data_resolution, pd.DateOffset):
+    if data_resolution is None:
         data_res = _get_data_resolution(data_index)
+    elif not isinstance(data_resolution, pd.DateOffset):
+        raise TypeError('Input data_resolution is {}. A Pandas DateOffset should be used instead.'.format(
+            type(data_resolution).__name__))
     else:
         data_res = data_resolution
 

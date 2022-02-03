@@ -173,13 +173,14 @@ def test_apply_wind_vane_dead_band_offset():
 
 def test_freq_str_to_dateoffset():
     # Excluding monthly periods and above as it will depend on which month or year
-    periods = ['1min', '5min', '10min', '15min',
-               '1H', '3H', '6H',
-               '1D', '7D', '1W', '2W'
-               ]
-    results = [60.0, 300.0, 600.0, 900.0,
-               3600.0, 10800.0, 21600.0,
-               86400.0, 604800.0, 604800.0, 1209600.0]
+    periods = ['1S', '1min', '5min', '10min', '15min',
+               '1H', '3H', '6H', '1D', '7D',
+               '1W', '2W', '1MS', '1M', '3M', '6MS',
+               '1AS', '1A', '3A']
+    results = [1.0, 60.0, 300.0, 600.0, 900.0,
+               3600.0, 10800.0, 21600.0, 86400.0, 604800.0,
+               604800.0, 1209600.0, 2678400.0, 2678400.0, 7862400.0, 15724800.0,
+               31622400.0, 31622400.0, 94694400.0]
 
     for idx, period in enumerate(periods):
         if type(bw.transform.transform._freq_str_to_dateoffset(period)) == pd.DateOffset:
@@ -187,6 +188,9 @@ def test_freq_str_to_dateoffset():
             # can be derived adding the date offset to an actual date.
             assert (ref_date + bw.transform.transform._freq_str_to_dateoffset(period) - ref_date
                     ).total_seconds() == results[idx]
+
+    # Check that data frequency is returned as a DateOffset.
+    assert type(bw.transform.transform._freq_str_to_dateoffset(period)) == pd.DateOffset
 
 
 def test_round_timestamp_down_to_averaging_prd():
@@ -547,6 +551,9 @@ def test_average_data_by_period():
         bw.average_data_by_period(data1.Spd80mS, period='10min')
     assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
                                      "For example, hourly data should not be averaged to 10 minute data."
+    with pytest.raises(TypeError) as except_info:
+        bw.average_data_by_period(data1.Spd80mS, period='10min', data_resolution=pd.Timedelta('10min'))
+    assert str(except_info.value) == "Input data_resolution is Timedelta. A Pandas DateOffset should be used instead."
 
 
 def test_merge_datasets_by_period():
