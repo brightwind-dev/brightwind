@@ -292,6 +292,8 @@ def test_synthesize():
     ss_cor.run(show_params=False)
     data_synt = ss_cor.synthesize()
     assert (data_synt['Dir78mS_Synthesized'].dropna() == data_test['Dir78mS'].dropna()).all()
+    assert ss_cor._ref_dir_col_name == 'Dir78mS_ref'
+    assert ss_cor._tar_dir_col_name == 'Dir78mS'
 
     # Test the synthesise when SpeedSort correlation is used and ref_spd and target_spd are the same
     ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd80mN'], data_test['Dir58mS'],
@@ -299,6 +301,8 @@ def test_synthesize():
     ss_cor.run(show_params=False)
     data_synt = ss_cor.synthesize()
     assert (data_synt['Spd80mN_Synthesized'].dropna() == data_test['Spd80mN'].dropna()).all()
+    assert ss_cor._ref_spd_col_name == 'Spd80mN_ref'
+    assert ss_cor._tar_spd_col_name == 'Spd80mN'
 
 
 def test_orthogonal_least_squares():

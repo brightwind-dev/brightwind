@@ -13,7 +13,6 @@ from brightwind.utils import utils
 import pprint
 import warnings
 
-
 __all__ = ['']
 
 
@@ -157,23 +156,57 @@ class CorrelBase:
                            ((ref_dir < sector_max) & (ref_dir >= 0))
         return logic_sector
 
+    @staticmethod
+    def _convert_str_to_list(input):
+        return [input] if type(input) is str else input
+
+    def _rename_equal_elements_between_two_inputs(self, input1, input2, input1_suffix='_1'):
+        """
+        Rename all string elements of input1 if any is equal to at least one of the input2. The input1_suffix is added
+        to the input1 strings. Note that both input1 and input2 must contain unique elements.
+
+        :param input1:          Input1 string or list of strings.
+        :type input1:           str or list(str)
+        :param input2:          Input2 string or list of strings.
+        :type input2:           str or list(str)
+        :param input1_suffix:   Input1 suffix to add to the input1 strings if any is in common with input2.
+                                Default suffix is '_1'.
+        :type input1_suffix:    str
+        :returns input1_new:    String or list of strings with renamed elements if any string is in common with input2.
+        :rtype:                 str or list(str)
+
+        """
+
+        input1_new = self._convert_str_to_list(input1)
+        input2_new = self._convert_str_to_list(input2)
+
+        if any(map(lambda v: v in input2_new, input1_new)):
+            input1_new = list(map(lambda v: v + input1_suffix, input1_new))
+            if type(input1) is str:
+                return input1_new[0]
+            else:
+                return input1_new
+        else:
+            return input1
+
     def _rename_duplicated_columns(self):
         # Rename speed reference column name(s) if equal to target column name
         if isinstance(self.ref_spd, pd.Series) and self._ref_spd_col_name is not None:
-            self._ref_spd_col_name = utils._rename_equal_elements_between_two_inputs(self._ref_spd_col_name,
-                                                                                     self._tar_spd_col_name,
-                                                                                     input1_suffix='_ref')
+            self._ref_spd_col_name = self._rename_equal_elements_between_two_inputs(self._ref_spd_col_name,
+                                                                                    self._tar_spd_col_name,
+                                                                                    input1_suffix='_ref')
             self.ref_spd = self.ref_spd.rename(self._ref_spd_col_name)
         elif isinstance(self.ref_spd, pd.DataFrame) and self._ref_spd_col_names is not None:
-            self._ref_spd_col_names = utils._rename_equal_elements_between_two_inputs(list(self._ref_spd_col_names),
-                                                                                      self._tar_spd_col_name,
-                                                                                      input1_suffix='_ref')
+            self._ref_spd_col_names = self._rename_equal_elements_between_two_inputs(list(self._ref_spd_col_names),
+                                                                                     self._tar_spd_col_name,
+                                                                                     input1_suffix='_ref')
             self.ref_spd.columns = self._ref_spd_col_names
+
         # Rename direction reference column name if equal to target column name
         if self._ref_dir_col_name is not None and self._tar_dir_col_name is not None:
-            self._ref_dir_col_name = utils._rename_equal_elements_between_two_inputs(self._ref_dir_col_name,
-                                                                                     self._tar_dir_col_name,
-                                                                                     input1_suffix='_ref')
+            self._ref_dir_col_name = self._rename_equal_elements_between_two_inputs(self._ref_dir_col_name,
+                                                                                    self._tar_dir_col_name,
+                                                                                    input1_suffix='_ref')
             self.ref_dir = self.ref_dir.rename(self._ref_dir_col_name)
 
         return self.ref_spd, self._ref_spd_col_name, self._ref_spd_col_names, self.ref_dir, self._ref_dir_col_name
