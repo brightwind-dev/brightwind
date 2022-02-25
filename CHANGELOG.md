@@ -10,10 +10,11 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
 ## [Unreleased]
-- Update behaviour of `time_continuity_gaps` to find any gap that
+1. Update behaviour of `time_continuity_gaps` to find any gap that
 is not equal to the derived temporal resolution.
-- Added `data_resolution` argument to `average_data_by_period`, `monthly_means`, `coverage` and 
+2. Added `data_resolution` argument to `average_data_by_period`, `monthly_means`, `coverage` and 
   `merge_datasets_by_period` functions (Issue #[297](https://github.com/brightwind-dev/brightwind/issues/297))
+3. In`Correl` fix issue when duplicate column names are sent to `SpeedSort` (Issue #[304](https://github.com/brightwind-dev/brightwind/issues/304))
 
 ## [2.0.0]
 - Major changes, notably

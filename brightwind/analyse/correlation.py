@@ -13,13 +13,13 @@ from brightwind.utils import utils
 import pprint
 import warnings
 
-
 __all__ = ['']
 
 
 class CorrelBase:
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None, target_dir=None,
                  sectors=12, direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean'):
+
         self.ref_spd = ref_spd
         self.ref_dir = ref_dir
         self.target_spd = target_spd
@@ -34,9 +34,14 @@ class CorrelBase:
         self._ref_dir_col_name = ref_dir.name if ref_dir is not None else None
         self._tar_spd_col_name = target_spd.name if target_spd is not None else None
         self._tar_dir_col_name = target_dir.name if target_dir is not None else None
+
+        # Rename speed and direction reference column name(s) if any equal to target column name
+        self.ref_spd, self._ref_spd_col_name, self._ref_spd_col_names, self.ref_dir, self._ref_dir_col_name = \
+            self._rename_duplicated_columns()
+
         # Average and merge datasets into one df
-        self.data = CorrelBase._averager(self, ref_spd, target_spd, averaging_prd, coverage_threshold,
-                                         ref_dir, target_dir, ref_aggregation_method, target_aggregation_method)
+        self.data = CorrelBase._averager(self, self.ref_spd, target_spd, averaging_prd, coverage_threshold,
+                                         self.ref_dir, target_dir, ref_aggregation_method, target_aggregation_method)
         self.num_data_pts = len(self.data)
         self.params = {'status': 'not yet run'}
 
@@ -150,6 +155,61 @@ class CorrelBase:
             logic_sector = ((ref_dir >= sector_min) & (ref_dir <= 360)) | \
                            ((ref_dir < sector_max) & (ref_dir >= 0))
         return logic_sector
+
+    @staticmethod
+    def _convert_str_to_list(input):
+        return [input] if type(input) is str else input
+
+    def _rename_equal_elements_between_two_inputs(self, input1, input2, input1_suffix='_1'):
+        """
+        Rename all string elements of input1 if any is equal to at least one of the input2. The input1_suffix is added
+        to the input1 strings. Note that both input1 and input2 must contain unique elements.
+
+        :param input1:          Input1 string or list of strings.
+        :type input1:           str or list(str)
+        :param input2:          Input2 string or list of strings.
+        :type input2:           str or list(str)
+        :param input1_suffix:   Input1 suffix to add to the input1 strings if any is in common with input2.
+                                Default suffix is '_1'.
+        :type input1_suffix:    str
+        :returns input1_new:    String or list of strings with renamed elements if any string is in common with input2.
+        :rtype:                 str or list(str)
+
+        """
+
+        input1_new = self._convert_str_to_list(input1)
+        input2_new = self._convert_str_to_list(input2)
+
+        if any(map(lambda v: v in input2_new, input1_new)):
+            input1_new = list(map(lambda v: v + input1_suffix, input1_new))
+            if type(input1) is str:
+                return input1_new[0]
+            else:
+                return input1_new
+        else:
+            return input1
+
+    def _rename_duplicated_columns(self):
+        # Rename speed reference column name(s) if equal to target column name
+        if isinstance(self.ref_spd, pd.Series) and self._ref_spd_col_name is not None:
+            self._ref_spd_col_name = self._rename_equal_elements_between_two_inputs(self._ref_spd_col_name,
+                                                                                    self._tar_spd_col_name,
+                                                                                    input1_suffix='_ref')
+            self.ref_spd = self.ref_spd.rename(self._ref_spd_col_name)
+        elif isinstance(self.ref_spd, pd.DataFrame) and self._ref_spd_col_names is not None:
+            self._ref_spd_col_names = self._rename_equal_elements_between_two_inputs(list(self._ref_spd_col_names),
+                                                                                     self._tar_spd_col_name,
+                                                                                     input1_suffix='_ref')
+            self.ref_spd.columns = self._ref_spd_col_names
+
+        # Rename direction reference column name if equal to target column name
+        if self._ref_dir_col_name is not None and self._tar_dir_col_name is not None:
+            self._ref_dir_col_name = self._rename_equal_elements_between_two_inputs(self._ref_dir_col_name,
+                                                                                    self._tar_dir_col_name,
+                                                                                    input1_suffix='_ref')
+            self.ref_dir = self.ref_dir.rename(self._ref_dir_col_name)
+
+        return self.ref_spd, self._ref_spd_col_name, self._ref_spd_col_names, self.ref_dir, self._ref_dir_col_name
 
     def _get_synth_start_dates(self):
         none_even_freq = ['5H', '7H', '9H', '10H', '11H', '13H', '14H', '15H', '16H', '17H', '18H', '19H',
@@ -536,7 +596,8 @@ class MultipleLinearRegression(CorrelBase):
     Series with timestamps as indexes. Also sen is an averaging period which merges the datasets by this time period
     before performing the correlation.
 
-    :param ref_spd:                   A list of Series containing reference wind speed as a column, timestamp as the index.
+    :param ref_spd:                   A list of Series containing reference wind speed as a column, timestamp as the
+                                      index.
     :type ref_spd:                    List(pd.Series)
     :param target_spd:                Series containing target wind speed as a column, timestamp as the index.
     :type target_spd:                 pd.Series
@@ -627,9 +688,12 @@ class MultipleLinearRegression(CorrelBase):
     @staticmethod
     def _merge_ref_spds(ref_spds):
         # ref_spds is a list of pd.Series that may have the same names.
-        for idx, ref_spd in enumerate(ref_spds):
-            ref_spd.name = ref_spd.name + '_' + str(idx + 1)
-        return pd.concat(ref_spds, axis=1, join='inner')
+        df = pd.concat(ref_spds, axis=1, join='inner')
+        cols = pd.Series(df.columns)
+        for dup in cols[cols.duplicated()].unique():
+            cols[cols[cols == dup].index.values.tolist()] = [dup + '_' + str(i) for i in range(sum(cols == dup))]
+        df.columns = cols
+        return df
 
     def run(self, show_params=True):
         p, res = lstsq(np.column_stack((self.data[self._ref_spd_col_names].values, np.ones(len(self.data)))),
