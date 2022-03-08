@@ -44,6 +44,9 @@ def _freq_str_to_dateoffset(period):
     """
     Convert a pandas frequency string to a pd.DateOffset.
 
+    Pandas frequency strings are available here:
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
+
     :param period: Frequency string to be converted to a pd.DateOffset
     :type period:  str
     :return:       A pd.DateOffset
