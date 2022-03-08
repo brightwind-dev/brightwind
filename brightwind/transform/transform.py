@@ -44,10 +44,6 @@ def _freq_str_to_dateoffset(period):
     """
     Convert a pandas frequency string to a pd.DateOffset.
 
-    (Deprecated) Previously the freq str was converted to pd.Timedelta whose support for 'M' (month) and 'Y' (year)
-    has been deprecated in Pandas as they have variable number of days and hence the pd.Timedelta depends on
-    which year or month.
-
     :param period: Frequency string to be converted to a pd.DateOffset
     :type period:  str
     :return:       A pd.DateOffset
@@ -114,14 +110,6 @@ def _get_data_resolution(data_idx):
     most common time frequency. The expected frequency will be one of 'seconds', 'minutes', 'hours', 'days',
     'weeks', 'months', 'years'.
 
-    (Deprecated). Pandas `Timedelta` will no longer be used to support the annual and monthly data resolution as
-    it cannot reliably represent months or years (due to irregular number of days). The underlying functionality
-    has been deprecated from the Pandas library starting in version 1+.
-        This function will return a specific Timedelta if a resolution of month or year is identified due to months and
-        years having irregular numbers of days. These will be:
-        - For monthly data:     pd.Timedelta(1, unit='M')       i.e. 30.436875 days
-        - For annual data:      pd.Timedelta(365, unit='D')     i.e. 365 days
-
     The function also checks the most common time difference against the minimum time difference. If they
     do not match it shows a warning. It is suggested to manually look at the data if such a warning is shown.
 
@@ -145,7 +133,6 @@ def _get_data_resolution(data_idx):
 
         # To check if the resolution is monthly
         resolution == pd.DateOffset(months=1)
-
 
     """
     # ** Strongly suggestion using pandas infer_freq function for this in future revision.

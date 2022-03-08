@@ -783,7 +783,7 @@ def time_continuity_gaps(data):
     """
     indexes = data.dropna(how='all').index
     resolution = tf._get_data_resolution(indexes)
-    # If the data resolution is `1 month` or `1 year`, then the resolution will 
+    # If the data resolution is `1 month` or `1 year`, then the resolution will be
     # dependent on which month or year. Hence, this rather hacky way to approach it
     resolution_days = (indexes[0] + resolution - indexes[0]) / pd.Timedelta('1 days')
 

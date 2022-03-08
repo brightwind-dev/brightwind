@@ -189,8 +189,8 @@ def test_freq_str_to_dateoffset():
             assert (ref_date + bw.transform.transform._freq_str_to_dateoffset(period) - ref_date
                     ).total_seconds() == results[idx]
 
-    # Check that data frequency is returned as a DateOffset.
-    assert type(bw.transform.transform._freq_str_to_dateoffset(period)) == pd.DateOffset
+        # Check that data frequency is returned as a DateOffset.
+        assert type(bw.transform.transform._freq_str_to_dateoffset(period)) == pd.DateOffset
 
 
 def test_round_timestamp_down_to_averaging_prd():
