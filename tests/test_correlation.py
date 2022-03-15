@@ -237,7 +237,8 @@ def test_synthesize():
     synth = correl.synthesize(target_coverage_threshold=0)
 
     for idx, row in pd.DataFrame(result_ord_lst_sq).iterrows():
-        assert str(row[0]) == str(synth.loc[idx][0])
+        # Comparing the first 6 digits to avoid issuing with floating point precision
+        assert str(row[0])[0:6] == str(synth.loc[idx][0])[0:6]
 
     # Test the synthesise for when the ref_dir is given as input.
     correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s']['2016-03-02 00:00:00':],

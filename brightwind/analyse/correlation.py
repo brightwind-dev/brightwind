@@ -783,8 +783,10 @@ class SimpleSpeedRatio:
         # calculate the coverage of the target data to raise warning if poor
         tar_count = self.data[1].dropna().count()
         tar_res = tf._get_data_resolution(self.data[1].index)
-        max_pts = (self._end_ts - self._start_ts) / tar_res
-        if tar_res == pd.Timedelta(1, unit='M'):  # if is monthly
+        # This is a little hacky but a relatively simple way to convert offsets to timedelta
+        tar_res_as_timeDelta = self._start_ts + tar_res - self._start_ts
+        max_pts = (self._end_ts - self._start_ts) / tar_res_as_timeDelta
+        if tar_res == pd.DateOffset(months=1):  # if is monthly
             # round the result to 0 decimal to make whole months.
             max_pts = np.round(max_pts, 0)
         target_overlap_coverage = tar_count / max_pts
