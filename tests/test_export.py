@@ -5,10 +5,10 @@ import os
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 
-cwd = os.getcwd()
-os.makedirs(os.path.join(cwd, 'temp'), exist_ok=True)
 # Temp folder used to save test files
-TEMP_FOLDER = r'temp'
+TEMP_FOLDER = 'temp'
+cwd = os.getcwd()
+os.makedirs(os.path.join(cwd, TEMP_FOLDER), exist_ok=True)
 
 
 def test_export_tab_file():
