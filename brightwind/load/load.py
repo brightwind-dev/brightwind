@@ -1,21 +1,6 @@
-#     brightwind is a library that provides wind analysts with easy to use tools for working with meteorological data.
-#     Copyright (C) 2018 Stephen Holleran, Inder Preet
-#
-#     This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU Lesser General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
-#     (at your option) any later version.
-#
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU Lesser General Public License for more details.
-#
-#     You should have received a copy of the GNU Lesser General Public License
-#     along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import pandas as pd
 import numpy as np
+from brightwind.utils import utils
 import datetime
 import requests
 from typing import List
@@ -27,7 +12,10 @@ from io import StringIO
 import warnings
 from dateutil.parser import parse
 from brightwind.analyse import plot as plt
-from time import sleep
+import boto3
+import time
+import concurrent
+import math
 
 
 __all__ = ['load_csv',
@@ -35,6 +23,7 @@ __all__ = ['load_csv',
            'load_windographer_txt',
            'load_excel',
            'LoadBrightdata',
+           'LoadBrightHub',
            'load_cleaning_file',
            'apply_cleaning',
            'apply_cleaning_windographer']
@@ -459,13 +448,24 @@ def _append_files_together(source_folder, assembled_file_name, file_type, append
     return
 
 
-def _get_environment_variable(name):
-    if name not in os.environ:
-        raise Exception('{} environmental variable is not set.'.format(name))
-    return os.getenv(name)
-
-
 class LoadBrightdata:
+    """
+    LoadBrightdata allows you to pull meta data and timeseries data of reanalysis datasets from brightdata. This
+    is a fast way to get access to the available reanalysis datasets.
+
+    To use LoadBrightdata, you need to request a username and password from stephen@brightwindanalysis.com.
+
+    For security purposes LoadBrightdata uses stored environmental variables for your log in details. The
+    BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD environmental variables need to be set. In Windows this can be
+    done by opening the command prompt in Administrator mode and running:
+
+    > setx BRIGHTDATA_USERNAME "username"
+    > setx BRIGHTDATA_PASSWORD "password"
+
+    If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
+    take effect.
+
+    """
 
     _BASE_URI = 'http://api.brightwindanalysis.com/brightdata/'
     # _BASE_URI = 'http://localhost:5000/'
@@ -474,16 +474,16 @@ class LoadBrightdata:
         """
         Object defining a reanalysis node from Brightdata
 
-        :param dataset: Dataset type e.g. merra2, era5, etc.
-        :type dataset: str
-        :param latitude: Is the latitude of the node location for the dataset.
-        :type latitude: str
+        :param dataset:   Dataset type e.g. merra2, era5, etc.
+        :type dataset:    str
+        :param latitude:  Is the latitude of the node location for the dataset.
+        :type latitude:   str
         :param longitude: Is the longitude of the node location for the dataset.
-        :type longitude: str
-        :param data: Contains the timeseries data from the node in a DataFrame.
-        :type data: pandas.DataFrame
-        :param info: Information relevant to the dataset.
-        :type info: Dict
+        :type longitude:  str
+        :param data:      Contains the timeseries data from the node in a DataFrame.
+        :type data:       pandas.DataFrame
+        :param info:      Information relevant to the dataset.
+        :type info:       dict
         """
         def __init__(self, dataset, latitude, longitude, data, info):
             self.dataset = dataset
@@ -500,8 +500,8 @@ class LoadBrightdata:
         :param query_params: dictionary of the query parameters to be sent
         :return: List(Node)
         """
-        username = _get_environment_variable('BRIGHTDATA_USERNAME')
-        password = _get_environment_variable('BRIGHTDATA_PASSWORD')
+        username = utils.get_environment_variable('BRIGHTDATA_USERNAME')
+        password = utils.get_environment_variable('BRIGHTDATA_PASSWORD')
 
         uri = LoadBrightdata._BASE_URI + sub_uri
 
@@ -901,12 +901,412 @@ class LoadBrightdata:
             raise error
 
 
+class LoadBrightHub:
+    """
+    LoadBrightHub allows you to pull meta data and timeseries data of measurements from the BrightHub
+    platform. This is a fast way to get access to the available open datasets on the platform.
+
+    To use LoadBrightHub, first sign up on www.brightwindhub.com and note your email and password.
+
+    For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
+    BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
+    done by opening the command prompt in Administrator mode and running:
+
+    > setx BRIGHTHUB_EMAIL "your email")
+    > setx BRIGHTHUB_PASSWORD "your password")
+
+    If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
+    take effect.
+
+    You can start by pulling all the available measurement stations available to you by running:
+
+    bw.LoadBrightHub.get_measurement_stations()
+
+    """
+    # SHOULD I INITIATE BY GETTING ID-TOKEN? CAN INITIALISE BY SENDING A USERNAME, PASSWORD.
+    # IF I INITIATE IT NEEDS TO BE ASSIGNED TO SOMETHING.
+    __BASE_URI = 'https://api.brightwindhub.com'
+    # __BASE_URI = 'http://localhost:5000/'
+
+    @staticmethod
+    def _get_id_token():
+        client = boto3.client('cognito-idp')
+
+        username = utils.get_environment_variable('BRIGHTHUB_EMAIL')
+        password = utils.get_environment_variable('BRIGHTHUB_PASSWORD')
+
+        login_response = client.initiate_auth(
+            AuthFlow='USER_PASSWORD_AUTH',
+            AuthParameters={
+                'USERNAME': username,
+                'PASSWORD': password,
+            },
+            ClientId='3qkkpikve578cbok46p136au3g',  # Hard code this in the library
+        )
+        id_token = login_response['AuthenticationResult']['IdToken']
+        return id_token
+
+    @staticmethod
+    def get_plants(plant_type=None, plant_uuid=None):
+        """
+        Get plants available to you on BrightHub.
+
+        :param plant_type: Filter for plant type: 'onshore_wind', 'offshore_wind' or 'solar'.
+        :type plant_type:  str
+        :param plant_uuid: Filter for a specific plant by sending it's uuid. This preferences over plant_type.
+        :type plant_uuid:  str
+        :return:           A table showing the available plants.
+        :rtype:            pd.DataFrame
+
+        To use LoadBrightHub, first sign up on www.brightwindhub.com and note your email and password.
+
+        For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
+        BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
+        done by opening the command prompt in Administrator mode and running:
+
+        > setx BRIGHTHUB_EMAIL "your email")
+        > setx BRIGHTHUB_PASSWORD "your password")
+
+        If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
+        take effect.
+
+        **Example usage**
+        ::
+            import brightwind as bw
+
+        To get all available plants
+        ::
+            bw.LoadBrightHub.get_plants()
+
+        To get all available offshore plants
+        ::
+            bw.LoadBrightHub.get_plants(plant_type='offshore_wind')
+
+        To get a specific plant
+        ::
+            bw.LoadBrightHub.get_plants(plant_uuid='7a58497e-bee1-42a2-8084-c47a5cf213b7')
+
+        """
+        # get all the plants and display them as a dataframe
+        plants = None
+        if plant_type is None and plant_uuid is None:
+            # get all
+            plants = requests.get(
+                "{}/plants".format(LoadBrightHub.__BASE_URI),
+                headers={"authorization": LoadBrightHub._get_id_token()}
+            )
+        elif plant_type in ['onshore_wind', 'offshore_wind', 'solar'] and plant_uuid is None:
+            # get all for a specific plant_type
+            plants = requests.get(
+                "{}/plants".format(LoadBrightHub.__BASE_URI),
+                params={'plant_type_id': plant_type},
+                headers={"authorization": LoadBrightHub._get_id_token()}
+            )
+        elif plant_uuid is not None:
+            # get all for plant_uuid
+            plants = requests.get(
+                "{}/plants/{}".format(LoadBrightHub.__BASE_URI, plant_uuid),
+                headers={"authorization": LoadBrightHub._get_id_token()}
+            )
+
+        if plants.headers.get('content-type') != 'application/json.':
+            plants.raise_for_status()
+
+        plants_json = plants.json()
+        if 'Error' in plants_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
+            raise ValueError(plants_json['Error'])
+        plants_df = pd.read_json(json.dumps(plants_json))
+        required_cols = ['name', 'country_id', 'region', 'plant_type_id',
+                         'latitude_ddeg', 'longitude_ddeg', 'alias', 'uuid', 'notes']
+        plants_df = plants_df[required_cols]
+        plants_df.set_index(['name'], inplace=True)
+        plants_df.sort_index(ascending=True, inplace=True)
+        plants_df.rename(columns={'uuid': 'plant_uuid'}, inplace=True)
+        return plants_df
+
+    @staticmethod
+    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None):
+        """
+        Get measurement stations available to you on BrightHub.
+
+        :param plant_uuid:               Filter for measurement stations of a specific plant.
+        :type plant_uuid:                str
+        :param measurement_station_uuid: Filter for a specific measurement station by sending it's uuid. This
+                                         preferences over plant_uuid.
+        :type measurement_station_uuid:  str
+        :return:                         A table showing the available measurement stations.
+        :rtype:                          pd.DataFrame
+
+        To use LoadBrightHub, first sign up on www.brightwindhub.com and note your email and password.
+
+        For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
+        BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
+        done by opening the command prompt in Administrator mode and running:
+
+        > setx BRIGHTHUB_EMAIL "your email")
+        > setx BRIGHTHUB_PASSWORD "your password")
+
+        If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
+        take effect.
+
+        **Example usage**
+        ::
+            import brightwind as bw
+
+        To get all available measurement stations
+        ::
+            bw.LoadBrightHub.get_measurement_stations()
+
+        To get all available measurement stations for a specific plant
+        ::
+            bw.LoadBrightHub.get_measurement_stations(plant_uuid='7a58497e-bee1-42a2-8084-c47a5cf213b7')
+
+        To get a specific measurement station
+        ::
+            bw.LoadBrightHub.get_measurement_stations(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
+
+        """
+        measurement_locations = None
+        if plant_uuid is None and measurement_station_uuid is None:
+            # get all
+            measurement_locations = requests.get(
+                "{}/measurement-locations".format(LoadBrightHub.__BASE_URI),
+                headers={"authorization": LoadBrightHub._get_id_token()}
+            )
+        elif plant_uuid is not None and measurement_station_uuid is None:
+            # get all for plant_uuid
+            measurement_locations = requests.get(
+                "{}/measurement-locations".format(LoadBrightHub.__BASE_URI),
+                params={'plant_uuid': plant_uuid},
+                headers={"authorization": LoadBrightHub._get_id_token()}
+            )
+        elif measurement_station_uuid is not None:
+            # get for measurement_station_uuid
+            measurement_locations = requests.get(
+                "{}/measurement-locations/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
+                headers={"authorization": LoadBrightHub._get_id_token()}
+            )
+
+        if measurement_locations.headers.get('content-type') != 'application/json.':
+            measurement_locations.raise_for_status()
+
+        meas_loc_json = measurement_locations.json()
+        if 'Error' in meas_loc_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
+            raise ValueError(meas_loc_json['Error'])
+        meas_loc_df = pd.read_json(json.dumps(meas_loc_json))
+        required_cols = ['name', 'measurement_station_type_id',
+                         'latitude_ddeg', 'longitude_ddeg', 'plant_uuid', 'uuid', 'notes']
+        meas_loc_df = meas_loc_df[required_cols]
+        meas_loc_df.set_index(['name'], inplace=True)
+        meas_loc_df.sort_index(ascending=True, inplace=True)
+        meas_loc_df.rename(columns={'uuid': 'measurement_station_uuid',
+                                    'measurement_station_type_id': 'measurement_station_type'}, inplace=True)
+        return meas_loc_df
+
+    @staticmethod
+    def get_start_end_dates(measurement_station_uuid):
+        """
+        Get the start and end dates for the period of measurements from a particular measurement station.
+
+        :param measurement_station_uuid: A specific measurement station's uuid.
+        :type measurement_station_uuid:  str
+        :return:                         The start and end dates. E.g. {'start_date': '2015-12-22T00:01:00',
+                                                                        'end_date': '2016-12-19T23:01:00'}
+        :rtype:                          dict
+        """
+        start_end_dates = requests.get(
+            "{}/start-end-dates/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
+            headers={"authorization": LoadBrightHub._get_id_token()}
+        )
+
+        if start_end_dates.headers.get('content-type') != 'application/json.':
+            start_end_dates.raise_for_status()
+        start_end_dates_json = start_end_dates.json()
+        if 'Error' in start_end_dates_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
+            raise ValueError(start_end_dates_json['Error'])
+
+        return start_end_dates.json()
+
+    @staticmethod
+    def get_data_model(measurement_station_uuid):
+        """
+        Get the IEA Wind: Task 43 WRA Data Model for the measurement station.
+
+        Information about the data model can be found at: https://github.com/IEA-Task-43/digital_wra_data_standard
+
+        Once the data model is retrieved you can use the brightwind MeasurementStation class to view and
+        use the data from it.
+
+        :param measurement_station_uuid: A specific measurement station's uuid.
+        :type measurement_station_uuid:  str
+        :return:                         The data model for the measurement station.
+        :rtype:                          dict
+
+        **Example usage**
+        ::
+            import brightwind as bw
+
+        To get all available measurement stations
+        ::
+            bw.LoadBrightHub.get_measurement_stations()
+
+        To get the data model for a specific measurement station
+        ::
+            data_model_json - bw.LoadBrightHub.get_data_model(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
+
+        Using the data model
+        ::
+            demo_mast = bw.MeasurementStation(data_model_json)
+            demo_mast.get_table()
+
+        """
+        data_model = requests.get(
+            "{}/data-models/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
+            headers={"authorization": LoadBrightHub._get_id_token()}
+        )
+
+        if data_model.headers.get('content-type') != 'application/json.':
+            data_model.raise_for_status()
+        data_model_json = data_model.json()
+        if 'Error' in data_model_json:  # catch if error comes back e.g. measurement_location_uuid isn't found
+            raise ValueError(data_model_json['Error'])
+
+        return data_model.json()
+
+    # Pulling the timeseries data.
+    __DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
+
+    @staticmethod
+    def __get_date_range_as_chunks(date_from, date_to, interval):
+        # Based on: https://stackoverflow.com/a/29721341/7373512
+        diff = (date_to - date_from) / interval
+        for i in range(interval):
+            yield (date_from + diff * i).strftime(LoadBrightHub.__DATE_FORMAT)
+        yield date_to.strftime(LoadBrightHub.__DATE_FORMAT)
+
+    @staticmethod
+    def get_data(measurement_station_uuid, date_from=None, date_to=None):
+        """
+        Get the timeseries data from BrightHub for a particular measurement station.
+
+        :param measurement_station_uuid: A specific measurement station's uuid.
+        :type measurement_station_uuid:  str
+        :param date_from:                Optional filter to retrieve data from this date onwards.
+        :type date_from:                 str
+        :param date_to:                  Optional filter to retrieve data up to this date.
+        :type date_to:                   str
+        :return:                         The timeseries data.
+        :rtype:                          pd.DataFrame
+
+        **Example usage**
+        ::
+            import brightwind as bw
+
+        To get all available measurement stations to pick out the measurement station's uuid
+        ::
+            bw.LoadBrightHub.get_measurement_stations()
+
+        To get all the data for the specific measurement station
+        ::
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
+            data.head()
+
+        To get data for a specific time period
+        ::
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
+                                             date_from='2016-06-01',
+                                             date_to='2016-07-01')
+
+        To get data from a specific date
+        ::
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
+                                             date_from='2016-06-01')
+
+        To get data up to a specific date
+        ::
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
+                                             date_to='2016-07-01')
+
+        """
+        id_token = LoadBrightHub._get_id_token()
+        if not date_from or not date_to:
+            # Duplicating calling for start-end-time so I don't ending up getting an id_token again if I
+            # call get_start_end_dates().
+            # We will replace once we get code to check if the token has expired.
+            start_end_dates = requests.get(
+                "{}/start-end-dates/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
+                headers={"authorization": id_token}
+            )
+            start_end_dates = start_end_dates.json()
+            if not date_from:
+                date_from = start_end_dates['start_date']
+            if not date_to:
+                date_to = start_end_dates['end_date']
+
+        date_from_dt = pd.to_datetime(date_from)
+        date_to_dt = pd.to_datetime(date_to)
+
+        time_diff = date_to_dt - date_from_dt
+        time_diff_in_secs = time_diff.total_seconds()
+
+        number_of_days_per_chunk = 30
+        secs_in_single_day = 60 * 60 * 24
+        chunk_size_in_secs = secs_in_single_day * number_of_days_per_chunk
+
+        if time_diff_in_secs > chunk_size_in_secs:
+            # Round up to ensure no data lost
+            number_of_chunks = math.ceil(time_diff_in_secs / chunk_size_in_secs)
+            chunk_dates = list(
+                LoadBrightHub.__get_date_range_as_chunks(date_from_dt, date_to_dt, number_of_chunks)
+            )
+            chunks = [
+                (chunk_date, chunk_dates[idx + 1])
+                for (idx, chunk_date) in enumerate(chunk_dates)
+                if idx < len(chunk_dates) - 1
+            ]
+        # Chunk into 3 if between 5 and 30 days data requested
+        elif time_diff_in_secs > secs_in_single_day * 5:
+            chunk_dates = list(LoadBrightHub.__get_date_range_as_chunks(date_from_dt, date_to_dt, 3))
+            chunks = [
+                (chunk_date, chunk_dates[idx + 1])
+                for (idx, chunk_date) in enumerate(chunk_dates)
+                if idx < len(chunk_dates) - 1
+            ]
+        # Don't bother splitting if less than 5 days data requested
+        else:
+            chunks = [(date_from_dt.strftime(LoadBrightHub.__DATE_FORMAT),
+                       date_to_dt.strftime(LoadBrightHub.__DATE_FORMAT))]
+
+        def get_chunk(_date_from, _date_to, _id_token):
+            response = requests.get("https://api.brightwindhub.com/resource-data",
+                                    params={"measurement_location_uuid": measurement_station_uuid,
+                                            "date_from": _date_from, "date_to": _date_to},
+                                    headers={"authorization": _id_token})
+            pre_signed_url = response.json()["url"]
+            response = requests.get(pre_signed_url)
+            return response.text
+
+        master_df = pd.DataFrame()
+        with concurrent.futures.ThreadPoolExecutor() as executor:  # optimally defined number of threads
+            res = [executor.submit(get_chunk, chunk[0], chunk[1], id_token) for chunk in chunks]
+            concurrent.futures.wait(res)
+            for result in res:
+                chunk_df = pd.read_csv(StringIO(result.result()),)
+                chunk_df["Timestamp"] = pd.to_datetime(chunk_df["Timestamp"])
+                chunk_df.index = pd.DatetimeIndex(chunk_df.pop("Timestamp"))
+                if master_df.empty:
+                    master_df = chunk_df
+                else:
+                    master_df = pd.concat([master_df, chunk_df])
+        return master_df
+
+
 class _LoadBWPlatform:
     """
     LoadBWPlatform allows you to pull meta data and timeseries data of measurements from the brightwind platform.
 
     To use LoadBWPlatform the BW_PLATFORM_USERNAME and BW_PLATFORM_PASSWORD environmental variables need to be set. In
-    Windows this can be done by running the command prompt in Administrator mode and running:
+    Windows this can be done by opening the command prompt in Administrator mode and running:
 
     > setx BW_PLATFORM_USERNAME "username"
     > setx BW_PLATFORM_PASSWORD "password"
@@ -918,8 +1318,8 @@ class _LoadBWPlatform:
 
     @staticmethod
     def _get_token():
-        username = _get_environment_variable('BW_PLATFORM_USERNAME')
-        password = _get_environment_variable('BW_PLATFORM_PASSWORD')
+        username = utils.get_environment_variable('BW_PLATFORM_USERNAME')
+        password = utils.get_environment_variable('BW_PLATFORM_PASSWORD')
 
         params = {'username': username, 'password': password}
         if not _LoadBWPlatform._ACCESS_TOKEN.get('token') or (_LoadBWPlatform._ACCESS_TOKEN['issued_at'].timestamp()

@@ -20,9 +20,20 @@ Load
     load_excel
     load_windographer_txt
     LoadBrightdata
+    LoadBrightHub
     load_cleaning_file
     apply_cleaning
     apply_cleaning_windographer
+
+MeasurementStation
+-----
+
+.. currentmodule:: brightwind.load.station
+
+.. autosummary::
+    :toctree: generated
+
+    MeasurementStation
 
 Analyse
 ---------
