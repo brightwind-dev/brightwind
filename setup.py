@@ -57,7 +57,8 @@ setup(
         'ipython>=7.4.0',
         'gmaps>=0.9.0',
         'boto3>=1.9.66',
-        'colormap>=1.0.1'
+        'colormap>=1.0.1',
+        'easydev>=0.10.0'
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",
