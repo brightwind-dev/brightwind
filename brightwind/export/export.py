@@ -69,7 +69,7 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, folder_path=Non
     local_freq_tab = freq_tab.copy()
 
     speed_interval = {interval.right - interval.left for interval in local_freq_tab.index}
-    if len(speed_interval) is not 1:
+    if len(speed_interval) != 1:
         import warnings
         warnings.warn("All speed bins not of equal lengths")
     speed_interval = speed_interval.pop()
