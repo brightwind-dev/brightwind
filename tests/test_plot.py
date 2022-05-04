@@ -54,24 +54,30 @@ def test_bar_subplot():
     # To plot data with pd.DatetimeIndex, multiple columns, with bars total width of 20 days and line_width=0.3
     average_data, coverage = bw.average_data_by_period(DATA[['Spd80mN', 'Spd80mS', 'Spd60mN']], period='1M',
                                                        return_coverage=True)
-    bw.analyse.plot._bar_subplot(coverage, max_bar_axis_limit=1, total_width=20, line_width=0.3,
+    bw.analyse.plot._bar_subplot(coverage, max_bar_axis_limit=1, total_width=20/31, line_width=0.3,
                                  vertical_bars=True)
 
     # To plot multiple subplots in a figure
     fig, axes = plt.subplots(1, 2)
     bw.analyse.plot._bar_subplot(coverage[['Spd80mN_Coverage', 'Spd80mS_Coverage']], max_bar_axis_limit=1,
-                                 total_width=20, line_width=0.3, vertical_bars=True, ax=axes[0])
-    bw.analyse.plot._bar_subplot(coverage['Spd60mN_Coverage'], max_bar_axis_limit=1, total_width=20,
+                                 total_width=20/31, line_width=0.3, vertical_bars=True, ax=axes[0])
+    bw.analyse.plot._bar_subplot(coverage['Spd60mN_Coverage'], max_bar_axis_limit=1, total_width=20/31,
                                  line_width=0.3, vertical_bars=True, ax=axes[1])
 
-    # To plot data with integer data.index, multiple columns, horizontal bars, total_width=8 and
+    # To plot data with integer data.index, multiple columns, horizontal bars, total_width=0.8 and
     # setting bin_tick_labels, subplot title and with legend
     test_data = pd.DataFrame.from_dict({'mast': [99.87, 99.87, 99.87], 'lidar': [97.11, 92.66, 88.82]})
     test_data.index = [50, 65, 80]
     fig = plt.figure(figsize=(15, 8))
     bw.analyse.plot._bar_subplot(test_data, x_label='Data Availability [%]', y_label='Measurement heights [m]',
                                  max_bar_axis_limit=100, bin_tick_labels=['a', 'b', 'c'], subplot_title='coverage',
-                                 legend=True, total_width=8, vertical_bars=False)
+                                 legend=True, total_width=0.8, vertical_bars=False)
+
+    # To plot data with integer data.index, multiple columns, horizontal bars and
+    # setting minimum and maximum y axis limit
+    bw.analyse.plot._bar_subplot(test_data, x_label='Data Availability [%]', y_label='Measurement heights [m]',
+                                 max_bar_axis_limit=100, min_bin_axis_limit=0, max_bin_axis_limit=100,
+                                 subplot_title='coverage', legend=True, vertical_bars=False)
 
     # To plot frequency distribution data with index as bin ranges (ie [-0.5, 0.5)), single column,
     # vertical bars and default total_width

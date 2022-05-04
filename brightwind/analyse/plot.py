@@ -777,7 +777,7 @@ def _gradient_image(direction=0.3, cmap_range=(0, 1)):
     phi = direction * np.pi / 2
     v = np.array([np.cos(phi), np.sin(phi)])
     x_grad = np.array([[v @ [1, 0], v @ [1, 1]],
-                           [v @ [0, 0], v @ [0, 1]]])
+                       [v @ [0, 0], v @ [0, 1]]])
     a, b = cmap_range
     x_grad = a + (b - a) / x_grad.max() * x_grad
 
@@ -785,8 +785,8 @@ def _gradient_image(direction=0.3, cmap_range=(0, 1)):
 
 
 def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_bar_axis_limit=None,
-                 bin_axis_offset=None, bin_tick_labels=None, subplot_title=None, legend=False, total_width=0.8,
-                 single_width=1, line_width=1, vertical_bars=True, ax=None):
+                 min_bin_axis_limit=None, max_bin_axis_limit=None, bin_tick_labels=None,
+                 subplot_title=None, legend=False, total_width=0.8, line_width=0.3, vertical_bars=True, ax=None):
     """
     Plots a bar subplot of pd.Series or pd.Dataframe inputs where the interval of the bars is the data.index.
     If the data input is a Dataframe then the bars are plotted for each column of the Dataframe and with
@@ -800,13 +800,14 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     :type x_label:              str or None
     :param y_label:             Label for the y axis
     :type y_label:              str or None
-    :param min_bar_axis_limit:  min x or y limit depending if bar plot is vertical or horizontal.
-    :type min_bar_axis_limit:   tuple, None
-    :param max_bar_axis_limit:  max x or y limit depending if bar plot is vertical or horizontal.
-    :type max_bar_axis_limit:   tuple, None
-    :param bin_axis_offset:     Offset between axis extremes and first and last bar. If None then the total_width
-                                input is used as the offset
-    :type bin_axis_offset:      float, None
+    :param min_bar_axis_limit:  min y or x limit depending if bar plot is vertical or horizontal.
+    :type min_bar_axis_limit:   float, None
+    :param max_bar_axis_limit:  max y or x limit depending if bar plot is vertical or horizontal.
+    :type max_bar_axis_limit:   float, None
+    param min_bin_axis_limit:   min x or y limit depending if bar plot is vertical or horizontal.
+    :type min_bin_axis_limit:   float, None
+    :param max_bin_axis_limit:  max x or y limit depending if bar plot is vertical or horizontal.
+    :type max_bin_axis_limit:   float, None
     :param bin_tick_labels:     List of x or y tick labels depending if bar plot is vertical or horizontal.
                                 It can be set to None to let the code derive the tick labels from the data index.
     :type bin_tick_labels:      list, None
@@ -814,11 +815,10 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     :type subplot_title:        str or None
     :param legend:              Boolean to choose if legend is shown.
     :type legend:               Bool
-    :param total_width:         Width of each group of bars. Default is 0.8.
+    :param total_width:         Width of each group of bars in percentage between 0 and 1. Default is 0.8, which is
+                                80% of the available space.
     :type total_width:          float or int
-    :param single_width:        Width of each bar. Default is 1.
-    :type single_width:         float or int
-    :param line_width:          Width of the bar contour line. Default is 1.
+    :param line_width:          Width of the bar edge(s). If 0, don't draw edges. Default is 0.3.
     :type line_width:           float or int
     :param vertical_bars:       Boolean to choose for having horizontal or vertical bars. Default is True for
                                 vertical bars.
@@ -838,33 +838,39 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         fig = plt.figure(figsize=(15, 8))
         average_data, coverage = bw.average_data_by_period(data[['Spd80mN', 'Spd80mS', 'Spd60mN']], period='1M',
                                                            return_coverage=True)
-        bw.analyse.plot._bar_subplot(coverage, max_bar_axis_limit=1, total_width=20, line_width=0.3,
+        bw.analyse.plot._bar_subplot(coverage, max_bar_axis_limit=1, total_width=20/31, line_width=0.3,
                                     vertical_bars=True)
 
         # To plot multiple subplots in a figure
         fig, axes = plt.subplots(1, 2)
         bw.analyse.plot._bar_subplot(coverage[['Spd80mN_Coverage', 'Spd80mS_Coverage']], max_bar_axis_limit=1,
-                                     total_width=20, line_width=0.3,  vertical_bars=True, ax=axes[0])
-        bw.analyse.plot._bar_subplot(coverage['Spd60mN_Coverage'], max_bar_axis_limit=1, total_width=20,
+                                     total_width=20/31, line_width=0.3,  vertical_bars=True, ax=axes[0])
+        bw.analyse.plot._bar_subplot(coverage['Spd60mN_Coverage'], max_bar_axis_limit=1, total_width=20/31,
                                       line_width=0.3, vertical_bars=True, ax=axes[1])
 
-        # To plot data with integer data.index, multiple columns, horizontal bars, total_width=8 and
+        # To plot data with integer data.index, multiple columns, horizontal bars and
         # setting bin_tick_labels, subplot title and with legend
         test_data = pd.DataFrame.from_dict({'mast': [99.87, 99.87, 99.87],'lidar': [97.11, 92.66, 88.82]})
         test_data.index=[50, 65, 80]
         fig = plt.figure(figsize=(15, 8))
         bw.analyse.plot._bar_subplot(test_data, x_label='Data Availability [%]', y_label='Measurement heights [m]',
                                      max_bar_axis_limit=100, bin_tick_labels=['a','b','c'], subplot_title='coverage',
-                                     legend=True, total_width=8, vertical_bars=False)
+                                     legend=True, vertical_bars=False)
+
+        # To plot data with integer data.index, multiple columns, horizontal bars and
+        # setting minimum and maximum y axis limit
+        bw.analyse.plot._bar_subplot(test_data, x_label='Data Availability [%]', y_label='Measurement heights [m]',
+                                     max_bar_axis_limit=100, min_bin_axis_limit=0, max_bin_axis_limit=100,
+                                     subplot_title='coverage', legend=True, vertical_bars=False)
 
         # To plot frequency distribution data with index as bin ranges (ie [-0.5, 0.5)), single column,
-        # vertical bars, default total_width and with bar offset form extremes of axis of 0.5
+        # vertical bars, default total_width
         distribution = bw.analyse.analyse._derive_distribution(data['Spd80mN'].to_frame(),
                                                                var_to_bin_against=data['Spd80mN'].to_frame(),
                                                                aggregation_method = '%frequency')
         fig = plt.figure(figsize=(15, 8))
-        bw.analyse.plot._bar_subplot(distribution.replace([np.inf, -np.inf], np.NAN).dropna(), y_label='%frequency',
-                                                          bin_axis_offset=0.5)
+        bw.analyse.plot._bar_subplot(distribution.replace([np.inf, -np.inf], np.NAN).dropna(), y_label='%frequency')
+
     """
     
     if ax is None:
@@ -877,6 +883,9 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         raise ValueError('The numbers of variables to plot is higher than the number of colors implemented '
                          'in the brightwind library standard COLOR_PALETTE. The number of variables should be lower '
                          'than {}'.format(len(COLOR_PALETTE.color_list)))
+
+    if (total_width < 0) or (total_width > 1):
+        raise ValueError('The total_width value should be between 0 and 1.')
 
     if min_bar_axis_limit is None:
         min_bar_axis_limit = 0
@@ -902,13 +911,13 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     else:
         data_bins = data.index
 
-    if bin_axis_offset is None:
-        bin_axis_offset = total_width
+    bin_min_step = np.diff(data_bins).min()
+    total_width = bin_min_step * total_width
 
     if vertical_bars:
         ax.set_xticks(data_bins)
         # ax.set_xlim(data_bins[0] - 0.5, data_bins[-1] + 0.5)
-        ax.set_xlim(data_bins[0] - bin_axis_offset, data_bins[-1] + bin_axis_offset)
+        ax.set_xlim(data_bins[0] - total_width, data_bins[-1] + total_width)
         if bin_tick_labels is not None:
             ax.set_xticklabels(bin_tick_labels)
         if index_time:
@@ -922,7 +931,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     else:
         ax.set_yticks(data_bins)
         # ax.set_ylim(data_bins[0] - 0.5, data_bins[-1] + 0.5)
-        ax.set_ylim(data_bins[0] - bin_axis_offset, data_bins[-1] + bin_axis_offset)
+        ax.set_ylim(data_bins[0] - total_width, data_bins[-1] + total_width)
         if bin_tick_labels is not None:
             ax.set_yticklabels(bin_tick_labels)
         if index_time:
@@ -950,11 +959,11 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
             if vertical_bars:
                 ax.imshow(np.array([[mpl.colors.to_rgb(COLOR_PALETTE.color_list[i])],
                                     [mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8))]]),
-                          interpolation='gaussian', extent=(data_bin + x_offset - total_width / n_bars / 2,
-                                                            data_bin + x_offset + total_width / n_bars / 2, 0,
+                          interpolation='gaussian', extent=(data_bin + x_offset - bar_width / 2,
+                                                            data_bin + x_offset + bar_width / 2, 0,
                                                             data_bar),
                           aspect='auto', zorder=1)#3
-                bar = ax.bar(data_bin + x_offset, data_bar, width=bar_width * single_width,
+                bar = ax.bar(data_bin + x_offset, data_bar, width=bar_width,
                              edgecolor=_adjust_color_lightness(r, g, b, factor=1.35), linewidth=line_width, fill=False,
                              zorder=0)#5
             else:
@@ -962,11 +971,11 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                                           mpl.colors.to_rgb(COLOR_PALETTE.color_list[i]))
                 ax.imshow(_gradient_image(direction=1, cmap_range=(0, 1)), cmap=newcmp,
                           interpolation='gaussian',
-                          extent=(0, data_bar, data_bin + x_offset - total_width / n_bars / 2,
-                                  data_bin + x_offset + total_width / n_bars / 2),
+                          extent=(0, data_bar, data_bin + x_offset - bar_width / 2,
+                                  data_bin + x_offset + bar_width / 2),
                           aspect='auto', zorder=1, vmin=0, vmax=1)
 
-                bar = ax.barh(data_bin + x_offset, data_bar, height=bar_width * single_width,
+                bar = ax.barh(data_bin + x_offset, data_bar, height=bar_width,
                               edgecolor=_adjust_color_lightness(r, g, b, factor=1.35), linewidth=line_width, fill=False,
                               zorder=0)#2
         # Add a handle to the last drawn bar, which we'll need for the legend
@@ -975,6 +984,11 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         bars.append(bar[0])
 
     ax.set_axisbelow(True)
+
+    if vertical_bars:
+        ax.set_xlim(min_bin_axis_limit, max_bin_axis_limit)
+    else:
+        ax.set_ylim(min_bin_axis_limit, max_bin_axis_limit)
 
     if legend:
         ax.legend(bars, data.keys())
@@ -986,7 +1000,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
 
 
 def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=None, y_label=None, legend=False,
-                           total_width=0.8, single_width=1):
+                           total_width=0.8):
     """
     Plot distribution given as input and derived using _derive_distribution() function. The input can be a Pandas Series
     or a Dataframe. If it is a Dataframe then the distribution is plotted for each column of the Dataframe and with
@@ -1006,10 +1020,9 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     :type y_label:          str, None
     :param legend:          Boolean to choose if legend is shown.
     :type legend:           Bool
-    :param total_width:     Width of each group of bars used to plot the distribution. Default is 0.8.
+    :param total_width:     Width of each group of bars in percentage between 0 and 1. Default is 0.8, which is
+                            80% of the available space.
     :type total_width:      float or int
-    :param single_width:    Width of each bar used to plot the distribution. Default is 1.
-    :type single_width:     float or int
     :returns:               matplotlib.figure.Figure
 
     **Example usage**
@@ -1043,9 +1056,8 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     bw.analyse.plot._bar_subplot(data.replace([np.inf, -np.inf], np.NAN).dropna(), x_label=x_label,
-                                 y_label=y_label, max_bar_axis_limit=max_y_value, bin_axis_offset=0.5,
-                                 bin_tick_labels=x_tick_labels, legend=legend, total_width=total_width,
-                                 single_width=single_width, ax=ax)
+                                 y_label=y_label, max_bar_axis_limit=max_y_value,
+                                 bin_tick_labels=x_tick_labels, legend=legend, total_width=total_width, ax=ax)
     plt.close()
     return ax.get_figure()
 
