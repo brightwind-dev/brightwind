@@ -1,30 +1,36 @@
-#     brightwind is a library that provides wind analysts with easy to use tools for working with meteorological data.
-#     Copyright (C) 2018 Stephen Holleran, Inder Preet
-#
-#     This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU Lesser General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
-#     (at your option) any later version.
-#
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU Lesser General Public License for more details.
-#
-#     You should have received a copy of the GNU Lesser General Public License
-#     along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+import datetime
 import numpy as np
 import pandas as pd
-import math
 from brightwind.utils import utils
+from brightwind.load.station import _Measurements
+from brightwind.load.station import DATE_INSTEAD_OF_NONE
+import copy
+import warnings
 
 __all__ = ['average_data_by_period',
+           'merge_datasets_by_period',
+           'average_wdirs',
            'adjust_slope_offset',
            'scale_wind_speed',
+           'apply_wind_vane_deadband_offset',
            'offset_wind_direction',
            'selective_avg',
-           'offset_timestamps']
+           'offset_timestamps',
+           'apply_wspd_slope_offset_adj']
+
+
+def _validate_coverage_threshold(coverage_threshold):
+    """
+    Validate that coverage_threshold is between 0 and 1 and if it is None set to zero.
+    :param coverage_threshold: Should be number between or equal to 0 and 1.
+    :type coverage_threshold:  float or int
+    :return:                   coverage_threshold
+    :rtype:                    float or int
+    """
+    coverage_threshold = 0 if coverage_threshold is None else coverage_threshold
+    if coverage_threshold < 0 or coverage_threshold > 1:
+        raise TypeError("Invalid coverage_threshold, this should be between or equal to 0 and 1.")
+    return coverage_threshold
 
 
 def _compute_wind_vector(wspd, wdir):
@@ -32,6 +38,44 @@ def _compute_wind_vector(wspd, wdir):
     Returns north and east component of wind-vector
     """
     return wspd*np.cos(wdir), wspd*np.sin(wdir)
+
+
+def _freq_str_to_dateoffset(period):
+    """
+    Convert a pandas frequency string to a pd.DateOffset.
+
+    Pandas frequency strings are available here:
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
+
+    :param period: Frequency string to be converted to a pd.DateOffset
+    :type period:  str
+    :return:       A pd.DateOffset
+    :rtype:        pd.DateOffset
+    """
+    if period[-1] == 'M':
+        as_dateoffset = pd.DateOffset(months=int(period[:-1]))
+    elif period[-2:] == 'MS':
+        as_dateoffset = pd.DateOffset(months=int(period[:-2]))
+    elif period[-1] == 'A':
+        as_dateoffset = pd.DateOffset(years=float(period[:-1]))
+    elif period[-2:] == 'AS':
+        as_dateoffset = pd.DateOffset(years=float(period[:-2]))
+    elif period[-1:] == 'W':
+        as_dateoffset = pd.DateOffset(weeks=float(period[:-1]))
+    elif period[-1:] == 'D':
+        as_dateoffset = pd.DateOffset(days=float(period[:-1]))
+    elif period[-1:] == 'H':
+        as_dateoffset = pd.DateOffset(hours=float(period[:-1]))
+    elif period[-1:] == 'T':
+        as_dateoffset = pd.DateOffset(minutes=float(period[:-1]))
+    elif period[-3:] == 'min':
+        as_dateoffset = pd.DateOffset(minutes=float(period[:-3]))
+    elif period[-1:] == 'S':
+        as_dateoffset = pd.DateOffset(seconds=float(period[:-1]))
+    else:
+        raise ValueError('"{}" period not recognized. Only units "M", "MS", "A", "AS", "W", "D", "H", "T", "min", "S" '
+                         'are recognized'.format(period))
+    return as_dateoffset
 
 
 def _convert_days_to_hours(prd):
@@ -48,7 +92,7 @@ def _get_min_overlap_timestamp(df1_timestamps, df2_timestamps):
     """
     try:
         if df1_timestamps.max() < df2_timestamps.min() or df1_timestamps.min() > df2_timestamps.max():
-            raise IndexError("No overlapping data. Ranges: {0} to {1}  and {2} to {3}"
+            raise IndexError("No overlapping data. Dataset ranges are: {0} to {1} and {2} to {3}."
                              .format(df1_timestamps.min(), df1_timestamps.max(),
                                      df2_timestamps.min(), df2_timestamps.max()), )
     except TypeError as type_error:
@@ -62,46 +106,106 @@ def _get_min_overlap_timestamp(df1_timestamps, df2_timestamps):
 
 def _get_data_resolution(data_idx):
     """
-    Get the frequency of data i.e. the most common time interval between timestamps.
+    Get the resolution of a timeseries i.e. the most common time interval between timestamps. Also known as the
+    averaging period.
 
     The algorithm finds the most common time difference between consecutive time stamps and returns the
-    most common time stamp. Also checks the most common time difference and the minimum time difference. If they
+    most common time frequency. The expected frequency will be one of 'seconds', 'minutes', 'hours', 'days',
+    'weeks', 'months', 'years'.
+
+    The function also checks the most common time difference against the minimum time difference. If they
     do not match it shows a warning. It is suggested to manually look at the data if such a warning is shown.
 
-    :param data_idx: Indexes of the DataFrame or series
-    :type data_idx: pandas.DataFrame.index or pandas.Series.index
-    :return: A time delta object which represents the time difference between consecutive timestamps.
-    :rtype: pandas.Timedelta
+    :param data_idx: Timeseries index of a pd.DataFrame or pd.Series.
+    :type data_idx:  pd.DataFrame.index or pd.Series.index
+    :return:         A date offset object which represents the time difference between consecutive timestamps.
+    :rtype:          pd.DateOffset
 
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
-        resolution = bw._get_data_resolution(df.Spd80mS.index)
-        #To check the number of seconds in resolution
-        print(resolution.seconds)
+        import pandas as pd
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        resolution = bw.transform.transform._get_data_resolution(data.Spd80mS.index)
 
+        # To check the number of seconds in resolution
+        print((data.index[0] + resolution - data.index[0]).seconds)
+
+        # To check the unit of resolution
+        print(resolution.kwds)
+
+        # To check if the resolution is monthly
+        resolution == pd.DateOffset(months=1)
 
     """
-
-    import warnings
+    # ** Strongly suggestion using pandas infer_freq function for this in future revision.
     time_diff_btw_timestamps = data_idx.to_series().diff()
     most_freq_time_diff = time_diff_btw_timestamps.mode().values[0]
+    most_freq_time_diff = pd.to_timedelta(most_freq_time_diff)  # convert np.timedelta64 to pd.Timedelta
     minimum_time_diff = time_diff_btw_timestamps.min()
+
+    if most_freq_time_diff.days in [28, 29, 30, 31]:    # check if monthly first
+        return pd.DateOffset(months=1)
+    elif most_freq_time_diff.days in [365, 366]:        # then if yearly
+        return pd.DateOffset(years=1)
+    
     if minimum_time_diff != most_freq_time_diff:
-        warnings.warn("Frequency of input data might not be determined correctly (most frequent time "
-                      "difference between adjacent timestamps"
-                      " does not match minimum time difference) most frequent time difference: {0}  "
-                      "minimum time difference {1}. Using most frequent time difference as resolution"
-                      .format(pd.to_timedelta(most_freq_time_diff, unit='s'), minimum_time_diff))
-    return pd.to_timedelta(most_freq_time_diff, unit='s')
+        warnings.warn('\nFrequency of input data may not be determined correctly. Most frequent time '
+                      'difference between adjacent timestamps does not match minimum time difference.\n'
+                      'Most frequent time difference is:\t{0}\n'
+                      'Minimum time difference is:\t\t{1}\n'
+                      'Returning most frequent time difference.'.format(most_freq_time_diff, minimum_time_diff))
+
+    if most_freq_time_diff.days >= 1 and most_freq_time_diff.days < 28:
+        return pd.DateOffset(days=most_freq_time_diff.total_seconds()/(60./24.0))
+    elif most_freq_time_diff.days < 1 and most_freq_time_diff.total_seconds() >= 60*60:
+        return pd.DateOffset(hours=most_freq_time_diff.total_seconds()/(60.*60))
+    elif most_freq_time_diff.total_seconds() < (60*60):
+        return pd.DateOffset(minutes=most_freq_time_diff.total_seconds()/60.)
+    else:
+        return pd.DateOffset(seconds=most_freq_time_diff.total_seconds())
+
+
+def _round_down_to_multiple(num, divisor):
+    """
+    Round the number down to a multiple of the divisor.
+    :param num:
+    :param divisor:
+    :return:
+    """
+    return num - (num % divisor)
 
 
 def _round_timestamp_down_to_averaging_prd(timestamp, period):
+    """
+    Return a timestamp that represents the start of the averaging period based on the timestamp provided.
+
+    :param timestamp: Timestamp to round down from.
+    :type timestamp:  pd.Timestamp
+    :param period:    Averaging period e.g. '10min', '1H', '3H', '6H', '1D', '7D', '1W', '1MS', '1AS'
+    :type period:     str
+    :return:          Timestamp to represent the start of an averaging period which covers the timestamp.
+    :rtype:           str
+
+    if 10min  it should go to the first whole 10-min period i.e. 00:00, 00:10, 00:20, 00:30, 00:40, 00:50
+    if 15min  it should go to the first whole 15-min period i.e. 00:00, 00:15, 00:30, 00:45
+    if 1H     it should go to the first whole hour
+    if 3H, 4H it should go to the first whole 3 or 4-hour period i.e. 04:00, 08:00, 12:00, 16:00, 20:00
+    if 1D     it should go to midnight
+    if 7D, 1W it should go to midnight because we don't have a base reference
+    if 1M, 1MS it should go to start of month
+    if 1A, 1AS it should go to start of year
+    """
     if period[-3:] == 'min':
-        return '{year}-{month}-{day} {hour}:00:00'.format(year=timestamp.year, month=timestamp.month,
-                                                          day=timestamp.day, hour=timestamp.hour)
-    elif period[-1] == 'H' or period[-1] == 'D' or period[-1] == 'W':
+        return '{year}-{month}-{day} {hour}:{minute}:00'.format(year=timestamp.year, month=timestamp.month,
+                                                                day=timestamp.day, hour=timestamp.hour,
+                                                                minute=_round_down_to_multiple(timestamp.minute,
+                                                                                               int(period[:-3])))
+    elif period[-1] == 'H':
+        return '{year}-{month}-{day} {hour}:00:00'.format(year=timestamp.year, month=timestamp.month, day=timestamp.day,
+                                                          hour=_round_down_to_multiple(timestamp.hour,
+                                                                                       int(period[:-1])))
+    elif period[-1] == 'D' or period[-1] == 'W':
         return '{year}-{month}-{day}'.format(year=timestamp.year, month=timestamp.month, day=timestamp.day,
                                              hour=timestamp.hour)
     elif period[-1] == 'M' or period[-2:] == 'MS':
@@ -118,101 +222,171 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
 def _common_idxs(reference, site):
     """
     Finds overlapping indexes from two DataFrames.
-    Coverage is 1 if whole site data is covered. Also returns the number data points
     """
-    common = reference.index.intersection(site.index)
+    common = reference.dropna().index.intersection(site.dropna().index)
     return common, len(common)
 
 
-def _get_overlapping_data(df1, df2, period):
-    if isinstance(period, str):
-        start = _round_timestamp_down_to_averaging_prd(_get_min_overlap_timestamp(df1.index, df2.index), period)
-    else:
-        start = _get_min_overlap_timestamp(df1.index, df2.index)
-    return df1[start:], df2[start:]
-
-
-def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
+def _get_overlapping_data(df1, df2, averaging_prd=None):
     """
-    For a given resolution of data finds the maximum number of data points in the averaging period
-    """
-    max_pts = (averaged_data_index.to_series().diff().shift(-1)) / _get_data_resolution(data_index)
-    max_pts[-1] = (((averaged_data_index[-1] + 1*averaged_data_index[-1].freq) - averaged_data_index[-1]) /
-                   _get_data_resolution(data_index))
-    return max_pts
+    Return data from where both datasets overlap onwards. If an averaging period is sent then the datasets
+    will start at the first overlapping averaging period.
 
-
-def _get_coverage_series(data, grouper_obj):
-    coverage = grouper_obj.count().divide(_max_coverage_count(data.index, grouper_obj.mean().index), axis=0)
-    return coverage
-
-
-def average_data_by_period(data, period, aggregation_method='mean', coverage_threshold=None,
-                           return_coverage=False):
-    """
-    Averages the data by the time period specified by period.
-
-    Aggregates data by the aggregation_method specified, by default this function averages the data to the period 
-    specified. Can be used to find hourly, daily, weekly, etc. averages or sums. Can also return coverage and 
-    filter the returned data by coverage.
-
-    :param data: Data to find average or aggregate of
-    :type data: pandas.Series
-    :param period: Groups data by the period specified here. The following formats are supported
-
+    :param df1:
+    :param df2:
+    :param averaging_prd: Averaging period
             - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
             - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
             - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
             - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
             - Set period to 1M for monthly average
             - Set period to 1AS fo annual average
-            - Can be a DateOffset object too
+    :type averaging_prd: str
+    :return: df1 and df2 chopped to start at the same timestamp
+    """
+    if averaging_prd is not None:
+        start = _round_timestamp_down_to_averaging_prd(_get_min_overlap_timestamp(df1.index, df2.index), averaging_prd)
+    else:
+        start = _get_min_overlap_timestamp(df1.index, df2.index)
+    # If the start timestamp just happens to be missing from the data, add in a NaN so the
+    # averaging will start from this timestamp.
+    if not (df2.index == start).any():
+        df2.loc[pd.to_datetime(start)] = np.NaN
+        df2.sort_index(inplace=True)
+    if not (df1.index == start).any():
+        df1.loc[pd.to_datetime(start)] = np.NaN
+        df1.sort_index(inplace=True)
 
-    :type period: str or pandas.DateOffset
-    :param aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also use
-        `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median, product, summation,
-        standard deviation, variance, maximum and minimum respectively.
-    :type aggregation_method: str
-    :param coverage_threshold: Coverage is defined as the ratio of number of data points present in the period and the 
-        maximum number of data points that a period should have. Example, for 10 minute data resolution and a period of 
-        1 hour, the maximum number of data points in one period is 6. But if the number if data points available is only
-        3 for that hour the coverage is 3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to 
-        None by default. If it is None or 0, data is not filtered. Otherwise periods are removed where coverage is less 
-        than the coverage_threshold are removed.
-    :type coverage_threshold: float
-    :param return_coverage: If True appends and additional column in the DataFrame returned, with coverage calculated
-        for each period. The columns with coverage are named as <column name>_Coverage
-    :type return_coverage: bool
-    :returns: A DataFrame with data aggregated with the specified aggregation_method (mean by default). Additionally it
-        could be filtered based on coverage and have a coverage column depending on the parameters.
-    :rtype: DataFrame
+    return df1[start:], df2[start:]
+
+
+def _max_coverage_count(data_index, averaged_data_index, data_resolution=None) -> pd.Float64Index:
+    """
+    For a given resolution of data finds the maximum number of data points in the averaging period
+    """
+
+    if data_resolution is None:
+        data_res = _get_data_resolution(data_index)
+    elif not isinstance(data_resolution, pd.DateOffset):
+        raise TypeError('Input data_resolution is {}. A Pandas DateOffset should be used instead.'.format(
+            type(data_resolution).__name__))
+    else:
+        data_res = data_resolution
+
+    averaged_data_res = averaged_data_index.freq or _get_data_resolution(averaged_data_index)
+
+    time_delta = averaged_data_index.map(lambda x: x + data_res) - averaged_data_index
+    max_pts = (averaged_data_index.map(lambda x: x + averaged_data_res) - averaged_data_index)/time_delta
+
+    return max_pts
+
+
+def _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=None):
+    """
+    Counts the number of data points in the grouper_obj relative to the maximum possible
+
+    :param data:            The data to find the coverage for.
+    :type  data:            pd.DataFrame or pd.Series
+    :param grouper_obj:     The object that has grouped the data already. The mean, sum, count, etc. can then be found.
+    :type  grouper_obj:     pd.DatetimeIndexResampler
+    :param data_resolution: Data resolution to give as input if the coverage of the data timeseries is extremely low
+                            and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:  None or pd.DateOffset
+    :return:
+    """
+    coverage = grouper_obj.count().divide(_max_coverage_count(data.index, grouper_obj.mean().index,
+                                                              data_resolution=data_resolution), axis=0)
+    return coverage
+
+
+def average_data_by_period(data, period, wdir_column_names=None, aggregation_method='mean', coverage_threshold=None,
+                           return_coverage=False, data_resolution=None):
+    """
+    Averages the data by a time period specified.
+
+    Aggregates data by the aggregation_method specified, by default this function averages the data to the period
+    specified.
+
+    A list of wind direction column names can be sent to identify which columns should be vector averaged. This vector
+    averaging of wind directions only applies if the aggregation method is 'mean', otherwise it will aggregate based
+    on the method sent.
+
+    The data can also by filtered by a coverage threshold to insure a certain amount of data is required in the period.
+
+    This function can be used to find hourly, daily, weekly, etc. averages or sums. Can also return coverage and
+    filter the returned data by coverage.
+
+    It will return NaN for intermediary periods where there is no data.
+
+    If you wish to do 'upsampling', i.e. convert from hourly to every 10 minutes, please used the pandas resample
+    function directly.
+
+    :param data:               Data to find average or aggregate of
+    :type data:                pd.Series or pd.DataFrame
+    :param period:             Groups data by the period specified here. The following formats are supported
+
+            - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
+            - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
+            - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
+            - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
+            - Set period to '1M' for monthly average with the timestamp at the start of the month.
+            - Set period to '1A' for annual average with the timestamp at the start of the year.
+
+    :type period:              str
+    :param wdir_column_names:  List of wind direction column names. These columns, if the aggregation_method is mean,
+                               will be vector averaged together instead of a straight mean.
+    :type wdir_column_names:   list or str
+    :param aggregation_method: Default `mean`, returns the mean of the data for the specified period. Can also
+                               use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median,
+                               product, summation, standard deviation, variance, maximum and minimum respectively.
+    :type aggregation_method:  str
+    :param coverage_threshold: Coverage is defined as the ratio of number of data points present in the period and the
+                               maximum number of data points that a period should have. Example, for 10 minute data
+                               resolution and a period of 1 hour, the maximum number of data points in one period is 6.
+                               But if the number if data points available is only 3 for that hour the coverage is
+                               3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to None by
+                               default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
+                               less than the coverage_threshold are removed.
+    :type coverage_threshold:  float
+    :param return_coverage:    If True appends and additional column in the DataFrame returned, with coverage calculated
+                               for each period. The columns with coverage are named as <column name>_Coverage
+    :type return_coverage:     bool
+    :param data_resolution:    Data resolution to give as input if the coverage of the data timeseries is extremely low
+                               and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:     None or pd.DateOffset
+    :returns:                  A DataFrame with data aggregated with the specified aggregation_method (mean by default).
+                               Additionally it could be filtered based on coverage and have a coverage column depending
+                               on the parameters.
+    :rtype:                    pd.DataFrame
 
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
-        #To find hourly averages
+        # To find hourly averages
         data_hourly = bw.average_data_by_period(data.Spd80mN, period='1H')
 
-        #To find monthly averages
+        # To find monthly averages
         data_monthly = bw.average_data_by_period(data.Spd80mN, period='1M')
 
-        #To filter months where half of the data is missing
+        # To filter months where half of the data is missing
         data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M', coverage_threshold=0.5)
 
-        #To check the coverage for all months
+        # To check the coverage for all months
         data_monthly_filtered = bw.average_data_by_period(data.Spd80mN, period='1M', return_coverage=True)
 
+        # To average wind directions by vector averaging
+        data_monthly_wdir_avg = bw.average_data_by_period(data.Dir78mS, period='1M', wdir_column_names='Dir78mS')
+
+        # To check the coverage for all months giving as input the data resolution as 10 min if data coverage is
+        # extremely low and it is not possible to define the most common time interval between timestamps
+        data_monthly_irregular = bw.average_data_by_period(data.Spd80mN, period='1M', return_coverage=True,
+                                                           data_resolution=pd.DateOffset(minutes=10))
 
     """
-    if coverage_threshold is None:
-        coverage_threshold = 0
+    coverage_threshold = _validate_coverage_threshold(coverage_threshold)
 
-    if coverage_threshold < 0 or coverage_threshold > 1:
-        raise TypeError("Invalid coverage_threshold, should be between 0 and 1, both ends inclusive")
-
-    data = data.sort_index()
     if isinstance(period, str):
         if period[-1] == 'D':
             period = _convert_days_to_hours(period)
@@ -220,26 +394,394 @@ def average_data_by_period(data, period, aggregation_method='mean', coverage_thr
             period = _convert_weeks_to_hours(period)
         if period[-1] == 'M':
             period = period+'S'
+        if period[-1] == 'A':
+            period = period+'S'
         if period[-1] == 'Y':
             raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
+    
+    # Check that the data resolution is not less than the period specified
+    if data_resolution is None:
+        if data.index[0] + _freq_str_to_dateoffset(period) < data.index[0] + _get_data_resolution(data.index):
+            raise ValueError("The time period specified is less than the temporal resolution of the data. "
+                             "For example, hourly data should not be averaged to 10 minute data.")
+    data = data.sort_index()
     grouper_obj = data.resample(period, axis=0, closed='left', label='left', base=0,
                                 convention='start', kind='timestamp')
 
-    grouped_data = grouper_obj.agg(aggregation_method)
-    coverage = _get_coverage_series(data, grouper_obj)
+    if wdir_column_names is not None and aggregation_method == 'mean':
+        # do vector averaging on wdirs if aggregation method of mean is requested
+        wdir_column_names = [wdir_column_names] if isinstance(wdir_column_names, str) else wdir_column_names
 
+        # check if wdir_column_names are in dataframe, if not raise error
+        if isinstance(data, pd.DataFrame):
+            for wdir_col_name in wdir_column_names:
+                if wdir_col_name not in data.columns:
+                    raise KeyError("'{}' not in data sent.".format(wdir_col_name))
+        else:
+            for wdir_col_name in wdir_column_names:
+                if wdir_col_name != data.name:
+                    raise KeyError("'{}' not in data sent.".format(wdir_col_name))
+
+        # separate out wdirs columns for vector averaging. Only need to do if a DataFrame
+        non_wdir_col_names = []
+        if isinstance(data, pd.DataFrame):
+            # if data is a DataFrame then it may have non_wdir columns and more than just a single wdir column
+            for col_name in data.columns:
+                if col_name not in wdir_column_names:
+                    non_wdir_col_names.append(col_name)
+
+        # average wdir data
+        # if data is a Series grouper_obj doesn't take columns and averaged data is a Series and not a DataFrame.
+        if isinstance(data, pd.DataFrame):
+            wdir_grouped_data = grouper_obj[wdir_column_names].agg(average_wdirs)
+            wdir_coverage = _get_coverage_by_grouper_obj(data[wdir_column_names], grouper_obj[wdir_column_names],
+                                                         data_resolution=data_resolution)
+        else:
+            wdir_grouped_data = grouper_obj.agg(average_wdirs)
+            wdir_coverage = _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=data_resolution)
+
+        # average non_wdir data if available
+        if non_wdir_col_names:
+            non_wdir_grouped_data = grouper_obj[non_wdir_col_names].agg('mean')
+            non_wdir_coverage = _get_coverage_by_grouper_obj(data[non_wdir_col_names], grouper_obj[non_wdir_col_names],
+                                                             data_resolution=data_resolution)
+
+            grouped_data = pd.concat([non_wdir_grouped_data, wdir_grouped_data], axis=1)
+            coverage = pd.concat([non_wdir_coverage, wdir_coverage], axis=1)
+        else:
+            grouped_data = wdir_grouped_data
+            coverage = wdir_coverage
+    elif wdir_column_names is not None and aggregation_method != 'mean':
+        raise KeyError("Vector averaging is only applied when 'aggregation_method' is 'mean'. Either set " +
+                       "'wdir_column_names' to None or set 'aggregation_method'='mean'")
+    else:
+        # group data as normal
+        grouped_data = grouper_obj.agg(aggregation_method)
+        coverage = _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=data_resolution)
     grouped_data = grouped_data[coverage >= coverage_threshold]
 
     if return_coverage:
         if isinstance(coverage, pd.DataFrame):
-            coverage.columns = [col_name+"_Coverage" for col_name in coverage.columns]
+            coverage.columns = [col_name + "_Coverage" for col_name in coverage.columns]
         elif isinstance(coverage, pd.Series):
-            coverage = coverage.rename(grouped_data.name+'_Coverage')
+            coverage = coverage.rename(data.name + '_Coverage')
         else:
             raise TypeError("Coverage not calculated correctly. Coverage", coverage)
-        return grouped_data, coverage[coverage >= coverage_threshold]
+        return grouped_data, coverage  # [coverage >= coverage_threshold]
     else:
         return grouped_data
+
+
+def _vector_avg_of_wdirs_dataframe(wdirs, wspds=None):
+    """
+    Average wind directions together using vector averaging for a pandas DataFrame. In a DataFrame multiple wind
+    direction timeseries are sent. This function will average the wind directions for each *row* of the DataFrame
+    returning a pandas Series.
+
+    :param wdirs: Wind directions to calculate the average of
+    :type wdirs:  pd.DataFrame
+    :param wspds: Wind speeds for the magnitude of the wind direction vector.
+                  If not provided the magnitude is assumed to be unity.
+                  There must be the same number of columns sent as wind directions and the order of the columns will
+                  determine how the wind speeds will match the wind directions.
+    :type wspds:  pd.DataFrame
+    :return:      Average wind direction for each row of the DataFrame provided.
+    :rtype:       pd.Series
+
+    **Example usage**
+    ::
+        wdirs = np.array([[350, 10],
+              [0, 180],
+              [90, 270],
+              [45, 135],
+              [135, 225],
+              [15, np.nan]])
+        wdirs_df = pd.DataFrame(wdirs)
+        _vector_avg_of_wdirs_dataframe(wdirs_df)
+
+        wspds = np.array([[1, 2],
+              [1, 2],
+              [1, 2],
+              [1, 2],
+              [1, 2],
+              [np.nan, 2]])
+        wspds_df = pd.DataFrame(wspds)
+        _vector_avg_of_wdirs_dataframe(wdirs_df, wspds_df)
+
+    Note:
+    The reason [0, 180] results in 90 and not NaN is because the sin of 180 is not quite zero which results in not
+    ending back exactly where you started and so gives 90. Similarly if 10, 190 is sent the mean of the sin is slightly
+    negative (-6.9e-17) instead of zero which results in 270 instead of NaN. Similar for cosine when 90, 270 sent.
+    Solution is to round both sin and cos to 5 decimal places to make them zero.
+    """
+    if wspds is None:
+        sine = (np.round(np.sin(np.deg2rad(wdirs)), 5)).mean(axis=1)  # sin of each angle, convert to radian first
+        cosine = (np.round(np.cos(np.deg2rad(wdirs)), 5)).mean(axis=1)  # cos of each angle, convert to radian first
+    else:
+        sine = (pd.DataFrame(np.round(np.sin(np.deg2rad(wdirs)), 5).values * wspds.values, index=wdirs.index)).mean(
+            axis=1)  # sin of each angle, convert to radian first
+        cosine = (pd.DataFrame(np.round(np.cos(np.deg2rad(wdirs)), 5).values * wspds.values, index=wdirs.index)).mean(
+            axis=1)  # cos of each angle, convert to radian first
+
+    avg_dir_df = pd.DataFrame({'sine': sine, 'cosine': cosine})
+
+    # If both sine and cosine result in zero then all the directions cancel and you end up where you started which
+    # means there is no wind direction => return NaN
+    nan_mask = (avg_dir_df['sine'] == 0) & (avg_dir_df['cosine'] == 0)
+    avg_dir_df['avg_dir'] = np.rad2deg(np.arctan2(sine, cosine)) % 360
+    avg_dir_df['avg_dir'][nan_mask] = np.NaN
+    return avg_dir_df['avg_dir']
+
+
+def _vector_avg_of_wdirs_list(wdirs, wspds=None):
+    """
+    Average wind directions together using vector averaging for a list, array or pandas Series.
+
+    :param wdirs: Wind directions to calculate the average of
+    :type wdirs:  list or array or np.array or pd.Series
+    :param wspds: Wind speeds for the magnitude of the wind direction vector.
+                  If not provided the magnitude is assumed to be unity.
+                  If a list or an array is sent they must be the same length as wdirs.
+    :type wspds:  list or array or np.array or pd.Series
+    :return:      Average wind direction for the wind directions provided.
+    :rtype:       float
+
+    **Example usage**
+    ::
+        wdirs = np.array([350, 10])
+        _vector_avg_of_wdirs_list(wdirs)
+
+        wdirs_series = pd.Series(wdirs)
+        _vector_avg_of_wdirs_list(wdirs_series)
+
+        wspds = [5, 6]
+        _vector_avg_of_wdirs_list(wdirs, wspds)
+
+    Note:
+    The reason [0, 180] results in 90 and not NaN is because the sin of 180 is not quite zero which results in not
+    ending back exactly where you started and so gives 90. Similarly if 10, 190 is sent the mean of the sin is slightly
+    negative (-6.9e-17) instead of zero which results in 270 instead of NaN. Similar for cosine when 90, 270 sent.
+    Solution is to round both sin and cos to 5 decimal places to make them zero.
+    """
+    # first drop nans, if wind speeds available need to match them first to drop equivalent values
+    if wspds is None:
+        wdirs = np.array([x for x in wdirs if x == x])
+    else:
+        a = np.array([wdirs, wspds])
+        a = a[:, ~np.isnan(a).any(axis=0)]
+        wdirs = a[0]
+        wspds = a[1]
+    # if the resulting wdir array is empty, return NAN
+    if wdirs.size == 0:
+        return np.NaN
+
+    if wspds is None:
+        sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5))  # sin of each angle, East component
+        cosine = np.mean(np.round(np.cos(np.deg2rad(wdirs)), 5))  # cos of each angle, North component
+    else:
+        sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5) * wspds)  # sin of each angle, East component
+        cosine = np.mean(np.round(np.cos(np.deg2rad(wdirs)), 5) * wspds)  # cos of each angle, North component
+
+    # If both sine and cosine result in zero then all the directions cancel and you end up where you started which
+    # means there is no wind direction => return NaN
+    if sine == 0 and cosine == 0:
+        avg_dir = np.NaN
+    else:
+        avg_dir = np.rad2deg(np.arctan2(sine, cosine)) % 360
+        if avg_dir == 360.0:  # preference to have 0 returned instead of 360
+            avg_dir = 0.0
+    return avg_dir
+
+
+def average_wdirs(wdirs, wspds=None):
+    """
+    Average wind directions together using vector averaging. This works for a list, array, np.array, pd.Series or
+    pd.DataFrame.
+
+    If a list, array, np.array or pd.Series of wind directions are sent, it will average all the wind speeds in that
+    array together returning a single value.
+    If a DataFrame with multiple timeseries of wind direction columns is sent, it will average the wind directions for
+    each *row* of the DataFrame returning a pandas Series.
+
+    It is also possible to send wind speeds for each wind direction to be used as the magnitude in the vector averaging
+    algorithm.
+
+    When a dataset which contains some NANs is sent these are ignored e.g. if 3 wind directions are sent and one of them
+    is a NAN, the average of the other two is calculated ignoring the NAN. Similarly, if some wind speeds contain a NAN,
+    this and the corresponding wind direction are ignored even if the wind direction is valid as the magnitude of the
+    vector is missing.
+
+    :param wdirs: Wind directions to calculate the average of.
+    :type wdirs:  list or array or np.array or pd.Series or pd.DataFrame
+    :param wspds: Wind speeds for the magnitude of the wind direction vector.
+                  If not provided the magnitude is assumed to be unity.
+                  If a list or an array is sent they must be the same length as wdirs.
+                  If a DataFrame is sent it must have the same number of columns as the wind directions DataFrame and
+                  the wind speed column will match it's equivalent wind direction column by the ordering of the columns.
+    :type wspds:  list or array or np.array or pd.Series or pd.DataFrame
+    :return:      Average wind direction for the wind directions provided.
+    :rtype:       float or pd.Series
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        wdirs = np.array([350, 10])
+        bw.average_wdirs(wdirs)
+
+        wdirs_series = pd.Series(wdirs)
+        bw.average_wdirs(wdirs_series)
+
+        wspds = [5, 6]
+        bw.average_wdirs(wdirs, wspds)
+
+        wdirs = np.array([[350, 10],
+              [0, 180],
+              [90, 270],
+              [45, 135],
+              [135, 225],
+              [15, np.nan]])
+        wdirs_df = pd.DataFrame(wdirs)
+        bw.average_wdirs(wdirs_df)
+
+        wspds = np.array([[1, 2],
+              [1, 2],
+              [1, 2],
+              [1, 2],
+              [1, 2],
+              [np.nan, 2]])
+        wspds_df = pd.DataFrame(wspds)
+        bw.average_wdirs(wdirs_df, wspds_df)
+
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        avg_wdir = bw.average_wdirs(data.Dir78mS)
+
+        wdir_cols = ['Dir78mS', 'Dir58mS', 'Dir38mS']
+        avg_wdirs = bw.average_wdirs(data[wdir_cols])
+
+    """
+    if type(wdirs) == pd.DataFrame:
+        avg_wdir = _vector_avg_of_wdirs_dataframe(wdirs, wspds)
+    else:
+        avg_wdir = _vector_avg_of_wdirs_list(wdirs, wspds)
+
+    return avg_wdir
+
+
+def merge_datasets_by_period(data_1, data_2, period,
+                             wdir_column_names_1=None, wdir_column_names_2=None,
+                             aggregation_method_1='mean', aggregation_method_2='mean',
+                             coverage_threshold_1=None, coverage_threshold_2=None, data_1_resolution=None,
+                             data_2_resolution=None):
+    """
+    Merge 2 datasets on a time period by aligning the overlapped aggregated data.
+
+    This is done by
+    1, First finding the minimum overlapping timestamp and rounding that down the the start timestamp
+       of the first averaging period. The datasets are then truncated to start from that timestamp.
+    2, The datasets are then aggregated to the time period by the aggregation method specified for each dataset. If
+       coverage_threshold is specified, each dataset is filtered by that.
+    3, The datasets are then merged and only concurrent timestamps are returned.
+
+    This function utilises the 'average_data_by_period' function.
+
+    :param data_1: First dataset to find average or aggregate of and merge with data_2.
+    :type data_1:  pd.DataFrame or pd.Series
+    :param data_2: Second dataset to find average or aggregate of and merge with data_1.
+    :type data_2:  pd.DataFrame or pd.Series
+    :param period: Groups data by the time period specified here. The following formats are supported
+
+            - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
+            - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
+            - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
+            - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
+            - Set period to '1M' for monthly average with the timestamp at the start of the month.
+            - Set period to '1A' for annual average with the timestamp at the start of the year.
+
+    :type period:                str
+    :param wdir_column_names_1:  List of wind direction column names. These columns, if the aggregation_method is mean,
+                                 will be vector averaged together instead of a straight mean.
+    :type wdir_column_names_1:   list or str or None
+    :param wdir_column_names_2:  List of wind direction column names. These columns, if the aggregation_method is mean,
+                                 will be vector averaged together instead of a straight mean.
+    :type wdir_column_names_2:   list or str or None
+    :param aggregation_method_1: Default `mean`, returns the mean of the data for the specified period. Can also
+                                 use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median,
+                                 product, summation, standard deviation, variance, maximum and minimum respectively.
+    :type aggregation_method_1:  str
+    :param aggregation_method_2: Default `mean`, returns the mean of the data for the specified period. Can also
+                                 use `median`, `prod`, `sum`, `std`,`var`, `max`, `min` which are shorthands for median,
+                                 product, summation, standard deviation, variance, maximum and minimum respectively.
+    :type aggregation_method_2:  str
+    :param coverage_threshold_1: Coverage is defined as the ratio of number of data points present in the period and the
+                                 maximum number of data points that a period should have. Example, for 10 minute data
+                                 resolution and a period of 1 hour, the maximum number of data points in one period is
+                                 6. But if the number if data points available is only 3 for that hour the coverage is
+                                 3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to None by
+                                 default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
+                                 less than the coverage_threshold are removed.
+    :type coverage_threshold_1:  float or None
+    :param coverage_threshold_2: Coverage is defined as the ratio of number of data points present in the period and the
+                                 maximum number of data points that a period should have. Example, for 10 minute data
+                                 resolution and a period of 1 hour, the maximum number of data points in one period is
+                                 6. But if the number if data points available is only 3 for that hour the coverage is
+                                 3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to None by
+                                 default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
+                                 less than the coverage_threshold are removed.
+    :type coverage_threshold_2:  float or None
+    :param data_1_resolution:    Data resolution of first dataset to give as input if the coverage of the data
+                                 timeseries is extremely low and it is not possible to define the most common time
+                                 interval between timestamps
+    :type data_1_resolution:     None or pd.DateOffset
+    :param data_2_resolution:    Data resolution of second dataset to give as input if the coverage of the data
+                                 timeseries is extremely low and it is not possible to define the most common
+                                 time interval between timestamps
+    :type data_2_resolution:     None or pd.DateOffset
+    :return:                     Merged datasets.
+    :rtype:                      pd.DataFrame
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        m2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+
+        # To find monthly concurrent averages of two datasets
+        mrgd_data = bw.merge_datasets_by_period(m2[['WS50m_m/s', 'WD50m_deg']], data[['Spd80mN', 'Dir78mS']],
+                                                period='1MS',
+                                                wdir_column_names_1='WD50m_deg', wdir_column_names_2='Dir78mS',
+                                                coverage_threshold_1=0.95, coverage_threshold_2=0.95,
+                                                aggregation_method_1='mean', aggregation_method_2='mean')
+        # To find monthly concurrent averages of two datasets giving as input the data resolution as 1 hour for data_1
+        # and 10 min for data_2 if data coverage is extremely low and it is not possible to define the most common time
+        # interval between timestamps for each dataset.
+        mrgd_data = bw.merge_datasets_by_period(m2[['WS50m_m/s', 'WD50m_deg']], data[['Spd80mN', 'Dir78mS']],
+                                                period='1MS',
+                                                wdir_column_names_1='WD50m_deg', wdir_column_names_2='Dir78mS',
+                                                coverage_threshold_1=0, coverage_threshold_2=0,
+                                                aggregation_method_1='mean', aggregation_method_2='mean',
+                                                data_1_resolution=pd.DateOffset(hours=1),
+                                                data_2_resolution=pd.DateOffset(minutes=10))
+
+    """
+    data_1_overlap, data_2_overlap = _get_overlapping_data(data_1.sort_index().dropna(),
+                                                           data_2.sort_index().dropna(),
+                                                           period)
+    coverage_threshold_1 = _validate_coverage_threshold(coverage_threshold_1)
+    coverage_threshold_2 = _validate_coverage_threshold(coverage_threshold_2)
+
+    mrgd_data = pd.concat(list(average_data_by_period(data_1_overlap, period=period,
+                                                      wdir_column_names=wdir_column_names_1,
+                                                      coverage_threshold=coverage_threshold_1,
+                                                      aggregation_method=aggregation_method_1,
+                                                      return_coverage=True, data_resolution=data_1_resolution)) +
+                          list(average_data_by_period(data_2_overlap, period=period,
+                                                      wdir_column_names=wdir_column_names_2,
+                                                      coverage_threshold=coverage_threshold_2,
+                                                      aggregation_method=aggregation_method_2,
+                                                      return_coverage=True, data_resolution=data_2_resolution)),
+                          axis=1)
+    return mrgd_data.dropna()
 
 
 def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offset):
@@ -269,7 +811,7 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
         df['Spd80mS_adj'] = bw.adjust_slope_offset(df.Spd80mS, 0.044, 0.235, 0.04365, 0.236)
         df[['Spd80mS', 'Spd80mS_adj']]
 
@@ -291,6 +833,158 @@ def adjust_slope_offset(wspd, current_slope, current_offset, new_slope, new_offs
         raise error
 
 
+def _get_consistent_properties_format(measurements, measurement_type_id):
+    """
+    From the options of:
+        mm1.measurements
+        mm1.measurements.wdirs
+        mm1.measurements['Dir78mS']
+    return a consistent list of properties for the measurement_type_id.
+
+    :param measurements:        Measurement information extracted from a WRA Data Model using bw.MeasurementStation
+    :type measurements:         list or dict or _Measurements
+    :param measurement_type_id: The measurement_type_id to filter for.
+    :type measurement_type_id:  str
+    :return:                    All the properties as a list
+    :rtype:                     list
+    """
+    property_list = []
+    if isinstance(measurements, _Measurements):
+        merged_properties = copy.deepcopy(measurements.properties)
+        for meas_point in merged_properties:
+            meas_type = meas_point.get('measurement_type_id')
+            if meas_type is not None and meas_type == measurement_type_id:
+                property_list.append(meas_point)
+    elif isinstance(measurements, dict):
+        for name, properties in measurements.items():
+            for prop in properties:
+                meas_type = prop.get('measurement_type_id')
+                if meas_type is not None and meas_type == measurement_type_id:
+                    property_list.append(prop)
+    elif isinstance(measurements, list):
+        for prop in measurements:
+            meas_type = prop.get('measurement_type_id')
+            if meas_type is not None and meas_type == measurement_type_id:
+                property_list.append(prop)
+    return property_list
+
+
+def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
+    """
+    Automatically apply wind speed calibration slope and offset adjustments to the timeseries data when they
+    differ from the logger programmed slope and offsets. The slope and offset information for each measurement
+    and time period is contained in the measurements instance from bw.MeasurementStation.
+
+    This uses the brightwind 'adjust_slope_offset()' function to apply the actual adjustment to the data.
+
+    Note: Be careful not to run this more than once in an assessment, when using inplace=True, as it will
+          apply the adjustment again.
+
+    :param data:         Timeseries data.
+    :type data:          pd.DataFrame or pd.Series
+    :param measurements: Measurement information extracted from a WRA Data Model using bw.MeasurementStation
+    :type measurements:  list or dict or _Measurements
+    :param inplace:      If 'inplace' is True, the original direction data, contained in 'data', will be
+                         modified and replaced with the adjusted direction data. If 'inplace' is False, the
+                         original data will not be touched and instead a new DataFrame containing the adjusted
+                         direction data is created. To store this adjusted direction data, please ensure it is
+                         assigned to a new variable.
+    :type inplace:       bool
+    :return:             Data with adjusted wind speeds.
+    :rtype:              pd.DataFrame or pd.Series
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        mm1 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+
+    Adjust wind speeds when the calibration slope and offset differ from the logger
+    programmed slope and offset, applying inplace::
+        bw.apply_wspd_slope_offset_adj(data, mm1.measurements, inplace=True)
+
+    Adjust wind speeds and assign to new variable::
+        data_calib_adj = bw.apply_wspd_slope_offset_adj(data, mm1.measurements)
+
+    Send just the wind speed properties::
+        bw.apply_wspd_slope_offset_adj(data, mm1.measurements.wspds, inplace=True)
+
+    Send a specific wind speed property::
+        bw.apply_wspd_slope_offset_adj(data, mm1.measurements['Spd60mS'], inplace=True)
+
+    Send a specific wind direction property and data column::
+        bw.apply_wspd_slope_offset_adj(data['Spd60mS'], mm1.measurements['Spd60mS'], inplace=True)
+
+    """
+    # Depending on what is sent, get wspd properties into a list of properties
+    wspd_properties = _get_consistent_properties_format(measurements, 'wind_speed')
+    if not wspd_properties:
+        raise ValueError('No wind speed measurements found.')
+
+    # copy the data if needed
+    data = data.copy(deep=True) if inplace is False else data
+    wspd_in_dataset = False
+    df = pd.DataFrame(data) if type(data) == pd.Series else data
+
+    # Apply the adjustment
+    for wspd_prop in wspd_properties:
+        name = wspd_prop['name']
+        if name in df.columns:
+            wspd_in_dataset = True
+            date_to = wspd_prop.get('date_to')
+            date_from = wspd_prop.get('date_from')
+            if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+                date_to_txt = 'the end of dataset'
+            else:
+                date_to_txt = date_to
+
+            variables = {
+                'slope': 'sensor_config.slope',
+                'offset': 'sensor_config.offset',
+                'cal_slope': 'calibration.slope',
+                'cal_offset': 'calibration.offset'
+            }
+            none_variables = [v for v in variables.values() if wspd_prop.get(v) is None]
+
+            if none_variables:
+                print("{} has {} value set as None. Slope and offset adjustment can't be applied "
+                      "from {} to {}.\n".format(utils.bold(name), utils.bold(', '.join(none_variables)),
+                                                utils.bold(date_from),
+                                                utils.bold(date_to_txt)))
+            elif float(wspd_prop[variables['slope']]) != float(wspd_prop[variables['cal_slope']]) or \
+                    float(wspd_prop[variables['offset']]) != float(wspd_prop[variables['cal_offset']]):
+                try:
+                    df[name][date_from:date_to] = \
+                        adjust_slope_offset(df[name][date_from:date_to],
+                                            current_slope=float(wspd_prop[variables['slope']]),
+                                            current_offset=float(wspd_prop[variables['offset']]),
+                                            new_slope=float(wspd_prop[variables['cal_slope']]),
+                                            new_offset=float(wspd_prop[variables['cal_offset']]))
+                    print('{} has slope and offset adjustment applied from {} to {}.\n'
+                          .format(utils.bold(name), utils.bold(date_from),
+                                  utils.bold(date_to_txt)))
+                except TypeError:
+                    print('{} has TypeError with logger or calibration slope and offset values. Skipping.\n'
+                          .format(utils.bold(name)))
+                except Exception as error_msg:
+                    print(error_msg)
+            else:
+                print('{} logger slope and offsets are equal to calibration slope and offsets from '
+                      '{} to {}.\n'.format(utils.bold(name),
+                                           utils.bold(date_from),
+                                           utils.bold(date_to_txt)))
+        else:
+            print('{} is not found in data.\n'.format(utils.bold(name)))
+
+    if wspd_in_dataset is False:
+        print('No wind speed measurement type found in the configurations.')
+    # if a Series is sent, send back a Series
+    if type(data) == pd.Series:
+        df = df[df.columns[0]]
+    return df
+
+
 def scale_wind_speed(spd, scale_factor: float):
     """
     Scales wind speed by the scale_factor
@@ -306,17 +1000,133 @@ def scale_wind_speed(spd, scale_factor: float):
 
 def offset_wind_direction(wdir, offset: float):
     """
-    Add/ subtract offset from wind direction. Keeps the ranges between 0 to 360
+    Add or subtract offset from wind direction. Keeps the ranges between 0 to 360
+
     :param wdir: Series or data frame or a single direction to offset
     :param offset: Offset in degrees can be negative or positive
     :return: Series or Dataframe or single value with offsetted directions
     """
-    if isinstance(wdir, float):
+    if isinstance(wdir, float) or isinstance(wdir, int):
         return utils._range_0_to_360(wdir + offset)
     elif isinstance(wdir, pd.DataFrame):
         return wdir.add(offset).applymap(utils._range_0_to_360)
     elif isinstance(wdir, pd.Series):
         return wdir.add(offset).apply(utils._range_0_to_360)
+
+
+def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
+    """
+    Automatically apply deadband offsets of the wind vanes to the timeseries data. The deadband orientation
+    information for each wind direction measurement and time period is contained in the measurements
+    instance from bw.MeasurementStation.
+
+    This uses the brightwind 'offset_wind_direction()' function to apply the actual adjustment to the data.
+
+    Note: Be careful not to run this more than once in an assessment, when using inplace=True, as it will
+          apply an offset again.
+
+    If there is a value in the logger for an offset, then the wind direction data has already been adjusted
+    by this amount. This may or may not be equal to the deadband offset. Therefore, the adjustment to be made should
+    make up the difference to equal a deadband offset. E.g.
+
+            offset to be applied = deadband - logger offset
+
+    This function accounts for this adjustment.
+
+    :param data:         Timeseries data.
+    :type data:          pd.DataFrame or pd.Series
+    :param measurements: Measurement information extracted from a WRA Data Model using bw.MeasurementStation
+    :type measurements:  list or dict or _Measurements
+    :param inplace:      If 'inplace' is True, the original direction data, contained in 'data', will be
+                         modified and replaced with the adjusted direction data. If 'inplace' is False, the
+                         original data will not be touched and instead a new DataFrame containing the adjusted
+                         direction data is created. To store this adjusted direction data, please ensure it is
+                         assigned to a new variable.
+    :type inplace:       bool
+    :return:             Data with adjusted wind direction by the deadband orientation.
+    :rtype:              pd.DataFrame or pd.Series
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        mm1 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+
+    Adjust wind directions by the deadband orientation, applying inplace::
+        bw.apply_wind_vane_deadband_offset(data, mm1.measurements, inplace=True)
+        print('\nWind vane deadband offset adjustment is completed.')
+
+    Adjust wind direction by the deadband orientation, and assign to new variable::
+        data_deadband_adj = bw.apply_wind_vane_deadband_offset(data, mm1.measurements)
+
+    Send just the wind direction properties::
+        bw.apply_wind_vane_deadband_offset(data, mm1.measurements.wdirs, inplace=True)
+        print('\nWind vane deadband offset adjustment is completed.')
+
+    Send a specific wind direction property::
+        bw.apply_wind_vane_deadband_offset(data, mm1.measurements['Dir78mS'], inplace=True)
+        print('\nWind vane deadband offset adjustment is completed.')
+
+    Send a specific wind direction property and data column::
+        bw.apply_wind_vane_deadband_offset(data['Dir78mS'], mm1.measurements['Dir78mS'], inplace=True)
+        print('\nWind vane deadband offset adjustment is completed.')
+
+    """
+    # Depending on what is sent, get wdir properties into a list of properties
+    wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
+    if not wdirs_properties:
+        raise ValueError('No wind direction measurements found.')
+
+    # copy the data if needed
+    data = data.copy(deep=True) if inplace is False else data
+    wdir_in_dataset = False
+    df = pd.DataFrame(data) if type(data) == pd.Series else data
+
+    # Apply the offset
+    for wdir_prop in wdirs_properties:
+        name = wdir_prop['name']
+        if name in df.columns:
+            wdir_in_dataset = True
+            date_to = wdir_prop.get('date_to')
+            if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+                date_to_txt = 'the end of dataset'
+            else:
+                date_to_txt = date_to
+
+            deadband = wdir_prop.get('vane_dead_band_orientation_deg')
+            date_from = wdir_prop['date_from']
+            # Account for a logger offset
+            logger_offset = wdir_prop.get('sensor_config.offset')
+            offset = deadband
+            additional_comment_txt = 'to account for deadband'
+            if logger_offset is not None and logger_offset != 0 and deadband is not None:
+                offset = offset_wind_direction(float(deadband), offset=-float(logger_offset))
+                additional_comment_txt = additional_comment_txt + ' and logger offset'
+
+            if offset:
+                df[name][date_from:date_to] = \
+                    offset_wind_direction(df[name][date_from:date_to],
+                                          float(offset))
+                print('{0} adjusted by {1} degrees from {2} to {3} {4}.\n'
+                      .format(utils.bold(name), utils.bold(str(offset)),
+                              utils.bold(date_from), utils.bold(date_to_txt), additional_comment_txt))
+            elif offset == 0:
+                print('{} has an offset to be applied of 0 from {} to {} {}.\n'
+                      .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt),
+                              additional_comment_txt))
+            else:
+                print('{} has dead_band_orientation of None from {} to {}.\n'
+                      .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt)))
+        else:
+            print('{} is not found in data.\n'.format(utils.bold(name)))
+
+    if wdir_in_dataset is False:
+        print('No wind direction measurement type found in the data.\n')
+    # if a Series is sent, send back a Series
+    if type(data) == pd.Series:
+        df = df[df.columns[0]]
+    return df
 
 
 def _selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2,
@@ -399,7 +1209,6 @@ def _sectors_overlap(boom_dir_1, boom_dir_2, sector_width):
 
 def selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2, sector_width=60):
     """
-
     Creates a time series of wind speed using data from two anemometers (ideally at the same height) and one wind vane.
     This function either averages the two wind speed values for a given timestamp or only includes the upstream wind
     speed value when the other is in the wake of the mast.
@@ -422,7 +1231,7 @@ def selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2, sector_width=60)
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_csv(bw.datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # Normal use: Derive selective average of 80 m anemometer pair
         data['sel_avg_80m'] = bw.selective_avg(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS,
@@ -447,60 +1256,6 @@ def selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2, sector_width=60)
     sel_avg = _selective_avg(wspd_1, wspd_2, wdir, boom_dir_1, boom_dir_2,
                              inflow_lower1, inflow_higher1, inflow_lower2, inflow_higher2, sector_width)
     return sel_avg
-
-
-def _preprocess_data_for_correlations(ref: pd.DataFrame, target: pd.DataFrame, averaging_prd, coverage_threshold,
-                                      aggregation_method_ref='mean', aggregation_method_target='mean',
-                                      get_coverage=False):
-    ref_overlap, target_overlap = _get_overlapping_data(ref.sort_index().dropna(), target.sort_index().dropna(),
-                                                        averaging_prd)
-    from pandas.tseries.frequencies import to_offset
-    ref_resolution = _get_data_resolution(ref_overlap.index)
-    target_resolution = _get_data_resolution(target_overlap.index)
-    if (to_offset(ref_resolution) != to_offset(averaging_prd)) and \
-            (to_offset(target_resolution) != to_offset(averaging_prd)):
-        if ref_resolution > target_resolution:
-            target_overlap = average_data_by_period(target_overlap, to_offset(ref_resolution),
-                                                    coverage_threshold=1,
-                                                    aggregation_method=aggregation_method_target)
-        if ref_resolution < target_resolution:
-            ref_overlap = average_data_by_period(ref_overlap, to_offset(target_resolution),
-                                                 coverage_threshold=1,
-                                                 aggregation_method=aggregation_method_ref)
-        common_idxs, data_pts = _common_idxs(ref_overlap, target_overlap)
-        ref_overlap = ref_overlap.loc[common_idxs]
-        target_overlap = target_overlap.loc[common_idxs]
-
-    if get_coverage:
-        return pd.concat([average_data_by_period(ref_overlap, averaging_prd,
-                                                 coverage_threshold=0, aggregation_method=aggregation_method_ref)] +
-                         list(average_data_by_period(target_overlap, averaging_prd,
-                                                     coverage_threshold=0, aggregation_method=aggregation_method_target,
-                                                     return_coverage=True)),
-                         axis=1)
-    else:
-        ref_processed, target_processed = average_data_by_period(ref_overlap, averaging_prd,
-                                                                 coverage_threshold=coverage_threshold,
-                                                                 aggregation_method=aggregation_method_ref), \
-                                          average_data_by_period(target_overlap, averaging_prd,
-                                                                 coverage_threshold=coverage_threshold,
-                                                                 aggregation_method=aggregation_method_target)
-        concurrent_idxs, data_pts = _common_idxs(ref_processed, target_processed)
-        return ref_processed.loc[concurrent_idxs], target_processed.loc[concurrent_idxs]
-
-
-def _preprocess_dir_data_for_correlations(ref_spd: pd.DataFrame, ref_dir: pd.DataFrame, target_spd: pd.DataFrame,
-                                          target_dir: pd.DataFrame, averaging_prd, coverage_threshold):
-    ref_N, ref_E= _compute_wind_vector(ref_spd.sort_index().dropna(), ref_dir.sort_index().dropna().map(math.radians))
-    target_N, target_E = _compute_wind_vector(target_spd.sort_index().dropna(),
-                                              target_dir.sort_index().dropna().map(math.radians))
-    ref_N_avgd, target_N_avgd = _preprocess_data_for_correlations(ref_N, target_N, averaging_prd=averaging_prd,
-                                                                  coverage_threshold=coverage_threshold)
-    ref_E_avgd, target_E_avgd = _preprocess_data_for_correlations(ref_E, target_E, averaging_prd=averaging_prd,
-                                                                  coverage_threshold=coverage_threshold)
-    ref_dir_avgd = np.arctan2(ref_E_avgd, ref_N_avgd).map(math.degrees).map(utils._range_0_to_360)
-    target_dir_avgd = np.arctan2(target_E_avgd, target_N_avgd).map(math.degrees).map(utils._range_0_to_360)
-    return round(ref_dir_avgd.loc[:]), round(target_dir_avgd.loc[:])
 
 
 def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=False):
@@ -532,7 +1287,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.datasets.demo_site_data)
+        data = bw.load_campbell_scientific(bw.demo_datasets.demo_site_data)
 
         #To decrease 10 minutes within a given date range and overwrite the original data
         op1 = bw.offset_timestamps(data, offset='1H', date_from='2016-01-01 00:20:00',
@@ -554,14 +1309,14 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             date_from='2016-01-01 01:40:00')
 
     """
-    import datetime
+    
     date_from = pd.to_datetime(date_from)
     date_to = pd.to_datetime(date_to)
 
     if isinstance(data, pd.Timestamp) or isinstance(data, datetime.date)\
             or isinstance(data, datetime.time)\
             or isinstance(data, datetime.datetime):
-        return data + pd.Timedelta(offset)
+        return data + _freq_str_to_dateoffset(offset)
 
     if isinstance(data, pd.DatetimeIndex):
         original = pd.to_datetime(data.values)
@@ -572,7 +1327,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
         if pd.isnull(date_to):
             date_to = data[-1]
 
-        shifted_slice = original[(original >= date_from) & (original <= date_to)] + pd.Timedelta(offset)
+        shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_dateoffset(offset)
         shifted = original[original < date_from].append(shifted_slice)
         shifted = shifted.append(original[original > date_to])
         shifted = shifted.drop_duplicates().sort_values()
@@ -591,7 +1346,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             if pd.isnull(date_to):
                 date_to = data.index[-1]
 
-            shifted_slice = original[(original >= date_from) & (original <= date_to)] + pd.Timedelta(offset)
+            shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_dateoffset(offset)
             intersection_front = original[(original < date_from)].intersection(shifted_slice)
             intersection_back = original[(original > date_to)].intersection(shifted_slice)
             if overwrite:
@@ -601,8 +1356,8 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
                 sec2 = original[original > date_to].drop(intersection_back)
                 shifted = (sec1.append(shifted_slice)).append(sec2)
             else:
-                df_copy = df_copy.drop(intersection_front - pd.Timedelta(offset), axis=0)
-                df_copy = df_copy.drop(intersection_back - pd.Timedelta(offset), axis=0)
+                df_copy = df_copy.drop(intersection_front - _freq_str_to_dateoffset(offset), axis=0)
+                df_copy = df_copy.drop(intersection_back - _freq_str_to_dateoffset(offset), axis=0)
                 sec_mid = shifted_slice.drop(intersection_front).drop(intersection_back)
                 shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original > date_to)])
             df_copy.index = shifted

@@ -1,19 +1,3 @@
-#     brightwind is a library that provides wind analysts with easy to use tools for working with meteorological data.
-#     Copyright (C) 2018 Stephen Holleran, Inder Preet
-#
-#     This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU Lesser General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
-#     (at your option) any later version.
-#
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU Lesser General Public License for more details.
-#
-#     You should have received a copy of the GNU Lesser General Public License
-#     along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import pandas as pd
 import numpy as np
 import datetime
@@ -576,9 +560,9 @@ class Shear:
             :type sectors: int
             :param direction_bin_array: Specific array of directional bins to be used. If None, bins are calculated
                                         by 360/sectors.
-            :type direction_bin_array: array
+            :type direction_bin_array: list or array
             :param direction_bin_labels: Labels to be given to the above direction_bin array.
-            :type direction_bin_labels: array
+            :type direction_bin_labels: list or array
             :return: BySector object containing calculated alpha/roughness coefficient values, a plot and other data.
             :rtype: BySector object
 
@@ -635,9 +619,11 @@ class Shear:
 
                 w = wspds.iloc[:, i]
                 plot, mean_wspds[i] = dist_by_dir_sector(w, wdir, direction_bin_array=direction_bin_array,
+                                                         sectors=sectors,
                                                          aggregation_method='mean', return_data=True)
 
                 plot, count[i] = dist_by_dir_sector(w, wdir, direction_bin_array=direction_bin_array,
+                                                    sectors=sectors,
                                                     aggregation_method='count', return_data=True)
 
                 if i == 0:
@@ -650,6 +636,7 @@ class Shear:
             count_df = count_df.mean(axis=1)
             wind_rose_plot, wind_rose_dist = dist_by_dir_sector(wspds.iloc[:, 0], wdir,
                                                                 direction_bin_array=direction_bin_array,
+                                                                sectors=sectors,
                                                                 direction_bin_labels=direction_bin_labels,
                                                                 return_data=True)
             if calc_method == 'power_law':
@@ -658,6 +645,7 @@ class Shear:
 
                 wind_rose_plot, wind_rose_dist = dist_by_dir_sector(wspds.iloc[:, 0], wdir,
                                                                     direction_bin_array=direction_bin_array,
+                                                                    sectors=sectors,
                                                                     direction_bin_labels=direction_bin_labels,
                                                                     return_data=True)
 
@@ -689,7 +677,7 @@ class Shear:
             self.sectors = sectors
             self.calc_method = calc_method
             self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
-                                           direction_bin_array = direction_bin_array)
+                                           direction_bin_array=direction_bin_array)
 
         @property
         def alpha(self):
@@ -992,7 +980,7 @@ class Shear:
 
         if self.origin == 'BySector':
 
-            # initilise series for later use
+            # initialise series for later use
             bin_edges = pd.Series([])
             by_sector = pd.Series([])
 
@@ -1132,7 +1120,19 @@ class Shear:
 
     @staticmethod
     def _create_info(self, heights, min_speed, cvg, direction_bin_array=None, segments_per_day=None,
-                    segment_start_time=None):
+                     segment_start_time=None):
+        """
+        Create the info dict that is returned to the user.
+
+        :param self:
+        :param heights:
+        :param min_speed:
+        :param cvg:
+        :param direction_bin_array:
+        :param segments_per_day:
+        :param segment_start_time:
+        :return:
+        """
 
         info = {}
         input_data = {}
@@ -1149,7 +1149,7 @@ class Shear:
             input_data['segment_start_time'] = int(segment_start_time)
 
         if self.origin == 'BySector':
-            input_wind_dir = {'heights': float((re.findall(r'\d+', str(self.wdir.name))[0])),
+            input_wind_dir = {'heights': None,
                               'column_names': str(self.wdir.name)}
             input_data['input_wind_dir'] = input_wind_dir
             input_data['sectors'] = self.sectors

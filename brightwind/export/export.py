@@ -1,19 +1,3 @@
-#     brightwind is a library that provides wind analysts with easy to use tools for working with meteorological data.
-#     Copyright (C) 2018 Stephen Holleran, Inder Preet
-#
-#     This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU Lesser General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
-#     (at your option) any later version.
-#
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU Lesser General Public License for more details.
-#
-#     You should have received a copy of the GNU Lesser General Public License
-#     along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import os
 import pandas as pd
 import datetime
@@ -61,7 +45,7 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, folder_path=Non
     **Example Usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
         wind_rose, freq_tab = bw.freq_table(df.Spd80mN, df.Dir78mS, return_data=True)
         bw.export_tab_file(freq_tab, 80, 54.2, -7.6, file_name='campbell_tab_file', folder_path=r'C:\\some\\folder\\')
 
@@ -85,7 +69,7 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, folder_path=Non
     local_freq_tab = freq_tab.copy()
 
     speed_interval = {interval.right - interval.left for interval in local_freq_tab.index}
-    if len(speed_interval) is not 1:
+    if len(speed_interval) != 1:
         import warnings
         warnings.warn("All speed bins not of equal lengths")
     speed_interval = speed_interval.pop()
@@ -139,7 +123,7 @@ def export_csv(data, file_name=None, folder_path=None, **kwargs):
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.datasets.demo_campbell_scientific_site_data)
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
         folder = r'C:\\some\\folder\\'
 
         # to export a .csv file with a specified name to a specific folder

@@ -1,0 +1,1587 @@
+{
+  "author": "Stephen Holleran",
+  "organisation": "brightwind",
+  "date": "2020-06-07",
+  "version": "0.1.0-2021.01",
+  "plant_name": "A Name of Wind Farm",
+  "plant_type": "onshore_wind",
+  "measurement_location": [{
+    "name": "AName_MM1",
+    "latitude_ddeg": 53.5,
+    "longitude_ddeg": -8,
+    "measurement_station_type_id": "mast",
+    "notes": "New mast.",
+    "update_at": "2020-04-18T18:13:00",
+    "mast_properties": {
+      "mast_geometry_id": "lattice_triangle",
+      "mast_oem": "A Mast Manufacturer",
+      "mast_serial_number": "MM01234",
+      "mast_model": "SLX80m",
+      "mast_height_m": 78.5,
+      "notes": "Mast notes.",
+      "update_at": "2020-04-18T18:13:00",
+      "mast_section_geometry": [{
+        "uuid": "bf078172-bbb6-48fe-ac1f-c6605dffb1b5",
+        "pole_diameter_mm": null,
+        "lattice_face_width_at_bottom_mm": 500,
+        "lattice_face_width_at_top_mm": 500,
+        "lattice_leg_width_mm": 50,
+        "lattice_leg_is_round_cross_section": true,
+        "lattice_bracing_member_diameter_mm": 12,
+        "lattice_number_of_diagonal_bracing_members": 2,
+        "lattice_bracing_member_height_mm": 900,
+        "lattice_has_horizontal_member": false,
+        "notes": "Same geometry for the whole mast.",
+        "update_at": "2020-04-18T18:13:00"
+      }]
+    },
+    "logger_main_config": [{
+      "logger_serial_number": "01002",
+      "logger_model_name": "Symphonie Plus3",
+      "logger_id": "4321",
+      "logger_oem_id": "NRG Systems",
+      "logger_name": "AName_MM1",
+      "date_from": "2020-04-12T12:00:00",
+      "date_to": null,
+      "encryption_pin_or_key": "9876",
+      "enclosure_lock_details": "combination lock PIN 54321",
+      "data_transfer_details": "Emails to data@developername.com",
+      "offset_from_utc_hrs": -5,
+      "sampling_rate_sec": 3,
+      "averaging_period_minutes": 10,
+      "timestamp_is_end_of_period": false,
+      "clock_is_auto_synced": true,
+      "notes": "Logger notes.",
+      "update_at": "2020-04-18T18:13:00"
+    }],
+    "measurement_point": [{
+      "name": "Spd_80.1_315",
+      "measurement_type_id": "wind_speed",
+      "height_m": 80.1,
+      "height_reference_id": "ground_level",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 0.04573,
+        "offset": 0.2419,
+        "sensitivity": null,
+        "measurement_units_id": "m/s",
+        "height_m": 80,
+        "serial_number": "09183000",
+        "connection_channel": "CH1",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": "2020-04-15T00:00:00",
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH1Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "notes": "Connected to CH1.",
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH1SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH1Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH1Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      },{
+        "slope": 0.04573,
+        "offset": 0.2491,
+        "sensitivity": null,
+        "measurement_units_id": "m/s",
+        "height_m": 80,
+        "serial_number": "09183000",
+        "connection_channel": "CH1",
+        "date_from": "2020-04-15T00:00:00",
+        "date_to": null,
+        "notes": "Corrected offset.",
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH1Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH1SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH1Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH1Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "Thies",
+        "model": "4.3351.10.000",
+        "serial_number": "09183000",
+        "sensor_type_id": "anemometer",
+        "instrument_poi_height_mm": 250,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "calibration": [{
+          "slope": 0.04573,
+          "offset": 0.2419,
+          "sensitivity": null,
+          "report_file_name": "file name.pdf",
+          "report_link": null,
+          "date_of_calibration": "2019-12-06",
+          "calibration_organisation": "Deutsche WindGuard",
+          "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
+          "uncertainty_k_factor": 2,
+          "notes": "Calibrated months before installation.",
+          "update_at": "2020-04-18T18:13:00",
+          "calibration_uncertainty": [{
+              "reference_bin": 4,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 5.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 7.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 9.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 11.9,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 13.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 15.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 14.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 12.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 10.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 8.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 6.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 4.98,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+          }]
+        }]
+      }],
+      "mounting_arrangement": [{
+        "mast_section_geometry_uuid": null,
+        "mounting_type_id": "goal_post",
+        "boom_orientation_deg": 315,
+        "vane_dead_band_orientation_deg": null,
+        "orientation_reference_id": "magnetic_north",
+        "tilt_angle_deg": 0,
+        "boom_oem": "NRG",
+        "boom_model": "#9334",
+        "upstand_height_mm": 224,
+        "upstand_diameter_mm": 25,
+        "boom_diameter_mm": 25,
+        "boom_length_mm": 2470,
+        "distance_from_mast_to_sensor_mm": 2470,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "notes": "NW anemometer.",
+        "update_at": "2020-04-18T18:13:00"
+      }],
+      "interference_structures": [{
+        "structure_type_id": "lightning_finial",
+        "orientation_from_mast_centre_deg": 45,
+        "orientation_reference_id": "magnetic_north",
+        "distance_from_mast_centre_mm": 900,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "notes": "Lightning rod is NE of mast.",
+        "update_at": "2020-04-18T18:13:00"
+      }]
+    },{
+      "name": "Spd_80mSE",
+      "measurement_type_id": "wind_speed",
+      "height_m": 80.2,
+      "height_reference_id": "ground_level",
+      "notes": "SE anemometer.",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 0.04568,
+        "offset": 0.2487,
+        "sensitivity": null,
+        "measurement_units_id": "m/s",
+        "height_m": 80,
+        "serial_number": "09183001",
+        "connection_channel": "CH2",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": "2020-04-18T00:00:00",
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH2Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH2SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH2Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH2Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      },{
+        "slope": 0.04575,
+        "offset": 0.2497,
+        "sensitivity": null,
+        "measurement_units_id": "m/s",
+        "height_m": 80,
+        "serial_number": "09183023",
+        "connection_channel": "CH2",
+        "date_from": "2020-04-18T00:00:00",
+        "date_to": null,
+        "notes": "Replaced anemometer.",
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH2Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH2SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH2Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH2Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "Thies",
+        "model": "4.3351.10.000",
+        "serial_number": "09183001",
+        "sensor_type_id": "anemometer",
+        "instrument_poi_height_mm": 250,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": "2020-04-18T00:00:00",
+        "update_at": "2020-04-18T18:13:00",
+        "notes": "First Class Advanced",
+        "calibration": [{
+          "slope": 0.04568,
+          "offset": 0.2487,
+          "sensitivity": null,
+          "report_file_name": "file name.pdf",
+          "report_link": null,
+          "date_of_calibration": "2019-12-06",
+          "calibration_organisation": "Deutsche WindGuard",
+          "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
+          "uncertainty_k_factor": 2,
+          "update_at": "2020-04-18T18:13:00",
+          "calibration_uncertainty": [{
+              "reference_bin": 4,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 5.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 7.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 9.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 11.9,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 13.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 15.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 14.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 12.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 10.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 8.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 6.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 4.98,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+          }]
+        }]
+      },{
+        "oem": "Thies",
+        "model": "4.3351.10.000",
+        "serial_number": "09183023",
+        "sensor_type_id": "anemometer",
+        "instrument_poi_height_mm": 250,
+        "is_heated": false,
+        "date_from": "2020-04-18T00:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "notes": "Replaced anemometer.",
+        "calibration": [{
+          "slope": 0.04575,
+          "offset": 0.2497,
+          "sensitivity": null,
+          "report_file_name": "file name.pdf",
+          "report_link": null,
+          "date_of_calibration": "2019-12-06",
+          "calibration_organisation": "Deutsche WindGuard",
+          "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
+          "uncertainty_k_factor": 2,
+          "notes": "Replaced anemometer.",
+          "update_at": "2020-04-18T18:13:00",
+          "calibration_uncertainty": [{
+              "reference_bin": 4,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 5.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 7.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 9.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 11.9,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 13.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 15.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 14.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 12.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 10.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 8.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 6.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 4.98,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+          }]
+        }]
+      }],
+      "mounting_arrangement": [{
+        "mast_section_geometry_uuid": null,
+        "mounting_type_id": "goal_post",
+        "boom_orientation_deg": 135,
+        "vane_dead_band_orientation_deg": null,
+        "orientation_reference_id": "magnetic_north",
+        "tilt_angle_deg": 0,
+        "boom_oem": "NRG",
+        "boom_model": "#9334",
+        "upstand_height_mm": 224,
+        "upstand_diameter_mm": 25,
+        "boom_diameter_mm": 25,
+        "boom_length_mm": 2470,
+        "distance_from_mast_to_sensor_mm": 2470,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "notes": "Replaced anemometer but kept same mounting.",
+        "update_at": "2020-04-18T18:13:00"
+      }],
+      "interference_structures": [{
+        "structure_type_id": "lightning_finial",
+        "orientation_from_mast_centre_deg": 45,
+        "orientation_reference_id": "magnetic_north",
+        "distance_from_mast_centre_mm": 900,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00"
+      }]
+    },{
+      "name": "Spd_60mNW",
+      "measurement_type_id": "wind_speed",
+      "height_m": 60.1,
+      "height_reference_id": "ground_level",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 0.04666,
+        "offset": 0.2416,
+        "sensitivity": null,
+        "measurement_units_id": "m/s",
+        "height_m": 60,
+        "serial_number": "09183002",
+        "connection_channel": "CH3",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH3Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH3SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH3Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH3Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "Thies",
+        "model": "4.3351.10.000",
+        "serial_number": "09183002",
+        "sensor_type_id": "anemometer",
+        "instrument_poi_height_mm": 250,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "calibration": [{
+          "slope": 0.04666,
+          "offset": 0.2416,
+          "sensitivity": null,
+          "report_file_name": "file name.pdf",
+          "report_link": null,
+          "date_of_calibration": "2019-12-06",
+          "calibration_organisation": "Deutsche WindGuard",
+          "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
+          "uncertainty_k_factor": 2,
+          "update_at": "2020-04-18T18:13:00",
+          "calibration_uncertainty": [{
+              "reference_bin": 4,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 5.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 7.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 9.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 11.9,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 13.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 15.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 14.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 12.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 10.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 8.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 6.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 4.98,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+          }]
+        }]
+      }],
+      "mounting_arrangement": [{
+        "mast_section_geometry_uuid": "bf078172-bbb6-48fe-ac1f-c6605dffb1b5",
+        "mounting_type_id": "side",
+        "boom_orientation_deg": 315,
+        "vane_dead_band_orientation_deg": null,
+        "orientation_reference_id": "magnetic_north",
+        "tilt_angle_deg": 0,
+        "boom_oem": "NRG",
+        "boom_model": "#9334",
+        "upstand_height_mm": 224,
+        "upstand_diameter_mm": 25,
+        "boom_diameter_mm": 25,
+        "boom_length_mm": 2470,
+        "distance_from_mast_to_sensor_mm": 2470,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00"
+      }]
+    },{
+      "name": "Spd_60mSE",
+      "measurement_type_id": "wind_speed",
+      "height_m": 60.2,
+      "height_reference_id": "ground_level",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 0.04777,
+        "offset": 0.2417,
+        "sensitivity": null,
+        "measurement_units_id": "m/s",
+        "height_m": 60,
+        "serial_number": "09183003",
+        "connection_channel": "CH4",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH4Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH4SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH4Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH4Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "Thies",
+        "model": "4.3351.10.000",
+        "serial_number": "09183003",
+        "sensor_type_id": "anemometer",
+        "instrument_poi_height_mm": 250,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "calibration": [{
+          "slope": 0.04777,
+          "offset": 0.2417,
+          "notes": "Don't have a source.",
+          "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "mounting_arrangement": [{
+        "mast_section_geometry_uuid": "bf078172-bbb6-48fe-ac1f-c6605dffb1b5",
+        "mounting_type_id": "side",
+        "boom_orientation_deg": 135,
+        "vane_dead_band_orientation_deg": null,
+        "orientation_reference_id": "magnetic_north",
+        "tilt_angle_deg": 0,
+        "boom_oem": "NRG",
+        "boom_model": "#9334",
+        "upstand_height_mm": 224,
+        "upstand_diameter_mm": 25,
+        "boom_diameter_mm": 25,
+        "boom_length_mm": 2470,
+        "distance_from_mast_to_sensor_mm": 2470,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00"
+      }]
+    },{
+      "name": "Spd_40mNW",
+      "measurement_type_id": "wind_speed",
+      "height_m": 40.1,
+      "height_reference_id": "ground_level",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 0.04888,
+        "offset": 0.2418,
+        "sensitivity": null,
+        "measurement_units_id": "m/s",
+        "height_m": 60,
+        "serial_number": "09183003",
+        "connection_channel": "CH5",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": "2020-04-18T00:00:00",
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH5Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH5SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH5Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH5Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      },{
+        "slope": 0.04888,
+        "offset": 0.2418,
+        "sensitivity": null,
+        "measurement_units_id": "m/s",
+        "height_m": 40,
+        "serial_number": "09183004",
+        "connection_channel": "CH14",
+        "date_from": "2020-04-18T00:00:00",
+        "date_to": null,
+        "notes": "Connected to CH14.",
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH14Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH14SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH14Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH14Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "Thies",
+        "model": "4.3351.10.000",
+        "serial_number": "09183004",
+        "sensor_type_id": "anemometer",
+        "instrument_poi_height_mm": 250,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "calibration": [{
+          "slope": 0.04888,
+          "offset": 0.2418,
+          "sensitivity": null,
+          "report_file_name": "file name.pdf",
+          "report_link": null,
+          "date_of_calibration": "2019-12-06",
+          "calibration_organisation": "Deutsche WindGuard",
+          "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
+          "uncertainty_k_factor": 2,
+          "update_at": "2020-04-18T18:13:00",
+          "calibration_uncertainty": [{
+              "reference_bin": 4,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 5.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 7.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 9.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 11.9,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 13.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 15.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 14.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 12.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 10.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 8.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 6.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 4.98,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+          }]
+        }]
+      }],
+      "mounting_arrangement": [{
+        "mast_section_geometry_uuid": "bf078172-bbb6-48fe-ac1f-c6605dffb1b5",
+        "mounting_type_id": "side",
+        "boom_orientation_deg": 315,
+        "vane_dead_band_orientation_deg": null,
+        "orientation_reference_id": "magnetic_north",
+        "tilt_angle_deg": 0,
+        "boom_oem": "NRG",
+        "boom_model": "#9334",
+        "upstand_height_mm": 224,
+        "upstand_diameter_mm": 25,
+        "boom_diameter_mm": 25,
+        "boom_length_mm": 2470,
+        "distance_from_mast_to_sensor_mm": 2470,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00"
+      }]
+    },{
+      "name": "Spd_30mNW",
+      "measurement_type_id": "wind_speed",
+      "height_m": 30.1,
+      "height_reference_id": "ground_level",
+      "notes": "Incorrectly installed at 30m.",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 0.04999,
+        "offset": 0.2419,
+        "sensitivity": null,
+        "measurement_units_id": "m/s",
+        "height_m": 30,
+        "serial_number": "09183005",
+        "connection_channel": "CH6",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": "2020-04-18T00:00:00",
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH6Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH6SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH6Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH6Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "Thies",
+        "model": "4.3351.10.000",
+        "serial_number": "09183005",
+        "sensor_type_id": "anemometer",
+        "instrument_poi_height_mm": 250,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "calibration": [{
+          "slope": 0.04999,
+          "offset": 0.2419,
+          "sensitivity": null,
+          "report_file_name": "file name.pdf",
+          "report_link": null,
+          "date_of_calibration": "2019-12-06",
+          "calibration_organisation": "Deutsche WindGuard",
+          "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
+          "uncertainty_k_factor": 2,
+          "update_at": "2020-04-18T18:13:00",
+          "calibration_uncertainty": [{
+              "reference_bin": 4,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 5.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 7.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 9.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 11.9,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 13.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 15.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 14.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 12.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 10.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 8.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 6.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 4.98,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+          }]
+        }]
+      }],
+      "mounting_arrangement": [{
+        "mast_section_geometry_uuid": "bf078172-bbb6-48fe-ac1f-c6605dffb1b5",
+        "mounting_type_id": "side",
+        "boom_orientation_deg": 315,
+        "vane_dead_band_orientation_deg": null,
+        "orientation_reference_id": "magnetic_north",
+        "tilt_angle_deg": 0,
+        "boom_oem": "NRG",
+        "boom_model": "#9334",
+        "upstand_height_mm": 224,
+        "upstand_diameter_mm": 25,
+        "boom_diameter_mm": 25,
+        "boom_length_mm": 2470,
+        "distance_from_mast_to_sensor_mm": 2470,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00"
+      }]
+    },{
+      "name": "Spd_40mSE",
+      "measurement_type_id": "wind_speed",
+      "height_m": 40.2,
+      "height_reference_id": "ground_level",
+      "notes": "Anemometer put in wrong place. Moved to 40m.",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 0.04999,
+        "offset": 0.2419,
+        "sensitivity": null,
+        "measurement_units_id": "m/s",
+        "height_m": 30,
+        "serial_number": "09183005",
+        "connection_channel": "CH13",
+        "date_from": "2020-04-18T00:00:00",
+        "date_to": null,
+        "notes": "Moved from 30 m to 40 m and connected to different channel.",
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH13Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH13SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH13Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH13Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "Thies",
+        "model": "4.3351.10.000",
+        "serial_number": "09183005",
+        "sensor_type_id": "anemometer",
+        "instrument_poi_height_mm": 250,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "calibration": [{
+          "slope": 0.04999,
+          "offset": 0.2419,
+          "sensitivity": null,
+          "report_file_name": "file name.pdf",
+          "report_link": null,
+          "date_of_calibration": "2019-12-06",
+          "calibration_organisation": "Deutsche WindGuard",
+          "place_of_calibration": "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
+          "uncertainty_k_factor": 2,
+          "update_at": "2020-04-18T18:13:00",
+          "calibration_uncertainty": [{
+              "reference_bin": 4,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 5.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 7.93,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 9.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 11.9,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 13.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 15.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 14.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 12.88,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 10.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 8.91,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 6.92,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+            },{
+              "reference_bin": 4.98,
+              "reference_unit": "m/s",
+              "uncertainty": 0.1
+          }]
+        }]
+      }],
+      "mounting_arrangement": [{
+        "mast_section_geometry_uuid": "bf078172-bbb6-48fe-ac1f-c6605dffb1b5",
+        "mounting_type_id": "side",
+        "boom_orientation_deg": 135,
+        "vane_dead_band_orientation_deg": null,
+        "orientation_reference_id": "magnetic_north",
+        "tilt_angle_deg": 0,
+        "boom_oem": "NRG",
+        "boom_model": "#9334",
+        "upstand_height_mm": 224,
+        "upstand_diameter_mm": 25,
+        "boom_diameter_mm": 25,
+        "boom_length_mm": 2470,
+        "distance_from_mast_to_sensor_mm": 2470,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "notes": "Moved from 40 to 30 and other side of mast.",
+        "update_at": "2020-04-18T18:13:00"
+      }]
+    },{
+      "name": "Dir_76mNW",
+      "measurement_type_id": "wind_direction",
+      "height_m": 76.1,
+      "height_reference_id": "ground_level",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 0.351,
+        "offset": null,
+        "sensitivity": null,
+        "measurement_units_id": "deg",
+        "height_m": 76,
+        "serial_number": "01234589",
+        "connection_channel": "CH7",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH7Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH7SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH7Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH7Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "NRG",
+        "model": "#200P",
+        "serial_number": "01234589",
+        "sensor_type_id": "wind_vane",
+        "instrument_poi_height_mm": 120,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "calibration": null
+      }],
+      "mounting_arrangement": [{
+        "mast_section_geometry_uuid": "bf078172-bbb6-48fe-ac1f-c6605dffb1b5",
+        "mounting_type_id": "side",
+        "boom_orientation_deg": 315,
+        "vane_dead_band_orientation_deg": 315,
+        "orientation_reference_id": "magnetic_north",
+        "tilt_angle_deg": 0,
+        "boom_oem": "NRG",
+        "boom_model": "#7372",
+        "upstand_height_mm": 190,
+        "upstand_diameter_mm": 20,
+        "boom_diameter_mm": 20,
+        "boom_length_mm": 2470,
+        "distance_from_mast_to_sensor_mm": 2470,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00"
+      }]
+    },{
+      "name": "Dir_56mNW",
+      "measurement_type_id": "wind_direction",
+      "height_m": 56.1,
+      "height_reference_id": "ground_level",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 0.351,
+        "offset": null,
+        "sensitivity": null,
+        "measurement_units_id": "deg",
+        "height_m": 56,
+        "serial_number": "01234567",
+        "connection_channel": "CH8",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH8Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH8SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH8Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH8Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "NRG",
+        "model": "#200P",
+        "serial_number": "01234567",
+        "sensor_type_id": "wind_vane",
+        "instrument_poi_height_mm": 120,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": "2020-04-18T00:00:00",
+        "update_at": "2020-04-18T18:13:00",
+        "calibration": null
+      },{
+        "oem": "NRG",
+        "model": "#200P",
+        "serial_number": "01234588",
+        "sensor_type_id": "wind_vane",
+        "instrument_poi_height_mm": 120,
+        "is_heated": false,
+        "date_from": "2020-04-18T00:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "notes": "Vane replaced.",
+        "calibration": null
+      }],
+      "mounting_arrangement": [{
+        "mast_section_geometry_uuid": "bf078172-bbb6-48fe-ac1f-c6605dffb1b5",
+        "mounting_type_id": "side",
+        "boom_orientation_deg": 315,
+        "vane_dead_band_orientation_deg": 315,
+        "orientation_reference_id": "magnetic_north",
+        "tilt_angle_deg": 0,
+        "boom_oem": "NRG",
+        "boom_model": "#7372",
+        "upstand_height_mm": 190,
+        "upstand_diameter_mm": 20,
+        "boom_diameter_mm": 20,
+        "boom_length_mm": 2470,
+        "distance_from_mast_to_sensor_mm": 2470,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": "2020-04-18T00:00:00",
+        "update_at": "2020-04-18T18:13:00"
+      },{
+        "mast_section_geometry_uuid": "bf078172-bbb6-48fe-ac1f-c6605dffb1b5",
+        "mounting_type_id": "side",
+        "boom_orientation_deg": 315,
+        "vane_dead_band_orientation_deg": 135,
+        "orientation_reference_id": "magnetic_north",
+        "tilt_angle_deg": 0,
+        "boom_oem": "NRG",
+        "boom_model": "#7372",
+        "upstand_height_mm": 190,
+        "upstand_diameter_mm": 20,
+        "boom_diameter_mm": 20,
+        "boom_length_mm": 2470,
+        "distance_from_mast_to_sensor_mm": 2470,
+        "date_from": "2020-04-18T00:00:00",
+        "date_to": null,
+        "notes": "Dead band pointing different direction to before.",
+        "update_at": "2020-04-18T18:13:00"
+      }]
+    },{
+      "name": "Tmp_78m",
+      "measurement_type_id": "air_temperature",
+      "height_m": 78,
+      "height_reference_id": "ground_level",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 0.136,
+        "offset": -86.383,
+        "sensitivity": null,
+        "measurement_units_id": "deg_C",
+        "height_m": 76,
+        "serial_number": "T012345",
+        "connection_channel": "CH9",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH9Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH9SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH9Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH9Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "NRG",
+        "model": "#110S",
+        "serial_number": "T012345",
+        "sensor_type_id": "thermometer",
+        "instrument_poi_height_mm": null,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "notes": "",
+        "calibration": null
+      }],
+      "mounting_arrangement": null
+    },{
+      "name": "Tmp_5m",
+      "measurement_type_id": "air_temperature",
+      "height_m": 5,
+      "height_reference_id": "ground_level",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 100,
+        "offset": -30,
+        "sensitivity": null,
+        "measurement_units_id": "deg_C",
+        "height_m": 76,
+        "serial_number": "206122",
+        "connection_channel": "CH10",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH10Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH10SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH10Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH10Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "Galltec + Mela",
+        "model": "KPC1.S/5-ME",
+        "serial_number": "206122",
+        "sensor_type_id": "thermometer",
+        "instrument_poi_height_mm": null,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "notes": "",
+        "calibration": null
+      }],
+      "mounting_arrangement": null
+    },{
+      "name": "RH_5m",
+      "measurement_type_id": "relative_humidity",
+      "height_m": 5,
+      "height_reference_id": "ground_level",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 100,
+        "offset": 0,
+        "sensitivity": null,
+        "measurement_units_id": "%",
+        "height_m": 76,
+        "serial_number": "206122",
+        "connection_channel": "CH11",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH11Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH11SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH11Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH11Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "Galltec + Mela",
+        "model": "KPC1.S/5-ME",
+        "serial_number": "206122",
+        "sensor_type_id": "hygrometer",
+        "instrument_poi_height_mm": null,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "notes": "",
+        "calibration": null
+      }],
+      "mounting_arrangement": null
+    },{
+      "name": "Prs_76m",
+      "measurement_type_id": "air_pressure",
+      "height_m": 76,
+      "height_reference_id": "ground_level",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 0.4255,
+        "offset": 650,
+        "sensitivity": null,
+        "measurement_units_id": "mbar",
+        "height_m": 76,
+        "serial_number": "180537427",
+        "connection_channel": "CH12",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH12Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH12SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH12Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH12Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": "NRG",
+        "model": "BP20",
+        "serial_number": "180537427",
+        "sensor_type_id": "barometer",
+        "instrument_poi_height_mm": null,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "notes": "",
+        "calibration": null
+      }],
+      "mounting_arrangement": null
+    },{
+      "name": "Logger_V",
+      "measurement_type_id": "voltage",
+      "height_m": null,
+      "height_reference_id": "ground_level",
+      "notes": "Logger battery voltage.",
+      "update_at": "2020-04-18T18:13:00",
+      "sensor_config": [{
+        "slope": 0.021,
+        "offset": 0,
+        "sensitivity": null,
+        "measurement_units_id": "V",
+        "height_m": 5,
+        "serial_number": null,
+        "connection_channel": "CH15",
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "column_name": [
+          {
+            "column_name": "CH15Avg",
+            "statistic_type_id": "avg",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH15SD",
+            "statistic_type_id": "sd",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH15Min",
+            "statistic_type_id": "min",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+          },{
+            "column_name": "CH15Max",
+            "statistic_type_id": "max",
+            "is_ignored": false,
+            "update_at": "2020-04-18T18:13:00"
+        }]
+      }],
+      "sensor": [{
+        "oem": null,
+        "model": null,
+        "serial_number": null,
+        "sensor_type_id": "voltmeter",
+        "instrument_poi_height_mm": null,
+        "is_heated": false,
+        "date_from": "2020-04-12T12:00:00",
+        "date_to": null,
+        "update_at": "2020-04-18T18:13:00",
+        "notes": "",
+        "calibration": null
+      }],
+      "mounting_arrangement": null
+    }]
+  }]
+}
