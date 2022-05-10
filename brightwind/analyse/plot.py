@@ -858,7 +858,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                                      legend=True, vertical_bars=False)
 
         # To plot data with integer data.index, multiple columns, horizontal bars and
-        # setting minimum and maximum y axis limit
+        # setting minimum and maximum bin axis limits
         bw.analyse.plot._bar_subplot(test_data, x_label='Data Availability [%]', y_label='Measurement heights [m]',
                                      max_bar_axis_limit=100, min_bin_axis_limit=0, max_bin_axis_limit=100,
                                      subplot_title='coverage', legend=True, vertical_bars=False)
