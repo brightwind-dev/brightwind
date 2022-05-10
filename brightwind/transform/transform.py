@@ -157,7 +157,7 @@ def _get_data_resolution(data_idx):
                       'Returning most frequent time difference.'.format(most_freq_time_diff, minimum_time_diff))
 
     if most_freq_time_diff.days >= 1 and most_freq_time_diff.days < 28:
-        return pd.DateOffset(days=most_freq_time_diff.total_seconds()/(60./24.0))
+        return pd.DateOffset(days=most_freq_time_diff.total_seconds()/(60.*60.*24))
     elif most_freq_time_diff.days < 1 and most_freq_time_diff.total_seconds() >= 60*60:
         return pd.DateOffset(hours=most_freq_time_diff.total_seconds()/(60.*60))
     elif most_freq_time_diff.total_seconds() < (60*60):
