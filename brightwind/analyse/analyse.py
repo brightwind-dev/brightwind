@@ -289,18 +289,19 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
     """
     Calculates the distribution of a variable with respect to another variable.
 
-    :param var_to_bin:          Timeseries of the variable/s whose distribution we need to find
+    :param var_to_bin:          Timeseries of the variable whose distribution we need to find
     :type var_to_bin:           pandas.Series
-    :param var_to_bin_against:  Times-series of the variable which we want to bin against
-    :type var_to_bin_against:   pandas.Series, None
-    :param bins:                Array of numbers where adjacent elements of array form a bin. If set to None if derives
+    :param var_to_bin_against:  Timesseries of the variable which we want to bin against
+    :type var_to_bin_against:   pandas.Series
+    :param bins:                Array of numbers where adjacent elements of array form a bin. If set to None, it derives
                                 the min and max from the var_to_bin_against series and creates array in steps of 1.
-    :type bins:                 list, array, None
+    :type bins:                 list, array or None
     :param aggregation_method:  Statistical method used to find distribution. It can be mean, max, min, std, count,
                                 %frequency or a custom function. Computes frequency in percentages by default.
     :type aggregation_method:   str or function
-    :returns:                   A distribution pandas.Series with bins as row indexes and column with
+    :returns:                   A distribution pandas.Series with bins as index and column with
                                 statistics chosen by aggregation_method.
+    :rtype:                     pandas.Series
 
     **Example usage**
     ::
