@@ -989,11 +989,11 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
 
 
 def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1,
-                      radial_limits=None, figure_size=(10,10), **kwargs):
+                      radial_limits=None, figure_size=(10, 10), **kwargs):
     """
-    Accepts multiple ratio of anemometer pairs per sector, a wind direction, multiple distributions of anemometer ratio
-    pairs per sector, along with 2 anemometer names, and plots the speed ratio by sector. Optionally can include
-    anemometer boom directions also.
+    Accepts a DataFrame table or a dictionary with multiple ratio of anemometer pairs per sector, a wind direction,
+    multiple distributions of anemometer ratio pairs per sector, along with 2 anemometer names,
+    and plots the speed ratio by sector. Optionally can include anemometer boom directions also.
 
     :param sec_ratio: Sector_ratios
     :type sec_ratio: pandas.Series or dict
@@ -1051,6 +1051,7 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
         plt.close()
 
     return fig
+
 
 def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1,
                                ax=None, radial_limits=None, figure_size=(10,10), subplot_dimension=(1,1)):

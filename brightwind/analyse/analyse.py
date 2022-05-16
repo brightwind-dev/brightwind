@@ -1108,7 +1108,7 @@ def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
 
 
 def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_array=None, boom_dir_1=-1,
-                 boom_dir_2=-1, return_data=False, radial_limits=None, figure_size=(10,10), **kwargs):
+                 boom_dir_2=-1, return_data=False, radial_limits=None, figure_size=(10, 10), **kwargs):
     """
     Calculates the wind speed ratio of two wind speed time series and plots this ratio, averaged by direction sector,
     in a polar plot using a wind direction time series. The averaged ratio by sector can be optionally returned
@@ -1195,6 +1195,11 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
         raise ValueError('Number of anemometers does not match number of wind vanes. ' +
                          'Please ensure there is one direction vane per anemometer pair or ' +
                          'include one direcion vane only to be used for all anemometer pairs.')
+    if len(wd.columns) != 1:
+        if len(wd.columns) != len(ws_1.columns):
+            raise ValueError('Number of anemometers does not match number of wind vanes. ' +
+                             'Please ensure there is one direction vane per anemometer pair or ' +
+                             'include one direction vane only to be used for all anemometer pairs.')
 
     keys = range(len(ws_1.columns))
     sec_rats = {}
