@@ -734,25 +734,25 @@ def _create_colormap(color_rgb_from, color_rgb_to):
     Create colormap for gradient image.
 
     :param color_rgb_from:  The rgb color from which the gradient image starts.
-    :type color_rgb_from:   turple
+    :type color_rgb_from:   tuple(float, float, float)
     :param color_rgb_from:  The rgb color to which the gradient image ends.
-    :type color_rgb_from:   turple
-    :return: newcmp:        Colormap
+    :type color_rgb_from:   tuple(float, float, float)
+    :return:                Colormap
     :rtype:                 matplotlib.colors.ListedColormap
 
      **Example usage**
     ::
         import brightwind as bw
         # Create colormap from asphalt to red giving as input rgb colors
-        newcmp = bw.analyse.plot._create_colormap((46/255, 55/255, 67/255),(155,43,44))
+        cmp = bw.analyse.plot._create_colormap((46/255, 55/255, 67/255),(155,43,44))
 
     """
     n_max = 256
     vals = np.ones((n_max, 4))
     for i, (a, b) in enumerate(zip(color_rgb_from, color_rgb_to)):
         vals[:, i] = np.linspace(a, b, n_max)
-    newcmp = ListedColormap(vals)
-    return newcmp
+    cmp = ListedColormap(vals)
+    return cmp
 
 
 def _gradient_image(direction=0.3, cmap_range=(0, 1)):
