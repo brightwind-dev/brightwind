@@ -763,8 +763,8 @@ def _gradient_image(direction=0.3, cmap_range=(0, 1)):
     :type direction:    float
     :param cmap_range:  The fraction (cmin, cmax) of the colormap that should be used for the gradient,
                         where the complete colormap is (0, 1).
-    :type cmap_range:   turple
-    :return: x_grad:    gradient
+    :type cmap_range:   tuple(float, float)
+    :return:            gradient
     :rtype:             numpy.ndarray
 
      **Example usage**
