@@ -343,22 +343,22 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     for finding distribution with respect to another variable.
 
     :param var_to_bin:          Timeseries of the variable(s) whose distribution we need to find
-    :type var_to_bin:           pandas.Series, pandas.DataFrame
-    :param var_to_bin_against:  (optional) Timeseries of the variable which we want to bin against if required to bin
-                                against another variable. If None then each variable in var_to_bin is binned against
+    :type var_to_bin:           pandas.Series or pandas.DataFrame
+    :param var_to_bin_against:  (optional) Timeseries of the variable which we want to bin against, if required to bin
+                                against another variable. If None, then each variable in var_to_bin is binned against
                                 itself. Note that if var_to_bin is a pandas.DataFrame and var_to_bin_against is provided
                                 then all column variables are binned against this.
-    :type var_to_bin_against:   pandas.Series, None
-    :param bins:                Array of numbers where adjacent elements of array form a bin. If set to None if derives
+    :type var_to_bin_against:   pandas.Series or None
+    :param bins:                Array of numbers where adjacent elements of array form a bin. If set to None, it derives
                                 the min and max from the var_to_bin_against series and creates array in steps of 1.
-    :type bins:                 list, array, None
+    :type bins:                 list, array or None
     :param bin_labels:          Labels of bins to be used, uses (bin-start, bin-end] format by default
-    :type bin_labels:           list, array, None
+    :type bin_labels:           list, array or None
     :param x_label:             x-axis label to be used. If None, it will take the name of the series sent.
-    :type x_label:              str, None
+    :type x_label:              str or None
     :param max_y_value:         Max value for the y-axis of the plot to be set. Default will be relative to max
                                 calculated data value.
-    :type max_y_value:          float, int
+    :type max_y_value:          float or int
     :param aggregation_method:  Statistical method used to find distribution. It can be mean, max, min, std, count,
                                 %frequency or a custom function. Computes frequency in percentages by default.
     :type aggregation_method:   str or function
@@ -366,6 +366,8 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     :type return_data:          bool
     :returns:                   A distribution plot and, if requested, a pandas.Series or pandas.DataFrame with bins
                                 as row indexes and column with statistics chosen by aggregation_method.
+    :rtype:                     matplotlib.figure.Figure or
+                                tuple(matplotlib.figure.Figure, pandas.Series or pandas.DataFrame)
 
     **Example usage**
     ::
@@ -412,6 +414,7 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
         if var_to_bin_against is None and len(var_to_bin.columns) == 1:
             x_label = var_to_bin.columns[0]
 
+    distributions = pd.DataFrame()
     for i_dist, var_name in enumerate(var_to_bin.columns):
 
         if var_to_bin_against is None:
