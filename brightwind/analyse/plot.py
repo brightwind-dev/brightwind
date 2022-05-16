@@ -50,26 +50,26 @@ class _ColorPalette:
         'primary_10' for 10% of primary. Gradient goes from 0% (darkest) to 100% (lightest). See
         https://www.w3schools.com/colors/colors_picker.asp for more info.
         """
-        self.primary = '#9CC537'  # slightly darker than YellowGreen #9acd32, rgb[156/255, 197/255, 55/255]
-        self.secondary = '#2E3743'  # asphalt, rgb[46/255, 55/255, 67/255]
-        self.tertiary = '#9B2B2C'  # red'ish, rgb(155, 43, 44)
-        self.fourth = '#E57925'  # orange'ish, rgb(229, 121, 37)
-        self.fifth = '#F2D869'  # yellow'ish, rgb(242, 216, 105)
+        self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb[156/255, 197/255, 55/255]
+        self.secondary = '#2E3743'      # asphalt, rgb[46/255, 55/255, 67/255]
+        self.tertiary = '#9B2B2C'       # red'ish, rgb(155, 43, 44)
+        self.fourth = '#E57925'         # orange'ish, rgb(229, 121, 37)
+        self.fifth = '#F2D869'          # yellow'ish, rgb(242, 216, 105)
         self.sixth = '#AB8D60'
         self.seventh = '#A4D29F'
         self.eighth = '#6E807B'
-        self.ninth = '#3D636F'  # blue grey
+        self.ninth = '#3D636F'          # blue grey
         self.tenth = '#A49E9D'
         self.eleventh = '#DA9BA6'
-        self.primary_10 = '#1F290A'  # darkest green, 10% of primary
-        self.primary_35 = '#6C9023'  # dark green, 35% of primary
-        self.primary_80 = '#D7EBAD'  # light green, 80% of primary
-        self.primary_90 = '#ebf5d6'  # light green, 90% of primary
-        self.primary_95 = '#F5FAEA'  # lightest green, 95% of primary
-        self.secondary_70 = '#6d737b'  # light asphalt
+        self.primary_10 = '#1F290A'     # darkest green, 10% of primary
+        self.primary_35 = '#6C9023'     # dark green, 35% of primary
+        self.primary_80 = '#D7EBAD'     # light green, 80% of primary
+        self.primary_90 = '#ebf5d6'     # light green, 90% of primary
+        self.primary_95 = '#F5FAEA'     # lightest green, 95% of primary
+        self.secondary_70 = '#6d737b'   # light asphalt
 
         _col_map_colors = [self.primary_95,  # lightest primary
-                           self.primary,  # primary
+                           self.primary,     # primary
                            self.primary_10]  # darkest primary
         self._color_map = self._set_col_map(_col_map_colors)
 
@@ -108,8 +108,8 @@ def _adjust_color_lightness(r, g, b, factor):
     :type b:        float
     :param factor:  Factor defining the percentage of lightness (>1) or darkness (<1).
     :type factor:   float
-    :return: color in hex format
-    :rtype: hex
+    :return:        color in hex format
+    :rtype:         hex
     """
     hue, lightness, saturation = rgb2hls(r / 255.0, g / 255.0, b / 255.0)
     lightness = max(min(lightness * factor, 1.0), 0.0)
