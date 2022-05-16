@@ -1112,17 +1112,17 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     """
     Calculates the wind speed ratio of two wind speed time series and plots this ratio, averaged by direction sector,
     in a polar plot using a wind direction time series. The averaged ratio by sector can be optionally returned
-    in a pd.DataFrame.
+    in a pd.DataFrame. If provided with multiple time series, multiple subplots will be produced.
 
     If boom directions are specified, these will be overlaid on the plot. A boom direction of '-1' assumes top
     mounted and so doesn't plot.
 
-    :param wspd_1: First wind speed time series. This is divisor.
-    :type: wspd_1: pandas.Series
-    :param wspd_2: Second wind speed time series, dividend.
-    :type: wspd_2: pandas.Series
-    :param wdir: Series of wind directions
-    :type wdir: pandas.Series
+    :param wspd_1: First wind speed time series. One or more wind speeds can be accepted. This is the divisor.
+    :type: wspd_1: pandas.Series or pandas.DataFrame
+    :param wspd_2: Second wind speed time series, the dividend. One or more wind speeds can be accepted.
+    :type: wspd_2: pandas.Series or pandas.DataFrame
+    :param wdir: Time series of wind directions. One or more can be accepted.
+    :type wdir: pandas.Series or pandas.DataFrame
     :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
     :type sectors: int
     :param min_wspd: Minimum wind speed to be used.
@@ -1191,11 +1191,10 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
         raise ValueError('Number of anemometers is uneven. ' +
                          'Please ensure same number of anemometers in wspd_1 and wspd_2.')
 
-    if len(wd.columns) != 1:
-        if len(wd.columns) != len(ws_1.columns):
-            raise ValueError('Number of anemometers does not match number of wind vanes. ' +
-                             'Please ensure there is one direction vane per anemometer pair or ' +
-                             'include one direcion vane only to be used for all anemometer pairs.')
+    if (len(wd.columns) != 1) & (len(wd.columns) != len(ws_1.columns)):
+        raise ValueError('Number of anemometers does not match number of wind vanes. ' +
+                         'Please ensure there is one direction vane per anemometer pair or ' +
+                         'include one direcion vane only to be used for all anemometer pairs.')
 
     keys = range(len(ws_1.columns))
     sec_rats = {}
@@ -1221,13 +1220,13 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
                                                         aggregation_method='mean',
                                                         direction_bin_array=direction_bin_array,
                                                         direction_bin_labels=None, return_data=True)
-        matplotlib.pyplot.close()
+
         sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
         sec_rats_dists[sensor_pair] = sec_rat_dist
 
         fig = plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir, sec_ratio_dist=sec_rats_dists, col_names=col_names,
-                                boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2,
-                                radial_limits=radial_limits, figure_size=figure_size)
+                                    boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2,
+                                    radial_limits=radial_limits, figure_size=figure_size)
 
     if return_data:
         if len(sec_rats_dists) == 1:

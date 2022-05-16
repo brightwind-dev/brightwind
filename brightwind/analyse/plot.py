@@ -21,7 +21,8 @@ __all__ = ['plot_timeseries',
            'plot_scatter',
            'plot_scatter_wspd',
            'plot_scatter_wdir',
-           'plot_scatter_by_sector']
+           'plot_scatter_by_sector',
+           'plot_sector_ratio']
 #
 # try:
 #     if 'Gotham Rounded' in \
@@ -1009,6 +1010,8 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     :type boom_dir_2: float
     :param radial_limits: the min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
     :type radial_limits: tuple or list
+    :param figure_size: Figure size in tuple format (width, height)
+    :type figure_size: tuple
 
     :returns A speed ratio plot showing average speed ratio by sector and scatter of individual data points.
 
@@ -1022,7 +1025,7 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     if len(wdir.columns) != 1:
         if len(wdir.columns) != len(sec_ratio):
             raise ValueError('Number of anemometers does not match number of wind vanes. Please ensure there is one ' +
-                             'direction vane per anemometer pair or include one direcion vane only to be used for ' +
+                             'direction vane per anemometer pair or include one direction vane only to be used for ' +
                              'all anemometer pairs.')
 
     row, col = _get_best_row_col_number_for_subplot(len(sec_ratio))
@@ -1043,13 +1046,14 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
 
         _plot_sector_ratio_subplot(sec_ratio[pair].loc[common_idx], wd.loc[common_idx], sec_ratio_dist[pair],
                                    col_names[pair], boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2,
-                                   ax=axes[pair], radial_limits=radial_limits)
+                                   ax=axes[pair], radial_limits=radial_limits, figure_size=figure_size,
+                                   subplot_dimension=[row,col])
         plt.close()
 
     return fig
 
 def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1,
-                               ax=None, radial_limits=None):
+                               ax=None, radial_limits=None, figure_size=(10,10), subplot_dimension=(1,1)):
     """
     Accepts a ratio of anemometers per sector, a wind direction, a distribution of anemometer ratios per sector,
     along with 2 anemometer names, and returns an axis object to plot the speed ratio by sector. Optionally can
@@ -1068,10 +1072,14 @@ def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_
     :type boom_dir_1: float
     :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1.
     :type boom_dir_2: float
-    :param ax: Subplot axes to which the subplot is assinged in a plot. If None subplot is displayed on its own.
+    :param ax: Subplot axes to which the subplot is assigned in a plot. If None subplot is displayed on its own.
     :type ax: matplotlib.axes._subplots.AxesSubplot or None
     :param radial_limits: the min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
     :type radial_limits: tuple or list
+    :param figure_size: Size of radial plot. Defaults to (10,10).
+    :type figure_size: tuple
+    :param subplot_dimension: Dimensions of subplots by (row,column), if applicable. Defaults to 1 row x 1 column.
+    :type subplot_dimension: tuple or list
 
     :returns A speed ratio plot showing average speed ratio by sector and scatter of individual data points.
 
@@ -1119,8 +1127,11 @@ def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_
                                                                            col_names[0], boom_dir_1)
         annotate = True
     if annotate:
-        ax.set_title(annotation_text, y=-0.1, fontsize=plt.rcParams['ytick.labelsize'])
+        ax.set_title(annotation_text, y=0.004*min(figure_size)/subplot_dimension[0]/subplot_dimension[1]-0.15)
     ax.scatter(np.radians(wdir), sec_ratio, color=COLOR_PALETTE.secondary, alpha=0.3, s=1)
+
+    for item in ([ax.title] + ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(min(figure_size)/subplot_dimension[0]/subplot_dimension[1]+2.5)
 
     return ax
 
