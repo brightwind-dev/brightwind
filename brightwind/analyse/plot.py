@@ -788,45 +788,47 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                  min_bin_axis_limit=None, max_bin_axis_limit=None, bin_tick_labels=None,
                  subplot_title=None, legend=False, total_width=0.8, line_width=0.3, vertical_bars=True, ax=None):
     """
-    Plots a bar subplot of pd.Series or pd.Dataframe inputs where the interval of the bars is the data.index.
+    Plots a bar subplot, either vertical or horizontal bars, from a pd.Series or pd.Dataframe where the interval of the
+    bars is the data.index and the height/length of the bars are the values.
     If the data input is a Dataframe then the bars are plotted for each column of the Dataframe and with
     a different colour for each dataset.
     The user can chose if the bars are horizontal or vertical based on vertical_bars boolean user input. The function
     is handling data.index with format float, int, pd.DatetimeIndex and bin ranges (ie [-0.5, 0.5)).
 
-    :param data:                The data values used to define the height of the bars to plot.
+    :param data:                The data values used to define the index and the height/length of the bars to plot.
     :type data:                 pd.Series or pd.Dataframe
     :param x_label:             Label for the x axis
     :type x_label:              str or None
     :param y_label:             Label for the y axis
     :type y_label:              str or None
-    :param min_bar_axis_limit:  min y or x limit depending if bar plot is vertical or horizontal.
-    :type min_bar_axis_limit:   float, None
-    :param max_bar_axis_limit:  max y or x limit depending if bar plot is vertical or horizontal.
-    :type max_bar_axis_limit:   float, None
-    param min_bin_axis_limit:   min x or y limit depending if bar plot is vertical or horizontal.
-    :type min_bin_axis_limit:   float, None
+    :param min_bar_axis_limit:  min y or x-axis limit depending if bar plot is vertical or horizontal.
+    :type min_bar_axis_limit:   float or None
+    :param max_bar_axis_limit:  max y or x-axis limit depending if bar plot is vertical or horizontal.
+    :type max_bar_axis_limit:   float or None
+    param min_bin_axis_limit:   min x or y-axis limit depending if bar plot is vertical or horizontal.
+    :type min_bin_axis_limit:   float or None
     :param max_bin_axis_limit:  max x or y limit depending if bar plot is vertical or horizontal.
-    :type max_bin_axis_limit:   float, None
-    :param bin_tick_labels:     List of x or y tick labels depending if bar plot is vertical or horizontal.
-                                It can be set to None to let the code derive the tick labels from the data index.
-    :type bin_tick_labels:      list, None
-    :param subplot_title:       Title show on top of the subplot
+    :type max_bin_axis_limit:   float or None
+    :param bin_tick_labels:     List of x or y tick labels depending if bar plot is vertical or horizontal. The list
+                                must have the same number of entries as the data index.
+                                If left as None, the tick labels will be taken from the data index.
+    :type bin_tick_labels:      list or None
+    :param subplot_title:       Title to show on top of the subplot
     :type subplot_title:        str or None
     :param legend:              Boolean to choose if legend is shown.
     :type legend:               Bool
     :param total_width:         Width of each group of bars in percentage between 0 and 1. Default is 0.8, which is
-                                80% of the available space.
+                                80% of the available space for the group of bars.
     :type total_width:          float or int
-    :param line_width:          Width of the bar edge(s). If 0, don't draw edges. Default is 0.3.
+    :param line_width:          Width of the bar or group of bar's border/edge. If 0, don't draw edges. Default is 0.3.
     :type line_width:           float or int
-    :param vertical_bars:       Boolean to choose for having horizontal or vertical bars. Default is True for
+    :param vertical_bars:       Boolean to choose for having horizontal or vertical bars. Default is True to plot
                                 vertical bars.
     :type vertical_bars:        Bool
     :param ax:                  Subplot axes to which assign the subplot to in a plot. If None then a single plot is
                                 generated
     :type ax:                   matplotlib.axes._subplots.AxesSubplot or None
-    :return:                    A scatter subplot
+    :return:                    A bar subplot
     :rtype:                     matplotlib.axes._subplots.AxesSubplot
 
      **Example usage**
