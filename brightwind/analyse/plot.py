@@ -785,7 +785,7 @@ def _gradient_image(direction=0.3, cmap_range=(0, 1)):
 
 
 def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_bar_axis_limit=None,
-                 min_bin_axis_limit=None, max_bin_axis_limit=None, bin_tick_labels=None,
+                 min_bin_axis_limit=None, max_bin_axis_limit=None, bin_tick_labels=None, x_tick_label_angle=0,
                  subplot_title=None, legend=False, total_width=0.8, line_width=0.3, vertical_bars=True, ax=None):
     """
     Plots a bar subplot, either vertical or horizontal bars, from a pd.Series or pd.Dataframe where the interval of the
@@ -813,6 +813,9 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                                 must have the same number of entries as the data index.
                                 If left as None, the tick labels will be taken from the data index.
     :type bin_tick_labels:      list or None
+    :param x_tick_label_angle:  The angle to rotate the x-axis tick labels by.
+                                Default is 0, i.e. the tick labels will be horizontal.
+    :type x_tick_label_angle:   float or int
     :param subplot_title:       Title to show on top of the subplot
     :type subplot_title:        str or None
     :param legend:              Boolean to choose if legend is shown.
@@ -920,7 +923,6 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         if bin_tick_labels is not None:
             ax.set_xticklabels(bin_tick_labels)
         if index_time:
-            ax.tick_params(axis="x", rotation=20)
             ax.locator_params(axis='x', nbins=10)
             ax.xaxis.set_major_formatter(DateFormatter("%Y-%m"))
         if y_label:
@@ -933,13 +935,14 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         if bin_tick_labels is not None:
             ax.set_yticklabels(bin_tick_labels)
         if index_time:
-            ax.tick_params(axis="y", rotation=20)
             ax.locator_params(axis='y', nbins=10)
             ax.yaxis.set_major_formatter(DateFormatter("%Y-%m"))
         if x_label:
             if '%' in x_label:
                 ax.xaxis.set_major_formatter(PercentFormatter())
         ax.grid(b=True, axis='x', zorder=0)
+
+    ax.tick_params(axis="x", rotation=x_tick_label_angle)
 
     # Number of bars per group
     n_bars = len(data.columns)
