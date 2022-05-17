@@ -895,11 +895,9 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         max_bar_axis_limit = data.max().max()*1.1
 
     if vertical_bars:
-        y_limits = (min_bar_axis_limit, max_bar_axis_limit)
-        ax.set_ylim(y_limits[0], y_limits[1])
+        ax.set_ylim(min_bar_axis_limit, max_bar_axis_limit)
     else:
-        x_limits = (min_bar_axis_limit, max_bar_axis_limit)
-        ax.set_xlim(x_limits[0], x_limits[1])
+        ax.set_xlim(min_bar_axis_limit, max_bar_axis_limit)
 
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
@@ -918,7 +916,6 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
 
     if vertical_bars:
         ax.set_xticks(data_bins)
-        # ax.set_xlim(data_bins[0] - 0.5, data_bins[-1] + 0.5)
         ax.set_xlim(data_bins[0] - total_width, data_bins[-1] + total_width)
         if bin_tick_labels is not None:
             ax.set_xticklabels(bin_tick_labels)
@@ -932,7 +929,6 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         ax.grid(b=True, axis='y', zorder=0)
     else:
         ax.set_yticks(data_bins)
-        # ax.set_ylim(data_bins[0] - 0.5, data_bins[-1] + 0.5)
         ax.set_ylim(data_bins[0] - total_width, data_bins[-1] + total_width)
         if bin_tick_labels is not None:
             ax.set_yticklabels(bin_tick_labels)
@@ -953,35 +949,35 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     bars = []
     # Iterate over all data
     for i, name in enumerate(data.columns):
+        bar_color = COLOR_PALETTE.color_list[i]
         # The offset in x direction of that bar
         x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
-        r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(COLOR_PALETTE.color_list[i])))  # hex to rgb format
+        r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(bar_color)))  # hex to rgb format
 
         for data_bar, data_bin in zip(data[name], data_bins):
             if vertical_bars:
-                ax.imshow(np.array([[mpl.colors.to_rgb(COLOR_PALETTE.color_list[i])],
+                ax.imshow(np.array([[mpl.colors.to_rgb(bar_color)],
                                     [mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8))]]),
                           interpolation='gaussian', extent=(data_bin + x_offset - bar_width / 2,
                                                             data_bin + x_offset + bar_width / 2, 0,
                                                             data_bar),
                           aspect='auto', zorder=1)#3
                 bar = ax.bar(data_bin + x_offset, data_bar, width=bar_width,
-                             edgecolor=_adjust_color_lightness(r, g, b, factor=1.35), linewidth=line_width, fill=False,
-                             zorder=0)#5
+                             edgecolor=bar_color, linewidth=line_width, fill=False,
+                             zorder=1)#5
             else:
                 newcmp = _create_colormap(mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8)),
-                                          mpl.colors.to_rgb(COLOR_PALETTE.color_list[i]))
+                                          mpl.colors.to_rgb(bar_color))
                 ax.imshow(_gradient_image(direction=1, cmap_range=(0, 1)), cmap=newcmp,
                           interpolation='gaussian',
                           extent=(0, data_bar, data_bin + x_offset - bar_width / 2,
                                   data_bin + x_offset + bar_width / 2),
                           aspect='auto', zorder=1, vmin=0, vmax=1)
-
                 bar = ax.barh(data_bin + x_offset, data_bar, height=bar_width,
-                              edgecolor=_adjust_color_lightness(r, g, b, factor=1.35), linewidth=line_width, fill=False,
-                              zorder=0)#2
+                              edgecolor=bar_color, linewidth=line_width, fill=False,
+                              zorder=1)#2
         # Add a handle to the last drawn bar, which we'll need for the legend
-        bar[0].set_color(COLOR_PALETTE.color_list[i])
+        bar[0].set_color(bar_color)
         bar[0].set_fill(True)
         bars.append(bar[0])
 
@@ -1054,10 +1050,9 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
                                                y_label='count', total_width=1, legend=True)
 
     """
-
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-    bw.analyse.plot._bar_subplot(data.replace([np.inf, -np.inf], np.NAN).dropna(), x_label=x_label,
+    _bar_subplot(data.replace([np.inf, -np.inf], np.NAN).dropna(), x_label=x_label,
                                  y_label=y_label, max_bar_axis_limit=max_y_value,
                                  bin_tick_labels=x_tick_labels, legend=legend, total_width=total_width, ax=ax)
     plt.close()
@@ -1258,7 +1253,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
     result = wind_rose_data.copy(deep=False)
     radians = np.radians(utils._get_dir_sector_mid_pts(scale_variable.index))
     sectors = len(result)
-    fig = plt.figure(figsize=(12, 12), )
+    fig = plt.figure(figsize=(12, 12))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
