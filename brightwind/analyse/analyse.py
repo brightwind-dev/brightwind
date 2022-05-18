@@ -1129,10 +1129,14 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     :type: min_wpd: float
     :param direction_bin_array: (Optional) Array of numbers where adjacent elements of array form a bin. This
                                  overwrites the sectors.
-    :param boom_dir_1: Boom direction in degrees of wspd_1. If top mounted leave default as -1.
-    :type boom_dir_1: float
-    :param boom_dir_2: Boom direction in degrees of wspd_2. If top mounted leave default as -1.
-    :type boom_dir_2: float
+    :param boom_dir_1: Boom direction in degrees of wspd_1. If top mounted leave default as -1. One or more boom
+                       orientations can be accepted. If multiple orientations, number of orientations must equal
+                       number of anemometer pairs.
+    :type boom_dir_1: float or list
+    :param boom_dir_2: Boom direction in degrees of wspd_2. If top mounted leave default as -1. One or more boom
+                       orientations can be accepted. If multiple orientations, number of orientations must equal
+                       number of anemometer pairs.
+    :type boom_dir_2: float or list
     :param return_data:  Set to True if you want the data returned.
     :type return_data: bool
     :param radial_limits: Max and min limits of the plot radius.
@@ -1181,6 +1185,14 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
         fig, num = sector_ratio(data['Spd80mN'], data['Spd80mS'], data['Dir78mS'], boom_dir_1=0, boom_dir_2=180,
                                 return_data=True)
         num
+
+        # To change boom orientation of subplots
+        sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'], boom_dir_1=[80,90],
+                     boom_dir_2=[260,270], figure_size=(25,25))
+
+        # To change boom orientation of some subplots
+        sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'], boom_dir_1=80,
+                     boom_dir_2=[260,270], figure_size=(25,25))
     """
 
     ws_1 = pd.DataFrame(wspd_1)
@@ -1200,6 +1212,16 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
             raise ValueError('Number of anemometers does not match number of wind vanes. ' +
                              'Please ensure there is one direction vane per anemometer pair or ' +
                              'include one direction vane only to be used for all anemometer pairs.')
+
+    if type(boom_dir_1) is list:
+        if (len(boom_dir_1) != len(ws_1.columns)) & (len(boom_dir_1) != 1):
+            raise ValueError('Number of boom orientations must be 1 or equal to number of ' +
+                             'anemometer pairs.')
+
+    if type(boom_dir_2) is list:
+        if (len(boom_dir_2) != len(ws_1.columns)) & (len(boom_dir_2) != 1):
+            raise ValueError('Number of boom orientations must be 1 or equal to number of ' +
+                             'anemometer pairs.')
 
     keys = range(len(ws_1.columns))
     sec_rats = {}
@@ -1229,9 +1251,9 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
         sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
         sec_rats_dists[sensor_pair] = sec_rat_dist
 
-        fig = plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir, sec_ratio_dist=sec_rats_dists, col_names=col_names,
-                                    boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2,
-                                    radial_limits=radial_limits, figure_size=figure_size)
+    fig = plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir, sec_ratio_dist=sec_rats_dists, col_names=col_names,
+                                boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2,
+                                radial_limits=radial_limits, figure_size=figure_size)
 
     if return_data:
         if len(sec_rats_dists) == 1:

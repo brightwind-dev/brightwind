@@ -14,6 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 is not equal to the derived temporal resolution.
 - Added `data_resolution` argument to `average_data_by_period`, `monthly_means`, `coverage` and 
   `merge_datasets_by_period` functions (Issue #[297](https://github.com/brightwind-dev/brightwind/issues/297))
+- Added subplotting functionality to `sector_ratio` and improved user control of plotting (Issue #[309](https://github.com/brightwind-dev/brightwind/issues/309)).
 
 ## [2.0.0]
 - Major changes, notably

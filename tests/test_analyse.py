@@ -46,6 +46,8 @@ def test_sector_ratio():
                  DATA[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25),
                  return_data=True)
     bw.sector_ratio(DATA['Spd80mN'], DATA['Spd80mS'], DATA['Dir78mS'], boom_dir_1=0, boom_dir_2=180, return_data=True)
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN']], DATA[['Spd80mS', 'Spd60mS']],
+                    DATA[['Dir78mS', 'Dir58mS']], boom_dir_1=[0,350], boom_dir_2=[180,170], figure_size=(25, 25))
     assert True
 
 

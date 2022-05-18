@@ -1004,10 +1004,14 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     :param col_names: A list of strings containing column names of wind speeds, first string is divisor and second is
                       dividend
     :type col_names: list(str)
-    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to -1.
-    :type boom_dir_1: float
-    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1.
-    :type boom_dir_2: float
+    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to -1. One or more boom
+                       orientations can be accepted. If multiple orientations, number of orientations must equal
+                       number of anemometer pairs.
+    :type boom_dir_1: float or list
+    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1. One or more boom
+                       orientations can be accepted. If multiple orientations, number of orientations must equal
+                       number of anemometer pairs.
+    :type boom_dir_2: float or list
     :param radial_limits: the min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
     :type radial_limits: tuple or list
     :param figure_size: Figure size in tuple format (width, height)
@@ -1028,6 +1032,16 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
                              'direction vane per anemometer pair or include one direction vane only to be used for ' +
                              'all anemometer pairs.')
 
+    if type(boom_dir_1) is list:
+        if (len(boom_dir_1) != len(sec_ratio)) & (len(boom_dir_1) != 1):
+            raise ValueError('Number of boom orientations must be 1 or equal to number of ' +
+                             'anemometer pairs.')
+
+    if type(boom_dir_2) is list:
+        if (len(boom_dir_2) != len(sec_ratio)) & (len(boom_dir_2) != 1):
+            raise ValueError('Number of boom orientations must be 1 or equal to number of ' +
+                             'anemometer pairs.')
+
     row, col = _get_best_row_col_number_for_subplot(len(sec_ratio))
     fig, axes = plt.subplots(row, col, figsize=figure_size, subplot_kw={'projection': 'polar'}, **kwargs)
 
@@ -1036,7 +1050,17 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     else:
         axes = [axes]
 
-    for pair in sec_ratio:
+    if type(boom_dir_1) is not list:
+        boom_dir_1 = [boom_dir_1] * len(sec_ratio)
+    elif len(boom_dir_1) == 1:
+        boom_dir_1 = boom_dir_1 * len(sec_ratio)
+
+    if type(boom_dir_2) is not list:
+        boom_dir_2 = [boom_dir_2] * len(sec_ratio)
+    elif len(boom_dir_2) == 1:
+        boom_dir_2 = boom_dir_2 * len(sec_ratio)
+
+    for pair, boom1, boom2 in zip(sec_ratio, boom_dir_1, boom_dir_2):
         if len(wdir.columns) == 1:
             wd = _convert_df_to_series(wdir).dropna()
         else:
@@ -1045,10 +1069,10 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
         common_idx = sec_ratio[pair].index.intersection(wd.index)
 
         _plot_sector_ratio_subplot(sec_ratio[pair].loc[common_idx], wd.loc[common_idx], sec_ratio_dist[pair],
-                                   col_names[pair], boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2,
+                                   col_names[pair], boom_dir_1=boom1, boom_dir_2=boom2,
                                    ax=axes[pair], radial_limits=radial_limits, figure_size=figure_size,
                                    subplot_dimension=[row,col])
-        plt.close()
+    plt.close()
 
     return fig
 
