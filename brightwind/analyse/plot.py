@@ -833,8 +833,8 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     :param total_width:             Width of each group of bars in percentage between 0 and 1. Default is 0.8, which is
                                     80% of the available space for the group of bars.
     :type total_width:              float or int
-    :param line_width:              Width of the bar or group of bar's border/edge. If 0, don't draw edges.
-                                    Default is 0.3.
+    :param line_width:              Width of the bar or group of bar's border/edge. Values from 0 to 1.
+                                    If 0, don't draw edges. Default is 0.3.
     :type line_width:               float or int
     :param vertical_bars:           Boolean to choose for having horizontal or vertical bars. Default is True to plot
                                     vertical bars.
@@ -906,6 +906,9 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
 
     if (total_width < 0) or (total_width > 1):
         raise ValueError('The total_width value should be between 0 and 1.')
+
+    if (line_width < 0) or (line_width > 1):
+        raise ValueError('The line_width value should be between 0 and 1.')
 
     if min_bar_axis_limit is None:
         min_bar_axis_limit = 0
@@ -983,7 +986,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                           interpolation='gaussian', extent=(data_bin + x_offset - bar_width / 2,
                                                             data_bin + x_offset + bar_width / 2, 0,
                                                             data_bar),
-                          aspect='auto', zorder=1)#3
+                          aspect='auto', zorder=2)#3
                 bar = ax.bar(data_bin + x_offset, data_bar, width=bar_width,
                              edgecolor=bar_color, linewidth=line_width, fill=False,
                              zorder=1)#5
@@ -994,7 +997,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                           interpolation='gaussian',
                           extent=(0, data_bar, data_bin + x_offset - bar_width / 2,
                                   data_bin + x_offset + bar_width / 2),
-                          aspect='auto', zorder=1, vmin=0, vmax=1)
+                          aspect='auto', zorder=2, vmin=0, vmax=1)
                 bar = ax.barh(data_bin + x_offset, data_bar, height=bar_width,
                               edgecolor=bar_color, linewidth=line_width, fill=False,
                               zorder=1)#2
