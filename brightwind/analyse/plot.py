@@ -833,7 +833,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     :param total_width:             Width of each group of bars in percentage between 0 and 1. Default is 0.8, which is
                                     80% of the available space for the group of bars.
     :type total_width:              float or int
-    :param line_width:              Width of the bar or group of bar's border/edge. Values from 0 to 1.
+    :param line_width:              Width of the bar or group of bar's border/edge. Values from 0 to 5.
                                     If 0, don't draw edges. Default is 0.3.
     :type line_width:               float or int
     :param vertical_bars:           Boolean to choose for having horizontal or vertical bars. Default is True to plot
@@ -907,8 +907,8 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     if (total_width < 0) or (total_width > 1):
         raise ValueError('The total_width value should be between 0 and 1.')
 
-    if (line_width < 0) or (line_width > 1):
-        raise ValueError('The line_width value should be between 0 and 1.')
+    if (line_width < 0) or (line_width > 5):
+        raise ValueError('The line_width value should be between 0 and 5.')
 
     if min_bar_axis_limit is None:
         min_bar_axis_limit = 0
