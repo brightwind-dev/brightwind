@@ -833,7 +833,8 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     :param total_width:             Width of each group of bars in percentage between 0 and 1. Default is 0.8, which is
                                     80% of the available space for the group of bars.
     :type total_width:              float or int
-    :param line_width:              Width of the bar or group of bar's border/edge. If 0, don't draw edges. Default is 0.3.
+    :param line_width:              Width of the bar or group of bar's border/edge. If 0, don't draw edges.
+                                    Default is 0.3.
     :type line_width:               float or int
     :param vertical_bars:           Boolean to choose for having horizontal or vertical bars. Default is True to plot
                                     vertical bars.
@@ -1071,11 +1072,17 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
                                                y_label='count', total_width=1, legend=True)
 
     """
+    bar_tick_label_format = None
+    if y_label:
+        if '%' in y_label:
+            bar_tick_label_format = PercentFormatter()
+
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     _bar_subplot(data.replace([np.inf, -np.inf], np.NAN).dropna(), x_label=x_label,
                  y_label=y_label, max_bar_axis_limit=max_y_value,
-                 bin_tick_labels=x_tick_labels, legend=legend, total_width=total_width, ax=ax)
+                 bin_tick_labels=x_tick_labels, bar_tick_label_format=bar_tick_label_format,
+                 legend=legend, total_width=total_width, ax=ax)
     plt.close()
     return ax.get_figure()
 
