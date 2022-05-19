@@ -648,7 +648,7 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
 
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
-               direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True,
+               direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, seasonal_adjustment=False,
                plot_bins=None, plot_labels=None, return_data=False):
     """
     Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
@@ -675,8 +675,9 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     :param freq_as_percentage: Optional, True by default. Returns the frequency as percentages. To return just the
         count, set to False
     :type freq_as_percentage: bool
-    :param return_data:  Set to True if you want to return the frequency table too.
-    :type return_data: bool
+    :param seasonal_adjustment: Optional, False by default. If True, returns the frequency distribution seasonal
+                                adjusted
+    :type seasonal_adjustment: bool
     :param plot_bins: Bins to use for gradient in the rose. Different bins will be plotted with different
         color. Chooses six bins to plot by default '0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s' and
         '15+ m/s'. If you change var_bin_array this should be changed in accordance with it.
@@ -684,6 +685,8 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     :param plot_labels: (Optional) Labels to use for different colors in the rose. By default chooses the end points of
         bin
     :type plot_labels: list(str), list(float)
+    :param return_data:  Set to True if you want to return the frequency table too.
+    :type return_data: bool
     :returns: A wind rose plot with gradients in the rose. Also returns a frequency table if return_data is True
     :rtype: plot or tuple(plot, pandas.DataFrame)
 
@@ -713,7 +716,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
 
     """
     if freq_as_percentage:
-            agg_method = '%frequency'
+        agg_method = '%frequency'
     else:
         agg_method = 'count'
     result = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_series,
