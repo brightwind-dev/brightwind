@@ -3,6 +3,8 @@ import brightwind as bw
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from matplotlib.ticker import PercentFormatter
+from matplotlib.dates import DateFormatter
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -55,7 +57,7 @@ def test_bar_subplot():
     average_data, coverage = bw.average_data_by_period(DATA[['Spd80mN', 'Spd80mS', 'Spd60mN']], period='1M',
                                                        return_coverage=True)
     bw.analyse.plot._bar_subplot(coverage, max_bar_axis_limit=1, total_width=20/31, line_width=0.3,
-                                 vertical_bars=True)
+                                 bin_tick_label_format=DateFormatter("%Y-%m-%d"), vertical_bars=True)
 
     # To plot multiple subplots in a figure
     fig, axes = plt.subplots(1, 2)
@@ -70,7 +72,8 @@ def test_bar_subplot():
     test_data.index = [50, 65, 80]
     fig = plt.figure(figsize=(15, 8))
     bw.analyse.plot._bar_subplot(test_data, x_label='Data Availability [%]', y_label='Measurement heights [m]',
-                                 max_bar_axis_limit=100, bin_tick_labels=['a', 'b', 'c'], subplot_title='coverage',
+                                 max_bar_axis_limit=100, bin_tick_labels=['a', 'b', 'c'],
+                                 bar_tick_label_format=PercentFormatter(), subplot_title='coverage',
                                  legend=True, total_width=0.8, vertical_bars=False)
 
     # To plot data with integer data.index, multiple columns, horizontal bars and

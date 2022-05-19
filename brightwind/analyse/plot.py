@@ -786,7 +786,8 @@ def _gradient_image(direction=0.3, cmap_range=(0, 1)):
 
 def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_bar_axis_limit=None,
                  min_bin_axis_limit=None, max_bin_axis_limit=None, bin_tick_labels=None, x_tick_label_angle=0,
-                 subplot_title=None, legend=False, total_width=0.8, line_width=0.3, vertical_bars=True, ax=None):
+                 bin_tick_label_format=None, bar_tick_label_format=None, subplot_title=None, legend=False,
+                 total_width=0.8, line_width=0.3, vertical_bars=True, ax=None):
     """
     Plots a bar subplot, either vertical or horizontal bars, from a pd.Series or pd.Dataframe where the interval of the
     bars is the data.index and the height/length of the bars are the values.
@@ -795,56 +796,68 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     The user can chose if the bars are horizontal or vertical based on vertical_bars boolean user input. The function
     is handling data.index with format float, int, pd.DatetimeIndex and bin ranges (ie [-0.5, 0.5)).
 
-    :param data:                The data values used to define the index and the height/length of the bars to plot.
-    :type data:                 pd.Series or pd.Dataframe
-    :param x_label:             Label for the x axis
-    :type x_label:              str or None
-    :param y_label:             Label for the y axis
-    :type y_label:              str or None
-    :param min_bar_axis_limit:  min y or x-axis limit depending if bar plot is vertical or horizontal.
-    :type min_bar_axis_limit:   float or None
-    :param max_bar_axis_limit:  max y or x-axis limit depending if bar plot is vertical or horizontal.
-    :type max_bar_axis_limit:   float or None
-    param min_bin_axis_limit:   min x or y-axis limit depending if bar plot is vertical or horizontal.
-    :type min_bin_axis_limit:   float or None
-    :param max_bin_axis_limit:  max x or y limit depending if bar plot is vertical or horizontal.
-    :type max_bin_axis_limit:   float or None
-    :param bin_tick_labels:     List of x or y tick labels depending if bar plot is vertical or horizontal. The list
-                                must have the same number of entries as the data index.
-                                If left as None, the tick labels will be taken from the data index.
-    :type bin_tick_labels:      list or None
-    :param x_tick_label_angle:  The angle to rotate the x-axis tick labels by.
-                                Default is 0, i.e. the tick labels will be horizontal.
-    :type x_tick_label_angle:   float or int
-    :param subplot_title:       Title to show on top of the subplot
-    :type subplot_title:        str or None
-    :param legend:              Boolean to choose if legend is shown.
-    :type legend:               Bool
-    :param total_width:         Width of each group of bars in percentage between 0 and 1. Default is 0.8, which is
-                                80% of the available space for the group of bars.
-    :type total_width:          float or int
-    :param line_width:          Width of the bar or group of bar's border/edge. If 0, don't draw edges. Default is 0.3.
-    :type line_width:           float or int
-    :param vertical_bars:       Boolean to choose for having horizontal or vertical bars. Default is True to plot
-                                vertical bars.
-    :type vertical_bars:        Bool
-    :param ax:                  Subplot axes to which assign the subplot to in a plot. If None then a single plot is
-                                generated
-    :type ax:                   matplotlib.axes._subplots.AxesSubplot or None
-    :return:                    A bar subplot
-    :rtype:                     matplotlib.axes._subplots.AxesSubplot
+    :param data:                    The data values used to define the index and the height/length of the bars to plot.
+    :type data:                     pd.Series or pd.Dataframe
+    :param x_label:                 Label for the x axis
+    :type x_label:                  str or None
+    :param y_label:                 Label for the y axis
+    :type y_label:                  str or None
+    :param min_bar_axis_limit:      min y or x-axis limit depending if bar plot is vertical or horizontal.
+    :type min_bar_axis_limit:       float or None
+    :param max_bar_axis_limit:      max y or x-axis limit depending if bar plot is vertical or horizontal.
+    :type max_bar_axis_limit:       float or None
+    :param min_bin_axis_limit:      min x or y-axis limit depending if bar plot is vertical or horizontal.
+    :type min_bin_axis_limit:       float or None
+    :param max_bin_axis_limit:      max x or y limit depending if bar plot is vertical or horizontal.
+    :type max_bin_axis_limit:       float or None
+    :param bin_tick_labels:         List of x or y tick labels depending if bar plot is vertical or horizontal. The list
+                                    must have the same number of entries as the data index.
+                                    If left as None, the tick labels will be taken from the data index.
+    :type bin_tick_labels:          list or None
+    :param x_tick_label_angle:      The angle to rotate the x-axis tick labels by.
+                                    Default is 0, i.e. the tick labels will be horizontal.
+    :type x_tick_label_angle:       float or int
+    :param bin_tick_label_format:   Set the formatter of the major ticker for the bin axis.
+                                    Default is None, i.e. the tick label format will be
+                                    matplotlib.dates.DateFormatter("%Y-%m") for pandas.DatetimeIndex tick labels and
+                                    the default from matplotlib.axis.set_major_formatter otherwise.
+    :type bin_tick_label_format:    matplotlib.ticker.Formatter
+    :param bar_tick_label_format:   Set the formatter of the major ticker for the bar axis.
+                                    Default is None, i.e. the tick label format will be the default from
+                                    matplotlib.axis.set_major_formatter.
+    :type bar_tick_label_format:    matplotlib.ticker.Formatter
+    :param subplot_title:           Title to show on top of the subplot
+    :type subplot_title:            str or None
+    :param legend:                  Boolean to choose if legend is shown.
+    :type legend:                   Bool
+    :param total_width:             Width of each group of bars in percentage between 0 and 1. Default is 0.8, which is
+                                    80% of the available space for the group of bars.
+    :type total_width:              float or int
+    :param line_width:              Width of the bar or group of bar's border/edge. If 0, don't draw edges. Default is 0.3.
+    :type line_width:               float or int
+    :param vertical_bars:           Boolean to choose for having horizontal or vertical bars. Default is True to plot
+                                    vertical bars.
+    :type vertical_bars:            Bool
+    :param ax:                      Subplot axes to which assign the subplot to in a plot. If None then a single plot is
+                                    generated
+    :type ax:                       matplotlib.axes._subplots.AxesSubplot or None
+    :return:                        A bar subplot
+    :rtype:                         matplotlib.axes._subplots.AxesSubplot
 
      **Example usage**
     ::
         import brightwind as bw
+        from matplotlib.ticker import PercentFormatter
+        from matplotlib.dates import DateFormatter
         data = bw.load_csv(bw.demo_datasets.demo_data)
 
-        # To plot data with pd.DatetimeIndex, multiple columns, with bars total width of 20 days and line_width=0.3
+        # To plot data with pd.DatetimeIndex, multiple columns, with bars total width of 20 days, line_width=0.3 and
+        # assigning bin_tick_label_format as "%Y-%m-%d"
         fig = plt.figure(figsize=(15, 8))
         average_data, coverage = bw.average_data_by_period(data[['Spd80mN', 'Spd80mS', 'Spd60mN']], period='1M',
                                                            return_coverage=True)
         bw.analyse.plot._bar_subplot(coverage, max_bar_axis_limit=1, total_width=20/31, line_width=0.3,
-                                    vertical_bars=True)
+                                    bin_tick_label_format=DateFormatter("%Y-%m-%d"), vertical_bars=True)
 
         # To plot multiple subplots in a figure
         fig, axes = plt.subplots(1, 2)
@@ -854,12 +867,13 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                                       line_width=0.3, vertical_bars=True, ax=axes[1])
 
         # To plot data with integer data.index, multiple columns, horizontal bars and
-        # setting bin_tick_labels, subplot title and with legend
+        # setting bin_tick_labels, subplot title, bar_tick_label_format as percentage and with legend
         test_data = pd.DataFrame.from_dict({'mast': [99.87, 99.87, 99.87],'lidar': [97.11, 92.66, 88.82]})
         test_data.index=[50, 65, 80]
         fig = plt.figure(figsize=(15, 8))
         bw.analyse.plot._bar_subplot(test_data, x_label='Data Availability [%]', y_label='Measurement heights [m]',
-                                     max_bar_axis_limit=100, bin_tick_labels=['a','b','c'], subplot_title='coverage',
+                                     max_bar_axis_limit=100, bin_tick_labels=['a','b','c'],
+                                     bar_tick_label_format=PercentFormatter(), subplot_title='coverage',
                                      legend=True, vertical_bars=False)
 
         # To plot data with integer data.index, multiple columns, horizontal bars and
@@ -914,6 +928,10 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     else:
         data_bins = data.index
 
+    if bin_tick_label_format is None:
+        if index_time:
+            bin_tick_label_format = DateFormatter("%Y-%m")
+
     bin_min_step = np.diff(data_bins).min()
     total_width = bin_min_step * total_width
 
@@ -924,10 +942,10 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
             ax.set_xticklabels(bin_tick_labels)
         if index_time:
             ax.locator_params(axis='x', nbins=10)
-            ax.xaxis.set_major_formatter(DateFormatter("%Y-%m"))
-        if y_label:
-            if '%' in y_label:
-                ax.yaxis.set_major_formatter(PercentFormatter())
+        if bin_tick_label_format is not None:
+            ax.xaxis.set_major_formatter(bin_tick_label_format)
+        if bar_tick_label_format is not None:
+            ax.yaxis.set_major_formatter(bar_tick_label_format)
         ax.grid(b=True, axis='y', zorder=0)
     else:
         ax.set_yticks(data_bins)
@@ -936,10 +954,10 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
             ax.set_yticklabels(bin_tick_labels)
         if index_time:
             ax.locator_params(axis='y', nbins=10)
-            ax.yaxis.set_major_formatter(DateFormatter("%Y-%m"))
-        if x_label:
-            if '%' in x_label:
-                ax.xaxis.set_major_formatter(PercentFormatter())
+        if bin_tick_label_format is not None:
+            ax.xaxis.set_major_formatter(bin_tick_label_format)
+        if bar_tick_label_format is not None:
+            ax.xaxis.set_major_formatter(bar_tick_label_format)
         ax.grid(b=True, axis='x', zorder=0)
 
     ax.tick_params(axis="x", rotation=x_tick_label_angle)
@@ -969,9 +987,9 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                              edgecolor=bar_color, linewidth=line_width, fill=False,
                              zorder=1)#5
             else:
-                newcmp = _create_colormap(mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8)),
-                                          mpl.colors.to_rgb(bar_color))
-                ax.imshow(_gradient_image(direction=1, cmap_range=(0, 1)), cmap=newcmp,
+                cmp = _create_colormap(mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8)),
+                                       mpl.colors.to_rgb(bar_color))
+                ax.imshow(_gradient_image(direction=1, cmap_range=(0, 1)), cmap=cmp,
                           interpolation='gaussian',
                           extent=(0, data_bar, data_bin + x_offset - bar_width / 2,
                                   data_bin + x_offset + bar_width / 2),
@@ -1056,8 +1074,8 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     _bar_subplot(data.replace([np.inf, -np.inf], np.NAN).dropna(), x_label=x_label,
-                                 y_label=y_label, max_bar_axis_limit=max_y_value,
-                                 bin_tick_labels=x_tick_labels, legend=legend, total_width=total_width, ax=ax)
+                 y_label=y_label, max_bar_axis_limit=max_y_value,
+                 bin_tick_labels=x_tick_labels, legend=legend, total_width=total_width, ax=ax)
     plt.close()
     return ax.get_figure()
 
