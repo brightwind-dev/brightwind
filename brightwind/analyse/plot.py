@@ -961,7 +961,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         if index_time:
             ax.locator_params(axis='y', nbins=10)
         if bin_tick_label_format is not None:
-            ax.xaxis.set_major_formatter(bin_tick_label_format)
+            ax.yaxis.set_major_formatter(bin_tick_label_format)
         if bar_tick_label_format is not None:
             ax.xaxis.set_major_formatter(bar_tick_label_format)
         ax.grid(b=True, axis='x', zorder=0)
