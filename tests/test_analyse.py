@@ -195,6 +195,19 @@ def test_dist():
             bins=[-10, 4, 12, 18, 30],
             bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
 
+    # For distribution of multiple sum wind speeds with respect themselves
+    bw.dist(DATA[['Spd80mN', 'Spd80mS']], aggregation_method='sum')
+
+    assert True
+
+    # For distribution of multiple mean wind speeds with respect to temperature
+    fig, dist = bw.dist(DATA[['Spd80mN', 'Spd80mS']], var_to_bin_against=DATA.T2m,
+                        bins=[-10, 4, 12, 18, 30],
+                        bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean', return_data=True)
+
+    assert round(dist['Spd80mN']['freezing'], 10) == 7.2126121482
+    assert round(dist['Spd80mS']['hot'], 10) == 5.6441172107
+
 
 def test_dist_of_wind_speed():
     bw.dist_of_wind_speed(DATA[['Spd80mN']], max_speed=30, max_y_value=10, return_data=False)

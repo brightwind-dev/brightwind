@@ -285,34 +285,89 @@ def _map_direction_bin(wdir, bins, sectors):
     return bin_num
 
 
-def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None, x_label=None,
+def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_method='%frequency'):
+    """
+    Calculates the distribution of a variable with respect to another variable.
+
+    :param var_to_bin:          Timeseries of the variable whose distribution we need to find
+    :type var_to_bin:           pandas.Series
+    :param var_to_bin_against:  Timesseries of the variable which we want to bin against
+    :type var_to_bin_against:   pandas.Series
+    :param bins:                Array of numbers where adjacent elements of array form a bin. If set to None, it derives
+                                the min and max from the var_to_bin_against series and creates array in steps of 1.
+    :type bins:                 list, array or None
+    :param aggregation_method:  Statistical method used to find distribution. It can be mean, max, min, std, count,
+                                %frequency or a custom function. Computes frequency in percentages by default.
+    :type aggregation_method:   str or function
+    :returns:                   A distribution pandas.Series with bins as index and column with
+                                statistics chosen by aggregation_method.
+    :rtype:                     pandas.Series
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+
+        # For distribution of %frequency of wind speeds variable against itself, assigning bins
+        dist = bw.analyse.analyse._derive_distribution(data.Spd40mN, var_to_bin_against=data.Spd40mN,
+                                                       bins=[0, 8, 12, 21])
+
+        # For distribution of counts of wind speeds variable against another variable
+        dist = bw.analyse.analyse._derive_distribution(data.Spd40mN, var_to_bin_against=data.T2m,
+                                                       bins=[0, 2, 10, 30], aggregation_method='count')
+    """
+
+    var_to_bin = _convert_df_to_series(var_to_bin)
+    var_to_bin_against = _convert_df_to_series(var_to_bin_against)
+    var_to_bin = var_to_bin.dropna()
+    var_to_bin_against = var_to_bin_against.dropna()
+
+    if bins is None:
+        bins = np.arange(round(var_to_bin_against.min() - 0.5) - 0.5, var_to_bin_against.max() + 0.5, 1)
+    var_binned_series = pd.cut(var_to_bin_against, bins, right=False).rename('variable_bin')
+    data = pd.concat([var_to_bin.rename('data'), var_binned_series], join='inner', axis=1)
+
+    if aggregation_method == '%frequency':
+        distribution = data.groupby(['variable_bin'])['data'].count().rename('%frequency') / len(data) * 100.0
+    else:
+        distribution = data.groupby(['variable_bin'])['data'].agg(aggregation_method)
+
+    return distribution
+
+
+def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_label=None,
          max_y_value=None, aggregation_method='%frequency', return_data=False):
     """
-    Calculates the distribution of a variable against itself as per the bins specified. Can
-    also pass another variable for finding distribution with respect to another variable.
+    Calculates the distribution of a variable against itself as per the bins specified. If the var_to_bin input is a
+    DataFrame then the function derives the distribution for each column against itself. Can also pass another variable
+    for finding distribution with respect to another variable.
 
-    :param var_series: Time-series of the variable whose distribution we need to find
-    :type var_series: pandas.Series
-    :param var_to_bin_against: (optional) Times-series of the variable which we want to bin against if required
-           to bin against another variable.
-    :type var_to_bin_against: pandas.Series, None
-    :param bins: Array of numbers where adjacent elements of array form a bin. If set to None if derives
-                 the min and max from the var_to_bin_against series and creates array in steps of 1.
-    :type bins: list, array, None
-    :param bin_labels: Labels of bins to be used, uses (bin-start, bin-end] format by default
-    :type bin_labels: list, array, None
-    :param x_label: x-axis label to be used. If None, it will take the name of the series sent.
-    :type x_label: str, None
-    :param max_y_value: Max value for the y-axis of the plot to be set. Default will be relative to max calculated
-                        data value.
-    :type max_y_value: float, int
-    :param aggregation_method: Statistical method used to find distribution. It can be mean, max, min, std, count,
-           %frequency or a custom function. Computes frequency in percentages by default.
-    :type aggregation_method: str or function
-    :param return_data: Set to True if you want the data returned.
-    :type return_data: bool
-    :returns: A distribution plot and, if requested, a pandas.Series with bins as row indexes and column with
-              statistics chosen by aggregation_method.
+    :param var_to_bin:          Timeseries of the variable(s) whose distribution we need to find
+    :type var_to_bin:           pandas.Series or pandas.DataFrame
+    :param var_to_bin_against:  (optional) Timeseries of the variable which we want to bin against, if required to bin
+                                against another variable. If None, then each variable in var_to_bin is binned against
+                                itself. Note that if var_to_bin is a pandas.DataFrame and var_to_bin_against is provided
+                                then all column variables are binned against this.
+    :type var_to_bin_against:   pandas.Series or None
+    :param bins:                Array of numbers where adjacent elements of array form a bin. If set to None, it derives
+                                the min and max from the var_to_bin_against series and creates array in steps of 1.
+    :type bins:                 list, array or None
+    :param bin_labels:          Labels of bins to be used, uses (bin-start, bin-end] format by default
+    :type bin_labels:           list, array or None
+    :param x_label:             x-axis label to be used. If None, it will take the name of the series sent.
+    :type x_label:              str or None
+    :param max_y_value:         Max value for the y-axis of the plot to be set. Default will be relative to max
+                                calculated data value.
+    :type max_y_value:          float or int
+    :param aggregation_method:  Statistical method used to find distribution. It can be mean, max, min, std, count,
+                                %frequency or a custom function. Computes frequency in percentages by default.
+    :type aggregation_method:   str or function
+    :param return_data:         Set to True if you want the data returned.
+    :type return_data:          bool
+    :returns:                   A distribution plot and, if requested, a pandas.Series or pandas.DataFrame with bins
+                                as row indexes and column with statistics chosen by aggregation_method.
+    :rtype:                     matplotlib.figure.Figure or
+                                tuple(matplotlib.figure.Figure, pandas.Series or pandas.DataFrame)
 
     **Example usage**
     ::
@@ -338,33 +393,55 @@ def dist(var_series, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
                            bins=[-10, 4, 12, 18, 30],
                            bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
 
+        #For distribution of multiple sum wind speeds with respect themselves
+        spd_dist = bw.dist(data[['Spd80mN', 'Spd80mS']], aggregation_method='sum')
+
+        #For distribution of multiple mean wind speeds with respect to temperature
+        spd_dist = bw.dist(data[['Spd80mN', 'Spd80mS']], var_to_bin_against=data.T2m,
+                           bins=[-10, 4, 12, 18, 30],
+                           bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
+
     """
-    if var_to_bin_against is None:
-        var_to_bin_against = var_series.copy(deep=False)
-    var_series = _convert_df_to_series(var_series)
-    var_to_bin_against = _convert_df_to_series(var_to_bin_against)
-    var_series = var_series.dropna()
-    var_to_bin_against = var_to_bin_against.dropna()
-    if x_label is None:
-        x_label = var_to_bin_against.name
-    if bins is None:
-        bins = np.arange(round(var_to_bin_against.min()-0.5)-0.5, var_to_bin_against.max()+0.5, 1)
-    var_binned_series = pd.cut(var_to_bin_against, bins, right=False).rename('variable_bin')
-    data = pd.concat([var_series.rename('data'), var_binned_series], join='inner', axis=1)
-    if aggregation_method == '%frequency':
-        distribution = data.groupby(['variable_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
+    if type(var_to_bin) == pd.Series:
+        var_to_bin = var_to_bin.to_frame()
+
+    if np.shape(var_to_bin)[1] > 1:
+        legend = True
     else:
-        distribution = data.groupby(['variable_bin'])['data'].agg(aggregation_method)
+        legend = False
+
+    if x_label is None:
+        if var_to_bin_against is None and len(var_to_bin.columns) == 1:
+            x_label = var_to_bin.columns[0]
+
+    distributions = pd.DataFrame()
+    for i_dist, var_name in enumerate(var_to_bin.columns):
+
+        if var_to_bin_against is None:
+            var_to_bin_against_series = var_to_bin[var_name].copy(deep=False)
+        else:
+            var_to_bin_against_series = var_to_bin_against
+
+        distribution = _derive_distribution(var_to_bin[var_name], var_to_bin_against_series, bins,
+                                            aggregation_method)
+        distribution.name = var_name
+
+        if i_dist == 0:
+            distributions = distribution
+        else:
+            distributions = pd.concat([distributions, distribution], axis=1)
 
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
-    graph = plt.plot_freq_distribution(distribution.replace([np.inf, -np.inf], np.NAN).dropna(),
+
+    graph = plt.plot_freq_distribution(distributions.replace([np.inf, -np.inf], np.NAN).dropna(),
                                        max_y_value=max_y_value,
-                                       x_tick_labels=bin_labels, x_label=x_label, y_label=aggregation_method)
+                                       x_tick_labels=bin_labels, x_label=x_label, y_label=aggregation_method,
+                                       legend=legend)
     if bin_labels is not None:
-        distribution.index = bin_labels
+        distributions.index = bin_labels
     if return_data:
-        return graph, distribution
+        return graph, distributions
     return graph
 
 
@@ -1008,26 +1085,26 @@ class TI:
         ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
         ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
         ti_dist = pd.concat([
-            dist(var_series=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
+            dist(var_to_bin=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array, bin_labels=speed_bin_labels,
                  aggregation_method='mean', return_data=True)[-1].rename("Mean_TI"),
-            dist(var_series=ti['Turbulence_Intensity'],
+            dist(var_to_bin=ti['Turbulence_Intensity'],
                  var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array,
                  bin_labels=speed_bin_labels,
                  aggregation_method='count', return_data=True)[-1].rename("TI_Count"),
-            dist(var_series=ti['Turbulence_Intensity'],
+            dist(var_to_bin=ti['Turbulence_Intensity'],
                  var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array,
                  bin_labels=speed_bin_labels,
                  aggregation_method=lambda x: np.percentile(x, q=percentile),
                  return_data=True)[-1].rename("Rep_TI"),
-            dist(var_series=ti['Turbulence_Intensity'],
+            dist(var_to_bin=ti['Turbulence_Intensity'],
                  var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array,
                  bin_labels=speed_bin_labels,
                  aggregation_method='std', return_data=True)[-1].rename("TI_2Sigma")], axis=1, join='inner')
-        categ_index = dist(var_series=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
+        categ_index = dist(var_to_bin=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
                            bins=speed_bin_array, aggregation_method='mean', return_data=True)[-1].index
         num_index = [i.mid for i in categ_index]
         ti_dist.loc[:, 'Char_TI'] = ti_dist.loc[:, 'Mean_TI'] + (ti_dist.loc[:, 'TI_2Sigma'] / num_index)

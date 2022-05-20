@@ -16,6 +16,10 @@ is not equal to the derived temporal resolution.
   `merge_datasets_by_period` functions (Issue #[297](https://github.com/brightwind-dev/brightwind/issues/297))
 3. Update to work with Pandas 1.3.2. This mostly includes depreciating pd.Timedelta and using pd.DateOffset instead. (Pull request [#312](https://github.com/brightwind-dev/brightwind/pull/312)).
 4. In`Correl` fix issue when duplicate column names are sent to `SpeedSort` (Issue #[304](https://github.com/brightwind-dev/brightwind/issues/304))
+5. Added subplotting functionality to `sector_ratio` and improved user control of plotting (Issue #[309](https://github.com/brightwind-dev/brightwind/issues/309))
+6. Allow `dist()` function to take a pd.DataFrame so user can plot multiple distributions on the same plot. (Issue #[264](https://github.com/brightwind-dev/brightwind/issues/264))
+   1. As part of this added subplotting functionality for bar plots
+
 
 ## [2.0.0]
 - Major changes, notably
