@@ -4,7 +4,6 @@ from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as plt
 from brightwind.utils.utils import _convert_df_to_series
-import matplotlib
 
 __all__ = ['monthly_means',
            'momm',
@@ -1227,6 +1226,10 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     sec_rats = {}
     sec_rats_dists = {}
     col_names = {}
+
+    wdir_dict = {}
+    for key, data in enumerate(wd):
+        wdir_dict[key] = wd[data]
 
     for sensor_pair in keys:
         wspd_1 = _convert_df_to_series(ws_1.iloc[:, sensor_pair]).dropna()
