@@ -984,9 +984,9 @@ def basic_stats(data):
 
     """
     if isinstance(data, pd.DataFrame):
-        return data.describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
+        return data.describe(percentiles=[0.5], include='all').T.drop(['50%'], axis=1)
     else:
-        return data.to_frame().describe(percentiles=[0.5]).T.drop(['50%'], axis=1)
+        return data.to_frame().describe(percentiles=[0.5], include='all').T.drop(['50%'], axis=1)
 
 
 def dist_12x24(var_series, aggregation_method='mean', var_name_label=None, return_data=False):
