@@ -818,12 +818,14 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                                     Default is 0, i.e. the tick labels will be horizontal.
     :type x_tick_label_angle:       float or int
     :param bin_tick_label_format:   Set the formatter of the major ticker for the bin axis.
-                                    Default is None, i.e. the tick label format will be
-                                    matplotlib.dates.DateFormatter("%Y-%m") for pandas.DatetimeIndex tick labels and
-                                    the default from matplotlib.axis.set_major_formatter otherwise.
-    :type bin_tick_label_format:    matplotlib.ticker.Formatter
+                                    Default is None where the behaviour will be to use
+                                    matplotlib.dates.DateFormatter("%Y-%m") (e.g. 2022-05) for pandas.DatetimeIndex tick
+                                    labels and the default from matplotlib.axis.set_major_formatter for all other
+                                    number types. To change the default format for a Datetime to be, for example
+                                    '2022-05-20', use matplotlib.dates.DateFormatter("%Y-%m-%d").
+    :type bin_tick_label_format:    matplotlib.ticker.Formatter or matplotlib.dates.DateFormatter
     :param bar_tick_label_format:   Set the formatter of the major ticker for the bar axis.
-                                    Default is None, i.e. the tick label format will be the default from
+                                    Default is None where the tick label format will be the default from
                                     matplotlib.axis.set_major_formatter.
     :type bar_tick_label_format:    matplotlib.ticker.Formatter
     :param subplot_title:           Title to show on top of the subplot
@@ -848,7 +850,6 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
      **Example usage**
     ::
         import brightwind as bw
-        from matplotlib.ticker import PercentFormatter
         from matplotlib.dates import DateFormatter
         data = bw.load_csv(bw.demo_datasets.demo_data)
 
@@ -865,10 +866,11 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         bw.analyse.plot._bar_subplot(coverage[['Spd80mN_Coverage', 'Spd80mS_Coverage']], max_bar_axis_limit=1,
                                      total_width=20/31, line_width=0.3,  vertical_bars=True, ax=axes[0])
         bw.analyse.plot._bar_subplot(coverage['Spd60mN_Coverage'], max_bar_axis_limit=1, total_width=20/31,
-                                      line_width=0.3, vertical_bars=True, ax=axes[1])
+                                     line_width=0.3, vertical_bars=True, ax=axes[1])
 
         # To plot data with integer data.index, multiple columns, horizontal bars and
         # setting bin_tick_labels, subplot title, bar_tick_label_format as percentage and with legend
+        from matplotlib.ticker import PercentFormatter
         test_data = pd.DataFrame.from_dict({'mast': [99.87, 99.87, 99.87],'lidar': [97.11, 92.66, 88.82]})
         test_data.index=[50, 65, 80]
         fig = plt.figure(figsize=(15, 8))
