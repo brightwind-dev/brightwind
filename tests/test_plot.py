@@ -6,6 +6,7 @@ DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 WSPD_COLS = ['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd60mS', 'Spd40mN', 'Spd40mS']
 WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
 
+
 def test_plot_sector_ratio():
     wspd_1 = bw.utils.utils._convert_df_to_series(DATA['Spd80mN']).dropna()
     wspd_2 = bw.utils.utils._convert_df_to_series(DATA['Spd80mS']).dropna()
@@ -22,7 +23,7 @@ def test_plot_sector_ratio():
     sec_rats_dists[0] = sec_rat_dist
 
     fig = bw.plot_sector_ratio(sec_rats, DATA['Dir78mS'], sec_rats_dists, [DATA['Spd80mN'].name, DATA['Spd80mS'].name],
-                         boom_dir_1=-1, boom_dir_2=-1, radial_limits=None, figure_size=(10, 10))
+                               boom_dir_1=-1, boom_dir_2=-1, radial_limits=None, figure_size=(10, 10))
 
 
 def test_plot_timeseries():

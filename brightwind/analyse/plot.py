@@ -998,7 +998,7 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     :param sec_ratio:         Sector_ratios
     :type sec_ratio:          pandas.Series or dict
     :param wdir:              Direction series
-    :type wdir:               pandas.Series
+    :type wdir:               pandas.Series or dict
     :param sec_ratio_dist:    DataFrames from SectorRatio.by_sector()
     :type sec_ratio_dist:     pandas.Series or dict
     :param col_names:         A list of strings containing column names of wind speeds, first string is divisor and
