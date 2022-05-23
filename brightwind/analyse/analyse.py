@@ -1107,7 +1107,7 @@ def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
 
 
 def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_array=None, boom_dir_1=-1,
-                 boom_dir_2=-1, return_data=False, radial_limits=None, figure_size=(10, 10), **kwargs):
+                 boom_dir_2=-1, return_data=False, radial_limits=None, annotate=True, figure_size=(10, 10), **kwargs):
     """
     Calculates the wind speed ratio of two wind speed time series and plots this ratio, averaged by direction sector,
     in a polar plot using a wind direction time series. The averaged ratio by sector can be optionally returned
@@ -1116,35 +1116,39 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     If boom directions are specified, these will be overlaid on the plot. A boom direction of '-1' assumes top
     mounted and so doesn't plot.
 
-    :param wspd_1: First wind speed time series. One or more wind speeds can be accepted. This is the divisor.
-    :type: wspd_1: pandas.Series or pandas.DataFrame
-    :param wspd_2: Second wind speed time series, the dividend. One or more wind speeds can be accepted.
-    :type: wspd_2: pandas.Series or pandas.DataFrame
-    :param wdir: Time series of wind directions. One or more can be accepted.
-    :type wdir: pandas.Series or pandas.DataFrame
-    :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
-    :type sectors: int
-    :param min_wspd: Minimum wind speed to be used.
-    :type: min_wpd: float
+    :param wspd_1:              First wind speed time series. One or more wind speeds can be accepted. This is the
+                                divisor.
+    :type: wspd_1:              pandas.Series or pandas.DataFrame
+    :param wspd_2:              Second wind speed time series, the dividend. One or more wind speeds can be accepted.
+    :type: wspd_2:              pandas.Series or pandas.DataFrame
+    :param wdir:                Time series of wind directions. One or more can be accepted.
+    :type wdir:                 pandas.Series or pandas.DataFrame
+    :param sectors:             Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
+    :type sectors:              int
+    :param min_wspd:            Minimum wind speed to be used.
+    :type: min_wpd:             float
     :param direction_bin_array: (Optional) Array of numbers where adjacent elements of array form a bin. This
-                                 overwrites the sectors.
-    :param boom_dir_1: Boom direction in degrees of wspd_1. If top mounted leave default as -1. One or more boom
-                       orientations can be accepted. If multiple orientations, number of orientations must equal
-                       number of anemometer pairs.
-    :type boom_dir_1: float or list
-    :param boom_dir_2: Boom direction in degrees of wspd_2. If top mounted leave default as -1. One or more boom
-                       orientations can be accepted. If multiple orientations, number of orientations must equal
-                       number of anemometer pairs.
-    :type boom_dir_2: float or list
-    :param return_data:  Set to True if you want the data returned.
-    :type return_data: bool
-    :param radial_limits: Max and min limits of the plot radius.
-    :type radial_limits: tuple or list
-    :param figure_size: Figure size in tuple format (width, height)
-    :type figure_size: tuple
-    :param kwargs: Additional keyword arguments for matplotlib.pyplot.subplot
-    :returns: A wind speed ratio plot showing the average ratio by sector and scatter of individual data points.
-    :rtype: plot, pandas.DataFrame
+                                overwrites the sectors.
+    :param boom_dir_1:          Boom orientation in degrees of wspd_1. If top mounted leave default as -1. One or more
+                                boom orientations can be accepted. If multiple orientations, number of orientations must
+                                equal number of anemometer pairs.
+    :type boom_dir_1:           float or list
+    :param boom_dir_2:          Boom orientation in degrees of wspd_2. If top mounted leave default as -1. One or more
+                                boom orientations can be accepted. If multiple orientations, number of orientations must
+                                equal number of anemometer pairs.
+    :type boom_dir_2:           float or list
+    :param return_data:         Set to True to return the data.
+    :type return_data:          bool
+    :param radial_limits:       Max and min limits of the plot radius.
+    :type radial_limits:        tuple or list
+    :param annotate:            Set to True to show annotations on plot.
+    :type annotate:             bool
+    :param figure_size:         Figure size in tuple format (width, height)
+    :type figure_size:          tuple
+    :param kwargs:              Additional keyword arguments for matplotlib.pyplot.subplot
+    :returns:                   A wind speed ratio plot showing the average ratio by sector and scatter of individual
+                                data points.
+    :rtype:                     plot, pandas.DataFrame
 
     **Example usage**
     ::
@@ -1165,19 +1169,19 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
                         direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=0, boom_dir_2=180)
 
         #To change the radius limits of plot and the figure size
-        bw.sector_ratio(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, radial_limits=(0.8, 1.2), figure_size=(10,10))
+        bw.sector_ratio(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, radial_limits=(0.8, 1.2), figure_size=(10, 10))
 
         #To create subplots with different anemometers
         bw.sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'],
-                        boom_dir_1=0, boom_dir_2=180, figure_size=(25,25))
+                        boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25))
 
         #To use different wind vanes with each anemometer pair
         bw.sector_ratio(data[['Spd80mN', 'Spd60mN', 'Spd40mN']], data[['Spd80mS', 'Spd60mS', 'Spd40mS']],
-                        data[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25,25))
+                        data[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25))
 
         # To return the data of multiple sector ratio plots
         sector_ratio(data[['Spd80mN', 'Spd60mN', 'Spd40mN']], data[['Spd80mS', 'Spd60mS', 'Spd40mS']],
-                     data[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25,25),
+                     data[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25),
                      return_data=True)
 
         # To return the data only of one sector ratio plot
@@ -1186,12 +1190,16 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
         num
 
         # To change boom orientation of subplots
-        sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'], boom_dir_1=[80,90],
-                     boom_dir_2=[260,270], figure_size=(25,25))
+        sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'], boom_dir_1=[80, 90],
+                     boom_dir_2=[260, 270], figure_size=(25, 25))
 
         # To change boom orientation of some subplots
         sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'], boom_dir_1=80,
-                     boom_dir_2=[260,270], figure_size=(25,25))
+                     boom_dir_2=[260, 270], figure_size=(25, 25))
+
+        # To remove plot annotation of all plots
+        sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'], boom_dir_1=80,
+                     boom_dir_2=[260,270], annotate=False, figure_size=(25,25))
     """
 
     ws_1 = pd.DataFrame(wspd_1)
@@ -1205,7 +1213,7 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     if (len(wd.columns) != 1) & (len(wd.columns) != len(ws_1.columns)):
         raise ValueError('Number of anemometers does not match number of wind vanes. ' +
                          'Please ensure there is one direction vane per anemometer pair or ' +
-                         'include one direcion vane only to be used for all anemometer pairs.')
+                         'include one direction vane only to be used for all anemometer pairs.')
     if len(wd.columns) != 1:
         if len(wd.columns) != len(ws_1.columns):
             raise ValueError('Number of anemometers does not match number of wind vanes. ' +
@@ -1254,9 +1262,9 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
         sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
         sec_rats_dists[sensor_pair] = sec_rat_dist
 
-    fig = plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir, sec_ratio_dist=sec_rats_dists, col_names=col_names,
-                                boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2,
-                                radial_limits=radial_limits, figure_size=figure_size)
+    fig = plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir_dict, sec_ratio_dist=sec_rats_dists, col_names=col_names,
+                                boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2, radial_limits=radial_limits,
+                                annotate=annotate, figure_size=figure_size)
 
     if return_data:
         if len(sec_rats_dists) == 1:

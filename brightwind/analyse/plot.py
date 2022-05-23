@@ -989,35 +989,39 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
 
 
 def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1,
-                      radial_limits=None, figure_size=(10, 10), **kwargs):
+                      radial_limits=None, annotate=True, figure_size=(10, 10), **kwargs):
     """
     Accepts a DataFrame table or a dictionary with multiple ratio of anemometer pairs per sector, a wind direction,
     multiple distributions of anemometer ratio pairs per sector, along with 2 anemometer names,
     and plots the speed ratio by sector. Optionally can include anemometer boom directions also.
 
-    :param sec_ratio: Sector_ratios
-    :type sec_ratio: pandas.Series or dict
-    :param wdir: Direction series
-    :type wdir: pandas.Series
-    :param sec_ratio_dist: DataFrames from SectorRatio.by_sector()
-    :type sec_ratio_dist: pandas.Series or dict
-    :param col_names: A list of strings containing column names of wind speeds, first string is divisor and second is
-                      dividend
-    :type col_names: list(str)
-    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to -1. One or more boom
-                       orientations can be accepted. If multiple orientations, number of orientations must equal
-                       number of anemometer pairs.
-    :type boom_dir_1: float or list
-    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1. One or more boom
-                       orientations can be accepted. If multiple orientations, number of orientations must equal
-                       number of anemometer pairs.
-    :type boom_dir_2: float or list
-    :param radial_limits: the min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
-    :type radial_limits: tuple or list
-    :param figure_size: Figure size in tuple format (width, height)
-    :type figure_size: tuple
+    :param sec_ratio:         Sector_ratios
+    :type sec_ratio:          pandas.Series or dict
+    :param wdir:              Direction series
+    :type wdir:               pandas.Series
+    :param sec_ratio_dist:    DataFrames from SectorRatio.by_sector()
+    :type sec_ratio_dist:     pandas.Series or dict
+    :param col_names:         A list of strings containing column names of wind speeds, first string is divisor and
+                              second is dividend.
+    :type col_names:          list(str)
+    :param boom_dir_1:        Boom orientation in degrees of speed_col_name_1. Defaults to -1. One or more boom
+                              orientations can be accepted. If multiple orientations, number of orientations must equal
+                              number of anemometer pairs.
+    :type boom_dir_1:         float or list
+    :param boom_dir_2:        Boom orientation in degrees of speed_col_name_2. Defaults to -1. One or more boom
+                              orientations can be accepted. If multiple orientations, number of orientations must equal
+                              number of anemometer pairs.
+    :type boom_dir_2:         float or list
+    :param radial_limits:     the min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
+    :type radial_limits:      tuple or list
+    :param annotate:          Set to True to show annotations on plot.
+    :type annotate:           bool
+    :param figure_size:       Figure size in tuple format (width, height)
+    :type figure_size:        tuple
+    :param kwargs:            Additional keyword arguments for matplotlib.pyplot.subplot
 
-    :returns A speed ratio plot showing average speed ratio by sector and scatter of individual data points.
+    :returns:                 A speed ratio plot showing average speed ratio by sector and scatter of individual data
+                              points.
 
     """
 
@@ -1044,6 +1048,7 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
 
     row, col = _get_best_row_col_number_for_subplot(len(sec_ratio))
     fig, axes = plt.subplots(row, col, figsize=figure_size, subplot_kw={'projection': 'polar'}, **kwargs)
+    font_size = min(figure_size)/row/col+2.5
 
     if (len(sec_ratio)) > 1:
         axes = axes.flatten()
@@ -1064,49 +1069,49 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
         if len(wdir.columns) == 1:
             wd = _convert_df_to_series(wdir).dropna()
         else:
-            wd = _convert_df_to_series(wd.iloc[:, pair]).dropna()
+            wd = _convert_df_to_series(wdir.iloc[:, pair]).dropna()
 
         common_idx = sec_ratio[pair].index.intersection(wd.index)
 
         _plot_sector_ratio_subplot(sec_ratio[pair].loc[common_idx], wd.loc[common_idx], sec_ratio_dist[pair],
                                    col_names[pair], boom_dir_1=boom1, boom_dir_2=boom2,
-                                   ax=axes[pair], radial_limits=radial_limits, figure_size=figure_size,
-                                   subplot_dimension=[row,col])
+                                   radial_limits=radial_limits, annotate=annotate, font_size=font_size, ax=axes[pair])
     plt.close()
 
     return fig
 
 
 def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1,
-                               ax=None, radial_limits=None, figure_size=(10,10), subplot_dimension=(1,1)):
+                               radial_limits=None, annotate=True, font_size=10, ax=None):
     """
     Accepts a ratio of anemometers per sector, a wind direction, a distribution of anemometer ratios per sector,
     along with 2 anemometer names, and returns an axis object to plot the speed ratio by sector. Optionally can
     include anemometer boom directions also.
 
-    :param sec_ratio: Series of sector_ratios
-    :type sec_ratio: pandas.Series
-    :param wdir: Direction series
-    :type wdir: pandas.Series
-    :param sec_ratio_dist: DataFrame from SectorRatio.by_sector()
-    :type sec_ratio_dist: pandas.Series
-    :param col_names: A list of strings containing column names of wind speeds, first string is divisor and second is
-                      dividend
-    :type col_names: list(str)
-    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to -1.
-    :type boom_dir_1: float
-    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1.
-    :type boom_dir_2: float
-    :param ax: Subplot axes to which the subplot is assigned in a plot. If None subplot is displayed on its own.
-    :type ax: matplotlib.axes._subplots.AxesSubplot or None
-    :param radial_limits: the min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
-    :type radial_limits: tuple or list
-    :param figure_size: Size of radial plot. Defaults to (10,10).
-    :type figure_size: tuple
-    :param subplot_dimension: Dimensions of subplots by (row,column), if applicable. Defaults to 1 row x 1 column.
-    :type subplot_dimension: tuple or list
+    :param sec_ratio:         Series of sector_ratios
+    :type sec_ratio:          pandas.Series
+    :param wdir:              Direction series
+    :type wdir:               pandas.Series
+    :param sec_ratio_dist:    DataFrame from SectorRatio.by_sector()
+    :type sec_ratio_dist:     pandas.Series
+    :param col_names:         A list of strings containing column names of wind speeds, first string is divisor and
+                              second is dividend.
+    :type col_names:          list(str)
+    :param boom_dir_1:        Boom orientation in degrees of speed_col_name_1. Defaults to -1.
+    :type boom_dir_1:         float
+    :param boom_dir_2:        Boom orientation in degrees of speed_col_name_2. Defaults to -1.
+    :type boom_dir_2:         float
+    :param radial_limits:     The min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
+    :type radial_limits:      tuple or list
+    :param annotate:          Set to True to show annotations on plot.
+    :type annotate:           bool
+    :param font_size:         Size of font in plot annotation. Defaults to 10.
+    :type font_size:          int
+    :param ax:                Subplot axes to which the subplot is assigned. If None subplot is displayed on its own.
+    :type ax:                 matplotlib.axes._subplots.AxesSubplot or None
 
-    :returns A speed ratio plot showing average speed ratio by sector and scatter of individual data points.
+    :returns:                 A speed ratio plot showing average speed ratio by sector and scatter of individual
+                              data points.
 
     """
 
@@ -1131,7 +1136,6 @@ def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_
     # Add boom dimensions to chart, if required
     width = np.pi / 108
     radii = max_level
-    annotate = False
     annotation_text = '* Plot generated using '
     if boom_dir_1 >= 0:
         boom_dir_1_rad = np.radians(boom_dir_1)
@@ -1139,24 +1143,24 @@ def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_
         if boom_dir_2 == -1:
             annotation_text += '{} (top mounted) divided by {} ({}° boom)'.format(col_names[1], col_names[0],
                                                                                   boom_dir_1)
-            annotate = True
     if boom_dir_2 >= 0:
         boom_dir_2_rad = np.radians(boom_dir_2)
         ax.bar(boom_dir_2_rad, radii, width=width, bottom=min_level, color=COLOR_PALETTE.fifth)
         if boom_dir_1 == -1:
             annotation_text += '{} ({}° boom) divided by {} (top mounted)'.format(col_names[1], boom_dir_2,
                                                                                   col_names[0])
-            annotate = True
     if boom_dir_2 >= 0 and boom_dir_1 >= 0:
         annotation_text += '{} ({}° boom) divided by {} ({}° boom)'.format(col_names[1], boom_dir_2,
                                                                            col_names[0], boom_dir_1)
-        annotate = True
+    if boom_dir_1 == -1 and boom_dir_2 == -1:
+        annotation_text += '{} divided by {}'.format(col_names[1], col_names[0])
     if annotate:
-        ax.set_title(annotation_text, y=0.004*min(figure_size)/subplot_dimension[0]/subplot_dimension[1]-0.15)
+        ax.set_title(annotation_text, y=0.004*(font_size-2.5)-0.15)
+    else: ax.axes.set_xticks(ax.get_xticks(), "")
     ax.scatter(np.radians(wdir), sec_ratio, color=COLOR_PALETTE.secondary, alpha=0.3, s=1)
 
     for item in ([ax.title] + ax.get_xticklabels() + ax.get_yticklabels()):
-        item.set_fontsize(min(figure_size)/subplot_dimension[0]/subplot_dimension[1]+2.5)
+        item.set_fontsize(font_size)
 
     return ax
 
