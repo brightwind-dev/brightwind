@@ -1199,7 +1199,7 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
 
         # To remove plot annotation of all plots
         sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'], boom_dir_1=80,
-                     boom_dir_2=[260,270], annotate=False, figure_size=(25,25))
+                     boom_dir_2=[260, 270], annotate=False, figure_size=(25, 25))
     """
 
     ws_1 = pd.DataFrame(wspd_1)
@@ -1236,8 +1236,6 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     col_names = {}
 
     wdir_dict = {}
-    for key, data in enumerate(wd):
-        wdir_dict[key] = wd[data]
 
     for sensor_pair in keys:
         wspd_1 = _convert_df_to_series(ws_1.iloc[:, sensor_pair]).dropna()
@@ -1245,8 +1243,10 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
 
         if len(wd.columns) == 1:
             wdir = _convert_df_to_series(wd).dropna()
+            wdir_dict[0] = wd.iloc[:, 0]
         else:
             wdir = _convert_df_to_series(wd.iloc[:, sensor_pair]).dropna()
+            wdir_dict[sensor_pair] = wd.iloc[:, sensor_pair]
 
         sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
         sec_rats[sensor_pair] = sec_rat
