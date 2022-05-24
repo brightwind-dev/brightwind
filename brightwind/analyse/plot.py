@@ -1019,7 +1019,6 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     :param figure_size:       Figure size in tuple format (width, height)
     :type figure_size:        tuple
     :param kwargs:            Additional keyword arguments for matplotlib.pyplot.subplot
-
     :returns:                 A speed ratio plot showing average speed ratio by sector and scatter of individual data
                               points.
 
@@ -1109,7 +1108,6 @@ def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_
     :type font_size:          int
     :param ax:                Subplot axes to which the subplot is assigned. If None subplot is displayed on its own.
     :type ax:                 matplotlib.axes._subplots.AxesSubplot or None
-
     :returns:                 A speed ratio plot showing average speed ratio by sector and scatter of individual
                               data points.
 
@@ -1156,7 +1154,8 @@ def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_
         annotation_text += '{} divided by {}'.format(col_names[1], col_names[0])
     if annotate:
         ax.set_title(annotation_text, y=0.004*(font_size-2.5)-0.15)
-    else: ax.axes.set_xticks(ax.get_xticks(), "")
+    else:
+        ax.axes.set_xticks(ax.get_xticks(), "")
     ax.scatter(np.radians(wdir), sec_ratio, color=COLOR_PALETTE.secondary, alpha=0.3, s=1)
 
     for item in ([ax.title] + ax.get_xticklabels() + ax.get_yticklabels()):
