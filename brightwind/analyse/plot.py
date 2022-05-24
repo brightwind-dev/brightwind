@@ -1155,7 +1155,7 @@ def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_
     if annotate:
         ax.set_title(annotation_text, y=0.004*(font_size-2.5)-0.15)
     else:
-        ax.axes.set_xticks(ax.get_xticks(), "")
+        ax.axes.xaxis.set_ticklabels([])
     ax.scatter(np.radians(wdir), sec_ratio, color=COLOR_PALETTE.secondary, alpha=0.3, s=1)
 
     for item in ([ax.title] + ax.get_xticklabels() + ax.get_yticklabels()):
