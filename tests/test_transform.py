@@ -15,6 +15,7 @@ new_offset = 0.236
 wndspd_adj = 8.173555555555556
 wndspd_adj_df = pd.DataFrame([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
 wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
+ref_date = pd.to_datetime('2000-01-01')
 
 DATA = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
 DATA_CLND = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -170,19 +171,26 @@ def test_apply_wind_vane_dead_band_offset():
             data['Dir78mS'].fillna(0).round(10)).all()
 
 
-def test_freq_str_to_timedelta():
-    periods = ['1min', '5min', '10min', '15min',
-               '1H', '3H', '6H',
-               '1D', '7D', '1W', '2W',
-               '1MS', '1M', '3M', '6MS',
+def test_freq_str_to_dateoffset():
+    # Excluding monthly periods and above as it will depend on which month or year
+    periods = ['1S', '1min', '5min', '10min', '15min',
+               '1H', '3H', '6H', '1D', '7D',
+               '1W', '2W', '1MS', '1M', '3M', '6MS',
                '1AS', '1A', '3A']
-    results = [60.0, 300.0, 600.0, 900.0,
-               3600.0, 10800.0, 21600.0,
-               86400.0, 604800.0, 604800.0, 1209600.0,
-               2629746.0, 2629746.0, 7889238.0, 15778476.0,
-               31536000.0, 31536000.0, 94608000.0]
+    results = [1.0, 60.0, 300.0, 600.0, 900.0,
+               3600.0, 10800.0, 21600.0, 86400.0, 604800.0,
+               604800.0, 1209600.0, 2678400.0, 2678400.0, 7862400.0, 15724800.0,
+               31622400.0, 31622400.0, 94694400.0]
+
     for idx, period in enumerate(periods):
-        assert bw.transform.transform._freq_str_to_timedelta(period).total_seconds() == results[idx]
+        if type(bw.transform.transform._freq_str_to_dateoffset(period)) == pd.DateOffset:
+            # The data frequency is returned as a DateOffset. The time delta can be in seconds
+            # can be derived adding the date offset to an actual date.
+            assert (ref_date + bw.transform.transform._freq_str_to_dateoffset(period) - ref_date
+                    ).total_seconds() == results[idx]
+
+        # Check that data frequency is returned as a DateOffset.
+        assert type(bw.transform.transform._freq_str_to_dateoffset(period)) == pd.DateOffset
 
 
 def test_round_timestamp_down_to_averaging_prd():
@@ -197,24 +205,31 @@ def test_round_timestamp_down_to_averaging_prd():
 
 
 def test_get_data_resolution():
+    # Dateoffset is used to represent data resolution
     import warnings
     series1 = DATA['Spd80mS'].index
-    assert bw.transform.transform._get_data_resolution(series1).seconds == 600
+    assert bw.transform.transform._get_data_resolution(series1).kwds == {'minutes': 10}
 
     series2 = pd.date_range('2010-01-01', periods=150, freq='H')
-    assert bw.transform.transform._get_data_resolution(series2).seconds == 3600
+    assert bw.transform.transform._get_data_resolution(series2).kwds == {'hours': 1}
+
+    series2 = pd.date_range('2010-01-01', periods=150, freq='D')
+    assert bw.transform.transform._get_data_resolution(series2).kwds == {'days': 1}
+
+    series2 = pd.date_range('2010-01-01', periods=150, freq='15D')
+    assert bw.transform.transform._get_data_resolution(series2).kwds == {'days': 15}
 
     series1 = bw.average_data_by_period(DATA['Spd80mN'], period='1M', coverage_threshold=0, return_coverage=False)
-    assert bw.transform.transform._get_data_resolution(series1.index) == pd.Timedelta(1, unit='M')
+    assert bw.transform.transform._get_data_resolution(series1.index).kwds == {'months': 1}
 
     series1 = bw.average_data_by_period(DATA['Spd80mN'], period='1AS', coverage_threshold=0, return_coverage=False)
-    assert bw.transform.transform._get_data_resolution(series1.index) == pd.Timedelta(365, unit='D')
+    assert bw.transform.transform._get_data_resolution(series1.index).kwds == {'years': 1}
 
     # hourly series with one instance where difference between adjacent timestamps is 10 min
     series3 = pd.date_range('2010-04-15', '2010-05-01', freq='H').union(pd.date_range('2010-05-01 00:10:00', periods=20,
                                                                                       freq='H'))
     with warnings.catch_warnings(record=True) as w:
-        assert bw.transform.transform._get_data_resolution(series3).seconds == 3600
+        assert bw.transform.transform._get_data_resolution(series3).kwds == {'hours': 1}
         assert len(w) == 1
 
 
@@ -510,7 +525,7 @@ def test_average_data_by_period():
     data_test.sort_index(inplace=True)
     data_monthly, coverage_monthly = bw.average_data_by_period(data_test, period='1M', wdir_column_names='Dir78mS',
                                                                return_coverage=True,
-                                                               data_resolution=pd.Timedelta('10 min'))
+                                                               data_resolution=pd.DateOffset(minutes=10))
     table_count = data_test.resample('1MS', axis=0, closed='left', label='left', base=0,
                                      convention='start', kind='timestamp').count()
     assert (table_count['Dir78mS']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Dir78mS_Coverage']['2016-01-01']
@@ -536,12 +551,15 @@ def test_average_data_by_period():
                              52, 72, 129, 111, 157, 150, 20, 24, 118, 178, 160])
     data1 = data1.drop(drop_indices)
     data1 = data1.set_index('Timestamp')
-    assert (bw.average_data_by_period(data1.Spd80mS, period='10min', data_resolution=pd.Timedelta('10 min')).dropna() ==
-            data1.Spd80mS).all()
+    assert (bw.average_data_by_period(data1.Spd80mS, period='10min', data_resolution=pd.DateOffset(minutes=10)).dropna()
+            == data1.Spd80mS).all()
     with pytest.raises(ValueError) as except_info:
         bw.average_data_by_period(data1.Spd80mS, period='10min')
     assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
                                      "For example, hourly data should not be averaged to 10 minute data."
+    with pytest.raises(TypeError) as except_info:
+        bw.average_data_by_period(data1.Spd80mS, period='10min', data_resolution=pd.Timedelta('10min'))
+    assert str(except_info.value) == "Input data_resolution is Timedelta. A Pandas DateOffset should be used instead."
 
 
 def test_merge_datasets_by_period():
@@ -634,8 +652,8 @@ def test_merge_datasets_by_period():
                                             wdir_column_names_1='WD50m_deg', wdir_column_names_2='Dir78mS',
                                             coverage_threshold_1=0, coverage_threshold_2=0,
                                             aggregation_method_1='mean', aggregation_method_2='mean',
-                                            data_1_resolution=pd.Timedelta('1H'),
-                                            data_2_resolution=pd.Timedelta('10min'))
+                                            data_1_resolution=pd.DateOffset(hours=1),
+                                            data_2_resolution=pd.DateOffset(minutes=10))
 
     assert round(mrgd_data['Spd80mN_Coverage'].values[0], 8) == 0.00179211
 

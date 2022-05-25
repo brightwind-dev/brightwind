@@ -106,7 +106,8 @@ def test_time_series():
 
     # Test attributes
     assert round(shear_by_ts_power_law.alpha.mean(), 4) == 0.1786
-    assert shear_by_ts_log_law.roughness.mean() == 4.306534305567819e+68
+    # Changed to support equality for very large numbers
+    assert (shear_by_ts_log_law.roughness.mean() / 4.306534305567819e+68 - 1) < 1e-6
 
     # Test apply
     shear_by_ts_power_law.apply(DATA['Spd80mN'], 40, 60)
