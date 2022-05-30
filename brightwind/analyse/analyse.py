@@ -1114,14 +1114,17 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     in a pd.DataFrame. If provided with multiple time series, multiple subplots will be produced.
 
     If boom directions are specified, these will be overlaid on the plot. A boom direction of '-1' assumes top
-    mounted and so doesn't plot.
+    mounted and is not plot.
 
-    :param wspd_1:              First wind speed time series. One or more wind speeds can be accepted. This is the
-                                divisor.
+    :param wspd_1:              One or more wind speed timeseries. These will act as the divisor wind speeds.
     :type: wspd_1:              pandas.Series or pandas.DataFrame
-    :param wspd_2:              Second wind speed time series, the dividend. One or more wind speeds can be accepted.
+    :param wspd_2:              One or more wind speed timeseries. These will act as the dividend wind speeds. The
+                                amount of timeseries must be consistent between wspd_1 and wspd_2. If multiple
+                                timeseries are input, the first timeseries from wspd_1 will divide the first in wspd_2
+                                and so on.
     :type: wspd_2:              pandas.Series or pandas.DataFrame
-    :param wdir:                Time series of wind directions. One or more can be accepted.
+    :param wdir:                Time series of wind directions. One or more can be accepted. If multiple direction
+                                timeseries are input, order will be preserved in conjunction with wspd_1 and wspd_2.
     :type wdir:                 pandas.Series or pandas.DataFrame
     :param sectors:             Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
     :type sectors:              int
@@ -1131,21 +1134,22 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
                                 overwrites the sectors.
     :param boom_dir_1:          Boom orientation in degrees of wspd_1. If top mounted leave default as -1. One or more
                                 boom orientations can be accepted. If multiple orientations, number of orientations must
-                                equal number of anemometer pairs.
-    :type boom_dir_1:           float or list
+                                equal number of wspd_1 anemometers.
+    :type boom_dir_1:           float or list[float]
     :param boom_dir_2:          Boom orientation in degrees of wspd_2. If top mounted leave default as -1. One or more
                                 boom orientations can be accepted. If multiple orientations, number of orientations must
-                                equal number of anemometer pairs.
-    :type boom_dir_2:           float or list
+                                equal number of wspd_2 anemometers.
+    :type boom_dir_2:           float or list[float]
     :param return_data:         Set to True to return the data.
     :type return_data:          bool
-    :param radial_limits:       Max and min limits of the plot radius.
-    :type radial_limits:        tuple or list
+    :param radial_limits:       Max and min limits of the plot radius. Defaults to +0.05 of max ratio and -0.1 of min.
+    :type radial_limits:        tuple[float] or list[float]
     :param annotate:            Set to True to show annotations on plot.
     :type annotate:             bool
     :param figure_size:         Figure size in tuple format (width, height)
-    :type figure_size:          tuple
+    :type figure_size:          tuple[int]
     :param kwargs:              Additional keyword arguments for matplotlib.pyplot.subplot
+
     :returns:                   A wind speed ratio plot showing the average ratio by sector and scatter of individual
                                 data points.
     :rtype:                     plot, pandas.DataFrame

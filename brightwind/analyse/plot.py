@@ -995,29 +995,31 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     multiple distributions of anemometer ratio pairs per sector, along with 2 anemometer names,
     and plots the speed ratio by sector. Optionally can include anemometer boom directions also.
 
-    :param sec_ratio:         Sector_ratios
+    :param sec_ratio:         Ratio of wind speed timeseries. One or more ratio timeseries can be input as a dict.
     :type sec_ratio:          pandas.Series or dict
-    :param wdir:              Direction series
+    :param wdir:              Direction series. If multiple direction series entered in dict format, number of series
+                              must equal number of sector ratios. The first direction series is references the first
+                              sector ratio and so on.
     :type wdir:               pandas.Series or dict
     :param sec_ratio_dist:    DataFrames from SectorRatio.by_sector()
     :type sec_ratio_dist:     pandas.Series or dict
     :param col_names:         A list of strings containing column names of wind speeds, first string is divisor and
                               second is dividend.
-    :type col_names:          list(str)
+    :type col_names:          list[float]
     :param boom_dir_1:        Boom orientation in degrees of speed_col_name_1. Defaults to -1. One or more boom
                               orientations can be accepted. If multiple orientations, number of orientations must equal
                               number of anemometer pairs.
-    :type boom_dir_1:         float or list
+    :type boom_dir_1:         float or list[float]
     :param boom_dir_2:        Boom orientation in degrees of speed_col_name_2. Defaults to -1. One or more boom
                               orientations can be accepted. If multiple orientations, number of orientations must equal
                               number of anemometer pairs.
-    :type boom_dir_2:         float or list
+    :type boom_dir_2:         float or list[float]
     :param radial_limits:     the min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
-    :type radial_limits:      tuple or list
+    :type radial_limits:      tuple[float] or list[float]
     :param annotate:          Set to True to show annotations on plot.
     :type annotate:           bool
     :param figure_size:       Figure size in tuple format (width, height)
-    :type figure_size:        tuple
+    :type figure_size:        tuple[int]
     :param kwargs:            Additional keyword arguments for matplotlib.pyplot.subplot
 
     :returns:                 A speed ratio plot showing average speed ratio by sector and scatter of individual data
@@ -1088,21 +1090,21 @@ def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_
     along with 2 anemometer names, and returns an axis object to plot the speed ratio by sector. Optionally can
     include anemometer boom directions also.
 
-    :param sec_ratio:         Series of sector_ratios
+    :param sec_ratio:         Series of wind speed timeseries.
     :type sec_ratio:          pandas.Series
-    :param wdir:              Direction series
+    :param wdir:              Direction timeseries.
     :type wdir:               pandas.Series
     :param sec_ratio_dist:    DataFrame from SectorRatio.by_sector()
     :type sec_ratio_dist:     pandas.Series
     :param col_names:         A list of strings containing column names of wind speeds, first string is divisor and
                               second is dividend.
-    :type col_names:          list(str)
-    :param boom_dir_1:        Boom orientation in degrees of speed_col_name_1. Defaults to -1.
+    :type col_names:          list[str]
+    :param boom_dir_1:        Boom orientation in degrees of speed_col_name_1. Defaults to -1, hidden from the plot.
     :type boom_dir_1:         float
-    :param boom_dir_2:        Boom orientation in degrees of speed_col_name_2. Defaults to -1.
+    :param boom_dir_2:        Boom orientation in degrees of speed_col_name_2. Defaults to -1, hidden from the plot.
     :type boom_dir_2:         float
     :param radial_limits:     The min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
-    :type radial_limits:      tuple or list
+    :type radial_limits:      tuple[float] or list[float]
     :param annotate:          Set to True to show annotations on plot.
     :type annotate:           bool
     :param font_size:         Size of font in plot annotation. Defaults to 10.
