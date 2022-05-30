@@ -1,4 +1,4 @@
-pandas          >= 0.24.0, <=0.25.3
+pandas          >= 0.24.0, <=1.3.2
 numpy           >= 1.16.4
 scikit-learn    >= 0.19.1
 matplotlib      >= 3.0.3
@@ -11,3 +11,5 @@ ipywidgets      >= 7.4.2
 ipython         >= 7.4.0
 gmaps           >= 0.9.0
 boto3           >= 1.9.66
+colormap        >= 1.0.1
+easydev         >= 0.10.0

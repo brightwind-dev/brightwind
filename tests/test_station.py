@@ -7,9 +7,10 @@ import json
 
 
 def _get_schema():
-    with open(bw.demo_datasets.demo_wra_data_model_schema) as json_file:
+    with open(bw.demo_datasets.iea43_wra_data_model_schema) as json_file:
         schema = json.load(json_file)
     return schema
+
 
 SCHEMA = _get_schema()
 

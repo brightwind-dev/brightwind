@@ -21,7 +21,7 @@ def test_monthly_means():
     data_monthly = bw.average_data_by_period(DATA.Spd80mS, period='1M')
     data_monthly = data_monthly[data_monthly.index.month.isin([2, 4, 6, 8])]
     _, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
-                                            data_resolution=pd.Timedelta('1M'))
+                                            data_resolution=pd.DateOffset(months=1))
     assert (monthly_mean_data.dropna() == data_monthly).all()
     with pytest.raises(ValueError) as except_info:
         bw.monthly_means(data_monthly, return_data=True)
@@ -76,8 +76,8 @@ def test_time_continuity_gaps():
     # THIS WILL RAISE 3 WARNINGS.
     data_test = DATA.copy()
     data_test.reset_index(inplace=True)
-    data_test['Timestamp'][10] = data_test['Timestamp'][10] + pd.Timedelta('1 min')
-    data_test['Timestamp'][20] = data_test['Timestamp'][20] + pd.Timedelta('9 min')
+    data_test['Timestamp'][10] = data_test['Timestamp'][10] + pd.DateOffset(minutes=1)
+    data_test['Timestamp'][20] = data_test['Timestamp'][20] + pd.DateOffset(minutes=9)
     data_test.set_index('Timestamp', inplace=True)
     gaps_irregular = bw.time_continuity_gaps(data_test)
     assert gaps_irregular.iloc[0, 0] == pd.Timestamp('2016-01-09 18:10:00')
@@ -150,7 +150,7 @@ def test_coverage():
     data1 = data1.drop(drop_indices)
     data1 = data1.set_index('Timestamp')
     assert round(bw.coverage(data1.Spd80mS, period='1M',
-                             data_resolution=pd.Timedelta('10min')).values[0], 8) == 0.00179211
+                             data_resolution=pd.DateOffset(minutes=10)).values[0], 8) == 0.00179211
 
 
 def test_dist_by_dir_sector():
@@ -211,6 +211,19 @@ def test_dist():
     bw.dist(DATA.Spd40mN, var_to_bin_against=DATA.T2m,
             bins=[-10, 4, 12, 18, 30],
             bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
+
+    # For distribution of multiple sum wind speeds with respect themselves
+    bw.dist(DATA[['Spd80mN', 'Spd80mS']], aggregation_method='sum')
+
+    assert True
+
+    # For distribution of multiple mean wind speeds with respect to temperature
+    fig, dist = bw.dist(DATA[['Spd80mN', 'Spd80mS']], var_to_bin_against=DATA.T2m,
+                        bins=[-10, 4, 12, 18, 30],
+                        bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean', return_data=True)
+
+    assert round(dist['Spd80mN']['freezing'], 10) == 7.2126121482
+    assert round(dist['Spd80mS']['hot'], 10) == 5.6441172107
 
 
 def test_dist_of_wind_speed():

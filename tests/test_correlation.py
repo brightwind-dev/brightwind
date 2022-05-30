@@ -237,7 +237,8 @@ def test_synthesize():
     synth = correl.synthesize(target_coverage_threshold=0)
 
     for idx, row in pd.DataFrame(result_ord_lst_sq).iterrows():
-        assert str(row[0]) == str(synth.loc[idx][0])
+        # Comparing the first 6 digits to avoid issuing with floating point precision
+        assert str(row[0])[0:6] == str(synth.loc[idx][0])[0:6]
 
     # Test the synthesise for when the ref_dir is given as input.
     correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s']['2016-03-02 00:00:00':],
@@ -262,6 +263,47 @@ def test_synthesize():
     for idx, row in pd.DataFrame(result_speed_sort).iterrows():
         print(idx)
         assert str(row[0]) == str(round(synth.loc[idx][0], 6))
+
+    # Test the synthesise when SpeedSort correlation is used using 10 min averaging period.
+    data_test = DATA_CLND[['Spd80mN', 'Spd60mN', 'Dir78mS', 'Dir58mS']].copy()
+    data_test['Dir78mS']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.NaN
+    data_test['Spd80mN']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.NaN
+    data_test['Dir58mS']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.NaN
+    data_test['Spd60mN']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.NaN
+    ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir58mS'],
+                                 averaging_prd='10min')
+    ss_cor.run()
+    data_synt = ss_cor.synthesize()
+    assert (~data_synt['Dir58mS_Synthesized']['2016-01-09 18:00:00':'2016-01-09 19:10:00'].isnull()
+            ).all() and data_test['Dir58mS']['2016-01-09 18:00:00':'2016-01-09 19:10:00'].isnull().all()
+    assert (~data_synt['Spd60mN_Synthesized']['2016-01-09 18:00:00':'2016-01-09 19:10:00'].isnull()
+            ).all() and data_test['Spd60mN']['2016-01-09 18:00:00':'2016-01-09 19:10:00'].isnull().all()
+    assert ((data_synt['Spd60mN_Synthesized']['2016-01-09 18:00:00':'2016-01-09 18:30:00'] /
+            [7.46707, 8.12027, 9.29721, 9.77779] - 1) < 1e-6).all()
+    assert ((data_synt['Dir58mS_Synthesized']['2016-01-09 18:00:00':'2016-01-09 18:30:00'] /
+            [116.34621159, 115.74488287, 120.15381789, 115.54469266] - 1) < 1e-6).all()
+    assert (data_synt['Spd60mN_Synthesized']['2016-01-09 17:10:00':'2016-01-09 17:40:00']
+            == data_test['Spd60mN']['2016-01-09 17:10:00':'2016-01-09 17:40:00']).all()
+    assert (data_synt['Dir58mS_Synthesized']['2016-01-09 17:10:00':'2016-01-09 17:40:00']
+            == data_test['Dir58mS']['2016-01-09 17:10:00':'2016-01-09 17:40:00']).all()
+
+    # Test the synthesise when SpeedSort correlation is used and ref_dir and target_dir are the same
+    ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir78mS'],
+                                 averaging_prd='10min')
+    ss_cor.run(show_params=False)
+    data_synt = ss_cor.synthesize()
+    assert (data_synt['Dir78mS_Synthesized'].dropna() == data_test['Dir78mS'].dropna()).all()
+    assert ss_cor._ref_dir_col_name == 'Dir78mS_ref'
+    assert ss_cor._tar_dir_col_name == 'Dir78mS'
+
+    # Test the synthesise when SpeedSort correlation is used and ref_spd and target_spd are the same
+    ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd80mN'], data_test['Dir58mS'],
+                                 averaging_prd='10min')
+    ss_cor.run(show_params=False)
+    data_synt = ss_cor.synthesize()
+    assert (data_synt['Spd80mN_Synthesized'].dropna() == data_test['Spd80mN'].dropna()).all()
+    assert ss_cor._ref_spd_col_name == 'Spd80mN_ref'
+    assert ss_cor._tar_spd_col_name == 'Spd80mN'
 
 
 def test_orthogonal_least_squares():
