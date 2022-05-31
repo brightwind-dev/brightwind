@@ -1353,7 +1353,7 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
 
 
 def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1,
-                      radial_limits=None, annotate=True, figure_size=(10, 10), **kwargs):
+                      radial_limits=None, annotate=True, figure_size=(10, 10)):
     """
     Accepts a DataFrame table or a dictionary with multiple ratio of anemometer pairs per sector, a wind direction,
     multiple distributions of anemometer ratio pairs per sector, along with 2 anemometer names,
@@ -1384,7 +1384,7 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     :type annotate:           bool
     :param figure_size:       Figure size in tuple format (width, height)
     :type figure_size:        tuple[int]
-    :param kwargs:            Additional keyword arguments for matplotlib.pyplot.subplot
+
     :returns:                 A speed ratio plot showing average speed ratio by sector and scatter of individual data
                               points.
 
@@ -1412,7 +1412,7 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
                              'anemometer pairs.')
 
     row, col = _get_best_row_col_number_for_subplot(len(sec_ratio))
-    fig, axes = plt.subplots(row, col, figsize=figure_size, subplot_kw={'projection': 'polar'}, **kwargs)
+    fig, axes = plt.subplots(row, col, figsize=figure_size, subplot_kw={'projection': 'polar'})
     font_size = min(figure_size)/row/col+2.5
 
     if (len(sec_ratio)) > 1:

@@ -1187,7 +1187,7 @@ def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
 
 
 def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_array=None, boom_dir_1=-1,
-                 boom_dir_2=-1, return_data=False, radial_limits=None, annotate=True, figure_size=(10, 10), **kwargs):
+                 boom_dir_2=-1, return_data=False, radial_limits=None, annotate=True, figure_size=(10, 10)):
     """
     Calculates the wind speed ratio of two wind speed time series and plots this ratio, averaged by direction sector,
     in a polar plot using a wind direction time series. The averaged ratio by sector can be optionally returned
@@ -1228,7 +1228,6 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     :type annotate:             bool
     :param figure_size:         Figure size in tuple format (width, height)
     :type figure_size:          tuple[int]
-    :param kwargs:              Additional keyword arguments for matplotlib.pyplot.subplot
 
     :returns:                   A wind speed ratio plot showing the average ratio by sector and scatter of individual
                                 data points.
@@ -1348,7 +1347,7 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
 
     fig = plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir_dict, sec_ratio_dist=sec_rats_dists, col_names=col_names,
                                 boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2, radial_limits=radial_limits,
-                                annotate=annotate, figure_size=figure_size, **kwargs)
+                                annotate=annotate, figure_size=figure_size)
 
     if return_data:
         if len(sec_rats_dists) == 1:
