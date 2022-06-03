@@ -1194,7 +1194,7 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     in a pd.DataFrame. If provided with multiple time series, multiple subplots will be produced.
 
     If boom directions are specified, these will be overlaid on the plot. A boom direction of '-1' assumes top
-    mounted and is not plot.
+    mounted and is not plotted.
 
     :param wspd_1:              One or more wind speed timeseries. These will act as the divisor wind speeds.
     :type: wspd_1:              pandas.Series or pandas.DataFrame
@@ -1214,21 +1214,21 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
                                 overwrites the sectors.
     :param boom_dir_1:          Boom orientation in degrees of wspd_1. If top mounted leave default as -1. One or more
                                 boom orientations can be accepted. If multiple orientations, number of orientations must
-                                equal number of wspd_1 anemometers.
+                                equal number of wspd_1 timeseries.
     :type boom_dir_1:           float or list[float]
     :param boom_dir_2:          Boom orientation in degrees of wspd_2. If top mounted leave default as -1. One or more
                                 boom orientations can be accepted. If multiple orientations, number of orientations must
-                                equal number of wspd_2 anemometers.
+                                equal number of wspd_2 timeseries.
     :type boom_dir_2:           float or list[float]
     :param return_data:         Set to True to return the data.
     :type return_data:          bool
     :param radial_limits:       Max and min limits of the plot radius. Defaults to +0.05 of max ratio and -0.1 of min.
     :type radial_limits:        tuple[float] or list[float]
-    :param annotate:            Set to True to show annotations on plot.
+    :param annotate:            Set to True to show annotations on plot. If False then the annotation at the bottom of
+                                the plot and the radial labels indicating the sectors are not shown.
     :type annotate:             bool
     :param figure_size:         Figure size in tuple format (width, height)
     :type figure_size:          tuple[int]
-
     :returns:                   A wind speed ratio plot showing the average ratio by sector and scatter of individual
                                 data points.
     :rtype:                     plot, pandas.DataFrame
@@ -1272,15 +1272,15 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
                                 return_data=True)
         num
 
-        # To change boom orientation of subplots
-        bw.sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'], boom_dir_1=[80, 90],
-                     boom_dir_2=[260, 270], figure_size=(25, 25))
+        # To have different boom orientations for each pair of speeds plotted in a different subplot
+        bw.sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'],
+                        boom_dir_1=[80, 90], boom_dir_2=[260, 270], figure_size=(25, 25))
 
-        # To change boom orientation of some subplots
+        # To have different boom orientations only for each wspd_2 plotted in a different subplot
         bw.sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'], boom_dir_1=80,
                      boom_dir_2=[260, 270], figure_size=(25, 25))
 
-        # To remove plot annotation of all plots
+        # To remove the text indicating the radial sectors and the annotation at the bottom of all subplots
         bw.sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'], boom_dir_1=80,
                      boom_dir_2=[260, 270], annotate=False, figure_size=(25, 25))
     """

@@ -1380,11 +1380,12 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     :type boom_dir_2:         float or list[float]
     :param radial_limits:     the min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
     :type radial_limits:      tuple[float] or list[float]
-    :param annotate:          Set to True to show annotations on plot.
+    :param annotate:          Set to True to show annotations on plot. If False then the annotation at the bottom of
+                              the plot and the radial labels indicating the sectors are not shown.
+    :type annotate:           bool
     :type annotate:           bool
     :param figure_size:       Figure size in tuple format (width, height)
     :type figure_size:        tuple[int]
-
     :returns:                 A speed ratio plot showing average speed ratio by sector and scatter of individual data
                               points.
 
