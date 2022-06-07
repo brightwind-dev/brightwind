@@ -1389,10 +1389,43 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
     :returns:                 A speed ratio plot showing average speed ratio by sector and scatter of individual data
                               points.
 
+    **Example usage**
+    ::
+
+    import brightwind as bw
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+
+    wspd1, wspd2 = data['Spd80mN'], data['Spd80mS']
+    wdir = data['Dir78mS']
+
+    # calculate the ratio between wind speeds
+    min_spd = 3
+    sec_rat = bw.analyse.analyse._calc_ratio(wspd1, wspd2, min_spd)
+
+    # calculate mean wind speed ratio per sector
+    sec_rat_plot, sec_rat_dist = bw.dist_by_dir_sector(sec_rat, wdir, aggregation_method='mean', return_data=True)
+    sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
+
+    # find the common indices between wind speed and wind direction
+    common_idx   = sec_rat.index.intersection(wdir.index)
+
+    # plot the sector ratio
+    bw.plot_sector_ratio(sec_rat, wdir, sec_rat_dist, [wspd1.name, wspd2.name])
+
+    # plot the sector ratio with boom orientations, radial limits, and larger figure size
+    bw.plot_sector_ratio(sec_rat, wdir, sec_rat_dist, [wspd1.name, wspd2.name],
+                         boom_dir_1=0, boom_dir_2=180, radial_limits=(0.8, 1.2), figure_size=(15, 15))
+
     """
 
     if type(sec_ratio) == pd.core.series.Series:
         sec_ratio = {0: sec_ratio}
+
+    if type(sec_ratio_dist) == pd.core.frame.DataFrame:
+        sec_ratio_dist = {0: sec_ratio_dist}
+
+    if type(col_names) is list:
+        col_names = {0: col_names}
 
     wdir = pd.DataFrame(wdir)
 
@@ -1477,6 +1510,34 @@ def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_
     :type ax:                 matplotlib.axes._subplots.AxesSubplot or None
     :returns:                 A speed ratio plot showing average speed ratio by sector and scatter of individual
                               data points.
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+
+        wspd1, wspd2 = data['Spd80mN'], data['Spd80mS']
+        wdir = data['Dir78mS']
+
+        # calculate the ratio between wind speeds
+        min_spd = 3
+        sec_rat = bw.analyse.analyse._calc_ratio(wspd1, wspd2, min_spd)
+
+        # calculate mean wind speed ratio per sector
+        sec_rat_plot, sec_rat_dist = bw.dist_by_dir_sector(sec_rat, wdir, aggregation_method='mean', return_data=True)
+        sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
+
+        # find the common indices between wind speed and wind direction
+        common_idx   = sec_rat.index.intersection(wdir.index)
+
+        # plot the sector ratio
+        bw.analyse.plot._plot_sector_ratio_subplot(sec_rat.loc[common_idx], wdir.loc[common_idx], sec_rat_dist,
+                                                   [wspd1.name, wspd2.name])
+
+        # plot the sector ratio with booms, radial limits, no annotation, and larger font size
+        bw.analyse.plot._plot_sector_ratio_subplot(sec_rat.loc[common_idx], wdir.loc[common_idx], sec_rat_dist,
+                                                   [wspd1.name, wspd2.name], boom_dir_1=0, boom_dir_2=180,
+                                                   radial_limits=(0.8, 1.2), annotate=False, font_size=20)
 
     """
 
