@@ -547,9 +547,43 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
 
 
 def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_series, direction_series, var_bin_array,
-                                                     coverage_thresh, sectors=12, direction_bin_array=None,
-                                                     direction_bin_labels=None,
-                                                     aggregation_method='%frequency'):
+                                                     sectors=12, direction_bin_array=None, direction_bin_labels=None,
+                                                     aggregation_method='%frequency', coverage_thresh=0.8):
+    """
+    Calculates distribution matrix of a variable against another variable and wind direction applying a
+    seasonal adjustment.
+
+    :param var_series:          Series of variable whose distribution is calculated
+    :type var_series:           pandas.Series
+    :param var_to_bin_series:   Series of the variable to bin by.
+    :type var_to_bin_series:    pandas.Series
+    :param direction_series:    Series of wind directions to bin by. Must be between [0-360].
+    :type direction_series:     pandas.Series
+    :param var_bin_array:       List of numbers where adjacent elements of array form a bin. For instance, for bins
+                                [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]. By default it is [-0.5, 0.5),
+                                [0.5, 1.5], ...., [39.5, 40.5)
+    :type var_bin_array:        list
+    :param sectors:             Number of sectors to bin direction to. The first sector is centered at 0 by default.
+                                To change that behaviour specify direction_bin_array. Sectors will be overwritten
+                                if direction_bin_array is set.
+    :type sectors:              int
+    :param direction_bin_array: To add custom bins for direction sectors, overwrites sectors. For instance,
+                                for direction bins [0,120), [120, 215), [215, 360) the list would be [0, 120, 215, 360].
+    :type direction_bin_array:  list
+    :param direction_bin_labels:Optional, you can specify an array of labels to be used for the bins. Uses string
+                                labels of the format '30-90' by default.
+    :type direction_bin_labels: list(float), list(str)
+    :param aggregation_method:  Statistical method used to find distribution it can be mean, max, min, std, count,
+                                %frequency or a custom function. Computes frequency in percentages by default.
+    :type aggregation_method:   str
+    :param coverage_thresh:     Monthly coverage threshold. If threshold is different than 0 then data for the months
+                                with coverage lower than this threshold are not considered for deriving the
+                                distribution matrix. Default value is 0.8.
+    :type coverage_thresh:      int or float
+    :return:                    A distribution matrix for the given Series of variable
+    :rtype:                     pandas.DataFrame
+
+    """
 
     if (coverage_thresh < 0) or (coverage_thresh > 1):
         raise ValueError('coverage_thresh must be a number between 0 and 1.')
@@ -761,10 +795,14 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
+        df = bw.load_csv(bw.demo_datasets.demo_data)
 
-        #Simple use
+        #Simple use without seasonal adjustment
         rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
+
+        #Apply seasonal adjustment and coverage threshold of 70%
+        rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, coverage_thresh=0.7, return_data=True,
+                                         seasonal_adjustment=True)
 
         #To use 3 bins for wind speed [0,8), [8, 14), [14, 41) and label them as ['low', 'mid', 'high']. Can be used for
         #variabes other than wind speed too
