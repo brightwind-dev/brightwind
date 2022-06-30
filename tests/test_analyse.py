@@ -154,10 +154,15 @@ def test_freq_table():
                                         '165.0-195.0': 15.822652, '195.0-225.0': 18.300063, '225.0-255.0': 11.568607,
                                         '255.0-285.0': 15.091406, '285.0-315.0': 9.108006, '315.0-345.0':  3.017441}
 
+    target_freq_dict_seas_adj_sum = {'345.0-15.0': 3.457075, '15.0-45.0': 5.704456, '45.0-75.0': 4.054081,
+                                     '75.0-105.0': 4.724944, '105.0-135.0': 5.196668, '135.0-165.0': 3.541893,
+                                     '165.0-195.0': 16.165368, '195.0-225.0': 18.73797, '225.0-255.0': 11.782595,
+                                     '255.0-285.0': 14.725338, '285.0-315.0': 8.976263, '315.0-345.0':  2.933347}
+
     target_freq_dict_user_defined_bins = {'345.0-15.0': 3.616306, '15.0-45.0': 5.9834, '45.0-75.0': 4.04917,
                                           '75.0-105.0': 4.825594}
 
-    plot_wind_rose = bw.freq_table(DATA[['Spd40mN']], DATA[['Dir38mS']])
+    bw.freq_table(DATA[['Spd40mN']], DATA[['Dir38mS']])
     plot_wind_rose, freq_tbl_no_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=True)
 
     assert freq_tbl_no_seas_adj.sum().round(6).to_dict() == target_freq_dict_no_seas_adj_sum
@@ -190,6 +195,10 @@ def test_freq_table():
                                                                                '255.0-285.0': 14.08716,
                                                                                '285.0-315.0': 10.746167,
                                                                                '315.0-345.0': 3.076073}
+    # Apply seasonal adjustment and impose coverage threshold to 70%
+    plot_wind_rose, freq_tbl_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, coverage_thresh=0.7, return_data=True,
+                                                      seasonal_adjustment=True)
+    assert freq_tbl_seas_adj.sum().round(6).to_dict() == target_freq_dict_seas_adj_sum
 
 
 def test_dist():
