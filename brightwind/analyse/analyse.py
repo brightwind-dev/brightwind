@@ -5,6 +5,7 @@ from brightwind.utils import utils
 from brightwind.analyse import plot as plt
 from brightwind.utils.utils import _convert_df_to_series
 import matplotlib
+import warnings
 
 __all__ = ['monthly_means',
            'momm',
@@ -545,6 +546,66 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
     return distribution.sort_index()
 
 
+def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_series, direction_series, var_bin_array,
+                                                     coverage_thresh, sectors=12, direction_bin_array=None,
+                                                     direction_bin_labels=None,
+                                                     aggregation_method='%frequency'):
+
+    if (coverage_thresh < 0) or (coverage_thresh > 1):
+        raise ValueError('coverage_thresh must be a number between 0 and 1.')
+    # derive monthly coverage considering var_series, var_to_bin_series, direction_series inputs
+    monthly_coverage = coverage(pd.concat([var_series.rename('var_data'), var_to_bin_series,
+                                           direction_series], axis=1).dropna())['var_data_Coverage'].combine(
+        coverage(var_series), min).replace(np.nan, 0.0)
+    # apply monthly coverage threshold
+    if (monthly_coverage < coverage_thresh).sum() > 0:
+        months_fail_coverage = monthly_coverage[monthly_coverage < coverage_thresh].dropna()
+        if coverage_thresh > 0:
+            text_warning = 'These months are filtered out for deriving the seasonal adjusted frequency table.'
+            # remove data for months with coverage lower than the coverage_thresh
+            tmp_var_series = pd.DataFrame(var_series)
+            tmp_var_series['Months'] = list(var_series.index.strftime("%Y-%m"))
+            index_name = tmp_var_series.index.name
+            tmp_var_series[index_name] = list(var_series.index)
+            var_series = tmp_var_series.set_index('Months').drop(labels=list(
+                months_fail_coverage.index.strftime('%Y-%m'))).set_index(index_name).iloc[:, 0]
+        else:
+            text_warning = 'The seasonal adjusted frequency table results might be incorrect.'
+
+        text_months_fail = ", ".join(map(str, list(months_fail_coverage.index.strftime('%b-%Y'))))
+        print('WARNING: The monthly coverage for {} is lower than {}. {}'.format(text_months_fail,
+                                                                                 coverage_thresh,
+                                                                                 text_warning))
+
+    # check that var_series dataset has data for all calendar months
+    if len(var_series.index.month.unique()) < 12:
+        raise ValueError('The input series filtered by the input monthly coverage threshold do not cover all '
+                         'calendar months. The seasonal adjusted distribution matrix by directional sector '
+                         'cannot be derived.')
+
+    results = {}
+    number_days_month = {}
+    # derive distribution and number of days for each calendar month
+    for month in var_series.index.month.unique():
+        var_series_month = var_series[var_series.index.month == month]
+        var_to_bin_series_month = var_to_bin_series[var_to_bin_series.index.month == month]
+        direction_series_month = direction_series[direction_series.index.month == month]
+
+        number_days_month.update({month: np.mean(list(pd.DatetimeIndex(
+            var_series_month.index.strftime("%Y-%m").unique()).days_in_month))})
+
+        results.update({month: _get_dist_matrix_by_dir_sector(var_series=var_series_month,
+                                                              var_to_bin_series=var_to_bin_series_month,
+                                                              direction_series=direction_series_month,
+                                                              var_bin_array=var_bin_array,
+                                                              sectors=sectors, direction_bin_array=direction_bin_array,
+                                                              direction_bin_labels=direction_bin_labels,
+                                                              aggregation_method=aggregation_method
+                                                              ).replace(np.nan, 0.0)})
+
+    return (pd.Series(results) * pd.Series(number_days_month) / sum(number_days_month.values())).sum(skipna=True)
+
+
 def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series,
                               num_bins=None, var_to_bin_by_array=None, var_to_bin_by_labels=None,
                               sectors=12, direction_bin_array=None, direction_bin_labels=None,
@@ -649,46 +710,53 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
                direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, seasonal_adjustment=False,
-               plot_bins=None, plot_labels=None, return_data=False):
+               coverage_thresh=0.8, plot_bins=None, plot_labels=None, return_data=False):
     """
     Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
     direction are binned
 
-    :param var_series: Series of variable to be binned
-    :type var_series: pandas.Series
-    :param direction_series: Series of wind directions between [0-360]
-    :type direction_series: pandas.Series
-    :param var_bin_array: List of numbers where adjacent elements of array form a bin. For instance, for bins
-        [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]. By default it is [-0.5, 0.5), [0.5, 1.5], ...., [39.5, 40.5)
-    :type var_bin_array: list
-    :param var_bin_labels: Optional, an array of labels to use for variable bins
-    :type var_bin_labels: list
-    :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that
-            behaviour specify direction_bin_array, it overwrites sectors
-    :type sectors: int
+    :param var_series:          Series of variable to be binned
+    :type var_series:           pandas.Series
+    :param direction_series:    Series of wind directions between [0-360]
+    :type direction_series:     pandas.Series
+    :param var_bin_array:       List of numbers where adjacent elements of array form a bin. For instance, for bins
+                                [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]. By default it is [-0.5, 0.5),
+                                [0.5, 1.5], ...., [39.5, 40.5)
+    :type var_bin_array:        list
+    :param var_bin_labels:      Optional, an array of labels to use for variable bins
+    :type var_bin_labels:       list
+    :param sectors:             Number of sectors to bin direction to. The first sector is centered at 0 by default.
+                                To change that behaviour specify direction_bin_array, it overwrites sectors
+    :type sectors:              int
     :param direction_bin_array: To add custom bins for direction sectors, overwrites sectors. For instance,
-        for direction bins [0,120), [120, 215), [215, 360) the list would be [0, 120, 215, 360]
-    :type direction_bin_array: list
+                                for direction bins [0,120), [120, 215), [215, 360) the list would be [0, 120, 215, 360]
+    :type direction_bin_array:  list
     :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
-        labels of the format '30-90' by default
+                                labels of the format '30-90' by default
     :type direction_bin_labels: list(float), list(str)
-    :param freq_as_percentage: Optional, True by default. Returns the frequency as percentages. To return just the
-        count, set to False
-    :type freq_as_percentage: bool
+    :param freq_as_percentage:  Optional, True by default. Returns the frequency as percentages. To return just the
+                                count, set to False
+    :type freq_as_percentage:   bool
     :param seasonal_adjustment: Optional, False by default. If True, returns the frequency distribution seasonal
                                 adjusted
-    :type seasonal_adjustment: bool
-    :param plot_bins: Bins to use for gradient in the rose. Different bins will be plotted with different
-        color. Chooses six bins to plot by default '0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s' and
-        '15+ m/s'. If you change var_bin_array this should be changed in accordance with it.
-    :type plot_bins: list
-    :param plot_labels: (Optional) Labels to use for different colors in the rose. By default chooses the end points of
-        bin
-    :type plot_labels: list(str), list(float)
-    :param return_data:  Set to True if you want to return the frequency table too.
-    :type return_data: bool
-    :returns: A wind rose plot with gradients in the rose. Also returns a frequency table if return_data is True
-    :rtype: plot or tuple(plot, pandas.DataFrame)
+    :type seasonal_adjustment:  bool
+    :param coverage_thresh:     Monthly coverage threshold applied only if seasonal_adjustment is True. If threshold
+                                is different than 0 then data for the months with coverage lower than this threshold are
+                                not considered for deriving the frequency table. Default value is 0.8.
+    :type coverage_thresh:      int or float
+    :param plot_bins:           Bins to use for gradient in the rose. Different bins will be plotted with different
+                                color. Chooses six bins to plot by default '0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s',
+                                '13-15 m/s' and '15+ m/s'. If you change var_bin_array this should be changed in
+                                accordance with it.
+    :type plot_bins:            list
+    :param plot_labels:         (Optional) Labels to use for different colors in the rose. By default chooses
+                                the end points of bin
+    :type plot_labels:          list(str), list(float)
+    :param return_data:         Set to True if you want to return the frequency table too.
+    :type return_data:          bool
+    :returns:                   A wind rose plot with gradients in the rose. Also returns a frequency table if
+                                return_data is True
+    :rtype:                     plot or tuple(plot, pandas.DataFrame)
 
     **Example usage**
     ::
@@ -719,18 +787,30 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         agg_method = '%frequency'
     else:
         agg_method = 'count'
-    result = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_series,
-                                            direction_series=direction_series, var_bin_array=var_bin_array,
-                                            sectors=sectors, direction_bin_array=direction_bin_array,
-                                            direction_bin_labels=None, aggregation_method=agg_method).replace(np.nan,
-                                                                                                              0.0)
+
+    if seasonal_adjustment:
+        result = _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series=var_series,
+                                                                  var_to_bin_series=var_series,
+                                                                  direction_series=direction_series,
+                                                                  var_bin_array=var_bin_array,
+                                                                  coverage_thresh=coverage_thresh,
+                                                                  sectors=sectors,
+                                                                  direction_bin_array=direction_bin_array,
+                                                                  direction_bin_labels=None,
+                                                                  aggregation_method=agg_method
+                                                                  ).replace(np.nan, 0.0)
+    else:
+        result = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_series,
+                                                direction_series=direction_series, var_bin_array=var_bin_array,
+                                                sectors=sectors, direction_bin_array=direction_bin_array,
+                                                direction_bin_labels=None, aggregation_method=agg_method
+                                                ).replace(np.nan, 0.0)
     if plot_bins is None:
         plot_bins = [0, 3, 6, 9, 12, 15, 41]
         if plot_labels is None:
             plot_labels = ['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s']
         else:
             if len(plot_labels) + 1 != len(plot_bins):
-                import warnings
                 warnings.warn("Number of plot_labels is not equal to number of plot_bins. Using default plot_labels")
     # Creating a graph before renaming the direction labels, to help identify sectors while plotting
     graph = plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
