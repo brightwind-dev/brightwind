@@ -19,8 +19,8 @@ is not equal to the derived temporal resolution.
 5. Added subplotting functionality to `sector_ratio` and improved user control of plotting (Issue #[309](https://github.com/brightwind-dev/brightwind/issues/309))
 6. Allow `dist()` function to take a pd.DataFrame so user can plot multiple distributions on the same plot. (Issue #[264](https://github.com/brightwind-dev/brightwind/issues/264))
    1. As part of this added subplotting functionality for bar plots
-7. Allow 'freq_table()' function to derive a seasonal adjusted frequency distribution if user sets 'seasonal_adjustment' input to true. (Issue # [334] (https://github.com/brightwind-dev/brightwind/issues/334))
-   1. As part of this added option for the user to give as input the monthly coverage treshold to apply for deriving the seasonal adjusted frequency distribution 
+7. Allow 'freq_table()' function to derive a seasonal adjusted frequency distribution if user sets 'seasonal_adjustment' input to true. (Issue # [334](https://github.com/brightwind-dev/brightwind/issues/334))
+   1. As part of this added option for the user to give as input the monthly coverage threshold to apply for deriving the seasonal adjusted frequency distribution 
 
 ## [2.0.0]
 - Major changes, notably
