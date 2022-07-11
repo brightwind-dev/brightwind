@@ -1220,7 +1220,7 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
                                 boom orientations can be accepted. If multiple orientations, number of orientations must
                                 equal number of wspd_2 timeseries.
     :type boom_dir_2:           float or list[float]
-    :param return_data:         Set to True to return the data.
+    :param return_data:         Set to True to return the averaged ratio by sector data.
     :type return_data:          bool
     :param radial_limits:       Max and min limits of the plot radius. Defaults to +0.05 of max ratio and -0.1 of min.
     :type radial_limits:        tuple[float] or list[float]
@@ -1321,6 +1321,7 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     wdir_dict = {}
 
     for sensor_pair in keys:
+        print(sensor_pair)
         wspd_1 = _convert_df_to_series(ws_1.iloc[:, sensor_pair]).dropna()
         wspd_2 = _convert_df_to_series(ws_2.iloc[:, sensor_pair]).dropna()
 
