@@ -1220,7 +1220,8 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
                                 boom orientations can be accepted. If multiple orientations, number of orientations must
                                 equal number of wspd_2 timeseries.
     :type boom_dir_2:           float or list[float]
-    :param return_data:         Set to True to return the averaged ratio by sector data.
+    :param return_data:         Set to True to return the averaged ratio by sector data. The data will be in a
+                                pd.DataFrame where the columns are in the same order as the pairs of wind speeds sent.
     :type return_data:          bool
     :param radial_limits:       Max and min limits of the plot radius. Defaults to +0.05 of max ratio and -0.1 of min.
     :type radial_limits:        tuple[float] or list[float]
@@ -1350,13 +1351,10 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
                                 annotate=annotate, figure_size=figure_size)
 
     if return_data:
-        if len(sec_rats_dists) == 1:
-            return fig, sec_rats_dists[0]
-        else:
-            sec_rats_df = pd.DataFrame(index=sec_rats_dists[0].index)
-            for key in sec_rats_dists:
-                sec_rats_df[key] = sec_rats_dists[key]
-            return fig, sec_rats_df
+        sec_rats_df = pd.DataFrame(index=sec_rats_dists[0].index)
+        for key in sec_rats_dists:
+            sec_rats_df[key] = sec_rats_dists[key]
+        return fig, sec_rats_df
     return fig
 
 
