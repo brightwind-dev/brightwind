@@ -1321,7 +1321,6 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     wdir_dict = {}
 
     for sensor_pair in keys:
-        print(sensor_pair)
         wspd_1 = _convert_df_to_series(ws_1.iloc[:, sensor_pair]).dropna()
         wspd_2 = _convert_df_to_series(ws_2.iloc[:, sensor_pair]).dropna()
 
