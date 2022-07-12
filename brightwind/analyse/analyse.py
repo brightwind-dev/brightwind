@@ -1354,7 +1354,10 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
         if len(sec_rats_dists) == 1:
             return fig, sec_rats_dists[0]
         else:
-            return fig, sec_rats_dists
+            sec_rats_df = pd.DataFrame(index=sec_rats_dists[0].index)
+            for key in sec_rats_dists:
+                sec_rats_df[key] = sec_rats_dists[key]
+            return fig, sec_rats_df
     return fig
 
 
