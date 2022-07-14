@@ -24,7 +24,8 @@ __all__ = ['plot_timeseries',
            'plot_scatter',
            'plot_scatter_wspd',
            'plot_scatter_wdir',
-           'plot_scatter_by_sector']
+           'plot_scatter_by_sector',
+           'plot_sector_ratio']
 #
 # try:
 #     if 'Gotham Rounded' in \
@@ -1351,42 +1352,216 @@ def plot_12x24_contours(tab_12x24, label=('Variable', 'mean'), plot=None):
     return ax.get_figure()
 
 
-def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1):
+def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1,
+                      radial_limits=None, annotate=True, figure_size=(10, 10)):
     """
-    Accepts a DataFrame table, along with 2 anemometer names, and one wind vane name and plots the speed ratio
-    by sector. Optionally can include anemometer boom directions also.
-    :param sec_ratio: Series of sector_ratios
-    :type sec_ratio: pandas.Series
-    :param wdir: Direction series
-    :type wdir: pandas.Series
-    :param sec_ratio_dist: DataFrame from SectorRatio.by_sector()
-    :type sec_ratio_dist; pandas.Series
-    :param boom_dir_1: Boom direction in degrees of speed_col_name_1. Defaults to -1.
-    :type boom_dir_1: float
-    :param boom_dir_2: Boom direction in degrees of speed_col_name_2. Defaults to -1.
-    :type boom_dir_2: float
-    :param col_names: A list of strings containing column names of wind speeds, first string is divisor and second is
-        dividend
-    :type col_names: list(str)
-    :returns A speed ratio plot showing average speed ratio by sector and scatter of individual data points.
+    Accepts a DataFrame table or a dictionary with multiple ratio of anemometer pairs per sector, a wind direction,
+    multiple distributions of anemometer ratio pairs per sector, along with 2 anemometer names,
+    and plots the speed ratio by sector. Optionally can include anemometer boom directions also.
+
+    :param sec_ratio:         Ratio of wind speed timeseries. One or more ratio timeseries can be input as a dict.
+    :type sec_ratio:          pandas.Series or dict
+    :param wdir:              Direction series. If multiple direction series entered in dict format, number of series
+                              must equal number of sector ratios. The first direction series is references the first
+                              sector ratio and so on.
+    :type wdir:               pandas.Series or dict
+    :param sec_ratio_dist:    DataFrames from SectorRatio.by_sector()
+    :type sec_ratio_dist:     pandas.Series or dict
+    :param col_names:         A list of strings containing column names of wind speeds, first string is divisor and
+                              second is dividend.
+    :type col_names:          list[float]
+    :param boom_dir_1:        Boom orientation in degrees of speed_col_name_1. Defaults to -1. One or more boom
+                              orientations can be accepted. If multiple orientations, number of orientations must equal
+                              number of anemometer pairs.
+    :type boom_dir_1:         float or list[float]
+    :param boom_dir_2:        Boom orientation in degrees of speed_col_name_2. Defaults to -1. One or more boom
+                              orientations can be accepted. If multiple orientations, number of orientations must equal
+                              number of anemometer pairs.
+    :type boom_dir_2:         float or list[float]
+    :param radial_limits:     the min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
+    :type radial_limits:      tuple[float] or list[float]
+    :param annotate:          Set to True to show annotations on plot. If False then the annotation at the bottom of
+                              the plot and the radial labels indicating the sectors are not shown.
+    :type annotate:           bool
+    :type annotate:           bool
+    :param figure_size:       Figure size in tuple format (width, height)
+    :type figure_size:        tuple[int]
+    :returns:                 A speed ratio plot showing average speed ratio by sector and scatter of individual data
+                              points.
+
+    **Example usage**
+    ::
+
+    import brightwind as bw
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+
+    wspd1, wspd2 = data['Spd80mN'], data['Spd80mS']
+    wdir = data['Dir78mS']
+
+    # calculate the ratio between wind speeds
+    min_spd = 3
+    sec_rat = bw.analyse.analyse._calc_ratio(wspd1, wspd2, min_spd)
+
+    # calculate mean wind speed ratio per sector
+    sec_rat_plot, sec_rat_dist = bw.dist_by_dir_sector(sec_rat, wdir, aggregation_method='mean', return_data=True)
+    sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
+
+    # find the common indices between wind speed and wind direction
+    common_idx   = sec_rat.index.intersection(wdir.index)
+
+    # plot the sector ratio
+    bw.plot_sector_ratio(sec_rat, wdir, sec_rat_dist, [wspd1.name, wspd2.name])
+
+    # plot the sector ratio with boom orientations, radial limits, and larger figure size
+    bw.plot_sector_ratio(sec_rat, wdir, sec_rat_dist, [wspd1.name, wspd2.name],
+                         boom_dir_1=0, boom_dir_2=180, radial_limits=(0.8, 1.2), figure_size=(15, 15))
 
     """
+
+    if type(sec_ratio) == pd.core.series.Series:
+        sec_ratio = {0: sec_ratio}
+
+    if type(sec_ratio_dist) == pd.core.frame.DataFrame:
+        sec_ratio_dist = {0: sec_ratio_dist}
+
+    if type(col_names) is list:
+        col_names = {0: col_names}
+
+    wdir = pd.DataFrame(wdir)
+
+    if len(wdir.columns) != 1:
+        if len(wdir.columns) != len(sec_ratio):
+            raise ValueError('Number of anemometers does not match number of wind vanes. Please ensure there is one ' +
+                             'direction vane per anemometer pair or include one direction vane only to be used for ' +
+                             'all anemometer pairs.')
+
+    if type(boom_dir_1) is list:
+        if (len(boom_dir_1) != len(sec_ratio)) & (len(boom_dir_1) != 1):
+            raise ValueError('Number of boom orientations must be 1 or equal to number of ' +
+                             'anemometer pairs.')
+
+    if type(boom_dir_2) is list:
+        if (len(boom_dir_2) != len(sec_ratio)) & (len(boom_dir_2) != 1):
+            raise ValueError('Number of boom orientations must be 1 or equal to number of ' +
+                             'anemometer pairs.')
+
+    row, col = _get_best_row_col_number_for_subplot(len(sec_ratio))
+    fig, axes = plt.subplots(row, col, figsize=figure_size, subplot_kw={'projection': 'polar'})
+    font_size = min(figure_size)/row/col+2.5
+
+    if (len(sec_ratio)) > 1:
+        axes = axes.flatten()
+    else:
+        axes = [axes]
+
+    if type(boom_dir_1) is not list:
+        boom_dir_1 = [boom_dir_1] * len(sec_ratio)
+    elif len(boom_dir_1) == 1:
+        boom_dir_1 = boom_dir_1 * len(sec_ratio)
+
+    if type(boom_dir_2) is not list:
+        boom_dir_2 = [boom_dir_2] * len(sec_ratio)
+    elif len(boom_dir_2) == 1:
+        boom_dir_2 = boom_dir_2 * len(sec_ratio)
+
+    for pair, boom1, boom2 in zip(sec_ratio, boom_dir_1, boom_dir_2):
+        if len(wdir.columns) == 1:
+            wd = _convert_df_to_series(wdir).dropna()
+        else:
+            wd = _convert_df_to_series(wdir.iloc[:, pair]).dropna()
+
+        common_idx = sec_ratio[pair].index.intersection(wd.index)
+
+        _plot_sector_ratio_subplot(sec_ratio[pair].loc[common_idx], wd.loc[common_idx], sec_ratio_dist[pair],
+                                   col_names[pair], boom_dir_1=boom1, boom_dir_2=boom2,
+                                   radial_limits=radial_limits, annotate=annotate, font_size=font_size, ax=axes[pair])
+    plt.close()
+
+    return fig
+
+
+def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1, boom_dir_2=-1,
+                               radial_limits=None, annotate=True, font_size=10, ax=None):
+    """
+    Accepts a ratio of anemometers per sector, a wind direction, a distribution of anemometer ratios per sector,
+    along with 2 anemometer names, and returns an axis object to plot the speed ratio by sector. Optionally can
+    include anemometer boom directions also.
+
+    :param sec_ratio:         Series of wind speed timeseries.
+    :type sec_ratio:          pandas.Series
+    :param wdir:              Direction timeseries.
+    :type wdir:               pandas.Series
+    :param sec_ratio_dist:    DataFrame from SectorRatio.by_sector()
+    :type sec_ratio_dist:     pandas.Series
+    :param col_names:         A list of strings containing column names of wind speeds, first string is divisor and
+                              second is dividend.
+    :type col_names:          list[str]
+    :param boom_dir_1:        Boom orientation in degrees of speed_col_name_1. Defaults to -1, hidden from the plot.
+    :type boom_dir_1:         float
+    :param boom_dir_2:        Boom orientation in degrees of speed_col_name_2. Defaults to -1, hidden from the plot.
+    :type boom_dir_2:         float
+    :param radial_limits:     The min and max values of the radial axis. Defaults to +0.05 of max ratio and -0.1 of min.
+    :type radial_limits:      tuple[float] or list[float]
+    :param annotate:          Set to True to show annotations on plot.
+    :type annotate:           bool
+    :param font_size:         Size of font in plot annotation. Defaults to 10.
+    :type font_size:          int
+    :param ax:                Subplot axes to which the subplot is assigned. If None subplot is displayed on its own.
+    :type ax:                 matplotlib.axes._subplots.AxesSubplot or None
+    :returns:                 A speed ratio plot showing average speed ratio by sector and scatter of individual
+                              data points.
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+
+        wspd1, wspd2 = data['Spd80mN'], data['Spd80mS']
+        wdir = data['Dir78mS']
+
+        # calculate the ratio between wind speeds
+        min_spd = 3
+        sec_rat = bw.analyse.analyse._calc_ratio(wspd1, wspd2, min_spd)
+
+        # calculate mean wind speed ratio per sector
+        sec_rat_plot, sec_rat_dist = bw.dist_by_dir_sector(sec_rat, wdir, aggregation_method='mean', return_data=True)
+        sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
+
+        # find the common indices between wind speed and wind direction
+        common_idx   = sec_rat.index.intersection(wdir.index)
+
+        # plot the sector ratio
+        bw.analyse.plot._plot_sector_ratio_subplot(sec_rat.loc[common_idx], wdir.loc[common_idx], sec_rat_dist,
+                                                   [wspd1.name, wspd2.name])
+
+        # plot the sector ratio with booms, radial limits, no annotation, and larger font size
+        bw.analyse.plot._plot_sector_ratio_subplot(sec_rat.loc[common_idx], wdir.loc[common_idx], sec_rat_dist,
+                                                   [wspd1.name, wspd2.name], boom_dir_1=0, boom_dir_2=180,
+                                                   radial_limits=(0.8, 1.2), annotate=False, font_size=20)
+
+    """
+
+    if ax is None:
+        ax = plt.gca(polar=True)
+
+    if radial_limits is None:
+        max_level = sec_ratio_dist['Mean_Sector_Ratio'].max() + 0.05
+        min_level = sec_ratio_dist['Mean_Sector_Ratio'].min() - 0.1
+    else:
+        max_level = max(radial_limits)
+        min_level = min(radial_limits)
+    ax.set_ylim(min_level, max_level)
+
     radians = np.radians(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
-    fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
     ax.plot(np.append(radians, radians[0]), sec_ratio_dist['Mean_Sector_Ratio'].append(sec_ratio_dist.iloc[0]),
             color=COLOR_PALETTE.primary, linewidth=4)
-    # Get max and min levels and set chart axes
-    max_level = sec_ratio_dist['Mean_Sector_Ratio'].max() + 0.05
-    min_level = sec_ratio_dist['Mean_Sector_Ratio'].min() - 0.1
-    ax.set_ylim(min_level, max_level)
+
     # Add boom dimensions to chart, if required
     width = np.pi / 108
     radii = max_level
-    annotate = False
     annotation_text = '* Plot generated using '
     if boom_dir_1 >= 0:
         boom_dir_1_rad = np.radians(boom_dir_1)
@@ -1394,23 +1569,27 @@ def plot_sector_ratio(sec_ratio, wdir, sec_ratio_dist, col_names, boom_dir_1=-1,
         if boom_dir_2 == -1:
             annotation_text += '{} (top mounted) divided by {} ({}° boom)'.format(col_names[1], col_names[0],
                                                                                   boom_dir_1)
-            annotate = True
     if boom_dir_2 >= 0:
         boom_dir_2_rad = np.radians(boom_dir_2)
         ax.bar(boom_dir_2_rad, radii, width=width, bottom=min_level, color=COLOR_PALETTE.fifth)
         if boom_dir_1 == -1:
             annotation_text += '{} ({}° boom) divided by {} (top mounted)'.format(col_names[1], boom_dir_2,
                                                                                   col_names[0])
-            annotate = True
     if boom_dir_2 >= 0 and boom_dir_1 >= 0:
         annotation_text += '{} ({}° boom) divided by {} ({}° boom)'.format(col_names[1], boom_dir_2,
                                                                            col_names[0], boom_dir_1)
-        annotate = True
+    if boom_dir_1 == -1 and boom_dir_2 == -1:
+        annotation_text += '{} divided by {}'.format(col_names[1], col_names[0])
     if annotate:
-        ax.annotate(annotation_text, xy=(0.5, 0.035), xycoords='figure fraction', horizontalalignment='center')
+        ax.set_title(annotation_text, y=0.004*(font_size-2.5)-0.15)
+    else:
+        ax.axes.xaxis.set_ticklabels([])
     ax.scatter(np.radians(wdir), sec_ratio, color=COLOR_PALETTE.secondary, alpha=0.3, s=1)
-    plt.close()
-    return ax.get_figure()
+
+    for item in ([ax.title] + ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(font_size)
+
+    return ax
 
 
 def plot_power_law(avg_alpha, avg_c, wspds, heights, max_plot_height=None, avg_slope=None, avg_intercept=None,

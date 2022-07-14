@@ -4,7 +4,6 @@ from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as plt
 from brightwind.utils.utils import _convert_df_to_series
-import matplotlib
 
 __all__ = ['monthly_means',
            'momm',
@@ -1188,35 +1187,52 @@ def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
 
 
 def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_array=None, boom_dir_1=-1,
-                 boom_dir_2=-1, return_data=False):
+                 boom_dir_2=-1, return_data=False, radial_limits=None, annotate=True, figure_size=(10, 10)):
     """
     Calculates the wind speed ratio of two wind speed time series and plots this ratio, averaged by direction sector,
     in a polar plot using a wind direction time series. The averaged ratio by sector can be optionally returned
-    in a pd.DataFrame.
-    
-    If boom directions are specified, these will be overlaid on the plot. A boom direction of '-1' assumes top
-    mounted and so doesn't plot.
+    in a pd.DataFrame. If provided with multiple time series, multiple subplots will be produced.
 
-    :param wspd_1: First wind speed time series. This is divisor.
-    :type: wspd_1: pandas.Series
-    :param wspd_2: Second wind speed time series, dividend.
-    :type: wspd_2: pandas.Series
-    :param wdir: Series of wind directions
-    :type wdir: pandas.Series
-    :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
-    :type sectors: int
-    :param min_wspd: Minimum wind speed to be used.
-    :type: min_wpd: float
+    If boom directions are specified, these will be overlaid on the plot. A boom direction of '-1' assumes top
+    mounted and is not plotted.
+
+    :param wspd_1:              One or more wind speed timeseries. These will act as the divisor wind speeds.
+    :type: wspd_1:              pandas.Series or pandas.DataFrame
+    :param wspd_2:              One or more wind speed timeseries. These will act as the dividend wind speeds. The
+                                amount of timeseries must be consistent between wspd_1 and wspd_2. If multiple
+                                timeseries are input, the first timeseries from wspd_1 will divide the first in wspd_2
+                                and so on.
+    :type: wspd_2:              pandas.Series or pandas.DataFrame
+    :param wdir:                Time series of wind directions. One or more can be accepted. If multiple direction
+                                timeseries are input, order will be preserved in conjunction with wspd_1 and wspd_2.
+    :type wdir:                 pandas.Series or pandas.DataFrame
+    :param sectors:             Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
+    :type sectors:              int
+    :param min_wspd:            Minimum wind speed to be used.
+    :type: min_wpd:             float
     :param direction_bin_array: (Optional) Array of numbers where adjacent elements of array form a bin. This
-                                 overwrites the sectors.
-    :param boom_dir_1: Boom direction in degrees of wspd_1. If top mounted leave default as -1.
-    :type boom_dir_1: float
-    :param boom_dir_2: Boom direction in degrees of wspd_2. If top mounted leave default as -1.
-    :type boom_dir_2: float
-    :param return_data:  Set to True if you want the data returned.
-    :type return_data: bool
-    :returns: A wind speed ratio plot showing the average ratio by sector and scatter of individual data points.
-    :rtype: plot, pandas.DataFrame
+                                overwrites the sectors.
+    :param boom_dir_1:          Boom orientation in degrees of wspd_1. If top mounted leave default as -1. One or more
+                                boom orientations can be accepted. If multiple orientations, number of orientations must
+                                equal number of wspd_1 timeseries.
+    :type boom_dir_1:           float or list[float]
+    :param boom_dir_2:          Boom orientation in degrees of wspd_2. If top mounted leave default as -1. One or more
+                                boom orientations can be accepted. If multiple orientations, number of orientations must
+                                equal number of wspd_2 timeseries.
+    :type boom_dir_2:           float or list[float]
+    :param return_data:         Set to True to return the averaged ratio by sector data. The data will be in a
+                                pd.DataFrame where the columns are in the same order as the pairs of wind speeds sent.
+    :type return_data:          bool
+    :param radial_limits:       Max and min limits of the plot radius. Defaults to +0.05 of max ratio and -0.1 of min.
+    :type radial_limits:        tuple[float] or list[float]
+    :param annotate:            Set to True to show annotations on plot. If False then the annotation at the bottom of
+                                the plot and the radial labels indicating the sectors are not shown.
+    :type annotate:             bool
+    :param figure_size:         Figure size in tuple format (width, height)
+    :type figure_size:          tuple[int]
+    :returns:                   A wind speed ratio plot showing the average ratio by sector and scatter of individual
+                                data points.
+    :rtype:                     plot, pandas.DataFrame
 
     **Example usage**
     ::
@@ -1236,25 +1252,110 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
         bw.sector_ratio(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS,
                         direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=0, boom_dir_2=180)
 
-    """
-    wspd_1 = _convert_df_to_series(wspd_1).dropna()
-    wspd_2 = _convert_df_to_series(wspd_2).dropna()
-    wdir = _convert_df_to_series(wdir).dropna()
+        #To change the radius limits of plot and the figure size
+        bw.sector_ratio(data.Spd80mN, data.Spd80mS, wdir=data.Dir78mS, radial_limits=(0.8, 1.2), figure_size=(10, 10))
 
-    sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
-    common_idxs = sec_rat.index.intersection(wdir.index)
-    sec_rat_plot, sec_rat_dist = dist_by_dir_sector(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sectors=sectors,
-                                                    aggregation_method='mean', direction_bin_array=direction_bin_array,
-                                                    direction_bin_labels=None,return_data=True)
-    matplotlib.pyplot.close()
-    sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
+        #To create subplots with different anemometers
+        bw.sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'],
+                        boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25))
+
+        #To use different wind vanes with each anemometer pair
+        bw.sector_ratio(data[['Spd80mN', 'Spd60mN', 'Spd40mN']], data[['Spd80mS', 'Spd60mS', 'Spd40mS']],
+                        data[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25))
+
+        # To return the data of multiple sector ratio plots
+        bw.sector_ratio(data[['Spd80mN', 'Spd60mN', 'Spd40mN']], data[['Spd80mS', 'Spd60mS', 'Spd40mS']],
+                     data[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25),
+                     return_data=True)
+
+        # To return the data only of one sector ratio plot
+        fig, num = bw.sector_ratio(data['Spd80mN'], data['Spd80mS'], data['Dir78mS'], boom_dir_1=0, boom_dir_2=180,
+                                return_data=True)
+        num
+
+        # To have different boom orientations for each pair of speeds plotted in a different subplot
+        bw.sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'],
+                        boom_dir_1=[80, 90], boom_dir_2=[260, 270], figure_size=(25, 25))
+
+        # To have different boom orientations only for each wspd_2 plotted in a different subplot
+        bw.sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'], boom_dir_1=80,
+                     boom_dir_2=[260, 270], figure_size=(25, 25))
+
+        # To remove the text indicating the radial sectors and the annotation at the bottom of all subplots
+        bw.sector_ratio(data[['Spd80mN', 'Spd60mN']], data[['Spd80mS', 'Spd60mS']], data['Dir78mS'], boom_dir_1=80,
+                     boom_dir_2=[260, 270], annotate=False, figure_size=(25, 25))
+    """
+
+    ws_1 = pd.DataFrame(wspd_1)
+    ws_2 = pd.DataFrame(wspd_2)
+    wd = pd.DataFrame(wdir)
+
+    if len(ws_1.columns) != len(ws_2.columns):
+        raise ValueError('Number of anemometers is uneven. ' +
+                         'Please ensure same number of anemometers in wspd_1 and wspd_2.')
+
+    if (len(wd.columns) != 1) & (len(wd.columns) != len(ws_1.columns)):
+        raise ValueError('Number of anemometers does not match number of wind vanes. ' +
+                         'Please ensure there is one direction vane per anemometer pair or ' +
+                         'include one direction vane only to be used for all anemometer pairs.')
+    if len(wd.columns) != 1:
+        if len(wd.columns) != len(ws_1.columns):
+            raise ValueError('Number of anemometers does not match number of wind vanes. ' +
+                             'Please ensure there is one direction vane per anemometer pair or ' +
+                             'include one direction vane only to be used for all anemometer pairs.')
+
+    if type(boom_dir_1) is list:
+        if (len(boom_dir_1) != len(ws_1.columns)) & (len(boom_dir_1) != 1):
+            raise ValueError('Number of boom orientations must be 1 or equal to number of ' +
+                             'anemometer pairs.')
+
+    if type(boom_dir_2) is list:
+        if (len(boom_dir_2) != len(ws_1.columns)) & (len(boom_dir_2) != 1):
+            raise ValueError('Number of boom orientations must be 1 or equal to number of ' +
+                             'anemometer pairs.')
+
+    keys = range(len(ws_1.columns))
+    sec_rats = {}
+    sec_rats_dists = {}
+    col_names = {}
+
+    wdir_dict = {}
+
+    for sensor_pair in keys:
+        wspd_1 = _convert_df_to_series(ws_1.iloc[:, sensor_pair]).dropna()
+        wspd_2 = _convert_df_to_series(ws_2.iloc[:, sensor_pair]).dropna()
+
+        if len(wd.columns) == 1:
+            wdir = _convert_df_to_series(wd).dropna()
+            wdir_dict[0] = wd.iloc[:, 0]
+        else:
+            wdir = _convert_df_to_series(wd.iloc[:, sensor_pair]).dropna()
+            wdir_dict[sensor_pair] = wd.iloc[:, sensor_pair]
+
+        sec_rat = _calc_ratio(wspd_1, wspd_2, min_wspd)
+        sec_rats[sensor_pair] = sec_rat
+        col_names[sensor_pair] = [wspd_1.name, wspd_2.name]
+
+        common_idx = sec_rat.index.intersection(wdir.index)
+
+        sec_rat_plot, sec_rat_dist = dist_by_dir_sector(sec_rat.loc[common_idx], wdir.loc[common_idx], sectors=sectors,
+                                                        aggregation_method='mean',
+                                                        direction_bin_array=direction_bin_array,
+                                                        direction_bin_labels=None, return_data=True)
+
+        sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
+        sec_rats_dists[sensor_pair] = sec_rat_dist
+
+    fig = plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir_dict, sec_ratio_dist=sec_rats_dists, col_names=col_names,
+                                boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2, radial_limits=radial_limits,
+                                annotate=annotate, figure_size=figure_size)
+
     if return_data:
-        return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs],
-                                     sec_rat_dist, [wspd_1.name, wspd_2.name],
-                                     boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2), sec_rat_dist
-    return plt.plot_sector_ratio(sec_rat.loc[common_idxs], wdir.loc[common_idxs], sec_rat_dist,
-                                 [wspd_1.name, wspd_2.name],
-                                 boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2)
+        sec_rats_df = pd.DataFrame(index=sec_rats_dists[0].index)
+        for key in sec_rats_dists:
+            sec_rats_df[key] = sec_rats_dists[key]
+        return fig, sec_rats_df
+    return fig
 
 
 def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=None, lapse_rate=-0.113,

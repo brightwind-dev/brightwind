@@ -19,6 +19,7 @@ is not equal to the derived temporal resolution.
 5. Added subplotting functionality to `sector_ratio` and improved user control of plotting (Issue #[309](https://github.com/brightwind-dev/brightwind/issues/309))
 6. Allow `dist()` function to take a pd.DataFrame so user can plot multiple distributions on the same plot. (Issue #[264](https://github.com/brightwind-dev/brightwind/issues/264))
    1. As part of this added subplotting functionality for bar plots
+7. Added subplotting functionality to `sector_ratio` and improved user control of plotting (Issue #[309](https://github.com/brightwind-dev/brightwind/issues/309)).
 
 
 ## [2.0.0]

@@ -35,6 +35,23 @@ def test_sector_ratio():
     bw.sector_ratio(DATA[['Spd40mN']], DATA.Spd60mN, wdir=DATA[['Dir38mS']])
     bw.sector_ratio(DATA.Spd40mN, DATA.Spd60mN, wdir=DATA.Dir38mS,
                     direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=160, boom_dir_2=340)
+    bw.sector_ratio(DATA.Spd80mN, DATA.Spd80mS, wdir=DATA.Dir78mS, radial_limits=(0.8, 1.2),
+                    figure_size=(10,10))
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN']], DATA[['Spd80mS', 'Spd60mS']],
+                    DATA['Dir78mS'], boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25))
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']], DATA[['Spd80mS', 'Spd60mS', 'Spd40mS']],
+                    DATA[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180,
+                    figure_size=(25,25))
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']], DATA[['Spd80mS', 'Spd60mS', 'Spd40mS']],
+                 DATA[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25),
+                 return_data=True)
+    bw.sector_ratio(DATA['Spd80mN'], DATA['Spd80mS'], DATA['Dir78mS'], boom_dir_1=0, boom_dir_2=180, return_data=True)
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN']], DATA[['Spd80mS', 'Spd60mS']],
+                    DATA[['Dir78mS', 'Dir58mS']], boom_dir_1=[0, 350], boom_dir_2=[180, 170], figure_size=(25, 25))
+    bw.sector_ratio(DATA['Spd80mN'], DATA['Spd80mS'], DATA['Dir78mS'], sectors=72, boom_dir_1=0,
+                    boom_dir_2=180, annotate=False)
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN', 'Spd60mN']], DATA[['Spd80mS', 'Spd60mS', 'Spd60mS']], DATA['Dir78mS'],
+                    annotate=False, figure_size=(25, 25), boom_dir_1=0, boom_dir_2=180)
     assert True
 
 
@@ -262,3 +279,4 @@ def test_dist_matrix_by_direction_sector():
     bw.dist_matrix_by_dir_sector(DATA.Spd40mN, DATA.T2m, DATA.Dir38mS,
                                  var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
+
