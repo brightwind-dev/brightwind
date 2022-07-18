@@ -13,3 +13,4 @@ gmaps           >= 0.9.0
 boto3           >= 1.9.66
 colormap        >= 1.0.1
 easydev         >= 0.10.0
+pvlib           >= 0.9.1

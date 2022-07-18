@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import pvlib
 from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as plt
@@ -21,7 +22,8 @@ __all__ = ['monthly_means',
            'basic_stats',
            'TI',
            'sector_ratio',
-           'calc_air_density']
+           'calc_air_density',
+           'derive_daytime_logic']
 
 
 def dist_matrix(var_series, x_series, y_series,
@@ -1309,3 +1311,67 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         raise TypeError('elevation_ref should be a number')
     else:
         return ref_air_density
+
+
+def derive_daytime_logic(time_index, lat, lon, timezone='Etc/Greenwich'):
+    """
+    Calculates if it is daytime (sun above horizon) for each timestamp in a pandas DatetimeIndex,
+    at a specified location.
+
+    :param time_index:      DatetimeIndex.
+    :type time_index:       pandas.core.indexes.datetimes.DatetimeIndex
+    :param lat:             latitude of location. Must be between -90 and 90.
+    :type lat:              int or float
+    :param lon:             longitude of location. Must be between -180 and 180.
+    :type lon:              int or float
+    :param timezone:        target time zone, str or None. E.g. 'Etc/Greenwich'.
+                            Passing ``None`` will remove the time zone information preserving local time.
+                            For a list of all valid timezones import pytz and run pytz.all_timezones.
+    :type timezone:         str, None
+    :return daytime_logic:  Boolean Series, true if daytime for each timestamp
+    :rtype:                 pandas.core.series.Series
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        station = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
+
+        station_latitude = station[0]['latitude_ddeg']
+        station_longitude = station[0]['longitude_ddeg']
+
+        # For default time zone
+        daytime_logic = bw.calc_solar_position(data.index, station_latitude, station_longitude)
+        display(daytime_logic.head(10))
+
+        # For custom timezone
+        daytime_logic = bw.calc_solar_position(data.index, station_latitude, station_longitude, timezone='GMT')
+        display(daytime_logic.head(10))
+    """
+    # check inputs
+    if type(time_index) is not pd.core.indexes.datetimes.DatetimeIndex:
+        raise TypeError('Data must be of type DatetimeIndex.')
+
+    if (type(lat) is not int) & (type(lat) is not float):
+        raise TypeError('Latitude must be of type int or float.')
+    if (type(lon) is not int) & (type(lon) is not float):
+        raise TypeError('Longitude must be of type int or float.')
+    if (lat < -90) | (lat > 90):
+        raise ValueError('Latitude must be between -90 and 90 degrees.')
+    if (lon < -180) | (lon > 180):
+        raise ValueError('Longitude must be between -180 and 180 degrees.')
+
+    if (type(timezone) is not str) & (timezone is not None):
+        raise TypeError('Timezone must be of type str or None. '
+                        'For a list of all valid timezones import pytz and run pytz.all_timezones.')
+
+    # Localise the zone-naive datetime index to a target time zone.
+    times = time_index.tz_localize(tz=timezone)
+    # Get solar position
+    solpos = pvlib.solarposition.get_solarposition(times, lat, lon)
+    # Determine if daytime
+    daytime_logic = pd.Series(np.where(solpos['apparent_elevation'] >= 0, True, False), index=time_index, dtype='bool')
+
+    return daytime_logic
+
