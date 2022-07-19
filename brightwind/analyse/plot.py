@@ -1090,7 +1090,7 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
 
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-    _bar_subplot(data.replace([np.inf, -np.inf], np.NAN).dropna(), x_label=x_label,
+    _bar_subplot(data.replace([np.inf, -np.inf], np.NAN), x_label=x_label,
                  y_label=y_label, max_bar_axis_limit=max_y_value,
                  bin_tick_labels=x_tick_labels, bar_tick_label_format=bar_tick_label_format,
                  legend=legend, total_width=total_width, ax=ax)
