@@ -913,6 +913,11 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     if (line_width < 0) or (line_width > 5):
         raise ValueError('The line_width value should be between 0 and 5.')
 
+    if (bin_tick_labels is not None) and (bin_tick_labels != []):
+        if len(bin_tick_labels) != len(data.index):
+            raise ValueError('The length of the input bin_tick_labels list is different than the number '
+                             'of entries in the data index.')
+
     if min_bar_axis_limit is None:
         min_bar_axis_limit = 0
     if max_bar_axis_limit is None:
