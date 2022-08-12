@@ -433,7 +433,7 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
 
-    graph = plt.plot_freq_distribution(distributions.replace([np.inf, -np.inf], np.NAN).dropna(),
+    graph = plt.plot_freq_distribution(distributions.replace([np.inf, -np.inf], np.NAN),
                                        max_y_value=max_y_value,
                                        x_tick_labels=bin_labels, x_label=x_label, y_label=aggregation_method,
                                        legend=legend)
