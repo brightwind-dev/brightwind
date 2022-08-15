@@ -1068,7 +1068,7 @@ class Shear:
         idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H')
 
         # create new dataframe with 24 rows only interval number of unique values
-        df = pd.DataFrame(index=pd.DatetimeIndex(idx).time, columns=df_copy.columns)
+        df = pd.DataFrame({cols: [np.NaN] for cols in df_copy.columns}, index=pd.DatetimeIndex(idx).time)
         df = pd.concat(
             [(df[df_copy.index[0].hour:]), (df[:df_copy.index[0].hour])],
             axis=0)
