@@ -173,18 +173,18 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
     """
     Plot a timeseries of data.
 
-    :param data: Data in the form of a Pandas DataFrame/Series to plot.
-    :type data: pd.DataFrame, pd.Series
-    :param date_from: Start date used for plotting, if not specified the first timestamp of data is considered. Should
-        be in yyyy-mm-dd format
-    :type date_from: str
-    :param date_to: End date used for plotting, if not specified last timestamp of data is considered. Should
-        be in yyyy-mm-dd format
-    :type date_to: str
-    :param y_limits: y-axis min and max limits. Default is (None, None).
-    :type y_limits: tuple, None
-    :return: Timeseries plot
-    :rtype: matplotlib.figure.Figure
+    :param data:        Data in the form of a Pandas DataFrame/Series to plot.
+    :type data:         pd.DataFrame, pd.Series
+    :param date_from:   Start date used for plotting, if not specified the first timestamp of data is considered. Should
+                        be in yyyy-mm-dd format
+    :type date_from:    str
+    :param date_to:     End date used for plotting, if not specified last timestamp of data is considered. Should
+                        be in yyyy-mm-dd format
+    :type date_to:      str
+    :param y_limits:    y-axis min and max limits. Default is (None, None).
+    :type y_limits:     tuple, None
+    :return:            Timeseries plot
+    :rtype:             matplotlib.figure.Figure
 
     **Example usage**
     ::
