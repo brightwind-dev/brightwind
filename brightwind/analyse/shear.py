@@ -3,7 +3,7 @@ import numpy as np
 import datetime
 import calendar
 from math import e
-from brightwind.analyse import plot as plt
+from brightwind.analyse import plot as bw_plt
 # noinspection PyProtectedMember
 from brightwind.analyse.analyse import dist_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
 from ipywidgets import FloatProgress
@@ -304,8 +304,8 @@ class Shear:
 
                 if by_month is True:
                     alpha_df.columns = [calendar.month_abbr[month] for month in months_tot]
-                    self.plot = plt.plot_shear_time_of_day(Shear._fill_df_12x24(alpha_df), calc_method=calc_method,
-                                                           plot_type=plot_type)
+                    self.plot = bw_plt.plot_shear_time_of_day(Shear._fill_df_12x24(alpha_df), calc_method=calc_method,
+                                                              plot_type=plot_type)
 
                 else:
                     n_months = len(alpha_df.columns.values)
@@ -313,7 +313,7 @@ class Shear:
                     alpha_df.columns = [str(n_months) + ' Month Average']
                     df_in = pd.DataFrame((Shear._fill_df_12x24(alpha_df)).iloc[:, 0])
                     df_in.columns = [str(n_months) + ' Month Average']
-                    self.plot = plt.plot_shear_time_of_day(df_in, calc_method=calc_method, plot_type=plot_type)
+                    self.plot = bw_plt.plot_shear_time_of_day(df_in, calc_method=calc_method, plot_type=plot_type)
 
                 alpha_df.index.name = 'segment_start_time'
                 self._alpha = alpha_df
@@ -329,8 +329,8 @@ class Shear:
                 if by_month is True:
                     roughness_df.columns = slope_df.columns = intercept_df.columns = \
                                                                     [calendar.month_abbr[month] for month in months_tot]
-                    self.plot = plt.plot_shear_time_of_day(Shear._fill_df_12x24(roughness_df),
-                                                           calc_method=calc_method, plot_type=plot_type)
+                    self.plot = bw_plt.plot_shear_time_of_day(Shear._fill_df_12x24(roughness_df),
+                                                              calc_method=calc_method, plot_type=plot_type)
                 else:
                     n_months = len(slope_df.columns.values)
                     slope_df = pd.DataFrame(slope_df.mean(axis=1))
@@ -340,7 +340,7 @@ class Shear:
                                                                             [str(len(months_tot)) + '_month_average']
                     df_in = pd.DataFrame(Shear._fill_df_12x24(roughness_df).iloc[:, 0])
                     df_in.columns = [str(n_months) + ' Month Average']
-                    self.plot = plt.plot_shear_time_of_day(df_in, calc_method=calc_method, plot_type=plot_type)
+                    self.plot = bw_plt.plot_shear_time_of_day(df_in, calc_method=calc_method, plot_type=plot_type)
 
                 roughness_df.index.name = 'segment_start_time'
                 self._roughness = roughness_df
@@ -461,13 +461,13 @@ class Shear:
                 alpha, c = Shear._calc_power_law(mean_wspds.values, heights, return_coeff=True)
                 if plot_both is True:
                     slope, intercept = Shear._calc_log_law(mean_wspds.values, heights, return_coeff=True)
-                    self.plot = plt.plot_power_law(plot_both=True, avg_alpha=alpha, avg_c=c, avg_slope=slope,
-                                                   avg_intercept=intercept,
-                                                   wspds=mean_wspds.values, heights=heights,
-                                                   max_plot_height=max_plot_height)
+                    self.plot = bw_plt.plot_power_law(plot_both=True, avg_alpha=alpha, avg_c=c, avg_slope=slope,
+                                                      avg_intercept=intercept,
+                                                      wspds=mean_wspds.values, heights=heights,
+                                                      max_plot_height=max_plot_height)
                 else:
-                    self.plot = plt.plot_power_law(alpha, c, mean_wspds.values, heights,
-                                                   max_plot_height=max_plot_height)
+                    self.plot = bw_plt.plot_power_law(alpha, c, mean_wspds.values, heights,
+                                                      max_plot_height=max_plot_height)
                 self._alpha = alpha
 
             elif calc_method == 'log_law':
@@ -476,12 +476,12 @@ class Shear:
                 self._roughness = roughness
                 if plot_both is True:
                     alpha, c = Shear._calc_power_law(mean_wspds.values, heights, return_coeff=True)
-                    self.plot = plt.plot_power_law(avg_alpha=alpha, avg_c=c, avg_slope=slope, avg_intercept=intercept,
-                                                   wspds=mean_wspds.values, heights=heights,
-                                                   max_plot_height=max_plot_height)
+                    self.plot = bw_plt.plot_power_law(avg_alpha=alpha, avg_c=c, avg_slope=slope, avg_intercept=intercept,
+                                                      wspds=mean_wspds.values, heights=heights,
+                                                      max_plot_height=max_plot_height)
                 else:
-                    self.plot = plt.plot_log_law(slope, intercept, mean_wspds.values, heights,
-                                                 max_plot_height=max_plot_height)
+                    self.plot = bw_plt.plot_log_law(slope, intercept, mean_wspds.values, heights,
+                                                    max_plot_height=max_plot_height)
 
             else:
                 raise ValueError("Please enter a valid calculation method, either 'power_law' or 'log_law'.")
@@ -652,8 +652,8 @@ class Shear:
                 self.alpha_count = count_df
                 self._alpha = pd.Series(alpha, name='alpha')
                 clear_output()
-                self.plot = plt.plot_shear_by_sector(scale_variable=alpha, wind_rose_data=wind_rose_dist,
-                                                     calc_method=calc_method)
+                self.plot = bw_plt.plot_shear_by_sector(scale_variable=alpha, wind_rose_data=wind_rose_dist,
+                                                        calc_method=calc_method)
 
             elif calc_method == 'log_law':
 
@@ -665,8 +665,8 @@ class Shear:
                 self.roughness_count = count_df
                 self._roughness = pd.Series(roughness, name='roughness_coefficient')
                 clear_output()
-                self.plot = plt.plot_shear_by_sector(scale_variable=roughness, wind_rose_data=wind_rose_dist,
-                                                     calc_method=calc_method)
+                self.plot = bw_plt.plot_shear_by_sector(scale_variable=roughness, wind_rose_data=wind_rose_dist,
+                                                        calc_method=calc_method)
 
             else:
                 raise ValueError("Please enter a valid calculation method, either 'power_law' or 'log_law'.")
@@ -849,8 +849,8 @@ class Shear:
         tab_12x24 = dist_12x24(wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_power_law, heights=heights,
                                                                             axis=1), return_data=True)[1]
         if return_data:
-            return plt.plot_12x24_contours(tab_12x24, label=(var_name, 'mean')), tab_12x24
-        return plt.plot_12x24_contours(tab_12x24, label=(var_name, 'mean'))
+            return bw_plt.plot_12x24_contours(tab_12x24, label=(var_name, 'mean')), tab_12x24
+        return bw_plt.plot_12x24_contours(tab_12x24, label=(var_name, 'mean'))
 
     @staticmethod
     def scale(wspd,  height, shear_to, alpha=None, roughness=None, calc_method='power_law'):

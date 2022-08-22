@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from brightwind.transform import transform as tf
 from brightwind.utils import utils
-from brightwind.analyse import plot as plt
+from brightwind.analyse import plot as bw_plt
 from brightwind.utils.utils import _convert_df_to_series
 
 __all__ = ['monthly_means',
@@ -158,7 +158,7 @@ def dist_matrix(var_series, x_series, y_series,
     if y_bin_labels is None:
         y_bin_labels = [str(i) for i in distribution.index.values]
 
-    heatmap = plt.plot_dist_matrix(distribution, var_label, xticklabels=x_bin_labels, yticklabels=y_bin_labels)
+    heatmap = bw_plt.plot_dist_matrix(distribution, var_label, xticklabels=x_bin_labels, yticklabels=y_bin_labels)
 
     if return_data:
         return heatmap, distribution
@@ -222,10 +222,10 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
 
     df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True, data_resolution=data_resolution)
     if return_data and not return_coverage:
-        return plt.plot_monthly_means(df, ylbl=ylabel), df
+        return bw_plt.plot_monthly_means(df, ylbl=ylabel), df
     if return_coverage:
-        return plt.plot_monthly_means(df, covrg, ylbl=ylabel),  pd.concat([df, covrg], axis=1)
-    return plt.plot_monthly_means(df, ylbl=ylabel)
+        return bw_plt.plot_monthly_means(df, covrg, ylbl=ylabel),  pd.concat([df, covrg], axis=1)
+    return bw_plt.plot_monthly_means(df, ylbl=ylabel)
 
 
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
@@ -433,10 +433,10 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
 
-    graph = plt.plot_freq_distribution(distributions.replace([np.inf, -np.inf], np.NAN),
-                                       max_y_value=max_y_value,
-                                       x_tick_labels=bin_labels, x_label=x_label, y_label=aggregation_method,
-                                       legend=legend)
+    graph = bw_plt.plot_freq_distribution(distributions.replace([np.inf, -np.inf], np.NAN),
+                                          max_y_value=max_y_value,
+                                          x_tick_labels=bin_labels, x_label=x_label, y_label=aggregation_method,
+                                          legend=legend)
     if bin_labels is not None:
         distributions.index = bin_labels
     if return_data:
@@ -581,7 +581,7 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
         var_label = aggregation_method.capitalize() + ' of  var_series'
     else:
         var_label = aggregation_method.capitalize() + ' of ' + var_series.name
-    graph = plt.plot_rose(result, var_label)
+    graph = bw_plt.plot_rose(result, var_label)
     result.index = direction_bin_labels
     if return_data:
         return graph, result
@@ -714,8 +714,8 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
                                          codes=[[0 for i in range(len(dist_mat_dir.columns))],
                                                 list(range(len(dist_mat_dir.columns)))],
                                          names=[None, direction_series.name])
-    heatmap = plt.plot_dist_matrix(dist_mat_dir, var_label, xticklabels=direction_bin_labels,
-                                   yticklabels=var_to_bin_by_labels)
+    heatmap = bw_plt.plot_dist_matrix(dist_mat_dir, var_label, xticklabels=direction_bin_labels,
+                                      yticklabels=var_to_bin_by_labels)
 
     if return_data:
         return heatmap, dist_mat_dir
@@ -806,8 +806,8 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                 import warnings
                 warnings.warn("Number of plot_labels is not equal to number of plot_bins. Using default plot_labels")
     # Creating a graph before renaming the direction labels, to help identify sectors while plotting
-    graph = plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
-                                        percent_symbol=freq_as_percentage)
+    graph = bw_plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
+                                           percent_symbol=freq_as_percentage)
 
     if direction_bin_labels is not None:
         result.columns = direction_bin_labels
@@ -1032,9 +1032,9 @@ def dist_12x24(var_series, aggregation_method='mean', var_name_label=None, retur
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
     if return_data:
-        return plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method)),\
+        return bw_plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method)),\
                pvt_tbl
-    return plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method))
+    return bw_plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method))
 
 
 class TI:
@@ -1111,8 +1111,8 @@ class TI:
         ti_dist.index.rename('Speed Bin', inplace=True)
         # return ti_dist
         if return_data:
-            return plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class), ti_dist.dropna(how='any')
-        return plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class)
+            return bw_plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class), ti_dist.dropna(how='any')
+        return bw_plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class)
 
     @staticmethod
     def by_sector(wspd, wspd_std, wdir, min_speed=0, sectors=12, direction_bin_array=None,
@@ -1165,9 +1165,9 @@ class TI:
 
         ti_dist.index.rename('Direction Bin', inplace=True)
         if return_data:
-            return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist), ti_dist.dropna(how='all')
+            return bw_plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist), ti_dist.dropna(how='all')
         else:
-            return plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
+            return bw_plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
 
     @staticmethod
     def twelve_by_24(wspd, wspd_std, return_data=False, var_name_label='Turbulence Intensity'):
@@ -1346,9 +1346,9 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
         sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
         sec_rats_dists[sensor_pair] = sec_rat_dist
 
-    fig = plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir_dict, sec_ratio_dist=sec_rats_dists, col_names=col_names,
-                                boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2, radial_limits=radial_limits,
-                                annotate=annotate, figure_size=figure_size)
+    fig = bw_plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir_dict, sec_ratio_dist=sec_rats_dists, col_names=col_names,
+                                   boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2, radial_limits=radial_limits,
+                                   annotate=annotate, figure_size=figure_size)
 
     if return_data:
         sec_rats_df = pd.DataFrame(index=sec_rats_dists[0].index)
