@@ -169,7 +169,7 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
     return ax.get_figure()
 
 
-def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limits=None, x_tick_label_angle=0,
+def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limits=None, x_tick_label_angle=25,
                         line_marker_types=None, line_colors=COLOR_PALETTE.color_list, subplot_title=None,
                         legend=True, ax=None):
     """
@@ -189,7 +189,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     :param y_limits:                y-axis min and max limits. Default is None.
     :type y_limits:                 tuple, None
     :param x_tick_label_angle:      The angle to rotate the x-axis tick labels by.
-                                    Default is 0, i.e. the tick labels will be horizontal.
+                                    Default is 25, i.e. the tick labels will be horizontal.
     :type x_tick_label_angle:       float or int
     :param line_marker_types:       String or list of marker type(s) to use for the timeseries plot. Default is None.
                                     If only one marker type is provided then all timeseries will use the same marker,
@@ -313,7 +313,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
 
 def plot_timeseries(data, date_from='', date_to='', x_label=None, y_label=None, y_limits=None,
-                    x_tick_label_angle=0, line_colors=COLOR_PALETTE.color_list, legend=True, figure_size=(15, 8)):
+                    x_tick_label_angle=25, line_colors=COLOR_PALETTE.color_list, legend=True, figure_size=(15, 8)):
     """
     Plot a timeseries of data.
 
@@ -332,7 +332,7 @@ def plot_timeseries(data, date_from='', date_to='', x_label=None, y_label=None, 
     :param y_limits:                y-axis min and max limits. Default is None.
     :type y_limits:                 tuple, None
     :param x_tick_label_angle:      The angle to rotate the x-axis tick labels by.
-                                    Default is 0, i.e. the tick labels will be horizontal.
+                                    Default is 25, i.e. the tick labels will be horizontal.
     :type x_tick_label_angle:       float or int
     :param line_colors:             Line colors used for the timeseries plot. Colors input can be given as:
                                         1) Single str (https://matplotlib.org/stable/gallery/color/named_colors.html)
