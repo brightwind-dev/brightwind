@@ -7,14 +7,36 @@
  /_.___/_/  /_/\__, /_/ /_/\__/ |__/|__/_/_/ /_/\__,_/
               /____/
  ```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**A Python library for analysing wind resource timeseries data.**
+
 --------------
 
 <br>
 
-The brightwind python library aims to **empower wind resource analysts** and establish a common **industry standard toolset**.
+Brightwind can load in wind speed, wind direction and other metrological timeseries data. There are various plots you can use to understand this data and find any potential issues to filter out. You can perform many common functions to the data such as shear and long-term adjustments. The resulting adjusted data is then outputted as a frequency distribution tab file.
+
+This library isn't only for wind data, it is also used for solar resource data.
 
 <br>
 
+---
+### Installation
+
+The library can be installed by using pip from the command line (for those that have pip installed).
+
+<br>
+
+```
+C:\Users\Stephen> pip install brightwind
+```
+
+<br>
+
+For those that do not already have Python or pip, please follow this tutorial,
+[getting started on Windows](https://brightwind-dev.github.io/brightwind-docs/tutorials/getting_started_on_windows.html),
+to get set up.
+
+---
 ### Documentation
 
 Documentation on how to get setup and use the library can be found at https://brightwind-dev.github.io/brightwind-docs/
@@ -58,25 +80,6 @@ as the underlying code is open-sourced, there is no reason why this file cannot 
 
 ##### License
 The library is licensed under the MIT license.
-
-<br>
-
----
-### Installation
-
-The library can be installed by using pip install from the command line (for those that have pip installed).
-
-<br>
-
-```
-C:\Users\Stephen> pip install brightwind
-```
-
-<br>
-
-For those that do not already have Python or pip, please follow this tutorial,
-[getting started on Windows](https://brightwind-dev.github.io/brightwind-docs/tutorials/getting_started_on_windows.html),
-to get set up.
 
 <br>
 
