@@ -22,6 +22,7 @@ is not equal to the derived temporal resolution.
 7. Added subplotting functionality to `sector_ratio` and improved user control of plotting (Issue #[309](https://github.com/brightwind-dev/brightwind/issues/309)).
 8. Update to work with matplotlib 3.5.2 and bug fix for plot_freq_distribution and dist functions (Issue #[315](https://github.com/brightwind-dev/brightwind/issues/315)). 
 9. Update to work with numpy>=1.20.0 when pandas=0.25.3. (Issue #[344](https://github.com/brightwind-dev/brightwind/issues/344)). 
+10. Added `_timeseries_subplot`, updated `plot_timeseries` to use the subplot function and added some additional arguments. (Issue #[349](https://github.com/brightwind-dev/brightwind/issues/349)).
 
 
 ## [2.0.0]
