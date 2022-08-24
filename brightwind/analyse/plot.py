@@ -169,22 +169,185 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
     return ax.get_figure()
 
 
-def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
+def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limits=None, x_tick_label_angle=0,
+                        line_marker_types=None, line_colors=COLOR_PALETTE.color_list, subplot_title=None,
+                        legend=True, ax=None):
+    """
+    Plots a scatter subplot between the inputs x and y. The trendline_y data and the line of slope 1 passing through
+    the origin are also shown if provided as input of the function.
+
+    :param x:                       The x-axis values or reference variable.
+    :type x:                        pd.DataFrame, pd.Series or list np.array
+    :param y:                       The y-axis values or target variable.
+    :type y:                        pd.DataFrame, pd.Series or list or np.array
+    :param x_label:                 Label for the x axis. Default is None.
+    :type x_label:                  str or None
+    :param y_label:                 Label for the y axis. Default is None.
+    :type y_label:                  str or None
+    :param x_limits:                x-axis min and max limits. Default is None.
+    :type x_limits:                 tuple, None
+    :param y_limits:                y-axis min and max limits. Default is None.
+    :type y_limits:                 tuple, None
+    :param x_tick_label_angle:      The angle to rotate the x-axis tick labels by.
+                                    Default is 0, i.e. the tick labels will be horizontal.
+    :type x_tick_label_angle:       float or int
+    :param line_marker_types:       String or list of marker type(s) to use for the timeseries plot. Default is None.
+                                    If only one marker type is provided then all timeseries will use the same marker,
+                                    otherwise the number of marker types provided will need to be equal to the number
+                                    of columns in the y input. Marker type options are as for
+                                    https://matplotlib.org/stable/api/markers_api.html
+    :type line_marker_types:        list or str or None
+    :param line_colors:             Line colors used for the timeseries plot. Colors input can be given as:
+                                        1) Single str (https://matplotlib.org/stable/gallery/color/named_colors.html)
+                                           or Hex (https://www.w3schools.com/colors/colors_picker.asp) or tuple (Rgb):
+                                           all plotted timeseries will use the same color.
+                                        2) List of str or Hex or Rgb: the number of colors provided needs to be
+                                           at least equal to the number of columns in the y input.
+                                        3) None: the default matplotlib color list will be used for plotting.
+    :type line_colors:              str or list or tuple or None
+    :param subplot_title:           Title show on top of the subplot. Default is None.
+    :type subplot_title:            str or None
+    :param legend:                  Boolean to choose if legend is shown. Default is True.
+    :type legend:                   Bool
+    :param ax:                      Subplot axes to which assign the subplot to in a plot. If None then a single plot is
+                                    generated
+    :type ax:                       matplotlib.axes._subplots.AxesSubplot or None
+    :return:                        A timeseries subplot
+    :rtype:                         matplotlib.axes._subplots.AxesSubplot
+
+     **Example usage**
+    ::
+        import brightwind as bw
+        import matplotlib.pyplot as plt
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        wspd_cols = ['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd60mS', 'Spd40mN', 'Spd40mS']
+
+        # To plot only one subplot in a figure and set different marker types for each line
+        fig, axes = plt.subplots(1, 1)
+        bw.analyse.plot._timeseries_subplot(data.index, data[wspd_cols],
+                                            line_marker_types=['.', 'o', 'v', '^', '<', None], ax=axes)
+
+        # To plot multiple subplots in a figure without legend and with x and y labels and assigning subplot_title
+        fig, axes = plt.subplots(2, 1)
+        bw.analyse.plot._timeseries_subplot(data.index, data[wspd_cols], ax=axes[0], legend=False,
+                                         x_label=None, y_label='Spd80mS', subplot_title='Speed [m/s]')
+        bw.analyse.plot._timeseries_subplot(data.index, data.Dir78mS, ax=axes[1], legend=False,
+                                         x_label='Time', y_label='Dir78mS', subplot_title='Direction [deg]')
+
+        # To plot multiple timeseries with different x values/length in the same subplot,
+        # only for 1st timeseries set marker type and color different than default, set legend for all timeseries
+        fig, axes = plt.subplots(1, 1)
+        ts_plot = bw.analyse.plot._timeseries_subplot(data['2016-02-10':'2016-03-10'].index,
+                                                      data['2016-02-10':'2016-03-10'].Spd60mS, line_marker_types='.',
+                                                      line_colors=bw.analyse.plot.COLOR_PALETTE.tertiary, ax=axes)
+        ts_plot = bw.analyse.plot._timeseries_subplot(data.index, data[['Spd80mS','Spd60mN']], ax=axes)
+        ts_plot.axes.legend(['Spd60mS', 'Spd80mS','Spd60mN',])
+
+        # To set the x and y axis limits by using a tuple, set x_tick_label_angle to 45 deg and change x_ticks major
+        # label format to "W%W" and location to be weekly and the first day of the week (monday).
+        fig, axes = plt.subplots(1, 1)
+        sub_plot = bw.analyse.plot._timeseries_subplot(data.index, data.Dir58mS, x_label='Dir78mS', y_label='Dir58mS',
+                                               x_limits=(pd.datetime(2016,2,1),pd.datetime(2016,7,10)),
+                                               y_limits=(250,300), x_tick_label_angle=45, ax=axes)
+        sub_plot.axes.xaxis.set_major_locator(matplotlib.dates.WeekdayLocator(byweekday=0))
+        sub_plot.axes.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("W%W"))
+
+    """
+
+    if ax is None:
+        ax = plt.gca()
+
+    if type(y) is pd.Series:
+        y = pd.DataFrame(y)
+    elif type(y) is list:
+        y = pd.DataFrame(y, columns=['y'])
+    elif type(y) is dict:
+        y = pd.DataFrame.from_dict(y)
+
+    if len(x) != len(y):
+        ValueError("Length of x input is different than length of y input. Length of these must be the same.")
+
+    if type(line_marker_types) is list:
+        if len(y.columns) != len(line_marker_types):
+            ValueError("You have provided 'line_markers_type' input as a list but length is different than the number "
+                       "of columns provided for y input. Please make sure that length is the same.")
+    elif (type(line_marker_types) is str) or (line_marker_types is None):
+        line_marker_types = [line_marker_types] * len(y.columns)
+
+    if type(line_colors) is list:
+        if len(y.columns) > len(line_colors):
+            ValueError("You have provided 'line_colors' input as a list but length is smaller than the number "
+                       "of columns provided for y input. Please make sure that length is the same.")
+    else:
+        line_colors = [line_colors] * len(y.columns)
+
+    for i_col, (col, marker_type) in enumerate(zip(y.columns, line_marker_types)):
+        ax.plot(x, y[col], marker=marker_type, color=line_colors[i_col], label=col)
+
+    if x_limits is None:
+        if type(x) == pd.DatetimeIndex:
+            x_min = x.min()
+            x_max = x.max()
+        else:
+            x_min = np.min(x)
+            x_max = np.max(x)
+        x_limits = (x_min, x_max)
+    ax.set_xlim(x_limits[0], x_limits[1])
+
+    if y_limits is not None:
+        # y_limits = (y_min, y_max)
+        ax.set_ylim(y_limits[0], y_limits[1])
+
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+
+    ax.tick_params(axis="x", rotation=x_tick_label_angle)
+
+    if legend:
+        ax.legend()
+
+    if subplot_title is not None:
+        ax.set_title(subplot_title, fontsize=mpl.rcParams['axes.labelsize'])
+
+    return ax
+
+
+def plot_timeseries(data, date_from='', date_to='', x_label=None, y_label=None, y_limits=None,
+                    x_tick_label_angle=0, line_colors=COLOR_PALETTE.color_list, legend=True, figure_size=(15, 8)):
     """
     Plot a timeseries of data.
 
-    :param data:        Data in the form of a Pandas DataFrame/Series to plot.
-    :type data:         pd.DataFrame, pd.Series
-    :param date_from:   Start date used for plotting, if not specified the first timestamp of data is considered. Should
-                        be in yyyy-mm-dd format
-    :type date_from:    str
-    :param date_to:     End date used for plotting, if not specified last timestamp of data is considered. Should
-                        be in yyyy-mm-dd format
-    :type date_to:      str
-    :param y_limits:    y-axis min and max limits. Default is (None, None).
-    :type y_limits:     tuple, None
-    :return:            Timeseries plot
-    :rtype:             matplotlib.figure.Figure
+    :param data:                    Data in the form of a Pandas DataFrame/Series to plot.
+    :type data:                     pd.DataFrame, pd.Series
+    :param date_from:               Start date used for plotting, if not specified the first timestamp of data is
+                                    considered. Should be in yyyy-mm-dd format
+    :type date_from:                str
+    :param date_to:                 End date used for plotting, if not specified last timestamp of data is considered.
+                                    Should be in yyyy-mm-dd format
+    :type date_to:                  str
+    :param x_label:                 Label for the x-axis. Default is None.
+    :type x_label:                  str, None
+    :param y_label:                 Label for the y-axis. Default is None.
+    :type y_label:                  str, None
+    :param y_limits:                y-axis min and max limits. Default is None.
+    :type y_limits:                 tuple, None
+    :param x_tick_label_angle:      The angle to rotate the x-axis tick labels by.
+                                    Default is 0, i.e. the tick labels will be horizontal.
+    :type x_tick_label_angle:       float or int
+    :param line_colors:             Line colors used for the timeseries plot. Colors input can be given as:
+                                        1) Single str (https://matplotlib.org/stable/gallery/color/named_colors.html)
+                                           or Hex (https://www.w3schools.com/colors/colors_picker.asp) or tuple (Rgb):
+                                           all plotted timeseries will use the same color.
+                                        2) List of str or Hex or Rgb: the number of colors provided needs to be
+                                           at least equal to the number of columns in the y input.
+                                        3) None: the default matplotlib color list will be used for plotting.
+    :type line_colors:              str or list or tuple or None
+    :param legend:                  Boolean to choose if legend is shown. Default is True.
+    :type legend:                   Bool
+    :param figure_size:             Figure size in tuple format (width, height). Default is (15, 8).
+    :type figure_size:              tuple
+    :return:                        A timeseries plot
+    :rtype:                         matplotlib.figure.Figure
 
     **Example usage**
     ::
@@ -194,14 +357,14 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
         # To plot few variables
         bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']])
 
-        # To set a start date
-        bw.plot_timeseries(data.Spd40mN, date_from='2017-09-01')
+        # To set a start date, do not show legend, and set x and y labels
+        bw.plot_timeseries(data.Spd40mN, date_from='2017-09-01', x_label='Time', y_label='Spd40mN', legend=False)
 
         # To set an end date
         bw.plot_timeseries(data.Spd40mN, date_to='2017-10-01')
 
-        # For specifying a slice
-        bw.plot_timeseries(data.Spd40mN, date_from='2017-09-01', date_to='2017-10-01')
+        # For specifying a slice and set axis tilted by 25 deg
+        bw.plot_timeseries(data.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', x_tick_label_angle=25)
 
         # To set the y-axis minimum to 0
         bw.plot_timeseries(data.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=(0, None))
@@ -209,18 +372,22 @@ def plot_timeseries(data, date_from='', date_to='', y_limits=(None, None)):
         # To set the y-axis maximum to 25
         bw.plot_timeseries(data.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=(0, 25))
 
+        # To change line colors respect default and set figure size to (20, 4)
+        bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], line_colors= ['#009991', '#171a28',  '#726e83'],
+                           figure_size=(20, 4))
+
     """
-    plt.rcParams['figure.figsize'] = (15, 8)  # ** this might be setting the global size which isn't good practice ***
+    fig, axes = plt.subplots(figsize=figure_size)
     if isinstance(data, pd.Series):
         data_to_slice = data.copy(deep=False).to_frame()
     else:
         data_to_slice = data.copy()
     sliced_data = utils.slice_data(data_to_slice, date_from, date_to)
-    figure = sliced_data.plot(color=COLOR_PALETTE.color_list).get_figure()
-    if y_limits is not None:
-        figure.axes[0].set_ylim(y_limits)
+    _timeseries_subplot(sliced_data.index, sliced_data, x_label=x_label, y_label=y_label,
+                        y_limits=y_limits, x_tick_label_angle=x_tick_label_angle,
+                        line_colors=line_colors, legend=legend, ax=axes)
     plt.close()
-    return figure
+    return fig
 
 
 def _derive_axes_limits_for_scatter_plot(x, y):
