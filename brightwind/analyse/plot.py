@@ -282,7 +282,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         line_colors = [line_colors] * len(y.columns)
 
     for i_col, (col, marker_type) in enumerate(zip(y.columns, line_marker_types)):
-        ax.plot(x, y[col], marker=marker_type, color=line_colors[i_col], label=col)
+        ax.plot(x, y.iloc[:, i_col], marker=marker_type, color=line_colors[i_col], label=col)
 
     if x_limits is None:
         if type(x) == pd.DatetimeIndex:
