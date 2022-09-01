@@ -7,13 +7,15 @@
  /_.___/_/  /_/\__, /_/ /_/\__/ |__/|__/_/_/ /_/\__,_/
               /____/
  ```
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**A Python library for analysing wind resource timeseries data.**
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**A Python library for wind resource assessments.**
 
 --------------
 
 <br>
 
-Brightwind can load in wind speed, wind direction and other metrological timeseries data. There are various plots you can use to understand this data and find any potential issues to filter out. You can perform many common functions to the data such as shear and long-term adjustments. The resulting adjusted data is then outputted as a frequency distribution tab file.
+Brightwind can load in wind speed, wind direction and other metrological timeseries data. There are various plots you can 
+use to understand this data and to find any potential issues. You can perform many common functions to the data such as shear 
+and long-term adjustments. The resulting adjusted data is then outputted as a frequency distribution tab file.
 
 This library isn't only for wind data, it is also used for solar resource data.
 
@@ -22,19 +24,23 @@ This library isn't only for wind data, it is also used for solar resource data.
 ---
 ### Installation
 
-The library can be installed by using pip from the command line (for those that have pip installed).
-
-<br>
+You can use pip from the command line to install the library.
 
 ```
 C:\Users\Stephen> pip install brightwind
 ```
+It is advisable to use a separate environment to avoid any dependency clashes with other libraries such as Pandas, Numpy 
+or Matplotlib you may already have installed.
 
 <br>
 
-For those that do not already have Python or pip, please follow this tutorial,
-[getting started on Windows](https://brightwind-dev.github.io/brightwind-docs/tutorials/getting_started_on_windows.html),
-to get set up.
+For those that do not have Python installed and are just getting started, we recommend installing Anaconda. Anaconda is 
+a Python distribution for scientific computing and so provides everything you need, Python, pip and Jupyter Notebook 
+along with libraries such as Pandas, Numpy and Matplotlib. Datacamp provide a good tutorial for [installing 
+Anaconda on Windows](https://www.datacamp.com/tutorial/installing-anaconda-windows) to get started.
+
+Once Anaconda is installed, you can use the **Anaconda Prompt** to run `pip install brightwind`. Or first use **Anaconda 
+Navigator** to create an environment.
 
 ---
 ### Documentation
