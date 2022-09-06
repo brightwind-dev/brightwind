@@ -553,6 +553,16 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
     Calculates distribution matrix of a variable against another variable and wind direction applying a
     seasonal adjustment.
 
+    The seasonal adjusted frequency table is derived as for method below:
+        1) calculate monthly coverage
+        2) filter out any months with coverage lower than the input 'coverage_thresh'
+        3) derive frequency distribution for each calendar month (i.e. all January)
+        4) weighted average each monthly frequency distribution based on the number of days in each month
+           (i.e. 31 days for January) - number of days for February are derived as average of actual days for the year
+           of the dataset. This to take into account leap years.
+        5) Sum each weighted averaged monthly frequency distribution to get a total distribution as output of
+           the function ('result')
+
     :param var_series:          Series of variable whose distribution is calculated
     :type var_series:           pandas.Series
     :param var_to_bin_series:   Series of the variable to bin by.
@@ -747,7 +757,21 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                coverage_thresh=0.8, plot_bins=None, plot_labels=None, return_data=False):
     """
     Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
-    direction are binned
+    direction are binned.
+
+    If 'seasonal_adjustment' input is set to True then the frequency table is seasonal adjusted.
+    NOTE that if the input datasets ('var_series' or 'direction_series') don't have data for each calendar month
+    then the seasonal adjustment is not derived and the function will raise and error.
+
+    The seasonal adjusted frequency table is derived as for method below:
+        1) calculate monthly coverage
+        2) filter out any months with coverage lower than the input 'coverage_thresh'
+        3) derive frequency distribution for each calendar month (i.e. all January)
+        4) weighted average each monthly frequency distribution based on the number of days in each month
+           (i.e. 31 days for January) - number of days for February are derived as average of actual days for the year
+           of the dataset. This to take into account leap years.
+        5) Sum each weighted averaged monthly frequency distribution to get a total distribution as output of
+           the function ('result')
 
     :param var_series:          Series of variable to be binned
     :type var_series:           pandas.Series
