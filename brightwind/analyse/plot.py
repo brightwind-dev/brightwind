@@ -173,12 +173,13 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
                         line_marker_types=None, line_colors=COLOR_PALETTE.color_list, subplot_title=None,
                         legend=True, ax=None):
     """
-    Plots a scatter subplot between the inputs x and y. The trendline_y data and the line of slope 1 passing through
-    the origin are also shown if provided as input of the function.
+    Plots a timeseries subplot where x is the time axis.
 
-    :param x:                       The x-axis values or reference variable.
-    :type x:                        pd.DataFrame, pd.Series or list np.array
-    :param y:                       The y-axis values or target variable.
+    :param x:                       The x-axis values in a time format.
+    :type x:                        pandas.core.indexes.datetimes.DatetimeIndex,
+                                    list(pandas._libs.tslibs.timestamps.Timestamp) or list(numpy.datetime64)
+                                    or np.array(numpy.datetime64)
+    :param y:                       The y-axis values.
     :type y:                        pd.DataFrame, pd.Series or list or np.array
     :param x_label:                 Label for the x axis. Default is None.
     :type x_label:                  str or None
