@@ -242,10 +242,11 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
                                                       data['2016-02-10':'2016-03-10'].Spd60mS, line_marker_types='.',
                                                       line_colors=bw.analyse.plot.COLOR_PALETTE.tertiary, ax=axes)
         ts_plot = bw.analyse.plot._timeseries_subplot(data.index, data[['Spd80mS','Spd60mN']], ax=axes)
-        ts_plot.axes.legend(['Spd60mS', 'Spd80mS','Spd60mN',])
 
         # To set the x and y axis limits by using a tuple, set x_tick_label_angle to 45 deg and change x_ticks major
         # label format to "W%W" and location to be weekly and the first day of the week (monday).
+        import pandas as pd
+        import matplotlib
         fig, axes = plt.subplots(1, 1)
         sub_plot = bw.analyse.plot._timeseries_subplot(data.index, data.Dir58mS, x_label='Dir78mS', y_label='Dir58mS',
                                                x_limits=(pd.datetime(2016,2,1),pd.datetime(2016,7,10)),
