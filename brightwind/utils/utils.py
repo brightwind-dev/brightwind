@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 import os
 
-__all__ = ['slice_data']
+__all__ = ['slice_data',
+           'validate_coverage_threshold']
 
 
 def _range_0_to_360(direction):

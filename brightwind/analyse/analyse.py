@@ -698,9 +698,9 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
             text_warning = 'The seasonally adjusted frequency table results might be incorrect.'
 
         text_months_fail = ", ".join(map(str, list(months_fail_coverage.index.strftime('%b-%Y'))))
-        print('WARNING: The monthly coverage for {} is lower than {}. {}'.format(text_months_fail,
-                                                                                 coverage_threshold,
-                                                                                 text_warning))
+        warnings.warn('\n\nWARNING: The monthly coverage for {} is lower than {}. {}\n'.format(text_months_fail,
+                                                                                               coverage_threshold,
+                                                                                               text_warning))
 
     # check that var_series dataset has data for all calendar months
     if len(var_series.index.month.unique()) < 12:
