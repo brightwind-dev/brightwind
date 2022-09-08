@@ -11,7 +11,7 @@ import json
 from io import StringIO
 import warnings
 from dateutil.parser import parse
-from brightwind.analyse import plot as plt
+from brightwind.analyse import plot as bw_plt
 import boto3
 import time
 import concurrent
@@ -1671,7 +1671,7 @@ class _LoadBWPlatform:
         sensor_table['Date From'] = pd.to_datetime(sensor_table['Date From'])
         sensor_table.sort_values(by=['Sensor Name', 'Date From'], inplace=True)
         sensor_table['Date From'] = sensor_table['Date From'].dt.strftime("%d-%b-%Y")  # this code is shit!!!
-        table = plt.render_table(sensor_table, header_columns=0, col_width=3.3)
+        table = bw_plt.render_table(sensor_table, header_columns=0, col_width=3.3)
 
         if return_data:
             return table, sensor_table.set_index('Sensor Name')

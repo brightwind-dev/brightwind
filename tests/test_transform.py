@@ -213,6 +213,12 @@ def test_get_data_resolution():
     series2 = pd.date_range('2010-01-01', periods=150, freq='H')
     assert bw.transform.transform._get_data_resolution(series2).kwds == {'hours': 1}
 
+    series2 = pd.date_range('2010-01-01', periods=150, freq='D')
+    assert bw.transform.transform._get_data_resolution(series2).kwds == {'days': 1}
+
+    series2 = pd.date_range('2010-01-01', periods=150, freq='15D')
+    assert bw.transform.transform._get_data_resolution(series2).kwds == {'days': 15}
+
     series1 = bw.average_data_by_period(DATA['Spd80mN'], period='1M', coverage_threshold=0, return_coverage=False)
     assert bw.transform.transform._get_data_resolution(series1.index).kwds == {'months': 1}
 
