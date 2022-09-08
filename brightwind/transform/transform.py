@@ -414,7 +414,9 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     grouper_obj = data.resample(period, axis=0, closed='left', label='left', base=0,
                                 convention='start', kind='timestamp')
 
-    if wdir_column_names is not None and aggregation_method == 'mean':
+    # if period is equal to data resolution then no need to vector average wind direction
+    is_period_not_equal_to_resolution = (_freq_str_to_dateoffset(period) != _get_data_resolution(data.index))
+    if wdir_column_names is not None and aggregation_method == 'mean' and is_period_not_equal_to_resolution:
         # do vector averaging on wdirs if aggregation method of mean is requested
         wdir_column_names = [wdir_column_names] if isinstance(wdir_column_names, str) else wdir_column_names
 
