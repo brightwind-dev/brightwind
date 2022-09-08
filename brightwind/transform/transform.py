@@ -157,7 +157,7 @@ def _get_data_resolution(data_idx):
                       'Returning most frequent time difference.'.format(most_freq_time_diff, minimum_time_diff))
 
     if most_freq_time_diff.days >= 1 and most_freq_time_diff.days < 28:
-        return pd.DateOffset(days=most_freq_time_diff.total_seconds()/(60./24.0))
+        return pd.DateOffset(days=most_freq_time_diff.total_seconds()/(60.*60.*24))
     elif most_freq_time_diff.days < 1 and most_freq_time_diff.total_seconds() >= 60*60:
         return pd.DateOffset(hours=most_freq_time_diff.total_seconds()/(60.*60))
     elif most_freq_time_diff.total_seconds() < (60*60):
@@ -251,12 +251,18 @@ def _get_overlapping_data(df1, df2, averaging_prd=None):
     # If the start timestamp just happens to be missing from the data, add in a NaN so the
     # averaging will start from this timestamp.
     if not (df2.index == start).any():
-        df2.loc[pd.to_datetime(start)] = np.NaN
+        if type(df2) == pd.DataFrame:
+            df2 = df2.append(pd.DataFrame({cols: [np.NaN] for cols in df2.columns}, index=[pd.to_datetime(start)]))
+        else:
+            df2[pd.to_datetime(start)] = np.NaN
         df2.sort_index(inplace=True)
     if not (df1.index == start).any():
-        df1.loc[pd.to_datetime(start)] = np.NaN
+        # df1.loc[pd.to_datetime(start)] = np.NaN
+        if type(df1) == pd.DataFrame:
+            df1 = df1.append(pd.DataFrame({cols: [np.NaN] for cols in df1.columns}, index=[pd.to_datetime(start)]))
+        else:
+            df1[pd.to_datetime(start)] = np.NaN
         df1.sort_index(inplace=True)
-
     return df1[start:], df2[start:]
 
 

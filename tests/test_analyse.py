@@ -35,6 +35,23 @@ def test_sector_ratio():
     bw.sector_ratio(DATA[['Spd40mN']], DATA.Spd60mN, wdir=DATA[['Dir38mS']])
     bw.sector_ratio(DATA.Spd40mN, DATA.Spd60mN, wdir=DATA.Dir38mS,
                     direction_bin_array=[0, 45, 135, 180, 220, 360], boom_dir_1=160, boom_dir_2=340)
+    bw.sector_ratio(DATA.Spd80mN, DATA.Spd80mS, wdir=DATA.Dir78mS, radial_limits=(0.8, 1.2),
+                    figure_size=(10,10))
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN']], DATA[['Spd80mS', 'Spd60mS']],
+                    DATA['Dir78mS'], boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25))
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']], DATA[['Spd80mS', 'Spd60mS', 'Spd40mS']],
+                    DATA[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180,
+                    figure_size=(25,25))
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']], DATA[['Spd80mS', 'Spd60mS', 'Spd40mS']],
+                 DATA[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25),
+                 return_data=True)
+    bw.sector_ratio(DATA['Spd80mN'], DATA['Spd80mS'], DATA['Dir78mS'], boom_dir_1=0, boom_dir_2=180, return_data=True)
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN']], DATA[['Spd80mS', 'Spd60mS']],
+                    DATA[['Dir78mS', 'Dir58mS']], boom_dir_1=[0, 350], boom_dir_2=[180, 170], figure_size=(25, 25))
+    bw.sector_ratio(DATA['Spd80mN'], DATA['Spd80mS'], DATA['Dir78mS'], sectors=72, boom_dir_1=0,
+                    boom_dir_2=180, annotate=False)
+    bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN', 'Spd60mN']], DATA[['Spd80mS', 'Spd60mS', 'Spd60mS']], DATA['Dir78mS'],
+                    annotate=False, figure_size=(25, 25), boom_dir_1=0, boom_dir_2=180)
     assert True
 
 
@@ -221,6 +238,19 @@ def test_dist():
             bins=[-10, 4, 12, 18, 30],
             bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
 
+    # For distribution of multiple sum wind speeds with respect themselves
+    bw.dist(DATA[['Spd80mN', 'Spd80mS']], aggregation_method='sum')
+
+    assert True
+
+    # For distribution of multiple mean wind speeds with respect to temperature
+    fig, dist = bw.dist(DATA[['Spd80mN', 'Spd80mS']], var_to_bin_against=DATA.T2m,
+                        bins=[-10, 4, 12, 18, 30],
+                        bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean', return_data=True)
+
+    assert round(dist['Spd80mN']['freezing'], 10) == 7.2126121482
+    assert round(dist['Spd80mS']['hot'], 10) == 5.6441172107
+
 
 def test_dist_of_wind_speed():
     bw.dist_of_wind_speed(DATA[['Spd80mN']], max_speed=30, max_y_value=10, return_data=False)
@@ -275,3 +305,4 @@ def test_dist_matrix_by_direction_sector():
     bw.dist_matrix_by_dir_sector(DATA.Spd40mN, DATA.T2m, DATA.Dir38mS,
                                  var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
+
