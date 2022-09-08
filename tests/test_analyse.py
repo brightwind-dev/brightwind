@@ -213,8 +213,8 @@ def test_freq_table():
                                                                                '285.0-315.0': 10.746167,
                                                                                '315.0-345.0': 3.076073}
     # Apply seasonal adjustment and impose coverage threshold to 70%
-    plot_wind_rose, freq_tbl_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, coverage_thresh=0.7, return_data=True,
-                                                      seasonal_adjustment=True)
+    plot_wind_rose, freq_tbl_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, seasonal_adjustment=True,
+                                                      coverage_threshold=0.7, return_data=True)
     assert freq_tbl_seas_adj.sum().round(6).to_dict() == target_freq_dict_seas_adj_sum
 
 
