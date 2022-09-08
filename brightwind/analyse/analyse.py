@@ -4,6 +4,7 @@ from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as plt
 from brightwind.utils.utils import _convert_df_to_series
+from brightwind.utils.utils import validate_coverage_threshold
 import matplotlib
 import warnings
 
@@ -548,14 +549,14 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
 
 def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_series, direction_series, var_bin_array,
                                                      sectors=12, direction_bin_array=None, direction_bin_labels=None,
-                                                     aggregation_method='%frequency', coverage_thresh=0.8):
+                                                     aggregation_method='%frequency', coverage_threshold=0.8):
     """
     Calculates distribution matrix of a variable against another variable and wind direction applying a
     seasonal adjustment.
 
     The seasonal adjusted frequency table is derived as for method below:
         1) calculate monthly coverage
-        2) filter out any months with coverage lower than the input 'coverage_thresh'
+        2) filter out any months with coverage lower than the input 'coverage_threshold'
         3) derive frequency distribution for each calendar month (i.e. all January)
         4) weighted average each monthly frequency distribution based on the number of days in each month
            (i.e. 31 days for January) - number of days for February are derived as average of actual days for the year
@@ -586,27 +587,30 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
     :param aggregation_method:  Statistical method used to find distribution it can be mean, max, min, std, count,
                                 %frequency or a custom function. Computes frequency in percentages by default.
     :type aggregation_method:   str
-    :param coverage_thresh:     Monthly coverage threshold. If threshold is different than 0 then data for the months
-                                with coverage lower than this threshold are not considered for deriving the
-                                distribution matrix. Default value is 0.8.
-    :type coverage_thresh:      int or float
+    :param coverage_threshold:  In this case monthly coverage threshold. Coverage is defined as the ratio of the number
+                                of data points present in the month and the maximum number of data points that a month
+                                should have. Example, for 10 minute data for June, the maximum number of data points is
+                                43,200. But if the number if data points available is only 30,000 the coverage is
+                                0.69. A coverage_threshold value of 0.8 will filter out any months with a coverage less
+                                than this. Coverage_threshold should be a value between 0 and 1. If it is None or 0,
+                                data is not filtered. Default value is 0.8.
+    :type coverage_threshold:   int, float or None
     :return:                    A distribution matrix for the given Series of variable
     :rtype:                     pandas.DataFrame
 
     """
 
-    if (coverage_thresh < 0) or (coverage_thresh > 1):
-        raise ValueError('coverage_thresh must be a number between 0 and 1.')
+    coverage_threshold = validate_coverage_threshold(coverage_threshold)
     # derive monthly coverage considering var_series, var_to_bin_series, direction_series inputs
     monthly_coverage = coverage(pd.concat([var_series.rename('var_data'), var_to_bin_series,
                                            direction_series], axis=1).dropna())['var_data_Coverage'].combine(
         coverage(var_series), min).replace(np.nan, 0.0)
     # apply monthly coverage threshold
-    if (monthly_coverage < coverage_thresh).sum() > 0:
-        months_fail_coverage = monthly_coverage[monthly_coverage < coverage_thresh].dropna()
-        if coverage_thresh > 0:
-            text_warning = 'These months are filtered out for deriving the seasonal adjusted frequency table.'
-            # remove data for months with coverage lower than the coverage_thresh
+    if (monthly_coverage < coverage_threshold).sum() > 0:
+        months_fail_coverage = monthly_coverage[monthly_coverage < coverage_threshold].dropna()
+        if coverage_threshold > 0:
+            text_warning = 'These months are filtered out for deriving the seasonally adjusted frequency table.'
+            # remove data for months with coverage lower than the coverage_threshold
             tmp_var_series = pd.DataFrame(var_series)
             tmp_var_series['Months'] = list(var_series.index.strftime("%Y-%m"))
             index_name = tmp_var_series.index.name
@@ -614,11 +618,11 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
             var_series = tmp_var_series.set_index('Months').drop(labels=list(
                 months_fail_coverage.index.strftime('%Y-%m'))).set_index(index_name).iloc[:, 0]
         else:
-            text_warning = 'The seasonal adjusted frequency table results might be incorrect.'
+            text_warning = 'The seasonally adjusted frequency table results might be incorrect.'
 
         text_months_fail = ", ".join(map(str, list(months_fail_coverage.index.strftime('%b-%Y'))))
         print('WARNING: The monthly coverage for {} is lower than {}. {}'.format(text_months_fail,
-                                                                                 coverage_thresh,
+                                                                                 coverage_threshold,
                                                                                  text_warning))
 
     # check that var_series dataset has data for all calendar months
@@ -754,7 +758,7 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
                direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, seasonal_adjustment=False,
-               coverage_thresh=0.8, plot_bins=None, plot_labels=None, return_data=False):
+               coverage_threshold=0.8, plot_bins=None, plot_labels=None, return_data=False):
     """
     Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
     direction are binned.
@@ -765,7 +769,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
 
     The seasonal adjusted frequency table is derived as for method below:
         1) calculate monthly coverage
-        2) filter out any months with coverage lower than the input 'coverage_thresh'
+        2) filter out any months with coverage lower than the input 'coverage_threshold'
         3) derive frequency distribution for each calendar month (i.e. all January)
         4) weighted average each monthly frequency distribution based on the number of days in each month
            (i.e. 31 days for January) - number of days for February are derived as average of actual days for the year
@@ -798,10 +802,14 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     :param seasonal_adjustment: Optional, False by default. If True, returns the frequency distribution seasonal
                                 adjusted
     :type seasonal_adjustment:  bool
-    :param coverage_thresh:     Monthly coverage threshold applied only if seasonal_adjustment is True. If threshold
-                                is different than 0 then data for the months with coverage lower than this threshold are
-                                not considered for deriving the frequency table. Default value is 0.8.
-    :type coverage_thresh:      int or float
+    :param coverage_threshold:  In this case monthly coverage threshold. Only applied if `seasonal_adjustment` is True.
+                                Coverage is defined as the ratio of the number of data points present in the month and
+                                the maximum number of data points that a month should have. Example, for 10 minute data
+                                for June, the maximum number of data points is 43,200. But if the number if data points
+                                available is only 30,000 the coverage is 0.69. A coverage_threshold value of 0.8 will
+                                filter out any months with a coverage less than this. Coverage_threshold should be a
+                                value between 0 and 1. If it is None or 0, data is not filtered. Default value is 0.8.
+    :type coverage_threshold:   int, float or None
     :param plot_bins:           Bins to use for gradient in the rose. Different bins will be plotted with different
                                 color. Chooses six bins to plot by default '0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s',
                                 '13-15 m/s' and '15+ m/s'. If you change var_bin_array this should be changed in
@@ -825,7 +833,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
 
         #Apply seasonal adjustment and coverage threshold of 70%
-        rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, coverage_thresh=0.7, return_data=True,
+        rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, coverage_threshold=0.7, return_data=True,
                                          seasonal_adjustment=True)
 
         #To use 3 bins for wind speed [0,8), [8, 14), [14, 41) and label them as ['low', 'mid', 'high']. Can be used for
@@ -855,7 +863,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                                                                   var_to_bin_series=var_series,
                                                                   direction_series=direction_series,
                                                                   var_bin_array=var_bin_array,
-                                                                  coverage_thresh=coverage_thresh,
+                                                                  coverage_threshold=coverage_threshold,
                                                                   sectors=sectors,
                                                                   direction_bin_array=direction_bin_array,
                                                                   direction_bin_labels=None,
