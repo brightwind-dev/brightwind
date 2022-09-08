@@ -837,22 +837,25 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, seasonal_adjustment=False,
                coverage_threshold=0.8, plot_bins=None, plot_labels=None, return_data=False):
     """
-    Accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
+    Create a frequency distribution table, typically of wind speed and wind direction i.e. how often the wind
+    blows within a certain wind speed bin and wind direction. This will plot a wind rose by default or if
+    return_data=True, it will return the plot and the frequency table.
+
+    This accepts a variable series and direction series and computes a frequency table of percentages. Both variable and
     direction are binned.
 
-    If 'seasonal_adjustment' input is set to True then the frequency table is seasonal adjusted.
-    NOTE that if the input datasets ('var_series' or 'direction_series') don't have data for each calendar month
-    then the seasonal adjustment is not derived and the function will raise and error.
+    If 'seasonal_adjustment' input is set to True then the frequency table is seasonally adjusted.
+    NOTE; that if the input datasets ('var_series' or 'direction_series') don't have data for each calendar month
+    then the seasonal adjustment is not derived and the function will raise an error.
 
-    The seasonal adjusted frequency table is derived as for method below:
+    The seasonal adjusted frequency table is derived following the method below:
         1) calculate monthly coverage
-        2) filter out any months with coverage lower than the input 'coverage_threshold'
-        3) derive frequency distribution for each calendar month (i.e. all January)
+        2) filter out any months with coverage lower than the 'coverage_threshold'
+        3) derive frequency distribution for each calendar month (i.e. all Januaries from all years)
         4) weighted average each monthly frequency distribution based on the number of days in each month
            (i.e. 31 days for January) - number of days for February are derived as average of actual days for the year
            of the dataset. This to take into account leap years.
-        5) Sum each weighted averaged monthly frequency distribution to get a total distribution as output of
-           the function ('result')
+        5) Finally, sum each weighted averaged monthly frequency distribution to get a total distribution
 
     :param var_series:          Series of variable to be binned
     :type var_series:           pandas.Series
@@ -904,31 +907,42 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_csv(bw.demo_datasets.demo_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
-        #Simple use without seasonal adjustment
-        rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, return_data=True)
+        # To get a plot of the wind rose
+        bw.freq_table(data.Spd40mN, data.Dir38mS)
 
-        #Apply seasonal adjustment and coverage threshold of 70%
-        rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, coverage_threshold=0.7, return_data=True,
-                                         seasonal_adjustment=True)
+        # To get the plot and the freq table
+        rose, freq_table = bw.freq_table(data.Spd40mN, data.Dir38mS, return_data=True)
+        display(rose)
+        display(freq_table)
 
-        #To use 3 bins for wind speed [0,8), [8, 14), [14, 41) and label them as ['low', 'mid', 'high']. Can be used for
-        #variabes other than wind speed too
-        rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, var_bin_array=[0,8,14,41],
-            var_bin_labels=['low', 'mid', 'high'], plot_bins=[0,8,14,41], return_data=True)
+        # Apply seasonal adjustment and coverage threshold of 70%
+        rose, freq_table = bw.freq_table(data.Spd40mN, data.Dir38mS, return_data=True, seasonal_adjustment=True,
+                                         coverage_threshold=0.7)
+        display(rose)
+        display(freq_table)
 
+        # To use 3 bins for wind speed [0,8), [8, 14), [14, 41) and label them as ['low', 'mid', 'high']. Can be used for
+        # variables other than wind speed too
+        rose, freq_table = bw.freq_table(data.Spd40mN, data.Dir38mS, var_bin_array=[0,8,14,41],
+                                         var_bin_labels=['low', 'mid', 'high'], plot_bins=[0,8,14,41], return_data=True)
+        display(rose)
+        display(freq_table)
 
-        #Use custom direction bins
-        rose, freq_table = bw.freq_table(df.Spd40mN, df.Dir38mS, direction_bin_array=[0,90,130,200,360],
-                           direction_bin_labels=['northerly','easterly','southerly','westerly'], return_data=True)
+        # Use custom direction bins
+        rose, freq_table = bw.freq_table(data.Spd40mN, data.Dir38mS, direction_bin_array=[0,90,130,200,360],
+                                         direction_bin_labels=['northeasterly','easterly','southerly','westerly'],
+                                         return_data=True)
+        display(rose)
+        display(freq_table)
 
-
-        #Can also combine custom direction and variable_bins
-        rose, tab = bw.freq_table(df.Spd40mN, df.Dir38mS, direction_bin_array=[0,90,130,200,360],
-                           direction_bin_labels=['northerly','easterly','southerly','westerly'], plot_bins=None,
-                           plot_labels=None, return_data=True)
-
+        # Can also combine custom direction and variable_bins
+        rose, tab = bw.freq_table(data.Spd40mN, data.Dir38mS, direction_bin_array=[0,90,130,200,360],
+                                  direction_bin_labels=['northerly','easterly','southerly','westerly'],
+                                  plot_bins=[0,8,14,41], plot_labels=None, return_data=True)
+        display(rose)
+        display(freq_table)
     """
     if freq_as_percentage:
         agg_method = '%frequency'
