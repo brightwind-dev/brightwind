@@ -923,8 +923,8 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         display(rose)
         display(freq_table)
 
-        # To use 3 bins for wind speed [0,8), [8, 14), [14, 41) and label them as ['low', 'mid', 'high']. Can be used for
-        # variables other than wind speed too
+        # To use 3 bins for wind speed [0,8), [8, 14), [14, 41) and label them as ['low', 'mid', 'high'].
+        # Can be used for variables other than wind speed too
         rose, freq_table = bw.freq_table(data.Spd40mN, data.Dir38mS, var_bin_array=[0,8,14,41],
                                          var_bin_labels=['low', 'mid', 'high'], plot_bins=[0,8,14,41], return_data=True)
         display(rose)
