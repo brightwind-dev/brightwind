@@ -162,29 +162,30 @@ class Shear:
             binned by time of the day and (optionally by) month, depending on the user's inputs. The alpha/roughness
             coefficient values are calculated based on the average wind speeds at each measurement height in each bin.
 
-            :param wspds: pandas.DataFrame, list of pandas.Series or list of wind speeds to be used for calculating
-             shear.
-            :type wspds:  pandas.DataFrame, list of pandas.Series or list.
-            :param heights: List of anemometer heights..
-            :type heights: list
-            :param min_speed: Only speeds higher than this would be considered for calculating shear, default is 3
-            :type min_speed: float
-            :param calc_method: method to use for calculation, either 'power_law' (returns alpha) or 'log_law'
-                                (returns the roughness coefficient).
-            :type calc_method: str
-            :param by_month: If True, calculate alpha or roughness coefficient values for each daily segment and month.
-                             If False, average alpha or roughness coefficient values are calculated for each daily
-                             segment across all months.
+            :param wspds:               pandas.DataFrame, list of pandas.Series or list of wind speeds to be used for
+                                        calculating shear.
+            :type wspds:                pandas.DataFrame, list of pandas.Series or list.
+            :param heights:             List of anemometer heights..
+            :type heights:              list
+            :param min_speed:           Only speeds higher than this would be considered for calculating shear, default
+                                        is 3
+            :type min_speed:            float
+            :param calc_method:         method to use for calculation, either 'power_law' (returns alpha) or 'log_law'
+                                        (returns the roughness coefficient).
+            :type calc_method:          str
+            :param by_month:            If True, calculate alpha or roughness coefficient values for each daily segment
+                                        and month. If False, average alpha or roughness coefficient values are
+                                        calculated for each daily segment across all months.
             :type by_month: Boolean
-            :param segment_start_time: Starting time for first segment.
-            :type segment_start_time: int
-            :param segments_per_day: Number of segments into which each 24 period is split. Must be a divisor of 24.
-            :type segments_per_day: int
-            :param plot_type: Type of plot to be generated. Options include 'line', 'step' and '12x24'.
-            :type plot_type: str
-            :return: TimeOfDay object containing calculated alpha/roughness coefficient values, a plot
-                     and other data.
-            :rtype: TimeOfDay object
+            :param segment_start_time:  Starting time for first segment.
+            :type segment_start_time:   int
+            :param segments_per_day:    Number of segments into which each 24 period is split. Must be a divisor of 24.
+            :type segments_per_day:     int
+            :param plot_type:           Type of plot to be generated. Options include 'line', 'step' and '12x24'.
+            :type plot_type:            str
+            :return:                    TimeOfDay object containing calculated alpha/roughness coefficient values,
+                                        a plot and other data.
+            :rtype:                     TimeOfDay object
 
             **Example usage**
             ::
@@ -192,7 +193,7 @@ class Shear:
                 import pprint
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
 
