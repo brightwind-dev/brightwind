@@ -171,17 +171,20 @@ class Shear:
                                         is 3
             :type min_speed:            float
             :param calc_method:         method to use for calculation, either 'power_law' (returns alpha) or 'log_law'
-                                        (returns the roughness coefficient).
+                                        (returns the roughness coefficient). Default is 'power_law'.
             :type calc_method:          str
             :param by_month:            If True, calculate alpha or roughness coefficient values for each daily segment
                                         and month. If False, average alpha or roughness coefficient values are
                                         calculated for each daily segment across all months.
             :type by_month: Boolean
             :param segment_start_time:  Starting time for first segment. It must be an integer between 0 and 23.
+                                        Default is 7.
             :type segment_start_time:   int
             :param segments_per_day:    Number of segments into which each 24 period is split. Must be a divisor of 24.
+                                        Default is 24.
             :type segments_per_day:     int
             :param plot_type:           Type of plot to be generated. Options include 'line', 'step' and '12x24'.
+                                        Default is 'line'.
             :type plot_type:            str
             :return:                    TimeOfDay object containing calculated alpha/roughness coefficient values,
                                         a plot and other data.
@@ -266,14 +269,12 @@ class Shear:
                         mean_time_wspds[i] = anemometers_df.mean().dropna()
 
                     elif i == segments_per_day - 1:
-                        start_times[i] = start_times[i].strftime("%H:%M:%S")
                         start = str(start_times[i].time())
                         end = str(start_times[0].time())
                         time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end, include_end=False)
                         mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
 
                     else:
-                        start_times[i] = start_times[i].strftime("%H:%M:%S")
                         start = str(start_times[i].time())
                         end = str(start_times[i + 1].time())
                         time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end, include_end=False)
