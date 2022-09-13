@@ -177,7 +177,7 @@ class Shear:
                                         and month. If False, average alpha or roughness coefficient values are
                                         calculated for each daily segment across all months.
             :type by_month: Boolean
-            :param segment_start_time:  Starting time for first segment.
+            :param segment_start_time:  Starting time for first segment. It must be an integer between 0 and 23.
             :type segment_start_time:   int
             :param segments_per_day:    Number of segments into which each 24 period is split. Must be a divisor of 24.
             :type segments_per_day:     int
@@ -241,10 +241,10 @@ class Shear:
             if by_month is False and plot_type == '12x24':
                 raise ValueError("12x24 plot is only possible when 'by_month=True'")
 
-            if not int(segment_start_time) % 1 == 0:
-                raise ValueError("'segment_start_time' must be an integer between 0 and 24'")
+            if (type(segment_start_time) != int) or not ((segment_start_time > 0) and (segment_start_time <= 23)):
+                raise ValueError("'segment_start_time' must be an integer between 0 and 23 (inclusive)'")
 
-            if not (24 % segments_per_day == 0) | (segments_per_day == 1):
+            if not (24 % segments_per_day == 0):
                 raise ValueError("'segments_per_day' must be a divisor of 24'")
 
             segment_start_time = str(segment_start_time)
