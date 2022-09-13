@@ -225,14 +225,14 @@ class Shear:
             wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
 
             # initialise empty series for later use
-            start_times = pd.Series([])
-            time_wspds = pd.Series([])
-            mean_time_wspds = pd.Series([])
-            c = pd.Series([])
-            slope = pd.Series([])
-            intercept = pd.Series([])
-            alpha = pd.Series([])
-            roughness = pd.Series([])
+            start_times = pd.Series([], dtype='float64')
+            time_wspds = pd.Series([], dtype='float64')
+            mean_time_wspds = pd.Series([], dtype='float64')
+            c = pd.Series([], dtype='float64')
+            slope = pd.Series([], dtype='float64')
+            intercept = pd.Series([], dtype='float64')
+            alpha = pd.Series([], dtype='float64')
+            roughness = pd.Series([], dtype='float64')
             slope_df = pd.DataFrame([])
             intercept_df = pd.DataFrame([])
             roughness_df = pd.DataFrame([])
@@ -612,10 +612,10 @@ class Shear:
                 sectors = len(direction_bin_array) - 1
 
             wdir = _convert_df_to_series(wdir)
-            mean_wspds = pd.Series([])
+            mean_wspds = pd.Series([], dtype='float64')
             mean_wspds_df = pd.DataFrame([])
             count_df = pd.DataFrame([])
-            count = pd.Series([])
+            count = pd.Series([], dtype='float64')
 
             for i in range(len(wspds.columns)):
 
@@ -922,8 +922,8 @@ class Shear:
 
     @staticmethod
     def _apply(self, wspds, height, shear_to, wdir=None):
-        scaled_wspds = pd.Series([])
-        result = pd.Series([])
+        scaled_wspds = pd.Series([], dtype='float64')
+        result = pd.Series([], dtype='float64')
 
         if self.origin == 'TimeSeries':
 
@@ -983,8 +983,8 @@ class Shear:
         if self.origin == 'BySector':
 
             # initialise series for later use
-            bin_edges = pd.Series([])
-            by_sector = pd.Series([])
+            bin_edges = pd.Series([], dtype='float64')
+            by_sector = pd.Series([], dtype='float64')
 
             if self.calc_method == 'power_law':
                 direction_bins = self.alpha

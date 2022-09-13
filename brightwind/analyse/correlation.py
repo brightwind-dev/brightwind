@@ -72,7 +72,7 @@ class CorrelBase:
             self._ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
                                                           direction_bin_array=direction_bin_array
                                                           ).rename('ref_dir_bin')
-            self._predict_ref_spd = pd.Series()
+            self._predict_ref_spd = pd.Series(dtype='float64')
 
     def _averager(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir,
                   ref_aggregation_method, target_aggregation_method):
@@ -1135,7 +1135,7 @@ class SpeedSort(CorrelBase):
                        _binned_direction_series(x_dir, self.sectors,
                                                 direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')],
                       axis=1, join='inner').dropna()
-        prediction = pd.Series().rename('spd')
+        prediction = pd.Series(dtype='float64').rename('spd')
         for sector, data in x.groupby(['ref_dir_bin']):
             if sector in list(self.speed_model.keys()):
                 prediction_spd = self.speed_model[sector].sector_predict(data['spd'])
