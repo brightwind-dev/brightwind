@@ -242,13 +242,13 @@ class Shear:
             interval = int(24 / segments_per_day)
 
             if by_month is False and plot_type == '12x24':
-                raise ValueError("12x24 plot is only possible when 'by_month=True'")
+                raise ValueError("12x24 plot is only possible when 'by_month=True'.")
 
             if (type(segment_start_time) != int) or not ((segment_start_time > 0) and (segment_start_time <= 23)):
-                raise ValueError("'segment_start_time' must be an integer between 0 and 23 (inclusive)'")
+                raise ValueError("'segment_start_time' must be an integer between 0 and 23 (inclusive).")
 
             if not (24 % segments_per_day == 0):
-                raise ValueError("'segments_per_day' must be a divisor of 24'")
+                raise ValueError("'segments_per_day' must be a divisor of 24.")
 
             segment_start_time = str(segment_start_time)
             start_times[0] = datetime.datetime.strptime(segment_start_time, '%H')

@@ -90,6 +90,17 @@ def test_time_of_day():
     shear_by_tod_log_law.apply(DATA['Spd80mN'], 40, 60)
     assert True
 
+    # Test errors
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.TimeOfDay(anemometers, heights, segments_per_day=23)
+    assert str(except_info.value) == "'segments_per_day' must be a divisor of 24."
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.TimeOfDay(anemometers, heights, segment_start_time=24)
+    assert str(except_info.value) == "'segment_start_time' must be an integer between 0 and 23 (inclusive)."
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.TimeOfDay(anemometers, heights, by_month=False, plot_type='12x24')
+    assert str(except_info.value) == "12x24 plot is only possible when 'by_month=True'."
+
 
 def test_time_series():
     # Specify columns in data which contain the anemometer measurements from which to calculate shear
