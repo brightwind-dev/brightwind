@@ -672,35 +672,55 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
                                 than this. Coverage_threshold should be a value between 0 and 1. If it is None or 0,
                                 data is not filtered. Default value is 0.8.
     :type coverage_threshold:   int, float or None
-    :return:                    A distribution matrix for the given Series of variable
-    :rtype:                     pandas.DataFrame
+    :return:                    A distribution matrix for the given Series of variable and a text message explaining
+                                the monthly coverage threshold filter applied.
+    :rtype:                     pandas.DataFrame and str
 
     """
-
+    text_msg_out = None
     coverage_threshold = validate_coverage_threshold(coverage_threshold)
     # derive monthly coverage considering var_series, var_to_bin_series, direction_series inputs
     monthly_coverage = coverage(pd.concat([var_series.rename('var_data'), var_to_bin_series,
                                            direction_series], axis=1).dropna())['var_data_Coverage'].combine(
         coverage(var_series), min).replace(np.nan, 0.0)
-    # apply monthly coverage threshold
+
+    # Check if there are any months with coverage threshold lower than the recommended value of 0.8.
+    coverage_threshold_recommended = 0.8
+    if (monthly_coverage < coverage_threshold_recommended).sum() > 0:
+
+        months_fail_coverage_recommended = monthly_coverage[monthly_coverage < coverage_threshold_recommended].dropna()
+        text_months_fail_coverage_recommended = ", ".join(map(str, list(
+            months_fail_coverage_recommended.index.strftime('%b-%Y'))))
+        text_warning_threshold_recommended = 'results may be incorrect when ' \
+                                             'you use an insufficient data coverage threshold, i.e. below our ' \
+                                             'recommended value of 0.8. Some months may have very little data ' \
+                                             'coverage and so may skew the statistics. For the provided dataset the ' \
+                                             'monthly coverage for {} is lower ' \
+                                             'than 0.8.'.format(text_months_fail_coverage_recommended)
+    else:
+        text_warning_threshold_recommended = ''
+
     if (monthly_coverage < coverage_threshold).sum() > 0:
+        # apply monthly coverage threshold provided as input to the function
         months_fail_coverage = monthly_coverage[monthly_coverage < coverage_threshold].dropna()
-        if coverage_threshold > 0:
-            text_warning = 'These months are filtered out for deriving the seasonally adjusted frequency table.'
-            # remove data for months with coverage lower than the coverage_threshold
-            tmp_var_series = pd.DataFrame(var_series)
-            tmp_var_series['Months'] = list(var_series.index.strftime("%Y-%m"))
-            index_name = tmp_var_series.index.name
-            tmp_var_series[index_name] = list(var_series.index)
-            var_series = tmp_var_series.set_index('Months').drop(labels=list(
-                months_fail_coverage.index.strftime('%Y-%m'))).set_index(index_name).iloc[:, 0]
-        else:
-            text_warning = 'The seasonally adjusted frequency table results might be incorrect.'
+        text_warning = 'These months are filtered out for deriving the seasonally adjusted frequency table.'
+        # remove data for months with coverage lower than the coverage_threshold
+        tmp_var_series = pd.DataFrame(var_series)
+        tmp_var_series['Months'] = list(var_series.index.strftime("%Y-%m"))
+        index_name = tmp_var_series.index.name
+        tmp_var_series[index_name] = list(var_series.index)
+        var_series = tmp_var_series.set_index('Months').drop(labels=list(
+            months_fail_coverage.index.strftime('%Y-%m'))).set_index(index_name).iloc[:, 0]
 
         text_months_fail = ", ".join(map(str, list(months_fail_coverage.index.strftime('%b-%Y'))))
-        warnings.warn('\n\nWARNING: The monthly coverage for {} is lower than {}. {}\n'.format(text_months_fail,
-                                                                                               coverage_threshold,
-                                                                                               text_warning))
+        if (monthly_coverage < coverage_threshold_recommended).sum() > 0:
+            subtext = "The "
+        text_msg_out = '\n\nNote: The monthly coverage for {} is lower than {}. {} {}{}\n'.format(
+            text_months_fail, coverage_threshold, text_warning, subtext, text_warning_threshold_recommended)
+
+    elif text_warning_threshold_recommended != '':
+        text_msg_out = '\n\nNote: The seasonally adjusted frequency table {}\n'.format(
+            text_warning_threshold_recommended)
 
     # check that var_series dataset has data for all calendar months
     if len(var_series.index.month.unique()) < 12:
@@ -728,7 +748,9 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
                                                               aggregation_method=aggregation_method
                                                               ).replace(np.nan, 0.0)})
 
-    return (pd.Series(results) * pd.Series(number_days_month) / sum(number_days_month.values())).sum(skipna=True)
+    average_results = (pd.Series(results) * pd.Series(number_days_month) / sum(
+        number_days_month.values())).sum(skipna=True)
+    return average_results, text_msg_out
 
 
 def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series,
@@ -950,16 +972,16 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         agg_method = 'count'
 
     if seasonal_adjustment:
-        result = _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series=var_series,
-                                                                  var_to_bin_series=var_series,
-                                                                  direction_series=direction_series,
-                                                                  var_bin_array=var_bin_array,
-                                                                  coverage_threshold=coverage_threshold,
-                                                                  sectors=sectors,
-                                                                  direction_bin_array=direction_bin_array,
-                                                                  direction_bin_labels=None,
-                                                                  aggregation_method=agg_method
-                                                                  ).replace(np.nan, 0.0)
+        result, text_msg_out = _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series=var_series,
+                                                                                var_to_bin_series=var_series,
+                                                                                direction_series=direction_series,
+                                                                                var_bin_array=var_bin_array,
+                                                                                coverage_threshold=coverage_threshold,
+                                                                                sectors=sectors,
+                                                                                direction_bin_array=direction_bin_array,
+                                                                                direction_bin_labels=None,
+                                                                                aggregation_method=agg_method
+                                                                                ).replace(np.nan, 0.0)
     else:
         result = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_series,
                                                 direction_series=direction_series, var_bin_array=var_bin_array,
