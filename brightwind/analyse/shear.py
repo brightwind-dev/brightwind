@@ -201,7 +201,7 @@ class Shear:
                 heights = [80, 60, 40]
 
                 # Using with a DataFrame of wind speeds
-                timeofday_power_law = bw.Shear.TimeOfDay(anemometers, heights, daily_segments=2, segment_start_time=7)
+                timeofday_power_law = bw.Shear.TimeOfDay(anemometers, heights, segments_per_day=2, segment_start_time=7)
                 timeofday_log_law = bw.Shear.TimeOfDay(anemometers, heights, calc_method='log_law', by_month=False)
 
                 # Get alpha or roughness values calculated
