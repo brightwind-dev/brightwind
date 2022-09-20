@@ -212,10 +212,36 @@ def test_freq_table():
                                                                                '255.0-285.0': 14.08716,
                                                                                '285.0-315.0': 10.746167,
                                                                                '315.0-345.0': 3.076073}
+
     # Apply seasonal adjustment and impose coverage threshold to 70%
     plot_wind_rose, freq_tbl_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, seasonal_adjustment=True,
                                                       coverage_threshold=0.7, return_data=True)
     assert freq_tbl_seas_adj.sum().round(6).to_dict() == target_freq_dict_seas_adj_sum
+
+    # test messages shown below plot
+    fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
+                             coverage_threshold=0.3)
+    assert 'Text' in str(fig_rose.get_default_bbox_extra_artists())
+    assert 'Note: A coverage threshold value of 0.3 is set' in str(fig_rose.get_default_bbox_extra_artists()[1])
+
+    fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
+                             coverage_threshold=0.5)
+    assert 'is lower than the coverage threshold value of 0.5' in str(fig_rose.get_default_bbox_extra_artists()[1])
+    assert 'Some months may have very little data coverage' in str(fig_rose.get_default_bbox_extra_artists()[1])
+
+    fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
+                             coverage_threshold=0.8)
+    assert 'is lower than the coverage threshold value of 0.8' in str(fig_rose.get_default_bbox_extra_artists()[1])
+    assert 'Some months may have very little data coverage' not in str(fig_rose.get_default_bbox_extra_artists()[1])
+
+    fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
+                             coverage_threshold=0.9)
+    assert 'is lower than the coverage threshold value of 0.9' in str(fig_rose.get_default_bbox_extra_artists()[1])
+    assert 'Some months may have very little data coverage' not in str(fig_rose.get_default_bbox_extra_artists()[1])
+
+    fig_rose = bw.freq_table(DATA.Spd40mN['2016-06-01':'2017-09-30'], DATA.Dir38mS['2016-06-01':'2017-09-30'],
+                             return_data=False, seasonal_adjustment=True, coverage_threshold=0.9)
+    assert 'Text' not in str(fig_rose.get_default_bbox_extra_artists())
 
 
 def test_dist():

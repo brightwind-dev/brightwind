@@ -7,6 +7,7 @@ from brightwind.utils.utils import _convert_df_to_series
 from brightwind.utils.utils import validate_coverage_threshold
 import matplotlib
 import warnings
+import textwrap
 
 __all__ = ['monthly_means',
            'momm',
@@ -684,26 +685,10 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
                                            direction_series], axis=1).dropna())['var_data_Coverage'].combine(
         coverage(var_series), min).replace(np.nan, 0.0)
 
-    # Check if there are any months with coverage threshold lower than the recommended value of 0.8.
-    coverage_threshold_recommended = 0.8
-    if (monthly_coverage < coverage_threshold_recommended).sum() > 0:
-
-        months_fail_coverage_recommended = monthly_coverage[monthly_coverage < coverage_threshold_recommended].dropna()
-        text_months_fail_coverage_recommended = ", ".join(map(str, list(
-            months_fail_coverage_recommended.index.strftime('%b-%Y'))))
-        text_warning_threshold_recommended = 'results may be incorrect when ' \
-                                             'you use an insufficient data coverage threshold, i.e. below our ' \
-                                             'recommended value of 0.8. Some months may have very little data ' \
-                                             'coverage and so may skew the statistics. For the provided dataset the ' \
-                                             'monthly coverage for {} is lower ' \
-                                             'than 0.8.'.format(text_months_fail_coverage_recommended)
-    else:
-        text_warning_threshold_recommended = ''
-
+    # Remove months with coverage threshold lower than the input coverage_threshold.
     if (monthly_coverage < coverage_threshold).sum() > 0:
         # apply monthly coverage threshold provided as input to the function
         months_fail_coverage = monthly_coverage[monthly_coverage < coverage_threshold].dropna()
-        text_warning = 'These months are filtered out for deriving the seasonally adjusted frequency table.'
         # remove data for months with coverage lower than the coverage_threshold
         tmp_var_series = pd.DataFrame(var_series)
         tmp_var_series['Months'] = list(var_series.index.strftime("%Y-%m"))
@@ -713,14 +698,40 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
             months_fail_coverage.index.strftime('%Y-%m'))).set_index(index_name).iloc[:, 0]
 
         text_months_fail = ", ".join(map(str, list(months_fail_coverage.index.strftime('%b-%Y'))))
-        if (monthly_coverage < coverage_threshold_recommended).sum() > 0:
-            subtext = "The "
-        text_msg_out = '\n\nNote: The monthly coverage for {} is lower than {}. {} {}{}\n'.format(
-            text_months_fail, coverage_threshold, text_warning, subtext, text_warning_threshold_recommended)
+        text_warning = 'These months are filtered out for deriving the seasonally adjusted frequency table.'
+    else:
+        text_months_fail = ''
+        text_warning = ''
 
-    elif text_warning_threshold_recommended != '':
-        text_msg_out = '\n\nNote: The seasonally adjusted frequency table {}\n'.format(
-            text_warning_threshold_recommended)
+    # Check if there are any months with coverage threshold lower than the recommended value of 0.8.
+    coverage_threshold_recommended = 0.8
+    if (coverage_threshold < coverage_threshold_recommended) and \
+            (monthly_coverage < coverage_threshold_recommended).sum() > 0:
+
+        text_warning_threshold_recommended = 'results may be incorrect when ' \
+                                             'you use an insufficient data coverage threshold, i.e. below our ' \
+                                             'recommended value of 0.8. Some months may have very little data ' \
+                                             'coverage and so may skew the statistics.'
+    else:
+        text_warning_threshold_recommended = ''
+
+    # Generate text for coverage_threshold warning message raised.
+    if coverage_threshold < coverage_threshold_recommended:
+        if (monthly_coverage < coverage_threshold).sum() > 0 and (
+                monthly_coverage < coverage_threshold_recommended).sum() > 0:
+            text_msg_out = '\n\nNote: The monthly coverage for {} is lower than the coverage threshold value of ' \
+                           '{}. {}\n\nThe {}'.format(text_months_fail, coverage_threshold, text_warning,
+                                                     text_warning_threshold_recommended)
+        elif (monthly_coverage < coverage_threshold).sum() == 0 and (
+                monthly_coverage < coverage_threshold_recommended).sum() > 0:
+            text_msg_out = '\n\nNote: A coverage threshold value of {} is set.' \
+                           '\n\nThe seasonally adjusted frequency table {}'.format(coverage_threshold,
+                                                                                   text_warning_threshold_recommended)
+        else:
+            text_msg_out = None
+    elif coverage_threshold >= coverage_threshold_recommended and (monthly_coverage < coverage_threshold).sum() > 0:
+        text_msg_out = '\n\nNote: The monthly coverage for {} is lower than the coverage threshold value of {}.' \
+                       ' {}'.format(text_months_fail, coverage_threshold, text_warning)
 
     # check that var_series dataset has data for all calendar months
     if len(var_series.index.month.unique()) < 12:
@@ -980,14 +991,15 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                                                                                 sectors=sectors,
                                                                                 direction_bin_array=direction_bin_array,
                                                                                 direction_bin_labels=None,
-                                                                                aggregation_method=agg_method
-                                                                                ).replace(np.nan, 0.0)
+                                                                                aggregation_method=agg_method)
+        result = result.replace(np.nan, 0.0)
     else:
         result = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_series,
                                                 direction_series=direction_series, var_bin_array=var_bin_array,
                                                 sectors=sectors, direction_bin_array=direction_bin_array,
                                                 direction_bin_labels=None, aggregation_method=agg_method
                                                 ).replace(np.nan, 0.0)
+        text_msg_out = None
     if plot_bins is None:
         plot_bins = [0, 3, 6, 9, 12, 15, 41]
         if plot_labels is None:
@@ -998,6 +1010,9 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     # Creating a graph before renaming the direction labels, to help identify sectors while plotting
     graph = bw_plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
                                            percent_symbol=freq_as_percentage)
+    if text_msg_out:
+        word_list = textwrap.TextWrapper(width=graph.get_size_inches()[0]*10).wrap(text=text_msg_out)
+        graph.text(.5, 10**-len(word_list), "\n ".join(map(str, word_list)), ha='center', fontsize=14)
 
     if direction_bin_labels is not None:
         result.columns = direction_bin_labels
