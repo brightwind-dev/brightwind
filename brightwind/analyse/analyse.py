@@ -1051,8 +1051,8 @@ class TI:
                  percentile=90, IEC_class=None, return_data=False):
         """
         Accepts a wind speed series and its standard deviation, calculates turbulence intensity (TI) and returns a
-        scatter plot of TI versus speed and the distribution of TI by speed bins. Note that speed values lower than
-        3 m/s are filtered out when deriving the TI values.
+        scatter plot of TI versus speed and the distribution of TI by speed bins if return_data is set to True.
+        Note that speed values lower than 3 m/s are filtered out when deriving the TI values.
 
         :param wspd:                Wind speed data series
         :type wspd:                 pandas.Series
@@ -1099,9 +1099,14 @@ class TI:
             display(fig_ti_dist)
 
             # Plot TI distribution by speed bins giving as input speed_bin_array and speed_bin_labels and return TI
-            # distribution table
+            # distribution by speed table
             fig_ti_dist, ti_dist = bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, speed_bin_array=[1,3,6,9,15],
                                                   speed_bin_labels=[1.5,4.5,7.5,12], return_data=True)
+            display(fig_ti_dist)
+            display(ti_dist)
+
+            fig_ti_dist, ti_dist = bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, speed_bin_array=[0, 10, 14, 51],
+                                                  speed_bin_labels=['low', 'mid', 'high'], return_data=True)
             display(fig_ti_dist)
             display(ti_dist)
 
@@ -1131,41 +1136,48 @@ class TI:
         ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
         ti_dist = pd.concat([
             dist(var_to_bin=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
-                 bins=speed_bin_array, bin_labels=speed_bin_labels,
+                 bins=speed_bin_array, bin_labels=None,
                  aggregation_method='mean', return_data=True)[-1].rename("Mean_TI"),
             dist(var_to_bin=ti['Turbulence_Intensity'],
                  var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array,
-                 bin_labels=speed_bin_labels,
+                 bin_labels=None,
                  aggregation_method='count', return_data=True)[-1].rename("TI_Count"),
             dist(var_to_bin=ti['Turbulence_Intensity'],
                  var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array,
-                 bin_labels=speed_bin_labels,
+                 bin_labels=None,
                  aggregation_method=lambda x: np.percentile(x, q=percentile),
                  return_data=True)[-1].rename("Rep_TI"),
             dist(var_to_bin=ti['Turbulence_Intensity'],
                  var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array,
-                 bin_labels=speed_bin_labels,
+                 bin_labels=None,
                  aggregation_method='std', return_data=True)[-1].rename("TI_2Sigma")], axis=1, join='inner')
         categ_index = dist(var_to_bin=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
                            bins=speed_bin_array, aggregation_method='mean', return_data=True)[-1].index
         num_index = [i.mid for i in categ_index]
         ti_dist.loc[:, 'Char_TI'] = ti_dist.loc[:, 'Mean_TI'] + (ti_dist.loc[:, 'TI_2Sigma'] / num_index)
-        # ti_dist.loc[0, 'Char_TI'] = 0
+
         ti_dist.index.rename('Speed Bin', inplace=True)
-        # return ti_dist
+        ti_dist.index = [i.mid for i in ti_dist.index]
+        graph_ti_dist_by_speed = bw_plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class)
+
+        # replace index of ti_dist with input speed_bin_labels only after generating the plot
+        if speed_bin_labels:
+            ti_dist.index = speed_bin_labels
+
         if return_data:
-            return bw_plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class), ti_dist.dropna(how='any')
-        return bw_plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class)
+            return graph_ti_dist_by_speed, ti_dist.dropna(how='any')
+        return graph_ti_dist_by_speed
 
     @staticmethod
     def by_sector(wspd, wspd_std, wdir, min_speed=0, sectors=12, direction_bin_array=None,
                   direction_bin_labels=None, return_data=False):
         """
-        Accepts a wind speed series, its standard deviation and a direction series, calculates turbulence intensity (TI)
-        and returns the distribution of TI by sector
+        Accepts a wind speed series, its standard deviation and a direction series. Calculates turbulence intensity (TI)
+        and returns a plot of TI by sector and the distribution of TI by sector if return_data is set to True.
+        Note that speed values lower than 3 m/s are filtered out when deriving the TI values.
 
         :param wspd:                    Wind speed data series
         :type wspd:                     pandas.Series
@@ -1178,8 +1190,8 @@ class TI:
         :param sectors:                 Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
         :type sectors:                  int
         :param direction_bin_array:     (Optional) Array of wind speeds where adjacent elements of array form a bin.
-                                        To change default behaviour of first sector centered at 0 assign an
-                                        array of bins to this
+                                        This overwrites the sectors. To change default behaviour of first sector
+                                        centered at 0 assign an array of bins to this
         :type direction_bin_array:      numpy.array or list
         :param direction_bin_labels:    (Optional) you can specify an array of labels to be used for the bins.
                                         Default is using string labels of format '30-90'
@@ -1194,7 +1206,38 @@ class TI:
 
         :rtype:                         matplotlib.figure.Figure, pandas.DataFrame
 
+        **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_csv(bw.demo_datasets.demo_data)
+
+            # Plot TI distribution by sector using default inputs
+            fig_ti_dist = bw.TI.by_sector(data[['Spd80mN']], data[['Spd80mNStd']], data[['Dir78mS']])
+
+            display(fig_ti_dist)
+
+            # Plot TI distribution by sector giving as input min_speed and sectors and return TI
+            # distribution by sector table
+            fig_ti_dist, ti_dist = bw.TI.by_sector(data.Spd80mN, data.Spd80mNStd, data.Dir78mS, min_speed=4, sectors=6,
+                                                  return_data=True)
+            display(fig_ti_dist)
+            display(ti_dist)
+
+            # Plot TI distribution by sector giving as input direction_bin_array and direction_bin_labels. Return TI
+            # distribution by sector table
+            fig_ti_dist, ti_dist = bw.TI.by_sector(data.Spd80mN, data.Spd80mNStd, data.Dir78mS,
+                                                   direction_bin_array=[0,90,130,200,360],
+                                                   direction_bin_labels=['northerly','easterly','southerly','westerly'],
+                                                   return_data=True)
+            display(fig_ti_dist)
+            display(ti_dist)
+
         """
+
+        wspd = _convert_df_to_series(wspd)
+        wspd_std = _convert_df_to_series(wspd_std)
+        wdir = _convert_df_to_series(wdir)
+
         ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std'), wdir.rename('wdir')], axis=1,
                        join='inner')
         ti = ti[ti['wspd'] >= min_speed]
@@ -1203,20 +1246,26 @@ class TI:
             dist_by_dir_sector(var_series=ti['Turbulence_Intensity'],
                                direction_series=ti['wdir'],
                                sectors=sectors, direction_bin_array=direction_bin_array,
-                               direction_bin_labels=direction_bin_labels,
+                               direction_bin_labels=None,
                                aggregation_method='mean', return_data=True)[-1].rename("Mean_TI"),
             dist_by_dir_sector(var_series=ti['Turbulence_Intensity'],
                                direction_series=ti['wdir'],
                                sectors=sectors, direction_bin_array=direction_bin_array,
-                               direction_bin_labels=direction_bin_labels,
+                               direction_bin_labels=None,
                                aggregation_method='count', return_data=True)[-1].rename("TI_Count")
         ], axis=1, join='outer')
 
         ti_dist.index.rename('Direction Bin', inplace=True)
+        graph_ti_dist_by_sector = bw_plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
+
+        # replace index of ti_dist with input direction_bin_labels only after generating the plot
+        if direction_bin_labels:
+            ti_dist.index = direction_bin_labels
+
         if return_data:
-            return bw_plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist), ti_dist.dropna(how='all')
+            return graph_ti_dist_by_sector, ti_dist.dropna(how='all')
         else:
-            return bw_plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
+            return graph_ti_dist_by_sector
 
     @staticmethod
     def twelve_by_24(wspd, wspd_std, return_data=False, var_name_label='Turbulence Intensity'):
