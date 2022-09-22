@@ -239,17 +239,85 @@ def test_freq_distribution():
 
 
 def test_ti_by_speed():
+
+    test_ti_by_speed_bin_array = {'Mean_TI': {4.5: 0.15124581667455453,
+                                              7.5: 0.13158122759240676,
+                                              12.0: 0.12473334724384767},
+                                  'TI_Count': {4.5: 25027, 7.5: 27213, 12.0: 26437},
+                                  'Rep_TI': {4.5: 0.22572568437604773,
+                                             7.5: 0.1881407118736615,
+                                             12.0: 0.16969818181818183},
+                                  'TI_2Sigma': {4.5: 0.05911507994665081,
+                                                7.5: 0.044441958424280635,
+                                                12.0: 0.03520805434851466},
+                                  'Char_TI': {4.5: 0.16438250110714359,
+                                              7.5: 0.13750682204897752,
+                                              12.0: 0.12766735177289057}}
+
+    test_ti_by_speed_bin_array2 = {'Mean_TI': {'low': 0.13944474768114679,
+                                               'mid': 0.12372651374784537,
+                                               'high': 0.12254109581590693},
+                                   'TI_Count': {'low': 59288, 'mid': 17195, 'high': 6663},
+                                   'Rep_TI': {'low': 0.20381879897546248,
+                                              'mid': 0.1673447365400069,
+                                              'high': 0.16159546015544596},
+                                   'TI_2Sigma': {'low': 0.0516085535560296,
+                                                 'mid': 0.0341280596615336,
+                                                 'high': 0.029851100229302402},
+                                   'Char_TI': {'low': 0.1497664583923527,
+                                               'mid': 0.12657051871963984,
+                                               'high': 0.12345959120757777}}
+
+    test_ti_by_speed_60 = {'Mean_TI':  {3: 0.17129148712660225,
+                                        4: 0.15753962700071988,
+                                        5: 0.14482158443013746,
+                                        6: 0.13641813322761087,
+                                        7: 0.1325670736954525},
+                           'TI_Count': {3: 3429, 4: 7963, 5: 8852, 6: 9519, 7: 9594},
+                           'Rep_TI':   {3: 0.17543035254262307,
+                                        4: 0.16245464044034938,
+                                        5: 0.15040443470563478,
+                                        6: 0.1418432505128954,
+                                        7: 0.13854835151131448},
+                           'TI_2Sigma': {3: 0.06698115776542371,
+                                         4: 0.061226153615559394,
+                                         5: 0.054828671650069015,
+                                         6: 0.04931461395056968,
+                                         7: 0.045463561091098434},
+                           'Char_TI':  {3: 0.1936185397150768,
+                                        4: 0.17284616540460973,
+                                        5: 0.15578731876015126,
+                                        6: 0.14463723555270583,
+                                        7: 0.139061868137038}}
+
+    # Test plot TI distribution by speed bins using default inputs
     bw.TI.by_speed(DATA[['Spd80mN']], DATA[['Spd80mNStd']])
     bw.TI.by_speed(DATA.Spd80mN, DATA.Spd80mNStd)
 
-    # 60 percentile
-    bw.TI.by_speed(DATA.Spd80mN, DATA.Spd80mNStd, percentile=60, return_data=True)
+    # Test plot TI distribution by speed bins giving as input speed_bin_array and speed_bin_labels and return data
+    fig_ti_by_speed, ti_by_speed = bw.TI.by_speed(DATA.Spd80mN, DATA.Spd80mNStd, speed_bin_array=[1, 3, 6, 9, 15],
+                                                  speed_bin_labels=[1.5, 4.5, 7.5, 12], return_data=True)
+    ti_by_speed = ti_by_speed.to_dict()
+    for k, key in enumerate(ti_by_speed):
+        assert key == list(test_ti_by_speed_bin_array.keys())[k]
+        for sub_key in ti_by_speed[key]:
+            assert round(ti_by_speed[key][sub_key], 5) == round(test_ti_by_speed_bin_array[key][sub_key], 5)
 
-    # bin_array
-    bw.TI.by_speed(DATA.Spd80mN, DATA.Spd80mNStd, speed_bin_array=[0, 10, 14, 51],
-                   speed_bin_labels=['low', 'mid', 'high'], return_data=True)
-    # assert TI_by_speed.index == ['low', 'mid', 'high']
-    assert True
+    fig_ti_by_speed, ti_by_speed = bw.TI.by_speed(DATA.Spd80mN, DATA.Spd80mNStd, speed_bin_array=[0, 10, 14, 51],
+                                                  speed_bin_labels=['low', 'mid', 'high'], return_data=True)
+    ti_by_speed = ti_by_speed.to_dict()
+    for k, key in enumerate(ti_by_speed):
+        assert key == list(test_ti_by_speed_bin_array2.keys())[k]
+        for sub_key in ti_by_speed[key]:
+            assert round(ti_by_speed[key][sub_key], 5) == round(test_ti_by_speed_bin_array2[key][sub_key], 5)
+
+    # 60 percentile
+    fig_ti_by_speed, ti_by_speed = bw.TI.by_speed(DATA.Spd80mN, DATA.Spd80mNStd, percentile=60, return_data=True)
+    ti_by_speed = ti_by_speed.iloc[0:5].to_dict()
+    for k, key in enumerate(ti_by_speed):
+        assert key == list(test_ti_by_speed_60.keys())[k]
+        for sub_key in ti_by_speed[key]:
+            assert round(ti_by_speed[key][sub_key], 5) == round(test_ti_by_speed_60[key][sub_key], 5)
 
 
 def test_calc_air_density():
