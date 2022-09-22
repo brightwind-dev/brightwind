@@ -1040,14 +1040,14 @@ def dist_12x24(var_series, aggregation_method='mean', var_name_label=None, retur
 class TI:
 
     @staticmethod
-    def calc(wspd, wspd_std):
+    def calc(wspd, wspd_std, min_speed=3):
         wspd = _convert_df_to_series(wspd).dropna()
         wspd_std = _convert_df_to_series(wspd_std).dropna()
-        ti = pd.concat([wspd[wspd > 3].rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
+        ti = pd.concat([wspd[wspd > min_speed].rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
         return ti['wspd_std'] / ti['wspd']
 
     @staticmethod
-    def by_speed(wspd, wspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
+    def by_speed(wspd, wspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41), min_speed=3,
                  percentile=90, IEC_class=None, return_data=False):
         """
         Accepts a wind speed series and its standard deviation, calculates turbulence intensity (TI) and returns a
@@ -1068,6 +1068,8 @@ class TI:
                                     interval equal to 1 (ie 0, 1, 2, 3 ..). The length of the speed_bin_labels array
                                     must be equal to len(speed_bin_array) - 1
         :type speed_bin_labels:     list, range or numpy.array
+        :param min_speed:           Set the minimum wind speed. Default is 3 m/s.
+        :type min_speed:            float
         :param percentile:          The percentile representative of TI (see return for more information)
         :type percentile:           float, int
         :param IEC_class:           Default value is None, this means that default IEC class 2005 is used. For custom
@@ -1133,7 +1135,7 @@ class TI:
         wspd = _convert_df_to_series(wspd)
         wspd_std = _convert_df_to_series(wspd_std)
         ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
-        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
+        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'], min_speed=min_speed)
         ti_dist = pd.concat([
             dist(var_to_bin=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array, bin_labels=None,
@@ -1185,7 +1187,7 @@ class TI:
         :type wspd_std:                 pandas.Series
         :param wdir:                    Wind direction series
         :type wdir:                     pandas.Series
-        :param min_speed:               Set the minimum wind speed.
+        :param min_speed:               Set the minimum wind speed. Default is 3 m/s.
         :type min_speed:                float
         :param sectors:                 Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
         :type sectors:                  int
