@@ -322,6 +322,17 @@ def test_ti_by_speed():
 
 def test_ti_by_sector():
 
+    test_ti_by_sector0 = {'Mean_TI': {'345.0-15.0': 0.13583575955142652,
+                                      '15.0-45.0': 0.11667924414431009,
+                                      '45.0-75.0': 0.16933195767316922,
+                                      '75.0-105.0': 0.15813582737310894,
+                                      '105.0-135.0': 0.11642412861819129},
+                          'TI_Count': {'345.0-15.0': 2052,
+                                       '15.0-45.0': 3783,
+                                       '45.0-75.0': 2688,
+                                       '75.0-105.0': 3548,
+                                       '105.0-135.0': 3694}}
+
     test_ti_by_sector1 = {'Mean_TI': {'330.0-30.0': 0.13162127717869374,
                                       '30.0-90.0': 0.150479856228039,
                                       '90.0-150.0': 0.12436564388457913,
@@ -355,7 +366,13 @@ def test_ti_by_sector():
 
     # Test plot TI distribution by sector using default inputs
     bw.TI.by_sector(DATA[['Spd80mN']], DATA[['Spd80mNStd']], DATA[['Dir78mS']])
-    bw.TI.by_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS)
+
+    fig_ti_dist, ti_dist_by_sector = bw.TI.by_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS, return_data=True)
+    ti_dist_by_sector = ti_dist_by_sector.iloc[0:5].to_dict()
+    for k, key in enumerate(ti_dist_by_sector):
+        assert key == list(test_ti_by_sector0.keys())[k]
+        for sub_key in ti_dist_by_sector[key]:
+            assert round(ti_dist_by_sector[key][sub_key], 5) == round(test_ti_by_sector0[key][sub_key], 5)
 
     # Test plot TI distribution by sector giving as input min_speed and sectors and return TI
     # distribution by sector table
