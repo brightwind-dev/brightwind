@@ -320,6 +320,75 @@ def test_ti_by_speed():
             assert round(ti_by_speed[key][sub_key], 5) == round(test_ti_by_speed_60[key][sub_key], 5)
 
 
+def test_ti_by_sector():
+
+    test_ti_by_sector1 = {'Mean_TI': {'330.0-30.0': 0.13162127717869374,
+                                      '30.0-90.0': 0.150479856228039,
+                                      '90.0-150.0': 0.12436564388457913,
+                                      '150.0-210.0': 0.13782265164954294,
+                                      '210.0-270.0': 0.129002769976217},
+                          'TI_Count': {'330.0-30.0': 4498,
+                                       '30.0-90.0': 6896,
+                                       '90.0-150.0': 6247,
+                                       '150.0-210.0': 17391,
+                                       '210.0-270.0': 19893}}
+
+    test_ti_by_sector2 = {'Mean_TI': {'330.0-30.0': 0.1223750677509429,
+                                      '30.0-90.0': 0.14552262920219694,
+                                      '90.0-150.0': 0.11387977380581642,
+                                      '150.0-210.0': 0.13321321727328167,
+                                      '210.0-270.0': 0.126149780193931},
+                          'TI_Count': {'330.0-30.0': 3193,
+                                       '30.0-90.0': 4672,
+                                       '90.0-150.0': 4717,
+                                       '150.0-210.0': 14525,
+                                       '210.0-270.0': 16995}}
+
+    test_ti_by_sector3 = {'Mean_TI': {'northerly': 0.14386005120623407,
+                                      'easterly': 0.12732598484437524,
+                                      'southerly': 0.13147666075903275,
+                                      'westerly': 0.13579682449004113},
+                          'TI_Count': {'northerly': 9700,
+                                       'easterly': 4645,
+                                       'southerly': 14454,
+                                       'westerly': 40808}}
+
+    # Test plot TI distribution by sector using default inputs
+    bw.TI.by_sector(DATA[['Spd80mN']], DATA[['Spd80mNStd']], DATA[['Dir78mS']])
+    bw.TI.by_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS)
+
+    # Test plot TI distribution by sector giving as input min_speed and sectors and return TI
+    # distribution by sector table
+    fig_ti_dist, ti_dist_by_sector = bw.TI.by_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS, min_speed=2,
+                                                     sectors=6, return_data=True)
+    ti_dist_by_sector = ti_dist_by_sector.iloc[0:5].to_dict()
+    for k, key in enumerate(ti_dist_by_sector):
+        assert key == list(test_ti_by_sector1.keys())[k]
+        for sub_key in ti_dist_by_sector[key]:
+            assert round(ti_dist_by_sector[key][sub_key], 5) == round(test_ti_by_sector1[key][sub_key], 5)
+
+    fig_ti_dist, ti_dist_by_sector = bw.TI.by_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS, min_speed=5,
+                                                     sectors=6, return_data=True)
+    ti_dist_by_sector = ti_dist_by_sector.iloc[0:5].to_dict()
+    for k, key in enumerate(ti_dist_by_sector):
+        assert key == list(test_ti_by_sector2.keys())[k]
+        for sub_key in ti_dist_by_sector[key]:
+            assert round(ti_dist_by_sector[key][sub_key], 5) == round(test_ti_by_sector2[key][sub_key], 5)
+
+    # Test plot TI distribution by sector giving as input direction_bin_array and direction_bin_labels. Return TI
+    # distribution by sector table
+    fig_ti_dist, ti_dist_by_sector = bw.TI.by_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS,
+                                                     direction_bin_array=[0, 90, 130, 200, 360],
+                                                     direction_bin_labels=['northerly', 'easterly', 'southerly',
+                                                                           'westerly'],
+                                                     return_data=True)
+    ti_dist_by_sector = ti_dist_by_sector.iloc[0:5].to_dict()
+    for k, key in enumerate(ti_dist_by_sector):
+        assert key == list(test_ti_by_sector3.keys())[k]
+        for sub_key in ti_dist_by_sector[key]:
+            assert round(ti_dist_by_sector[key][sub_key], 5) == round(test_ti_by_sector3[key][sub_key], 5)
+
+
 def test_calc_air_density():
     bw.calc_air_density(DATA[['T2m']], DATA[['P2m']])
     bw.calc_air_density(DATA.T2m, DATA.P2m)
