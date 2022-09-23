@@ -351,6 +351,12 @@ def test_ti_by_speed():
         for sub_key in ti_by_speed[key]:
             assert round(ti_by_speed[key][sub_key], 5) == round(test_ti_by_speed_60[key][sub_key], 5)
 
+    # Test plot TI distribution by speed bins and give as input IEC_class
+    IEC_class = pd.DataFrame({'windspeed': list(range(0, 26)),
+                              'IEC Class A': list(0.16 * (0.75 + (5.6 / np.array(range(0, 26)))))}
+                             ).replace(np.inf, 0)
+    bw.TI.by_speed(DATA.Spd80mN, DATA.Spd80mNStd, IEC_class=IEC_class)
+
 
 def test_ti_by_sector():
 
