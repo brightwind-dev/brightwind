@@ -769,39 +769,41 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
                               sectors=12, direction_bin_array=None, direction_bin_labels=None,
                               aggregation_method='mean', return_data=False):
     """
-    Calculates a distribution matrix of a variable against another variable and wind direction. Returns a plot
-    of the distribution matrix.
+    Calculates a distribution matrix of a variable against another variable and wind direction. This will plot a
+    heatmap by default or if return_data=True, it will return the plot and the frequency table.
 
-    :param var_series: Series of variable whose distribution is calculated
-    :type var_series: pandas.Series
+    :param var_series:           Series of variable whose distribution is calculated
+    :type var_series:            pandas.Series
     :param var_to_bin_by_series: Series of the variable to bin by.
-    :type var_to_bin_by_series: pandas.Series
-    :param direction_series: Series of wind directions to bin by. Must be between [0-360].
-    :type direction_series: pandas.Series
-    :param num_bins: Number of equally spaced bins of var_to_bin_by_series to be used. If this and var_to_bin_by_array
-                     are set to None, equal bins of unit 1 will be used.
-    :type num_bins: int
-    :param var_to_bin_by_array: List of numbers where adjacent elements of array form a bin. For instance, for bins
-                                [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]. This will override num_bins if set.
-    :type var_to_bin_by_array: list
+    :type var_to_bin_by_series:  pandas.Series
+    :param direction_series:     Series of wind directions to bin by. Must be between [0-360].
+    :type direction_series:      pandas.Series
+    :param num_bins:             Number of equally spaced bins or var_to_bin_by_series to be used. If this and
+                                 var_to_bin_by_array are set to None, equal bins of unit 1 will be used.
+    :type num_bins:              int
+    :param var_to_bin_by_array:  List of numbers where adjacent elements of array form a bin. For instance, for bins
+                                 [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]. This will override num_bins if set.
+    :type var_to_bin_by_array:   list(float)
     :param var_to_bin_by_labels: Optional, an array of labels to use for var_to_bin_by.
-    :type var_to_bin_by_labels: list
-    :param sectors: Number of sectors to bin direction to. The first sector is centered at 0 by default. To change that
-                    behaviour specify direction_bin_array. Sectors will be overwritten if direction_bin_array is set.
-    :type sectors: int
-    :param direction_bin_array: To add custom bins for direction sectors, overwrites sectors. For instance,
-                                for direction bins [0,120), [120, 215), [215, 360) the list would be [0, 120, 215, 360].
-    :type direction_bin_array: list
+    :type var_to_bin_by_labels:  list(str)
+    :param sectors:              Number of sectors to bin direction to. The first sector is centered at 0 by default. To
+                                 change that behaviour specify direction_bin_array. Sectors will be overwritten if
+                                 direction_bin_array is set.
+    :type sectors:               int
+    :param direction_bin_array:  To add custom bins for direction sectors, overwrites sectors. For instance,
+                                 for direction bins [0,120), [120, 215), [215, 360) the list would be [0, 120, 215, 360].
+    :type direction_bin_array:   list(float)
     :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. Uses string
                                  labels of the format '30-90' by default.
-    :type direction_bin_labels: list(float), list(str)
-    :param aggregation_method: Statistical method used to find distribution it can be mean, max, min, std, count,
-                               %frequency or a custom function. Computes frequency in percentages by default.
-    :type aggregation_method: str
-    :param return_data: If True returns the distribution matrix dataframe along with the plot.
-    :type return_data: bool
-    :return: A distribution matrix for the given variable
-    :rtype: pandas.DataFrame
+    :type direction_bin_labels:  list(float), list(str)
+    :param aggregation_method:   Statistical method used to find distribution it can be mean, max, min, std, count,
+                                 %frequency or a custom function. Computes frequency in percentages by default.
+    :type aggregation_method:    str
+    :param return_data:          If True returns the distribution matrix dataframe along with the plot.
+    :type return_data:           bool
+    :return:                     A heatmap plot of the distribution. Also distribution matrix for the given variable if
+                                 return_data is True
+    :rtype:                      plot or tuple(plot, pandas.DataFrame)
 
     **Example usage**
     ::
