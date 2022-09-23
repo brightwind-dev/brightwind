@@ -1069,9 +1069,9 @@ class TI:
                                     must be equal to len(speed_bin_array) - 1
         :type speed_bin_labels:     list, range or numpy.array
         :param min_speed:           Set the minimum wind speed. Default is 3 m/s.
-        :type min_speed:            float
+        :type min_speed:            integer or float
         :param percentile:          The percentile representative of TI (see return for more information)
-        :type percentile:           float, int
+        :type percentile:           float, integer
         :param IEC_class:           Default value is None, this means that default IEC class 2005 is used. For custom
                                     class pass a DataFrame. Note: we have removed option to include IEC Class 1999 as
                                     no longer appropriate. This may need to be placed in a separate function when
@@ -1154,7 +1154,7 @@ class TI:
                  var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array,
                  bin_labels=None,
-                 aggregation_method=lambda x: np.percentile(x, q=percentile),
+                 aggregation_method=lambda x: x.quantile(percentile/100),
                  return_data=True)[-1].rename("Rep_TI"),
             dist(var_to_bin=ti['Turbulence_Intensity'],
                  var_to_bin_against=ti['wspd'],
@@ -1193,9 +1193,9 @@ class TI:
         :param wdir:                    Wind direction series
         :type wdir:                     pandas.Series
         :param min_speed:               Set the minimum wind speed. Default is 3 m/s.
-        :type min_speed:                float
+        :type min_speed:                integer or float
         :param sectors:                 Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
-        :type sectors:                  int
+        :type sectors:                  integer
         :param direction_bin_array:     (Optional) Array of wind speeds where adjacent elements of array form a bin.
                                         This overwrites the sectors. To change default behaviour of first sector
                                         centered at 0 assign an array of bins to this
