@@ -1072,10 +1072,12 @@ class TI:
         :type min_speed:            integer or float
         :param percentile:          The percentile representative of TI (see return for more information)
         :type percentile:           float, integer
-        :param IEC_class:           Default value is None, this means that default IEC class 2005 is used. For custom
-                                    class pass a DataFrame. Note: we have removed option to include IEC Class 1999 as
-                                    no longer appropriate. This may need to be placed in a separate function when
-                                    updated IEC standard is released
+        :param IEC_class:           Default value is None, this means that default IEC class 2005 is used. Note: we have
+                                    removed option to include IEC Class 1999 as no longer appropriate. This may need to
+                                    be placed in a separate function when updated IEC standard is released. For custom
+                                    class give as input a pandas.DataFrame having first column name as 'windspeed' and
+                                    other columns reporting the results of applying the IEC class formula for a range
+                                    of wind speeds. See format as shown in example usage.
         :type IEC_class:            None or pandas.DataFrame
         :param return_data:         Set to True if you want the data returned.
         :type return_data:          bool
