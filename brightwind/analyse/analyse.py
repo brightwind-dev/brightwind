@@ -1043,7 +1043,7 @@ class TI:
     def calc(wspd, wspd_std, min_speed=3):
         wspd = _convert_df_to_series(wspd).dropna()
         wspd_std = _convert_df_to_series(wspd_std).dropna()
-        ti = pd.concat([wspd[wspd > min_speed].rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
+        ti = pd.concat([wspd[wspd >= min_speed].rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
         return ti['wspd_std'] / ti['wspd']
 
     @staticmethod
@@ -1052,7 +1052,7 @@ class TI:
         """
         Accepts a wind speed series and its standard deviation, calculates turbulence intensity (TI) and returns a
         scatter plot of TI versus speed and the distribution of TI by speed bins if return_data is set to True.
-        Note that speed values lower than 3 m/s are filtered out when deriving the TI values.
+        Note that speed values lower than the input min_speed are filtered out when deriving the TI values.
 
         :param wspd:                Wind speed data series
         :type wspd:                 pandas.Series
@@ -1109,6 +1109,11 @@ class TI:
 
             fig_ti_dist, ti_dist = bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, speed_bin_array=[0, 10, 14, 51],
                                                   speed_bin_labels=['low', 'mid', 'high'], return_data=True)
+            display(fig_ti_dist)
+            display(ti_dist)
+
+            # Plot TI distribution by speed bins and give as input min_speed
+            fig_ti_dist, ti_dist = bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, min_speed=4, return_data=True)
             display(fig_ti_dist)
             display(ti_dist)
 
@@ -1174,12 +1179,12 @@ class TI:
         return graph_ti_dist_by_speed
 
     @staticmethod
-    def by_sector(wspd, wspd_std, wdir, min_speed=0, sectors=12, direction_bin_array=None,
+    def by_sector(wspd, wspd_std, wdir, min_speed=3, sectors=12, direction_bin_array=None,
                   direction_bin_labels=None, return_data=False):
         """
         Accepts a wind speed series, its standard deviation and a direction series. Calculates turbulence intensity (TI)
         and returns a plot of TI by sector and the distribution of TI by sector if return_data is set to True.
-        Note that speed values lower than 3 m/s are filtered out when deriving the TI values.
+        Note that speed values lower than the input min_speed are filtered out when deriving the TI values.
 
         :param wspd:                    Wind speed data series
         :type wspd:                     pandas.Series
@@ -1242,8 +1247,8 @@ class TI:
 
         ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std'), wdir.rename('wdir')], axis=1,
                        join='inner')
-        ti = ti[ti['wspd'] >= min_speed]
-        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
+
+        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'], min_speed=min_speed)
         ti_dist = pd.concat([
             dist_by_dir_sector(var_series=ti['Turbulence_Intensity'],
                                direction_series=ti['wdir'],
