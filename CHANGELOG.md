@@ -26,6 +26,7 @@ is not equal to the derived temporal resolution.
 _line_colors_, _legend_ and _figure_size_. (Issue #[349](https://github.com/brightwind-dev/brightwind/issues/349)).
 11. In `average_data_by_period()` fixed issue when wind direction average is derived for a period equal to the data resolution period 
 (Issue #[319](https://github.com/brightwind-dev/brightwind/issues/319)).
+12. Fixed bugs for `TI.by_speed` and `TI.by_sector` and added tests. Solved versions issue that were raised from Pandas 1.3.3. (Issue #[317](https://github.com/brightwind-dev/brightwind/issues/317)).
 
 
 ## [2.0.0]
