@@ -19,7 +19,9 @@ is not equal to the derived temporal resolution.
 5. Added subplotting functionality to `sector_ratio` and improved user control of plotting (Issue #[309](https://github.com/brightwind-dev/brightwind/issues/309))
 6. Allow `dist()` function to take a pd.DataFrame so user can plot multiple distributions on the same plot. (Issue #[264](https://github.com/brightwind-dev/brightwind/issues/264))
    1. As part of this added subplotting functionality for bar plots
-7. Added subplotting functionality to `sector_ratio` and improved user control of plotting (Issue #[309](https://github.com/brightwind-dev/brightwind/issues/309)).
+7. Allow 'freq_table()' function to derive a seasonal adjusted frequency distribution if user sets 'seasonal_adjustment' 
+to true. (Issue # [334](https://github.com/brightwind-dev/brightwind/issues/334))
+   1. As part of this, added 'monthly_coverage_threshold' option for the user to ensure good coverage months.
 8. Update to work with matplotlib 3.5.2 and bug fix for plot_freq_distribution and dist functions (Issue #[315](https://github.com/brightwind-dev/brightwind/issues/315)). 
 9. Update to work with numpy>=1.20.0 when pandas=0.25.3. (Issue #[344](https://github.com/brightwind-dev/brightwind/issues/344)). 
 10. Updated `plot_timeseries` to use a subplot function (`_timeseries_subplot`) and added arguments _x_label_, _y_label_, _x_tick_label_angle_, 
@@ -27,6 +29,7 @@ _line_colors_, _legend_ and _figure_size_. (Issue #[349](https://github.com/brig
 11. Address errors and warnings generated for `Shear.TimeOfDay` and `Shear` when pandas >=1.0.0 (Issue #[347](https://github.com/brightwind-dev/brightwind/issues/347)).
 12. In `average_data_by_period()` fixed issue when wind direction average is derived for a period equal to the data resolution period 
 (Issue #[319](https://github.com/brightwind-dev/brightwind/issues/319)).
+
 
 
 ## [2.0.0]
