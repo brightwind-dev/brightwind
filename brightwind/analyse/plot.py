@@ -1406,9 +1406,12 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
     :type wspd_std:     pandas.Series
     :param ti:          DataFrame returned from bw.TI.by_speed()
     :type ti:           pandas.DataFrame
-    :param IEC_class:   Default value is None, this means that default IEC class 2005 is used. For custom class pass
-                        a DataFrame. Note: we have removed option to include IEC Class 1999 as no longer appropriate.
-                        This may need to be placed in a separate function when updated IEC standard is released
+    :param IEC_class:   Default value is None, this means that default IEC class 2005 is used. Note: we have removed
+                        option to include IEC Class 1999 as no longer appropriate. This may need to be placed in a
+                        separate function when updated IEC standard is released. For custom class give as input
+                        a pandas.DataFrame having first column name as 'windspeed' and other columns reporting the
+                        results of applying the IEC class formula for a range of wind speeds. See format as shown in
+                        example usage.
     :type IEC_class:    None or pandas.DataFrame
     :return:            Plots scatter plot of turbulence intensity (TI) & distribution of TI by speed bins
                         derived as for statistics below and the IEC Class curves defined as for IEC_class input.
@@ -1443,18 +1446,22 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
             IEC_class.iloc[n, 1] = 0.16 * (0.75 + (5.6 / n))
             IEC_class.iloc[n, 2] = 0.14 * (0.75 + (5.6 / n))
             IEC_class.iloc[n, 3] = 0.12 * (0.75 + (5.6 / n))
+    elif type(IEC_class) is not pd.DataFrame:
+        raise ValueError("The IEC_class input must be a pandas.DataFrame with format as stated in function docstring.")
+    elif not pd.api.types.is_numeric_dtype(IEC_class.iloc[:, 0]):
+        raise ValueError("The IEC_class input must be a pandas.DataFrame where the first column is 'windspeed' and "
+                         "this needs to have numeric values.")
+
     common_idxs = wspd.index.intersection(wspd_std.index)
     fig, ax = plt.subplots(figsize=(15, 8))
     ax.scatter(wspd.loc[common_idxs], wspd_std.loc[common_idxs] / wspd.loc[common_idxs],
                color=COLOR_PALETTE.primary, alpha=0.3, marker='.')
     ax.plot(ti.index.values, ti.loc[:, 'Mean_TI'].values, color=COLOR_PALETTE.secondary, label='Mean_TI')
     ax.plot(ti.index.values, ti.loc[:, 'Rep_TI'].values, color=COLOR_PALETTE.primary_35, label='Rep_TI')
-    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 1], color=COLOR_PALETTE.tertiary, linestyle='dashed',
-            label=IEC_class.columns[1])
-    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 2], color=COLOR_PALETTE.fourth, linestyle='dashed',
-            label=IEC_class.columns[2])
-    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=COLOR_PALETTE.fifth, linestyle='dashed',
-            label=IEC_class.columns[3])
+    for icol in range(1, len(IEC_class.columns)):
+        ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, icol], color=COLOR_PALETTE.color_list[1+icol],
+                linestyle='dashed', label=IEC_class.columns[icol])
+
     ax.set_xlim(3, 25)
     ax.set_ylim(0, 0.6)
     ax.set_xticks(np.arange(3, 26, 1))
