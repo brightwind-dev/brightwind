@@ -19,6 +19,9 @@ __all__ = ['Shear']
 
 class Shear:
 
+    def __init__(self):
+        pass
+
     class TimeSeries:
 
         def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', max_plot_height=None,
@@ -155,8 +158,8 @@ class Shear:
 
     class TimeOfDay:
 
-        def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', by_month=True, segment_start_time=7,
-                     segments_per_day=24, plot_type='line'):
+        def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', by_month=True, segments_per_day=24,
+                     segment_start_time=7, plot_type='line'):
             """
             Calculates alpha, using the power law, or the roughness coefficient, using the log law, for a wind series
             binned by time of the day and (optionally by) month, depending on the user's inputs. The alpha/roughness
@@ -165,9 +168,9 @@ class Shear:
             :param wspds:               pandas.DataFrame, list of pandas.Series or list of wind speeds to be used for
                                         calculating shear.
             :type wspds:                pandas.DataFrame, list of pandas.Series or list.
-            :param heights:             List of anemometer heights..
+            :param heights:             List of wind speed heights.
             :type heights:              list
-            :param min_speed:           Only speeds higher than this would be considered for calculating shear, default
+            :param min_speed:           Only speeds higher than this will be considered for calculating shear, default
                                         is 3
             :type min_speed:            float
             :param calc_method:         method to use for calculation, either 'power_law' (returns alpha) or 'log_law'
@@ -176,13 +179,13 @@ class Shear:
             :param by_month:            If True, calculate alpha or roughness coefficient values for each daily segment
                                         and month. If False, average alpha or roughness coefficient values are
                                         calculated for each daily segment across all months.
-            :type by_month: Boolean
+            :type by_month:             bool
+            :param segments_per_day:    Number of segments a day is split into. Must be a divisor of 24.
+                                        Default is 24.
+            :type segments_per_day:     int
             :param segment_start_time:  Starting time for first segment. It must be an integer between 0 and 23.
                                         Default is 7.
             :type segment_start_time:   int
-            :param segments_per_day:    Number of segments into which each 24 period is split. Must be a divisor of 24.
-                                        Default is 24.
-            :type segments_per_day:     int
             :param plot_type:           Type of plot to be generated. Options include 'line', 'step' and '12x24'.
                                         Default is 'line'.
             :type plot_type:            str
