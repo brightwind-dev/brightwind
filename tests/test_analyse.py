@@ -342,7 +342,8 @@ def test_ti_by_speed():
         for sub_key in ti_by_speed[key]:
             assert round(ti_by_speed[key][sub_key], 5) == round(test_ti_by_speed_min_speed[key][sub_key], 5)
 
-    # 60 percentile
+    # Percentile test
+    bw.TI.by_speed(DATA.Spd80mN, DATA.Spd80mNStd, percentile=55.8, return_data=True)
     fig_ti_by_speed, ti_by_speed = bw.TI.by_speed(DATA.Spd80mN, DATA.Spd80mNStd, percentile=60, return_data=True)
     ti_by_speed = ti_by_speed.iloc[0:5].to_dict()
     for k, key in enumerate(ti_by_speed):
