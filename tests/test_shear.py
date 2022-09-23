@@ -76,19 +76,55 @@ def test_time_of_day():
     heights = [80, 60, 40]
 
     # Test initialisation
-    shear_by_tod_power_law = bw.Shear.TimeOfDay(anemometers, heights)
-    shear_by_tod_power_law = bw.Shear.TimeOfDay(anemometers, heights, by_month=False)
-    shear_by_tod_log_law = bw.Shear.TimeOfDay(anemometers, heights, calc_method='log_law')
-    shear_by_tod_log_law = bw.Shear.TimeOfDay(anemometers, heights, by_month=False, calc_method='log_law')
+    shear_by_tod_power_law1 = bw.Shear.TimeOfDay(anemometers, heights)
+    assert shear_by_tod_power_law1.alpha['Jan'].round(6).to_list()[0:5] == [
+        0.203745, 0.184187, 0.165501, 0.187611, 0.191284]
+    shear_by_tod_power_law2 = bw.Shear.TimeOfDay(anemometers, heights, by_month=False)
+    assert shear_by_tod_power_law2.alpha['12 Month Average'].round(6).to_list()[0:5] == [
+        0.177502, 0.177530, 0.179454, 0.176763, 0.175528]
+    shear_by_tod_power_law3 = bw.Shear.TimeOfDay(anemometers, heights, segment_start_time=8)
+    assert shear_by_tod_power_law3.alpha['Jan'].round(6).to_list()[5:10] == [
+        0.181648, 0.185978, 0.198043, 0.18695, 0.171201]
+    shear_by_tod_log_law1 = bw.Shear.TimeOfDay(anemometers, heights, calc_method='log_law')
+    assert shear_by_tod_log_law1.roughness['Jan'].round(6).to_list()[0:5] == [
+        0.434260, 0.256827, 0.139850, 0.283929, 0.314679]
+    shear_by_tod_log_law2 = bw.Shear.TimeOfDay(anemometers, heights, by_month=False, calc_method='log_law')
+    assert shear_by_tod_log_law2.roughness['12_month_average'].round(6).to_list()[0:5] == [
+        0.236910, 0.244433, 0.267135, 0.248233, 0.242695]
+    shear_by_tod_log_law3 = bw.Shear.TimeOfDay(anemometers, heights, by_month=False,
+                                               calc_method='log_law', segments_per_day=12)
+    assert shear_by_tod_log_law3.roughness['12_month_average'].round(6).to_list()[5:10] == [
+        0.036186, 0.023027, 0.023544, 0.065522, 0.140514]
 
     # Test attributes
-    assert round(shear_by_tod_power_law.alpha.mean()[0], 4) == 0.1473
-    shear_by_tod_log_law.roughness
+    assert round(shear_by_tod_power_law2.alpha.mean()[0], 4) == 0.1473
+    assert round(shear_by_tod_log_law2.roughness.mean()[0], 4) == 0.1450
 
     # Test apply
-    shear_by_tod_power_law.apply(DATA['Spd80mN'], 40, 60)
-    shear_by_tod_log_law.apply(DATA['Spd80mN'], 40, 60)
-    assert True
+    assert (round(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'] * (
+            60 / 40) ** 0.141777, 5) == round(shear_by_tod_power_law1.apply(DATA['Spd80mN'][
+                                    '2017-11-23 10:10:00':'2017-11-23 10:40:00'], 40, 60), 5)).all()
+    assert (round(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'] * (
+            60/40) ** 0.126957, 5) == round(shear_by_tod_power_law2.apply(DATA['Spd80mN'][
+                                    '2017-11-23 10:10:00':'2017-11-23 10:40:00'], 40, 60), 5)).all()
+    assert (round(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'] * (
+            60 / 40) ** 0.141777, 5) == round(shear_by_tod_power_law1.apply(DATA['Spd80mN'][
+                                    '2017-11-23 10:10:00':'2017-11-23 10:40:00'], 40, 60), 5)).all()
+    assert list(round(shear_by_tod_log_law1.apply(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'],
+                                                  40, 60), 5)) == [11.11452, 9.95853, 9.69339, 8.40695]
+    assert list(round(shear_by_tod_log_law2.apply(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'],
+                                                  40, 60), 5)) == [11.16479, 10.00356, 9.73723, 8.44497]
+
+    # Test errors
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.TimeOfDay(anemometers, heights, segments_per_day=23)
+    assert str(except_info.value) == "'segments_per_day' must be a divisor of 24."
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.TimeOfDay(anemometers, heights, segment_start_time=24)
+    assert str(except_info.value) == "'segment_start_time' must be an integer between 0 and 23 (inclusive)."
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.TimeOfDay(anemometers, heights, by_month=False, plot_type='12x24')
+    assert str(except_info.value) == "12x24 plot is only possible when 'by_month=True'."
 
 
 def test_time_series():

@@ -1465,7 +1465,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
-    bin_edges = pd.Series([])
+    bin_edges = pd.Series([], dtype='float64')
     for i in range(sectors):
         bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])[0])
         if i == sectors - 1:
@@ -1481,7 +1481,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
     scale_to_fit = max(scale_variable) / max(result / 100)
     wind_rose_r = (result / 100) * scale_to_fit
     bin_edges = np.array(bin_edges)
-    width = pd.Series([])
+    width = pd.Series([], dtype='float64')
 
     for i in range(len(bin_edges) - 1):
         if bin_edges[i + 1] == 0:
