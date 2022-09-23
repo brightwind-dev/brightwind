@@ -719,18 +719,18 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
     if coverage_threshold < coverage_threshold_recommended:
         if (monthly_coverage < coverage_threshold).sum() > 0 and (
                 monthly_coverage < coverage_threshold_recommended).sum() > 0:
-            text_msg_out = '\n\nNote: The monthly coverage for {} is lower than the coverage threshold value of ' \
-                           '{}. {}\n\nThe {}'.format(text_months_fail, coverage_threshold, text_warning,
+            text_msg_out = 'Note: The monthly coverage for {} is lower than the coverage threshold value of ' \
+                           '{}. {} The {}'.format(text_months_fail, coverage_threshold, text_warning,
                                                      text_warning_threshold_recommended)
         elif (monthly_coverage < coverage_threshold).sum() == 0 and (
                 monthly_coverage < coverage_threshold_recommended).sum() > 0:
-            text_msg_out = '\n\nNote: A coverage threshold value of {} is set.' \
-                           '\n\nThe seasonally adjusted frequency table {}'.format(coverage_threshold,
+            text_msg_out = 'Note: A coverage threshold value of {} is set.' \
+                           ' The seasonally adjusted frequency table {}'.format(coverage_threshold,
                                                                                    text_warning_threshold_recommended)
         else:
             text_msg_out = None
     elif coverage_threshold >= coverage_threshold_recommended and (monthly_coverage < coverage_threshold).sum() > 0:
-        text_msg_out = '\n\nNote: The monthly coverage for {} is lower than the coverage threshold value of {}.' \
+        text_msg_out = 'Note: The monthly coverage for {} is lower than the coverage threshold value of {}.' \
                        ' {}'.format(text_months_fail, coverage_threshold, text_warning)
 
     # check that var_series dataset has data for all calendar months
