@@ -15,7 +15,7 @@ def _calc_mean_speed_of_freq_tab(freq_tab):
     :return:
     """
     local_freq_tab = freq_tab.copy()
-    local_freq_tab.index = [(interval.right + interval.left)/2 for interval in local_freq_tab.index]
+    local_freq_tab.index = {(interval.right + interval.left)/2 for interval in local_freq_tab.index}
     sum_winds_for_all_sectors = local_freq_tab.sum(axis=1, skipna=True)
     mid_bin_wind_speed = local_freq_tab.index.to_series()
     mean_wind_speed = (sum(sum_winds_for_all_sectors * mid_bin_wind_speed)) / sum(sum_winds_for_all_sectors)
