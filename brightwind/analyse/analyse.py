@@ -872,8 +872,8 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
                direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, seasonal_adjustment=False,
-               coverage_threshold=0.8, var_series_mean_target=None,
-               plot_bins=None, plot_labels=None, return_data=False):
+               coverage_threshold=0.8, var_series_mean_target=None, plot_bins=None, plot_labels=None,
+               return_data=False):
     """
     Create a frequency distribution table, typically of wind speed and wind direction i.e. how often the wind
     blows within a certain wind speed bin and wind direction. This will plot a wind rose by default or if
@@ -895,52 +895,59 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
            of the dataset. This to take into account leap years.
         5) Finally, sum each weighted averaged monthly frequency distribution to get a total distribution
 
-    :param var_series:          Series of variable to be binned
-    :type var_series:           pandas.Series
-    :param direction_series:    Series of wind directions between [0-360]
-    :type direction_series:     pandas.Series
-    :param var_bin_array:       List of numbers where adjacent elements of array form a bin. For instance, for bins
-                                [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]. By default it is [-0.5, 0.5),
-                                [0.5, 1.5], ...., [39.5, 40.5)
-    :type var_bin_array:        list
-    :param var_bin_labels:      Optional, an array of labels to use for variable bins
-    :type var_bin_labels:       list
-    :param sectors:             Number of sectors to bin direction to. The first sector is centered at 0 by default.
-                                To change that behaviour specify direction_bin_array, it overwrites sectors
-    :type sectors:              int
-    :param direction_bin_array: To add custom bins for direction sectors, overwrites sectors. For instance,
-                                for direction bins [0,120), [120, 215), [215, 360) the list would be [0, 120, 215, 360]
-    :type direction_bin_array:  list
-    :param direction_bin_labels: Optional, you can specify an array of labels to be used for the bins. uses string
-                                labels of the format '30-90' by default
-    :type direction_bin_labels: list(float), list(str)
-    :param freq_as_percentage:  Optional, True by default. Returns the frequency as percentages. To return just the
-                                count, set to False
-    :type freq_as_percentage:   bool
-    :param seasonal_adjustment: Optional, False by default. If True, returns the frequency distribution seasonal
-                                adjusted
-    :type seasonal_adjustment:  bool
-    :param coverage_threshold:  In this case monthly coverage threshold. Only applied if `seasonal_adjustment` is True.
-                                Coverage is defined as the ratio of the number of data points present in the month and
-                                the maximum number of data points that a month should have. Example, for 10 minute data
-                                for June, the maximum number of data points is 43,200. But if the number if data points
-                                available is only 30,000 the coverage is 0.69. A coverage_threshold value of 0.8 will
-                                filter out any months with a coverage less than this. Coverage_threshold should be a
-                                value between 0 and 1. If it is None or 0, data is not filtered. Default value is 0.8.
-    :type coverage_threshold:   int, float or None
-    :param plot_bins:           Bins to use for gradient in the rose. Different bins will be plotted with different
-                                color. Chooses six bins to plot by default '0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s',
-                                '13-15 m/s' and '15+ m/s'. If you change var_bin_array this should be changed in
-                                accordance with it.
-    :type plot_bins:            list
-    :param plot_labels:         (Optional) Labels to use for different colors in the rose. By default chooses
-                                the end points of bin
-    :type plot_labels:          list(str), list(float)
-    :param return_data:         Set to True if you want to return the frequency table too.
-    :type return_data:          bool
-    :returns:                   A wind rose plot with gradients in the rose. Also returns a frequency table if
-                                return_data is True
-    :rtype:                     plot or tuple(plot, pandas.DataFrame)
+    :param var_series:              Series of variable to be binned
+    :type var_series:               pandas.Series
+    :param direction_series:        Series of wind directions between [0-360]
+    :type direction_series:         pandas.Series
+    :param var_bin_array:           List of numbers where adjacent elements of array form a bin. For instance, for bins
+                                    [0,3),[3,8),[8,10) the list will be [0, 3, 8, 10]. By default it is [-0.5, 0.5),
+                                    [0.5, 1.5], ...., [39.5, 40.5)
+    :type var_bin_array:            list
+    :param var_bin_labels:          Optional, an array of labels to use for variable bins
+    :type var_bin_labels:           list
+    :param sectors:                 Number of sectors to bin direction to. The first sector is centered at 0 by default.
+                                    To change that behaviour specify direction_bin_array, it overwrites sectors
+    :type sectors:                  int
+    :param direction_bin_array:     To add custom bins for direction sectors, overwrites sectors. For instance,
+                                    for direction bins [0,120), [120, 215), [215, 360) the list would be
+                                    [0, 120, 215, 360]
+    :type direction_bin_array:      list
+    :param direction_bin_labels:    Optional, you can specify an array of labels to be used for the bins. uses string
+                                    labels of the format '30-90' by default
+    :type direction_bin_labels:     list(float), list(str)
+    :param freq_as_percentage:      Optional, True by default. Returns the frequency as percentages. To return just the
+                                    count, set to False
+    :type freq_as_percentage:       bool
+    :param seasonal_adjustment:     Optional, False by default. If True, returns the frequency distribution seasonal
+                                    adjusted
+    :type seasonal_adjustment:      bool
+    :param coverage_threshold:      In this case monthly coverage threshold. Only applied if `seasonal_adjustment`
+                                    is True. Coverage is defined as the ratio of the number of data points present in
+                                    the month and the maximum number of data points that a month should have.
+                                    Example, for 10 minute data for June, the maximum number of data points is 43,200.
+                                    But if the number if data points available is only 30,000 the coverage is 0.69.
+                                    A coverage_threshold value of 0.8 will filter out any months with a coverage less
+                                    than this. Coverage_threshold should be a value between 0 and 1.
+                                    If it is None or 0, data is not filtered. Default value is 0.8.
+    :type coverage_threshold:       int, float or None
+    :param var_series_mean_target:  Target value used to scale the mean of the frequency distribution.
+                                    If None then the mean of the frequency distribution is set to match the mean of
+                                    the input var_series. The mean of frequency distribution will differ respect the
+                                    target value by max 0.01%.
+    :type var_series_mean_target:   int, float or None
+    :param plot_bins:               Bins to use for gradient in the rose. Different bins will be plotted with different
+                                    color. Chooses six bins to plot by default '0-3 m/s', '4-6 m/s', '7-9 m/s',
+                                    '10-12 m/s', '13-15 m/s' and '15+ m/s'. If you change var_bin_array this should be
+                                    changed in accordance with it.
+    :type plot_bins:                list
+    :param plot_labels:             (Optional) Labels to use for different colors in the rose. By default chooses
+                                    the end points of bin
+    :type plot_labels:              list(str), list(float)
+    :param return_data:             Set to True if you want to return the frequency table too.
+    :type return_data:              bool
+    :returns:                       A wind rose plot with gradients in the rose. Also returns a frequency table if
+                                    return_data is True
+    :rtype:                         plot or tuple(plot, pandas.DataFrame)
 
     **Example usage**
     ::
@@ -979,6 +986,13 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         rose, tab = bw.freq_table(data.Spd40mN, data.Dir38mS, direction_bin_array=[0,90,130,200,360],
                                   direction_bin_labels=['northerly','easterly','southerly','westerly'],
                                   plot_bins=[0,8,14,41], plot_labels=None, return_data=True)
+        display(rose)
+        display(freq_table)
+
+        # Custom direction and set target mean frequency distribution
+        rose, tab = bw.freq_table(data.Spd40mN, data.Dir38mS, direction_bin_array=[0,90,130,200,360],
+                                  direction_bin_labels=['northerly','easterly','southerly','westerly'],
+                                  var_series_mean_target=8, plot_bins=[0,8,14,41], plot_labels=None, return_data=True)
         display(rose)
         display(freq_table)
     """
