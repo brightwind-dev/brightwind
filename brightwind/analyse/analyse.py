@@ -932,8 +932,8 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     :type coverage_threshold:       int, float or None
     :param var_series_mean_target:  Target value used to scale the mean of the frequency distribution.
                                     If None then the mean of the frequency distribution is set to match the mean of
-                                    the input var_series. The mean of frequency distribution will differ respect the
-                                    target value by max 0.01%.
+                                    the input var_series. The mean of frequency distribution is considered to match the
+                                    target value when difference is minimum or lower than 0.01 %.
     :type var_series_mean_target:   int, float or None
     :param plot_bins:               Bins to use for gradient in the rose. Different bins will be plotted with different
                                     color. Chooses six bins to plot by default '0-3 m/s', '4-6 m/s', '7-9 m/s',
@@ -1007,19 +1007,18 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     data_concurrent = pd.concat([var_series, direction_series], axis=1).dropna()
 
     # Derive scale factor as ratio of means and correct var_series to have same mean as before dropping nan
-    # values for having same coverage as direction_series.
+    # values when having same coverage as direction_series.
     if var_series_mean_target is None:
         var_series_mean_target = var_series.mean()
 
     scale_factor = var_series_mean_target / data_concurrent[var_series.name].mean()
     var_series_scaled = scale_wind_speed(data_concurrent[var_series.name], scale_factor)
-
     if var_series_scaled.max() > np.max(var_bin_array):
         raise ValueError("The maximum of the input 'var_series' scaled value is {}. This needs to be smaller than the"
                          " max value of the input 'var_bin_array'.".format(round(var_series_scaled.max(), 3)))
 
-    # Iterate calculation of frequency distribution table in order to have freq_tab with mean speed less than
-    # 0.01% different than the target speed.
+    # Iterate calculation of frequency distribution table. The mean of frequency distribution is considered to match the
+    # target value when difference is minimum or lower than 0.01 %
     k = 1
     while k > 0:
         if seasonal_adjustment:
@@ -1047,7 +1046,14 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         scale_factor = var_series_mean_target / freq_tab_mean
         var_series_scaled = scale_wind_speed(var_series_scaled, scale_factor)
 
-        if abs(100 * (var_series_mean_target - freq_tab_mean) / freq_tab_mean) > 0.01:
+        abs_percentage_diff = abs(100 * (var_series_mean_target - freq_tab_mean) / freq_tab_mean)
+        if abs_percentage_diff > 0.01:
+            if k > 1:
+                diff_min = np.append(abs_percentage_diff, diff_min)
+                if (len(np.unique(diff_min)) != len(diff_min)) and (np.min(diff_min) == abs_percentage_diff):
+                    k = -1
+            else:
+                diff_min = [abs_percentage_diff]
             k += 1
         else:
             k = -1
