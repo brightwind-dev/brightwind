@@ -5,6 +5,8 @@ from brightwind.utils import utils
 from brightwind.analyse import plot as bw_plt
 from brightwind.utils.utils import _convert_df_to_series
 from brightwind.utils.utils import validate_coverage_threshold
+from brightwind.export.export import _calc_mean_speed_of_freq_tab
+from brightwind.transform.transform import scale_wind_speed
 import matplotlib
 import warnings
 import textwrap
@@ -870,7 +872,8 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
                direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, seasonal_adjustment=False,
-               coverage_threshold=0.8, plot_bins=None, plot_labels=None, return_data=False):
+               coverage_threshold=0.8, var_series_mean_target=None,
+               plot_bins=None, plot_labels=None, return_data=False):
     """
     Create a frequency distribution table, typically of wind speed and wind direction i.e. how often the wind
     blows within a certain wind speed bin and wind direction. This will plot a wind rose by default or if
@@ -984,24 +987,57 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     else:
         agg_method = 'count'
 
-    if seasonal_adjustment:
-        result, text_msg_out = _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series=var_series,
-                                                                                var_to_bin_series=var_series,
-                                                                                direction_series=direction_series,
-                                                                                var_bin_array=var_bin_array,
-                                                                                coverage_threshold=coverage_threshold,
-                                                                                sectors=sectors,
-                                                                                direction_bin_array=direction_bin_array,
-                                                                                direction_bin_labels=None,
-                                                                                aggregation_method=agg_method)
-        result = result.replace(np.nan, 0.0)
-    else:
-        result = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_series,
-                                                direction_series=direction_series, var_bin_array=var_bin_array,
-                                                sectors=sectors, direction_bin_array=direction_bin_array,
-                                                direction_bin_labels=None, aggregation_method=agg_method
-                                                ).replace(np.nan, 0.0)
-        text_msg_out = None
+    # Create Dataframe with same coverage for var_series and direction_series to handle inconsistent coverage
+    var_series = _convert_df_to_series(var_series).copy()
+    direction_series = _convert_df_to_series(direction_series).copy()
+    data_concurrent = pd.concat([var_series, direction_series], axis=1).dropna()
+
+    # Derive scale factor as ratio of means and correct var_series to have same mean as before dropping nan
+    # values for having same coverage as direction_series.
+    if var_series_mean_target is None:
+        var_series_mean_target = var_series.mean()
+
+    scale_factor = var_series_mean_target / data_concurrent[var_series.name].mean()
+    var_series_scaled = scale_wind_speed(data_concurrent[var_series.name], scale_factor)
+
+    if var_series_scaled.max() > np.max(var_bin_array):
+        raise ValueError("The maximum of the input 'var_series' scaled value is {}. This needs to be smaller than the"
+                         " max value of the input 'var_bin_array'.".format(round(var_series_scaled.max(), 3)))
+
+    # Iterate calculation of frequency distribution table in order to have freq_tab with mean speed less than
+    # 0.01% different than the target speed.
+    k = 1
+    while k > 0:
+        if seasonal_adjustment:
+            result, text_msg_out = _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series=var_series_scaled,
+                                                                                    var_to_bin_series=var_series_scaled,
+                                                                                    direction_series=direction_series,
+                                                                                    var_bin_array=var_bin_array,
+                                                                                    coverage_threshold=
+                                                                                    coverage_threshold,
+                                                                                    sectors=sectors,
+                                                                                    direction_bin_array=
+                                                                                    direction_bin_array,
+                                                                                    direction_bin_labels=None,
+                                                                                    aggregation_method=agg_method)
+            result = result.replace(np.nan, 0.0)
+        else:
+            result = _get_dist_matrix_by_dir_sector(var_series=var_series_scaled, var_to_bin_series=var_series_scaled,
+                                                    direction_series=direction_series, var_bin_array=var_bin_array,
+                                                    sectors=sectors, direction_bin_array=direction_bin_array,
+                                                    direction_bin_labels=None, aggregation_method=agg_method
+                                                    ).replace(np.nan, 0.0)
+            text_msg_out = None
+
+        freq_tab_mean = _calc_mean_speed_of_freq_tab(result)
+        scale_factor = var_series_mean_target / freq_tab_mean
+        var_series_scaled = scale_wind_speed(var_series_scaled, scale_factor)
+
+        if abs(100 * (var_series_mean_target - freq_tab_mean) / freq_tab_mean) > 0.01:
+            k += 1
+        else:
+            k = -1
+
     if plot_bins is None:
         plot_bins = [0, 3, 6, 9, 12, 15, 41]
         if plot_labels is None:
