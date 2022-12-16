@@ -931,9 +931,8 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                                     If it is None or 0, data is not filtered. Default value is 0.8.
     :type coverage_threshold:       int, float or None
     :param var_series_mean_target:  Target value used to scale the mean of the frequency distribution.
-                                    If None then the mean of the frequency distribution is set to match the mean of
-                                    the input var_series. The mean of frequency distribution is considered to match the
-                                    target value when difference is minimum or lower than 0.01 %.
+                                    If None then no scaling is applied. The mean of frequency distribution is considered
+                                    to match the target value when difference is minimum or lower than 0.01 %.
     :type var_series_mean_target:   int, float or None
     :param plot_bins:               Bins to use for gradient in the rose. Different bins will be plotted with different
                                     color. Chooses six bins to plot by default '0-3 m/s', '4-6 m/s', '7-9 m/s',
@@ -1006,13 +1005,15 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     direction_series = _convert_df_to_series(direction_series).copy()
     data_concurrent = pd.concat([var_series, direction_series], axis=1).dropna()
 
-    # Derive scale factor as ratio of means and correct var_series to have same mean as before dropping nan
-    # values when having same coverage as direction_series.
-    if var_series_mean_target is None:
-        var_series_mean_target = var_series.mean()
+    # If var_series_mean_target is given as input to function then derive scale factor as ratio of
+    # var_series_mean_target and data_concurrent means.
+    # This scale factor is used to correct var_series when concurrent with direction_series.
+    if var_series_mean_target is not None:
+        scale_factor = var_series_mean_target / data_concurrent[var_series.name].mean()
+        var_series_scaled = scale_wind_speed(data_concurrent[var_series.name], scale_factor)
+    else:
+        var_series_scaled = var_series
 
-    scale_factor = var_series_mean_target / data_concurrent[var_series.name].mean()
-    var_series_scaled = scale_wind_speed(data_concurrent[var_series.name], scale_factor)
     if var_series_scaled.max() > np.max(var_bin_array):
         raise ValueError("The maximum of the input 'var_series' scaled value is {}. This needs to be smaller than the"
                          " max value of the input 'var_bin_array'.".format(round(var_series_scaled.max(), 3)))
@@ -1042,21 +1043,24 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                                                     ).replace(np.nan, 0.0)
             text_msg_out = None
 
-        freq_tab_mean = _calc_mean_speed_of_freq_tab(result)
-        scale_factor = var_series_mean_target / freq_tab_mean
-        var_series_scaled = scale_wind_speed(var_series_scaled, scale_factor)
-
-        abs_percentage_diff = abs(100 * (var_series_mean_target - freq_tab_mean) / freq_tab_mean)
-        if abs_percentage_diff > 0.01:
-            if k > 1:
-                diff_min = np.append(abs_percentage_diff, diff_min)
-                if (len(np.unique(diff_min)) != len(diff_min)) and (np.min(diff_min) == abs_percentage_diff):
-                    k = -1
-            else:
-                diff_min = [abs_percentage_diff]
-            k += 1
-        else:
+        if var_series_mean_target is None:
             k = -1
+        else:
+            freq_tab_mean = _calc_mean_speed_of_freq_tab(result)
+            scale_factor = var_series_mean_target / freq_tab_mean
+            var_series_scaled = scale_wind_speed(var_series_scaled, scale_factor)
+
+            abs_percentage_diff = abs(100 * (var_series_mean_target - freq_tab_mean) / freq_tab_mean)
+            if abs_percentage_diff > 0.01:
+                if k > 1:
+                    diff_min = np.append(abs_percentage_diff, diff_min)
+                    if (len(np.unique(diff_min)) != len(diff_min)) and (np.min(diff_min) == abs_percentage_diff):
+                        k = -1
+                else:
+                    diff_min = [abs_percentage_diff]
+                k += 1
+            else:
+                k = -1
 
     if plot_bins is None:
         plot_bins = [0, 3, 6, 9, 12, 15, 41]
