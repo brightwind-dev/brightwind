@@ -29,6 +29,8 @@ _line_colors_, _legend_ and _figure_size_. (Issue #[349](https://github.com/brig
 11. Address errors and warnings generated for `Shear.TimeOfDay` and `Shear` when pandas >=1.0.0 (Issue #[347](https://github.com/brightwind-dev/brightwind/issues/347)).
 12. In `average_data_by_period()` fixed issue when wind direction average is derived for a period equal to the data resolution period 
 (Issue #[319](https://github.com/brightwind-dev/brightwind/issues/319)).
+13. In `freq_tab()` added option to give as input target wind speed we want the mean frequency distribution to have 
+(Issue #[269](https://github.com/brightwind-dev/brightwind/issues/269)).
 
 
 
