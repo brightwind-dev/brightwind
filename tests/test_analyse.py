@@ -189,7 +189,7 @@ def test_freq_table():
                                direction_bin_labels=['lowest', 'lower', 'mid', 'high'], return_data=True)
     assert (tab.columns == ['lowest', 'lower', 'mid', 'high']).all()
     assert tab.sum().round(6).to_dict() == {'lowest': 14.800378, 'lower': 9.95062, 'mid': 25.807943, 'high': 49.441059}
-    assert round(DATA.Spd40mN.mean(), 2) == round(bw.export.export._calc_mean_speed_of_freq_tab(tab), 2)
+    assert round(bw.export.export._calc_mean_speed_of_freq_tab(tab), 5) == round(6.764183652027738, 5)
 
     assert bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, plot_bins=[0, 3, 6, 9, 12, 15, 41],
                          plot_labels=['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s'],
@@ -225,13 +225,16 @@ def test_freq_table():
     assert 'Text' in str(fig_rose.get_default_bbox_extra_artists())
     assert 'Note: A coverage threshold value of 0.3 is set' in str(fig_rose.get_default_bbox_extra_artists()[1])
 
-    fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
-                             coverage_threshold=0.5)
+    fig_rose, freq_tbl_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=True,
+                                                seasonal_adjustment=True, coverage_threshold=0.5,
+                                                var_series_mean_target=DATA.Spd40mN.mean())
+    assert round(DATA.Spd40mN.mean(), 3) == round(bw.export.export._calc_mean_speed_of_freq_tab(freq_tbl_seas_adj), 3)
     assert 'is lower than the coverage threshold value of 0.5' in str(fig_rose.get_default_bbox_extra_artists()[1])
     assert 'Some months may have very little data coverage' in str(fig_rose.get_default_bbox_extra_artists()[1])
 
-    fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
-                             coverage_threshold=0.8)
+    fig_rose, freq_tbl_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=True, seasonal_adjustment=True,
+                                                coverage_threshold=0.8, var_series_mean_target=8.5)
+    assert round(8.5, 3) == round(bw.export.export._calc_mean_speed_of_freq_tab(freq_tbl_seas_adj), 3)
     assert 'is lower than the coverage threshold value of 0.8' in str(fig_rose.get_default_bbox_extra_artists()[1])
     assert 'Some months may have very little data coverage' not in str(fig_rose.get_default_bbox_extra_artists()[1])
 
