@@ -166,30 +166,82 @@ def test_dist_by_dir_sector():
 
 
 def test_freq_table():
+    target_freq_dict_no_seas_adj_sum = {'345.0-15.0': 3.616306, '15.0-45.0': 5.983400, '45.0-75.0': 4.049170,
+                                        '75.0-105.0': 4.825594, '105.0-135.0': 5.146039, '135.0-165.0': 3.471318,
+                                        '165.0-195.0': 15.822652, '195.0-225.0': 18.300063, '225.0-255.0': 11.568607,
+                                        '255.0-285.0': 15.091406, '285.0-315.0': 9.108006, '315.0-345.0':  3.017441}
+
+    target_freq_dict_seas_adj_sum = {'345.0-15.0': 3.457075, '15.0-45.0': 5.704456, '45.0-75.0': 4.054081,
+                                     '75.0-105.0': 4.724944, '105.0-135.0': 5.196668, '135.0-165.0': 3.541893,
+                                     '165.0-195.0': 16.165368, '195.0-225.0': 18.73797, '225.0-255.0': 11.782595,
+                                     '255.0-285.0': 14.725338, '285.0-315.0': 8.976263, '315.0-345.0':  2.933347}
+
+    target_freq_dict_user_defined_bins = {'345.0-15.0': 3.616306, '15.0-45.0': 5.9834, '45.0-75.0': 4.04917,
+                                          '75.0-105.0': 4.825594}
+
     bw.freq_table(DATA[['Spd40mN']], DATA[['Dir38mS']])
-    bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=True)
+    plot_wind_rose, freq_tbl_no_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=True)
+
+    assert freq_tbl_no_seas_adj.sum().round(6).to_dict() == target_freq_dict_no_seas_adj_sum
 
     # Calling with user defined dir_bin labels BUGGY
     graph, tab = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, direction_bin_array=[0, 90, 160, 210, 360],
                                direction_bin_labels=['lowest', 'lower', 'mid', 'high'], return_data=True)
     assert (tab.columns == ['lowest', 'lower', 'mid', 'high']).all()
+    assert tab.sum().round(6).to_dict() == {'lowest': 14.800378, 'lower': 9.95062, 'mid': 25.807943, 'high': 49.441059}
 
-    bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, plot_bins=[0, 3, 6, 9, 12, 15, 41],
-                  plot_labels=['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s'],
-                  return_data=True)
+    assert bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, plot_bins=[0, 3, 6, 9, 12, 15, 41],
+                         plot_labels=['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s'],
+                         return_data=True)[1].sum().round(6)[:4].to_dict() == target_freq_dict_user_defined_bins
     # Calling with user defined var_bin labels
-    bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, var_bin_array=[0, 10, 15, 50],
-                  var_bin_labels=['low', 'mid', 'high'], plot_bins=[0, 10, 15, 50], plot_labels=None,
-                  return_data=True)
+    assert bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, var_bin_array=[0, 10, 15, 50],
+                         var_bin_labels=['low', 'mid', 'high'], plot_bins=[0, 10, 15, 50], plot_labels=None,
+                         return_data=True)[1].sum().round(6)[:4].to_dict() == target_freq_dict_user_defined_bins
 
-    bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, var_bin_array=[0, 8, 14, 41], var_bin_labels=['low', 'mid', 'high'],
-                  direction_bin_array=[0, 90, 130, 200, 360],
-                  direction_bin_labels=['northerly', 'easterly', 'southerly', 'westerly'],
-                  plot_bins=[0, 8, 14, 41], plot_labels=None, return_data=True)
-    bw.freq_table(DATA.T2m, DATA.Dir78mS, var_bin_array=[-10, 0, 10, 20],
-                  var_bin_labels=['low', 'mid', 'high'],
-                  plot_bins=[-10, 0, 10, 20], plot_labels=None,
-                  return_data=True)
+    assert bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, var_bin_array=[0, 8, 14, 41],
+                         var_bin_labels=['low', 'mid', 'high'], direction_bin_array=[0, 90, 130, 200, 360],
+                         direction_bin_labels=['northerly', 'easterly', 'southerly', 'westerly'],
+                         plot_bins=[0, 8, 14, 41], plot_labels=None,
+                         return_data=True)[1].sum().round(6).to_dict() == {'northerly': 14.800378, 'easterly': 6.539189,
+                                                                           'southerly': 22.990124,
+                                                                           'westerly': 55.670309}
+
+    assert bw.freq_table(DATA.T2m, DATA.Dir78mS, var_bin_array=[-10, 0, 10, 20], var_bin_labels=['low', 'mid', 'high'],
+                         plot_bins=[-10, 0, 10, 20], plot_labels=None,
+                         return_data=True)[1].sum().round(6)[8:].to_dict() == {'225.0-255.0': 12.166183,
+                                                                               '255.0-285.0': 14.08716,
+                                                                               '285.0-315.0': 10.746167,
+                                                                               '315.0-345.0': 3.076073}
+
+    # Apply seasonal adjustment and impose coverage threshold to 70%
+    plot_wind_rose, freq_tbl_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, seasonal_adjustment=True,
+                                                      coverage_threshold=0.7, return_data=True)
+    assert freq_tbl_seas_adj.sum().round(6).to_dict() == target_freq_dict_seas_adj_sum
+
+    # test messages shown below plot
+    fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
+                             coverage_threshold=0.3)
+    assert 'Text' in str(fig_rose.get_default_bbox_extra_artists())
+    assert 'Note: A coverage threshold value of 0.3 is set' in str(fig_rose.get_default_bbox_extra_artists()[1])
+
+    fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
+                             coverage_threshold=0.5)
+    assert 'is lower than the coverage threshold value of 0.5' in str(fig_rose.get_default_bbox_extra_artists()[1])
+    assert 'Some months may have very little data coverage' in str(fig_rose.get_default_bbox_extra_artists()[1])
+
+    fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
+                             coverage_threshold=0.8)
+    assert 'is lower than the coverage threshold value of 0.8' in str(fig_rose.get_default_bbox_extra_artists()[1])
+    assert 'Some months may have very little data coverage' not in str(fig_rose.get_default_bbox_extra_artists()[1])
+
+    fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
+                             coverage_threshold=0.9)
+    assert 'is lower than the coverage threshold value of 0.9' in str(fig_rose.get_default_bbox_extra_artists()[1])
+    assert 'Some months may have very little data coverage' not in str(fig_rose.get_default_bbox_extra_artists()[1])
+
+    fig_rose = bw.freq_table(DATA.Spd40mN['2016-06-01':'2017-09-30'], DATA.Dir38mS['2016-06-01':'2017-09-30'],
+                             return_data=False, seasonal_adjustment=True, coverage_threshold=0.9)
+    assert 'Text' not in str(fig_rose.get_default_bbox_extra_artists())
 
 
 def test_dist():

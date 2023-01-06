@@ -4,6 +4,7 @@ import pandas as pd
 from brightwind.utils import utils
 from brightwind.load.station import _Measurements
 from brightwind.load.station import DATE_INSTEAD_OF_NONE
+from brightwind.utils.utils import validate_coverage_threshold
 import copy
 import warnings
 
@@ -17,20 +18,6 @@ __all__ = ['average_data_by_period',
            'selective_avg',
            'offset_timestamps',
            'apply_wspd_slope_offset_adj']
-
-
-def _validate_coverage_threshold(coverage_threshold):
-    """
-    Validate that coverage_threshold is between 0 and 1 and if it is None set to zero.
-    :param coverage_threshold: Should be number between or equal to 0 and 1.
-    :type coverage_threshold:  float or int
-    :return:                   coverage_threshold
-    :rtype:                    float or int
-    """
-    coverage_threshold = 0 if coverage_threshold is None else coverage_threshold
-    if coverage_threshold < 0 or coverage_threshold > 1:
-        raise TypeError("Invalid coverage_threshold, this should be between or equal to 0 and 1.")
-    return coverage_threshold
 
 
 def _compute_wind_vector(wspd, wdir):
@@ -353,7 +340,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
                                3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to None by
                                default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
                                less than the coverage_threshold are removed.
-    :type coverage_threshold:  float
+    :type coverage_threshold:  float, int or None
     :param return_coverage:    If True appends and additional column in the DataFrame returned, with coverage calculated
                                for each period. The columns with coverage are named as <column name>_Coverage
     :type return_coverage:     bool
@@ -391,7 +378,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
                                                            data_resolution=pd.DateOffset(minutes=10))
 
     """
-    coverage_threshold = _validate_coverage_threshold(coverage_threshold)
+    coverage_threshold = validate_coverage_threshold(coverage_threshold)
 
     if isinstance(period, str):
         if period[-1] == 'D':
@@ -775,8 +762,8 @@ def merge_datasets_by_period(data_1, data_2, period,
     data_1_overlap, data_2_overlap = _get_overlapping_data(data_1.sort_index().dropna(),
                                                            data_2.sort_index().dropna(),
                                                            period)
-    coverage_threshold_1 = _validate_coverage_threshold(coverage_threshold_1)
-    coverage_threshold_2 = _validate_coverage_threshold(coverage_threshold_2)
+    coverage_threshold_1 = validate_coverage_threshold(coverage_threshold_1)
+    coverage_threshold_2 = validate_coverage_threshold(coverage_threshold_2)
 
     mrgd_data = pd.concat(list(average_data_by_period(data_1_overlap, period=period,
                                                       wdir_column_names=wdir_column_names_1,
