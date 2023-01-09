@@ -1396,7 +1396,7 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     return ax.get_figure()
 
 
-def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
+def plot_TI_by_speed(wspd, wspd_std, ti, min_speed=3, IEC_class=None):
     """
     Plot turbulence intensity graphs alongside with IEC standards
 
@@ -1412,6 +1412,8 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
                         a pandas.DataFrame having first column name as 'windspeed' and other columns reporting the
                         results of applying the IEC class formula for a range of wind speeds. See format as shown in
                         example usage.
+    :param min_speed:   Set the minimum wind speed. Default is 3 m/s.
+    :type min_speed:    integer or float
     :type IEC_class:    None or pandas.DataFrame
     :return:            Plots scatter plot of turbulence intensity (TI) & distribution of TI by speed bins
                         derived as for statistics below and the IEC Class curves defined as for IEC_class input.
@@ -1428,6 +1430,10 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
             # IEC Class curves
             _ , ti_dist = bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, return_data=True)
             bw.analyse.plot.plot_TI_by_speed(data.Spd80mN, data.Spd80mNStd, ti_dist, IEC_class=None)
+
+            # set min speed for plot
+            _ , ti_dist = bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, return_data=True)
+            bw.analyse.plot.plot_TI_by_speed(data.Spd80mN, data.Spd80mNStd, ti_dist, min_speed=0, IEC_class=None)
 
             # Plot TI distribution by speed bins and give as input custom IEC_class pandas.DataFrame
             IEC_class = pd.DataFrame({'windspeed': list(range(0,26)),
@@ -1462,9 +1468,9 @@ def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
         ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, icol], color=COLOR_PALETTE.color_list[1+icol],
                 linestyle='dashed', label=IEC_class.columns[icol])
 
-    ax.set_xlim(3, 25)
+    ax.set_xlim(min_speed, 25)
     ax.set_ylim(0, 0.6)
-    ax.set_xticks(np.arange(3, 26, 1))
+    ax.set_xticks(np.arange(min_speed, 26, 1))
     ax.set_xlabel('Wind speed [m/s]')
     ax.set_ylabel('Turbulence Intensity')
     ax.grid(True)
