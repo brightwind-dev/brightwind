@@ -58,8 +58,8 @@ def _get_title(property_name, schema, property_section=None):
     """
     # search through definitions first
     if schema.get('definitions') is not None:
-        if property_name in schema.get('definitions').keys():
-            return schema.get('definitions').get(property_name).get('title')
+        if property_name.split('_id')[0] in schema.get('definitions').keys():
+            return schema.get('definitions').get(property_name.split('_id')[0]).get('title')
     # search through properties
     if schema.get('properties') is not None:
         # is property_name in the main properties
