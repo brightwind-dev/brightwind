@@ -391,7 +391,7 @@ class MeasurementStation:
         self.__meas_loc_data_model = self._get_meas_loc_data_model(dm=self.__data_model)
         self.__meas_loc_properties = self.__get_properties()
         self.__logger_main_configs = _LoggerMainConfigs(meas_loc_dm=self.__meas_loc_data_model,
-                                               schema=self.__schema, station_type=self.type)
+                                                        schema=self.__schema, station_type=self.type)
         self.__measurements = _Measurements(meas_loc_dm=self.__meas_loc_data_model, schema=self.__schema)
         # self.__mast_section_geometry = _MastSectionGeometry()
 
@@ -456,7 +456,7 @@ class MeasurementStation:
     @staticmethod
     def _get_meas_loc_data_model(dm):
         if len(dm.get('measurement_location')) > 1:
-            raise Exception('More than one measurement location found in the data model. Only processing'
+            raise Exception('More than one measurement location found in the data model. Only processing '
                             'the first one found. Please remove extra measurement locations.')
         return dm.get('measurement_location')[0]
 
@@ -492,7 +492,7 @@ class MeasurementStation:
         meas_loc_prop = []
         if self.type == 'mast':
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model, property_to_bring_up='mast_properties')
-        elif self.type in ['lidar', 'sodar', 'flidar']:
+        elif self.type in ['lidar', 'sodar', 'floating_lidar']:
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model,
                                           property_to_bring_up='vertical_profiler_properties')
         return meas_loc_prop
@@ -526,7 +526,7 @@ class MeasurementStation:
             if isinstance(list_for_df, dict):
                 # if a dictionary, it only has 1 row of data
                 titles = list(_rename_to_title(list_or_dict=list_for_df, schema=self.__schema).keys())
-                df = pd.DataFrame({1: list(list_for_df.values())}, index=titles)
+                df = pd.DataFrame({'': list(list_for_df.values())}, index=titles)
             elif isinstance(list_for_df, list):
                 for idx, row in enumerate(list_for_df):
                     titles = list(_rename_to_title(list_or_dict=row, schema=self.__schema).keys())
@@ -633,7 +633,7 @@ class _LoggerMainConfigs:
         if self._type == 'mast':
             # if mast, there are no child dictionaries
             log_cfg_props = self._log_cfg_data_model  # logger config data model is already a list
-        elif self._type in ['lidar', 'flidar']:
+        elif self._type in ['lidar', 'floating_lidar']:
             for log_config in self._log_cfg_data_model:
                 log_configs_flat = _flatten_dict(log_config, property_to_bring_up='lidar_config')
                 for log_config_flat in log_configs_flat:
