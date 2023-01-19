@@ -992,7 +992,8 @@ class _Measurements:
                              'sensor_config.slope', 'sensor_config.offset', 'logger_measurement_config.slope',
                              'logger_measurement_config.offset', 'calibration.slope', 'calibration.offset',
                              'sensor_config.notes', 'logger_measurement_config.notes', 'sensor.notes']
-            df = pd.DataFrame(self.__meas_properties)
+            df = pd.DataFrame(self.__meas_properties).set_index(
+                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
@@ -1019,10 +1020,11 @@ class _Measurements:
                              'logger_measurement_config.offset', 'calibration.slope', 'calibration.offset',
                              'sensor_config.notes', 'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
+            df = df[df['measurement_type_id'] == 'wind_speed'].set_index(
+                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
-            df = df[df['measurement_type_id'] == 'wind_speed']
             df.drop('measurement_type_id', 1, inplace=True)
             # order rows
             df.sort_values(['height_m', 'name'], ascending=[False, True], inplace=True)
@@ -1042,10 +1044,11 @@ class _Measurements:
                              'logger_measurement_config.slope', 'logger_measurement_config.offset',
                              'sensor_config.notes', 'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
+            df = df[df['measurement_type_id'] == 'wind_direction'].set_index(
+                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
-            df = df[df['measurement_type_id'] == 'wind_direction']
             df.drop('measurement_type_id', 1, inplace=True)
             # order rows
             df.sort_values(['height_m', 'name'], ascending=[False, True], inplace=True)
