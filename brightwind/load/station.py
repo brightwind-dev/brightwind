@@ -33,7 +33,7 @@ def _replace_none_date(list_or_dict):
         return renamed
     elif isinstance(list_or_dict, dict):
         for date_str in ['date_from', 'date_to']:
-            if list_or_dict.get(date_str) is None:
+            if (date_str in list_or_dict.keys()) and (list_or_dict.get(date_str) is None):
                 list_or_dict[date_str] = DATE_INSTEAD_OF_NONE
     return list_or_dict
 
@@ -200,14 +200,14 @@ def _merge_two_dicts(x, y):
 
 def _filter_parent_level(dictionary):
     """
-    Pull only the parent level keys and values i.e. do not return any child lists or dictionaries or nulls/Nones.
+    Pull only the parent level keys and values i.e. do not return any child lists or dictionaries.
 
     :param dictionary:
     :return:
     """
     parent = {}
     for key, value in dictionary.items():
-        if (type(value) != list) and (type(value) != dict) and (value is not None):
+        if (type(value) != list) and (type(value) != dict):
             parent.update({key: value})
     return parent
 
@@ -983,6 +983,7 @@ class _Measurements:
             df.sort_values(['meas_type_rank', 'Height [m]'], ascending=[True, False], inplace=True)
             df.drop('meas_type_rank', 1, inplace=True)
             df.set_index('Name', inplace=True)
+            df.dropna(axis=1, how='all', inplace=True)
             df.fillna('-', inplace=True)
         elif detailed is True:
             cols_required = ['name', 'oem', 'model', 'sensor_type_id', 'sensor.serial_number',
