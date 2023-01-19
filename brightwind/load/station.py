@@ -766,25 +766,25 @@ class _Measurements:
         return self.get_heights(measurement_type_id='wind_direction')
 
     @staticmethod
-    def __meas_point_merge(sensor_cfgs, sensors=None, mount_arrgmts=None):
+    def __meas_point_merge(logger_measurement_cfgs, sensors=None, mount_arrgmts=None):
         """
-        Merge the properties from sensor_cfgs, sensors and mounting_arrangements. This will account for when
+        Merge the properties from logger_measurement_cfgs, sensors and mounting_arrangements. This will account for when
         each property was changed over time.
 
-        :param sensor_cfgs:   Sensor cfgs properties
-        :type sensor_cfgs:    list
-        :param sensors:       Sensor properties
-        :type sensors:        list
-        :param mount_arrgmts: Mounting arrangement properties
-        :type mount_arrgmts:  list
-        :return:              The properties merged together.
-        :rtype:               list(dict)
+        :param logger_measurement_cfgs: Sensor cfgs properties
+        :type logger_measurement_cfgs:  list
+        :param sensors:                 Sensor properties
+        :type sensors:                  list
+        :param mount_arrgmts:           Mounting arrangement properties
+        :type mount_arrgmts:            list
+        :return:                        The properties merged together.
+        :rtype:                         list(dict)
         """
-        sensor_cfgs = _replace_none_date(sensor_cfgs)
+        logger_measurement_cfgs = _replace_none_date(logger_measurement_cfgs)
         sensors = _replace_none_date(sensors)
         mount_arrgmts = _replace_none_date(mount_arrgmts)
-        date_from = [sen_config.get('date_from') for sen_config in sensor_cfgs]
-        date_to = [sen_config.get('date_to') for sen_config in sensor_cfgs]
+        date_from = [sen_config.get('date_from') for sen_config in logger_measurement_cfgs]
+        date_to = [sen_config.get('date_to') for sen_config in logger_measurement_cfgs]
         if sensors is not None:
             for sensor in sensors:
                 date_from.append(sensor.get('date_from'))
@@ -799,9 +799,10 @@ class _Measurements:
         meas_points_merged = []
         for i in range(len(dates) - 1):
             good_sen_config = {}
-            for sen_config in sensor_cfgs:
-                if (sen_config['date_from'] <= dates[i]) & (sen_config.get('date_to') > dates[i]):
-                    good_sen_config = sen_config.copy()
+            for logger_measurement_cfg in logger_measurement_cfgs:
+                if (logger_measurement_cfg['date_from'] <= dates[i]) & (
+                        logger_measurement_cfg.get('date_to') > dates[i]):
+                    good_sen_config = logger_measurement_cfg.copy()
             if good_sen_config != {}:
                 if sensors is not None:
                     for sensor in sensors:
@@ -834,9 +835,9 @@ class _Measurements:
             mounting_arrangements = _raise_child(meas_point, child_to_raise='mounting_arrangement')
 
             if mounting_arrangements is None:
-                meas_point_merged = self.__meas_point_merge(sensor_cfgs=logger_meas_cfgs, sensors=sensors)
+                meas_point_merged = self.__meas_point_merge(logger_measurement_cfgs=logger_meas_cfgs, sensors=sensors)
             else:
-                meas_point_merged = self.__meas_point_merge(sensor_cfgs=logger_meas_cfgs, sensors=sensors,
+                meas_point_merged = self.__meas_point_merge(logger_measurement_cfgs=logger_meas_cfgs, sensors=sensors,
                                                             mount_arrgmts=mounting_arrangements)
             for merged_meas_point in meas_point_merged:
                 meas_props.append(merged_meas_point)
