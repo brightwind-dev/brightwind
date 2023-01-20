@@ -33,3 +33,18 @@ def test_get_title():
     }
     for name, title in property_name_title.items():
         assert bw.load.station._get_title(name, SCHEMA) == title
+
+
+def test_get_table():
+    mm1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
+
+    for value in mm1.get_table(horizontal_table_orientation=True).T['Test_MM1'].to_dict().values():
+        assert value in mm1.properties.values()
+
+    for value in mm1.logger_main_configs.get_table(horizontal_table_orientation=True).T['AName_MM1'].to_dict().values():
+        assert value in mm1.logger_main_configs.properties[0].values()
+
+    for value in mm1.measurements.get_table(detailed=True).T['Dir_76mNW'].to_dict().values():
+        if value is not '-':
+            assert value in mm1.measurements.properties[10].values()
+
