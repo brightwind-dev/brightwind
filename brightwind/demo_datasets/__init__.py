@@ -10,8 +10,8 @@ __all__ = ['demo_data',
            'demo_windographer_flagging_log',
            'demo_windographer_flagging_log2',
            'demo_cleaning_file',
-           'iea43_wra_data_model_schema',
-           'iea43_wra_data_model']
+           'iea43_wra_data_model_schema_v1_0',
+           'iea43_wra_data_model_v1_0']
 
 demo_data = os.path.join(os.path.dirname(__file__), 'demo_data.csv')
 demo_campbell_scientific_data = os.path.join(os.path.dirname(__file__), 'campbell_scientific_demo_data.csv')
@@ -26,8 +26,8 @@ demo_windographer_flagging_log = os.path.join(os.path.dirname(__file__), 'windog
 demo_windographer_flagging_log2 = os.path.join(os.path.dirname(__file__), 'windographer_flagging_log2.txt')
 demo_cleaning_file = os.path.join(os.path.dirname(__file__), 'demo_cleaning_file.csv')
 
-iea43_wra_data_model_schema = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model.schema.json')
-iea43_wra_data_model = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model.json')
+iea43_wra_data_model_schema_v1_0 = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model.schema_v1_0.json')
+iea43_wra_data_model_v1_0 = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model_v1_0.json')
 
 demo_data_adjusted_for_testing = os.path.join(os.path.dirname(__file__), 'demo_data_adjusted_for_testing.csv')
 

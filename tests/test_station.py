@@ -7,7 +7,7 @@ import json
 
 
 def _get_schema():
-    with open(bw.demo_datasets.iea43_wra_data_model_schema) as json_file:
+    with open(bw.demo_datasets.iea43_wra_data_model_schema_v1_0) as json_file:
         schema = json.load(json_file)
     return schema
 
@@ -21,7 +21,7 @@ def test_get_title():
         "latitude_ddeg": "Latitude [ddeg]",
         "pole_diameter_mm": "Pole Diameter [mm]",
         "device_datum_plane_height_m": "Device Datum Plane Height [m]",
-        "sensor_config": "Sensor Configuration",
+        "logger_measurement_config": "Logger Measurement Configuration",
         "statistic_type_id": "Statistic Type",
         "sensitivity": "Logger Sensitivity",
         "date_of_calibration": "Date of Calibration",
