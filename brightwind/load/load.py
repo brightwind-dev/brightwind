@@ -925,7 +925,7 @@ class LoadBrightHub:
     """
     # SHOULD I INITIATE BY GETTING ID-TOKEN? CAN INITIALISE BY SENDING A USERNAME, PASSWORD.
     # IF I INITIATE IT NEEDS TO BE ASSIGNED TO SOMETHING.
-    __BASE_URI = 'https://api.brightwindhub.com'
+    __BASE_URI = 'https://api.brighthub.io'
     # __BASE_URI = 'http://localhost:5000/'
 
     @staticmethod
