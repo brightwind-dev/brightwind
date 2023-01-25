@@ -1396,42 +1396,81 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     return ax.get_figure()
 
 
-def plot_TI_by_speed(wspd, wspd_std, ti, IEC_class=None):
+def plot_TI_by_speed(wspd, wspd_std, ti, min_speed=3, IEC_class=None):
     """
     Plot turbulence intensity graphs alongside with IEC standards
-    :param wspd:
-    :param wspd_std:
-    :param ti: DataFrame returned from TI.by_speed() in analyse
-    :param IEC_class: By default IEC class 2005 is used for custom class pass a DataFrame. Note we have removed
-        option to include IEC Class 1999 as no longer appropriate.
-        This may need to be placed in a separate function when updated IEC standard is released
-    :return: Plots turbulence intensity distribution by wind speed
+
+    :param wspd:        Wind speed data series
+    :type wspd:         pandas.Series
+    :param wspd_std:    Wind speed standard deviation data series
+    :type wspd_std:     pandas.Series
+    :param ti:          DataFrame returned from bw.TI.by_speed()
+    :type ti:           pandas.DataFrame
+    :param IEC_class:   Default value is None, this means that default IEC class 2005 is used. Note: we have removed
+                        option to include IEC Class 1999 as no longer appropriate. This may need to be placed in a
+                        separate function when updated IEC standard is released. For custom class give as input
+                        a pandas.DataFrame having first column name as 'windspeed' and other columns reporting the
+                        results of applying the IEC class formula for a range of wind speeds. See format as shown in
+                        example usage.
+    :param min_speed:   Set the minimum wind speed. Default is 3 m/s.
+    :type min_speed:    integer or float
+    :type IEC_class:    None or pandas.DataFrame
+    :return:            Plots scatter plot of turbulence intensity (TI) & distribution of TI by speed bins
+                        derived as for statistics below and the IEC Class curves defined as for IEC_class input.
+
+                             * Mean_TI (average TI for a speed bin),
+                             * Rep_TI (representative TI set at a certain percentile and derived from bw.TI.by_speed())
+
+    **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_csv(bw.demo_datasets.demo_data)
+
+            # Plots scatter plot of turbulence intensity (TI) and distribution of TI by speed bins and
+            # IEC Class curves
+            _ , ti_dist = bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, return_data=True)
+            bw.analyse.plot.plot_TI_by_speed(data.Spd80mN, data.Spd80mNStd, ti_dist, IEC_class=None)
+
+            # set min speed for plot
+            _ , ti_dist = bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, return_data=True)
+            bw.analyse.plot.plot_TI_by_speed(data.Spd80mN, data.Spd80mNStd, ti_dist, min_speed=0, IEC_class=None)
+
+            # Plot TI distribution by speed bins and give as input custom IEC_class pandas.DataFrame
+            IEC_class = pd.DataFrame({'windspeed': list(range(0,26)),
+                          'IEC Class A': list(0.16 * (0.75 + (5.6 / np.array(range(0,26)))))}
+                          ).replace(np.inf, 0)
+            bw.analyse.plot.plot_TI_by_speed(data.Spd80mN, data.Spd80mNStd, ti_dist, IEC_class=IEC_class)
+
     """
 
     # IEC Class 2005
 
     if IEC_class is None:
-        IEC_class = pd.DataFrame(np.zeros([26, 4]), columns=['Windspeed', 'IEC Class A', 'IEC Class B', 'IEC Class C'])
+        IEC_class = pd.DataFrame(np.zeros([26, 4]), columns=['windspeed', 'IEC Class A', 'IEC Class B', 'IEC Class C'])
         for n in range(1, 26):
             IEC_class.iloc[n, 0] = n
             IEC_class.iloc[n, 1] = 0.16 * (0.75 + (5.6 / n))
             IEC_class.iloc[n, 2] = 0.14 * (0.75 + (5.6 / n))
             IEC_class.iloc[n, 3] = 0.12 * (0.75 + (5.6 / n))
+    elif type(IEC_class) is not pd.DataFrame:
+        raise ValueError("The IEC_class input must be a pandas.DataFrame with format as stated in function docstring.")
+    elif not pd.api.types.is_numeric_dtype(IEC_class.iloc[:, 0]):
+        raise ValueError("The IEC_class input must be a pandas.DataFrame where the first column is 'windspeed' and "
+                         "this needs to have numeric values.")
+
     common_idxs = wspd.index.intersection(wspd_std.index)
     fig, ax = plt.subplots(figsize=(15, 8))
     ax.scatter(wspd.loc[common_idxs], wspd_std.loc[common_idxs] / wspd.loc[common_idxs],
                color=COLOR_PALETTE.primary, alpha=0.3, marker='.')
     ax.plot(ti.index.values, ti.loc[:, 'Mean_TI'].values, color=COLOR_PALETTE.secondary, label='Mean_TI')
     ax.plot(ti.index.values, ti.loc[:, 'Rep_TI'].values, color=COLOR_PALETTE.primary_35, label='Rep_TI')
-    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 1], color=COLOR_PALETTE.tertiary, linestyle='dashed',
-            label=IEC_class.columns[1])
-    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 2], color=COLOR_PALETTE.fourth, linestyle='dashed',
-            label=IEC_class.columns[2])
-    ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, 3], color=COLOR_PALETTE.fifth, linestyle='dashed',
-            label=IEC_class.columns[3])
-    ax.set_xlim(3, 25)
+    for icol in range(1, len(IEC_class.columns)):
+        ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, icol], color=COLOR_PALETTE.color_list[1+icol],
+                linestyle='dashed', label=IEC_class.columns[icol])
+
+    ax.set_xlim(min_speed, 25)
     ax.set_ylim(0, 0.6)
-    ax.set_xticks(np.arange(3, 26, 1))
+    ax.set_xticks(np.arange(min_speed, 26, 1))
     ax.set_xlabel('Wind speed [m/s]')
     ax.set_ylabel('Turbulence Intensity')
     ax.grid(True)
@@ -1448,10 +1487,10 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(ti.index))
     ax.plot(np.append(radians, radians[0]), ti.append(ti.iloc[0])['Mean_TI'], color=COLOR_PALETTE.primary, linewidth=4,
-            figure=fig)
+            figure=fig, label='Mean_TI')
     maxlevel = ti['Mean_TI'].max() + 0.1
     ax.set_ylim(0, maxlevel)
-    ax.scatter(np.radians(wdir), turbulence, color=COLOR_PALETTE.secondary, alpha=0.3, s=1)
+    ax.scatter(np.radians(wdir), turbulence, color=COLOR_PALETTE.secondary, alpha=0.3, s=1, label='TI')
     ax.legend(loc=8, framealpha=1)
     plt.close()
     return ax.get_figure()

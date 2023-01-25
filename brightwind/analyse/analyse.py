@@ -1312,134 +1312,242 @@ def dist_12x24(var_series, aggregation_method='mean', var_name_label=None, retur
 class TI:
 
     @staticmethod
-    def calc(wspd, wspd_std):
+    def calc(wspd, wspd_std, min_speed=3):
         wspd = _convert_df_to_series(wspd).dropna()
         wspd_std = _convert_df_to_series(wspd_std).dropna()
-        ti = pd.concat([wspd[wspd > 3].rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
+        ti = pd.concat([wspd[wspd >= min_speed].rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
         return ti['wspd_std'] / ti['wspd']
 
     @staticmethod
-    def by_speed(wspd, wspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41),
+    def by_speed(wspd, wspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41), min_speed=3,
                  percentile=90, IEC_class=None, return_data=False):
         """
-        Accepts a wind speed series and its standard deviation, calculates turbulence intensity (TI) and returns the
-        distribution by of TI by speed bins
+        Accepts a wind speed series and its standard deviation, calculates turbulence intensity (TI) and returns a
+        scatter plot of TI versus speed and the distribution of TI by speed bins if return_data is set to True.
+        Note that speed values lower than the input min_speed are filtered out when deriving the TI values.
 
-        :param wspd: Wind speed data series
-        :type wspd: pandas.Series
-        :param wspd_std: Wind speed standard deviation data series
-        :type wspd_std: pandas.Series
-        :param speed_bin_array: (Optional) Array of wind speeds where adjacent elements of array form a bin
-        :type speed_bin_array: List or array
-        :param speed_bin_labels: (Optional) Labels to use for speed bins, 0, 1, 2, 3 .. and so on by default
-        :type speed_bin_labels: List, range or array
-        :param percentile: The percentile representative of TI (see return for more information)
-        :type percentile: float, int
-        :param IEC_class: By default IEC class 2005 is used for custom class pass a DataFrame. Note we have removed
-                option to include IEC Class 1999 as no longer appropriate.
-                This may need to be placed in a separate function when updated IEC standard is released
-        :param return_data: Set to True if you want the data returned.
-        :type return_data: bool
-        :return: TI distribution with columns names as:
+        :param wspd:                Wind speed data series
+        :type wspd:                 pandas.Series
+        :param wspd_std:            Wind speed standard deviation data series
+        :type wspd_std:             pandas.Series
+        :param speed_bin_array:     (Optional) Array of numbers where adjacent elements of array form a speed bin.
+                                    Default is numpy.arange(-0.5, 41, 1), this is an array of speed values
+                                    from -0.5 to 40.5 with a 1 m/s bin interval (ie first bin is -0.5 to 0.5)
+        :type speed_bin_array:      list or numpy.array
+        :param speed_bin_labels:    (Optional) Labels to use for speed bins in the output TI distribution table.
+                                    Note that labels correspond with the central bins of each adjacent element
+                                    of the input speed_bin_array. Default is an array of values from 0 to 40 with an
+                                    interval equal to 1 (ie 0, 1, 2, 3 ..). The length of the speed_bin_labels array
+                                    must be equal to len(speed_bin_array) - 1
+        :type speed_bin_labels:     list, range or numpy.array
+        :param min_speed:           Set the minimum wind speed. Default is 3 m/s.
+        :type min_speed:            integer or float
+        :param percentile:          The percentile representative of TI (see return for more information)
+        :type percentile:           float, integer
+        :param IEC_class:           Default value is None, this means that default IEC class 2005 is used. Note: we have
+                                    removed option to include IEC Class 1999 as no longer appropriate. This may need to
+                                    be placed in a separate function when updated IEC standard is released. For custom
+                                    class give as input a pandas.DataFrame having first column name as 'windspeed' and
+                                    other columns reporting the results of applying the IEC class formula for a range
+                                    of wind speeds. See format as shown in example usage.
+        :type IEC_class:            None or pandas.DataFrame
+        :param return_data:         Set to True if you want the data returned.
+        :type return_data:          bool
+        :return:                    Return plot of TI distribution by speed bins and table with TI distribution values
+                                    for statistics below when return_data is True:
 
-                * Mean_TI (average TI for a speed bin),
-                * TI_Count ( number of data points in the bin),
-                * Rep_TI (Representative TI set at 90 percentile by default,
-                * TI_2Sigma (2 sigma TI),
-                * Char_TI (characteristic TI)
+                                        * Mean_TI (average TI for a speed bin),
+                                        * TI_Count (number of data points in the bin),
+                                        * Rep_TI (representative TI set at 90 percentile by default,
+                                        * TI_2Sigma (2 sigma TI),
+                                        * Char_TI (characteristic TI)
 
-        :rtype: pandas.DataFrame
+        :rtype:                     matplotlib.figure.Figure, pandas.DataFrame
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_csv(bw.demo_datasets.demo_data)
+
+            # Plot TI distribution by speed bins using default inputs
+            fig_ti_dist = bw.TI.by_speed(data[['Spd80mN']], data[['Spd80mNStd']])
+
+            display(fig_ti_dist)
+
+            # Plot TI distribution by speed bins giving as input speed_bin_array and speed_bin_labels and return TI
+            # distribution by speed table
+            fig_ti_dist, ti_dist = bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, speed_bin_array=[1,3,6,9,15],
+                                                  speed_bin_labels=[1.5,4.5,7.5,12], return_data=True)
+            display(fig_ti_dist)
+            display(ti_dist)
+
+            fig_ti_dist, ti_dist = bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, speed_bin_array=[0, 10, 14, 51],
+                                                  speed_bin_labels=['low', 'mid', 'high'], return_data=True)
+            display(fig_ti_dist)
+            display(ti_dist)
+
+            # Plot TI distribution by speed bins and give as input min_speed
+            fig_ti_dist, ti_dist = bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, min_speed=4, return_data=True)
+            display(fig_ti_dist)
+            display(ti_dist)
+
+            # Plot TI distribution by speed bins considering a 60 percentile representative of TI and return TI
+            # distribution table
+            fig_ti_dist, ti_dist = bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, percentile=60, return_data=True)
+
+            display(fig_ti_dist)
+            display(ti_dist)
+
+            # Plot TI distribution by speed bins and give as input custom IEC_class pandas.DataFrame
+            IEC_class = pd.DataFrame({'windspeed': list(range(0,26)),
+                                      'IEC Class A': list(0.16 * (0.75 + (5.6 / np.array(range(0,26)))))}
+                                      ).replace(np.inf, 0)
+            bw.TI.by_speed(data.Spd80mN, data.Spd80mNStd, IEC_class=IEC_class)
 
         """
+
+        if not (len(speed_bin_array) - 1) == len(speed_bin_labels):
+            raise ValueError('The length of the input `speed_bin_labels` array must be equal to '
+                             'len(`speed_bin_array`) - 1. Speed bin labels correspond with the central '
+                             'bins of each adjacent element of the input `speed_bin_array`.')
+
         wspd = _convert_df_to_series(wspd)
         wspd_std = _convert_df_to_series(wspd_std)
         ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
-        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
+        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'], min_speed=min_speed)
         ti_dist = pd.concat([
             dist(var_to_bin=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
-                 bins=speed_bin_array, bin_labels=speed_bin_labels,
+                 bins=speed_bin_array, bin_labels=None,
                  aggregation_method='mean', return_data=True)[-1].rename("Mean_TI"),
             dist(var_to_bin=ti['Turbulence_Intensity'],
                  var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array,
-                 bin_labels=speed_bin_labels,
+                 bin_labels=None,
                  aggregation_method='count', return_data=True)[-1].rename("TI_Count"),
             dist(var_to_bin=ti['Turbulence_Intensity'],
                  var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array,
-                 bin_labels=speed_bin_labels,
-                 aggregation_method=lambda x: np.percentile(x, q=percentile),
+                 bin_labels=None,
+                 aggregation_method=lambda x: x.quantile(percentile/100),
                  return_data=True)[-1].rename("Rep_TI"),
             dist(var_to_bin=ti['Turbulence_Intensity'],
                  var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array,
-                 bin_labels=speed_bin_labels,
+                 bin_labels=None,
                  aggregation_method='std', return_data=True)[-1].rename("TI_2Sigma")], axis=1, join='inner')
         categ_index = dist(var_to_bin=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
                            bins=speed_bin_array, aggregation_method='mean', return_data=True)[-1].index
         num_index = [i.mid for i in categ_index]
         ti_dist.loc[:, 'Char_TI'] = ti_dist.loc[:, 'Mean_TI'] + (ti_dist.loc[:, 'TI_2Sigma'] / num_index)
-        # ti_dist.loc[0, 'Char_TI'] = 0
+
         ti_dist.index.rename('Speed Bin', inplace=True)
-        # return ti_dist
+        ti_dist.index = [i.mid for i in ti_dist.index]
+        graph_ti_dist_by_speed = bw_plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, min_speed=min_speed,
+                                                         IEC_class=IEC_class)
+
+        # replace index of ti_dist with input speed_bin_labels only after generating the plot
+        if speed_bin_labels:
+            ti_dist.index = speed_bin_labels
+
         if return_data:
-            return bw_plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class), ti_dist.dropna(how='any')
-        return bw_plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, IEC_class=IEC_class)
+            return graph_ti_dist_by_speed, ti_dist.dropna(how='any')
+        return graph_ti_dist_by_speed
 
     @staticmethod
-    def by_sector(wspd, wspd_std, wdir, min_speed=0, sectors=12, direction_bin_array=None,
+    def by_sector(wspd, wspd_std, wdir, min_speed=3, sectors=12, direction_bin_array=None,
                   direction_bin_labels=None, return_data=False):
         """
-        Accepts a wind speed series, its standard deviation and a direction series, calculates turbulence intensity (TI)
-        and returns the distribution by of TI by sector
+        Accepts a wind speed series, its standard deviation and a direction series. Calculates turbulence intensity (TI)
+        and returns a plot of TI by sector and the distribution of TI by sector if return_data is set to True.
+        Note that speed values lower than the input min_speed are filtered out when deriving the TI values.
 
-        :param wspd: Wind speed data series
-        :type wspd: pandas.Series
-        :param wspd_std: Wind speed standard deviation data series
-        :type wspd_std: pandas.Series
-        :param wdir: Wind direction series
-        :type wdir: pandas.Series
-        :param min_speed: Set the minimum wind speed.
-        :type min_speed: float
-        :param sectors: Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
-        :type sectors: int
-        :param direction_bin_array: (Optional) Array of wind speeds where adjacent elements of array form a bin
-        :param direction_bin_array: (Optional) To change default behaviour of first sector centered at 0 assign an
-            array of bins to this
-        :param direction_bin_labels: (Optional) you can specify an array of labels to be used for the bins. uses string
-                labels of the format '30-90' by default
-        :param return_data: Set to True if you want the data returned.
-        :type return_data: bool
-        :return: TI distribution with columns names as:
+        :param wspd:                    Wind speed data series
+        :type wspd:                     pandas.Series
+        :param wspd_std:                Wind speed standard deviation data series
+        :type wspd_std:                 pandas.Series
+        :param wdir:                    Wind direction series
+        :type wdir:                     pandas.Series
+        :param min_speed:               Set the minimum wind speed. Default is 3 m/s.
+        :type min_speed:                integer or float
+        :param sectors:                 Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
+        :type sectors:                  integer
+        :param direction_bin_array:     (Optional) Array of wind speeds where adjacent elements of array form a bin.
+                                        This overwrites the sectors. To change default behaviour of first sector
+                                        centered at 0 assign an array of bins to this
+        :type direction_bin_array:      numpy.array or list
+        :param direction_bin_labels:    (Optional) you can specify an array of labels to be used for the bins.
+                                        Default is using string labels of format '30-90'
+        :type direction_bin_labels:     numpy.array or list
+        :param return_data:             Set to True if you want the data returned.
+        :type return_data:              bool
+        :return:                        Return plot of TI distribution by sector and table with TI distribution values
+                                        for statistics below when return_data is True:
 
-                * Mean_TI (average TI for a speed bin),
-                * TI_Count ( number of data points in the bin)
+                                            * Mean_TI (average TI for a speed bin),
+                                            * TI_Count ( number of data points in the bin)
 
-        :rtype: pandas.DataFrame
+        :rtype:                         matplotlib.figure.Figure, pandas.DataFrame
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_csv(bw.demo_datasets.demo_data)
+
+            # Plot TI distribution by sector using default inputs
+            fig_ti_dist = bw.TI.by_sector(data[['Spd80mN']], data[['Spd80mNStd']], data[['Dir78mS']])
+
+            display(fig_ti_dist)
+
+            # Plot TI distribution by sector giving as input min_speed and sectors and return TI
+            # distribution by sector table
+            fig_ti_dist, ti_dist = bw.TI.by_sector(data.Spd80mN, data.Spd80mNStd, data.Dir78mS, min_speed=4, sectors=6,
+                                                  return_data=True)
+            display(fig_ti_dist)
+            display(ti_dist)
+
+            # Plot TI distribution by sector giving as input direction_bin_array and direction_bin_labels. Return TI
+            # distribution by sector table
+            fig_ti_dist, ti_dist = bw.TI.by_sector(data.Spd80mN, data.Spd80mNStd, data.Dir78mS,
+                                                   direction_bin_array=[0,90,130,200,360],
+                                                   direction_bin_labels=['northerly','easterly','southerly','westerly'],
+                                                   return_data=True)
+            display(fig_ti_dist)
+            display(ti_dist)
 
         """
+
+        wspd = _convert_df_to_series(wspd)
+        wspd_std = _convert_df_to_series(wspd_std)
+        wdir = _convert_df_to_series(wdir)
+
         ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std'), wdir.rename('wdir')], axis=1,
                        join='inner')
-        ti = ti[ti['wspd'] >= min_speed]
-        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'])
+
+        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'], min_speed=min_speed)
         ti_dist = pd.concat([
             dist_by_dir_sector(var_series=ti['Turbulence_Intensity'],
                                direction_series=ti['wdir'],
                                sectors=sectors, direction_bin_array=direction_bin_array,
-                               direction_bin_labels=direction_bin_labels,
+                               direction_bin_labels=None,
                                aggregation_method='mean', return_data=True)[-1].rename("Mean_TI"),
             dist_by_dir_sector(var_series=ti['Turbulence_Intensity'],
                                direction_series=ti['wdir'],
                                sectors=sectors, direction_bin_array=direction_bin_array,
-                               direction_bin_labels=direction_bin_labels,
-                               aggregation_method='count', return_data=True)[-1].rename("TI_Count")],
-            axis=1, join='outer')
+                               direction_bin_labels=None,
+                               aggregation_method='count', return_data=True)[-1].rename("TI_Count")
+        ], axis=1, join='outer')
 
         ti_dist.index.rename('Direction Bin', inplace=True)
+        graph_ti_dist_by_sector = bw_plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
+
+        # replace index of ti_dist with input direction_bin_labels only after generating the plot
+        if direction_bin_labels:
+            ti_dist.index = direction_bin_labels
+
         if return_data:
-            return bw_plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist), ti_dist.dropna(how='all')
+            return graph_ti_dist_by_sector, ti_dist.dropna(how='all')
         else:
-            return bw_plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
+            return graph_ti_dist_by_sector
 
     @staticmethod
     def twelve_by_24(wspd, wspd_std, return_data=False, var_name_label='Turbulence Intensity'):
@@ -1481,9 +1589,10 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     :param sectors:             Set the number of direction sectors. Usually 12, 16, 24, 36 or 72.
     :type sectors:              int
     :param min_wspd:            Minimum wind speed to be used.
-    :type: min_wpd:             float
+    :type min_wpd:              float
     :param direction_bin_array: (Optional) Array of numbers where adjacent elements of array form a bin. This
                                 overwrites the sectors.
+    :type direction_bin_array:  numpy.array or list
     :param boom_dir_1:          Boom orientation in degrees of wspd_1. If top mounted leave default as -1. One or more
                                 boom orientations can be accepted. If multiple orientations, number of orientations must
                                 equal number of wspd_1 timeseries.
