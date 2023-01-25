@@ -895,6 +895,11 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
            of the dataset. This to take into account leap years.
         5) Finally, sum each weighted averaged monthly frequency distribution to get a total distribution
 
+    If 'target_freq_table_mean' input is different than None then the derived frequency table is scaled in order to
+    get the target mean frequency value. The method used for making this adjustment is an iterative process
+    which converges on the target when the difference respect the derived mean frequency distribution is minimum or
+    lower than 0.01 %.
+
     :param var_series:              Series of variable to be binned
     :type var_series:               pandas.Series
     :param direction_series:        Series of wind directions between [0-360]
@@ -932,7 +937,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     :type coverage_threshold:       int, float or None
     :param target_freq_table_mean:  Target value used to scale the mean of the frequency distribution.
                                     If None then no scaling is applied. The mean of frequency distribution is considered
-                                    to match the target value when difference is minimum or lower than 0.01 %.
+                                    to converge on the target value when difference is minimum or lower than 0.01 %.
     :type target_freq_table_mean:   int, float or None
     :param plot_bins:               Bins to use for gradient in the rose. Different bins will be plotted with different
                                     color. Chooses six bins to plot by default '0-3 m/s', '4-6 m/s', '7-9 m/s',
