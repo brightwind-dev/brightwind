@@ -872,7 +872,7 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
                direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, seasonal_adjustment=False,
-               coverage_threshold=0.8, var_series_mean_target=None, plot_bins=None, plot_labels=None,
+               coverage_threshold=0.8, target_freq_table_mean=None, plot_bins=None, plot_labels=None,
                return_data=False):
     """
     Create a frequency distribution table, typically of wind speed and wind direction i.e. how often the wind
@@ -930,10 +930,10 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                                     than this. Coverage_threshold should be a value between 0 and 1.
                                     If it is None or 0, data is not filtered. Default value is 0.8.
     :type coverage_threshold:       int, float or None
-    :param var_series_mean_target:  Target value used to scale the mean of the frequency distribution.
+    :param target_freq_table_mean:  Target value used to scale the mean of the frequency distribution.
                                     If None then no scaling is applied. The mean of frequency distribution is considered
                                     to match the target value when difference is minimum or lower than 0.01 %.
-    :type var_series_mean_target:   int, float or None
+    :type target_freq_table_mean:   int, float or None
     :param plot_bins:               Bins to use for gradient in the rose. Different bins will be plotted with different
                                     color. Chooses six bins to plot by default '0-3 m/s', '4-6 m/s', '7-9 m/s',
                                     '10-12 m/s', '13-15 m/s' and '15+ m/s'. If you change var_bin_array this should be
@@ -991,7 +991,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         # Custom direction and set target mean frequency distribution
         rose, tab = bw.freq_table(data.Spd40mN, data.Dir38mS, direction_bin_array=[0,90,130,200,360],
                                   direction_bin_labels=['northerly','easterly','southerly','westerly'],
-                                  var_series_mean_target=8, plot_bins=[0,8,14,41], plot_labels=None, return_data=True)
+                                  target_freq_table_mean=8, plot_bins=[0,8,14,41], plot_labels=None, return_data=True)
         display(rose)
         display(freq_table)
     """
@@ -1005,11 +1005,11 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     direction_series = _convert_df_to_series(direction_series).copy()
     data_concurrent = pd.concat([var_series, direction_series], axis=1).dropna()
 
-    # If var_series_mean_target is given as input to function then derive scale factor as ratio of
-    # var_series_mean_target and data_concurrent means.
-    # This scale factor is used to correct var_series when concurrent with direction_series.
-    if var_series_mean_target is not None:
-        scale_factor = var_series_mean_target / data_concurrent[var_series.name].mean()
+    # If `target_freq_table_mean` is given as input to function then derive scale factor as ratio of
+    # `target_freq_table_mean` and `data_concurrent` means.
+    # This scale factor is used to correct `var_series` when concurrent with `direction_series`.
+    if target_freq_table_mean is not None:
+        scale_factor = target_freq_table_mean / data_concurrent[var_series.name].mean()
         var_series_scaled = scale_wind_speed(data_concurrent[var_series.name], scale_factor)
     else:
         var_series_scaled = var_series
@@ -1043,14 +1043,14 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                                                     ).replace(np.nan, 0.0)
             text_msg_out = None
 
-        if var_series_mean_target is None:
+        if target_freq_table_mean is None:
             k = -1
         else:
             freq_tab_mean = _calc_mean_speed_of_freq_tab(result)
-            scale_factor = var_series_mean_target / freq_tab_mean
+            scale_factor = target_freq_table_mean / freq_tab_mean
             var_series_scaled = scale_wind_speed(var_series_scaled, scale_factor)
 
-            abs_percentage_diff = abs(100 * (var_series_mean_target - freq_tab_mean) / freq_tab_mean)
+            abs_percentage_diff = abs(100 * (target_freq_table_mean - freq_tab_mean) / freq_tab_mean)
             if abs_percentage_diff > 0.01:
                 if k > 1:
                     diff_min = np.append(abs_percentage_diff, diff_min)
