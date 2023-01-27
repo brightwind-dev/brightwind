@@ -253,9 +253,20 @@ def _get_overlapping_data(df1, df2, averaging_prd=None):
     return df1[start:], df2[start:]
 
 
-def _max_coverage_count(data_index, averaged_data_index, data_resolution=None) -> pd.Float64Index:
+def _max_coverage_count(data_index, averaged_data_index, data_resolution=None):
     """
     For a given resolution of data finds the maximum number of data points in the averaging period
+
+    :param data_index:          The index of a Pandas Dataframe or Series to find the maximum number of data points for.
+    :type  data_index:          pd.Index
+    :param averaged_data_index: The index of the averaged grouped object.
+    :type  averaged_data_index: pd.Index
+    :param data_resolution:     Data resolution to give as input if the coverage of the data timeseries is extremely low
+                                and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:      None or pd.DateOffset
+    :return max_pts:            The maximum number of data points in the averaging period.
+    :rtype:                     np.float64
+
     """
 
     if data_resolution is None:
