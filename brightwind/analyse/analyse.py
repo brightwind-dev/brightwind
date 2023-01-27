@@ -664,8 +664,9 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
     :param direction_bin_labels:Optional, you can specify an array of labels to be used for the bins. Uses string
                                 labels of the format '30-90' by default.
     :type direction_bin_labels: list(float), list(str)
-    :param aggregation_method:  Statistical method used to find distribution it can be mean, max, min, std, count,
-                                %frequency or a custom function. Computes frequency in percentages by default.
+    :param aggregation_method:  Statistical method used to find distribution it can be mean, max, min, std,
+                                %frequency or a custom function. It cannot be 'count' or 'sum'. Computes frequency in
+                                percentages by default.
     :type aggregation_method:   str
     :param coverage_threshold:  In this case monthly coverage threshold. Coverage is defined as the ratio of the number
                                 of data points present in the month and the maximum number of data points that a month
@@ -681,6 +682,11 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
 
     """
     text_msg_out = None
+
+    if (aggregation_method == 'count') or (aggregation_method == 'sum'):
+        raise ValueError("The input 'aggregation_method' cannot be 'count' or 'sum' when a seasonal adjustment is "
+                         "applied to the frequency table.")
+
     coverage_threshold = validate_coverage_threshold(coverage_threshold)
     # derive monthly coverage considering var_series, var_to_bin_series, direction_series inputs
     monthly_coverage = coverage(pd.concat([var_series.rename('var_data'), var_to_bin_series,
@@ -723,12 +729,12 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
                 monthly_coverage < coverage_threshold_recommended).sum() > 0:
             text_msg_out = 'Note: The monthly coverage for {} is lower than the coverage threshold value of ' \
                            '{}. {} The {}'.format(text_months_fail, coverage_threshold, text_warning,
-                                                     text_warning_threshold_recommended)
+                                                  text_warning_threshold_recommended)
         elif (monthly_coverage < coverage_threshold).sum() == 0 and (
                 monthly_coverage < coverage_threshold_recommended).sum() > 0:
             text_msg_out = 'Note: A coverage threshold value of {} is set.' \
                            ' The seasonally adjusted frequency table {}'.format(coverage_threshold,
-                                                                                   text_warning_threshold_recommended)
+                                                                                text_warning_threshold_recommended)
         else:
             text_msg_out = None
     elif coverage_threshold >= coverage_threshold_recommended and (monthly_coverage < coverage_threshold).sum() > 0:
@@ -921,7 +927,8 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                                     labels of the format '30-90' by default
     :type direction_bin_labels:     list(float), list(str)
     :param freq_as_percentage:      Optional, True by default. Returns the frequency as percentages. To return just the
-                                    count, set to False
+                                    count, set to False. NOTE; the count cannot be returned when a seasonal adjustment
+                                    is applied.
     :type freq_as_percentage:       bool
     :param seasonal_adjustment:     Optional, False by default. If True, returns the frequency distribution seasonal
                                     adjusted
@@ -1000,6 +1007,12 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         display(rose)
         display(freq_table)
     """
+
+    if (freq_as_percentage is False) and (seasonal_adjustment is True):
+        raise ValueError("The input 'freq_as_percentage' cannot be set to False if `seasonal_adjustment` is "
+                         "set to True. \nThis because the 'count' aggregation method cannot be used when a "
+                         "seasonal adjustment is applied to the frequency table.")
+
     if freq_as_percentage:
         agg_method = '%frequency'
     else:
