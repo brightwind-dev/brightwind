@@ -665,8 +665,8 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
                                 labels of the format '30-90' by default.
     :type direction_bin_labels: list(float), list(str)
     :param aggregation_method:  Statistical method used to find distribution it can be mean, max, min, std,
-                                %frequency or a custom function. It cannot be 'count'. Computes frequency in percentages
-                                by default.
+                                %frequency or a custom function. It cannot be 'count' or 'sum'. Computes frequency in
+                                percentages by default.
     :type aggregation_method:   str
     :param coverage_threshold:  In this case monthly coverage threshold. Coverage is defined as the ratio of the number
                                 of data points present in the month and the maximum number of data points that a month
@@ -683,9 +683,9 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
     """
     text_msg_out = None
 
-    if aggregation_method == 'count':
-        raise ValueError("The input 'aggregation_method' cannot be 'count' when a seasonal adjustment is applied "
-                         "to the frequency table.")
+    if (aggregation_method == 'count') or (aggregation_method == 'sum'):
+        raise ValueError("The input 'aggregation_method' cannot be 'count' or 'sum' when a seasonal adjustment is "
+                         "applied to the frequency table.")
 
     coverage_threshold = validate_coverage_threshold(coverage_threshold)
     # derive monthly coverage considering var_series, var_to_bin_series, direction_series inputs
