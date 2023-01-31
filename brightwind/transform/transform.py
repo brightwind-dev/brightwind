@@ -963,7 +963,7 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
             elif float(wspd_prop[variables['slope']]) != float(wspd_prop[variables['cal_slope']]) or \
                     float(wspd_prop[variables['offset']]) != float(wspd_prop[variables['cal_offset']]):
                 try:
-                    df[name][date_from:date_to] = \
+                    df.loc[date_from:date_to, name] = \
                         adjust_slope_offset(df[name][date_from:date_to],
                                             current_slope=float(wspd_prop[variables['slope']]),
                                             current_offset=float(wspd_prop[variables['offset']]),
