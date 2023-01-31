@@ -1769,7 +1769,7 @@ def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
-    ax.plot(np.append(radians, radians[0]), sec_ratio_dist['Mean_Sector_Ratio'].append(sec_ratio_dist.iloc[0]),
+    ax.plot(np.append(radians, radians[0]), pd.concat([sec_ratio_dist['Mean_Sector_Ratio'], sec_ratio_dist.iloc[0]]),
             color=COLOR_PALETTE.primary, linewidth=4)
 
     # Add boom dimensions to chart, if required
