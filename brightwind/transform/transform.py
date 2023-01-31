@@ -398,7 +398,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
             raise ValueError("The time period specified is less than the temporal resolution of the data. "
                              "For example, hourly data should not be averaged to 10 minute data.")
     data = data.sort_index()
-    grouper_obj = data.resample(period, axis=0, closed='left', label='left', base=0,
+    grouper_obj = data.resample(period, axis=0, closed='left', label='left',
                                 convention='start', kind='timestamp')
 
     # if period is equal to data resolution then no need to vector average wind direction
