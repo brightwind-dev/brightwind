@@ -1486,8 +1486,8 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(ti.index))
-    ax.plot(np.append(radians, radians[0]), ti.append(ti.iloc[0])['Mean_TI'], color=COLOR_PALETTE.primary, linewidth=4,
-            figure=fig, label='Mean_TI')
+    ax.plot(np.append(radians, radians[0]), pd.concat([ti, pd.DataFrame(ti.iloc[0]).T])['Mean_TI'],
+            color=COLOR_PALETTE.primary, linewidth=4, figure=fig, label='Mean_TI')
     maxlevel = ti['Mean_TI'].max() + 0.1
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wdir), turbulence, color=COLOR_PALETTE.secondary, alpha=0.3, s=1, label='TI')
