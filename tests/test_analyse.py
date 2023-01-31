@@ -77,8 +77,8 @@ def test_time_continuity_gaps():
     # THIS WILL RAISE 3 WARNINGS.
     data_test = DATA.copy()
     data_test.reset_index(inplace=True)
-    data_test['Timestamp'][10] = data_test['Timestamp'][10] + pd.DateOffset(minutes=1)
-    data_test['Timestamp'][20] = data_test['Timestamp'][20] + pd.DateOffset(minutes=9)
+    data_test.loc[10, 'Timestamp'] = data_test.loc[10, 'Timestamp'] + pd.DateOffset(minutes=1)
+    data_test.loc[20, 'Timestamp'] = data_test.loc[20, 'Timestamp'] + pd.DateOffset(minutes=9)
     data_test.set_index('Timestamp', inplace=True)
     gaps_irregular = bw.time_continuity_gaps(data_test)
     assert gaps_irregular.iloc[0, 0] == pd.Timestamp('2016-01-09 18:10:00')
