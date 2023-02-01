@@ -431,7 +431,7 @@ class OrdinaryLeastSquares(CorrelBase):
         elif type(self.ref_dir) is pd.Series:
             self.params = []
             for sector, group in pd.concat([self.data, self._ref_dir_bins],
-                                           axis=1, join='inner').dropna().groupby(['ref_dir_bin']):
+                                           axis=1, join='inner').dropna().groupby('ref_dir_bin'):
                 # print('Processing sector:', sector)
                 if len(group) > 1:
                     slope, offset = self._leastsquare(ref_spd=group[self._ref_spd_col_name],
@@ -978,7 +978,7 @@ class SpeedSort(CorrelBase):
         self.params['target_veer_cutoff'] = round(self.target_veer_cutoff, 5)
         self.params['overall_average_veer'] = round(self.overall_veer, 5)
         for sector, group in pd.concat([self.data, self._ref_dir_bins],
-                                       axis=1, join='inner').dropna().groupby(['ref_dir_bin']):
+                                       axis=1, join='inner').dropna().groupby('ref_dir_bin'):
             # print('Processing sector:', sector)
             self.speed_model[sector] = SpeedSort.SectorSpeedModel(ref_spd=group[self._ref_spd_col_name],
                                                                   target_spd=group[self._tar_spd_col_name],
@@ -1136,7 +1136,7 @@ class SpeedSort(CorrelBase):
                                                 direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')],
                       axis=1, join='inner').dropna()
         prediction = pd.Series(dtype='float64').rename('spd')
-        for sector, data in x.groupby(['ref_dir_bin']):
+        for sector, data in x.groupby('ref_dir_bin'):
             if sector in list(self.speed_model.keys()):
                 prediction_spd = self.speed_model[sector].sector_predict(data['spd'])
             else:
