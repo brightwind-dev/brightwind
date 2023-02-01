@@ -1092,7 +1092,7 @@ class Shear:
             df_12x24 = pd.DataFrame([[None for y in range(12)] for x in range(24)])
             df_12x24.index = df.index
             for i in range(12):
-                df_12x24.iloc[:, i] = df.iloc[:, 0]
+                df_12x24[df_12x24.columns[i]] = df.iloc[:, 0]
             df = df_12x24
 
         return df
