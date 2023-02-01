@@ -34,6 +34,7 @@ _line_colors_, _legend_ and _figure_size_. (Issue #[349](https://github.com/brig
 11. Address errors and warnings generated for `Shear.TimeOfDay` and `Shear` when pandas >=1.0.0 (Issue #[347](https://github.com/brightwind-dev/brightwind/issues/347)).
 12. In `average_data_by_period()` fixed issue when wind direction average is derived for a period equal to the data resolution period (Issue #[319](https://github.com/brightwind-dev/brightwind/issues/319)).
 13. In `_calc_mean_speed_of_freq_tab` for `export_tab_file` fix issue around using wind speed bins less than 1 m/s (Issue #[359](https://github.com/brightwind-dev/brightwind/issues/359)).
+14. Addressed al Future and Deprecation warnings for matplotlib<=3.6.3, numpy<=1.24.1, pandas<=1.5.3. (Issue #[356](https://github.com/brightwind-dev/brightwind/issues/356)).
 
 
 
