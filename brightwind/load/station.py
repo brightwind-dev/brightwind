@@ -115,8 +115,7 @@ def _rename_to_title(list_or_dict, schema):
             prefixed_name = key + PREFIX_DICT[key]['prefix_separator'] + col
             prefixed_names[prefixed_name] = {'prefix_separator': PREFIX_DICT[key]['prefix_separator'],
                                              'title_prefix': PREFIX_DICT[key]['title_prefix']}
-    list_special_cases_no_prefix = ['sensor_config.slope', 'sensor_config.offset', 'sensor_config.sensitivity',
-                                    'logger_measurement_config.slope', 'logger_measurement_config.offset',
+    list_special_cases_no_prefix = ['logger_measurement_config.slope', 'logger_measurement_config.offset',
                                     'logger_measurement.sensitivity',
                                     'calibration.slope', 'calibration.offset', 'calibration.sensitivity']
     if isinstance(list_or_dict, dict):
@@ -301,13 +300,6 @@ PREFIX_DICT = {
         'prefix_separator': '.',
         'title_prefix': 'Lidar Specific Configs ',
         'keys_to_prefix': ['date_from', 'date_to', 'notes', 'update_at']
-    },
-    'sensor_config': {
-        'prefix_separator': '.',
-        'title_prefix': 'Logger ',
-        'keys_to_prefix': ['height_m', 'height_reference_id', 'serial_number',
-                           'slope', 'offset', 'sensitivity',
-                           'notes', 'update_at']
     },
     'logger_measurement_config': {
         'prefix_separator': '.',
@@ -824,9 +816,7 @@ class _Measurements:
     def __get_properties(self):
         meas_props = []
         for meas_point in self._meas_data_model:
-            logger_meas_cfgs = _raise_child(meas_point, child_to_raise='sensor_config')
-            if logger_meas_cfgs is None:
-                logger_meas_cfgs = _raise_child(meas_point, child_to_raise='logger_measurement_config')
+            logger_meas_cfgs = _raise_child(meas_point, child_to_raise='logger_measurement_config')
             calib_raised = _raise_child(meas_point, child_to_raise='calibration')
             if calib_raised is None:
                 sensors = _raise_child(meas_point, child_to_raise='sensor')
@@ -989,9 +979,9 @@ class _Measurements:
             cols_required = ['name', 'oem', 'model', 'sensor_type_id', 'sensor.serial_number',
                              'height_m', 'boom_orientation_deg',
                              'date_from', 'date_to', 'connection_channel', 'measurement_units_id',
-                             'sensor_config.slope', 'sensor_config.offset', 'logger_measurement_config.slope',
-                             'logger_measurement_config.offset', 'calibration.slope', 'calibration.offset',
-                             'sensor_config.notes', 'logger_measurement_config.notes', 'sensor.notes']
+                             'logger_measurement_config.slope', 'logger_measurement_config.offset',
+                             'calibration.slope', 'calibration.offset',
+                             'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties).set_index(
                 ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
             # get what is common from both lists and use this to filter df
@@ -1016,9 +1006,9 @@ class _Measurements:
             cols_required = ['name', 'measurement_type_id', 'oem', 'model', 'sensor.serial_number', 'is_heated',
                              'height_m', 'boom_orientation_deg', 'mounting_type_id',
                              'date_from', 'date_to', 'connection_channel',
-                             'sensor_config.slope', 'sensor_config.offset', 'logger_measurement_config.slope',
-                             'logger_measurement_config.offset', 'calibration.slope', 'calibration.offset',
-                             'sensor_config.notes', 'logger_measurement_config.notes', 'sensor.notes']
+                             'logger_measurement_config.slope', 'logger_measurement_config.offset',
+                             'calibration.slope', 'calibration.offset',
+                             'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
             df = df[df['measurement_type_id'] == 'wind_speed'].set_index(
                 ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
@@ -1040,9 +1030,8 @@ class _Measurements:
                              'height_m', 'boom_orientation_deg', 'vane_dead_band_orientation_deg',
                              'orientation_reference_id',
                              'date_from', 'date_to', 'connection_channel',
-                             'sensor_config.slope', 'sensor_config.offset',
                              'logger_measurement_config.slope', 'logger_measurement_config.offset',
-                             'sensor_config.notes', 'logger_measurement_config.notes', 'sensor.notes']
+                             'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
             df = df[df['measurement_type_id'] == 'wind_direction'].set_index(
                 ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
