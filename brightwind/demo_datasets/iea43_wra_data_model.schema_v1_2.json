@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$version": "1.2.0-2023.01",
   "$id": "https://raw.githubusercontent.com/IEA-Task-43/digital_wra_data_standard/master/schema/iea43_wra_data_model.schema.json",
   "definitions": {
     "date_from": {
@@ -46,11 +47,189 @@
       "examples": [
         "2020-07-28T20:49:13"
       ]
+    },
+    "measurement_type": {
+      "type": "string",
+      "title": "Measurement Type",
+      "description": "The type of measurement been made. See more information in the examples.",
+      "enum": [
+        "wind_speed",
+        "wind_direction",
+        "air_temperature",
+        "water_temperature",
+        "temperature",
+        "air_pressure",
+        "air_density",
+        "relative_humidity",
+        "voltage",
+        "current",
+        "resistance",
+        "power",
+        "energy",
+        "vertical_wind_speed",
+        "wind_speed_turbulence",
+        "precipitation",
+        "ice_detection",
+        "global_horizontal_irradiance",
+        "direct_normal_irradiance",
+        "diffuse_horizontal_irradiance",
+        "global_tilted_irradiance",
+        "global_normal_irradiance",
+        "albedo",
+        "soiling_loss_index",
+        "illuminance",
+        "fog",
+        "salinity",
+        "conductivity",
+        "pressure",
+        "gps_coordinates",
+        "status",
+        "flag",
+        "counter",
+        "availability",
+        "quality",
+        "carrier_to_noise_ratio",
+        "doppler_spectral_broadening",
+        "echo_intensity",
+        "signal_to_noise_ratio",
+        "motion_corrected_wind_speed",
+        "motion_corrected_wind_direction",
+        "motion_corrected_vertical_wind_speed",
+        "wave_height",
+        "wave_significant_height",
+        "wave_maximum_height",
+        "wave_direction",
+        "wave_directional_spread",
+        "wave_period",
+        "wave_peak_period",
+        "water_speed",
+        "vertical_water_speed",
+        "water_direction",
+        "orientation",
+        "compass_direction",
+        "true_north_offset",
+        "tilt",
+        "tilt_x",
+        "tilt_y",
+        "tilt_z",
+        "u",
+        "v",
+        "w",
+        "elevation",
+        "altitude",
+        "height",
+        "azimuth",
+        "water_level",
+        "depth",
+        "timestamp",
+        "other"
+      ],
+      "examples": [
+        "wind_speed  (the horizontal component of wind speed)",
+        "wind_direction  (the direction from which the wind is coming from)",
+        "air_temperature  (outdoor ambient temperature of the air)",
+        "water_temperature  (is the in situ temperature of the water. In CF Conventions this is equivalent to 'sea_water_temperature'.)",
+        "temperature  (the temperature of a body or indoor ambient air temperature)",
+        "air_pressure (outdoor pressure of the air)",
+        "air_density (the density of air)",
+        "relative_humidity (outdoor relative humidity of the air",
+        "voltage (electrical voltage, typically the logger battery voltage)",
+        "current (electrical current, typically the logger battery current)",
+        "resistance (electrical resistance, the raw or basic measurement from many different sensors)",
+        "power (the amount of energy transferred or converted per unit of time)",
+        "energy (in physics, is the capacity for doing work. It may exist in potential, kinetic, thermal, electrical, chemical, nuclear, or other various forms.)",
+        "vertical_wind_speed (the vertical component of wind speed)",
+        "wind_speed_turbulence (the turbulence of the wind speed)",
+        "precipitation (water which falls to the ground from the atmosphere in forms of rain, snow, sleet, ice pellets, dew, frost, and hail)",
+        "ice_detection (detection of ice build up on surfaces)",
+        "global_horizontal_irradiance (the total power or instantaneous rate of energy from the sun received by a horizontal surface on Earth)",
+        "direct_normal_irradiance (the direct line of sight power or instantaneous rate of energy from the sun, excluding diffuse irradiance, received by a surface on Earth perpendicular to the sun)",
+        "diffuse_horizontal_irradiance (the power or instantaneous rate of energy from light scattered by the atmosphere, excluding direct irradiance, received by a horizontal surface on Earth)",
+        "global_tilted_irradiance (the total power or instantaneous rate of energy from the sun received by a surface on Earth with defined tilt and azimuth, fixed or sun-tracking)",
+        "global_normal_irradiance (the total power or instantaneous rate of energy from the sun received by a surface on Earth perpendicular to the sun)",
+        "albedo (or reflected solar radiation from the earth's surface, is defined as the ratio between the reflected energy and the incident energy over a unit area)",
+        "soiling_loss_index (an index of lost energy between clean and dirty PV modules, https://www.campbellsci.com/cr-pvs1 )",
+        "illuminance (measure of visible light falling onto a per unit area, typically measured in lux)",
+        "fog (is a visible aerosol consisting of tiny water droplets or ice crystals suspended in the air at or near the Earth's surface)",
+        "salinity (is the salt content of water. In CF Conventions this is equivalent to 'sea_water_salinity', 'sea_water_practical_salinity' or 'sea_water_absolute_salinity' depending on the scale been used.)",
+        "conductivity (of an electrolyte solution, e.g. sea water, is a measure of its ability to conduct electricity. In CF Conventions this is equivalent to 'sea_water_electrical_conductivity' for offshore use cases.)",
+        "pressure (the pressure of a medium e.g. water. In CF Conventions this is equivalent to 'sea_water_pressure' for offshore use cases.)",
+        "gps_coordinates (latitude and/or longitude as measured by a gps)",
+        "status (a status flag or other to describe the status of a sensor or object)",
+        "counter (a simple counter)",
+        "availability (the availability of a sensor or the presence of something in a measurement typically measured as %, e.g. '40m Data Availability (%)' or 'Proportion Of Packets with Fog (%)'. This is currently a generic catch-all for all 'availability' like metrics and may be resolved into more specific definitions in future revisions.)",
+        "quality (a measure of the quality of a measurement)",
+        "carrier_to_noise_ratio (a measure of signal strength as measured by lidar devices, http://data.windenergy.dtu.dk/ontologies/view/IEATask32Glossary/en/page/parameters.carrier_to_noise_ratio )",
+        "doppler_spectral_broadening (as measured by lidar devices)",
+        "echo_intensity (is the brightness or brilliance of the acoustic echo usually measured by an ADCP. If from an ADCP, it can be used to judge the quality of measurement or estimate the amount of suspended sediment in the water column.)",
+        "signal_to_noise_ratio (a measure of signal strength as measured by ADCPs.)",
+        "motion_corrected_wind_speed (the horizontal component of wind speed which has been corrected due to the motion of the measuring sensor/device, typically from floating lidar systems)",
+        "motion_corrected_wind_direction (the direction form which the wind is coming from which has been corrected due to the motion of the measuring sensor/device, typically from floating lidar systems)",
+        "motion_corrected_vertical_wind_speed (the vertical component of wind speed which has been corrected due to the motion of the measuring sensor/device, typically from floating lidar systems)",
+        "wave_height (is the mean wave height measured during the observation period, where the height is defined as the vertical distance from a wave trough to the following wave crest. In CF Conventions this is equivalent to 'sea_surface_wave_mean_height'.)",
+        "wave_significant_height (is a statistic computed from wave measurements and corresponds to the average height of the highest one third of the waves, where the height is defined as the vertical distance from a wave trough to the following wave crest. In CF Conventions this is equivalent to 'sea_surface_wave_significant_height'.)",
+        "wave_maximum_height (is the greatest trough to crest distance measured during the observation period. Wave height is defined as the vertical distance from a wave trough to the following wave crest. In CF Conventions this is equivalent to 'sea_surface_wave_maximum_height'.)",
+        "wave_direction (the direction from which the wave is coming from. The direction is a bearing in the usual geographical sense, measured positive clockwise from due north. In CF Conventions this is equivalent to 'sea_surface_wave_from_direction'.)",
+        "wave_directional_spread (is the standard deviation of all the wave directions measured. It signifies how spread out,or how wide an area, all the waves are coming from. In CF Conventions this is equivalent to 'sea_surface_wave_directional_spread'.)",
+        "wave_period (is the mean wave period measured during the observation period at a specific location. In CF Conventions this is equivalent to 'sea_surface_wave_mean_period'.)",
+        "wave_peak_period (is the wave period of the most energetic waves in the total wave spectrum at a specific location. In CF Conventions this is equivalent to 'sea_surface_wave_period_at_variance_spectral_density_maximum'.)",
+        "water_speed (the horizontal magnitude of the water's velocity. This is sometimes also known as 'current speed' and in CF Conventions this is equivalent to 'sea_water_speed'.)",
+        "vertical_water_speed (the vertical magnitude of the water's velocity. In CF Conventions this is equivalent to 'upward_sea_water_velocity'.)",
+        "water_direction (the direction from which the water flow is coming from. The direction is a bearing in the usual geographical sense, measured positive clockwise from due north. This is sometimes also known as 'current direction' and in CF Conventions this is equivalent to 'sea_water_velocity_from_direction' or 'sea_water_from_direction'.)",
+        "orientation (the direction something points or faces relative to north or other specified positions)",
+        "compass_direction (the direction as measured by a compass, therefore referenced to magnetic north)",
+        "true_north_offset (the offset something points or faces relative to true north, e.g. from a solar compass such as a Geovane)",
+        "tilt_x (the tilt of an object relative to the x-axis)",
+        "tilt_y (the tilt of an object relative to the y-axis)",
+        "tilt_z (the tilt of an object relative to the z-axis)",
+        "u (the U component vector, relating to wind it is positive for a west to east flow (eastward wind), however, it can be used for other vectors. If so, please use the notes property to define it.)",
+        "v (the V component vector, relating to wind it is positive for a south to north flow (northward wind), however, it can be used for other vectors. If so, please use the notes property to define it.)",
+        "w (the W component vector, if using this for wind please use the 'vertical_wind_speed' measurement type. Please use the notes property to define how this component is utilised.",
+        "elevation (the height the surface of the earth is above mean sea level)",
+        "altitude (the height above mean sea level or is the angle between the sun and the observer's local horizon, also sometimes referred to as elevation)",
+        "height (the vertical distance above a particular reference e.g. ground level.)",
+        "azimuth (is the angle of the sun around the horizon, in the northern hemisphere this is usually measured from north and increasing eastward whereas in the southern hemisphere it can be measured from the south and increasing westward)",
+        "water_level (is the height of the sea surface above the sea floor. In CF Conventions this is equivalent, but opposite in respect of their point of reference, to 'sea_floor_depth_below_sea_surface'.)",
+        "depth (the vertical distance below a particular reference e.g. sea level.)",
+        "timestamp (the timestamp of when a measurement value was recorded)",
+        "other"
+      ]
+    },
+    "orientation_reference": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "title": "Orientation Reference",
+      "description": "The orientation reference the item is measured against. E.g. magnetic north.",
+      "enum": [
+        "magnetic_north",
+        "true_north",
+        "grid_north",
+        null
+      ]
+    },
+    "height_reference": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "title": "Height Reference",
+      "description": "The height reference frame that is used to measure the item height. E.g. onshore this is 'ground level' i.e. the item is 0.5 m above ground level. Offshore is a bit different as it can be 20 m above 'mean sea level' or 20 m above 'lowest astronomical tide' for a fixed structure or 20 m above 'sea level' for a floating lidar.",
+      "enum": [
+        "ground_level",
+        "mean_sea_level",
+        "sea_level",
+        "lowest_astronomical_tide",
+        "sea_floor",
+        "other"
+      ],
+      "default": "ground_level"
     }
   },
   "type": "object",
   "title": "IEA Wind Resource Assessment - Data Model",
-  "description": "This Data Model schema is a digital representation of a meteorological mast used for measureing the wind resource of a potential wind farm.",
+  "description": "This Data Model schema is a digital representation of a meteorological mast used for measuring the wind resource of a potential wind farm.",
   "properties": {
     "author": {
       "type": "string",
@@ -110,7 +289,8 @@
       "enum": [
         "null",
         "onshore_wind",
-        "offshore_wind"
+        "offshore_wind",
+        "solar"
       ]
     },
     "measurement_location": {
@@ -132,7 +312,7 @@
           "latitude_ddeg": {
             "type": "number",
             "title": "Latitude [ddeg]",
-            "description": "Latitude coordinate in the Geographic Coordinate System using the WGS84 datum in decimal degrees. Latitude lines are parallel to the equator where their position ranges from -90 degrees at the south pole to 90 degrees at the north pole.",
+            "description": "Latitude coordinate in the Geographic Coordinate System using the WGS84 reference coordinate system, [EPSG:4326](https://epsg.io/4326). Unit of measure is in decimal degrees. Latitude lines are parallel to the equator where their position ranges from -90 degrees at the south pole to 90 degrees at the north pole.",
             "examples": [
               52.973
             ],
@@ -142,7 +322,7 @@
           "longitude_ddeg": {
             "type": "number",
             "title": "Longitude [ddeg]",
-            "description": "Longitude coordinate in the Geographic Coordinate System using the WGS84 datum in decimal degrees. Longitude lines are perpendicular to the equator where their position ranges from 0° at Greenwich Mean Time increasing to +180° as you move eastward and decreasing to −180° as you move westward.",
+            "description": "Longitude coordinate in the Geographic Coordinate System using the WGS84 reference coordinate system, [EPSG:4326](https://epsg.io/4326). Unit of measure is in decimal degrees. Longitude lines are perpendicular to the equator where their position ranges from 0° at Greenwich Mean Time increasing to +180° as you move eastward and decreasing to −180° as you move westward.",
             "examples": [
               -9.431
             ],
@@ -151,13 +331,14 @@
           },
           "measurement_station_type_id": {
             "title": "Measurement Station Type",
-            "description": "The type of measurement station. This must be one of either met mast, lidar (a vertical profiler), sodar (also a vertical profiler) or flidar (floating vertical profiler lidar).",
+            "description": "The type of measurement station. This must be one of either met mast, lidar (a vertical profiler), sodar (also a vertical profiler) or floating lidar (floating vertical profiler lidar).",
             "type": "string",
             "enum": [
               "mast",
               "lidar",
               "sodar",
-              "flidar"
+              "floating_lidar",
+              "solar"
             ]
           },
           "notes": {
@@ -172,7 +353,7 @@
               "null"
             ],
             "title": "Mast Properties",
-            "description": "The properties of the installed met mast/tower.",
+            "description": "The properties of the installed met mast/tower. Additional properties can be added e.g. 'material' however this wouldn't be part of the Data Model. If an additional property is for information purposes please consider using 'notes' instead.",
             "properties": {
               "mast_geometry_id": {
                 "type": [
@@ -185,7 +366,8 @@
                   "lattice_triangle",
                   "lattice_square_round_edges",
                   "lattice_square_sharp_edges",
-                  "pole"
+                  "pole",
+                  null
                 ]
               },
               "mast_oem": {
@@ -235,6 +417,21 @@
                   81.3
                 ]
               },
+              "date_from": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "title": "Date From",
+                "description": "The date from when these properties are active. If these properties follow a change, then this Date From should equal the previous Date To. The format of this date should follow ISO 8601 with the 'T' required. If a timezone is used, it is essential that this timezone is the same as the logger timezone.",
+                "examples": [
+                  "2020-07-28T20:00:00"
+                ]
+              },
+              "date_to": {
+                "$ref": "#/definitions/date_to"
+              },
               "notes": {
                 "$ref": "#/definitions/notes"
               },
@@ -247,7 +444,7 @@
                   "null"
                 ],
                 "title": "Mast Section Geometry",
-                "description": "This properties of each mast section.",
+                "description": "This contains the properties of each mast section. Additional properties can be added e.g. 'material' however this wouldn't be part of the Data Model. If an additional property is for information purposes please consider using 'notes' instead.",
                 "items": {
                   "type": "object",
                   "title": "Mast Section Geometry",
@@ -262,6 +459,17 @@
                       "description": "The unique id to relate this mast section to the mounting arrangement. A UUID can be generated here https://www.uuidgenerator.net/",
                       "examples": [
                         "bf078172-bbb6-48fe-ac1f-c6605dffb1b5"
+                      ]
+                    },
+                    "mast_section_height_mm": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "title": "Mast Section Height [mm]",
+                      "description": "Towers come in sections that are connected together to make a complete met mast. This is the height in mm of this met mast section.",
+                      "examples": [
+                        6000
                       ]
                     },
                     "pole_diameter_mm": {
@@ -281,7 +489,7 @@
                         "null"
                       ],
                       "title": "Lattice Face Width at Bottom [mm]",
-                      "description": "The lattice section bottom face width.",
+                      "description": "The lattice face width at the bottom of the mast section, as measured from leg centre to leg centre as outlined in [IEC 61400-12-1 2017 Fig G.5](https://user-images.githubusercontent.com/25622575/160807405-24f8ec74-e93f-4454-b41d-92ea30ffeb15.png).",
                       "examples": [
                         500
                       ]
@@ -292,7 +500,7 @@
                         "null"
                       ],
                       "title": "Lattice Face Width at Top [mm]",
-                      "description": "The lattice section top face width.",
+                      "description": "The lattice face width at the top of the mast section, as measured from leg centre to leg centre as outlined in [IEC 61400-12-1 2017 Fig G.5](https://user-images.githubusercontent.com/25622575/160807405-24f8ec74-e93f-4454-b41d-92ea30ffeb15.png).",
                       "examples": [
                         500
                       ]
@@ -326,7 +534,29 @@
                         "null"
                       ],
                       "title": "Lattice Bracing Member Diameter [mm]",
-                      "description": "The lattice diagonal bracing member diameter.",
+                      "description": "THIS FIELD WILL BE DEPRECIATED IN THE NEXT MAJOR RELEASE. The lattice diagonal bracing member diameter.",
+                      "examples": [
+                        12
+                      ]
+                    },
+                    "lattice_bracing_member_diameter_horizontal_mm": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "title": "Lattice Bracing Member Diameter Horizontal [mm]",
+                      "description": "The lattice horizontal bracing member diameter in mm.",
+                      "examples": [
+                        12
+                      ]
+                    },
+                    "lattice_bracing_member_diameter_diagonal_mm": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "title": "Lattice Bracing Member Diameter Diagonal [mm]",
+                      "description": "The lattice diagonal bracing member diameter in mm.",
                       "examples": [
                         12
                       ]
@@ -337,10 +567,32 @@
                         "null"
                       ],
                       "title": "Lattice Number of Bracing Members",
-                      "description": "The number of lattice diagonal bracing members.",
+                      "description": "The number of lattice diagonal bracing members that are contained in one of the repetitive patterns making up a mast section.",
                       "examples": [
                         1,
                         2
+                      ]
+                    },
+                    "lattice_bracing_member_length_diagonal_mm": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "title": "Lattice Bracing Member Length Diagonal [mm]",
+                      "description": "The lattice diagonal bracing member length in mm.",
+                      "examples": [
+                        512
+                      ]
+                    },
+                    "number_of_repetitive_patterns_on_face": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "title": "Number of Repetitive Patterns on Face",
+                      "description": "The number of repetitive patterns on tower face as in the image. Note that for this case the pattern in red repeats itself 6 times. https://github.com/IEA-Task-43/digital_wra_data_standard/blob/master/images/number_of_repetitive_patterns_on_face.png.",
+                      "examples": [
+                        6
                       ]
                     },
                     "lattice_bracing_member_height_mm": {
@@ -373,7 +625,7 @@
                       "$ref": "#/definitions/update_at"
                     }
                   },
-                  "additionalProperties": false,
+                  "additionalProperties": true,
                   "required": [
 
                   ]
@@ -382,7 +634,7 @@
                 "uniqueItems": true
               }
             },
-            "additionalProperties": false
+            "additionalProperties": true
           },
           "vertical_profiler_properties":{
             "type": [
@@ -390,7 +642,7 @@
               "null"
             ],
             "title": "Vertical Profiler Properties",
-            "description": "Vertical profiler remote sensing devices (e.g. lidar, sodar and flidar) installation specific properties.",
+            "description": "Vertical profiler remote sensing devices (e.g. lidar, sodar and floating lidar) installation specific properties.",
             "items": {
               "type": "object",
               "title": "Vertical Profiler Properties",
@@ -401,26 +653,14 @@
                     "null"
                   ],
                   "title": "Device Datum Plane Height [m]",
-                  "description": "The datum plane height of the remote sensing device where the datum feature is defined here: https://data.windenergy.dtu.dk/ontologies/view/IEATask32Glossary/en/page/parameters.datum_feature . For lidars the datum feature is usually the window and for sodars it is usually the base of the device. These datum plane heights are also usually referred to as above ground level however it may be above sea level or above a platform level.",
+                  "description": "The datum plane height of the remote sensing device where the datum feature is defined here: http://data.windenergy.dtu.dk/ontologies/view/ontolidar/en/page/DatumFeature . For lidars the datum feature is usually the window and for sodars it is usually the base of the device. These datum plane heights are also usually referred to as above ground level however it may be above sea level or above a platform level.",
                   "examples": [
                     0.5,
                     1
                   ]
                 },
                 "height_reference_id": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "title": "Height Reference",
-                  "description": "The height reference frame that is used to measure the device datum plane height. E.g. onshore this is ground level i.e. the datum feature is 0.5 m above ground level. Offshore is a bit different as it can be 20 m above mean sea level or 20 m above lowest astronomical tide.",
-                  "enum": [
-                    "ground_level",
-                    "mean_sea_level",
-                    "lowest_astronomical_tide",
-                    "other"
-                  ],
-                  "default": "ground_level"
+                  "$ref": "#/definitions/height_reference"
                 },
                 "device_orientation_deg": {
                   "type": [
@@ -433,20 +673,32 @@
                   "maximum": 360
                 },
                 "orientation_reference_id": {
+                  "$ref": "#/definitions/orientation_reference"
+                },
+                "device_vertical_orientation": {
                   "type": [
                     "string",
                     "null"
                   ],
-                  "title": "Orientation Reference",
-                  "description": "The orientation reference the remote sensing device is measured against. E.g. magnetic north.",
+                  "title": "Device Vertical Orientation",
+                  "description": "The vertical orientation that the remote sensing device is installed. E.g. an ADCP mounted on the sea floor has an 'upwards' vertical orientation pointing towards the sea surface whereas an ADCP mounted underneath a buoy has a 'downward' vertical orientation pointing towards the sea floor.",
                   "enum": [
-                    "magnetic_north",
-                    "true_north",
-                    "grid_north"
+                    "upward",
+                    "downward",
+                    null
                   ]
                 },
                 "date_from": {
-                  "$ref": "#/definitions/date_from"
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "title": "Date From",
+                  "description": "The date from when these properties are active. If these properties follow a change, then this Date From should equal the previous Date To. The format of this date should follow ISO 8601 with the 'T' required. If a timezone is used, it is essential that this timezone is the same as the logger timezone.",
+                  "examples": [
+                    "2020-07-28T20:00:00"
+                  ]
                 },
                 "date_to": {
                   "$ref": "#/definitions/date_to"
@@ -492,6 +744,9 @@
                     "AXYS Technologies",
                     "AQSystem",
                     "Pentaluum",
+                    "Nortek",
+                    "Teledyne RDI",
+                    "Aanderaa",
                     "Other"
                   ]
                 },
@@ -513,6 +768,14 @@
                   "type": "string",
                   "title": "Logger Serial Number",
                   "description": "The logger or remote sensing device serial number. This is sometimes different from the logger id."
+                },
+                "logger_firmware_version": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "title": "Logger Firmware Version",
+                  "description": "The logger or remote sensing device's Firmware Version. This is the software version that is run on the logger at the time of data acquisition. This software can be updated and so can sometimes impact the results of the outputted data. E.g. NRG SymphoniePro, Firmware Version: 3.2.3. For loggers/devices that have multiple software programmes to process the outputted data the versions can be concatenated together."
                 },
                 "logger_id": {
                   "type": [
@@ -586,7 +849,7 @@
                     "null"
                   ],
                   "title": "Offset From UTC [hr]",
-                  "description": "The number of hours that the logger clock is offset from UTC. E.g. -5 for Eastern Standard Time",
+                  "description": "The number of hours that the logger clock is offset from UTC. E.g. -5 for Eastern Standard Time. This could also be used to capture an incorrect time programmed into the logger. E.g. a logger might be installed in upstate New York and have a UTC offset of -5. Unfortunately the mast installer programmed the incorrect time into the logger by +15 mins. Therefore the offset from UTC is -4.75.",
                   "examples": [
                     "-5 (for Eastern Standard Time)",
                     "1 (for Central European Time)",
@@ -641,6 +904,28 @@
                     "false (for when the logger clock is not auto-synced)"
                   ]
                 },
+                "logger_acquisition_uncertainty": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "title": "Logger Acquisition Uncertainty [%]",
+                  "description": "The uncertainty of the logger acquisition system as a percentage. This is also referred to as the uncertainty of the data acquisition system within IEC 61400-12-1. ",
+                  "examples": [
+                    "0.1"
+                  ]
+                },
+                "uncertainty_k_factor": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "title": "Uncertainty K Factor",
+                  "description": "Uncertainty k factor for Logger Acquisition Uncertainty as provided in logger documentation specification.",
+                  "examples": [
+                    "2"
+                  ]
+                },
                 "notes": {
                   "$ref": "#/definitions/notes"
                 },
@@ -671,7 +956,16 @@
                         ]
                       },
                       "date_from": {
-                        "$ref": "#/definitions/date_from"
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "date-time",
+                        "title": "Date From",
+                        "description": "The date from when these properties are active. If these properties follow a change, then this Date From should equal the previous Date To. The format of this date should follow ISO 8601 with the 'T' required. If a timezone is used, it is essential that this timezone is the same as the logger timezone.",
+                        "examples": [
+                          "2020-07-28T20:00:00"
+                        ]
                       },
                       "date_to": {
                         "$ref": "#/definitions/date_to"
@@ -691,11 +985,10 @@
                   "uniqueItems": true
                 }
               },
-              "additionalProperties": false,
+              "additionalProperties": true,
               "required": [
                 "date_from",
                 "date_to",
-                "logger_model_name",
                 "logger_oem_id",
                 "logger_serial_number"
               ]
@@ -717,89 +1010,7 @@
                   "description": "The name the measurement point is commonly referred to. This is the name that is used to refer to the data in an analysis and reporting."
                 },
                 "measurement_type_id": {
-                  "type": "string",
-                  "title": "Measurement Type",
-                  "description": "The type of measurement been made. See more information in the examples.",
-                  "enum": [
-                    "wind_speed",
-                    "wind_direction",
-                    "air_temperature",
-                    "temperature",
-                    "air_pressure",
-                    "relative_humidity",
-                    "voltage",
-                    "current",
-                    "vertical_wind_speed",
-                    "wind_speed_turbulence",
-                    "precipitation",
-                    "ice_detection",
-                    "global_horizontal_irradiance",
-                    "direct_normal_irradiance",
-                    "diffuse_horizontal_irradiance",
-                    "global_tilted_irradiance",
-                    "global_normal_irradiance",
-                    "soiling_loss_index",
-                    "illuminance",
-                    "fog",
-                    "gps_coordinates",
-                    "status",
-                    "counter",
-                    "availability",
-                    "quality",
-                    "carrier_to_noise_ratio",
-                    "doppler_spectral_broadening",
-                    "orientation",
-                    "compass_direction",
-                    "true_north_offset",
-                    "tilt_x",
-                    "tilt_y",
-                    "tilt_z",
-                    "elevation",
-                    "altitude",
-                    "azimuth",
-                    "timestamp",
-                    "other"
-                  ],
-                  "examples": [
-                    "wind_speed  (the horizontal component of wind speed)",
-                    "wind_direction  (the direction form which the wind is coming from)",
-                    "air_temperature  (outdoor ambient temperature of the air)",
-                    "temperature  (the temperature of a body or indoor ambient air temperature)",
-                    "air_pressure (outdoor pressure of the air)",
-                    "relative_humidity (outdoor relative humidity of the air",
-                    "voltage (electrical voltage, typically the logger battery voltage)",
-                    "current (electrical current, typically the logger battery current)",
-                    "vertical_wind_speed (the vertical component of wind speed)",
-                    "wind_speed_turbulence (the turbulence of the wind speed)",
-                    "precipitation (water which falls to the ground from the atmosphere in forms of rain, snow, sleet, ice pellets, dew, frost, and hail)",
-                    "ice_detection (detection of ice build up on surfaces)",
-                    "global_horizontal_irradiance (the total power or instantaneous rate of energy from the sun received by a horizontal surface on Earth)",
-                    "direct_normal_irradiance (the direct line of sight power or instantaneous rate of energy from the sun, excluding diffuse irradiance, received by a surface on Earth perpendicular to the sun)",
-                    "diffuse_horizontal_irradiance (the power or instantaneous rate of energy from light scattered by the atmosphere, excluding direct irradiance, received by a horizontal surface on Earth)",
-                    "global_tilted_irradiance (the total power or instantaneous rate of energy from the sun received by a surface on Earth with defined tilt and azimuth, fixed or sun-tracking)",
-                    "global_normal_irradiance (the total power or instantaneous rate of energy from the sun received by a surface on Earth perpendicular to the sun)",
-                    "soiling_loss_index (an index of lost energy between clean and dirty PV modules, https://www.campbellsci.com/cr-pvs1 )",
-                    "illuminance (measure of visible light falling onto a per unit area, typically measured in lux)",
-                    "fog (is a visible aerosol consisting of tiny water droplets or ice crystals suspended in the air at or near the Earth's surface)",
-                    "gps_coordinates (latitude and/or longitude as measured by a gps)",
-                    "status (a status flag or other to describe the status of a sensor or object)",
-                    "counter (a simple counter)",
-                    "availability (the availability of a sensor or the presence of something in a measurement typically measured as %, e.g. '40m Data Availability (%)' or 'Proportion Of Packets with Fog (%)'. This is currently a generic catch-all for all 'availability' like metrics and may be resolved into more specific definitions in future revisions.)",
-                    "quality (a measure of the quality of a measurement)",
-                    "carrier_to_noise_ratio (a measure of signal strength as measured by lidar devices, http://data.windenergy.dtu.dk/ontologies/view/IEATask32Glossary/en/page/parameters.carrier_to_noise_ratio )",
-                    "doppler_spectral_broadening (as measured by lidar devices)",
-                    "orientation (the direction something points or faces relative to north or other specified positions)",
-                    "compass_direction (the direction as measured by a compass, therefore referenced to magnetic north)",
-                    "true_north_offset (the offset something points or faces relative to true north, e.g. from a Geovane)",
-                    "tilt_x (the tilt of an object relative to the x-axis)",
-                    "tilt_y (the tilt of an object relative to the y-axis)",
-                    "tilt_z (the tilt of an object relative to the z-axis)",
-                    "elevation (the height the surface of the earth is above mean sea level)",
-                    "altitude (the height above mean sea level or is the angle between the sun and the observer's local horizon, also sometimes referred to as elevation)",
-                    "azimuth (is the angle of the sun around the horizon, in the northern hemisphere this is usually measured from north and increasing eastward whereas in the southern hemisphere it can be measured from the south and increasing westward)",
-                    "timestamp (the timestamp of when a measurement value was recorded)",
-                    "other"
-                  ]
+                  "$ref": "#/definitions/measurement_type"
                 },
                 "height_m": {
                   "type": [
@@ -810,19 +1021,7 @@
                   "description": "The height (in meters) typically above ground level that the measurement is taking place. If you do not yet know the height please use null."
                 },
                 "height_reference_id": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "title": "Height Reference",
-                  "description": "The height reference frame that is used to measure the height of the measurement point. E.g. onshore this is ground level i.e. the anemometer is 80 m above ground level. Offshore is a bit different as it can be 80 m above mean sea level or 80 m above lowest astronomical tide.",
-                  "enum": [
-                    "ground_level",
-                    "mean_sea_level",
-                    "lowest_astronomical_tide",
-                    "other"
-                  ],
-                  "default": "ground_level"
+                  "$ref": "#/definitions/height_reference"
                 },
                 "notes": {
                   "$ref": "#/definitions/notes"
@@ -830,13 +1029,13 @@
                 "update_at": {
                   "$ref": "#/definitions/update_at"
                 },
-                "sensor_config": {
+                "logger_measurement_config": {
                   "type": "array",
-                  "title": "Sensor Configuration",
-                  "description": "The sensor configuration that is programmed into the logging device.",
+                  "title": "Logger Measurement Configuration",
+                  "description": "The measurement configuration that is programmed into the logging device.",
                   "items": {
                     "type": "object",
-                    "title": "Sensor Configuration",
+                    "title": "Logger Measurement Configuration",
                     "properties": {
                       "slope": {
                         "type": [
@@ -863,28 +1062,54 @@
                         "description": "The sensitivity programmed into the logger. Usually used for pyranometers. It is the same as 1/slope with zero for offset."
                       },
                       "measurement_units_id": {
-                        "type": "string",
+                        "type": [
+                          "string",
+                          "null"
+                        ],
                         "title": "Measurement Units",
                         "description": "The measurement units of the values the sensor records.",
                         "enum": [
                           "m/s",
+                          "mph",
+                          "knots",
                           "deg",
                           "deg_C",
                           "deg_F",
                           "K",
                           "%",
                           "mbar",
+                          "dbar",
                           "hPa",
+                          "atm",
+                          "mmHg",
+                          "inHg",
+                          "kg/m^2",
+                          "kg/m^3",
                           "V",
                           "mA",
+                          "A",
                           "ohm",
                           "Hz",
                           "mm",
+                          "m",
+                          "s",
                           "W/m^2",
+                          "W",
+                          "kW",
+                          "MW",
+                          "kWh",
+                          "MWh",
                           "m/s^2",
                           "lux",
                           "dB",
-                          "-"
+                          "L",
+                          "g/L",
+                          "g/kg",
+                          "ppt",
+                          "psu",
+                          "S/m",
+                          "-",
+                          null
                         ]
                       },
                       "height_m": {
@@ -910,6 +1135,16 @@
                         ],
                         "title": "Connection Channel",
                         "description": "The connection channel the sensor is wired into on the logger."
+                      },
+                      "logger_stated_boom_orientation_deg": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "title": "Logger Stated Boom Orientation [deg]",
+                        "description": "The boom orientation of the horizontal boom the sensor is mounted on as programmed into the logger.",
+                        "minimum": 0,
+                        "maximum": 360
                       },
                       "date_from": {
                         "$ref": "#/definitions/date_from"
@@ -1045,12 +1280,15 @@
                           "thermometer",
                           "barometer",
                           "hygrometer",
+                          "thermohygrometer",
                           "voltmeter",
                           "ammeter",
                           "pyranometer",
                           "pyrheliometer",
+                          "albedometer",
                           "2d_ultrasonic",
                           "3d_ultrasonic",
+                          "vertical_anemometer",
                           "propeller_anemometer",
                           "gill_propeller",
                           "rain_gauge",
@@ -1059,8 +1297,30 @@
                           "gps",
                           "illuminance_sensor",
                           "compass",
-                          "other"
+                          "solar_compass",
+                          "inertial_measurement_unit",
+                          "adcp",
+                          "ctd",
+                          "lidar",
+                          "sodar",
+                          "other",
+                          null
                         ]
+                      },
+                      "classification": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "title": "Classification",
+                        "description": "The classification of a particular anemometer for this location. This combines the class index (number) with the terrain class (A, B, C, D or S) e.g. 1.2A. The format of this is validated by a regex which has the form of ^[0-9][.][0-9][ABCDS]$ i.e. digit.digit followed by a character.",
+                        "examples": [
+                          "1.0A",
+                          "3.2B",
+                          "2.7S",
+                          "10.32S"
+                        ],
+                        "pattern": "^([0-9]{1,2})[.]([0-9]{1,2})[ABCDS]$"
                       },
                       "instrument_poi_height_mm": {
                         "type": [
@@ -1083,6 +1343,17 @@
                         "examples": [
                           "true (if the sensor is heated)",
                           "false (if the sensor is not heated)"
+                        ]
+                      },
+                      "sensor_body_size_mm": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "title": "Sensor Body Size [mm]",
+                        "description": "This is the instrument body size in mm. This parameter is used in IEC 61400-12-2 to ensure that the size of the anemometer body is smaller than the diameter of the tube used to mount the anemometer.",
+                        "examples": [
+                          "50"
                         ]
                       },
                       "date_from": {
@@ -1108,6 +1379,9 @@
                           "type": "object",
                           "title": "Calibration",
                           "properties": {
+                            "measurement_type_id": {
+                              "$ref": "#/definitions/measurement_type"
+                            },
                             "slope": {
                               "type": [
                                 "number",
@@ -1154,6 +1428,18 @@
                                 "https://www.dropbox.com/bw/7dzu7xzb/AAN-BNsa?dl=0"
                               ]
                             },
+                            "calibration_id": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "title": "Calibration ID",
+                              "description": "The calibration ID is the unique number that the calibration organisation uses to identify a particular calibration. It may be referred to as Certificate number or Calibration Mark by some organisations.",
+                              "examples": [
+                                "1234567",
+                                "CERT1234"
+                              ]
+                            },
                             "date_of_calibration": {
                               "type": [
                                 "string",
@@ -1164,6 +1450,18 @@
                               "description": "The date the sensor calibration took place.",
                               "examples": [
                                 "2019-12-06"
+                              ]
+                            },
+                            "revision": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "title": "Calibration Revision",
+                              "description": "This is the revision number or other identifier if the calibration report was revised. The 'date of calibration' and 'calibration id' may stay the same for an update to the report and so this revision field allows this report to be uniquely identified.",
+                              "examples": [
+                                "2.0",
+                                "B"
                               ]
                             },
                             "calibration_organisation": {
@@ -1184,9 +1482,9 @@
                                 "null"
                               ],
                               "title": "Place of Calibration",
-                              "description": "The place or wind tunnel where the calibration took place.",
+                              "description": "The unique place or wind tunnel where the calibration took place. E.g. 'place of calibration' is usually a field on a calibration certificate. If not, a combination of a unique tunnel id or serial number and the address would suffice. In the Digital Calibration Certificate project this field maps to 'wind_tunnel_id'.",
                               "examples": [
-                                "Windtunnel of Deutsche WindGuard WindTunnel Services GmbH, Varel",
+                                "Windtunnel 2 of Deutsche WindGuard WindTunnel Services GmbH, Varel",
                                 "AWT Bargeshagen"
                               ]
                             },
@@ -1240,13 +1538,13 @@
                                       "m/s"
                                     ]
                                   },
-                                  "uncertainty": {
+                                  "combined_uncertainty": {
                                     "type": [
                                       "number",
                                       "null"
                                     ],
-                                    "title": "Reference Unit",
-                                    "description": "The uncertainty associated with this reference bin.",
+                                    "title": "Combined Uncertainty",
+                                    "description": "The combined uncertainty associated with the deviation between the reference and the test item at this reference bin.",
                                     "examples": [
                                       0.1
                                     ]
@@ -1304,7 +1602,8 @@
                         "enum": [
                           "side",
                           "goal_post",
-                          "top"
+                          "top",
+                          null
                         ]
                       },
                       "boom_orientation_deg": {
@@ -1328,17 +1627,7 @@
                         "maximum": 360
                       },
                       "orientation_reference_id": {
-                        "type": [
-                          "string",
-                          "null"
-                        ],
-                        "title": "Orientation Reference",
-                        "description": "The orientation reference the booms and vane dead band are measured against. E.g. magnetic north.",
-                        "enum": [
-                          "magnetic_north",
-                          "true_north",
-                          "grid_north"
-                        ]
+                        "$ref": "#/definitions/orientation_reference"
                       },
                       "tilt_angle_deg": {
                         "type": [
@@ -1444,10 +1733,7 @@
                     "title": "Interference Structures",
                     "properties":{
                       "structure_type_id":{
-                        "type": [
-                          "string",
-                          "null"
-                        ],
+                        "type": "string",
                         "title": "Structure Type",
                         "description": "The type of structure that is causing an interference in the sensor's measurements.",
                         "enum": [
@@ -1468,17 +1754,7 @@
                         "maximum": 360
                       },
                       "orientation_reference_id": {
-                        "type": [
-                          "string",
-                          "null"
-                        ],
-                        "title": "Orientation Reference",
-                        "description": "The orientation reference the interference structure is measured against. E.g. magnetic north.",
-                        "enum": [
-                          "magnetic_north",
-                          "true_north",
-                          "grid_north"
-                        ]
+                        "$ref": "#/definitions/orientation_reference"
                       },
                       "distance_from_mast_centre_mm": {
                         "type": [
@@ -1489,6 +1765,17 @@
                         "description": "The distance from the mast centre to the interference structure causing an impact on the sensor's measurements.",
                         "examples": [
                           900
+                        ]
+                      },
+                      "diameter_of_interference_structure_mm": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "title": "Diameter of Interference Structure [mm]",
+                        "description": "The diameter of the Interference Structure. If lightning finial, then it can be used for IEC validation. For irregularly shaped structures, a representative diameter would be sufficient for an analyst to understand it's size.",
+                        "examples": [
+                          30
                         ]
                       },
                       "date_from": {
@@ -1519,7 +1806,7 @@
                 "name",
                 "measurement_type_id",
                 "height_m",
-                "sensor_config"
+                "logger_measurement_config"
               ]
             },
             "additionalItems": false,
@@ -1539,7 +1826,7 @@
       "uniqueItems": true
     }
   },
-  "additionalProperties": false,
+  "additionalProperties": true,
   "required": [
     "author",
     "organisation",
