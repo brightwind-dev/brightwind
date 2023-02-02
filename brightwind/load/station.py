@@ -773,8 +773,8 @@ class _Measurements:
         logger_measurement_configs = _replace_none_date(logger_measurement_configs)
         sensors = _replace_none_date(sensors)
         mounting_arrangements = _replace_none_date(mounting_arrangements)
-        date_from = [sen_config.get('date_from') for sen_config in logger_measurement_configs]
-        date_to = [sen_config.get('date_to') for sen_config in logger_measurement_configs]
+        date_from = [log_meas_cfg.get('date_from') for log_meas_cfg in logger_measurement_configs]
+        date_to = [log_meas_cfg.get('date_to') for log_meas_cfg in logger_measurement_configs]
         if sensors is not None:
             for sensor in sensors:
                 date_from.append(sensor.get('date_from'))
@@ -788,24 +788,24 @@ class _Measurements:
         dates.sort()
         meas_points_merged = []
         for i in range(len(dates) - 1):
-            good_sen_config = {}
+            good_log_meas_cfg = {}
             for logger_measurement_config in logger_measurement_configs:
                 if (logger_measurement_config['date_from'] <= dates[i]) & (
                         logger_measurement_config.get('date_to') > dates[i]):
-                    good_sen_config = logger_measurement_config.copy()
-            if good_sen_config != {}:
+                    good_log_meas_cfg = logger_measurement_config.copy()
+            if good_log_meas_cfg != {}:
                 if sensors is not None:
                     for sensor in sensors:
                         if (sensor['date_from'] <= dates[i]) & (sensor['date_to'] > dates[i]):
-                            good_sen_config.update(sensor)
+                            good_log_meas_cfg.update(sensor)
                 if mounting_arrangements is not None:
                     for mounting_arrangement in mounting_arrangements:
                         if (mounting_arrangement['date_from'] <= dates[i]) & (
                                 mounting_arrangement['date_to'] > dates[i]):
-                            good_sen_config.update(mounting_arrangement)
-                good_sen_config['date_to'] = dates[i + 1]
-                good_sen_config['date_from'] = dates[i]
-                meas_points_merged.append(good_sen_config)
+                            good_log_meas_cfg.update(mounting_arrangement)
+                good_log_meas_cfg['date_to'] = dates[i + 1]
+                good_log_meas_cfg['date_from'] = dates[i]
+                meas_points_merged.append(good_log_meas_cfg)
         # replace 'date_to' if equals to 'DATE_INSTEAD_OF_NONE'
         for meas_point in meas_points_merged:
             if meas_point.get('date_to') is not None and meas_point.get('date_to') == DATE_INSTEAD_OF_NONE:
