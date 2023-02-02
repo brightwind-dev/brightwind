@@ -33,7 +33,7 @@ def _replace_none_date(list_or_dict):
         return renamed
     elif isinstance(list_or_dict, dict):
         for date_str in ['date_from', 'date_to']:
-            if list_or_dict.get(date_str) is None:
+            if (date_str in list_or_dict.keys()) and (list_or_dict.get(date_str) is None):
                 list_or_dict[date_str] = DATE_INSTEAD_OF_NONE
     return list_or_dict
 
@@ -58,8 +58,8 @@ def _get_title(property_name, schema, property_section=None):
     """
     # search through definitions first
     if schema.get('definitions') is not None:
-        if property_name in schema.get('definitions').keys():
-            return schema.get('definitions').get(property_name).get('title')
+        if property_name.split('_id')[0] in schema.get('definitions').keys():
+            return schema.get('definitions').get(property_name.split('_id')[0]).get('title')
     # search through properties
     if schema.get('properties') is not None:
         # is property_name in the main properties
@@ -115,6 +115,9 @@ def _rename_to_title(list_or_dict, schema):
             prefixed_name = key + PREFIX_DICT[key]['prefix_separator'] + col
             prefixed_names[prefixed_name] = {'prefix_separator': PREFIX_DICT[key]['prefix_separator'],
                                              'title_prefix': PREFIX_DICT[key]['title_prefix']}
+    list_special_cases_no_prefix = ['logger_measurement_config.slope', 'logger_measurement_config.offset',
+                                    'logger_measurement.sensitivity',
+                                    'calibration.slope', 'calibration.offset', 'calibration.sensitivity']
     if isinstance(list_or_dict, dict):
         renamed_dict = {}
         for k, v in list_or_dict.items():
@@ -122,8 +125,7 @@ def _rename_to_title(list_or_dict, schema):
                 # break out the property name and the name, get the title and then add title_prefix to it.
                 property_section = k[0:k.find(prefixed_names[k]['prefix_separator'])]
                 property_name = k[k.find(prefixed_names[k]['prefix_separator']) + 1:]
-                if k in ['sensor_config.slope', 'sensor_config.offset', 'sensor_config.sensitivity',
-                         'calibration.slope', 'calibration.offset', 'calibration.sensitivity']:
+                if k in list_special_cases_no_prefix:
                     # Special cases don't add a title prefix as there is already one in the schema title
                     renamed_dict[_get_title(property_name, schema, property_section)] = v
                 else:
@@ -140,8 +142,7 @@ def _rename_to_title(list_or_dict, schema):
                 # break out the property name and the name, get the title and then add title_prefix to it.
                 property_section = name[0:name.find(prefixed_names[name]['prefix_separator'])]
                 property_name = name[name.find(prefixed_names[name]['prefix_separator']) + 1:]
-                if name in ['sensor_config.slope', 'sensor_config.offset', 'sensor_config.sensitivity',
-                            'calibration.slope', 'calibration.offset', 'calibration.sensitivity']:
+                if name in list_special_cases_no_prefix:
                     # Special cases don't add a title prefix as there is already one in the schema title
                     renamed_list.append(_get_title(property_name, schema, property_section))
                 else:
@@ -198,14 +199,14 @@ def _merge_two_dicts(x, y):
 
 def _filter_parent_level(dictionary):
     """
-    Pull only the parent level keys and values i.e. do not return any child lists or dictionaries or nulls/Nones.
+    Pull only the parent level keys and values i.e. do not return any child lists or dictionaries.
 
     :param dictionary:
     :return:
     """
     parent = {}
     for key, value in dictionary.items():
-        if (type(value) != list) and (type(value) != dict) and (value is not None):
+        if (type(value) != list) and (type(value) != dict):
             parent.update({key: value})
     return parent
 
@@ -300,12 +301,10 @@ PREFIX_DICT = {
         'title_prefix': 'Lidar Specific Configs ',
         'keys_to_prefix': ['date_from', 'date_to', 'notes', 'update_at']
     },
-    'sensor_config': {
+    'logger_measurement_config': {
         'prefix_separator': '.',
         'title_prefix': 'Logger ',
-        'keys_to_prefix': ['height_m', 'height_reference_id', 'serial_number',
-                           'slope', 'offset', 'sensitivity',
-                           'notes', 'update_at']
+        'keys_to_prefix': ['height_m', 'serial_number', 'slope', 'offset', 'sensitivity', 'notes', 'update_at']
     },
     'column_name': {
         'prefix_separator': '.',
@@ -381,8 +380,8 @@ class MeasurementStation:
         self.__header = _Header(dm=self.__data_model, schema=self.__schema)
         self.__meas_loc_data_model = self._get_meas_loc_data_model(dm=self.__data_model)
         self.__meas_loc_properties = self.__get_properties()
-        self.__logger_configs = _LoggerConfigs(meas_loc_dm=self.__meas_loc_data_model,
-                                               schema=self.__schema, station_type=self.type)
+        self.__logger_main_configs = _LoggerMainConfigs(meas_loc_dm=self.__meas_loc_data_model,
+                                                        schema=self.__schema, station_type=self.type)
         self.__measurements = _Measurements(meas_loc_dm=self.__meas_loc_data_model, schema=self.__schema)
         # self.__mast_section_geometry = _MastSectionGeometry()
 
@@ -447,7 +446,7 @@ class MeasurementStation:
     @staticmethod
     def _get_meas_loc_data_model(dm):
         if len(dm.get('measurement_location')) > 1:
-            raise Exception('More than one measurement location found in the data model. Only processing'
+            raise Exception('More than one measurement location found in the data model. Only processing '
                             'the first one found. Please remove extra measurement locations.')
         return dm.get('measurement_location')[0]
 
@@ -483,7 +482,7 @@ class MeasurementStation:
         meas_loc_prop = []
         if self.type == 'mast':
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model, property_to_bring_up='mast_properties')
-        elif self.type in ['lidar', 'sodar', 'flidar']:
+        elif self.type in ['lidar', 'sodar', 'floating_lidar']:
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model,
                                           property_to_bring_up='vertical_profiler_properties')
         return meas_loc_prop
@@ -517,7 +516,7 @@ class MeasurementStation:
             if isinstance(list_for_df, dict):
                 # if a dictionary, it only has 1 row of data
                 titles = list(_rename_to_title(list_or_dict=list_for_df, schema=self.__schema).keys())
-                df = pd.DataFrame({1: list(list_for_df.values())}, index=titles)
+                df = pd.DataFrame({'': list(list_for_df.values())}, index=titles)
             elif isinstance(list_for_df, list):
                 for idx, row in enumerate(list_for_df):
                     titles = list(_rename_to_title(list_or_dict=row, schema=self.__schema).keys())
@@ -537,8 +536,8 @@ class MeasurementStation:
         return self.__header
 
     @property
-    def logger_configs(self):
-        return self.__logger_configs
+    def logger_main_configs(self):
+        return self.__logger_main_configs
 
     @property
     def measurements(self):
@@ -593,7 +592,7 @@ class _Header:
         return df_styled
 
 
-class _LoggerConfigs:
+class _LoggerMainConfigs:
     def __init__(self, meas_loc_dm, schema, station_type):
         self._log_cfg_data_model = meas_loc_dm.get('logger_main_config')
         self._schema = schema
@@ -624,7 +623,7 @@ class _LoggerConfigs:
         if self._type == 'mast':
             # if mast, there are no child dictionaries
             log_cfg_props = self._log_cfg_data_model  # logger config data model is already a list
-        elif self._type in ['lidar', 'flidar']:
+        elif self._type in ['lidar', 'floating_lidar']:
             for log_config in self._log_cfg_data_model:
                 log_configs_flat = _flatten_dict(log_config, property_to_bring_up='lidar_config')
                 for log_config_flat in log_configs_flat:
@@ -757,54 +756,56 @@ class _Measurements:
         return self.get_heights(measurement_type_id='wind_direction')
 
     @staticmethod
-    def __meas_point_merge(sensor_cfgs, sensors=None, mount_arrgmts=None):
+    def __meas_point_merge(logger_measurement_configs, sensors=None, mounting_arrangements=None):
         """
-        Merge the properties from sensor_cfgs, sensors and mounting_arrangements. This will account for when
-        each property was changed over time.
+        Merge the properties from logger_measurement_configs, sensors and mounting_arrangements. This will account for
+        when each property was changed over time.
 
-        :param sensor_cfgs:   Sensor cfgs properties
-        :type sensor_cfgs:    list
-        :param sensors:       Sensor properties
-        :type sensors:        list
-        :param mount_arrgmts: Mounting arrangement properties
-        :type mount_arrgmts:  list
-        :return:              The properties merged together.
-        :rtype:               list(dict)
+        :param logger_measurement_configs:  Logger measurement config properties
+        :type logger_measurement_configs:   list
+        :param sensors:                     Sensor properties
+        :type sensors:                      list
+        :param mounting_arrangements:       Mounting arrangement properties
+        :type mounting_arrangements:        list
+        :return:                            The properties merged together.
+        :rtype:                             list(dict)
         """
-        sensor_cfgs = _replace_none_date(sensor_cfgs)
+        logger_measurement_configs = _replace_none_date(logger_measurement_configs)
         sensors = _replace_none_date(sensors)
-        mount_arrgmts = _replace_none_date(mount_arrgmts)
-        date_from = [sen_config.get('date_from') for sen_config in sensor_cfgs]
-        date_to = [sen_config.get('date_to') for sen_config in sensor_cfgs]
+        mounting_arrangements = _replace_none_date(mounting_arrangements)
+        date_from = [log_meas_cfg.get('date_from') for log_meas_cfg in logger_measurement_configs]
+        date_to = [log_meas_cfg.get('date_to') for log_meas_cfg in logger_measurement_configs]
         if sensors is not None:
             for sensor in sensors:
                 date_from.append(sensor.get('date_from'))
                 date_to.append(sensor.get('date_to'))
-        if mount_arrgmts is not None:
-            for mount_arrgmt in mount_arrgmts:
-                date_from.append(mount_arrgmt['date_from'])
-                date_to.append(mount_arrgmt['date_to'])
+        if mounting_arrangements is not None:
+            for mounting_arrangement in mounting_arrangements:
+                date_from.append(mounting_arrangement['date_from'])
+                date_to.append(mounting_arrangement['date_to'])
         date_from.extend(date_to)
         dates = list(set(date_from))
         dates.sort()
         meas_points_merged = []
         for i in range(len(dates) - 1):
-            good_sen_config = {}
-            for sen_config in sensor_cfgs:
-                if (sen_config['date_from'] <= dates[i]) & (sen_config.get('date_to') > dates[i]):
-                    good_sen_config = sen_config.copy()
-            if good_sen_config != {}:
+            good_log_meas_cfg = {}
+            for logger_measurement_config in logger_measurement_configs:
+                if (logger_measurement_config['date_from'] <= dates[i]) & (
+                        logger_measurement_config.get('date_to') > dates[i]):
+                    good_log_meas_cfg = logger_measurement_config.copy()
+            if good_log_meas_cfg != {}:
                 if sensors is not None:
                     for sensor in sensors:
                         if (sensor['date_from'] <= dates[i]) & (sensor['date_to'] > dates[i]):
-                            good_sen_config.update(sensor)
-                if mount_arrgmts is not None:
-                    for mount_arrgmt in mount_arrgmts:
-                        if (mount_arrgmt['date_from'] <= dates[i]) & (mount_arrgmt['date_to'] > dates[i]):
-                            good_sen_config.update(mount_arrgmt)
-                good_sen_config['date_to'] = dates[i + 1]
-                good_sen_config['date_from'] = dates[i]
-                meas_points_merged.append(good_sen_config)
+                            good_log_meas_cfg.update(sensor)
+                if mounting_arrangements is not None:
+                    for mounting_arrangement in mounting_arrangements:
+                        if (mounting_arrangement['date_from'] <= dates[i]) & (
+                                mounting_arrangement['date_to'] > dates[i]):
+                            good_log_meas_cfg.update(mounting_arrangement)
+                good_log_meas_cfg['date_to'] = dates[i + 1]
+                good_log_meas_cfg['date_from'] = dates[i]
+                meas_points_merged.append(good_log_meas_cfg)
         # replace 'date_to' if equals to 'DATE_INSTEAD_OF_NONE'
         for meas_point in meas_points_merged:
             if meas_point.get('date_to') is not None and meas_point.get('date_to') == DATE_INSTEAD_OF_NONE:
@@ -814,9 +815,7 @@ class _Measurements:
     def __get_properties(self):
         meas_props = []
         for meas_point in self._meas_data_model:
-            # col_names_raised = _raise_child(meas_point, child_to_raise='column_name')
-            # sen_cfgs = _raise_child(col_names_raised, child_to_raise='sensor_config')
-            sen_cfgs = _raise_child(meas_point, child_to_raise='sensor_config')
+            logger_meas_configs = _raise_child(meas_point, child_to_raise='logger_measurement_config')
             calib_raised = _raise_child(meas_point, child_to_raise='calibration')
             if calib_raised is None:
                 sensors = _raise_child(meas_point, child_to_raise='sensor')
@@ -825,10 +824,12 @@ class _Measurements:
             mounting_arrangements = _raise_child(meas_point, child_to_raise='mounting_arrangement')
 
             if mounting_arrangements is None:
-                meas_point_merged = self.__meas_point_merge(sensor_cfgs=sen_cfgs, sensors=sensors)
+                meas_point_merged = self.__meas_point_merge(logger_measurement_configs=logger_meas_configs,
+                                                            sensors=sensors)
             else:
-                meas_point_merged = self.__meas_point_merge(sensor_cfgs=sen_cfgs, sensors=sensors,
-                                                            mount_arrgmts=mounting_arrangements)
+                meas_point_merged = self.__meas_point_merge(logger_measurement_configs=logger_meas_configs,
+                                                            sensors=sensors,
+                                                            mounting_arrangements=mounting_arrangements)
             for merged_meas_point in meas_point_merged:
                 meas_props.append(merged_meas_point)
         return meas_props
@@ -912,8 +913,9 @@ class _Measurements:
         """
         Get tables to show information about the measurements made.
 
-        :param detailed:              For a more detailed table that includes how the sensor is programmed into the logger,
-                                      information about the sensor itself and how it is mounted on the mast if it was.
+        :param detailed:              For a more detailed table that includes how the sensor is programmed into the
+                                      logger, information about the sensor itself and how it is mounted on the mast
+                                      if it was.
         :type detailed:               bool
         :param wind_speeds:           Wind speed specific details.
         :type wind_speeds:            bool
@@ -972,14 +974,17 @@ class _Measurements:
             df.sort_values(['meas_type_rank', 'Height [m]'], ascending=[True, False], inplace=True)
             df.drop('meas_type_rank', 1, inplace=True)
             df.set_index('Name', inplace=True)
+            df.dropna(axis=1, how='all', inplace=True)
             df.fillna('-', inplace=True)
         elif detailed is True:
             cols_required = ['name', 'oem', 'model', 'sensor_type_id', 'sensor.serial_number',
                              'height_m', 'boom_orientation_deg',
                              'date_from', 'date_to', 'connection_channel', 'measurement_units_id',
-                             'sensor_config.slope', 'sensor_config.offset', 'calibration.slope', 'calibration.offset',
-                             'sensor_config.notes', 'sensor.notes']
-            df = pd.DataFrame(self.__meas_properties)
+                             'logger_measurement_config.slope', 'logger_measurement_config.offset',
+                             'calibration.slope', 'calibration.offset',
+                             'logger_measurement_config.notes', 'sensor.notes']
+            df = pd.DataFrame(self.__meas_properties).set_index(
+                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
@@ -1002,13 +1007,15 @@ class _Measurements:
             cols_required = ['name', 'measurement_type_id', 'oem', 'model', 'sensor.serial_number', 'is_heated',
                              'height_m', 'boom_orientation_deg', 'mounting_type_id',
                              'date_from', 'date_to', 'connection_channel',
-                             'sensor_config.slope', 'sensor_config.offset', 'calibration.slope', 'calibration.offset',
-                             'sensor_config.notes', 'sensor.notes']
+                             'logger_measurement_config.slope', 'logger_measurement_config.offset',
+                             'calibration.slope', 'calibration.offset',
+                             'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
+            df = df[df['measurement_type_id'] == 'wind_speed'].set_index(
+                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
-            df = df[df['measurement_type_id'] == 'wind_speed']
             df.drop('measurement_type_id', 1, inplace=True)
             # order rows
             df.sort_values(['height_m', 'name'], ascending=[False, True], inplace=True)
@@ -1024,13 +1031,14 @@ class _Measurements:
                              'height_m', 'boom_orientation_deg', 'vane_dead_band_orientation_deg',
                              'orientation_reference_id',
                              'date_from', 'date_to', 'connection_channel',
-                             'sensor_config.slope', 'sensor_config.offset',
-                             'sensor_config.notes', 'sensor.notes']
+                             'logger_measurement_config.slope', 'logger_measurement_config.offset',
+                             'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
+            df = df[df['measurement_type_id'] == 'wind_direction'].set_index(
+                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
-            df = df[df['measurement_type_id'] == 'wind_direction']
             df.drop('measurement_type_id', 1, inplace=True)
             # order rows
             df.sort_values(['height_m', 'name'], ascending=[False, True], inplace=True)
