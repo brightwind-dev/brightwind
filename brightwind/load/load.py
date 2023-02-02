@@ -959,6 +959,11 @@ class LoadBrightHub:
         Function to login to the Brighthub user pool.
         Returns an id_token and a refresh_token which can be used to make requests to the APIs.
         In case of an error, a error message will be returned
+
+        :return id_token:       id_token which can be used to make requests to the APIs
+        :rtype:                 str
+        :return refresh_token:  refresh_token which can be used to make requests to the APIs
+        :rtype:                 str
         """
         url, headers, client_id = LoadBrightHub._get_cognito_request()
 
@@ -999,7 +1004,95 @@ class LoadBrightHub:
         id_token = login_response['AuthenticationResult']['IdToken']
         refresh_token = login_response['AuthenticationResult']['RefreshToken']
 
-        return id_token #, refresh_token
+        return id_token, refresh_token
+
+    def _brighthub_refresh_token(self):
+        """
+        Function to generate a new token if the current id_token has expired
+        In case of an error, a error message will be returned
+
+        :return tokens: dictionary containing the new id_token and refresh_token if the current id_token
+                        has expired
+        :rtype:         dict(str)
+        """
+        url, headers, client_id = self._get_cognito_request()
+
+        body = {
+            "AuthParameters": {
+                "REFRESH_TOKEN": self._refresh_token
+            },
+            "AuthFlow": "REFRESH_TOKEN_AUTH",
+            "ClientId": client_id
+        }
+        response = requests.post(url, headers=headers, json=body)
+        login_response = response.json()
+
+        # a login error occurred
+        if login_response.get("__type"):
+            if login_response["__type"] == "NotAuthorizedException":
+                return self.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"]
+            elif login_response["__type"] == "UserNotConfirmedException":
+                return self.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"]
+            else:
+                return self.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"]
+
+        id_token = login_response['AuthenticationResult']['IdToken']
+        new_refresh_token = ""
+
+        # refresh token only expires after 30 days, it is not returned in the response if it is still valid
+        if login_response['AuthenticationResult'].get('RefreshToken'):
+            new_refresh_token = login_response['AuthenticationResult']['RefreshToken']
+
+        tokens = {
+            "id_token": id_token
+        }
+        # add the refresh token only if it has been generated again
+        # this functionality hasn't been tested as we could not replicate an expired refresh token
+        if new_refresh_token:
+            tokens["refresh_token"] = new_refresh_token
+
+        return tokens
+
+    def _brighthub_request(self, url_end, params=None):
+        """
+        Function to make a GET request to the Brighthub endpoints
+
+        :param url_end:     The end of the url to be concatenated with the __BASE_URI in order to make the request
+        :type url_end:      str
+        :param params:      Optional. A dictionary, list of tuples or bytes to send as a query string. Default None
+        :type params:       dict, list(tuples), bytes
+        :return response:   The requests reponse object returned by requests.get()
+        :rtype:             requests.Response object
+        """
+
+        url = "{}{}".format(LoadBrightHub.__BASE_URI, url_end)
+        headers = {"authorization": self._id_token}
+
+        response = requests.get(url=url, headers=headers, params=params)
+
+        # If there is an auth error due to expired token
+        if response.status_code == 401 and response.json().get("message") == "The incoming token has expired":
+            # generate the token again
+            refresh_token_response = self._brighthub_refresh_token()
+
+            # if an error occurred
+            if refresh_token_response.get("error"):
+                return ImportError(refresh_token_response)
+            else:
+                # token refreshed successfully
+                self._id_token = refresh_token_response["id_token"]
+
+                # reset the refresh_token if returned
+                if refresh_token_response.get("refresh_token"):
+                    self._refresh_token = refresh_token_response["refresh_token"]
+
+                headers = {
+                    "authorization": self._id_token
+                }
+                # make the request again
+                response = LoadBrightHub._brighthub_request(self, url_end=url_end, params=params)
+
+        return response
 
     @staticmethod
     def get_plants(plant_type=None, plant_uuid=None):
@@ -1046,23 +1139,13 @@ class LoadBrightHub:
         plants = None
         if plant_type is None and plant_uuid is None:
             # get all
-            plants = requests.get(
-                "{}/plants".format(LoadBrightHub.__BASE_URI),
-                headers={"authorization": LoadBrightHub._get_id_token()}
-            )
+            plants = LoadBrightHub()._brighthub_request(url_end="/plants")
         elif plant_type in ['onshore_wind', 'offshore_wind', 'solar'] and plant_uuid is None:
             # get all for a specific plant_type
-            plants = requests.get(
-                "{}/plants".format(LoadBrightHub.__BASE_URI),
-                params={'plant_type_id': plant_type},
-                headers={"authorization": LoadBrightHub._get_id_token()}
-            )
+            plants = LoadBrightHub()._brighthub_request(url_end="/plants", params={'plant_type_id': plant_type})
         elif plant_uuid is not None:
             # get all for plant_uuid
-            plants = requests.get(
-                "{}/plants/{}".format(LoadBrightHub.__BASE_URI, plant_uuid),
-                headers={"authorization": LoadBrightHub._get_id_token()}
-            )
+            plants = LoadBrightHub()._brighthub_request(url_end="/plants/{}".format(plant_uuid))
 
         if plants.headers.get('content-type') != 'application/json.':
             plants.raise_for_status()
@@ -1124,23 +1207,15 @@ class LoadBrightHub:
         measurement_locations = None
         if plant_uuid is None and measurement_station_uuid is None:
             # get all
-            measurement_locations = requests.get(
-                "{}/measurement-locations".format(LoadBrightHub.__BASE_URI),
-                headers={"authorization": LoadBrightHub._get_id_token()}
-            )
+            measurement_locations = LoadBrightHub()._brighthub_request(url_end="/measurement-locations")
         elif plant_uuid is not None and measurement_station_uuid is None:
             # get all for plant_uuid
-            measurement_locations = requests.get(
-                "{}/measurement-locations".format(LoadBrightHub.__BASE_URI),
-                params={'plant_uuid': plant_uuid},
-                headers={"authorization": LoadBrightHub._get_id_token()}
-            )
+            measurement_locations = LoadBrightHub()._brighthub_request(url_end="/measurement-locations",
+                                                                       params={'plant_uuid': plant_uuid})
         elif measurement_station_uuid is not None:
             # get for measurement_station_uuid
-            measurement_locations = requests.get(
-                "{}/measurement-locations/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
-                headers={"authorization": LoadBrightHub._get_id_token()}
-            )
+            measurement_locations = LoadBrightHub()._brighthub_request(
+                url_end="/measurement-locations/{}".format(measurement_station_uuid))
 
         if measurement_locations.headers.get('content-type') != 'application/json.':
             measurement_locations.raise_for_status()
@@ -1169,10 +1244,8 @@ class LoadBrightHub:
                                                                         'end_date': '2016-12-19T23:01:00'}
         :rtype:                          dict
         """
-        start_end_dates = requests.get(
-            "{}/start-end-dates/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
-            headers={"authorization": LoadBrightHub._get_id_token()}
-        )
+        start_end_dates = LoadBrightHub()._brighthub_request(
+            url_end="/start-end-dates/{}".format(measurement_station_uuid))
 
         if start_end_dates.headers.get('content-type') != 'application/json.':
             start_end_dates.raise_for_status()
@@ -1216,10 +1289,8 @@ class LoadBrightHub:
             demo_mast.get_table()
 
         """
-        data_model = requests.get(
-            "{}/data-models/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
-            headers={"authorization": LoadBrightHub._get_id_token()}
-        )
+        data_model = LoadBrightHub()._brighthub_request(
+            url_end="/data-models/{}".format(measurement_station_uuid))
 
         if data_model.headers.get('content-type') != 'application/json.':
             data_model.raise_for_status()
@@ -1289,10 +1360,9 @@ class LoadBrightHub:
             # Duplicating calling for start-end-time so I don't ending up getting an id_token again if I
             # call get_start_end_dates().
             # We will replace once we get code to check if the token has expired.
-            start_end_dates = requests.get(
-                "{}/start-end-dates/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
-                headers={"authorization": id_token}
-            )
+            start_end_dates = LoadBrightHub()._brighthub_request(
+                url_end="/start-end-dates/{}".format(measurement_station_uuid))
+
             start_end_dates = start_end_dates.json()
             if not date_from:
                 date_from = start_end_dates['start_date']
@@ -1334,10 +1404,10 @@ class LoadBrightHub:
                        date_to_dt.strftime(LoadBrightHub.__DATE_FORMAT))]
 
         def get_chunk(_date_from, _date_to, _id_token):
-            response = requests.get("{}/resource-data".format(LoadBrightHub.__BASE_URI),
-                                    params={"measurement_location_uuid": measurement_station_uuid,
-                                            "date_from": _date_from, "date_to": _date_to},
-                                    headers={"authorization": _id_token})
+            response = LoadBrightHub()._brighthub_request(
+                url_end="/resource-data",
+                params={"measurement_location_uuid": measurement_station_uuid,
+                        "date_from": _date_from, "date_to": _date_to})
             pre_signed_url = response.json()["url"]
             response = requests.get(pre_signed_url)
             return response.text
