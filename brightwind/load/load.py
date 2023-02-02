@@ -12,7 +12,6 @@ from io import StringIO
 import warnings
 from dateutil.parser import parse
 from brightwind.analyse import plot as bw_plt
-import boto3
 import time
 import concurrent
 import math
@@ -923,28 +922,84 @@ class LoadBrightHub:
     bw.LoadBrightHub.get_measurement_stations()
 
     """
-    # SHOULD I INITIATE BY GETTING ID-TOKEN? CAN INITIALISE BY SENDING A USERNAME, PASSWORD.
-    # IF I INITIATE IT NEEDS TO BE ASSIGNED TO SOMETHING.
+
     __BASE_URI = 'https://api.brighthub.io'
-    # __BASE_URI = 'http://localhost:5000/'
+
+    # List possible errors encountered on Login
+    __BRIGHTHUB_LOGIN_ERROR_MAP = {
+        "not_authorized": "The Brighthub Email or Password is incorrect",
+        "user_not_confirmed": "The User is not confirmed. Please confirm your email and try again.",
+        "unexpected_error": "An unexpected error occurred.",
+        "new_password_required": "Your password has expired or needs to be reset. "
+                                 "Kindly reset your Brighthub password and try again.",
+        "password_not_verified": "Could not verify your password. "
+                                 "Please ensure you have confirmed your email and the password is correct."
+    }
+
+    def __init__(self):
+        self._id_token, self._refresh_token = self._get_id_token()
+
+    @staticmethod
+    def _get_cognito_request():
+        """
+        Function to form a request for Cognito Auth APIs
+        """
+        url = "https://cognito-idp.eu-west-1.amazonaws.com/"
+        headers = {
+            'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
+            'Content-Type': 'application/x-amz-json-1.1'
+        }
+        client_id = "3qkkpikve578cbok46p136au3g"
+
+        return url, headers, client_id
 
     @staticmethod
     def _get_id_token():
-        client = boto3.client('cognito-idp')
+        """
+        Function to login to the Brighthub user pool.
+        Returns an id_token and a refresh_token which can be used to make requests to the APIs.
+        In case of an error, a error message will be returned
+        """
+        url, headers, client_id = LoadBrightHub._get_cognito_request()
 
         username = utils.get_environment_variable('BRIGHTHUB_EMAIL')
         password = utils.get_environment_variable('BRIGHTHUB_PASSWORD')
 
-        login_response = client.initiate_auth(
-            AuthFlow='USER_PASSWORD_AUTH',
-            AuthParameters={
-                'USERNAME': username,
-                'PASSWORD': password,
+        body = {
+            "AuthParameters": {
+                "USERNAME": username,
+                "PASSWORD": password
             },
-            ClientId='3qkkpikve578cbok46p136au3g',  # Hard code this in the library
-        )
+            "AuthFlow": "USER_PASSWORD_AUTH",
+            "ClientId": client_id
+        }
+
+        response = requests.post(url, headers=headers, json=body)
+        login_response = response.json()
+
+        # a login error occurred
+        if login_response.get("__type"):
+            if login_response["__type"] == "NotAuthorizedException":
+                return ImportError(LoadBrightHub.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
+            elif login_response["__type"] == "UserNotConfirmedException":
+                return ImportError(LoadBrightHub.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+            else:
+                return ImportError(LoadBrightHub.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+
+        # challenge returned
+        if login_response.get("ChallengeName"):
+            if login_response["ChallengeName"] == "NEW_PASSWORD_REQUIRED":
+                return ImportError(LoadBrightHub.__BRIGHTHUB_LOGIN_ERROR_MAP["new_password_required"])
+            elif login_response["ChallengeName"] == "PASSWORD_VERIFIER":
+                return ImportError(LoadBrightHub.__BRIGHTHUB_LOGIN_ERROR_MAP["password_verifier"])
+            else:
+                return ImportError(LoadBrightHub.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+
+        # login successful
         id_token = login_response['AuthenticationResult']['IdToken']
-        return id_token
+        refresh_token = login_response['AuthenticationResult']['RefreshToken']
+
+        return id_token #, refresh_token
 
     @staticmethod
     def get_plants(plant_type=None, plant_uuid=None):
