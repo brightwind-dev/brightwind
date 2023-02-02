@@ -1152,7 +1152,8 @@ class LoadBrightHub:
 
         To get the data model for a specific measurement station
         ::
-            data_model_json - bw.LoadBrightHub.get_data_model(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
+            data_model_json - bw.LoadBrightHub.get_data_model(
+                                                    measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
 
         Using the data model
         ::
@@ -1278,7 +1279,7 @@ class LoadBrightHub:
                        date_to_dt.strftime(LoadBrightHub.__DATE_FORMAT))]
 
         def get_chunk(_date_from, _date_to, _id_token):
-            response = requests.get("https://api.brightwindhub.com/resource-data",
+            response = requests.get("{}/resource-data".format(LoadBrightHub.__BASE_URI),
                                     params={"measurement_location_uuid": measurement_station_uuid,
                                             "date_from": _date_from, "date_to": _date_to},
                                     headers={"authorization": _id_token})
