@@ -1127,7 +1127,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
             ax.xaxis.set_major_formatter(bin_tick_label_format)
         if bar_tick_label_format is not None:
             ax.yaxis.set_major_formatter(bar_tick_label_format)
-        ax.grid(b=True, axis='y', zorder=0)
+        ax.grid(True, axis='y', zorder=0)
     else:
         ax.set_yticks(data_bins)
         ax.set_ylim(data_bins[0] - total_width, data_bins[-1] + total_width)
@@ -1139,7 +1139,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
             ax.yaxis.set_major_formatter(bin_tick_label_format)
         if bar_tick_label_format is not None:
             ax.xaxis.set_major_formatter(bar_tick_label_format)
-        ax.grid(b=True, axis='x', zorder=0)
+        ax.grid(True, axis='x', zorder=0)
 
     ax.tick_params(axis="x", rotation=x_tick_label_angle)
 
@@ -1486,8 +1486,8 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(ti.index))
-    ax.plot(np.append(radians, radians[0]), ti.append(ti.iloc[0])['Mean_TI'], color=COLOR_PALETTE.primary, linewidth=4,
-            figure=fig, label='Mean_TI')
+    ax.plot(np.append(radians, radians[0]), pd.concat([ti, pd.DataFrame(ti.iloc[0]).T])['Mean_TI'],
+            color=COLOR_PALETTE.primary, linewidth=4, figure=fig, label='Mean_TI')
     maxlevel = ti['Mean_TI'].max() + 0.1
     ax.set_ylim(0, maxlevel)
     ax.scatter(np.radians(wdir), turbulence, color=COLOR_PALETTE.secondary, alpha=0.3, s=1, label='TI')
@@ -1769,7 +1769,7 @@ def _plot_sector_ratio_subplot(sec_ratio, wdir, sec_ratio_dist, col_names, boom_
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.set_thetagrids(utils._get_dir_sector_mid_pts(sec_ratio_dist.index))
-    ax.plot(np.append(radians, radians[0]), sec_ratio_dist['Mean_Sector_Ratio'].append(sec_ratio_dist.iloc[0]),
+    ax.plot(np.append(radians, radians[0]), pd.concat([sec_ratio_dist['Mean_Sector_Ratio'], sec_ratio_dist.iloc[0]]),
             color=COLOR_PALETTE.primary, linewidth=4)
 
     # Add boom dimensions to chart, if required
