@@ -434,7 +434,21 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
         if i_dist == 0:
             distributions = distribution
         else:
-            distributions = pd.concat([distributions, distribution], axis=1)
+            # The below if statement is a workaround to be able to work with pandas >= 0.24.0, < 0.25.0, this should
+            # be replaced with distributions = pd.concat([distributions, distribution], axis=1)
+            # when these versions of pandas will not be supported anymore by brightwind library. This version of pandas
+            # doesn't allow to concatenate two pandas.Series with a CategoricalIndex if having a different index length
+            if len(distributions) >= len(distribution):
+                temp_dist = pd.concat([pd.DataFrame(distributions).reset_index(),
+                                       pd.DataFrame(distribution).reset_index().rename(
+                                           columns={'variable_bin': 'variable_bin1'})], axis=1
+                                      ).set_index('variable_bin')
+                distributions = temp_dist.drop(['variable_bin1'], axis=1)
+            else:
+                temp_dist = pd.concat([pd.DataFrame(distributions).reset_index().rename(
+                    columns={'variable_bin': 'variable_bin1'}), pd.DataFrame(distribution).reset_index()], axis=1
+                ).set_index('variable_bin')
+                distributions = temp_dist.drop(['variable_bin1'], axis=1)
 
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
