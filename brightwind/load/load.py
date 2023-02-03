@@ -900,6 +900,138 @@ class LoadBrightdata:
             raise error
 
 
+class _BrighthubAuth:
+    """
+    This class is used to define general functions that are then called by LoadBrightHub. Functions in this
+    class are outside of LoadBrightHub and will be called only once during the analysis and this will avoid making
+    multiple login to the Brighthub user pool.
+
+    """
+
+    # List possible errors encountered on Login
+    __BRIGHTHUB_LOGIN_ERROR_MAP = {
+        "not_authorized": "The Brighthub Email or Password is incorrect",
+        "user_not_confirmed": "The User is not confirmed. Please confirm your email and try again.",
+        "unexpected_error": "An unexpected error occurred.",
+        "new_password_required": "Your password has expired or needs to be reset. "
+                                 "Kindly reset your Brighthub password and try again.",
+        "password_not_verified": "Could not verify your password. "
+                                 "Please ensure you have confirmed your email and the password is correct."
+    }
+    ID_TOKEN = ''
+    REFRESH_TOKEN = ''
+    USERNAME = utils.get_environment_variable('BRIGHTHUB_EMAIL')
+    PASSWORD = utils.get_environment_variable('BRIGHTHUB_PASSWORD')
+
+    @staticmethod
+    def _get_cognito_request():
+        """
+        Function to form a request for Cognito Auth APIs
+        """
+        url = "https://cognito-idp.eu-west-1.amazonaws.com/"
+        headers = {
+            'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
+            'Content-Type': 'application/x-amz-json-1.1'
+        }
+        client_id = "3qkkpikve578cbok46p136au3g"
+
+        return url, headers, client_id
+
+    @staticmethod
+    def _get_id_token():
+        """
+        Function to login to the Brighthub user pool.
+        Assign a id_token and a refresh_token to the global variables ID_TOKEN, REFRESH_TOKEN which can be used to
+        make requests to the APIs.
+        In case of an error, a error message will be returned
+
+        """
+        url, headers, client_id = _BrighthubAuth._get_cognito_request()
+
+        body = {
+            "AuthParameters": {
+                "USERNAME": _BrighthubAuth.USERNAME,
+                "PASSWORD": _BrighthubAuth.PASSWORD
+            },
+            "AuthFlow": "USER_PASSWORD_AUTH",
+            "ClientId": client_id
+        }
+
+        response = requests.post(url, headers=headers, json=body)
+        login_response = response.json()
+
+        # a login error occurred
+        if login_response.get("__type"):
+            if login_response["__type"] == "NotAuthorizedException":
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
+            elif login_response["__type"] == "UserNotConfirmedException":
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+            else:
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+
+        # challenge returned
+        if login_response.get("ChallengeName"):
+            if login_response["ChallengeName"] == "NEW_PASSWORD_REQUIRED":
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["new_password_required"])
+            elif login_response["ChallengeName"] == "PASSWORD_VERIFIER":
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["password_verifier"])
+            else:
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+
+        # login successful
+        id_token = login_response['AuthenticationResult']['IdToken']
+        refresh_token = login_response['AuthenticationResult']['RefreshToken']
+
+        _BrighthubAuth.ID_TOKEN = id_token
+        _BrighthubAuth.REFRESH_TOKEN = refresh_token
+
+        return {}
+
+    @staticmethod
+    def _brighthub_refresh_token():
+        """
+        Function to generate a new token if the current id_token has expired. The new tokens are assigned to the global
+        variables ID_TOKEN, REFRESH_TOKEN.
+        In case of an error, a error message will be returned
+
+        """
+        url, headers, client_id = _BrighthubAuth._get_cognito_request()
+
+        body = {
+            "AuthParameters": {
+                "REFRESH_TOKEN": _BrighthubAuth.REFRESH_TOKEN
+            },
+            "AuthFlow": "REFRESH_TOKEN_AUTH",
+            "ClientId": client_id
+        }
+        response = requests.post(url, headers=headers, json=body)
+        login_response = response.json()
+
+        # a login error occurred
+        if login_response.get("__type"):
+            if login_response["__type"] == "NotAuthorizedException":
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
+            elif login_response["__type"] == "UserNotConfirmedException":
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+            else:
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+
+        id_token = login_response['AuthenticationResult']['IdToken']
+        new_refresh_token = ""
+
+        # refresh token only expires after 30 days, it is not returned in the response if it is still valid
+        if login_response['AuthenticationResult'].get('RefreshToken'):
+            new_refresh_token = login_response['AuthenticationResult']['RefreshToken']
+
+        _BrighthubAuth.ID_TOKEN = id_token
+        # add the refresh token only if it has been generated again
+        # this functionality hasn't been tested as we could not replicate an expired refresh token
+        if new_refresh_token:
+            _BrighthubAuth.REFRESH_TOKEN = new_refresh_token
+
+        return {}
+
+
 class LoadBrightHub:
     """
     LoadBrightHub allows you to pull meta data and timeseries data of measurements from the BrightHub
@@ -925,135 +1057,8 @@ class LoadBrightHub:
 
     __BASE_URI = 'https://api.brighthub.io'
 
-    # List possible errors encountered on Login
-    __BRIGHTHUB_LOGIN_ERROR_MAP = {
-        "not_authorized": "The Brighthub Email or Password is incorrect",
-        "user_not_confirmed": "The User is not confirmed. Please confirm your email and try again.",
-        "unexpected_error": "An unexpected error occurred.",
-        "new_password_required": "Your password has expired or needs to be reset. "
-                                 "Kindly reset your Brighthub password and try again.",
-        "password_not_verified": "Could not verify your password. "
-                                 "Please ensure you have confirmed your email and the password is correct."
-    }
-
-    def __init__(self):
-        self._id_token, self._refresh_token = self._get_id_token()
-
     @staticmethod
-    def _get_cognito_request():
-        """
-        Function to form a request for Cognito Auth APIs
-        """
-        url = "https://cognito-idp.eu-west-1.amazonaws.com/"
-        headers = {
-            'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
-            'Content-Type': 'application/x-amz-json-1.1'
-        }
-        client_id = "3qkkpikve578cbok46p136au3g"
-
-        return url, headers, client_id
-
-    @staticmethod
-    def _get_id_token():
-        """
-        Function to login to the Brighthub user pool.
-        Returns an id_token and a refresh_token which can be used to make requests to the APIs.
-        In case of an error, a error message will be returned
-
-        :return id_token:       id_token which can be used to make requests to the APIs
-        :rtype:                 str
-        :return refresh_token:  refresh_token which can be used to make requests to the APIs
-        :rtype:                 str
-        """
-        url, headers, client_id = LoadBrightHub._get_cognito_request()
-
-        username = utils.get_environment_variable('BRIGHTHUB_EMAIL')
-        password = utils.get_environment_variable('BRIGHTHUB_PASSWORD')
-
-        body = {
-            "AuthParameters": {
-                "USERNAME": username,
-                "PASSWORD": password
-            },
-            "AuthFlow": "USER_PASSWORD_AUTH",
-            "ClientId": client_id
-        }
-
-        response = requests.post(url, headers=headers, json=body)
-        login_response = response.json()
-
-        # a login error occurred
-        if login_response.get("__type"):
-            if login_response["__type"] == "NotAuthorizedException":
-                return ImportError(LoadBrightHub.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
-            elif login_response["__type"] == "UserNotConfirmedException":
-                return ImportError(LoadBrightHub.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
-            else:
-                return ImportError(LoadBrightHub.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
-
-        # challenge returned
-        if login_response.get("ChallengeName"):
-            if login_response["ChallengeName"] == "NEW_PASSWORD_REQUIRED":
-                return ImportError(LoadBrightHub.__BRIGHTHUB_LOGIN_ERROR_MAP["new_password_required"])
-            elif login_response["ChallengeName"] == "PASSWORD_VERIFIER":
-                return ImportError(LoadBrightHub.__BRIGHTHUB_LOGIN_ERROR_MAP["password_verifier"])
-            else:
-                return ImportError(LoadBrightHub.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
-
-        # login successful
-        id_token = login_response['AuthenticationResult']['IdToken']
-        refresh_token = login_response['AuthenticationResult']['RefreshToken']
-
-        return id_token, refresh_token
-
-    def _brighthub_refresh_token(self):
-        """
-        Function to generate a new token if the current id_token has expired
-        In case of an error, a error message will be returned
-
-        :return tokens: dictionary containing the new id_token and refresh_token if the current id_token
-                        has expired
-        :rtype:         dict(str)
-        """
-        url, headers, client_id = self._get_cognito_request()
-
-        body = {
-            "AuthParameters": {
-                "REFRESH_TOKEN": self._refresh_token
-            },
-            "AuthFlow": "REFRESH_TOKEN_AUTH",
-            "ClientId": client_id
-        }
-        response = requests.post(url, headers=headers, json=body)
-        login_response = response.json()
-
-        # a login error occurred
-        if login_response.get("__type"):
-            if login_response["__type"] == "NotAuthorizedException":
-                return self.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"]
-            elif login_response["__type"] == "UserNotConfirmedException":
-                return self.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"]
-            else:
-                return self.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"]
-
-        id_token = login_response['AuthenticationResult']['IdToken']
-        new_refresh_token = ""
-
-        # refresh token only expires after 30 days, it is not returned in the response if it is still valid
-        if login_response['AuthenticationResult'].get('RefreshToken'):
-            new_refresh_token = login_response['AuthenticationResult']['RefreshToken']
-
-        tokens = {
-            "id_token": id_token
-        }
-        # add the refresh token only if it has been generated again
-        # this functionality hasn't been tested as we could not replicate an expired refresh token
-        if new_refresh_token:
-            tokens["refresh_token"] = new_refresh_token
-
-        return tokens
-
-    def _brighthub_request(self, url_end, params=None):
+    def _brighthub_request(url_end, params=None):
         """
         Function to make a GET request to the Brighthub endpoints
 
@@ -1065,32 +1070,31 @@ class LoadBrightHub:
         :rtype:             requests.Response object
         """
 
+        if not _BrighthubAuth.ID_TOKEN:
+            login_response = _BrighthubAuth._get_id_token()
+            if "error" in login_response:
+                return ImportError(login_response)
+
         url = "{}{}".format(LoadBrightHub.__BASE_URI, url_end)
-        headers = {"authorization": self._id_token}
+        headers = {"authorization": _BrighthubAuth.ID_TOKEN}
 
         response = requests.get(url=url, headers=headers, params=params)
 
         # If there is an auth error due to expired token
         if response.status_code == 401 and response.json().get("message") == "The incoming token has expired":
             # generate the token again
-            refresh_token_response = self._brighthub_refresh_token()
+            refresh_token_response = _BrighthubAuth._brighthub_refresh_token()
 
             # if an error occurred
             if refresh_token_response.get("error"):
                 return ImportError(refresh_token_response)
             else:
                 # token refreshed successfully
-                self._id_token = refresh_token_response["id_token"]
+                headers = {"authorization": _BrighthubAuth.ID_TOKEN}
 
-                # reset the refresh_token if returned
-                if refresh_token_response.get("refresh_token"):
-                    self._refresh_token = refresh_token_response["refresh_token"]
-
-                headers = {
-                    "authorization": self._id_token
-                }
                 # make the request again
-                response = LoadBrightHub._brighthub_request(self, url_end=url_end, params=params)
+                response = requests.get(url=url, headers=headers, params=params)
+                return response
 
         return response
 
@@ -1139,13 +1143,13 @@ class LoadBrightHub:
         plants = None
         if plant_type is None and plant_uuid is None:
             # get all
-            plants = LoadBrightHub()._brighthub_request(url_end="/plants")
+            plants = LoadBrightHub._brighthub_request(url_end="/plants")
         elif plant_type in ['onshore_wind', 'offshore_wind', 'solar'] and plant_uuid is None:
             # get all for a specific plant_type
-            plants = LoadBrightHub()._brighthub_request(url_end="/plants", params={'plant_type_id': plant_type})
+            plants = LoadBrightHub._brighthub_request(url_end="/plants", params={'plant_type_id': plant_type})
         elif plant_uuid is not None:
             # get all for plant_uuid
-            plants = LoadBrightHub()._brighthub_request(url_end="/plants/{}".format(plant_uuid))
+            plants = LoadBrightHub._brighthub_request(url_end="/plants/{}".format(plant_uuid))
 
         if plants.headers.get('content-type') != 'application/json.':
             plants.raise_for_status()
@@ -1207,14 +1211,14 @@ class LoadBrightHub:
         measurement_locations = None
         if plant_uuid is None and measurement_station_uuid is None:
             # get all
-            measurement_locations = LoadBrightHub()._brighthub_request(url_end="/measurement-locations")
+            measurement_locations = LoadBrightHub._brighthub_request(url_end="/measurement-locations")
         elif plant_uuid is not None and measurement_station_uuid is None:
             # get all for plant_uuid
-            measurement_locations = LoadBrightHub()._brighthub_request(url_end="/measurement-locations",
+            measurement_locations = LoadBrightHub._brighthub_request(url_end="/measurement-locations",
                                                                        params={'plant_uuid': plant_uuid})
         elif measurement_station_uuid is not None:
             # get for measurement_station_uuid
-            measurement_locations = LoadBrightHub()._brighthub_request(
+            measurement_locations = LoadBrightHub._brighthub_request(
                 url_end="/measurement-locations/{}".format(measurement_station_uuid))
 
         if measurement_locations.headers.get('content-type') != 'application/json.':
@@ -1244,7 +1248,7 @@ class LoadBrightHub:
                                                                         'end_date': '2016-12-19T23:01:00'}
         :rtype:                          dict
         """
-        start_end_dates = LoadBrightHub()._brighthub_request(
+        start_end_dates = LoadBrightHub._brighthub_request(
             url_end="/start-end-dates/{}".format(measurement_station_uuid))
 
         if start_end_dates.headers.get('content-type') != 'application/json.':
@@ -1289,7 +1293,7 @@ class LoadBrightHub:
             demo_mast.get_table()
 
         """
-        data_model = LoadBrightHub()._brighthub_request(
+        data_model = LoadBrightHub._brighthub_request(
             url_end="/data-models/{}".format(measurement_station_uuid))
 
         if data_model.headers.get('content-type') != 'application/json.':
@@ -1355,12 +1359,11 @@ class LoadBrightHub:
                                              date_to='2016-07-01')
 
         """
-        id_token = LoadBrightHub._get_id_token()
         if not date_from or not date_to:
             # Duplicating calling for start-end-time so I don't ending up getting an id_token again if I
             # call get_start_end_dates().
             # We will replace once we get code to check if the token has expired.
-            start_end_dates = LoadBrightHub()._brighthub_request(
+            start_end_dates = LoadBrightHub._brighthub_request(
                 url_end="/start-end-dates/{}".format(measurement_station_uuid))
 
             start_end_dates = start_end_dates.json()
@@ -1403,8 +1406,8 @@ class LoadBrightHub:
             chunks = [(date_from_dt.strftime(LoadBrightHub.__DATE_FORMAT),
                        date_to_dt.strftime(LoadBrightHub.__DATE_FORMAT))]
 
-        def get_chunk(_date_from, _date_to, _id_token):
-            response = LoadBrightHub()._brighthub_request(
+        def get_chunk(_date_from, _date_to):
+            response = LoadBrightHub._brighthub_request(
                 url_end="/resource-data",
                 params={"measurement_location_uuid": measurement_station_uuid,
                         "date_from": _date_from, "date_to": _date_to})
@@ -1414,7 +1417,7 @@ class LoadBrightHub:
 
         master_df = pd.DataFrame()
         with concurrent.futures.ThreadPoolExecutor() as executor:  # optimally defined number of threads
-            res = [executor.submit(get_chunk, chunk[0], chunk[1], id_token) for chunk in chunks]
+            res = [executor.submit(get_chunk, chunk[0], chunk[1]) for chunk in chunks]
             concurrent.futures.wait(res)
             for result in res:
                 chunk_df = pd.read_csv(StringIO(result.result()),)
