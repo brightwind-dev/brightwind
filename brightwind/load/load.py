@@ -1360,13 +1360,8 @@ class LoadBrightHub:
 
         """
         if not date_from or not date_to:
-            # Duplicating calling for start-end-time so I don't ending up getting an id_token again if I
-            # call get_start_end_dates().
-            # We will replace once we get code to check if the token has expired.
-            start_end_dates = LoadBrightHub._brighthub_request(
-                url_end="/start-end-dates/{}".format(measurement_station_uuid))
+            start_end_dates = LoadBrightHub.get_start_end_dates(measurement_station_uuid)
 
-            start_end_dates = start_end_dates.json()
             if not date_from:
                 date_from = start_end_dates['start_date']
             if not date_to:
