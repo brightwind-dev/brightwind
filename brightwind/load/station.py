@@ -993,7 +993,7 @@ class _Measurements:
                 order_index = dict(zip(SENSOR_TYPE_ORDER, range(len(SENSOR_TYPE_ORDER))))
                 df['sensor_rank'] = df['sensor_type_id'].map(order_index)
                 df.sort_values(['sensor_rank', 'height_m'], ascending=[True, False], inplace=True)
-                df.drop('sensor_rank', 1, inplace=True)
+                df.drop(columns='sensor_rank', axis=1, inplace=True)
             else:
                 df.sort_values(['name', 'height_m'], ascending=[True, False], inplace=True)
             # get titles
