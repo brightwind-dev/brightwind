@@ -497,7 +497,7 @@ def test_average_data_by_period():
                     ('Dir58mS', 8),
                     ('Dir38mS', 19)]
     idx = 0
-    for col_name, val in data_monthly[0].count().iteritems():
+    for col_name, val in data_monthly[0].count().items():
         assert col_name == count_months[idx][0]
         assert val == count_months[idx][1]
         idx += 1
@@ -511,7 +511,7 @@ def test_average_data_by_period():
                         ('Dir58mS_Coverage', 23),
                         ('Dir38mS_Coverage', 23)]
     idx = 0
-    for col_name, val in data_monthly[1].count().iteritems():
+    for col_name, val in data_monthly[1].count().items():
         assert col_name == count_cov_months[idx][0]
         assert val == count_cov_months[idx][1]
         idx += 1

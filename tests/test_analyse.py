@@ -2,6 +2,7 @@ import pytest
 import brightwind as bw
 import pandas as pd
 import numpy as np
+import matplotlib as mpl
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -76,8 +77,8 @@ def test_time_continuity_gaps():
     # THIS WILL RAISE 3 WARNINGS.
     data_test = DATA.copy()
     data_test.reset_index(inplace=True)
-    data_test['Timestamp'][10] = data_test['Timestamp'][10] + pd.DateOffset(minutes=1)
-    data_test['Timestamp'][20] = data_test['Timestamp'][20] + pd.DateOffset(minutes=9)
+    data_test.loc[10, 'Timestamp'] = data_test.loc[10, 'Timestamp'] + pd.DateOffset(minutes=1)
+    data_test.loc[20, 'Timestamp'] = data_test.loc[20, 'Timestamp'] + pd.DateOffset(minutes=9)
     data_test.set_index('Timestamp', inplace=True)
     gaps_irregular = bw.time_continuity_gaps(data_test)
     assert gaps_irregular.iloc[0, 0] == pd.Timestamp('2016-01-09 18:10:00')
@@ -245,7 +246,7 @@ def test_freq_table():
 
     fig_rose = bw.freq_table(DATA.Spd40mN['2016-06-01':'2017-09-30'], DATA.Dir38mS['2016-06-01':'2017-09-30'],
                              return_data=False, seasonal_adjustment=True, coverage_threshold=0.9)
-    assert 'Text' in str(fig_rose.get_default_bbox_extra_artists())
+    assert isinstance(fig_rose.get_axes()[0], mpl.projections.polar.PolarAxes)
 
 
 def test_dist():
