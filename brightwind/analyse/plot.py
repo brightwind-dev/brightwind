@@ -682,7 +682,8 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
     fig, axes = plt.subplots(figsize=figure_size, **kwargs)
     _scatter_subplot(x, y, trendline_y=trendline_y, trendline_x=trendline_x, line_of_slope_1=line_of_slope_1,
                      x_label=x_label, y_label=y_label, x_limits=x_limits, y_limits=y_limits, axes_equal=axes_equal,
-                     trendline_dots=trendline_dots, legend=legend, ax=axes)
+                     trendline_dots=trendline_dots, scatter_color=COLOR_PALETTE.primary,
+                     trendline_color=COLOR_PALETTE.secondary, legend=legend, ax=axes)
 
     plt.close()
     return fig
@@ -890,6 +891,7 @@ def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, s
                          line_of_slope_1=line_of_slope_1, x_label=None, y_label=None,
                          x_limits=x_limits, y_limits=y_limits, axes_equal=axes_equal,
                          subplot_title=str(round(ratio_min)) + '-' + str(round(ratio_max)),
+                         scatter_color=COLOR_PALETTE.primary, trendline_color=COLOR_PALETTE.secondary,
                          legend=False, ax=ax_subplot)
 
     fig.text(0.5, 0.06, x.name, va='center', ha='center', fontsize=mpl.rcParams['axes.labelsize'])
