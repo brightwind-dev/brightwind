@@ -17,6 +17,7 @@ import six
 from colormap import rgb2hex, rgb2hls, hls2rgb
 from matplotlib.ticker import PercentFormatter
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+import warnings
 
 register_matplotlib_converters()
 
@@ -1206,6 +1207,8 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     or a Dataframe. If it is a Dataframe then the distribution is plotted for each column of the Dataframe and with
     a different colour for each dataset.
 
+    ** THIS FUNCTION WILL BE REMOVED IN A FUTURE VERSION OF BRIGHTWIND LIBRARY **
+
     :param data:            The input distribution derived using bw.analyse.analyse._derive_distribution().
     :type data:             pd.Series or pd.Dataframe
     :param max_y_value:     y-axis max limit. It can be set to None to let the code derive the max from
@@ -1252,6 +1255,10 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
                                                y_label='count', total_width=1, legend=True)
 
     """
+
+    warnings.warn("In a future version of brightwind, `plot_freq_distribution` will be removed. Please use "
+                  "'dist()' or `_bar_subplot()` instead.", category=FutureWarning)
+
     bar_tick_label_format = None
     if y_label:
         if '%' in y_label:
