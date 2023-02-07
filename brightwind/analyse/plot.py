@@ -956,7 +956,8 @@ def _gradient_image(direction=0.3, cmap_range=(0, 1)):
 
 def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_bar_axis_limit=None,
                  min_bin_axis_limit=None, max_bin_axis_limit=None, bin_tick_labels=None, x_tick_label_angle=0,
-                 bin_tick_label_format=None, bar_tick_label_format=None, subplot_title=None, legend=False,
+                 bin_tick_label_format=None, bar_tick_label_format=None, bar_colors=None,
+                 subplot_title=None, legend=False,
                  total_width=0.8, line_width=0.3, vertical_bars=True, ax=None):
     """
     Plots a bar subplot, either vertical or horizontal bars, from a pd.Series or pd.Dataframe where the interval of the
@@ -998,6 +999,15 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                                     Default is None where the tick label format will be the default from
                                     matplotlib.axis.set_major_formatter.
     :type bar_tick_label_format:    matplotlib.ticker.Formatter
+    :param bar_colors:              Bar colors used for the bar plot. Colors input can be given as:
+                                        1) Single str (https://matplotlib.org/stable/gallery/color/named_colors.html)
+                                           or Hex (https://www.w3schools.com/colors/colors_picker.asp) or tuple (Rgb):
+                                           all plotted timeseries will use the same color.
+                                        2) List of str or Hex or Rgb: the number of colors provided needs to be
+                                           at least equal to the number of columns in the data input.
+                                        3) None: the default brightwind COLOR_PALETTE color list will be used for
+                                           plotting.
+    :type bar_colors:               str or list or tuple or None
     :param subplot_title:           Title to show on top of the subplot
     :type subplot_title:            str or None
     :param legend:                  Boolean to choose if legend is shown.
@@ -1071,10 +1081,18 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     if type(data) is pd.Series:
         data = data.to_frame()
 
-    if len(data.columns) > len(COLOR_PALETTE.color_list):
-        raise ValueError('The numbers of variables to plot is higher than the number of colors implemented '
-                         'in the brightwind library standard COLOR_PALETTE. The number of variables should be lower '
-                         'than {}'.format(len(COLOR_PALETTE.color_list)))
+    if bar_colors is None:
+        bar_colors = COLOR_PALETTE.color_list
+        if len(data.columns) > len(bar_colors):
+            raise ValueError('The number of variables to plot is higher than the number of colors implemented '
+                             'in the brightwind library standard COLOR_PALETTE. The number of variables should be '
+                             'lower than {} or you should assign to the `bar_colors` input a list of colors with same '
+                             'length than the number of variables to plot.'.format(len(bar_colors)))
+    elif type(bar_colors) is list and len(data.columns) > len(bar_colors):
+        raise ValueError('The number of variables to plot is higher than the number of colors given as input. '
+                         'The number of variables should be lower than {} or you should assign to the `bar_colors` '
+                         'input a list of colors with same length than the number of variables to plot'
+                         '.'.format(len(bar_colors)))
 
     if (total_width < 0) or (total_width > 1):
         raise ValueError('The total_width value should be between 0 and 1.')
@@ -1151,7 +1169,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     bars = []
     # Iterate over all data
     for i, name in enumerate(data.columns):
-        bar_color = COLOR_PALETTE.color_list[i]
+        bar_color = bar_colors[i]
         # The offset in x direction of that bar
         x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
         r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(bar_color)))  # hex to rgb format
