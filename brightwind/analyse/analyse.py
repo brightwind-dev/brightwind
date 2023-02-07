@@ -341,7 +341,7 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
 
 
 def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_label=None,
-         max_y_value=None, aggregation_method='%frequency', return_data=False):
+         max_y_value=None, bar_colors=None, aggregation_method='%frequency', return_data=False):
     """
     Calculates the distribution of a variable against itself as per the bins specified. If the var_to_bin input is a
     DataFrame then the function derives the distribution for each column against itself. Can also pass another variable
@@ -364,6 +364,15 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     :param max_y_value:         Max value for the y-axis of the plot to be set. Default will be relative to max
                                 calculated data value.
     :type max_y_value:          float or int
+    :param bar_colors:          Bar colors used for the bar plot. Colors input can be given as:
+                                    1) Single str (https://matplotlib.org/stable/gallery/color/named_colors.html)
+                                       or Hex (https://www.w3schools.com/colors/colors_picker.asp) or tuple (Rgb):
+                                       all plotted timeseries will use the same color.
+                                    2) List of str or Hex or Rgb: the number of colors provided needs to be
+                                       at least equal to the number of columns in the data input.
+                                    3) None: the default brightwind COLOR_PALETTE color list will be used for
+                                       plotting.
+    :type bar_colors:           str or list or tuple or None
     :param aggregation_method:  Statistical method used to find distribution. It can be mean, max, min, std, count,
                                 %frequency or a custom function. Computes frequency in percentages by default.
     :type aggregation_method:   str or function
@@ -456,7 +465,7 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     graph = bw_plt.plot_freq_distribution(distributions.replace([np.inf, -np.inf], np.NAN),
                                           max_y_value=max_y_value,
                                           x_tick_labels=bin_labels, x_label=x_label, y_label=aggregation_method,
-                                          legend=legend)
+                                          legend=legend, bar_colors=bar_colors)
     if bin_labels is not None:
         distributions.index = bin_labels
     if return_data:
@@ -464,20 +473,29 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     return graph
 
 
-def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
+def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, bar_colors=None, return_data=False):
     """
     Accepts a wind speed time series and computes it's frequency distribution. That is, how often does the wind
     blow within each wind speed bin.
 
-    :param wspd: Time series of the wind speed variable whose distribution we need to find.
-    :type wspd: pd.Series
-    :param max_speed: Max wind speed to consider, default is 30 m/s.
-    :type max_speed: int
-    :param max_y_value: Max value for the y-axis of the plot to be set. Default will be relative to max calculated
-                        data value.
-    :type max_y_value: float, int
-    :param return_data: Set to True if you want the data returned.
-    :type return_data: bool
+    :param wspd:            Time series of the wind speed variable whose distribution we need to find.
+    :type wspd:             pd.Series
+    :param max_speed:       Max wind speed to consider, default is 30 m/s.
+    :type max_speed:        int
+    :param max_y_value:     Max value for the y-axis of the plot to be set. Default will be relative to max calculated
+                            data value.
+    :type max_y_value:      float, int
+    :param bar_colors:      Bar colors used for the bar plot. Colors input can be given as:
+                                1) Single str (https://matplotlib.org/stable/gallery/color/named_colors.html)
+                                   or Hex (https://www.w3schools.com/colors/colors_picker.asp) or tuple (Rgb):
+                                   all plotted timeseries will use the same color.
+                                2) List of str or Hex or Rgb: the number of colors provided needs to be
+                                   at least equal to the number of columns in the data input.
+                                3) None: the default brightwind COLOR_PALETTE color list will be used for
+                                   plotting.
+    :type bar_colors:       str or list or tuple or None
+    :param return_data:     Set to True if you want the data returned.
+    :type return_data:      bool
 
     **Example usage**
     ::
@@ -488,8 +506,8 @@ def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
 
     """
     freq_dist = dist(wspd, var_to_bin_against=None, bins=np.arange(-0.5, max_speed+1, 1), bin_labels=None,
-                     x_label='Wind Speed [m/s]', max_y_value=max_y_value, aggregation_method='%frequency',
-                     return_data=True)
+                     x_label='Wind Speed [m/s]', max_y_value=max_y_value, bar_colors=bar_colors,
+                     aggregation_method='%frequency', return_data=True)
     if return_data:
         return freq_dist[0], freq_dist[1]
     return freq_dist[0]
