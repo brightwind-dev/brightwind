@@ -7,9 +7,10 @@ from brightwind.utils.utils import _convert_df_to_series
 from brightwind.utils.utils import validate_coverage_threshold
 from brightwind.export.export import _calc_mean_speed_of_freq_tab
 from brightwind.transform.transform import scale_wind_speed
-import matplotlib
+import matplotlib.pyplot as plt
 import warnings
 import textwrap
+from matplotlib.ticker import PercentFormatter
 
 __all__ = ['monthly_means',
            'momm',
@@ -410,10 +411,11 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
         #For distribution of multiple sum wind speeds with respect themselves
         spd_dist = bw.dist(data[['Spd80mN', 'Spd80mS']], aggregation_method='sum')
 
-        #For distribution of multiple mean wind speeds with respect to temperature
+        #For distribution of multiple mean wind speeds with respect to temperature and give bar color inputs
         spd_dist = bw.dist(data[['Spd80mN', 'Spd80mS']], var_to_bin_against=data.T2m,
                            bins=[-10, 4, 12, 18, 30],
-                           bin_labels=['freezing', 'cold', 'mild', 'hot'], aggregation_method='mean')
+                           bin_labels=['freezing', 'cold', 'mild', 'hot'], bar_colors=['r', 'b'],
+                           aggregation_method='mean')
 
     """
     if type(var_to_bin) == pd.Series:
@@ -462,10 +464,20 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
 
-    graph = bw_plt.plot_freq_distribution(distributions.replace([np.inf, -np.inf], np.NAN),
-                                          max_y_value=max_y_value,
-                                          x_tick_labels=bin_labels, x_label=x_label, y_label=aggregation_method,
-                                          legend=legend, bar_colors=bar_colors)
+    # Plot distribution
+    bar_tick_label_format = None
+    if aggregation_method:
+        if '%' in aggregation_method:
+            bar_tick_label_format = PercentFormatter()
+
+    graph = plt.figure(figsize=(15, 8))
+    ax = graph.add_axes([0.1, 0.1, 0.8, 0.8])
+    bw_plt._bar_subplot(distributions.replace([np.inf, -np.inf], np.NAN), x_label=x_label, y_label=aggregation_method,
+                        max_bar_axis_limit=max_y_value, bin_tick_labels=bin_labels,
+                        bar_tick_label_format=bar_tick_label_format, bar_colors=bar_colors,
+                        legend=legend, total_width=0.8, ax=ax)
+    plt.close()
+
     if bin_labels is not None:
         distributions.index = bin_labels
     if return_data:
