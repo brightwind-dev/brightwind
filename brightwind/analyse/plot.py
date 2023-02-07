@@ -1218,7 +1218,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
 
 
 def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=None, y_label=None, legend=False,
-                           total_width=0.8):
+                           total_width=0.8, bar_colors=None):
     """
     Plot distribution given as input and derived using _derive_distribution() function. The input can be a Pandas Series
     or a Dataframe. If it is a Dataframe then the distribution is plotted for each column of the Dataframe and with
@@ -1241,6 +1241,15 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     :param total_width:     Width of each group of bars in percentage between 0 and 1. Default is 0.8, which is
                             80% of the available space.
     :type total_width:      float or int
+    :param bar_colors:      Bar colors used for the bar plot. Colors input can be given as:
+                                1) Single str (https://matplotlib.org/stable/gallery/color/named_colors.html)
+                                   or Hex (https://www.w3schools.com/colors/colors_picker.asp) or tuple (Rgb):
+                                   all plotted timeseries will use the same color.
+                                2) List of str or Hex or Rgb: the number of colors provided needs to be
+                                   at least equal to the number of columns in the data input.
+                                3) None: the default brightwind COLOR_PALETTE color list will be used for
+                                   plotting.
+    :type bar_colors:       str or list or tuple or None
     :returns:               matplotlib.figure.Figure
 
     **Example usage**
@@ -1280,7 +1289,7 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     _bar_subplot(data.replace([np.inf, -np.inf], np.NAN), x_label=x_label,
                  y_label=y_label, max_bar_axis_limit=max_y_value,
                  bin_tick_labels=x_tick_labels, bar_tick_label_format=bar_tick_label_format,
-                 legend=legend, total_width=total_width, ax=ax)
+                 bar_colors=bar_colors, legend=legend, total_width=total_width, ax=ax)
     plt.close()
     return ax.get_figure()
 
