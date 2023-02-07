@@ -1,8 +1,10 @@
+import datetime
 import numpy as np
 import pandas as pd
 from brightwind.utils import utils
 from brightwind.load.station import _Measurements
 from brightwind.load.station import DATE_INSTEAD_OF_NONE
+from brightwind.utils.utils import validate_coverage_threshold
 import copy
 import warnings
 
@@ -18,20 +20,6 @@ __all__ = ['average_data_by_period',
            'apply_wspd_slope_offset_adj']
 
 
-def _validate_coverage_threshold(coverage_threshold):
-    """
-    Validate that coverage_threshold is between 0 and 1 and if it is None set to zero.
-    :param coverage_threshold: Should be number between or equal to 0 and 1.
-    :type coverage_threshold:  float or int
-    :return:                   coverage_threshold
-    :rtype:                    float or int
-    """
-    coverage_threshold = 0 if coverage_threshold is None else coverage_threshold
-    if coverage_threshold < 0 or coverage_threshold > 1:
-        raise TypeError("Invalid coverage_threshold, this should be between or equal to 0 and 1.")
-    return coverage_threshold
-
-
 def _compute_wind_vector(wspd, wdir):
     """
     Returns north and east component of wind-vector
@@ -39,29 +27,42 @@ def _compute_wind_vector(wspd, wdir):
     return wspd*np.cos(wdir), wspd*np.sin(wdir)
 
 
-def _freq_str_to_timedelta(period):
+def _freq_str_to_dateoffset(period):
     """
-    Convert a pandas frequency string to a pd.Timedelta.
+    Convert a pandas frequency string to a pd.DateOffset.
 
-    This is needed because support for MS and AS was dropped. Pandas frequency strings are available here:
+    Pandas frequency strings are available here:
     https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
 
-    :param period: Frequency string to be converted to a pd.Timedelta
+    :param period: Frequency string to be converted to a pd.DateOffset
     :type period:  str
-    :return:       A pd.Timedelta
-    :rtype:        pd.Timedelta
+    :return:       A pd.DateOffset
+    :rtype:        pd.DateOffset
     """
     if period[-1] == 'M':
-        as_timedelta = pd.Timedelta(int(period[:-1]), unit='M')
+        as_dateoffset = pd.DateOffset(months=int(period[:-1]))
     elif period[-2:] == 'MS':
-        as_timedelta = pd.Timedelta(int(period[:-2]), unit='M')
+        as_dateoffset = pd.DateOffset(months=int(period[:-2]))
     elif period[-1] == 'A':
-        as_timedelta = pd.Timedelta(365 * int(period[:-1]), unit='D')
+        as_dateoffset = pd.DateOffset(years=float(period[:-1]))
     elif period[-2:] == 'AS':
-        as_timedelta = pd.Timedelta(365 * int(period[:-2]), unit='D')
+        as_dateoffset = pd.DateOffset(years=float(period[:-2]))
+    elif period[-1:] == 'W':
+        as_dateoffset = pd.DateOffset(weeks=float(period[:-1]))
+    elif period[-1:] == 'D':
+        as_dateoffset = pd.DateOffset(days=float(period[:-1]))
+    elif period[-1:] == 'H':
+        as_dateoffset = pd.DateOffset(hours=float(period[:-1]))
+    elif period[-1:] == 'T':
+        as_dateoffset = pd.DateOffset(minutes=float(period[:-1]))
+    elif period[-3:] == 'min':
+        as_dateoffset = pd.DateOffset(minutes=float(period[:-3]))
+    elif period[-1:] == 'S':
+        as_dateoffset = pd.DateOffset(seconds=float(period[:-1]))
     else:
-        as_timedelta = pd.Timedelta(period)
-    return as_timedelta
+        raise ValueError('"{}" period not recognized. Only units "M", "MS", "A", "AS", "W", "D", "H", "T", "min", "S" '
+                         'are recognized'.format(period))
+    return as_dateoffset
 
 
 def _convert_days_to_hours(prd):
@@ -96,20 +97,16 @@ def _get_data_resolution(data_idx):
     averaging period.
 
     The algorithm finds the most common time difference between consecutive time stamps and returns the
-    most common time stamp.
-
-    This function will return a specific Timedelta if a resolution of month or year is identified due to months and
-    years having irregular numbers of days. These will be:
-    - For monthly data:     pd.Timedelta(1, unit='M')       i.e. 30.436875 days
-    - For annual data:      pd.Timedelta(365, unit='D')     i.e. 365 days
+    most common time frequency. The expected frequency will be one of 'seconds', 'minutes', 'hours', 'days',
+    'weeks', 'months', 'years'.
 
     The function also checks the most common time difference against the minimum time difference. If they
     do not match it shows a warning. It is suggested to manually look at the data if such a warning is shown.
 
     :param data_idx: Timeseries index of a pd.DataFrame or pd.Series.
     :type data_idx:  pd.DataFrame.index or pd.Series.index
-    :return:         A time delta object which represents the time difference between consecutive timestamps.
-    :rtype:          pd.Timedelta
+    :return:         A date offset object which represents the time difference between consecutive timestamps.
+    :rtype:          pd.DateOffset
 
     **Example usage**
     ::
@@ -119,30 +116,41 @@ def _get_data_resolution(data_idx):
         resolution = bw.transform.transform._get_data_resolution(data.Spd80mS.index)
 
         # To check the number of seconds in resolution
-        print(resolution.seconds)
+        print((data.index[0] + resolution - data.index[0]).seconds)
+
+        # To check the unit of resolution
+        print(resolution.kwds)
 
         # To check if the resolution is monthly
-        resolution == pd.Timedelta(1, unit='M')
-
+        resolution == pd.DateOffset(months=1)
 
     """
+    # ** Strongly suggestion using pandas infer_freq function for this in future revision.
     time_diff_btw_timestamps = data_idx.to_series().diff()
     most_freq_time_diff = time_diff_btw_timestamps.mode().values[0]
     most_freq_time_diff = pd.to_timedelta(most_freq_time_diff)  # convert np.timedelta64 to pd.Timedelta
     minimum_time_diff = time_diff_btw_timestamps.min()
 
     if most_freq_time_diff.days in [28, 29, 30, 31]:    # check if monthly first
-        return pd.Timedelta(1, unit='M')
+        return pd.DateOffset(months=1)
     elif most_freq_time_diff.days in [365, 366]:        # then if yearly
-        return pd.Timedelta(365, unit='D')
-
+        return pd.DateOffset(years=1)
+    
     if minimum_time_diff != most_freq_time_diff:
         warnings.warn('\nFrequency of input data may not be determined correctly. Most frequent time '
                       'difference between adjacent timestamps does not match minimum time difference.\n'
                       'Most frequent time difference is:\t{0}\n'
                       'Minimum time difference is:\t\t{1}\n'
                       'Returning most frequent time difference.'.format(most_freq_time_diff, minimum_time_diff))
-    return most_freq_time_diff
+
+    if most_freq_time_diff.days >= 1 and most_freq_time_diff.days < 28:
+        return pd.DateOffset(days=most_freq_time_diff.total_seconds()/(60.*60.*24))
+    elif most_freq_time_diff.days < 1 and most_freq_time_diff.total_seconds() >= 60*60:
+        return pd.DateOffset(hours=most_freq_time_diff.total_seconds()/(60.*60))
+    elif most_freq_time_diff.total_seconds() < (60*60):
+        return pd.DateOffset(minutes=most_freq_time_diff.total_seconds()/60.)
+    else:
+        return pd.DateOffset(seconds=most_freq_time_diff.total_seconds())
 
 
 def _round_down_to_multiple(num, divisor):
@@ -230,47 +238,75 @@ def _get_overlapping_data(df1, df2, averaging_prd=None):
     # If the start timestamp just happens to be missing from the data, add in a NaN so the
     # averaging will start from this timestamp.
     if not (df2.index == start).any():
-        df2.loc[pd.to_datetime(start)] = np.NaN
+        if type(df2) == pd.DataFrame:
+            df2 = pd.concat([df2, pd.DataFrame({cols: [np.NaN] for cols in df2.columns},
+                                               index=[pd.to_datetime(start)])])
+        else:
+            df2[pd.to_datetime(start)] = np.NaN
         df2.sort_index(inplace=True)
     if not (df1.index == start).any():
-        df1.loc[pd.to_datetime(start)] = np.NaN
+        # df1.loc[pd.to_datetime(start)] = np.NaN
+        if type(df1) == pd.DataFrame:
+            df1 = pd.concat([df1, pd.DataFrame({cols: [np.NaN] for cols in df1.columns},
+                                               index=[pd.to_datetime(start)])])
+        else:
+            df1[pd.to_datetime(start)] = np.NaN
         df1.sort_index(inplace=True)
-
     return df1[start:], df2[start:]
 
 
-def _max_coverage_count(data_index, averaged_data_index)->pd.Series:
+def _max_coverage_count(data_index, averaged_data_index, data_resolution=None):
     """
     For a given resolution of data finds the maximum number of data points in the averaging period
-    """
-    data_res = _get_data_resolution(data_index)
 
-    max_pts = (averaged_data_index.to_series().diff().shift(-1)) / data_res
-    # Fill in the last in the list as it is a NaT
-    max_pts[-1] = (((averaged_data_index[-1] + 1 * averaged_data_index[-1].freq) - averaged_data_index[-1]) /
-                   data_res)
-    if data_res == pd.Timedelta(1, unit='M'):
-        # The data resolution is monthly, therefore round the result to 0 decimal to make whole months.
-        max_pts = np.round(max_pts, 0)
+    :param data_index:          The index of a Pandas Dataframe or Series to find the maximum number of data points for.
+    :type  data_index:          pd.Index
+    :param averaged_data_index: The index of the averaged grouped object.
+    :type  averaged_data_index: pd.Index
+    :param data_resolution:     Data resolution to give as input if the coverage of the data timeseries is extremely low
+                                and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:      None or pd.DateOffset
+    :return max_pts:            The maximum number of data points in the averaging period.
+    :rtype:                     np.float64
+
+    """
+
+    if data_resolution is None:
+        data_res = _get_data_resolution(data_index)
+    elif not isinstance(data_resolution, pd.DateOffset):
+        raise TypeError('Input data_resolution is {}. A Pandas DateOffset should be used instead.'.format(
+            type(data_resolution).__name__))
+    else:
+        data_res = data_resolution
+
+    averaged_data_res = averaged_data_index.freq or _get_data_resolution(averaged_data_index)
+
+    time_delta = averaged_data_index.map(lambda x: x + data_res) - averaged_data_index
+    max_pts = (averaged_data_index.map(lambda x: x + averaged_data_res) - averaged_data_index)/time_delta
+
     return max_pts
 
 
-def _get_coverage_by_grouper_obj(data, grouper_obj):
+def _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=None):
     """
     Counts the number of data points in the grouper_obj relative to the maximum possible
 
-    :param data: The data to find the coverage for.
-    :type  data: pd.DataFrame or pd.Series
-    :param grouper_obj: The object that has grouped the data already. The mean, sum, count, etc. can then be found.
-    :type  grouper_obj: pd.DatetimeIndexResampler
+    :param data:            The data to find the coverage for.
+    :type  data:            pd.DataFrame or pd.Series
+    :param grouper_obj:     The object that has grouped the data already. The mean, sum, count, etc. can then be found.
+    :type  grouper_obj:     pd.DatetimeIndexResampler
+    :param data_resolution: Data resolution to give as input if the coverage of the data timeseries is extremely low
+                            and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:  None or pd.DateOffset
     :return:
     """
-    coverage = grouper_obj.count().divide(_max_coverage_count(data.index, grouper_obj.mean().index), axis=0)
+    coverage = grouper_obj.count().divide(_max_coverage_count(data.index, grouper_obj.mean().index,
+                                                              data_resolution=data_resolution), axis=0)
     return coverage
 
 
 def average_data_by_period(data, period, wdir_column_names=None, aggregation_method='mean', coverage_threshold=None,
-                           return_coverage=False):
+                           return_coverage=False, data_resolution=None):
     """
     Averages the data by a time period specified.
 
@@ -317,13 +353,17 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
                                3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to None by
                                default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
                                less than the coverage_threshold are removed.
-    :type coverage_threshold:  float
+    :type coverage_threshold:  float, int or None
     :param return_coverage:    If True appends and additional column in the DataFrame returned, with coverage calculated
                                for each period. The columns with coverage are named as <column name>_Coverage
     :type return_coverage:     bool
-    :returns: A DataFrame with data aggregated with the specified aggregation_method (mean by default). Additionally it
-              could be filtered based on coverage and have a coverage column depending on the parameters.
-    :rtype:   pd.DataFrame
+    :param data_resolution:    Data resolution to give as input if the coverage of the data timeseries is extremely low
+                               and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:     None or pd.DateOffset
+    :returns:                  A DataFrame with data aggregated with the specified aggregation_method (mean by default).
+                               Additionally it could be filtered based on coverage and have a coverage column depending
+                               on the parameters.
+    :rtype:                    pd.DataFrame
 
     **Example usage**
     ::
@@ -345,8 +385,13 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
         # To average wind directions by vector averaging
         data_monthly_wdir_avg = bw.average_data_by_period(data.Dir78mS, period='1M', wdir_column_names='Dir78mS')
 
+        # To check the coverage for all months giving as input the data resolution as 10 min if data coverage is
+        # extremely low and it is not possible to define the most common time interval between timestamps
+        data_monthly_irregular = bw.average_data_by_period(data.Spd80mN, period='1M', return_coverage=True,
+                                                           data_resolution=pd.DateOffset(minutes=10))
+
     """
-    coverage_threshold = _validate_coverage_threshold(coverage_threshold)
+    coverage_threshold = validate_coverage_threshold(coverage_threshold)
 
     if isinstance(period, str):
         if period[-1] == 'D':
@@ -359,16 +404,19 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
             period = period+'S'
         if period[-1] == 'Y':
             raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
-
+    
     # Check that the data resolution is not less than the period specified
-    if _freq_str_to_timedelta(period) < _get_data_resolution(data.index):
-        raise ValueError("The time period specified is less than the temporal resolution of the data. "
-                         "For example, hourly data should not be averaged to 10 minute data.")
+    if data_resolution is None:
+        if data.index[0] + _freq_str_to_dateoffset(period) < data.index[0] + _get_data_resolution(data.index):
+            raise ValueError("The time period specified is less than the temporal resolution of the data. "
+                             "For example, hourly data should not be averaged to 10 minute data.")
     data = data.sort_index()
-    grouper_obj = data.resample(period, axis=0, closed='left', label='left', base=0,
+    grouper_obj = data.resample(period, axis=0, closed='left', label='left',
                                 convention='start', kind='timestamp')
 
-    if wdir_column_names is not None and aggregation_method == 'mean':
+    # if period is equal to data resolution then no need to vector average wind direction
+    is_period_not_equal_to_resolution = (_freq_str_to_dateoffset(period) != _get_data_resolution(data.index))
+    if wdir_column_names is not None and aggregation_method == 'mean' and is_period_not_equal_to_resolution:
         # do vector averaging on wdirs if aggregation method of mean is requested
         wdir_column_names = [wdir_column_names] if isinstance(wdir_column_names, str) else wdir_column_names
 
@@ -394,15 +442,17 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
         # if data is a Series grouper_obj doesn't take columns and averaged data is a Series and not a DataFrame.
         if isinstance(data, pd.DataFrame):
             wdir_grouped_data = grouper_obj[wdir_column_names].agg(average_wdirs)
-            wdir_coverage = _get_coverage_by_grouper_obj(data[wdir_column_names], grouper_obj[wdir_column_names])
+            wdir_coverage = _get_coverage_by_grouper_obj(data[wdir_column_names], grouper_obj[wdir_column_names],
+                                                         data_resolution=data_resolution)
         else:
             wdir_grouped_data = grouper_obj.agg(average_wdirs)
-            wdir_coverage = _get_coverage_by_grouper_obj(data, grouper_obj)
+            wdir_coverage = _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=data_resolution)
 
         # average non_wdir data if available
         if non_wdir_col_names:
             non_wdir_grouped_data = grouper_obj[non_wdir_col_names].agg('mean')
-            non_wdir_coverage = _get_coverage_by_grouper_obj(data[non_wdir_col_names], grouper_obj[non_wdir_col_names])
+            non_wdir_coverage = _get_coverage_by_grouper_obj(data[non_wdir_col_names], grouper_obj[non_wdir_col_names],
+                                                             data_resolution=data_resolution)
 
             grouped_data = pd.concat([non_wdir_grouped_data, wdir_grouped_data], axis=1)
             coverage = pd.concat([non_wdir_coverage, wdir_coverage], axis=1)
@@ -415,8 +465,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     else:
         # group data as normal
         grouped_data = grouper_obj.agg(aggregation_method)
-        coverage = _get_coverage_by_grouper_obj(data, grouper_obj)
-
+        coverage = _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=data_resolution)
     grouped_data = grouped_data[coverage >= coverage_threshold]
 
     if return_coverage:
@@ -630,7 +679,8 @@ def average_wdirs(wdirs, wspds=None):
 def merge_datasets_by_period(data_1, data_2, period,
                              wdir_column_names_1=None, wdir_column_names_2=None,
                              aggregation_method_1='mean', aggregation_method_2='mean',
-                             coverage_threshold_1=None, coverage_threshold_2=None,):
+                             coverage_threshold_1=None, coverage_threshold_2=None, data_1_resolution=None,
+                             data_2_resolution=None):
     """
     Merge 2 datasets on a time period by aligning the overlapped aggregated data.
 
@@ -687,6 +737,14 @@ def merge_datasets_by_period(data_1, data_2, period,
                                  default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
                                  less than the coverage_threshold are removed.
     :type coverage_threshold_2:  float or None
+    :param data_1_resolution:    Data resolution of first dataset to give as input if the coverage of the data
+                                 timeseries is extremely low and it is not possible to define the most common time
+                                 interval between timestamps
+    :type data_1_resolution:     None or pd.DateOffset
+    :param data_2_resolution:    Data resolution of second dataset to give as input if the coverage of the data
+                                 timeseries is extremely low and it is not possible to define the most common
+                                 time interval between timestamps
+    :type data_2_resolution:     None or pd.DateOffset
     :return:                     Merged datasets.
     :rtype:                      pd.DataFrame
 
@@ -702,24 +760,34 @@ def merge_datasets_by_period(data_1, data_2, period,
                                                 wdir_column_names_1='WD50m_deg', wdir_column_names_2='Dir78mS',
                                                 coverage_threshold_1=0.95, coverage_threshold_2=0.95,
                                                 aggregation_method_1='mean', aggregation_method_2='mean')
+        # To find monthly concurrent averages of two datasets giving as input the data resolution as 1 hour for data_1
+        # and 10 min for data_2 if data coverage is extremely low and it is not possible to define the most common time
+        # interval between timestamps for each dataset.
+        mrgd_data = bw.merge_datasets_by_period(m2[['WS50m_m/s', 'WD50m_deg']], data[['Spd80mN', 'Dir78mS']],
+                                                period='1MS',
+                                                wdir_column_names_1='WD50m_deg', wdir_column_names_2='Dir78mS',
+                                                coverage_threshold_1=0, coverage_threshold_2=0,
+                                                aggregation_method_1='mean', aggregation_method_2='mean',
+                                                data_1_resolution=pd.DateOffset(hours=1),
+                                                data_2_resolution=pd.DateOffset(minutes=10))
 
     """
     data_1_overlap, data_2_overlap = _get_overlapping_data(data_1.sort_index().dropna(),
                                                            data_2.sort_index().dropna(),
                                                            period)
-    coverage_threshold_1 = _validate_coverage_threshold(coverage_threshold_1)
-    coverage_threshold_2 = _validate_coverage_threshold(coverage_threshold_2)
+    coverage_threshold_1 = validate_coverage_threshold(coverage_threshold_1)
+    coverage_threshold_2 = validate_coverage_threshold(coverage_threshold_2)
 
     mrgd_data = pd.concat(list(average_data_by_period(data_1_overlap, period=period,
                                                       wdir_column_names=wdir_column_names_1,
                                                       coverage_threshold=coverage_threshold_1,
                                                       aggregation_method=aggregation_method_1,
-                                                      return_coverage=True)) +
+                                                      return_coverage=True, data_resolution=data_1_resolution)) +
                           list(average_data_by_period(data_2_overlap, period=period,
                                                       wdir_column_names=wdir_column_names_2,
                                                       coverage_threshold=coverage_threshold_2,
                                                       aggregation_method=aggregation_method_2,
-                                                      return_coverage=True)),
+                                                      return_coverage=True, data_resolution=data_2_resolution)),
                           axis=1)
     return mrgd_data.dropna()
 
@@ -880,8 +948,8 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
                 date_to_txt = date_to
 
             variables = {
-                'slope': 'sensor_config.slope',
-                'offset': 'sensor_config.offset',
+                'slope': 'logger_measurement_config.slope',
+                'offset': 'logger_measurement_config.offset',
                 'cal_slope': 'calibration.slope',
                 'cal_offset': 'calibration.offset'
             }
@@ -895,7 +963,7 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
             elif float(wspd_prop[variables['slope']]) != float(wspd_prop[variables['cal_slope']]) or \
                     float(wspd_prop[variables['offset']]) != float(wspd_prop[variables['cal_offset']]):
                 try:
-                    df[name][date_from:date_to] = \
+                    df.loc[date_from:date_to, name] = \
                         adjust_slope_offset(df[name][date_from:date_to],
                                             current_slope=float(wspd_prop[variables['slope']]),
                                             current_offset=float(wspd_prop[variables['offset']]),
@@ -1037,7 +1105,7 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
             deadband = wdir_prop.get('vane_dead_band_orientation_deg')
             date_from = wdir_prop['date_from']
             # Account for a logger offset
-            logger_offset = wdir_prop.get('sensor_config.offset')
+            logger_offset = wdir_prop.get('logger_measurement_config.offset')
             offset = deadband
             additional_comment_txt = 'to account for deadband'
             if logger_offset is not None and logger_offset != 0 and deadband is not None:
@@ -1249,14 +1317,14 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             date_from='2016-01-01 01:40:00')
 
     """
-    import datetime
+    
     date_from = pd.to_datetime(date_from)
     date_to = pd.to_datetime(date_to)
 
     if isinstance(data, pd.Timestamp) or isinstance(data, datetime.date)\
             or isinstance(data, datetime.time)\
             or isinstance(data, datetime.datetime):
-        return data + pd.Timedelta(offset)
+        return data + _freq_str_to_dateoffset(offset)
 
     if isinstance(data, pd.DatetimeIndex):
         original = pd.to_datetime(data.values)
@@ -1267,7 +1335,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
         if pd.isnull(date_to):
             date_to = data[-1]
 
-        shifted_slice = original[(original >= date_from) & (original <= date_to)] + pd.Timedelta(offset)
+        shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_dateoffset(offset)
         shifted = original[original < date_from].append(shifted_slice)
         shifted = shifted.append(original[original > date_to])
         shifted = shifted.drop_duplicates().sort_values()
@@ -1286,7 +1354,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             if pd.isnull(date_to):
                 date_to = data.index[-1]
 
-            shifted_slice = original[(original >= date_from) & (original <= date_to)] + pd.Timedelta(offset)
+            shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_dateoffset(offset)
             intersection_front = original[(original < date_from)].intersection(shifted_slice)
             intersection_back = original[(original > date_to)].intersection(shifted_slice)
             if overwrite:
@@ -1296,8 +1364,8 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
                 sec2 = original[original > date_to].drop(intersection_back)
                 shifted = (sec1.append(shifted_slice)).append(sec2)
             else:
-                df_copy = df_copy.drop(intersection_front - pd.Timedelta(offset), axis=0)
-                df_copy = df_copy.drop(intersection_back - pd.Timedelta(offset), axis=0)
+                df_copy = df_copy.drop(intersection_front - _freq_str_to_dateoffset(offset), axis=0)
+                df_copy = df_copy.drop(intersection_back - _freq_str_to_dateoffset(offset), axis=0)
                 sec_mid = shifted_slice.drop(intersection_front).drop(intersection_back)
                 shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original > date_to)])
             df_copy.index = shifted

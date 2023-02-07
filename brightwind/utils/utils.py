@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 import os
 
-__all__ = ['slice_data']
+__all__ = ['slice_data',
+           'validate_coverage_threshold']
 
 
 def _range_0_to_360(direction):
@@ -37,6 +38,21 @@ def _get_dir_sector_mid_pts(sector_idx):
             mid_pt = 0.5*(sector[0]+sector[1])
         sector_mid_pts.append(mid_pt)
     return sector_mid_pts
+
+
+def validate_coverage_threshold(coverage_threshold):
+    """
+    Validate that coverage_threshold is between 0 and 1 and if it is None set to zero.
+
+    :param coverage_threshold: Should be number between or equal to 0 and 1.
+    :type coverage_threshold:  float, int or None
+    :return:                   coverage_threshold
+    :rtype:                    float or int
+    """
+    coverage_threshold = 0 if coverage_threshold is None else coverage_threshold
+    if coverage_threshold < 0 or coverage_threshold > 1:
+        raise TypeError("Invalid coverage_threshold, this should be between or equal to 0 and 1.")
+    return coverage_threshold
 
 
 def slice_data(data, date_from: str='', date_to: str=''):
@@ -116,3 +132,6 @@ def bold(text):
     :return: str in bold
     """
     return '\x1b[1;30m'+text+'\x1b[0m' if text else '\x1b[1;30m'+'\x1b[0m'
+
+
+
