@@ -1256,8 +1256,8 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
 
     """
 
-    warnings.warn(f"In a future version of brightwind, `plot_freq_distribution` will be removed. Please use "
-                  f"'dist()' or `_bar_subplot()` instead.", category=DeprecationWarning)
+    warnings.warn("In a future version of brightwind, `plot_freq_distribution` will be removed. Please use "
+                  "'dist()' or `_bar_subplot()` instead.", category=FutureWarning)
 
     bar_tick_label_format = None
     if y_label:
