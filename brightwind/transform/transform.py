@@ -948,8 +948,8 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
                 date_to_txt = date_to
 
             variables = {
-                'slope': 'sensor_config.slope',
-                'offset': 'sensor_config.offset',
+                'slope': 'logger_measurement_config.slope',
+                'offset': 'logger_measurement_config.offset',
                 'cal_slope': 'calibration.slope',
                 'cal_offset': 'calibration.offset'
             }
@@ -1105,7 +1105,7 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
             deadband = wdir_prop.get('vane_dead_band_orientation_deg')
             date_from = wdir_prop['date_from']
             # Account for a logger offset
-            logger_offset = wdir_prop.get('sensor_config.offset')
+            logger_offset = wdir_prop.get('logger_measurement_config.offset')
             offset = deadband
             additional_comment_txt = 'to account for deadband'
             if logger_offset is not None and logger_offset != 0 and deadband is not None:

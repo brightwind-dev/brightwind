@@ -10,6 +10,7 @@ __all__ = ['demo_data',
            'demo_windographer_flagging_log',
            'demo_windographer_flagging_log2',
            'demo_cleaning_file',
+           'demo_wra_data_model',
            'iea43_wra_data_model_schema_v1_0',
            'iea43_wra_data_model_v1_0',
            'iea43_wra_data_model_schema_v1_2',
@@ -27,6 +28,8 @@ demo_merra2_SW = os.path.join(os.path.dirname(__file__), 'MERRA-2_SW_2000-01-01_
 demo_windographer_flagging_log = os.path.join(os.path.dirname(__file__), 'windographer_flagging_log.txt')
 demo_windographer_flagging_log2 = os.path.join(os.path.dirname(__file__), 'windographer_flagging_log2.txt')
 demo_cleaning_file = os.path.join(os.path.dirname(__file__), 'demo_cleaning_file.csv')
+
+demo_wra_data_model = os.path.join(os.path.dirname(__file__), 'demo_data_iea43_wra_data_model.json')
 
 iea43_wra_data_model_schema_v1_0 = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model.schema_v1_0.json')
 iea43_wra_data_model_v1_0 = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model_v1_0.json')
