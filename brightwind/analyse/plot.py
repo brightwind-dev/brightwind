@@ -405,8 +405,8 @@ def _derive_axes_limits_for_scatter_plot(x, y):
 
 def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False,
                      x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=True, subplot_title=None,
-                     trendline_dots=False, scatter_color=COLOR_PALETTE.primary,
-                     trendline_color=COLOR_PALETTE.secondary, legend=True, scatter_name=None,
+                     trendline_dots=False, scatter_color=None,
+                     trendline_color=None, legend=True, scatter_name=None,
                      trendline_name=None, ax=None):
     """
     Plots a scatter subplot between the inputs x and y. The trendline_y data and the line of slope 1 passing through
@@ -437,9 +437,9 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
     :type subplot_title:        str or None
     :param trendline_dots:      Boolean to chose if marker to use for the trendline is dot-line or a line
     :type trendline_dots:       Bool
-    :param scatter_color:       Color to assign to scatter data. Default is COLOR_PALETTE.primary
+    :param scatter_color:       Color to assign to scatter data. If None default is COLOR_PALETTE.primary
     :type scatter_color:        str or Hex or Rgb
-    :param trendline_color:     Color to assign to trendline data. Default is COLOR_PALETTE.secondary
+    :param trendline_color:     Color to assign to trendline data. If None default is COLOR_PALETTE.secondary
     :type trendline_color:      str or Hex or Rgb
     :param legend:              Boolean to choose if legend is shown.
     :type legend:               Bool
@@ -498,6 +498,7 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
         bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, trendline_y=[0, 15], trendline_x=[0, 10],
                                          scatter_name='Data scatter', trendline_name='Regression line', ax=axes)
     """
+
     if ax is None:
         ax = plt.gca()
 
@@ -511,6 +512,12 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
         trendline_marker = 'o-'
     else:
         trendline_marker = '-'
+
+    if scatter_color is None:
+        scatter_color = COLOR_PALETTE.primary
+
+    if trendline_color is None:
+        trendline_color = COLOR_PALETTE.secondary
 
     if x_limits is None or y_limits is None:
         x_min, x_max, y_min, y_max = _derive_axes_limits_for_scatter_plot(x, y)
@@ -687,8 +694,7 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
     fig, axes = plt.subplots(figsize=figure_size, **kwargs)
     _scatter_subplot(x, y, trendline_y=trendline_y, trendline_x=trendline_x, line_of_slope_1=line_of_slope_1,
                      x_label=x_label, y_label=y_label, x_limits=x_limits, y_limits=y_limits, axes_equal=axes_equal,
-                     trendline_dots=trendline_dots, scatter_color=COLOR_PALETTE.primary,
-                     trendline_color=COLOR_PALETTE.secondary, legend=legend, ax=axes)
+                     trendline_dots=trendline_dots, legend=legend, ax=axes)
 
     plt.close()
     return fig
@@ -896,7 +902,6 @@ def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, s
                          line_of_slope_1=line_of_slope_1, x_label=None, y_label=None,
                          x_limits=x_limits, y_limits=y_limits, axes_equal=axes_equal,
                          subplot_title=str(round(ratio_min)) + '-' + str(round(ratio_max)),
-                         scatter_color=COLOR_PALETTE.primary, trendline_color=COLOR_PALETTE.secondary,
                          legend=False, ax=ax_subplot)
 
     fig.text(0.5, 0.06, x.name, va='center', ha='center', fontsize=mpl.rcParams['axes.labelsize'])
