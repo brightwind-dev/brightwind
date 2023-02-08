@@ -170,7 +170,7 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
 
 
 def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limits=None, x_tick_label_angle=25,
-                        line_marker_types=None, line_colors=COLOR_PALETTE.color_list, subplot_title=None,
+                        line_marker_types=None, line_colors=None, subplot_title=None,
                         legend=True, ax=None):
     """
     Plots a timeseries subplot where x is the time axis.
@@ -204,7 +204,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
                                            all plotted timeseries will use the same color.
                                         2) List of str or Hex or Rgb: the number of colors provided needs to be
                                            at least equal to the number of columns in the y input.
-                                        3) None: the default matplotlib color list will be used for plotting.
+                                        3) None: the default COLOR_PALETTE.color_list will be used for plotting.
     :type line_colors:              str or list or tuple or None
     :param subplot_title:           Title show on top of the subplot. Default is None.
     :type subplot_title:            str or None
@@ -254,7 +254,17 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         sub_plot.axes.xaxis.set_major_locator(matplotlib.dates.WeekdayLocator(byweekday=0))
         sub_plot.axes.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("W%W"))
 
+        # To set the matplotlib default color list
+        import matplotlib.pyplot as plt
+        prop_cycle = plt.rcParams['axes.prop_cycle']
+        mpl_colors = prop_cycle.by_key()['color']
+        fig, axes = plt.subplots(1, 1)
+        sub_plot = bw.analyse.plot._timeseries_subplot(data.index, data.Dir58mS, line_colors=mpl_colors)
+
     """
+
+    if line_colors is None:
+        line_colors = COLOR_PALETTE.color_list
 
     if ax is None:
         ax = plt.gca()
@@ -315,7 +325,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
 
 def plot_timeseries(data, date_from='', date_to='', x_label=None, y_label=None, y_limits=None,
-                    x_tick_label_angle=25, line_colors='bw_default', legend=True, figure_size=(15, 8)):
+                    x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8)):
     """
     Plot a timeseries of data.
 
@@ -342,9 +352,7 @@ def plot_timeseries(data, date_from='', date_to='', x_label=None, y_label=None, 
                                            all plotted timeseries will use the same color.
                                         2) List of str or Hex or Rgb: the number of colors provided needs to be
                                            at least equal to the number of columns in the y input.
-                                        3) None: the default matplotlib color list will be used for plotting.
-                                        4) 'bw_default': the default color_list from the brightwind COLOR_PALETTE
-                                        will be used for plotting (bw.analyse.plot.COLOR_PALETTE.color_list)
+                                        3) None: the default COLOR_PALETTE.color_list will be used for plotting.
     :type line_colors:              str or list or tuple or None
     :param legend:                  Boolean to choose if legend is shown. Default is True.
     :type legend:                   Bool
@@ -379,6 +387,12 @@ def plot_timeseries(data, date_from='', date_to='', x_label=None, y_label=None, 
         # To change line colors respect default and set figure size to (20, 4)
         bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], line_colors= ['#009991', '#171a28',  '#726e83'],
                            figure_size=(20, 4))
+
+        # To set the matplotlib default color list
+        import matplotlib.pyplot as plt
+        prop_cycle = plt.rcParams['axes.prop_cycle']
+        mpl_colors = prop_cycle.by_key()['color']
+        bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], line_colors= mpl_colors)
 
     """
     if line_colors is 'bw_default':
