@@ -74,13 +74,13 @@ class _ColorPalette:
                            self.primary,     # primary
                            self.primary_10]  # darkest primary
 
-        _col_map_symmetric_diverging_colors = [self.primary_10,  # dark green, 10% of primary
-                                               self.fifth,       # yellow'ish, rgb(242, 216, 105)
-                                               self.tertiary]    # red'ish, rgb(155, 43, 44)
+        _color_map_symmetric_colors = [self.primary_10,  # dark green, 10% of primary
+                                       self.fifth,       # yellow'ish, rgb(242, 216, 105)
+                                       self.tertiary]    # red'ish, rgb(155, 43, 44)
 
         self._color_map = self._set_col_map(_col_map_colors)
 
-        self._col_map_symmetric_diverging = self._set_col_map(_col_map_symmetric_diverging_colors)
+        self._color_map_symmetric = self._set_col_map(_color_map_symmetric_colors)
 
         self.color_list = [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
                            self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
@@ -97,16 +97,16 @@ class _ColorPalette:
         return self._color_map
 
     @property
-    def col_map_symmetric_diverging(self):
-        return self._col_map_symmetric_diverging
+    def color_map_symmetric(self):
+        return self._color_map_symmetric
 
     @color_map.setter
     def color_map(self, col_map_colors):
         self._color_map = self._set_col_map(col_map_colors)
 
     @color_map.setter
-    def col_map_symmetric_diverging(self, col_map_colors):
-        self._col_map_symmetric_diverging = self._set_col_map(col_map_colors)
+    def color_map_symmetric(self, col_map_colors):
+        self._color_map_symmetric = self._set_col_map(col_map_colors)
 
 
 COLOR_PALETTE = _ColorPalette()
@@ -1910,7 +1910,7 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         return plot_12x24_contours(df, label=(label, 'mean'), plot='tod')
 
     else:
-        colors = _colormap_to_colorscale(COLOR_PALETTE.col_map_symmetric_diverging, 12)
+        colors = _colormap_to_colorscale(COLOR_PALETTE.color_map_symmetric, 12)
         if len(df.columns) == 1:
             colors[0] = COLOR_PALETTE.primary
 
