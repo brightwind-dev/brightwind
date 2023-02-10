@@ -1017,13 +1017,13 @@ class _BrighthubAuth:
                 return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
 
         id_token = login_response['AuthenticationResult']['IdToken']
+        _BrighthubAuth.ID_TOKEN = id_token
         new_refresh_token = ""
 
         # refresh token only expires after 30 days, it is not returned in the response if it is still valid
         if login_response['AuthenticationResult'].get('RefreshToken'):
             new_refresh_token = login_response['AuthenticationResult']['RefreshToken']
 
-        _BrighthubAuth.ID_TOKEN = id_token
         # add the refresh token only if it has been generated again
         # this functionality hasn't been tested as we could not replicate an expired refresh token
         if new_refresh_token:
@@ -1215,7 +1215,7 @@ class LoadBrightHub:
         elif plant_uuid is not None and measurement_station_uuid is None:
             # get all for plant_uuid
             measurement_locations = LoadBrightHub._brighthub_request(url_end="/measurement-locations",
-                                                                       params={'plant_uuid': plant_uuid})
+                                                                     params={'plant_uuid': plant_uuid})
         elif measurement_station_uuid is not None:
             # get for measurement_station_uuid
             measurement_locations = LoadBrightHub._brighthub_request(
