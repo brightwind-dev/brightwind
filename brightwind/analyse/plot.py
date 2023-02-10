@@ -1855,6 +1855,20 @@ def plot_log_law(avg_slope, avg_intercept, wspds, heights, max_plot_height=None)
 
 
 def plot_shear_time_of_day(df, calc_method, plot_type='step'):
+    """
+    Function used by Shear.TimeOfDay for plotting the hourly shear for each calendar month or an average of all months.
+
+    :param df:          Series of wind speed timeseries.
+    :type df:           pandas.Series
+    :param calc_method: method used by Shear.TimeOfDay for shear calculation, either 'power_law' or 'log_law'.
+                        Input used for defining label of y axis.
+    :type calc_method:  str
+    :param plot_type:   Type of plot to be generated. Options include 'line', 'step' and '12x24'. Default is 'step'.
+    :type plot_type:    str
+    :returns:           A shear by time of day plot
+
+    """
+    print(df)
     df_copy = df.copy()
     # colours in use
     colors = [(0.6313725490196078, 0.6470588235294118, 0.6705882352941176, 1.0),  # Jan
