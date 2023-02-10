@@ -1858,9 +1858,10 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
     """
     Function used by Shear.TimeOfDay for plotting the hourly shear for each calendar month or an average of all months.
 
-    :param df:          Series of wind speed timeseries.
-    :type df:           pandas.Series
-    :param calc_method: method used by Shear.TimeOfDay for shear calculation, either 'power_law' or 'log_law'.
+    :param df:          Series of average shear by time of day or DataFrame of shear by time of day for
+                        each calendar month.
+    :type df:           pandas.Series or pandas.DataFrame
+    :param calc_method: Method used by Shear.TimeOfDay for shear calculation, either 'power_law' or 'log_law'.
                         Input used for defining label of y axis.
     :type calc_method:  str
     :param plot_type:   Type of plot to be generated. Options include 'line', 'step' and '12x24'. Default is 'step'.
@@ -1868,24 +1869,38 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
     :returns:           A shear by time of day plot
 
     """
-    print(df)
     df_copy = df.copy()
     # colours in use
-    colors = [(0.6313725490196078, 0.6470588235294118, 0.6705882352941176, 1.0),  # Jan
-              (0.1568627450980392, .19215686274509805, 0.6705882352941176, 1.0),  # Feb
-              (0.06666666666666667, 0.4196078431372549, 0.6901960784313725, 1.0),  # March
-              (0.22745098039215686, 0.7294117647058823, 0.9803921568627451, 1.0),  # April
-              (0.2392156862745098, 0.5666666666666667, 0.42745098039215684, 1.0),  # May
-              (0.4117647058823529, 0.7137254901960784, 0.16470588235294117, 1.0),  # June
-              (0.611764705882353, 0.7725490196078432, 0.21568627450980393, 1.0),  # July
-              (0.6823529411764706, 0.403921568627451, 0.1607843137254902, 1.0),  # Aug
-              (0.7901960784313726, 0.48627450980392156, 0.1843137254901961, 1.0),  # Sep
-              (1, 0.7019607843, .4, 1),  # Oct
-              (0, 0, 0, 1.0),  # Nov
-              (0.40588235294117647, 0.43137254901960786, 0.4666666666666667, 1.0)]  # Dec
+    r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(bw.analyse.plot.COLOR_PALETTE.primary)))
+    r1, g1, b1 = tuple(255 * np.array(mpl.colors.to_rgb(bw.analyse.plot.COLOR_PALETTE.tertiary)))
+    colors = [mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(r, g, b, factor=0.4)), #Jan
+              mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(r, g, b, factor=0.68)), #Feb
+              mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(r, g, b, factor=0.96)), #March
+              mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(r, g, b, factor=1.24)), #April
+              mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(r, g, b, factor=1.52)), #May
+              mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(r, g, b, factor=1.8)), #Jun
+              mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(r1, g1, b1, factor=1.8)), #July
+              mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(r1, g1, b1, factor=1.52)), #Aug
+              mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(r1, g1, b1, factor=1.24)), #Sep
+              mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(r1, g1, b1, factor=0.96)), #Oct
+              mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(r1, g1, b1, factor=0.68)), #Nov
+              mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(r1, g1, b1, factor=0.4))] #Dec
+
+    # colors = [(0.6313725490196078, 0.6470588235294118, 0.6705882352941176, 1.0),  # Jan
+    #           (0.1568627450980392, .19215686274509805, 0.6705882352941176, 1.0),  # Feb
+    #           (0.06666666666666667, 0.4196078431372549, 0.6901960784313725, 1.0),  # March
+    #           (0.22745098039215686, 0.7294117647058823, 0.9803921568627451, 1.0),  # April
+    #           (0.2392156862745098, 0.5666666666666667, 0.42745098039215684, 1.0),  # May
+    #           (0.4117647058823529, 0.7137254901960784, 0.16470588235294117, 1.0),  # June
+    #           (0.611764705882353, 0.7725490196078432, 0.21568627450980393, 1.0),  # July
+    #           (0.6823529411764706, 0.403921568627451, 0.1607843137254902, 1.0),  # Aug
+    #           (0.7901960784313726, 0.48627450980392156, 0.1843137254901961, 1.0),  # Sep
+    #           (1, 0.7019607843, .4, 1),  # Oct
+    #           (0, 0, 0, 1.0),  # Nov
+    #           (0.40588235294117647, 0.43137254901960786, 0.4666666666666667, 1.0)]  # Dec
 
     if len(df.columns) == 1:
-        colors[0] = colors[5]
+        colors[0] = COLOR_PALETTE.primary
     if calc_method == 'power_law':
         label = 'Average Shear'
 
