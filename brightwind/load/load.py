@@ -1284,10 +1284,6 @@ class LoadBrightHub:
         ::
             import brightwind as bw
 
-        To get all available measurement stations
-        ::
-            bw.LoadBrightHub.get_measurement_stations()
-
         To get the data model for a specific measurement station
         ::
             data_model_json - bw.LoadBrightHub.get_data_model(
