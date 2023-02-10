@@ -4,6 +4,7 @@ import datetime
 import calendar
 from math import e
 from brightwind.analyse import plot as bw_plt
+from brightwind.transform import transform as tf
 # noinspection PyProtectedMember
 from brightwind.analyse.analyse import dist_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
 from ipywidgets import FloatProgress
@@ -227,6 +228,9 @@ class Shear:
 
             wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
 
+            # get data resolution
+            resolution = tf._get_data_resolution(wspds.index)
+
             # initialise empty series for later use
             start_times = pd.Series([], dtype='float64')
             time_wspds = pd.Series([], dtype='float64')
@@ -273,14 +277,14 @@ class Shear:
 
                     elif i == segments_per_day - 1:
                         start = str(start_times[i].time())
-                        end = str(start_times[0].time())
-                        time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end, include_end=False)
+                        end = str((start_times[0] - resolution).time())
+                        time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end)
                         mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
 
                     else:
                         start = str(start_times[i].time())
-                        end = str(start_times[i + 1].time())
-                        time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end, include_end=False)
+                        end = str((start_times[i + 1] - resolution).time())
+                        time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end)
                         mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
 
                 # calculate shear
@@ -1088,7 +1092,7 @@ class Shear:
             df_12x24 = pd.DataFrame([[None for y in range(12)] for x in range(24)])
             df_12x24.index = df.index
             for i in range(12):
-                df_12x24.iloc[:, i] = df.iloc[:, 0]
+                df_12x24[df_12x24.columns[i]] = df.iloc[:, 0]
             df = df_12x24
 
         return df

@@ -920,8 +920,8 @@ class _BrighthubAuth:
     }
     ID_TOKEN = ''
     REFRESH_TOKEN = ''
-    USERNAME = utils.get_environment_variable('BRIGHTHUB_EMAIL')
-    PASSWORD = utils.get_environment_variable('BRIGHTHUB_PASSWORD')
+    USERNAME = ''
+    PASSWORD = ''
 
     @staticmethod
     def _get_cognito_request():
@@ -947,6 +947,12 @@ class _BrighthubAuth:
 
         """
         url, headers, client_id = _BrighthubAuth._get_cognito_request()
+
+        if not _BrighthubAuth.USERNAME:
+            _BrighthubAuth.USERNAME = utils.get_environment_variable('BRIGHTHUB_EMAIL')
+
+        if not _BrighthubAuth.PASSWORD:
+            _BrighthubAuth.PASSWORD = utils.get_environment_variable('BRIGHTHUB_PASSWORD')
 
         body = {
             "AuthParameters": {

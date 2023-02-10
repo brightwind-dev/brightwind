@@ -497,7 +497,7 @@ def test_average_data_by_period():
                     ('Dir58mS', 8),
                     ('Dir38mS', 19)]
     idx = 0
-    for col_name, val in data_monthly[0].count().iteritems():
+    for col_name, val in data_monthly[0].count().items():
         assert col_name == count_months[idx][0]
         assert val == count_months[idx][1]
         idx += 1
@@ -511,7 +511,7 @@ def test_average_data_by_period():
                         ('Dir58mS_Coverage', 23),
                         ('Dir38mS_Coverage', 23)]
     idx = 0
-    for col_name, val in data_monthly[1].count().iteritems():
+    for col_name, val in data_monthly[1].count().items():
         assert col_name == count_cov_months[idx][0]
         assert val == count_cov_months[idx][1]
         idx += 1
@@ -526,7 +526,7 @@ def test_average_data_by_period():
     data_monthly, coverage_monthly = bw.average_data_by_period(data_test, period='1M', wdir_column_names='Dir78mS',
                                                                return_coverage=True,
                                                                data_resolution=pd.DateOffset(minutes=10))
-    table_count = data_test.resample('1MS', axis=0, closed='left', label='left', base=0,
+    table_count = data_test.resample('1MS', axis=0, closed='left', label='left',
                                      convention='start', kind='timestamp').count()
     assert (table_count['Dir78mS']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Dir78mS_Coverage']['2016-01-01']
             ) < 1e-5

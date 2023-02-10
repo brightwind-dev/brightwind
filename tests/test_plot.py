@@ -131,8 +131,16 @@ def test_plot_freq_distribution():
                                                             var_to_bin_against=DATA['Spd80mN'],
                                                             aggregation_method='count').rename('Spd80mN')
 
-    bw.analyse.plot.plot_freq_distribution(pd.concat([distribution1, distribution2], axis=1
-                                                     ).replace([np.inf, -np.inf], np.NAN).dropna(),
+    # The below is a workaround to be able to work with pandas >= 0.24.0, < 0.25.0, this shouldbe replaced with
+    # distributions = pd.concat([distribution1, distribution2], axis=1)
+    # when these versions of pandas will not be supported anymore by brightwind library. This version of pandas
+    # doesn't allow to concatenate two pandas.Series with a CategoricalIndex if having a different index length
+    temp_dist = pd.concat([pd.DataFrame(distribution1).reset_index().rename(columns={'variable_bin': 'variable_bin1'}),
+                           pd.DataFrame(distribution2).reset_index()], axis=1
+                          ).set_index('variable_bin')
+    distributions = temp_dist.drop(['variable_bin1'], axis=1)
+
+    bw.analyse.plot.plot_freq_distribution(distributions,
                                            max_y_value=None, x_tick_labels=None, x_label=None,
                                            y_label='count', total_width=1, legend=True)
     assert True
