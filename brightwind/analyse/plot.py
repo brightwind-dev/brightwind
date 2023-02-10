@@ -104,6 +104,10 @@ class _ColorPalette:
     def color_map(self, col_map_colors):
         self._color_map = self._set_col_map(col_map_colors)
 
+    @color_map.setter
+    def col_map_symmetric_diverging(self, col_map_colors):
+        self._col_map_symmetric_diverging = self._set_col_map(col_map_colors)
+
 
 COLOR_PALETTE = _ColorPalette()
 
