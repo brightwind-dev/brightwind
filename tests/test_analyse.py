@@ -2,6 +2,7 @@ import pytest
 import brightwind as bw
 import pandas as pd
 import numpy as np
+import matplotlib as mpl
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -76,8 +77,8 @@ def test_time_continuity_gaps():
     # THIS WILL RAISE 3 WARNINGS.
     data_test = DATA.copy()
     data_test.reset_index(inplace=True)
-    data_test['Timestamp'][10] = data_test['Timestamp'][10] + pd.DateOffset(minutes=1)
-    data_test['Timestamp'][20] = data_test['Timestamp'][20] + pd.DateOffset(minutes=9)
+    data_test.loc[10, 'Timestamp'] = data_test.loc[10, 'Timestamp'] + pd.DateOffset(minutes=1)
+    data_test.loc[20, 'Timestamp'] = data_test.loc[20, 'Timestamp'] + pd.DateOffset(minutes=9)
     data_test.set_index('Timestamp', inplace=True)
     gaps_irregular = bw.time_continuity_gaps(data_test)
     assert gaps_irregular.iloc[0, 0] == pd.Timestamp('2016-01-09 18:10:00')
@@ -189,6 +190,7 @@ def test_freq_table():
                                direction_bin_labels=['lowest', 'lower', 'mid', 'high'], return_data=True)
     assert (tab.columns == ['lowest', 'lower', 'mid', 'high']).all()
     assert tab.sum().round(6).to_dict() == {'lowest': 14.800378, 'lower': 9.95062, 'mid': 25.807943, 'high': 49.441059}
+    assert round(bw.export.export._calc_mean_speed_of_freq_tab(tab), 5) == round(6.764183652027738, 5)
 
     assert bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, plot_bins=[0, 3, 6, 9, 12, 15, 41],
                          plot_labels=['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s'],
@@ -206,12 +208,12 @@ def test_freq_table():
                                                                            'southerly': 22.990124,
                                                                            'westerly': 55.670309}
 
-    assert bw.freq_table(DATA.T2m, DATA.Dir78mS, var_bin_array=[-10, 0, 10, 20], var_bin_labels=['low', 'mid', 'high'],
-                         plot_bins=[-10, 0, 10, 20], plot_labels=None,
-                         return_data=True)[1].sum().round(6)[8:].to_dict() == {'225.0-255.0': 12.166183,
-                                                                               '255.0-285.0': 14.08716,
-                                                                               '285.0-315.0': 10.746167,
-                                                                               '315.0-345.0': 3.076073}
+    assert bw.freq_table(DATA.T2m, DATA.Dir78mS, var_bin_array=[-10, 0, 10, 30], var_bin_labels=['low', 'mid', 'high'],
+                         plot_bins=[-10, 0, 10, 30], plot_labels=None,
+                         return_data=True)[1].sum().round(6)[8:].to_dict() == {'225.0-255.0': 12.135989,
+                                                                               '255.0-285.0': 14.009204,
+                                                                               '285.0-315.0': 10.681815,
+                                                                               '315.0-345.0': 3.065488}
 
     # Apply seasonal adjustment and impose coverage threshold to 70%
     plot_wind_rose, freq_tbl_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, seasonal_adjustment=True,
@@ -224,13 +226,16 @@ def test_freq_table():
     assert 'Text' in str(fig_rose.get_default_bbox_extra_artists())
     assert 'Note: A coverage threshold value of 0.3 is set' in str(fig_rose.get_default_bbox_extra_artists()[1])
 
-    fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
-                             coverage_threshold=0.5)
+    fig_rose, freq_tbl_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=True,
+                                                seasonal_adjustment=True, coverage_threshold=0.5,
+                                                target_freq_table_mean=DATA.Spd40mN.mean())
+    assert round(DATA.Spd40mN.mean(), 3) == round(bw.export.export._calc_mean_speed_of_freq_tab(freq_tbl_seas_adj), 3)
     assert 'is lower than the coverage threshold value of 0.5' in str(fig_rose.get_default_bbox_extra_artists()[1])
     assert 'Some months may have very little data coverage' in str(fig_rose.get_default_bbox_extra_artists()[1])
 
-    fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
-                             coverage_threshold=0.8)
+    fig_rose, freq_tbl_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=True, seasonal_adjustment=True,
+                                                coverage_threshold=0.8, target_freq_table_mean=8.5)
+    assert round(8.5, 3) == round(bw.export.export._calc_mean_speed_of_freq_tab(freq_tbl_seas_adj), 3)
     assert 'is lower than the coverage threshold value of 0.8' in str(fig_rose.get_default_bbox_extra_artists()[1])
     assert 'Some months may have very little data coverage' not in str(fig_rose.get_default_bbox_extra_artists()[1])
 
@@ -241,7 +246,7 @@ def test_freq_table():
 
     fig_rose = bw.freq_table(DATA.Spd40mN['2016-06-01':'2017-09-30'], DATA.Dir38mS['2016-06-01':'2017-09-30'],
                              return_data=False, seasonal_adjustment=True, coverage_threshold=0.9)
-    assert 'Text' not in str(fig_rose.get_default_bbox_extra_artists())
+    assert isinstance(fig_rose.get_axes()[0], mpl.projections.polar.PolarAxes)
 
 
 def test_dist():
