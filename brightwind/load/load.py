@@ -1043,7 +1043,7 @@ class LoadBrightHub:
     LoadBrightHub allows you to pull meta data and timeseries data of measurements from the BrightHub
     platform. This is a fast way to get access to the available open datasets on the platform.
 
-    To use LoadBrightHub, first sign up on www.brightwindhub.com and note your email and password.
+    To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
 
     For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
     BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
@@ -1116,7 +1116,7 @@ class LoadBrightHub:
         :return:           A table showing the available plants.
         :rtype:            pd.DataFrame
 
-        To use LoadBrightHub, first sign up on www.brightwindhub.com and note your email and password.
+        To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
 
         For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
         BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
@@ -1185,7 +1185,7 @@ class LoadBrightHub:
         :return:                         A table showing the available measurement stations.
         :rtype:                          pd.DataFrame
 
-        To use LoadBrightHub, first sign up on www.brightwindhub.com and note your email and password.
+        To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
 
         For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
         BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
@@ -1334,10 +1334,6 @@ class LoadBrightHub:
         **Example usage**
         ::
             import brightwind as bw
-
-        To get all available measurement stations to pick out the measurement station's uuid
-        ::
-            bw.LoadBrightHub.get_measurement_stations()
 
         To get all the data for the specific measurement station
         ::
