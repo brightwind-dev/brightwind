@@ -36,7 +36,9 @@ _line_colors_, _legend_ and _figure_size_. (Issue #[349](https://github.com/brig
 13. In `_calc_mean_speed_of_freq_tab` for `export_tab_file` fix issue around using wind speed bins less than 1 m/s (Issue #[359](https://github.com/brightwind-dev/brightwind/issues/359)).
 14. Addressed all Future and Deprecation warnings for matplotlib<=3.6.3, numpy<=1.24.1, pandas<=1.5.3. (Issue #[356](https://github.com/brightwind-dev/brightwind/issues/356)).
 15. Update to work with versions 1.0 to 1.2 of IEA WIND Task 43 WRA Data Model (Issue #[306](https://github.com/brightwind-dev/brightwind/issues/306)).
-16. Updated color map used for `Shear.TimeOfDay` plots when `plot_type` is 'step' or 'line'. (Issue #[376](https://github.com/brightwind-dev/brightwind/issues/376)).
+16. Removed hardcoded colours for `Shear.TimeOfDay` plots when `plot_type` is 'step' or 'line' and added a colour map. (Issue #[376](https://github.com/brightwind-dev/brightwind/issues/376)).
+17. Updated `LoadBrightHub` URL and generalised functions used for connecting to BrightHub platform without using `boto3` (Issue #[355](https://github.com/brightwind-dev/brightwind/issues/355)).
+
 
 
 ## [2.0.0]
