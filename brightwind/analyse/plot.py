@@ -78,9 +78,9 @@ class _ColorPalette:
                                        self.fifth,       # yellow'ish, rgb(242, 216, 105)
                                        self.tertiary]    # red'ish, rgb(155, 43, 44)
 
-        self._color_map = self._set_col_map(_col_map_colors)
+        self._color_map = self._set_col_map('color_map', _col_map_colors)
 
-        self._color_map_symmetric = self._set_col_map(_color_map_symmetric_colors)
+        self._color_map_symmetric = self._set_col_map('color_map_symmetric', _color_map_symmetric_colors)
 
         self.color_list = [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
                            self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
@@ -89,8 +89,8 @@ class _ColorPalette:
         # mpl.rcParams['axes.prop_cycle']
 
     @staticmethod
-    def _set_col_map(col_map_colors):
-        return LinearSegmentedColormap.from_list('color_map', col_map_colors, N=256)
+    def _set_col_map(color_map_name, col_map_colors):
+        return LinearSegmentedColormap.from_list(color_map_name, col_map_colors, N=256)
 
     @property
     def color_map(self):
@@ -102,11 +102,11 @@ class _ColorPalette:
 
     @color_map.setter
     def color_map(self, col_map_colors):
-        self._color_map = self._set_col_map(col_map_colors)
+        self._color_map = self._set_col_map('color_map', col_map_colors)
 
-    @color_map.setter
+    @color_map_symmetric.setter
     def color_map_symmetric(self, col_map_colors):
-        self._color_map_symmetric = self._set_col_map(col_map_colors)
+        self._color_map_symmetric = self._set_col_map('color_map_symmetric', col_map_colors)
 
 
 COLOR_PALETTE = _ColorPalette()
@@ -1880,8 +1880,8 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
     """
     Function used by Shear.TimeOfDay for plotting the hourly shear for each calendar month or an average of all months.
     The color map used for plotting the shear by time of day for each calendar month depends on the plot_type input:
-        1) if 'line' 'step' the COLOR_PALETTE.col_map_symmetric_diverging is used
-        2) if '12x24' the 'COLOR_PALETTE.col_map is used
+        1) if 'line' 'step' the COLOR_PALETTE.color_map_symmetric is used
+        2) if '12x24' the 'COLOR_PALETTE.color_map is used
     The color used for plotting the average of all months shear is COLOR_PALETTE.primary.
 
     :param df:          Series of average shear by time of day or DataFrame of shear by time of day for
