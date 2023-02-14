@@ -346,7 +346,8 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     """
     Calculates the distribution of a variable against itself as per the bins specified. If the var_to_bin input is a
     DataFrame then the function derives the distribution for each column against itself. Can also pass another variable
-    for finding distribution with respect to another variable.
+    for finding distribution with respect to another variable. The colours are defined as for the brightwind library
+    standard `COLOR_PALETTE.color_list`. Colours can be changed only updating the `COLOR_PALETTE.color_list`.
 
     :param var_to_bin:          Timeseries of the variable(s) whose distribution we need to find
     :type var_to_bin:           pandas.Series or pandas.DataFrame

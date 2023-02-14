@@ -962,8 +962,9 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     """
     Plots a bar subplot, either vertical or horizontal bars, from a pd.Series or pd.Dataframe where the interval of the
     bars is the data.index and the height/length of the bars are the values.
-    If the data input is a Dataframe then the bars are plotted for each column of the Dataframe and with
-    a different colour for each dataset.
+    If the data input is a Dataframe then the bars are plotted for each column of the Dataframe and with a different
+    colour for each dataset. The colours are defined as for the brightwind library standard `COLOR_PALETTE.color_list`.
+    Colours can be changed only updating the `COLOR_PALETTE.color_list`.
     The user can chose if the bars are horizontal or vertical based on vertical_bars boolean user input. The function
     is handling data.index with format float, int, pd.DatetimeIndex and bin ranges (ie [-0.5, 0.5)).
 
@@ -1207,7 +1208,8 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     """
     Plot distribution given as input and derived using _derive_distribution() function. The input can be a Pandas Series
     or a Dataframe. If it is a Dataframe then the distribution is plotted for each column of the Dataframe and with
-    a different colour for each dataset.
+    a different colour for each dataset. The colours are defined as for the brightwind library standard
+    `COLOR_PALETTE.color_list`. Colours can be changed only updating the `COLOR_PALETTE.color_list`.
 
     ** THIS FUNCTION WILL BE REMOVED IN A FUTURE VERSION OF BRIGHTWIND LIBRARY **
 
