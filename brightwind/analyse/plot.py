@@ -171,7 +171,7 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
 
 
 def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limits=None, x_tick_label_angle=25,
-                        line_marker_types=None, line_colors=COLOR_PALETTE.color_list, subplot_title=None,
+                        line_marker_types=None, line_colors=None, subplot_title=None,
                         legend=True, ax=None):
     """
     Plots a timeseries subplot where x is the time axis.
@@ -205,7 +205,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
                                            all plotted timeseries will use the same color.
                                         2) List of str or Hex or Rgb: the number of colors provided needs to be
                                            at least equal to the number of columns in the y input.
-                                        3) None: the default matplotlib color list will be used for plotting.
+                                        3) None: the default COLOR_PALETTE.color_list will be used for plotting.
     :type line_colors:              str or list or tuple or None
     :param subplot_title:           Title show on top of the subplot. Default is None.
     :type subplot_title:            str or None
@@ -255,7 +255,17 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         sub_plot.axes.xaxis.set_major_locator(matplotlib.dates.WeekdayLocator(byweekday=0))
         sub_plot.axes.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("W%W"))
 
+        # To set the matplotlib default color list
+        import matplotlib.pyplot as plt
+        prop_cycle = plt.rcParams['axes.prop_cycle']
+        mpl_colors = prop_cycle.by_key()['color']
+        fig, axes = plt.subplots(1, 1)
+        sub_plot = bw.analyse.plot._timeseries_subplot(data.index, data.Dir58mS, line_colors=mpl_colors)
+
     """
+
+    if line_colors is None:
+        line_colors = COLOR_PALETTE.color_list
 
     if ax is None:
         ax = plt.gca()
@@ -316,7 +326,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
 
 def plot_timeseries(data, date_from='', date_to='', x_label=None, y_label=None, y_limits=None,
-                    x_tick_label_angle=25, line_colors=COLOR_PALETTE.color_list, legend=True, figure_size=(15, 8)):
+                    x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8)):
     """
     Plot a timeseries of data.
 
@@ -343,7 +353,7 @@ def plot_timeseries(data, date_from='', date_to='', x_label=None, y_label=None, 
                                            all plotted timeseries will use the same color.
                                         2) List of str or Hex or Rgb: the number of colors provided needs to be
                                            at least equal to the number of columns in the y input.
-                                        3) None: the default matplotlib color list will be used for plotting.
+                                        3) None: the default COLOR_PALETTE.color_list will be used for plotting.
     :type line_colors:              str or list or tuple or None
     :param legend:                  Boolean to choose if legend is shown. Default is True.
     :type legend:                   Bool
@@ -379,7 +389,16 @@ def plot_timeseries(data, date_from='', date_to='', x_label=None, y_label=None, 
         bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], line_colors= ['#009991', '#171a28',  '#726e83'],
                            figure_size=(20, 4))
 
+        # To set the matplotlib default color list
+        import matplotlib.pyplot as plt
+        prop_cycle = plt.rcParams['axes.prop_cycle']
+        mpl_colors = prop_cycle.by_key()['color']
+        bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], line_colors= mpl_colors)
+
     """
+    if line_colors is None:
+        line_colors = COLOR_PALETTE.color_list
+
     fig, axes = plt.subplots(figsize=figure_size)
     if isinstance(data, pd.Series):
         data_to_slice = data.copy(deep=False).to_frame()
@@ -401,8 +420,8 @@ def _derive_axes_limits_for_scatter_plot(x, y):
 
 def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False,
                      x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=True, subplot_title=None,
-                     trendline_dots=False, scatter_color=COLOR_PALETTE.primary,
-                     trendline_color=COLOR_PALETTE.secondary, legend=True, scatter_name=None,
+                     trendline_dots=False, scatter_color=None,
+                     trendline_color=None, legend=True, scatter_name=None,
                      trendline_name=None, ax=None):
     """
     Plots a scatter subplot between the inputs x and y. The trendline_y data and the line of slope 1 passing through
@@ -433,9 +452,9 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
     :type subplot_title:        str or None
     :param trendline_dots:      Boolean to chose if marker to use for the trendline is dot-line or a line
     :type trendline_dots:       Bool
-    :param scatter_color:       Color to assign to scatter data. Default is COLOR_PALETTE.primary
+    :param scatter_color:       Color to assign to scatter data. If None default is COLOR_PALETTE.primary
     :type scatter_color:        str or Hex or Rgb
-    :param trendline_color:     Color to assign to trendline data. Default is COLOR_PALETTE.secondary
+    :param trendline_color:     Color to assign to trendline data. If None default is COLOR_PALETTE.secondary
     :type trendline_color:      str or Hex or Rgb
     :param legend:              Boolean to choose if legend is shown.
     :type legend:               Bool
@@ -494,6 +513,7 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
         bw.analyse.plot._scatter_subplot(data.Spd80mN, data.Spd80mS, trendline_y=[0, 15], trendline_x=[0, 10],
                                          scatter_name='Data scatter', trendline_name='Regression line', ax=axes)
     """
+
     if ax is None:
         ax = plt.gca()
 
@@ -507,6 +527,12 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
         trendline_marker = 'o-'
     else:
         trendline_marker = '-'
+
+    if scatter_color is None:
+        scatter_color = COLOR_PALETTE.primary
+
+    if trendline_color is None:
+        trendline_color = COLOR_PALETTE.secondary
 
     if x_limits is None or y_limits is None:
         x_min, x_max, y_min, y_max = _derive_axes_limits_for_scatter_plot(x, y)
