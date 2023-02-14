@@ -962,8 +962,9 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     """
     Plots a bar subplot, either vertical or horizontal bars, from a pd.Series or pd.Dataframe where the interval of the
     bars is the data.index and the height/length of the bars are the values.
-    If the data input is a Dataframe then the bars are plotted for each column of the Dataframe and with
-    a different colour for each dataset.
+    If the data input is a Dataframe then the bars are plotted for each column of the Dataframe and with a different
+    colour for each dataset. The colours are defined as for the brightwind library standard `COLOR_PALETTE.color_list`.
+    Colours can be changed only updating the `COLOR_PALETTE.color_list`.
     The user can chose if the bars are horizontal or vertical based on vertical_bars boolean user input. The function
     is handling data.index with format float, int, pd.DatetimeIndex and bin ranges (ie [-0.5, 0.5)).
 
@@ -1072,10 +1073,12 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     if type(data) is pd.Series:
         data = data.to_frame()
 
-    if len(data.columns) > len(COLOR_PALETTE.color_list):
-        raise ValueError('The numbers of variables to plot is higher than the number of colors implemented '
-                         'in the brightwind library standard COLOR_PALETTE. The number of variables should be lower '
-                         'than {}'.format(len(COLOR_PALETTE.color_list)))
+    bar_colors = COLOR_PALETTE.color_list
+    if len(data.columns) > len(bar_colors):
+        raise ValueError('The number of variables to plot is higher than the number of colors implemented in the '
+                         'brightwind library standard `COLOR_PALETTE.color_list`. The number of variables should '
+                         'be lower than {} or you should assign to the `COLOR_PALETTE.color_list` a list of colors '
+                         'with same length than the number of variables to plot.'.format(len(bar_colors)))
 
     if (total_width < 0) or (total_width > 1):
         raise ValueError('The total_width value should be between 0 and 1.')
@@ -1152,7 +1155,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
     bars = []
     # Iterate over all data
     for i, name in enumerate(data.columns):
-        bar_color = COLOR_PALETTE.color_list[i]
+        bar_color = bar_colors[i]
         # The offset in x direction of that bar
         x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
         r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(bar_color)))  # hex to rgb format
@@ -1205,7 +1208,8 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
     """
     Plot distribution given as input and derived using _derive_distribution() function. The input can be a Pandas Series
     or a Dataframe. If it is a Dataframe then the distribution is plotted for each column of the Dataframe and with
-    a different colour for each dataset.
+    a different colour for each dataset. The colours are defined as for the brightwind library standard
+    `COLOR_PALETTE.color_list`. Colours can be changed only updating the `COLOR_PALETTE.color_list`.
 
     ** THIS FUNCTION WILL BE REMOVED IN A FUTURE VERSION OF BRIGHTWIND LIBRARY **
 
