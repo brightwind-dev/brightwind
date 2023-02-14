@@ -395,7 +395,7 @@ def plot_timeseries(data, date_from='', date_to='', x_label=None, y_label=None, 
         bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], line_colors= mpl_colors)
 
     """
-    if line_colors is 'bw_default':
+    if line_colors is None:
         line_colors = COLOR_PALETTE.color_list
 
     fig, axes = plt.subplots(figsize=figure_size)
