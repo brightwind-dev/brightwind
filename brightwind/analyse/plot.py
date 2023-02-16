@@ -97,22 +97,29 @@ class _ColorPalette:
 COLOR_PALETTE = _ColorPalette()
 
 
-def _adjust_color_lightness(r, g, b, factor):
+def _adjust_color_lightness(input_color, factor):
     """
     Generate the color corresponding to the input primary color corrected by a lightness or darkness defined by the
     input factor percentage. Lighter colors are obtained with a factor >1 and darker colors with a factor <1.
 
-    :param r:       Intensity of red color between 0 and 255.
-    :type r:        float
-    :param g:       Intensity of green color between 0 and 255.
-    :type g:        float
-    :param b:       Intensity of blue color between 0 and 255.
-    :type b:        float
-    :param factor:  Factor defining the percentage of lightness (>1) or darkness (<1).
-    :type factor:   float
-    :return:        color in hex format
-    :rtype:         hex
+    :param input_color: Input primary color for deriving the adjusted color from. This accepts a string that represents
+                        the name of the color (same input formats as matplotlib.colors.to_rgb()).
+                        It can be an RGB or RGBA sequence or a string in any of several forms:
+                            1) hex color string, like ‘#000FFF’
+                            2) standard name, like ‘green’
+                            3) letter from the set ‘rgbcmykw’
+                            4) string representation of a float, like ‘0.4’, indicating gray on a 0-1 scale
+    :type input_color:  RGB or RGBA sequence or str
+    :param factor:      Factor defining the percentage of lightness (between 1 and 2) or darkness (between 0 and 1).
+    :type factor:       float
+    :return:            color in hex format
+    :rtype:             hex
     """
+    if factor > 2 or factor < 0:
+        raise ValueError("The `factor` input must be a value between 0 and 2.")
+    
+    r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(input_color)))
+
     hue, lightness, saturation = rgb2hls(r / 255.0, g / 255.0, b / 255.0)
     lightness = max(min(lightness * factor, 1.0), 0.0)
     r, g, b = hls2rgb(hue, lightness, saturation)
@@ -1184,12 +1191,11 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         bar_color = bar_colors[i]
         # The offset in x direction of that bar
         x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
-        r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(bar_color)))  # hex to rgb format
 
         for data_bar, data_bin in zip(data[name], data_bins):
             if vertical_bars:
                 ax.imshow(np.array([[mpl.colors.to_rgb(bar_color)],
-                                    [mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8))]]),
+                                    [mpl.colors.to_rgb(_adjust_color_lightness(bar_color, factor=1.8))]]),
                           interpolation='gaussian', extent=(data_bin + x_offset - bar_width / 2,
                                                             data_bin + x_offset + bar_width / 2, 0,
                                                             data_bar),
@@ -1198,7 +1204,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                              edgecolor=bar_color, linewidth=line_width, fill=False,
                              zorder=1)#5
             else:
-                cmp = _create_colormap(mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8)),
+                cmp = _create_colormap(mpl.colors.to_rgb(_adjust_color_lightness(bar_color, factor=1.8)),
                                        mpl.colors.to_rgb(bar_color))
                 ax.imshow(_gradient_image(direction=1, cmap_range=(0, 1)), cmap=cmp,
                           interpolation='gaussian',
