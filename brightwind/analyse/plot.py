@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 import matplotlib as mpl
 from matplotlib.dates import DateFormatter
 import matplotlib.dates as mdates
@@ -16,7 +15,7 @@ import re
 import six
 from colormap import rgb2hex, rgb2hls, hls2rgb
 from matplotlib.ticker import PercentFormatter
-from matplotlib.colors import ListedColormap, to_hex
+from matplotlib.colors import ListedColormap, to_hex, LinearSegmentedColormap
 import warnings
 
 register_matplotlib_converters()
@@ -74,13 +73,15 @@ class _ColorPalette:
                            self.primary,     # primary
                            self.primary_10]  # darkest primary
 
-        _color_map_symmetric_colors = [self.primary_10,  # dark green, 10% of primary
-                                       self.fifth,       # yellow'ish, rgb(242, 216, 105)
-                                       self.tertiary]    # red'ish, rgb(155, 43, 44)
+        _color_map_cyclical_colors = [self.primary, #green
+             self.tertiary, #red
+             self.secondary, #alsphalt
+             self.fourth,
+             self.primary]
 
         self._color_map = self._set_col_map('color_map', _col_map_colors)
 
-        self._color_map_symmetric = self._set_col_map('color_map_symmetric', _color_map_symmetric_colors)
+        self._color_map_cyclical = self._set_col_map('color_map_cyclical', _color_map_cyclical_colors)
 
         self.color_list = [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
                            self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
@@ -97,16 +98,16 @@ class _ColorPalette:
         return self._color_map
 
     @property
-    def color_map_symmetric(self):
-        return self._color_map_symmetric
+    def color_map_cyclical(self):
+        return self._color_map_cyclical
 
     @color_map.setter
     def color_map(self, col_map_colors):
         self._color_map = self._set_col_map('color_map', col_map_colors)
 
-    @color_map_symmetric.setter
-    def color_map_symmetric(self, col_map_colors):
-        self._color_map_symmetric = self._set_col_map('color_map_symmetric', col_map_colors)
+    @color_map_cyclical.setter
+    def color_map_cyclical(self, col_map_colors):
+        self._color_map_cyclical = self._set_col_map('color_map_cyclical', col_map_colors)
 
 
 COLOR_PALETTE = _ColorPalette()
@@ -1940,7 +1941,7 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         return plot_12x24_contours(df, label=(label, 'mean'), plot='tod')
 
     else:
-        colors = _colormap_to_colorscale(COLOR_PALETTE.color_map_symmetric, 12)
+        colors = _colormap_to_colorscale(COLOR_PALETTE.color_map_cyclical, 12)
         if len(df.columns) == 1:
             colors[0] = COLOR_PALETTE.primary
 
