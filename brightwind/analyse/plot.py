@@ -117,7 +117,7 @@ def _colormap_to_colorscale(cmap, n_colors):
     """
     Function that transforms a matplotlib colormap to a list of colors
     """
-    return [to_hex(cmap(k*0.1)) for k in range(n_colors)]
+    return [to_hex(cmap(k*1/(n_colors-1))) for k in range(n_colors)]
 
 
 def _adjust_color_lightness(r, g, b, factor):
