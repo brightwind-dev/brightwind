@@ -55,10 +55,10 @@ class _ColorPalette:
         self.secondary = '#2E3743'      # asphalt, rgb[46/255, 55/255, 67/255]
         self.tertiary = '#9B2B2C'       # red'ish, rgb(155, 43, 44)
         self.fourth = '#E57925'         # orange'ish, rgb(229, 121, 37)
-        self.fifth = '#F2D869'          # yellow'ish, rgb(242, 216, 105)
+        self.fifth = '#ffc008'          # yellow'ish, rgb(255, 192, 8)
         self.sixth = '#AB8D60'
         self.seventh = '#A4D29F'
-        self.eighth = '#6E807B'
+        self.eighth = '#01958a'
         self.ninth = '#3D636F'          # blue grey
         self.tenth = '#A49E9D'
         self.eleventh = '#DA9BA6'
@@ -73,11 +73,11 @@ class _ColorPalette:
                            self.primary,     # primary
                            self.primary_10]  # darkest primary
 
-        _color_map_cyclical_colors = [self.primary, #green
-             self.tertiary, #red
-             self.secondary, #alsphalt
-             self.fourth,
-             self.primary]
+        _color_map_cyclical_colors = [self.secondary,
+                                      self.fifth,
+                                      self.primary,
+                                      self.tertiary,
+                                      self.secondary]
 
         self._color_map = self._set_col_map('color_map', _col_map_colors)
 
@@ -1941,7 +1941,8 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         return plot_12x24_contours(df, label=(label, 'mean'), plot='tod')
 
     else:
-        colors = _colormap_to_colorscale(COLOR_PALETTE.color_map_cyclical, 12)
+        colors = _colormap_to_colorscale(COLOR_PALETTE.color_map_cyclical, 13)
+        colors = colors[:-1]
         if len(df.columns) == 1:
             colors[0] = COLOR_PALETTE.primary
 
