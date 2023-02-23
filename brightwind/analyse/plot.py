@@ -1910,8 +1910,9 @@ def plot_log_law(avg_slope, avg_intercept, wspds, heights, max_plot_height=None)
 def plot_shear_time_of_day(df, calc_method, plot_type='step'):
     """
     Function used by Shear.TimeOfDay for plotting the hourly shear for each calendar month or an average of all months.
+
     The color map used for plotting the shear by time of day for each calendar month depends on the plot_type input:
-        1) if 'line' 'step' the COLOR_PALETTE.color_map_symmetric is used
+        1) if 'line' 'step' the COLOR_PALETTE.color_map_cyclical is used
         2) if '12x24' the 'COLOR_PALETTE.color_map is used
     The color used for plotting the average of all months shear is COLOR_PALETTE.primary.
 
