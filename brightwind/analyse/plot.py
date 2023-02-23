@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 import matplotlib as mpl
 from matplotlib.dates import DateFormatter
 import matplotlib.dates as mdates
@@ -16,7 +15,7 @@ import re
 import six
 from colormap import rgb2hex, rgb2hls, hls2rgb
 from matplotlib.ticker import PercentFormatter
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+from matplotlib.colors import ListedColormap, to_hex, LinearSegmentedColormap
 import warnings
 
 register_matplotlib_converters()
@@ -56,10 +55,10 @@ class _ColorPalette:
         self.secondary = '#2E3743'      # asphalt, rgb[46/255, 55/255, 67/255]
         self.tertiary = '#9B2B2C'       # red'ish, rgb(155, 43, 44)
         self.fourth = '#E57925'         # orange'ish, rgb(229, 121, 37)
-        self.fifth = '#F2D869'          # yellow'ish, rgb(242, 216, 105)
+        self.fifth = '#ffc008'          # yellow'ish, rgb(255, 192, 8)
         self.sixth = '#AB8D60'
         self.seventh = '#A4D29F'
-        self.eighth = '#6E807B'
+        self.eighth = '#01958a'
         self.ninth = '#3D636F'          # blue grey
         self.tenth = '#A49E9D'
         self.eleventh = '#DA9BA6'
@@ -73,7 +72,16 @@ class _ColorPalette:
         _col_map_colors = [self.primary_95,  # lightest primary
                            self.primary,     # primary
                            self.primary_10]  # darkest primary
-        self._color_map = self._set_col_map(_col_map_colors)
+
+        _color_map_cyclical_colors = [self.secondary,
+                                      self.fifth,
+                                      self.primary,
+                                      self.tertiary,
+                                      self.secondary]
+
+        self._color_map = self._set_col_map('color_map', _col_map_colors)
+
+        self._color_map_cyclical = self._set_col_map('color_map_cyclical', _color_map_cyclical_colors)
 
         self.color_list = [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
                            self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
@@ -82,19 +90,34 @@ class _ColorPalette:
         # mpl.rcParams['axes.prop_cycle']
 
     @staticmethod
-    def _set_col_map(col_map_colors):
-        return LinearSegmentedColormap.from_list('color_map', col_map_colors, N=256)
+    def _set_col_map(color_map_name, col_map_colors):
+        return LinearSegmentedColormap.from_list(color_map_name, col_map_colors, N=256)
 
     @property
     def color_map(self):
         return self._color_map
 
+    @property
+    def color_map_cyclical(self):
+        return self._color_map_cyclical
+
     @color_map.setter
     def color_map(self, col_map_colors):
-        self._color_map = self._set_col_map(col_map_colors)
+        self._color_map = self._set_col_map('color_map', col_map_colors)
+
+    @color_map_cyclical.setter
+    def color_map_cyclical(self, col_map_colors):
+        self._color_map_cyclical = self._set_col_map('color_map_cyclical', col_map_colors)
 
 
 COLOR_PALETTE = _ColorPalette()
+
+
+def _colormap_to_colorscale(cmap, n_colors):
+    """
+    Function that transforms a matplotlib colormap to a list of colors
+    """
+    return [to_hex(cmap(k*1/(n_colors-1))) for k in range(n_colors)]
 
 
 def _adjust_color_lightness(r, g, b, factor):
@@ -1885,40 +1908,48 @@ def plot_log_law(avg_slope, avg_intercept, wspds, heights, max_plot_height=None)
 
 
 def plot_shear_time_of_day(df, calc_method, plot_type='step'):
-    df_copy = df.copy()
-    # colours in use
-    colors = [(0.6313725490196078, 0.6470588235294118, 0.6705882352941176, 1.0),  # Jan
-              (0.1568627450980392, .19215686274509805, 0.6705882352941176, 1.0),  # Feb
-              (0.06666666666666667, 0.4196078431372549, 0.6901960784313725, 1.0),  # March
-              (0.22745098039215686, 0.7294117647058823, 0.9803921568627451, 1.0),  # April
-              (0.2392156862745098, 0.5666666666666667, 0.42745098039215684, 1.0),  # May
-              (0.4117647058823529, 0.7137254901960784, 0.16470588235294117, 1.0),  # June
-              (0.611764705882353, 0.7725490196078432, 0.21568627450980393, 1.0),  # July
-              (0.6823529411764706, 0.403921568627451, 0.1607843137254902, 1.0),  # Aug
-              (0.7901960784313726, 0.48627450980392156, 0.1843137254901961, 1.0),  # Sep
-              (1, 0.7019607843, .4, 1),  # Oct
-              (0, 0, 0, 1.0),  # Nov
-              (0.40588235294117647, 0.43137254901960786, 0.4666666666666667, 1.0)]  # Dec
+    """
+    Function used by Shear.TimeOfDay for plotting the hourly shear for each calendar month or an average of all months.
 
-    if len(df.columns) == 1:
-        colors[0] = colors[5]
+    The color map used for plotting the shear by time of day for each calendar month depends on the plot_type input:
+        1) if 'line' 'step' the COLOR_PALETTE.color_map_cyclical is used
+        2) if '12x24' the 'COLOR_PALETTE.color_map is used
+    The color used for plotting the average of all months shear is COLOR_PALETTE.primary.
+
+    :param df:          Series of average shear by time of day or DataFrame of shear by time of day for
+                        each calendar month.
+    :type df:           pandas.Series or pandas.DataFrame
+    :param calc_method: Method used by Shear.TimeOfDay for shear calculation, either 'power_law' or 'log_law'.
+                        Input used for defining label of y axis.
+    :type calc_method:  str
+    :param plot_type:   Type of plot to be generated. Options include 'line', 'step' and '12x24'. Default is 'step'.
+    :type plot_type:    str
+    :returns:           A shear by time of day plot
+
+    """
+    df_copy = df.copy()
+
     if calc_method == 'power_law':
         label = 'Average Shear'
-
-    if calc_method == 'log_law':
+    elif calc_method == 'log_law':
         label = 'Roughness Coefficient'
+    else:
+        label = calc_method
 
     if plot_type == '12x24':
         df.columns = np.arange(1, 13, 1)
         df.index = np.arange(0, 24, 1)
-        df[df.columns[::-1]]
         return plot_12x24_contours(df, label=(label, 'mean'), plot='tod')
 
     else:
+        colors = _colormap_to_colorscale(COLOR_PALETTE.color_map_cyclical, 13)
+        colors = colors[:-1]
+        if len(df.columns) == 1:
+            colors[0] = COLOR_PALETTE.primary
+
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.set_xlabel('Time of Day')
         ax.set_ylabel(label)
-        import matplotlib.dates as mdates
 
         # create x values for plot
         idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H').time
