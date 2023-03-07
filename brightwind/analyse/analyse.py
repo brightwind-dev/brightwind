@@ -7,9 +7,10 @@ from brightwind.utils.utils import _convert_df_to_series
 from brightwind.utils.utils import validate_coverage_threshold
 from brightwind.export.export import _calc_mean_speed_of_freq_tab
 from brightwind.transform.transform import scale_wind_speed
-import matplotlib
+import matplotlib.pyplot as plt
 import warnings
 import textwrap
+from matplotlib.ticker import PercentFormatter
 
 __all__ = ['monthly_means',
            'momm',
@@ -345,7 +346,8 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     """
     Calculates the distribution of a variable against itself as per the bins specified. If the var_to_bin input is a
     DataFrame then the function derives the distribution for each column against itself. Can also pass another variable
-    for finding distribution with respect to another variable.
+    for finding distribution with respect to another variable. The colours are defined as for the brightwind library
+    standard `COLOR_PALETTE.color_list`. Colours can be changed only updating the `COLOR_PALETTE.color_list`.
 
     :param var_to_bin:          Timeseries of the variable(s) whose distribution we need to find
     :type var_to_bin:           pandas.Series or pandas.DataFrame
@@ -453,10 +455,19 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
 
-    graph = bw_plt.plot_freq_distribution(distributions.replace([np.inf, -np.inf], np.NAN),
-                                          max_y_value=max_y_value,
-                                          x_tick_labels=bin_labels, x_label=x_label, y_label=aggregation_method,
-                                          legend=legend)
+    # Plot distribution
+    bar_tick_label_format = None
+    if aggregation_method:
+        if '%' in aggregation_method:
+            bar_tick_label_format = PercentFormatter()
+
+    graph = plt.figure(figsize=(15, 8))
+    ax = graph.add_axes([0.1, 0.1, 0.8, 0.8])
+    bw_plt._bar_subplot(distributions.replace([np.inf, -np.inf], np.NAN), x_label=x_label, y_label=aggregation_method,
+                        max_bar_axis_limit=max_y_value, bin_tick_labels=bin_labels,
+                        bar_tick_label_format=bar_tick_label_format, legend=legend, total_width=0.8, ax=ax)
+    plt.close()
+
     if bin_labels is not None:
         distributions.index = bin_labels
     if return_data:
@@ -469,15 +480,15 @@ def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
     Accepts a wind speed time series and computes it's frequency distribution. That is, how often does the wind
     blow within each wind speed bin.
 
-    :param wspd: Time series of the wind speed variable whose distribution we need to find.
-    :type wspd: pd.Series
-    :param max_speed: Max wind speed to consider, default is 30 m/s.
-    :type max_speed: int
-    :param max_y_value: Max value for the y-axis of the plot to be set. Default will be relative to max calculated
-                        data value.
-    :type max_y_value: float, int
-    :param return_data: Set to True if you want the data returned.
-    :type return_data: bool
+    :param wspd:            Time series of the wind speed variable whose distribution we need to find.
+    :type wspd:             pd.Series
+    :param max_speed:       Max wind speed to consider, default is 30 m/s.
+    :type max_speed:        int
+    :param max_y_value:     Max value for the y-axis of the plot to be set. Default will be relative to max calculated
+                            data value.
+    :type max_y_value:      float, int
+    :param return_data:     Set to True if you want the data returned.
+    :type return_data:      bool
 
     **Example usage**
     ::

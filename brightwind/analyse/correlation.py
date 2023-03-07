@@ -832,12 +832,18 @@ class SpeedSort(CorrelBase):
             self.params = dict()
             self.params['slope'] = (ymean2 - ymean1) / (xmean2 - xmean1)
             self.params['offset'] = ymean1 - (xmean1 * self.params['slope'])
+            self.params['cutoff'] = cutoff
             # print(self.params)
 
         def sector_predict(self, x):
-            def linear_function(x, slope, offset):
-                return x * slope + offset
-            return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
+            def bilinear_function(x, slope, offset, cutoff):
+                if x < cutoff:
+                    return (slope * cutoff + offset) * x / cutoff  # Line passing through zero
+                else:
+                    return x * slope + offset  # Line not passing through zero
+
+            return x.transform(bilinear_function, slope=self.params['slope'], offset=self.params['offset'],
+                               cutoff=self.params['cutoff'])
 
         def plot_model(self):
             return plot_scatter(self.sector_ref,
