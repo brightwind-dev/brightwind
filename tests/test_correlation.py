@@ -287,6 +287,18 @@ def test_synthesize():
     assert (data_synt['Dir58mS_Synthesized']['2016-01-09 17:10:00':'2016-01-09 17:40:00']
             == data_test['Dir58mS']['2016-01-09 17:10:00':'2016-01-09 17:40:00']).all()
 
+    # Test SpeedSort prediction when used for speeds lower than the reference speed cutoff.
+    index_test = (ss_cor.data[ss_cor._ref_dir_col_name] > ss_cor.params[2]['sector_min']
+                  ) & (ss_cor.data[ss_cor._ref_dir_col_name] < ss_cor.params[2]['sector_max']
+                       ) & (ss_cor.data[ss_cor._ref_spd_col_name] < ss_cor.cutoff)
+
+    test_predict_below_cutoff = ((ss_cor.params[2]['slope'] * ss_cor.cutoff + ss_cor.params[2]['offset']) * ss_cor.data[
+        ss_cor._ref_spd_col_name][index_test] / ss_cor.cutoff)
+
+    assert ((1 - (test_predict_below_cutoff / (ss_cor._predict(ss_cor.data[ss_cor._ref_spd_col_name][index_test],
+                                                               ss_cor.data[ss_cor._ref_dir_col_name][index_test]))
+                  )) < 10 ** -5).all()
+
     # Test the synthesise when SpeedSort correlation is used and ref_dir and target_dir are the same
     ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir78mS'],
                                  averaging_prd='10min')
