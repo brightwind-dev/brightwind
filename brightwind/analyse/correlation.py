@@ -1044,7 +1044,8 @@ class SpeedSort(CorrelBase):
             predict = predict.combine_first(self.speed_model[model].sector_predict(self.speed_model[model].sector_ref))
 
         return plot_scatter_by_sector(self.data[self._ref_spd_col_name], self.data[self._tar_spd_col_name],
-                                      self.data[self._ref_dir_col_name], trendline_y=predict, sectors=self.sectors,
+                                      self.data[self._ref_dir_col_name], trendline_y=predict,
+                                      sort_trendline_inputs=True, sectors=self.sectors,
                                       line_of_slope_1=True, figure_size=figure_size)
 
     @staticmethod
