@@ -441,7 +441,7 @@ def _derive_axes_limits_for_scatter_plot(x, y):
     return x_min, x_max, y_min, y_max
 
 
-def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, sort_trendline_inputs=False, line_of_slope_1=False,
+def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False,
                      x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=True, subplot_title=None,
                      trendline_dots=False, scatter_color=None,
                      trendline_color=None, legend=True, scatter_name=None,
@@ -851,7 +851,8 @@ def plot_scatter_by_sector(x, y, wdir, trendline_y=None, sort_trendline_inputs=F
     :type y:                        pd.Series
     :param wdir:                    Timeseries of wind directions.
     :type wdir:                     pd.Series
-    :param trendline_y:             Series of trendline y values.
+    :param trendline_y:             Series of trendline y values. This needs to be derived using the x-axis timeseries
+                                    values as it is plotted against x.
     :type trendline_y:              pd.Series
     :param sort_trendline_inputs:   Boolean to chose if trendline inputs should be sorted in ascending order. Default is
                                     False and trendline inputs are not sorted.
