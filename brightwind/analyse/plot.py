@@ -838,38 +838,42 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_label=None, y_label=None,
     return scat_plot
 
 
-def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, sectors=12,
+def plot_scatter_by_sector(x, y, wdir, trendline_y=None, sort_trendline_inputs=False, line_of_slope_1=True, sectors=12,
                            x_limits=None, y_limits=None, axes_equal=True, figure_size=(10, 10.2), **kwargs):
     """
     Plot scatter subplots (with shared x and y axis) of x versus y for each directional sector. If a trendline
     timeseries is given as input then this is also plotted in the graph. The line with slope 1 and passing
     through the origin is shown if line_of_slope_1=True
 
-    :param x:               The x-axis values or reference variable.
-    :type x:                pd.Series
-    :param y:               The y-axis values or target variable.
-    :type y:                pd.Series
-    :param wdir:            Timeseries of wind directions.
-    :type wdir:             pd.Series
-    :param trendline_y:     Series of trendline y values.
-    :type trendline_y:      pd.Series
-    :param line_of_slope_1: Boolean to choose to plot the line with slope one and passing through the origin.
-    :type line_of_slope_1:  Bool
-    :param sectors:         Number of directional sectors
-    :type sectors:          int
-    :param x_limits:        x-axis min and max limits. Can be set to None to let the code derive the min and max from
-                            the x_wspd_series.
-    :type x_limits:         tuple, None
-    :param y_limits:        y-axis min and max limits. Can be set to None to let the code derive the min and max from
-                            the y_wspd_series.
-    :type y_limits:         tuple, None
-    :param axes_equal:      Boolean to set the units for the x and y axes to be equal. If x_limits and y_limits are
-                            both None then the two axes limits are set to be the same.
-    :type axes_equal:       Bool
-    :param figure_size:     Figure size in tuple format (width, height)
-    :type figure_size:      tuple
-    :param kwargs:          Additional keyword arguments for matplotlib.pyplot.subplot
-    :returns:               matplotlib.figure.Figure
+    :param x:                       The x-axis values or reference variable.
+    :type x:                        pd.Series
+    :param y:                       The y-axis values or target variable.
+    :type y:                        pd.Series
+    :param wdir:                    Timeseries of wind directions.
+    :type wdir:                     pd.Series
+    :param trendline_y:             Series of trendline y values. This needs to be derived using the x-axis timeseries
+                                    values as it is plotted against x.
+    :type trendline_y:              pd.Series
+    :param sort_trendline_inputs:   Boolean to chose if trendline inputs should be sorted in ascending order. Default is
+                                    False and trendline inputs are not sorted.
+    :type sort_trendline_inputs:    Bool
+    :param line_of_slope_1:         Boolean to choose to plot the line with slope one and passing through the origin.
+    :type line_of_slope_1:          Bool
+    :param sectors:                 Number of directional sectors
+    :type sectors:                  int
+    :param x_limits:                x-axis min and max limits. Can be set to None to let the code derive the min and max
+                                    from the x_wspd_series.
+    :type x_limits:                 tuple, None
+    :param y_limits:                y-axis min and max limits. Can be set to None to let the code derive the min and max
+                                    from  the y_wspd_series.
+    :type y_limits:                 tuple, None
+    :param axes_equal:              Boolean to set the units for the x and y axes to be equal. If x_limits and y_limits
+                                    are both None then the two axes limits are set to be the same.
+    :type axes_equal:               Bool
+    :param figure_size:             Figure size in tuple format (width, height)
+    :type figure_size:              tuple
+    :param kwargs:                  Additional keyword arguments for matplotlib.pyplot.subplot
+    :returns:                       matplotlib.figure.Figure
 
     **Example usage**
     ::
@@ -936,7 +940,13 @@ def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, s
         else:
             trendline_y_input = trendline_y
 
-        _scatter_subplot(x[logic_sect], y[logic_sect], trendline_y_input, trendline_x=None,
+        if sort_trendline_inputs:
+            trendline_x_input = sorted([x_data for x_data in x[logic_sect]])
+            trendline_y_input = sorted([y_data for y_data in trendline_y_input])
+        else:
+            trendline_x_input = x[logic_sect]
+
+        _scatter_subplot(x[logic_sect], y[logic_sect], trendline_y_input, trendline_x=trendline_x_input,
                          line_of_slope_1=line_of_slope_1, x_label=None, y_label=None,
                          x_limits=x_limits, y_limits=y_limits, axes_equal=axes_equal,
                          subplot_title=str(round(ratio_min)) + '-' + str(round(ratio_max)),
