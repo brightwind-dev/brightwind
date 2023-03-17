@@ -221,10 +221,11 @@ def test_freq_table():
     assert freq_tbl_seas_adj.sum().round(6).to_dict() == target_freq_dict_seas_adj_sum
 
     # Apply seasonal adjustment with months of zero coverage
-    data = DATA.drop(DATA[str(DATA.index[0].year) + '-' + str(DATA.index.month.unique()[3])].index)
+    data = DATA.drop(DATA.loc[str(DATA.index[0].year) + '-' + str(DATA.index.month.unique()[3])].index)
     plot_wind_rose, freq_tbl_seas_adj = bw.freq_table(data.Spd40mN, data.Dir38mS, seasonal_adjustment=True,
                                                       coverage_threshold=0.7, return_data=True)
-    assert True
+    assert freq_tbl_seas_adj.sum().round(6).to_dict()['345.0-15.0'] == 3.268027
+    assert freq_tbl_seas_adj.sum().round(6).to_dict()['195.0-225.0'] == 18.826320
 
     # test messages shown below plot
     fig_rose = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=False, seasonal_adjustment=True,
