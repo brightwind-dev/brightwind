@@ -235,6 +235,89 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     return bw_plt.plot_monthly_means(df, ylbl=ylabel)
 
 
+def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage, coverage_threshold, analysis_type):
+    """
+    Filter out var_series data periods when coverage is lower than coverage_threshold
+
+    :param var_series:              Series of variable whose monthly data are filtered out from.
+    type var_series:                pandas.Series
+    :param monthly_coverage:        Monthly coverage of var_series data derived using brightwind.coverage() function.
+    type monthly_coverage:          pandas.Dataframe
+    :param coverage_threshold:      In this case monthly coverage threshold. Coverage is defined as the ratio of the
+                                    number of data points present in the month and the maximum number of data points
+                                    that a month should have. Example, for 10 minute data for June, the maximum number
+                                    of data points is 43,200. But if the number if data points available is only 30,000
+                                    the coverage is 0.69. A coverage_threshold value of 0.8 will filter out any months
+                                    with a coverage less than this. Coverage_threshold should be a value
+                                    between 0 and 1. If it is None or 0 data is not filtered.
+    :type coverage_threshold:       int, float or None
+    :return var_series_filtered:    Series of variable whose months with coverage lower than the coverage_threshold are
+                                    filtered out
+    :rtype result:                  pandas.Series
+    :return text_msg_out:           A text message explaining he monthly coverage threshold filter applied.
+    :rtype text_msg_out:            str
+    """
+    text_msg_out = None
+
+    # Remove months with coverage threshold lower than the input coverage_threshold.
+    if (monthly_coverage < coverage_threshold).sum() > 0:
+        # apply monthly coverage threshold provided as input to the function
+        months_fail_coverage = monthly_coverage[monthly_coverage < coverage_threshold].dropna()
+        # remove data for months with coverage lower than the coverage_threshold
+        tmp_var_series = pd.DataFrame(var_series)
+        tmp_var_series['Months'] = list(var_series.index.strftime("%Y-%m"))
+        index_name = tmp_var_series.index.name
+        tmp_var_series[index_name] = list(var_series.index)
+        var_series_filtered = tmp_var_series.set_index('Months').drop(labels=list(
+            months_fail_coverage[months_fail_coverage > 0].index.strftime('%Y-%m'))).set_index(index_name).iloc[:, 0]
+
+        text_months_fail = ", ".join(map(str, list(months_fail_coverage.index.strftime('%b-%Y'))))
+        text_warning = 'These months are filtered out for deriving the seasonally adjusted {} {}.'.format(
+            var_series.name, analysis_type)
+    else:
+        text_months_fail = ''
+        text_warning = ''
+        var_series_filtered = var_series.copy()
+
+    # Check if there are any months with coverage threshold lower than the recommended value of 0.8.
+    coverage_threshold_recommended = 0.8
+    if (coverage_threshold < coverage_threshold_recommended) and \
+            (monthly_coverage < coverage_threshold_recommended).sum() > 0:
+
+        text_warning_threshold_recommended = 'results may be incorrect when ' \
+                                             'you use an insufficient data coverage threshold, i.e. below our ' \
+                                             'recommended value of 0.8. Some months may have very little data ' \
+                                             'coverage and so may skew the statistics.'
+    else:
+        text_warning_threshold_recommended = ''
+
+    # Generate text for coverage_threshold warning message raised.
+    if coverage_threshold < coverage_threshold_recommended:
+        if (monthly_coverage < coverage_threshold).sum() > 0 and (
+                monthly_coverage < coverage_threshold_recommended).sum() > 0:
+            text_msg_out = 'The monthly coverage for {} is lower than the coverage threshold value of ' \
+                           '{}. {} The {}'.format(text_months_fail, coverage_threshold, text_warning,
+                                                  text_warning_threshold_recommended)
+        elif (monthly_coverage < coverage_threshold).sum() == 0 and (
+                monthly_coverage < coverage_threshold_recommended).sum() > 0:
+            text_msg_out = 'Note: A coverage threshold value of {} is set.' \
+                           ' The seasonally adjusted {} {}'.format(coverage_threshold, analysis_type,
+                                                                   text_warning_threshold_recommended)
+        else:
+            text_msg_out = None
+    elif coverage_threshold >= coverage_threshold_recommended and (monthly_coverage < coverage_threshold).sum() > 0:
+        text_msg_out = 'Note: The monthly coverage for {} is lower than the coverage threshold value of {}.' \
+                       ' {}'.format(text_months_fail, coverage_threshold, text_warning)
+
+    # check that var_series dataset has data for all calendar months
+    if len(var_series.index.month.unique()) < 12:
+        raise ValueError('The input {} series filtered by the input monthly coverage threshold do not cover all '
+                         'calendar months. The seasonal adjusted {} '
+                         'cannot be derived.'.format(var_series.name, analysis_type))
+
+    return var_series_filtered, text_msg_out
+
+
 def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
     """
     Return a DataFrame of mean of monthly means for each column in the DataFrame with timestamp as the index.
@@ -243,6 +326,59 @@ def _mean_of_monthly_means_basic_method(df: pd.DataFrame) -> pd.DataFrame:
     monthly_df: pd.DataFrame = df.groupby(df.index.month).mean().mean().to_frame()
     monthly_df.columns = ['MOMM']
     return monthly_df
+
+
+def _mean_of_monthly_means_seasonal_adjusted(var_series, coverage_threshold=0.8):
+    """
+    Calculate the mean of monthly mean of the input variable applying a seasonal adjustment.
+
+    The mean of monthly mean is derived as for method below:
+        1) calculate monthly coverage
+        2) filter out any months with coverage lower than the input 'coverage_threshold'
+        3) derive the monthly mean for each calendar month (i.e. all January)
+        4) weighted average each monthly mean value based on the number of days in each month
+           (i.e. 31 days for January) - number of days for February are derived as average of actual days for the year
+           of the dataset. This to take into account leap years.
+
+    :param var_series:          Series of variable whose mean of monthly mean is calculated
+    :type var_series:           pandas.Series
+    :param coverage_threshold:  In this case monthly coverage threshold. Coverage is defined as the ratio of the number
+                                of data points present in the month and the maximum number of data points that a month
+                                should have. Example, for 10 minute data for June, the maximum number of data points is
+                                43,200. But if the number if data points available is only 30,000 the coverage is
+                                0.69. A coverage_threshold value of 0.8 will filter out any months with a coverage less
+                                than this. Coverage_threshold should be a value between 0 and 1. If it is None or 0,
+                                data is not filtered. Default value is 0.8.
+    :type coverage_threshold:   int, float or None
+    :return result:             Mean of monthly mean of input variable seasonal adjusted.
+    :rtype result:              pandas.DataFrame
+
+    """
+    coverage_threshold = validate_coverage_threshold(coverage_threshold)
+
+    # derive monthly coverage for each column of the input Dataframe
+    monthly_coverage = coverage(var_series)
+
+    var_series, text_msg_out = _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
+                                                                              coverage_threshold,
+                                                                              analysis_type='mean of monthly mean')
+    if text_msg_out:
+        print(text_msg_out)
+
+    results = {}
+    number_days_month = {}
+    # derive monthly mean and number of days for each calendar month
+    for month in var_series.index.month.unique():
+        var_series_month = var_series[var_series.index.month == month]
+
+        number_days_month.update({month: np.mean(list(pd.DatetimeIndex(
+            var_series_month.index.strftime("%Y-%m").unique()).days_in_month))})
+
+        results.update({month: var_series_month.mean()})
+
+    average_result = (pd.Series(results) * pd.Series(number_days_month) / sum(
+        number_days_month.values())).sum(skipna=True)
+    return average_result
 
 
 def momm(data, date_from: str = '', date_to: str = ''):
