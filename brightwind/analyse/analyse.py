@@ -380,9 +380,9 @@ def _mean_of_monthly_means_seasonal_adjusted(var_series, coverage_threshold=0.8)
 
         results.update({month: var_series_month.mean()})
 
-    average_result = (pd.Series(results) * pd.Series(number_days_month) / sum(
+    result = (pd.Series(results) * pd.Series(number_days_month) / sum(
         number_days_month.values())).sum(skipna=True)
-    return average_result
+    return result
 
 
 def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False, coverage_threshold=0.8):
