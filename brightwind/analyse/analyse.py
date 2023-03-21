@@ -237,10 +237,11 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
 
 def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage, coverage_threshold, analysis_type):
     """
-    Filter out var_series data periods when coverage is lower than coverage_threshold
+    Filter out var_series data periods when coverage is lower than coverage_threshold and return a text message
+    explaining the monthly coverage threshold filter applied.
 
     :param var_series:              Series of variable whose monthly data are filtered out from.
-    type var_series:                pandas.Series
+    :type var_series:               pandas.Series
     :param monthly_coverage:        Monthly coverage of var_series data derived using brightwind.coverage() function.
     type monthly_coverage:          pandas.Dataframe
     :param coverage_threshold:      In this case monthly coverage threshold. Coverage is defined as the ratio of the
@@ -251,10 +252,13 @@ def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
                                     with a coverage less than this. Coverage_threshold should be a value
                                     between 0 and 1. If it is None or 0 data is not filtered.
     :type coverage_threshold:       int, float or None
+    :param analysis_type:           Text reporting the type of analysis to report in the warning messages
+                                    e.g 'mean of monthly mean' .
+    :type analysis_type:            str
     :return var_series_filtered:    Series of variable whose months with coverage lower than the coverage_threshold are
                                     filtered out
-    :rtype result:                  pandas.Series
-    :return text_msg_out:           A text message explaining he monthly coverage threshold filter applied.
+    :rtype var_series_filtered:     pandas.Series
+    :return text_msg_out:           A text message explaining the monthly coverage threshold filter applied.
     :rtype text_msg_out:            str
     """
     text_msg_out = None
@@ -332,7 +336,7 @@ def _mean_of_monthly_means_seasonal_adjusted(var_series, coverage_threshold=0.8)
     """
     Calculate the mean of monthly mean of the input variable applying a seasonal adjustment.
 
-    The mean of monthly mean is derived as for method below:
+    The seasonal adjusted mean of monthly mean is derived as for method below:
         1) calculate monthly coverage
         2) filter out any months with coverage lower than the input 'coverage_threshold'
         3) derive the monthly mean for each calendar month (i.e. all January)
@@ -381,17 +385,58 @@ def _mean_of_monthly_means_seasonal_adjusted(var_series, coverage_threshold=0.8)
     return average_result
 
 
-def momm(data, date_from: str = '', date_to: str = ''):
+def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False, coverage_threshold=0.8):
     """
-    Calculates and returns long term reference speed. Accepts a DataFrame
-    with timestamps as index column and another column with wind-speed. You can also specify
-    date_from and date_to to calculate the long term reference speed for only that period.
+    Calculates and returns the mean of monthy mean speed. Accepts a DataFrame with timestamps as index column and
+    another column with wind-speed. You can also specify date_from and date_to to calculate the mean of monthly
+    mean speed for only that period.
 
-    :param data: Pandas DataFrame or Series with timestamp as index and a column with wind-speed
-    :type data:  pd.DataFrame or pd.Series
-    :param date_from: Start date as string in format YYYY-MM-DD
-    :param date_to: End date as string in format YYYY-MM-DD
-    :returns: Long term reference speed
+    If 'seasonal_adjustment' input is set to True then the mean of monthly mean value is seasonally adjusted.
+    NOTE; that if the input datasets ('data') don't have data for each calendar month then the seasonal adjustment
+    is not derived and the function will raise an error.
+
+    The seasonal adjusted mean of monthly mean is derived as for method below:
+        1) calculate monthly coverage
+        2) filter out any months with coverage lower than the input 'coverage_threshold'
+        3) derive the monthly mean for each calendar month (i.e. all January)
+        4) weighted average each monthly mean value based on the number of days in each month
+           (i.e. 31 days for January) - number of days for February are derived as average of actual days for the year
+           of the dataset. This to take into account leap years.
+
+    :param data:                Pandas DataFrame or Series with timestamp as index and a column with wind-speed
+    :type data:                 pd.DataFrame or pd.Series
+    :param date_from:           Start date as string in format YYYY-MM-DD
+    :type:                      str
+    :param date_to:             End date as string in format YYYY-MM-DD
+    :type:                      str
+    :param seasonal_adjustment: Optional, False by default. If True, returns the mean of monthly mean seasonal
+                                adjusted
+    :type seasonal_adjustment:  bool
+    :param coverage_threshold:  In this case monthly coverage threshold. It is used only if seasonal_adjustment=True.
+                                Coverage is defined as the ratio of the number of data points present in the month and
+                                the maximum number of data points that a month should have.
+                                Example, for 10 minute data for June, the maximum number of data points is
+                                43,200. But if the number if data points available is only 30,000 the coverage is
+                                0.69. A coverage_threshold value of 0.8 will filter out any months with a coverage less
+                                than this. Coverage_threshold should be a value between 0 and 1. If it is None or 0,
+                                data is not filtered. Default value is 0.8.
+    :type coverage_threshold:   int, float or None
+    :returns:                   Long term reference speed
+    :rtype:                     panda.Dataframe
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+
+        # Derive mean of monthly mean with standard method
+        bw.momm(data[['Spd40mN','Spd40mS']])
+
+        # Derive mean of monthly mean with standard method only using a certain period
+        bw.momm(data[['Spd40mN','Spd40mS']], date_from='2016-06-01', date_to='2017-05-31')
+
+        # Derive mean of monthly mean seasonal adjusted and imposing coverage_threshold
+        bw.momm(data[['Spd40mN','Spd40mS']], seasonal_adjustment=True, coverage_threshold=0.7)
 
     """
     if isinstance(data, pd.Series):
@@ -399,7 +444,15 @@ def momm(data, date_from: str = '', date_to: str = ''):
     else:
         momm_data = data.copy()
     sliced_data = utils.slice_data(momm_data, date_from, date_to)
-    output = _mean_of_monthly_means_basic_method(sliced_data)
+    if seasonal_adjustment:
+        output = pd.DataFrame([np.nan * np.ones(len(momm_data.columns))], columns=momm_data.columns,index=['MOMM'])
+        for col in momm_data.columns:
+            output[col] = _mean_of_monthly_means_seasonal_adjusted(sliced_data[col],
+                                                                   coverage_threshold=coverage_threshold)
+        output = output.T
+    else:
+        output = _mean_of_monthly_means_basic_method(sliced_data)
+
     if output.shape == (1, 1):
         return output.values[0][0]
     return output
