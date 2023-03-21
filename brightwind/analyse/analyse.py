@@ -728,7 +728,7 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
         index_name = tmp_var_series.index.name
         tmp_var_series[index_name] = list(var_series.index)
         var_series = tmp_var_series.set_index('Months').drop(labels=list(
-            months_fail_coverage.index.strftime('%Y-%m'))).set_index(index_name).iloc[:, 0]
+            months_fail_coverage[months_fail_coverage > 0].index.strftime('%Y-%m'))).set_index(index_name).iloc[:, 0]
 
         text_months_fail = ", ".join(map(str, list(months_fail_coverage.index.strftime('%b-%Y'))))
         text_warning = 'These months are filtered out for deriving the seasonally adjusted frequency table.'
