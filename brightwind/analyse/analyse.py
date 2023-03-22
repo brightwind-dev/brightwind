@@ -277,7 +277,7 @@ def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
 
         text_months_fail = ", ".join(map(str, list(months_fail_coverage.index.strftime('%b-%Y'))))
         text_warning = 'These months are filtered out for deriving the seasonally adjusted {} {}.'.format(
-            var_series.name, analysis_type)
+            var_series_filtered.name, analysis_type)
     else:
         text_months_fail = ''
         text_warning = ''
@@ -313,11 +313,11 @@ def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
         text_msg_out = 'Note: The monthly coverage for {} is lower than the coverage threshold value of {}.' \
                        ' {}'.format(text_months_fail, coverage_threshold, text_warning)
 
-    # check that var_series dataset has data for all calendar months
-    if len(var_series.index.month.unique()) < 12:
+    # check that var_series_filtered dataset has data for all calendar months
+    if len(var_series_filtered.index.month.unique()) < 12:
         raise ValueError('The input {} series filtered by the input monthly coverage threshold do not cover all '
                          'calendar months. The seasonal adjusted {} '
-                         'cannot be derived.'.format(var_series.name, analysis_type))
+                         'cannot be derived.'.format(var_series_filtered.name, analysis_type))
 
     return var_series_filtered, text_msg_out
 
