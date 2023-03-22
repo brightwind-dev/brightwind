@@ -387,23 +387,24 @@ def _mean_of_monthly_means_seasonal_adjusted(var_series, coverage_threshold=0.8)
 
 def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False, coverage_threshold=0.8):
     """
-    Calculates and returns the mean of monthy mean speed. Accepts a DataFrame with timestamps as index column and
-    another column with wind-speed. You can also specify date_from and date_to to calculate the mean of monthly
+    Calculates and returns the mean of monthly mean speed. This accepts a DataFrame with timestamps as index column and
+    another column with wind speed. You can also specify date_from and date_to to calculate the mean of monthly
     mean speed for only that period.
 
     If 'seasonal_adjustment' input is set to True then the mean of monthly mean value is seasonally adjusted.
-    NOTE; that if the input datasets ('data') don't have data for each calendar month then the seasonal adjustment
-    is not derived and the function will raise an error.
 
     The seasonal adjusted mean of monthly mean is derived as for method below:
         1) calculate monthly coverage
         2) filter out any months with coverage lower than the input 'coverage_threshold'
-        3) derive the monthly mean for each calendar month (i.e. all January)
+        3) derive the monthly mean for each calendar month (i.e. all Januaries)
         4) weighted average each monthly mean value based on the number of days in each month
            (i.e. 31 days for January) - number of days for February are derived as average of actual days for the year
-           of the dataset. This to take into account leap years.
+           of the dataset. This is to take into account leap years.
 
-    :param data:                Pandas DataFrame or Series with timestamp as index and a column with wind-speed
+    NOTE; that if the input datasets ('data') don't have data for each calendar month then the seasonal adjustment
+    is not derived and the function will raise an error.
+
+    :param data:                Pandas DataFrame or Series with timestamp as index and a column with wind speed
     :type data:                 pd.DataFrame or pd.Series
     :param date_from:           Start date as string in format YYYY-MM-DD
     :type:                      str
@@ -412,9 +413,9 @@ def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False
     :param seasonal_adjustment: Optional, False by default. If True, returns the mean of monthly mean seasonal
                                 adjusted
     :type seasonal_adjustment:  bool
-    :param coverage_threshold:  In this case monthly coverage threshold. It is used only if seasonal_adjustment=True.
-                                Coverage is defined as the ratio of the number of data points present in the month and
-                                the maximum number of data points that a month should have.
+    :param coverage_threshold:  In this case this is a coverage threshold applied to a month. It is used only if
+                                seasonal_adjustment=True. Coverage is defined as the ratio of the number of data points
+                                present in the month and the maximum number of data points that a month should have.
                                 Example, for 10 minute data for June, the maximum number of data points is
                                 43,200. But if the number if data points available is only 30,000 the coverage is
                                 0.69. A coverage_threshold value of 0.8 will filter out any months with a coverage less
@@ -445,7 +446,7 @@ def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False
         momm_data = data.copy()
     sliced_data = utils.slice_data(momm_data, date_from, date_to)
     if seasonal_adjustment:
-        output = pd.DataFrame([np.nan * np.ones(len(momm_data.columns))], columns=momm_data.columns,index=['MOMM'])
+        output = pd.DataFrame([np.nan * np.ones(len(momm_data.columns))], columns=momm_data.columns, index=['MOMM'])
         for col in momm_data.columns:
             output[col] = _mean_of_monthly_means_seasonal_adjusted(sliced_data[col],
                                                                    coverage_threshold=coverage_threshold)
