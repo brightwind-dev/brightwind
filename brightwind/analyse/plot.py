@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 import matplotlib as mpl
 from matplotlib.dates import DateFormatter
 import matplotlib.dates as mdates
@@ -16,7 +15,7 @@ import re
 import six
 from colormap import rgb2hex, rgb2hls, hls2rgb
 from matplotlib.ticker import PercentFormatter
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+from matplotlib.colors import ListedColormap, to_hex, LinearSegmentedColormap
 import warnings
 
 register_matplotlib_converters()
@@ -56,10 +55,10 @@ class _ColorPalette:
         self.secondary = '#2E3743'      # asphalt, rgb[46/255, 55/255, 67/255]
         self.tertiary = '#9B2B2C'       # red'ish, rgb(155, 43, 44)
         self.fourth = '#E57925'         # orange'ish, rgb(229, 121, 37)
-        self.fifth = '#F2D869'          # yellow'ish, rgb(242, 216, 105)
+        self.fifth = '#ffc008'          # yellow'ish, rgb(255, 192, 8)
         self.sixth = '#AB8D60'
         self.seventh = '#A4D29F'
-        self.eighth = '#6E807B'
+        self.eighth = '#01958a'
         self.ninth = '#3D636F'          # blue grey
         self.tenth = '#A49E9D'
         self.eleventh = '#DA9BA6'
@@ -73,7 +72,16 @@ class _ColorPalette:
         _col_map_colors = [self.primary_95,  # lightest primary
                            self.primary,     # primary
                            self.primary_10]  # darkest primary
-        self._color_map = self._set_col_map(_col_map_colors)
+
+        _color_map_cyclical_colors = [self.secondary,
+                                      self.fifth,
+                                      self.primary,
+                                      self.tertiary,
+                                      self.secondary]
+
+        self._color_map = self._set_col_map('color_map', _col_map_colors)
+
+        self._color_map_cyclical = self._set_col_map('color_map_cyclical', _color_map_cyclical_colors)
 
         self.color_list = [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
                            self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
@@ -82,44 +90,52 @@ class _ColorPalette:
         # mpl.rcParams['axes.prop_cycle']
 
     @staticmethod
-    def _set_col_map(col_map_colors):
-        return LinearSegmentedColormap.from_list('color_map', col_map_colors, N=256)
+    def _set_col_map(color_map_name, col_map_colors):
+        return LinearSegmentedColormap.from_list(color_map_name, col_map_colors, N=256)
 
     @property
     def color_map(self):
         return self._color_map
 
+    @property
+    def color_map_cyclical(self):
+        return self._color_map_cyclical
+
     @color_map.setter
     def color_map(self, col_map_colors):
-        self._color_map = self._set_col_map(col_map_colors)
+        self._color_map = self._set_col_map('color_map', col_map_colors)
+
+    @color_map_cyclical.setter
+    def color_map_cyclical(self, col_map_colors):
+        self._color_map_cyclical = self._set_col_map('color_map_cyclical', col_map_colors)
 
 
 COLOR_PALETTE = _ColorPalette()
 
 
-def _adjust_color_lightness(input_color, factor):
+def _colormap_to_colorscale(cmap, n_colors):
+    """
+    Function that transforms a matplotlib colormap to a list of colors
+    """
+    return [to_hex(cmap(k*1/(n_colors-1))) for k in range(n_colors)]
+
+
+def _adjust_color_lightness(r, g, b, factor):
     """
     Generate the color corresponding to the input primary color corrected by a lightness or darkness defined by the
     input factor percentage. Lighter colors are obtained with a factor >1 and darker colors with a factor <1.
 
-    :param input_color: Input primary color for deriving the adjusted color from. This accepts a string that represents
-                        the name of the color (same input formats as matplotlib.colors.to_rgb()).
-                        It can be an RGB or RGBA sequence or a string in any of several forms:
-                            1) hex color string, like ‘#000FFF’
-                            2) standard name, like ‘green’
-                            3) letter from the set ‘rgbcmykw’
-                            4) string representation of a float, like ‘0.4’, indicating gray on a 0-1 scale
-    :type input_color:  RGB or RGBA sequence or str
-    :param factor:      Factor defining the percentage of lightness (between 1 and 2) or darkness (between 0 and 1).
-    :type factor:       float
-    :return:            color in hex format
-    :rtype:             hex
+    :param r:       Intensity of red color between 0 and 255.
+    :type r:        float
+    :param g:       Intensity of green color between 0 and 255.
+    :type g:        float
+    :param b:       Intensity of blue color between 0 and 255.
+    :type b:        float
+    :param factor:  Factor defining the percentage of lightness (>1) or darkness (<1).
+    :type factor:   float
+    :return:        color in hex format
+    :rtype:         hex
     """
-    if factor > 2 or factor < 0:
-        raise ValueError("The `factor` input must be a value between 0 and 2.")
-    
-    r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(input_color)))
-
     hue, lightness, saturation = rgb2hls(r / 255.0, g / 255.0, b / 255.0)
     lightness = max(min(lightness * factor, 1.0), 0.0)
     r, g, b = hls2rgb(hue, lightness, saturation)
@@ -822,38 +838,42 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_label=None, y_label=None,
     return scat_plot
 
 
-def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, sectors=12,
+def plot_scatter_by_sector(x, y, wdir, trendline_y=None, sort_trendline_inputs=False, line_of_slope_1=True, sectors=12,
                            x_limits=None, y_limits=None, axes_equal=True, figure_size=(10, 10.2), **kwargs):
     """
     Plot scatter subplots (with shared x and y axis) of x versus y for each directional sector. If a trendline
     timeseries is given as input then this is also plotted in the graph. The line with slope 1 and passing
     through the origin is shown if line_of_slope_1=True
 
-    :param x:               The x-axis values or reference variable.
-    :type x:                pd.Series
-    :param y:               The y-axis values or target variable.
-    :type y:                pd.Series
-    :param wdir:            Timeseries of wind directions.
-    :type wdir:             pd.Series
-    :param trendline_y:     Series of trendline y values.
-    :type trendline_y:      pd.Series
-    :param line_of_slope_1: Boolean to choose to plot the line with slope one and passing through the origin.
-    :type line_of_slope_1:  Bool
-    :param sectors:         Number of directional sectors
-    :type sectors:          int
-    :param x_limits:        x-axis min and max limits. Can be set to None to let the code derive the min and max from
-                            the x_wspd_series.
-    :type x_limits:         tuple, None
-    :param y_limits:        y-axis min and max limits. Can be set to None to let the code derive the min and max from
-                            the y_wspd_series.
-    :type y_limits:         tuple, None
-    :param axes_equal:      Boolean to set the units for the x and y axes to be equal. If x_limits and y_limits are
-                            both None then the two axes limits are set to be the same.
-    :type axes_equal:       Bool
-    :param figure_size:     Figure size in tuple format (width, height)
-    :type figure_size:      tuple
-    :param kwargs:          Additional keyword arguments for matplotlib.pyplot.subplot
-    :returns:               matplotlib.figure.Figure
+    :param x:                       The x-axis values or reference variable.
+    :type x:                        pd.Series
+    :param y:                       The y-axis values or target variable.
+    :type y:                        pd.Series
+    :param wdir:                    Timeseries of wind directions.
+    :type wdir:                     pd.Series
+    :param trendline_y:             Series of trendline y values. This needs to be derived using the x-axis timeseries
+                                    values as it is plotted against x.
+    :type trendline_y:              pd.Series
+    :param sort_trendline_inputs:   Boolean to chose if trendline inputs should be sorted in ascending order. Default is
+                                    False and trendline inputs are not sorted.
+    :type sort_trendline_inputs:    Bool
+    :param line_of_slope_1:         Boolean to choose to plot the line with slope one and passing through the origin.
+    :type line_of_slope_1:          Bool
+    :param sectors:                 Number of directional sectors
+    :type sectors:                  int
+    :param x_limits:                x-axis min and max limits. Can be set to None to let the code derive the min and max
+                                    from the x_wspd_series.
+    :type x_limits:                 tuple, None
+    :param y_limits:                y-axis min and max limits. Can be set to None to let the code derive the min and max
+                                    from  the y_wspd_series.
+    :type y_limits:                 tuple, None
+    :param axes_equal:              Boolean to set the units for the x and y axes to be equal. If x_limits and y_limits
+                                    are both None then the two axes limits are set to be the same.
+    :type axes_equal:               Bool
+    :param figure_size:             Figure size in tuple format (width, height)
+    :type figure_size:              tuple
+    :param kwargs:                  Additional keyword arguments for matplotlib.pyplot.subplot
+    :returns:                       matplotlib.figure.Figure
 
     **Example usage**
     ::
@@ -920,7 +940,13 @@ def plot_scatter_by_sector(x, y, wdir, trendline_y=None, line_of_slope_1=True, s
         else:
             trendline_y_input = trendline_y
 
-        _scatter_subplot(x[logic_sect], y[logic_sect], trendline_y_input, trendline_x=None,
+        if sort_trendline_inputs:
+            trendline_x_input = sorted([x_data for x_data in x[logic_sect]])
+            trendline_y_input = sorted([y_data for y_data in trendline_y_input])
+        else:
+            trendline_x_input = x[logic_sect]
+
+        _scatter_subplot(x[logic_sect], y[logic_sect], trendline_y_input, trendline_x=trendline_x_input,
                          line_of_slope_1=line_of_slope_1, x_label=None, y_label=None,
                          x_limits=x_limits, y_limits=y_limits, axes_equal=axes_equal,
                          subplot_title=str(round(ratio_min)) + '-' + str(round(ratio_max)),
@@ -1191,11 +1217,12 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         bar_color = bar_colors[i]
         # The offset in x direction of that bar
         x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
+        r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(bar_color)))  # hex to rgb format
 
         for data_bar, data_bin in zip(data[name], data_bins):
             if vertical_bars:
                 ax.imshow(np.array([[mpl.colors.to_rgb(bar_color)],
-                                    [mpl.colors.to_rgb(_adjust_color_lightness(bar_color, factor=1.8))]]),
+                                    [mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8))]]),
                           interpolation='gaussian', extent=(data_bin + x_offset - bar_width / 2,
                                                             data_bin + x_offset + bar_width / 2, 0,
                                                             data_bar),
@@ -1204,7 +1231,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                              edgecolor=bar_color, linewidth=line_width, fill=False,
                              zorder=1)#5
             else:
-                cmp = _create_colormap(mpl.colors.to_rgb(_adjust_color_lightness(bar_color, factor=1.8)),
+                cmp = _create_colormap(mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8)),
                                        mpl.colors.to_rgb(bar_color))
                 ax.imshow(_gradient_image(direction=1, cmap_range=(0, 1)), cmap=cmp,
                           interpolation='gaussian',
@@ -1891,40 +1918,48 @@ def plot_log_law(avg_slope, avg_intercept, wspds, heights, max_plot_height=None)
 
 
 def plot_shear_time_of_day(df, calc_method, plot_type='step'):
-    df_copy = df.copy()
-    # colours in use
-    colors = [(0.6313725490196078, 0.6470588235294118, 0.6705882352941176, 1.0),  # Jan
-              (0.1568627450980392, .19215686274509805, 0.6705882352941176, 1.0),  # Feb
-              (0.06666666666666667, 0.4196078431372549, 0.6901960784313725, 1.0),  # March
-              (0.22745098039215686, 0.7294117647058823, 0.9803921568627451, 1.0),  # April
-              (0.2392156862745098, 0.5666666666666667, 0.42745098039215684, 1.0),  # May
-              (0.4117647058823529, 0.7137254901960784, 0.16470588235294117, 1.0),  # June
-              (0.611764705882353, 0.7725490196078432, 0.21568627450980393, 1.0),  # July
-              (0.6823529411764706, 0.403921568627451, 0.1607843137254902, 1.0),  # Aug
-              (0.7901960784313726, 0.48627450980392156, 0.1843137254901961, 1.0),  # Sep
-              (1, 0.7019607843, .4, 1),  # Oct
-              (0, 0, 0, 1.0),  # Nov
-              (0.40588235294117647, 0.43137254901960786, 0.4666666666666667, 1.0)]  # Dec
+    """
+    Function used by Shear.TimeOfDay for plotting the hourly shear for each calendar month or an average of all months.
 
-    if len(df.columns) == 1:
-        colors[0] = colors[5]
+    The color map used for plotting the shear by time of day for each calendar month depends on the plot_type input:
+        1) if 'line' 'step' the COLOR_PALETTE.color_map_cyclical is used
+        2) if '12x24' the 'COLOR_PALETTE.color_map is used
+    The color used for plotting the average of all months shear is COLOR_PALETTE.primary.
+
+    :param df:          Series of average shear by time of day or DataFrame of shear by time of day for
+                        each calendar month.
+    :type df:           pandas.Series or pandas.DataFrame
+    :param calc_method: Method used by Shear.TimeOfDay for shear calculation, either 'power_law' or 'log_law'.
+                        Input used for defining label of y axis.
+    :type calc_method:  str
+    :param plot_type:   Type of plot to be generated. Options include 'line', 'step' and '12x24'. Default is 'step'.
+    :type plot_type:    str
+    :returns:           A shear by time of day plot
+
+    """
+    df_copy = df.copy()
+
     if calc_method == 'power_law':
         label = 'Average Shear'
-
-    if calc_method == 'log_law':
+    elif calc_method == 'log_law':
         label = 'Roughness Coefficient'
+    else:
+        label = calc_method
 
     if plot_type == '12x24':
         df.columns = np.arange(1, 13, 1)
         df.index = np.arange(0, 24, 1)
-        df[df.columns[::-1]]
         return plot_12x24_contours(df, label=(label, 'mean'), plot='tod')
 
     else:
+        colors = _colormap_to_colorscale(COLOR_PALETTE.color_map_cyclical, 13)
+        colors = colors[:-1]
+        if len(df.columns) == 1:
+            colors[0] = COLOR_PALETTE.primary
+
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.set_xlabel('Time of Day')
         ax.set_ylabel(label)
-        import matplotlib.dates as mdates
 
         # create x values for plot
         idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H').time

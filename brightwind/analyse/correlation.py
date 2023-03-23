@@ -832,12 +832,18 @@ class SpeedSort(CorrelBase):
             self.params = dict()
             self.params['slope'] = (ymean2 - ymean1) / (xmean2 - xmean1)
             self.params['offset'] = ymean1 - (xmean1 * self.params['slope'])
+            self.params['cutoff'] = cutoff
             # print(self.params)
 
         def sector_predict(self, x):
-            def linear_function(x, slope, offset):
-                return x * slope + offset
-            return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
+            def bilinear_function(x, slope, offset, cutoff):
+                if x < cutoff:
+                    return (slope * cutoff + offset) * x / cutoff  # Line passing through zero
+                else:
+                    return x * slope + offset  # Line not passing through zero
+
+            return x.transform(bilinear_function, slope=self.params['slope'], offset=self.params['offset'],
+                               cutoff=self.params['cutoff'])
 
         def plot_model(self):
             return plot_scatter(self.sector_ref,
@@ -1003,10 +1009,44 @@ class SpeedSort(CorrelBase):
         result = result.sort_index()
         return result
 
-    def plot(self):
+    def plot(self, figure_size=(10, 10.2)):
+        """
+        Plots scatter plot of reference versus target speed data for each sector. The regression line and the line of
+        slope 1 passing through the origin are also shown on each plot.
+
+        :param figure_size: Figure size in tuple format (width, height)
+        :type figure_size:  tuple
+        :returns:           A matplotlib figure
+        :rtype:             matplotlib.figure.Figure
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_csv(bw.demo_datasets.demo_data)
+            m2_ne = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+
+            # Correlate by directional sector, using 36 sectors.
+            spd_srt_cor = bw.Correl.SpeedSort(m2_ne['WS50m_m/s'], m2_ne['WD50m_deg'],
+                                          data['Spd80mN'], data['Dir78mS'], averaging_prd='1D',
+                                          coverage_threshold=0.9, sectors=12)
+            spd_srt_cor.run()
+
+            # To plot the scatter subplots by directional sectors, the regression line and the line of
+            # slope 1 passing through the origin
+            spd_srt_cor.plot()
+
+            # To set the figure size
+            spd_srt_cor.plot(figure_size=(20, 20.2))
+
+        """
+        predict = self.data[self._ref_spd_col_name] * np.nan
         for model in self.speed_model:
-            self.speed_model[model].plot_model('Sector ' + str(model))
-        return self.plot_wind_directions()
+            predict = predict.combine_first(self.speed_model[model].sector_predict(self.speed_model[model].sector_ref))
+
+        return plot_scatter_by_sector(self.data[self._ref_spd_col_name], self.data[self._tar_spd_col_name],
+                                      self.data[self._ref_dir_col_name], trendline_y=predict,
+                                      sort_trendline_inputs=True, sectors=self.sectors,
+                                      line_of_slope_1=True, figure_size=figure_size)
 
     @staticmethod
     def _linear_interpolation(xa, xb, ya, yb, xc):
