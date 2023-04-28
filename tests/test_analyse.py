@@ -39,9 +39,24 @@ def test_momm():
     momm_standard = bw.momm(DATA[['Spd40mN', 'Spd40mS']], date_from='2016-06-01', date_to='2017-05-31')
     assert round(momm_standard.T['Spd40mS'].values[0], 6) == 6.684251
 
-    # Derive mean of monthly mean seasonal adjusted and imposing coverage_threshold
+    # Derive mean of monthly mean with standard method only using a certain period and imposing coverage_threshold
+    # equal to 0.7
+    momm_standard = bw.momm(DATA[['Spd40mN', 'Spd40mS']], date_from='2016-05-01', date_to='2017-05-31',
+                            coverage_threshold=0.7)
+    assert round(momm_standard.T['Spd40mS'].values[0], 6) == 6.684251
+
+    # Derive mean of monthly mean seasonal adjusted and imposing coverage_threshold equal to 0.7
     momm_seas_adj = bw.momm(DATA[['Spd40mN', 'Spd40mS']], seasonal_adjustment=True, coverage_threshold=0.7)
     assert round(momm_seas_adj.T['Spd40mN'].values[0], 6) == 6.749667
+
+    # Derive mean of monthly mean seasonal adjusted and imposing coverage_threshold equal to zero
+    momm_seas_adj = bw.momm(DATA[['Spd40mN', 'Spd40mS']], seasonal_adjustment=True, coverage_threshold=0)
+    assert round(momm_seas_adj.T['Spd40mN'].values[0], 6) == 6.797647
+
+    # Derive mean of monthly mean seasonal adjusted and imposing coverage_threshold equal to None
+    momm_seas_adj = bw.momm(DATA[['Spd40mN', 'Spd40mS']], seasonal_adjustment=True, coverage_threshold=None)
+    momm_seas_adj1 = bw.momm(DATA[['Spd40mN', 'Spd40mS']], seasonal_adjustment=True, coverage_threshold=0.8)
+    assert round(momm_seas_adj.T['Spd40mS'].values[0], 6) == round(momm_seas_adj1.T['Spd40mS'].values[0], 6)
 
     # Derive mean of monthly mean seasonal adjusted with months of zero coverage
     data_test = DATA.drop(DATA.loc[str(DATA.index[0].year) + '-' + str(DATA.index.month.unique()[3])].index)
