@@ -455,8 +455,14 @@ def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False
 
     for col in sliced_data.columns:
 
-        # derive monthly coverage
-        monthly_coverage = coverage(sliced_data[col])
+        # Derive monthly coverage
+        # Check if sliced_data resolution is more than the monthly period, if it is the case then the monthly coverage
+        # can not be derived and the data_resolution needs to be given as input to the coverage function.
+        if sliced_data[col].index[0] + tf._freq_str_to_dateoffset('1M') < \
+                sliced_data[col].index[0] + tf._get_data_resolution(sliced_data[col].index):
+            monthly_coverage = coverage(sliced_data[col], period='1M', data_resolution=pd.DateOffset(months=1))
+        else:
+            monthly_coverage = coverage(sliced_data[col], period='1M')
 
         var_series, text_msg = _filter_out_months_based_on_coverage_threshold(sliced_data[col], monthly_coverage,
                                                                               coverage_threshold,
