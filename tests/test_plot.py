@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 from matplotlib.ticker import PercentFormatter
 from matplotlib.dates import DateFormatter
+import matplotlib as mpl
+from colormap import rgb2hex, rgb2hls, hls2rgb
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -144,3 +146,13 @@ def test_plot_freq_distribution():
                                            max_y_value=None, x_tick_labels=None, x_label=None,
                                            y_label='count', total_width=1, legend=True)
     assert True
+
+
+def test_adjust_color_lightness():
+    input_color = '#9CC537'
+    r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(input_color)))
+    hue, lightness, saturation = rgb2hls(r / 255, g / 255, b / 255)
+    r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(bw.analyse.plot._adjust_color_lightness(input_color, 0.1))))
+    hue1, lightness1, saturation1 = rgb2hls(r / 255, g / 255, b / 255)
+    assert (int(hue * 100) == int(hue1 * 100)) and (int(saturation * 100) == int(saturation1 * 100)) and \
+           (lightness1 == 0.1)

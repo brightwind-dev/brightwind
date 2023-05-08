@@ -120,26 +120,26 @@ def _colormap_to_colorscale(cmap, n_colors):
     return [to_hex(cmap(k*1/(n_colors-1))) for k in range(n_colors)]
 
 
-def _adjust_color_lightness(r, g, b, factor):
+def _adjust_color_lightness(input_color, lightness_factor):
     """
-    Generate the color corresponding to the input primary color corrected by a lightness or darkness defined by the
-    input factor percentage. Lighter colors are obtained with a factor >1 and darker colors with a factor <1.
+    Generate the color corresponding to the input primary color corrected by a lightness factor indicating the
+    percentage lightness. Lighter colors are obtained with a factor > 0.5 and darker colors with a factor < 0.5.
+    This function is converting the input color to hue, saturation, lightness (hsl) format and adjusting only the
+    lightness value. See https://www.w3schools.com/colors/colors_picker.asp for more info.
 
-    :param r:       Intensity of red color between 0 and 255.
-    :type r:        float
-    :param g:       Intensity of green color between 0 and 255.
-    :type g:        float
-    :param b:       Intensity of blue color between 0 and 255.
-    :type b:        float
-    :param factor:  Factor defining the percentage of lightness (>1) or darkness (<1).
-    :type factor:   float
-    :return:        color in hex format
-    :rtype:         hex
+    :param input_color:         Input base color to adjust. It can accept any matplotlib recognised color inputs.
+                                (see https://matplotlib.org/stable/tutorials/colors/colors.html) or `numpy.ma.masked`
+    :type input_color:          str, tuple, list
+    :param lightness_factor:    Percentage of lightness (>0.5) or darkness (<0.5). Value should be between 0 and 1.
+    :type lightness_factor:     float
+    :return:                    color in hex format
+    :rtype:                     hex
     """
+    lightness_factor = utils.validate_coverage_threshold(lightness_factor)
+    r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(input_color)))  # convert to rgb format
     hue, lightness, saturation = rgb2hls(r / 255.0, g / 255.0, b / 255.0)
-    lightness = max(min(lightness * factor, 1.0), 0.0)
-    r, g, b = hls2rgb(hue, lightness, saturation)
-    return rgb2hex(int(r * 255), int(g * 255), int(b * 255))
+    r, g, b = hls2rgb(hue, lightness_factor, saturation)
+    return mpl.colors.to_hex([r, g, b])
 
 
 def plot_monthly_means(data, coverage=None, ylbl=''):
@@ -1222,7 +1222,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         for data_bar, data_bin in zip(data[name], data_bins):
             if vertical_bars:
                 ax.imshow(np.array([[mpl.colors.to_rgb(bar_color)],
-                                    [mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8))]]),
+                                    [mpl.colors.to_rgb(_adjust_color_lightness(bar_color, lightness_factor=0.8))]]),
                           interpolation='gaussian', extent=(data_bin + x_offset - bar_width / 2,
                                                             data_bin + x_offset + bar_width / 2, 0,
                                                             data_bar),
@@ -1231,7 +1231,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                              edgecolor=bar_color, linewidth=line_width, fill=False,
                              zorder=1)#5
             else:
-                cmp = _create_colormap(mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8)),
+                cmp = _create_colormap(mpl.colors.to_rgb(_adjust_color_lightness(bar_color, lightness_factor=0.8)),
                                        mpl.colors.to_rgb(bar_color))
                 ax.imshow(_gradient_image(direction=1, cmap_range=(0, 1)), cmap=cmp,
                           interpolation='gaussian',
