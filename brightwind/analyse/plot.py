@@ -1218,11 +1218,14 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         # The offset in x direction of that bar
         x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
         r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(bar_color)))  # hex to rgb format
+        hue, lightness, saturation = rgb2hls(r / 255, g / 255, b / 255)
+        lightness_factor = max(min(lightness * 1.8, 1.0), 0.0)
 
         for data_bar, data_bin in zip(data[name], data_bins):
             if vertical_bars:
                 ax.imshow(np.array([[mpl.colors.to_rgb(bar_color)],
-                                    [mpl.colors.to_rgb(_adjust_color_lightness(bar_color, lightness_factor=0.8))]]),
+                                    [mpl.colors.to_rgb(_adjust_color_lightness(bar_color,
+                                                                               lightness_factor=lightness_factor))]]),
                           interpolation='gaussian', extent=(data_bin + x_offset - bar_width / 2,
                                                             data_bin + x_offset + bar_width / 2, 0,
                                                             data_bar),
@@ -1231,7 +1234,8 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                              edgecolor=bar_color, linewidth=line_width, fill=False,
                              zorder=1)#5
             else:
-                cmp = _create_colormap(mpl.colors.to_rgb(_adjust_color_lightness(bar_color, lightness_factor=0.8)),
+                cmp = _create_colormap(mpl.colors.to_rgb(_adjust_color_lightness(bar_color,
+                                                                                 lightness_factor=lightness_factor)),
                                        mpl.colors.to_rgb(bar_color))
                 ax.imshow(_gradient_image(direction=1, cmap_range=(0, 1)), cmap=cmp,
                           interpolation='gaussian',
