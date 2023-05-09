@@ -156,3 +156,11 @@ def test_adjust_color_lightness():
     hue1, lightness1, saturation1 = rgb2hls(r / 255, g / 255, b / 255)
     assert (int(hue * 100) == int(hue1 * 100)) and (int(saturation * 100) == int(saturation1 * 100)) and \
            (lightness1 == 0.1)
+
+    assert bw.analyse.plot._adjust_color_lightness(input_color, 0.1) == "#20280b"  # darkest green, 10% of primary
+    assert bw.analyse.plot._adjust_color_lightness(input_color, 0.35) == "#6e8c27"  # dark green, 35% of primary
+    assert bw.analyse.plot._adjust_color_lightness(input_color, 0.8) == "#d8e9af"  # light green, 80% of primary
+    assert bw.analyse.plot._adjust_color_lightness(input_color, 0.9) == "#ecf4d7"  # light green, 90% of primary
+    assert bw.analyse.plot._adjust_color_lightness(input_color, 0.95) == "#f5f9eb"  # lightest green, 95% of primary
+
+
