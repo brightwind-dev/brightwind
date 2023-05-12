@@ -41,15 +41,80 @@ class _ColorPalette:
 
     def __init__(self):
         """
-        Color palette to be used for plotting graphs and tables. Colors can be reset by using
+        Color palette to be used for plotting graphs and tables. This Class generates also color_list, color_map,
+        color_map_cyclical and some adjusted lightness color variables that are created from the main colors defined
+        below and used by several brightwind functions.
 
+        1) The main colors used to define the color palette are:
+            self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb(156/255, 197/255, 55/255)
+            self.secondary = '#2E3743'      # asphalt, rgb(46/255, 55/255, 67/255)
+            self.tertiary = '#9B2B2C'       # red'ish, rgb(155/255, 43/255, 44/255)
+            self.fourth = '#E57925'         # orange'ish, rgb(229/255, 121/255, 37/255)
+            self.fifth = '#ffc008'          # yellow'ish, rgb(255/255, 192/255, 8/255)
+            self.sixth = '#AB8D60'          # brown'ish, rgb(171/255, 141/255, 96/255)
+            self.seventh = '#A4D29F'        # brown'ish, rgb(171/255, 141/255, 96/255)
+            self.eighth = '#01958a'         # grayish lime green, rgb(164/255, 210/255, 156/255)
+            self.ninth = '#3D636F'          # blue grey, rgb(61/255, 99/255, 111/255)
+            self.tenth = '#A49E9D'          # dark grayish red, rgb(164/255, 158/255, 157/255)
+            self.eleventh = '#DA9BA6'       # very soft red, rgb(218/255, 155/255, 166/255)
+
+        2) The adjusted lightness color variables derived from the main colors above are as below.
+           Gradient goes from 0% (darkest) to 100% (lightest).
+           See https://www.w3schools.com/colors/colors_picker.asp for more info.
+
+            self.primary_10  # 10% lightness of primary
+            self.primary_35  # lightness of primary
+            self.primary_80  # lightness of primary
+            self.primary_90  # 90% lightness of primary
+            self.primary_95  # 95% lightness of primary
+            self.tenth_40    # 40% lightness of tenth
+
+        3) The color sequence used for defining the color_list variable is as below:
+            color_list = [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
+                          self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
+
+        4) The color sequence used for defining the color_map variable is as below. This variable is a
+           color map having a linear color pattern from the first color to the last color of the _color_map_colors list.
+            self._color_map_colors = [self.primary_95,  # lightest primary
+                                      self.primary,     # primary
+                                      self.primary_10]  # darkest primary
+
+        5) The color sequence used for defining the color_map_cyclical variable is as below. This variable is a
+           color map having a cyclical color pattern from/to the first color of the _color_map_cyclical_colors.
+            self._color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
+
+        **Example usage**
         ::
             import brightwind as bw
+
+            # Main colors can be reset by using the code below for each color of the defined color palette. When doing
+            # this the linked color_list, color_map, color_map_cyclical and adjusted lightness color variables are
+            # automatically updated as a consequence.
+
             bw.analyse.plot.COLOR_PALETTE.primary = '#3366CC'
 
-        Color are called 'primary', secondary', 'tertiary', etc. Lighter and darker shades of primary are called
-        'primary_10' for 10% of primary. Gradient goes from 0% (darkest) to 100% (lightest). See
-        https://www.w3schools.com/colors/colors_picker.asp for more info.
+            # The adjusted lightness colors can also be reset by using the example code below:
+
+            bw.analyse.plot.COLOR_PALETTE.primary_10 = '#0a1429'
+
+            # The colors used for defining the color_map can also be reset by using the example code below:
+
+            bw.analyse.plot.COLOR_PALETTE.set_color_map_colors = ['#ccfffc',   # lightest primary
+                                                                  '#00b4aa',   # vert-dark
+                                                                  '#008079']   # darkest primary
+
+            # The colors used for defining the color_map_cyclical can also be reset by using the example code below:
+
+            bw.analyse.plot.COLOR_PALETTE.set_color_map_cyclical = ['#ccfffc',   # lightest primary
+                                                                    '#00b4aa',   # vert-dark
+                                                                    '#008079',   # darkest primary
+                                                                    '#ccfffc']   # lightest primary
+
+            # The hex color value corresponding to an input color adjusted by a percentage lightness (e.g 0.5 %)
+            # can be derived as below:
+
+            bw.analyse.plot.COLOR_PALETTE._adjust_color_lightness('#171a28', 0.5)
+
         """
         self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb(156/255, 197/255, 55/255)
         self.secondary = '#2E3743'      # asphalt, rgb(46/255, 55/255, 67/255)
@@ -177,6 +242,7 @@ def _colormap_to_colorscale(cmap, n_colors):
     Function that transforms a matplotlib colormap to a list of colors
     """
     return [to_hex(cmap(k*1/(n_colors-1))) for k in range(n_colors)]
+
 
 def plot_monthly_means(data, coverage=None, ylbl=''):
     fig = plt.figure(figsize=(15, 8))
