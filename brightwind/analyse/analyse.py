@@ -387,7 +387,8 @@ def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False
 
     The seasonal adjusted mean of monthly mean is derived as for method below:
         1) calculate monthly coverage
-        2) filter out any months with coverage lower than the input 'coverage_threshold'
+        2) filter out any months with coverage lower than the input 'coverage_threshold' (a 'coverage_threshold' is
+           required)
         3) derive the monthly mean for each calendar month (i.e. all Januaries)
         4) weighted average each monthly mean value based on the number of days in each month
            (i.e. 31 days for January) - number of days for February are derived as average of actual days for the year
@@ -402,21 +403,19 @@ def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False
     :type:                      str
     :param date_to:             End date as string in format YYYY-MM-DD
     :type:                      str
-    :param seasonal_adjustment: Optional, False by default. If True, returns the mean of monthly mean seasonal
+    :param seasonal_adjustment: Optional, False by default. If True, returns the mean of monthly mean seasonally
                                 adjusted
     :type seasonal_adjustment:  bool
-    :param coverage_threshold:  In this case this is a coverage threshold applied to a month. Coverage is defined as the
+    :param coverage_threshold:  In this case, coverage threshold is applied to a month. Coverage is defined as the
                                 ratio of the number of data points present in the month and the maximum number of data
                                 points that a month should have. Example, for 10 minute data for June, the maximum
                                 number of data points is 43,200. But if the number if data points available is only
                                 30,000 the coverage is 0.69. A coverage_threshold value of 0.8 will filter out any
                                 months with a coverage less than this. Coverage_threshold should be a value
-                                between 0 and 1. If it is 0 data is not filtered. If it is None data is not filtered
-                                only if seasonal_adjustment is False.
-                                Default value is None.
-                                ** NOTE that if seasonal_adjustment is True and coverage_threshold is None then
-                                the default threshold used is 0.8. If you don't want to apply any coverage
-                                threshold when seasonal_adjustment is True then set coverage_threshold to 0. **
+                                between 0 and 1. If it is 0, data is not filtered. If it is None, data is also not
+                                filtered, except for when the seasonal_adjustment is True. If seasonal_adjustment is
+                                True, then set coverage_threshold to 0 to not filter out data.
+                                Default value is None, except when 'seasonal_adjustment'=True when it is 0.8.
     :type coverage_threshold:   int, float or None
     :returns:                   Long term reference speed
     :rtype:                     panda.Dataframe
