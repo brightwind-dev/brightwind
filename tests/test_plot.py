@@ -171,3 +171,30 @@ def test_adjust_color_lightness():
         input_color, 0.95) == "#f5f9eb"  # lightest green, 95% of primary
 
 
+def test_ColorPalette():
+    color_palette = bw.analyse.plot.COLOR_PALETTE
+    assert color_palette.color_list == ['#9CC537', '#2E3743', '#9B2B2C', '#E57925', '#ffc008', '#AB8D60', '#A4D29F',
+                                        '#01958a', '#3D636F', '#A49E9D', '#DA9BA6', '#6e8c27']
+
+    color_palette.primary = '#3366CC'
+    assert bw.analyse.plot.COLOR_PALETTE.primary == '#3366CC'
+    assert color_palette.color_list[0] == bw.analyse.plot.COLOR_PALETTE.primary
+    assert bw.analyse.plot.COLOR_PALETTE.color_map_colors[1] == color_palette.primary
+
+    color_palette.secondary = '#726e83'
+    assert bw.analyse.plot.COLOR_PALETTE.color_list[1] == '#726e83'
+    assert bw.analyse.plot.COLOR_PALETTE.color_list[2] == '#9B2B2C'
+
+    color_palette.primary_10 = '#0a1429'
+    assert bw.analyse.plot.COLOR_PALETTE.primary_10 == '#0a1429'
+    assert color_palette._color_map_colors[-1] == color_palette.primary_10
+
+    color_palette.set_color_map_colors = ['#ccfffc', '#00b4aa', '#008079']
+    assert bw.analyse.plot.COLOR_PALETTE.set_color_map_colors == ['#ccfffc', '#00b4aa', '#008079']
+
+    color_palette.set_color_map_cyclical = ['#ccfffc', '#00b4aa', '#008079', '#ccfffc']
+    assert bw.analyse.plot.COLOR_PALETTE.set_color_map_cyclical == ['#ccfffc', '#00b4aa', '#008079', '#ccfffc']
+
+
+
+
