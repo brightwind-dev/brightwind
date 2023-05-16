@@ -14,13 +14,13 @@ Additional labels for pre-release and build metadata are available as extensions
 is not equal to the derived temporal resolution.
 2. Added `data_resolution` argument to `average_data_by_period`, `monthly_means`, `coverage` and 
   `merge_datasets_by_period` functions (Issue #[297](https://github.com/brightwind-dev/brightwind/issues/297))
-3. Update to work with Pandas 1.3.2. This mostly includes depreciating pd.Timedelta and using pd.DateOffset instead. (Pull request [#312](https://github.com/brightwind-dev/brightwind/pull/312)).
+3. Update to work with Pandas 1.3.2. This mostly includes depreciating pd.Timedelta and using pd.DateOffset instead. (Pull request #[312](https://github.com/brightwind-dev/brightwind/pull/312)).
 4. In`Correl` fix issue when duplicate column names are sent to `SpeedSort` (Issue #[304](https://github.com/brightwind-dev/brightwind/issues/304))
 5. Added subplotting functionality to `sector_ratio` and improved user control of plotting (Issue #[309](https://github.com/brightwind-dev/brightwind/issues/309))
 6. Allow `dist()` function to take a pd.DataFrame so user can plot multiple distributions on the same plot. (Issue #[264](https://github.com/brightwind-dev/brightwind/issues/264))
    1. As part of this added subplotting functionality for bar plots
 7. Allow 'freq_table()' function to derive a seasonal adjusted frequency distribution if user sets 'seasonal_adjustment' 
-to true. (Issue # [334](https://github.com/brightwind-dev/brightwind/issues/334))
+to true. (Issue #[334](https://github.com/brightwind-dev/brightwind/issues/334))
    1. As part of this, added 'monthly_coverage_threshold' option for the user to ensure good coverage months.
 8. Update to work with matplotlib 3.5.2 and bug fix for plot_freq_distribution and dist functions (Issue #[315](https://github.com/brightwind-dev/brightwind/issues/315)). 
 9. Update to work with numpy>=1.20.0 when pandas=0.25.3. (Issue #[344](https://github.com/brightwind-dev/brightwind/issues/344)). 
@@ -39,6 +39,7 @@ _line_colors_, _legend_ and _figure_size_. (Issue #[349](https://github.com/brig
 16. Updated `LoadBrightHub` URL and generalised functions used for connecting to BrightHub platform without using `boto3` (Issue #[355](https://github.com/brightwind-dev/brightwind/issues/355)).
 17. Removed hardcoded colours for `Shear.TimeOfDay` plots when `plot_type` is 'step' or 'line' and added a colour map. (Issue #[376](https://github.com/brightwind-dev/brightwind/issues/376)).
 18: Fixed bug for `SpeedSort` where the `sector_predict` function was not interpolating data using two fit lines. (Issue #[377](https://github.com/brightwind-dev/brightwind/issues/377)).
+19: Allow `momm` function to derive a seasonal adjusted mean of monthly mean, if user sets `seasonal_adjustment` to true, and allow to apply a `coverage_threshold` (Issue #[298](https://github.com/brightwind-dev/brightwind/issues/298))
 
 
 ## [2.0.0]
