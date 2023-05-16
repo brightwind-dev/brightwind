@@ -437,6 +437,9 @@ def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False
         # Derive mean of monthly mean seasonal adjusted and imposing coverage_threshold
         bw.momm(data[['Spd40mN','Spd40mS']], seasonal_adjustment=True, coverage_threshold=0.7)
 
+        # Derive mean of monthly mean seasonal adjusted and set coverage_threshold to 0 to not filter out data.
+        bw.momm(data[['Spd40mN','Spd40mS']], seasonal_adjustment=True, coverage_threshold=0)
+
     """
     if isinstance(data, pd.Series):
         momm_data = data.to_frame()
