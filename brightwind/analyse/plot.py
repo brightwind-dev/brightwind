@@ -43,7 +43,8 @@ class _ColorPalette:
         """
         Color palette to be used for plotting graphs and tables. This Class generates also color_list, color_map,
         color_map_cyclical and some adjusted lightness color variables that are created from the main colors defined
-        below and used by several brightwind functions.
+        below and used by several brightwind functions. The color_map, color_map_cyclical and the adjusted lightness
+        color variables can be also set independently from the main colors as for examples below.
 
         1) The main colors used to define the color palette are:
             self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb(156/255, 197/255, 55/255)
