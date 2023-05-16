@@ -50,14 +50,14 @@ class _ColorPalette:
             self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb(156/255, 197/255, 55/255)
             self.secondary = '#2E3743'      # asphalt, rgb(46/255, 55/255, 67/255)
             self.tertiary = '#9B2B2C'       # red'ish, rgb(155/255, 43/255, 44/255)
-            self.fourth = '#E57925'         # orange'ish, rgb(229/255, 121/255, 37/255)
-            self.fifth = '#ffc008'          # yellow'ish, rgb(255/255, 192/255, 8/255)
-            self.sixth = '#AB8D60'          # brown'ish, rgb(171/255, 141/255, 96/255)
-            self.seventh = '#A4D29F'        # brown'ish, rgb(171/255, 141/255, 96/255)
-            self.eighth = '#01958a'         # grayish lime green, rgb(164/255, 210/255, 156/255)
+            self.fourth = '#E57925'         # Vivid Tangelo, rgb(229/255, 121/255, 37/255)
+            self.fifth = '#ffc008'          # Mikado Yellow, rgb(255/255, 192/255, 8/255)
+            self.sixth = '#AB8D60'          # Bronze (Metallic), rgb(171/255, 141/255, 96/255)
+            self.seventh = '#A4D29F'        # green'ish, rgb(164/255, 210/255, 159/255)
+            self.eighth = '#01958a'         # Dark Cyan, rgb(1/255, 149/255, 138/255)
             self.ninth = '#3D636F'          # blue grey, rgb(61/255, 99/255, 111/255)
-            self.tenth = '#A49E9D'          # dark grayish red, rgb(164/255, 158/255, 157/255)
-            self.eleventh = '#DA9BA6'       # very soft red, rgb(218/255, 155/255, 166/255)
+            self.tenth = '#A49E9D'          # Quick Silver, rgb(164/255, 158/255, 157/255)
+            self.eleventh = '#DA9BA6'       # Parrot Pink, rgb(218/255, 155/255, 166/255)
 
         2) The adjusted lightness color variables derived from the main colors above are as below.
            Gradient goes from 0% (darkest) to 100% (lightest).
@@ -128,14 +128,14 @@ class _ColorPalette:
         self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb(156/255, 197/255, 55/255)
         self.secondary = '#2E3743'      # asphalt, rgb(46/255, 55/255, 67/255)
         self.tertiary = '#9B2B2C'       # red'ish, rgb(155/255, 43/255, 44/255)
-        self.fourth = '#E57925'         # orange'ish, rgb(229/255, 121/255, 37/255)
-        self.fifth = '#ffc008'          # yellow'ish, rgb(255/255, 192/255, 8/255)
-        self.sixth = '#AB8D60'          # brown'ish, rgb(171/255, 141/255, 96/255)
-        self.seventh = '#A4D29F'        # brown'ish, rgb(171/255, 141/255, 96/255)
-        self.eighth = '#01958a'         # grayish lime green, rgb(164/255, 210/255, 156/255)
+        self.fourth = '#E57925'         # Vivid Tangelo, rgb(229/255, 121/255, 37/255)
+        self.fifth = '#ffc008'          # Mikado Yellow, rgb(255/255, 192/255, 8/255)
+        self.sixth = '#AB8D60'          # Bronze (Metallic), rgb(171/255, 141/255, 96/255)
+        self.seventh = '#A4D29F'        # green'ish, rgb(164/255, 210/255, 159/255)
+        self.eighth = '#01958a'         # Dark Cyan, rgb(1/255, 149/255, 138/255)
         self.ninth = '#3D636F'          # blue grey, rgb(61/255, 99/255, 111/255)
-        self.tenth = '#A49E9D'          # dark grayish red, rgb(164/255, 158/255, 157/255)
-        self.eleventh = '#DA9BA6'       # very soft red, rgb(218/255, 155/255, 166/255)
+        self.tenth = '#A49E9D'          # Quick Silver, rgb(164/255, 158/255, 157/255)
+        self.eleventh = '#DA9BA6'       # Parrot Pink, rgb(218/255, 155/255, 166/255)
 
         self._set_color_map_colors = None
         self._set_color_map_cyclical_colors = None
