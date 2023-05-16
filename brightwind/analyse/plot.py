@@ -87,6 +87,14 @@ class _ColorPalette:
         ::
             import brightwind as bw
 
+            # The color palette used by brightwind library by default based on main colors can be visualised using
+            # code below.
+
+            import matplotlib.pyplot as plt
+            fig, axes = plt.subplots()
+            for i,c in enumerate(bw.analyse.plot.COLOR_PALETTE.color_list):
+                axes.bar([i],1,color=c)
+
             # Main colors can be reset by using the code below for each color of the defined color palette. When doing
             # this the linked color_list, color_map, color_map_cyclical and adjusted lightness color variables are
             # automatically updated as a consequence.
