@@ -227,7 +227,11 @@ class _ColorPalette:
         :return:                    color in hex format
         :rtype:                     hex
         """
-        lightness_factor = utils.validate_coverage_threshold(lightness_factor)
+        
+        lightness_factor = 0 if lightness_factor is None else lightness_factor
+        if lightness_factor < 0 or lightness_factor > 1:
+            raise TypeError("Invalid lightness_factor, this should be between or equal to 0 and 1.")
+
         r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(input_color)))  # convert to rgb format
         hue, lightness, saturation = rgb2hls(r / 255.0, g / 255.0, b / 255.0)
         r, g, b = hls2rgb(hue, lightness_factor, saturation)
