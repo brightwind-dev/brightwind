@@ -425,7 +425,7 @@ def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False
         import brightwind as bw
         data = bw.load_csv(bw.demo_datasets.demo_data)
 
-        # Derive mean of monthly mean with standard method
+        # Derive mean of monthly mean with standard method and not filtering out data based on monthly coverage.
         bw.momm(data[['Spd40mN','Spd40mS']])
 
         # Derive mean of monthly mean with standard method and imposing coverage_threshold
