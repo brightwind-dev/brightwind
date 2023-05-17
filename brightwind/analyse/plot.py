@@ -148,7 +148,7 @@ class _ColorPalette:
         self.eleventh = '#DA9BA6'       # Parrot Pink, rgb(218/255, 155/255, 166/255)
 
         self._color_map_colors = None
-        self._set_color_map_cyclical_colors = None
+        self._color_map_cyclical_colors = None
 
         # set the mpl color cycler to our colors. It has 10 colors
         # mpl.rcParams['axes.prop_cycle']
@@ -182,8 +182,7 @@ class _ColorPalette:
 
     @property
     def color_map(self):
-        self._color_map = self._set_col_map('color_map', self._get_color_map_colors())
-        return self._color_map
+        return self._set_col_map('color_map', self._get_color_map_colors())
 
     @staticmethod
     def _set_col_map(color_map_name, col_map_colors):
@@ -199,34 +198,35 @@ class _ColorPalette:
 
     def _get_color_map_colors(self):
         if self._color_map_colors:
+            # if the user has set a new color_map_color, use them.
             color_map_colors = self._color_map_colors
         else:
+            # if the user has not set a new one, use our default colors.
             color_map_colors = [self.primary_95,  # lightest primary
                                 self.primary,     # primary
                                 self.primary_10]  # darkest primary
         return color_map_colors
 
     @property
-    def set_color_map_cyclical_colors(self):
-        return self._set_color_map_cyclical_colors
-
-    @set_color_map_cyclical_colors.setter
-    def set_color_map_cyclical_colors(self, val):
-        self._set_color_map_cyclical_colors = val
+    def color_map_cyclical(self):
+        return self._set_col_map('color_map_cyclical', self._get_color_map_cyclical_colors())
 
     @property
     def color_map_cyclical_colors(self):
-        if self._set_color_map_cyclical_colors:
-            self._color_map_cyclical_colors = self._set_color_map_cyclical_colors
-        else:
-            self._color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
-        return self._color_map_cyclical_colors
+        return self._get_color_map_cyclical_colors()
 
-    @property
-    def color_map_cyclical(self):
-        color_map_cyclical_colors = self.color_map_cyclical_colors
-        color_map_cyclical = self._set_col_map('color_map_cyclical', color_map_cyclical_colors)
-        return color_map_cyclical
+    @color_map_cyclical_colors.setter
+    def color_map_cyclical_colors(self, val):
+        self._color_map_cyclical_colors = val
+
+    def _get_color_map_cyclical_colors(self):
+        if self._color_map_cyclical_colors:
+            # if the user has set a new color_map_cyclical_color, use them.
+            color_map_cyclical_colors = self._color_map_cyclical_colors
+        else:
+            # if the user has not set a new one, use our default colors.
+            color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
+        return color_map_cyclical_colors
 
     @staticmethod
     def _adjust_color_lightness(input_color, lightness_factor):
