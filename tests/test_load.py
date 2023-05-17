@@ -65,9 +65,9 @@ def test_load_campbell_scientific():
 
 def test_load_brighthub():
 
-    plant_uuid = '715e5518-4f3a-4eb2-87cf-69547789232a'
-    measurement_station_uuid = '0cfd9da4-19d3-4cac-b5ab-4b8f35bac19b'
-    test_period_demo_data = {'start_date': '2009-12-01T17:40:00', 'end_date': '2012-03-10T00:00:00'}
+    plant_uuid = '7a58497e-bee1-42a2-8084-c47a5cf213b7'
+    measurement_station_uuid = '9344e576-6d5a-45f0-9750-2a7528ebfa14'
+    test_period_demo_data = {'start_date': '2016-01-09T15:30:00', 'end_date': '2017-11-23T11:00:00'}
 
     # To get a specific plant
     assert bw.LoadBrightHub.get_plants(plant_uuid=plant_uuid)[
@@ -87,7 +87,7 @@ def test_load_brighthub():
                                                 ) == test_period_demo_data
 
     # To get data for a specific time period for a specific measurement station
-    data_columns = bw.LoadBrightHub.get_data(measurement_station_uuid=measurement_station_uuid, date_from='2009-12-01',
-                                             date_to='2010-01-01').columns
-    for col in ['Spd1_60m270', 'Spd2_60m180', 'Dir1_58m']:
+    data_columns = bw.LoadBrightHub.get_data(measurement_station_uuid=measurement_station_uuid, date_from='2016-12-01',
+                                             date_to='2017-01-01').columns
+    for col in ['Spd80mN', 'Spd80mS', 'Dir78mS']:
         assert col in data_columns
