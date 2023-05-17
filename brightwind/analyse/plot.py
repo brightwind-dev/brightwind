@@ -44,7 +44,7 @@ class _ColorPalette:
         Color palette to be used for plotting graphs and tables. This Class generates also color_list, color_map,
         color_map_cyclical and some adjusted lightness color variables that are created from the main colors defined
         below and used by several brightwind functions. The color_map, color_map_cyclical and the adjusted lightness
-        color variables can be also set independently from the main colors as for examples below.
+        color variables can also be set independently from the main colors as for examples below.
 
         1) The main colors used to define the color palette are:
             self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb(156/255, 197/255, 55/255)
@@ -58,6 +58,9 @@ class _ColorPalette:
             self.ninth = '#3D636F'          # blue grey, rgb(61/255, 99/255, 111/255)
             self.tenth = '#A49E9D'          # Quick Silver, rgb(164/255, 158/255, 157/255)
             self.eleventh = '#DA9BA6'       # Parrot Pink, rgb(218/255, 155/255, 166/255)
+
+           Some of these colors are then used to set other color lists and maps. For example the primary color is
+           used to define the color_map.
 
         2) The adjusted lightness color variables derived from the main colors above are as below.
            Gradient goes from 0% (darkest) to 100% (lightest).
@@ -74,15 +77,22 @@ class _ColorPalette:
             color_list = [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
                           self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
 
+           This color list is used primarily in line and scatter plots.
+
         4) The color sequence used for defining the color_map variable is as below. This variable is a
            color map having a linear color pattern from the first color to the last color of the _color_map_colors list.
             self._color_map_colors = [self.primary_95,  # lightest primary
                                       self.primary,     # primary
                                       self.primary_10]  # darkest primary
 
+           This color map is used in the wind rose plot and also the 12x24 heat map plot from a shear by time of day.
+
         5) The color sequence used for defining the color_map_cyclical variable is as below. This variable is a
            color map having a cyclical color pattern from/to the first color of the _color_map_cyclical_colors.
             self._color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
+
+           This sequence of colors is for plots where the pattern is cyclical such as a seasons. This is also used in
+           12x24 plot from a shear by time of day.
 
         **Example usage**
         ::
@@ -102,7 +112,7 @@ class _ColorPalette:
 
             bw.analyse.plot.COLOR_PALETTE.primary = '#3366CC'
 
-            # The adjusted lightness colors can also be reset by using the example code below:
+            # If required, the individual adjusted lightness colors can also be reset by using the example code below:
 
             bw.analyse.plot.COLOR_PALETTE.primary_10 = '#0a1429'
 
