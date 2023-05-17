@@ -187,13 +187,13 @@ def test_ColorPalette():
 
     color_palette.primary_10 = '#0a1429'
     assert bw.analyse.plot.COLOR_PALETTE.primary_10 == '#0a1429'
-    assert color_palette._color_map_colors[-1] == color_palette.primary_10
+    assert color_palette.color_map_colors[-1] == color_palette.primary_10
 
-    color_palette.set_color_map_colors = ['#ccfffc', '#00b4aa', '#008079']
-    assert bw.analyse.plot.COLOR_PALETTE.set_color_map_colors == ['#ccfffc', '#00b4aa', '#008079']
+    color_palette.color_map_colors = ['#ccfffc', '#00b4aa', '#008079']
+    assert bw.analyse.plot.COLOR_PALETTE.color_map_colors == ['#ccfffc', '#00b4aa', '#008079']
 
-    color_palette.set_color_map_cyclical = ['#ccfffc', '#00b4aa', '#008079', '#ccfffc']
-    assert bw.analyse.plot.COLOR_PALETTE.set_color_map_cyclical == ['#ccfffc', '#00b4aa', '#008079', '#ccfffc']
+    color_palette.color_map_cyclical_colors = ['#ccfffc', '#00b4aa', '#008079', '#ccfffc']
+    assert bw.analyse.plot.COLOR_PALETTE.color_map_cyclical_colors == ['#ccfffc', '#00b4aa', '#008079', '#ccfffc']
 
 
 
