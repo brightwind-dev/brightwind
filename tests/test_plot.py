@@ -1,10 +1,13 @@
 import pytest
 import brightwind as bw
+from brightwind.analyse import plot as bw_plt
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from matplotlib.ticker import PercentFormatter
 from matplotlib.dates import DateFormatter
+import matplotlib as mpl
+from colormap import rgb2hex, rgb2hls, hls2rgb
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -144,3 +147,54 @@ def test_plot_freq_distribution():
                                            max_y_value=None, x_tick_labels=None, x_label=None,
                                            y_label='count', total_width=1, legend=True)
     assert True
+
+
+def test_adjust_color_lightness():
+    input_color = '#9CC537'
+    r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(input_color)))
+    hue, lightness, saturation = rgb2hls(r / 255, g / 255, b / 255)
+    r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(bw_plt.COLOR_PALETTE._adjust_color_lightness(
+        input_color, 0.1))))
+    hue1, lightness1, saturation1 = rgb2hls(r / 255, g / 255, b / 255)
+    assert (int(hue * 100) == int(hue1 * 100)) and (int(saturation * 100) == int(saturation1 * 100)) and \
+           (lightness1 == 0.1)
+
+    assert bw_plt.COLOR_PALETTE._adjust_color_lightness(
+        input_color, 0.1) == "#20280b"  # darkest green, 10% of primary
+    assert bw_plt.COLOR_PALETTE._adjust_color_lightness(
+        input_color, 0.35) == "#6e8c27"  # dark green, 35% of primary
+    assert bw_plt.COLOR_PALETTE._adjust_color_lightness(
+        input_color, 0.8) == "#d8e9af"  # light green, 80% of primary
+    assert bw_plt.COLOR_PALETTE._adjust_color_lightness(
+        input_color, 0.9) == "#ecf4d7"  # light green, 90% of primary
+    assert bw_plt.COLOR_PALETTE._adjust_color_lightness(
+        input_color, 0.95) == "#f5f9eb"  # lightest green, 95% of primary
+
+
+def test_ColorPalette():
+    color_palette = bw.analyse.plot.COLOR_PALETTE
+    assert color_palette.color_list == ['#9CC537', '#2E3743', '#9B2B2C', '#E57925', '#ffc008', '#AB8D60', '#A4D29F',
+                                        '#01958a', '#3D636F', '#A49E9D', '#DA9BA6', '#6e8c27']
+
+    color_palette.primary = '#3366CC'
+    assert bw.analyse.plot.COLOR_PALETTE.primary == '#3366CC'
+    assert color_palette.color_list[0] == bw.analyse.plot.COLOR_PALETTE.primary
+    assert bw.analyse.plot.COLOR_PALETTE.color_map_colors[1] == color_palette.primary
+
+    color_palette.secondary = '#726e83'
+    assert bw.analyse.plot.COLOR_PALETTE.color_list[1] == '#726e83'
+    assert bw.analyse.plot.COLOR_PALETTE.color_list[2] == '#9B2B2C'
+
+    color_palette.primary_10 = '#0a1429'
+    assert bw.analyse.plot.COLOR_PALETTE.primary_10 == '#0a1429'
+    assert color_palette.color_map_colors[-1] == color_palette.primary_10
+
+    color_palette.color_map_colors = ['#ccfffc', '#00b4aa', '#008079']
+    assert bw.analyse.plot.COLOR_PALETTE.color_map_colors == ['#ccfffc', '#00b4aa', '#008079']
+
+    color_palette.color_map_cyclical_colors = ['#ccfffc', '#00b4aa', '#008079', '#ccfffc']
+    assert bw.analyse.plot.COLOR_PALETTE.color_map_cyclical_colors == ['#ccfffc', '#00b4aa', '#008079', '#ccfffc']
+
+
+
+

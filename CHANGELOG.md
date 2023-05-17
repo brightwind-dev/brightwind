@@ -38,8 +38,10 @@ _line_colors_, _legend_ and _figure_size_. (Issue #[349](https://github.com/brig
 15. Update to work with versions 1.0 to 1.2 of IEA WIND Task 43 WRA Data Model (Issue #[306](https://github.com/brightwind-dev/brightwind/issues/306)).
 16. Updated `LoadBrightHub` URL and generalised functions used for connecting to BrightHub platform without using `boto3` (Issue #[355](https://github.com/brightwind-dev/brightwind/issues/355)).
 17. Removed hardcoded colours for `Shear.TimeOfDay` plots when `plot_type` is 'step' or 'line' and added a colour map. (Issue #[376](https://github.com/brightwind-dev/brightwind/issues/376)).
-18: Fixed bug for `SpeedSort` where the `sector_predict` function was not interpolating data using two fit lines. (Issue #[377](https://github.com/brightwind-dev/brightwind/issues/377)).
-19: Allow `momm` function to derive a seasonal adjusted mean of monthly mean, if user sets `seasonal_adjustment` to true, and allow to apply a `coverage_threshold` (Issue #[298](https://github.com/brightwind-dev/brightwind/issues/298))
+18. Fixed bug for `SpeedSort` where the `sector_predict` function was not interpolating data using two fit lines. (Issue #[377](https://github.com/brightwind-dev/brightwind/issues/377)).
+19. Updated `_ColorPalette` to automatically update color_list, color_map, color_map_cyclical and adjusted lightness color variables when main colors (primary, secondary etc.) are changed. (Issue #[381](https://github.com/brightwind-dev/brightwind/issues/381)).
+19. Allow `momm` function to derive a seasonal adjusted mean of monthly mean, if user sets `seasonal_adjustment` to true, and allow to apply a `coverage_threshold` (Issue #[298](https://github.com/brightwind-dev/brightwind/issues/298))
+
 
 
 ## [2.0.0]

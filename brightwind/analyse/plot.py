@@ -41,73 +41,218 @@ class _ColorPalette:
 
     def __init__(self):
         """
-        Color palette to be used for plotting graphs and tables. Colors can be reset by using
+        Color palette to be used for plotting graphs and tables. This Class generates also color_list, color_map,
+        color_map_cyclical and some adjusted lightness color variables that are created from the main colors defined
+        below and used by several brightwind functions. The color_map, color_map_cyclical and the adjusted lightness
+        color variables can also be set independently from the main colors as for examples below.
 
+        1) The main colors used to define the color palette are:
+            self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb(156/255, 197/255, 55/255)
+            self.secondary = '#2E3743'      # asphalt, rgb(46/255, 55/255, 67/255)
+            self.tertiary = '#9B2B2C'       # red'ish, rgb(155/255, 43/255, 44/255)
+            self.fourth = '#E57925'         # Vivid Tangelo, rgb(229/255, 121/255, 37/255)
+            self.fifth = '#ffc008'          # Mikado Yellow, rgb(255/255, 192/255, 8/255)
+            self.sixth = '#AB8D60'          # Bronze (Metallic), rgb(171/255, 141/255, 96/255)
+            self.seventh = '#A4D29F'        # green'ish, rgb(164/255, 210/255, 159/255)
+            self.eighth = '#01958a'         # Dark Cyan, rgb(1/255, 149/255, 138/255)
+            self.ninth = '#3D636F'          # blue grey, rgb(61/255, 99/255, 111/255)
+            self.tenth = '#A49E9D'          # Quick Silver, rgb(164/255, 158/255, 157/255)
+            self.eleventh = '#DA9BA6'       # Parrot Pink, rgb(218/255, 155/255, 166/255)
+
+           Some of these colors are then used to set other color lists and maps. For example the primary color is
+           used to define the color_map.
+
+        2) The adjusted lightness color variables derived from the main colors above are as below.
+           Gradient goes from 0% (darkest) to 100% (lightest).
+           See https://www.w3schools.com/colors/colors_picker.asp for more info.
+
+            self.primary_10  # 10% lightness of primary
+            self.primary_35  # lightness of primary
+            self.primary_80  # lightness of primary
+            self.primary_90  # 90% lightness of primary
+            self.primary_95  # 95% lightness of primary
+            self.tenth_40    # 40% lightness of tenth
+
+        3) The color sequence used for defining the color_list variable is as below:
+            color_list = [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
+                          self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
+
+           This color list is used primarily in line and scatter plots.
+
+        4) The color sequence used for defining the color_map variable is as below. This variable is a
+           color map having a linear color pattern from the first color to the last color of the color_map_colors list.
+            self.color_map_colors = [self.primary_95,  # lightest primary
+                                      self.primary,     # primary
+                                      self.primary_10]  # darkest primary
+
+           This color map is used in the wind rose plot and also the 12x24 heat map plot from a shear by time of day.
+
+        5) The color sequence used for defining the color_map_cyclical variable is as below. This variable is a
+           color map having a cyclical color pattern from/to the first color of the color_map_cyclical_colors.
+            self.color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
+
+           This sequence of colors is for plots where the pattern is cyclical such as a seasons. This is also used in
+           12x24 plot from a shear by time of day.
+
+        **Example usage**
         ::
             import brightwind as bw
+
+            # The color palette used by brightwind library by default based on main colors can be visualised using
+            # code below.
+
+            import matplotlib.pyplot as plt
+            fig, axes = plt.subplots()
+            for i,c in enumerate(bw.analyse.plot.COLOR_PALETTE.color_list):
+                axes.bar([i],1,color=c)
+
+            # Main colors can be reset by using the code below for each color of the defined color palette. When doing
+            # this the linked color_list, color_map, color_map_cyclical and adjusted lightness color variables are
+            # automatically updated as a consequence.
+
             bw.analyse.plot.COLOR_PALETTE.primary = '#3366CC'
 
-        Color are called 'primary', secondary', 'tertiary', etc. Lighter and darker shades of primary are called
-        'primary_10' for 10% of primary. Gradient goes from 0% (darkest) to 100% (lightest). See
-        https://www.w3schools.com/colors/colors_picker.asp for more info.
+            # If required, the individual adjusted lightness colors can also be reset by using the example code below:
+
+            bw.analyse.plot.COLOR_PALETTE.primary_10 = '#0a1429'
+
+            # The colors used for defining the color_map can also be reset by using the example code below:
+
+            bw.analyse.plot.COLOR_PALETTE.color_map_colors = ['#ccfffc',   # lightest primary
+                                                              '#00b4aa',   # vert-dark
+                                                              '#008079']   # darkest primary
+
+            # The colors used for defining the color_map_cyclical can also be reset by using the example code below:
+
+            bw.analyse.plot.COLOR_PALETTE.color_map_cyclical_colors = ['#ccfffc',   # lightest primary
+                                                                       '#00b4aa',   # vert-dark
+                                                                       '#008079',   # darkest primary
+                                                                       '#ccfffc']   # lightest primary
+
+            # The hex color value corresponding to an input color adjusted by a percentage lightness (e.g 0.5 %)
+            # can be derived as below:
+
+            bw.analyse.plot.COLOR_PALETTE._adjust_color_lightness('#171a28', 0.5)
+
         """
-        self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb[156/255, 197/255, 55/255]
-        self.secondary = '#2E3743'      # asphalt, rgb[46/255, 55/255, 67/255]
-        self.tertiary = '#9B2B2C'       # red'ish, rgb(155, 43, 44)
-        self.fourth = '#E57925'         # orange'ish, rgb(229, 121, 37)
-        self.fifth = '#ffc008'          # yellow'ish, rgb(255, 192, 8)
-        self.sixth = '#AB8D60'
-        self.seventh = '#A4D29F'
-        self.eighth = '#01958a'
-        self.ninth = '#3D636F'          # blue grey
-        self.tenth = '#A49E9D'
-        self.eleventh = '#DA9BA6'
-        self.primary_10 = '#1F290A'     # darkest green, 10% of primary
-        self.primary_35 = '#6C9023'     # dark green, 35% of primary
-        self.primary_80 = '#D7EBAD'     # light green, 80% of primary
-        self.primary_90 = '#ebf5d6'     # light green, 90% of primary
-        self.primary_95 = '#F5FAEA'     # lightest green, 95% of primary
-        self.secondary_70 = '#6d737b'   # light asphalt
+        self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb(156/255, 197/255, 55/255)
+        self.secondary = '#2E3743'      # asphalt, rgb(46/255, 55/255, 67/255)
+        self.tertiary = '#9B2B2C'       # red'ish, rgb(155/255, 43/255, 44/255)
+        self.fourth = '#E57925'         # Vivid Tangelo, rgb(229/255, 121/255, 37/255)
+        self.fifth = '#ffc008'          # Mikado Yellow, rgb(255/255, 192/255, 8/255)
+        self.sixth = '#AB8D60'          # Bronze (Metallic), rgb(171/255, 141/255, 96/255)
+        self.seventh = '#A4D29F'        # green'ish, rgb(164/255, 210/255, 159/255)
+        self.eighth = '#01958a'         # Dark Cyan, rgb(1/255, 149/255, 138/255)
+        self.ninth = '#3D636F'          # blue grey, rgb(61/255, 99/255, 111/255)
+        self.tenth = '#A49E9D'          # Quick Silver, rgb(164/255, 158/255, 157/255)
+        self.eleventh = '#DA9BA6'       # Parrot Pink, rgb(218/255, 155/255, 166/255)
 
-        _col_map_colors = [self.primary_95,  # lightest primary
-                           self.primary,     # primary
-                           self.primary_10]  # darkest primary
-
-        _color_map_cyclical_colors = [self.secondary,
-                                      self.fifth,
-                                      self.primary,
-                                      self.tertiary,
-                                      self.secondary]
-
-        self._color_map = self._set_col_map('color_map', _col_map_colors)
-
-        self._color_map_cyclical = self._set_col_map('color_map_cyclical', _color_map_cyclical_colors)
-
-        self.color_list = [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
-                           self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
+        self._color_map_colors = None
+        self._color_map_cyclical_colors = None
 
         # set the mpl color cycler to our colors. It has 10 colors
         # mpl.rcParams['axes.prop_cycle']
+
+    @property
+    def primary(self):
+        return self._primary
+
+    @primary.setter
+    def primary(self, val):
+        self._primary = val
+        self.primary_10 = self._adjust_color_lightness(self._primary, 0.1)  # darkest green, 10% lightness of primary
+        self.primary_35 = self._adjust_color_lightness(self._primary, 0.35)  # dark green, 35% lightness of primary
+        self.primary_80 = self._adjust_color_lightness(self._primary, 0.80)  # light green, 80% lightness of primary
+        self.primary_90 = self._adjust_color_lightness(self._primary, 0.90)  # light green, 90% lightness of primary
+        self.primary_95 = self._adjust_color_lightness(self._primary, 0.95)  # lightest green, 95% lightness of primary
+
+    @property
+    def tenth(self):
+        return self._tenth
+
+    @tenth.setter
+    def tenth(self, val):
+        self._tenth = val
+        self.tenth_40 = self._adjust_color_lightness(self._tenth, 0.4)  # darker grayish red, 40% lightness of tenth
+
+    @property
+    def color_list(self):
+        return [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
+                self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
+
+    @property
+    def color_map(self):
+        return self._set_col_map('color_map', self._get_color_map_colors())
 
     @staticmethod
     def _set_col_map(color_map_name, col_map_colors):
         return LinearSegmentedColormap.from_list(color_map_name, col_map_colors, N=256)
 
     @property
-    def color_map(self):
-        return self._color_map
+    def color_map_colors(self):
+        return self._get_color_map_colors()
+
+    @color_map_colors.setter
+    def color_map_colors(self, val):
+        self._color_map_colors = val
+
+    def _get_color_map_colors(self):
+        if self._color_map_colors:
+            # if the user has set a new color_map_color, use them.
+            color_map_colors = self._color_map_colors
+        else:
+            # if the user has not set a new one, use our default colors.
+            color_map_colors = [self.primary_95,  # lightest primary
+                                self.primary,     # primary
+                                self.primary_10]  # darkest primary
+        return color_map_colors
 
     @property
     def color_map_cyclical(self):
-        return self._color_map_cyclical
+        return self._set_col_map('color_map_cyclical', self._get_color_map_cyclical_colors())
 
-    @color_map.setter
-    def color_map(self, col_map_colors):
-        self._color_map = self._set_col_map('color_map', col_map_colors)
+    @property
+    def color_map_cyclical_colors(self):
+        return self._get_color_map_cyclical_colors()
 
-    @color_map_cyclical.setter
-    def color_map_cyclical(self, col_map_colors):
-        self._color_map_cyclical = self._set_col_map('color_map_cyclical', col_map_colors)
+    @color_map_cyclical_colors.setter
+    def color_map_cyclical_colors(self, val):
+        self._color_map_cyclical_colors = val
+
+    def _get_color_map_cyclical_colors(self):
+        if self._color_map_cyclical_colors:
+            # if the user has set a new color_map_cyclical_color, use them.
+            color_map_cyclical_colors = self._color_map_cyclical_colors
+        else:
+            # if the user has not set a new one, use our default colors.
+            color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
+        return color_map_cyclical_colors
+
+    @staticmethod
+    def _adjust_color_lightness(input_color, lightness_factor):
+        """
+        Generate the color corresponding to the input primary color corrected by a lightness factor indicating the
+        percentage lightness. Lighter colors are obtained with a factor > 0.5 and darker colors with a factor < 0.5.
+        This function is converting the input color to hue, saturation, lightness (hsl) format and adjusting only the
+        lightness value. See https://www.w3schools.com/colors/colors_picker.asp for more info.
+
+        :param input_color:         Input base color to adjust. It can accept any matplotlib recognised color inputs.
+                                    (see https://matplotlib.org/stable/tutorials/colors/colors.html) or `numpy.ma.masked`
+        :type input_color:          str, tuple, list
+        :param lightness_factor:    Percentage of lightness (>0.5) or darkness (<0.5). Value should be between 0 and 1.
+        :type lightness_factor:     float
+        :return:                    color in hex format
+        :rtype:                     hex
+        """
+        
+        lightness_factor = 0 if lightness_factor is None else lightness_factor
+        if lightness_factor < 0 or lightness_factor > 1:
+            raise TypeError("Invalid lightness_factor, this should be between or equal to 0 and 1.")
+
+        r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(input_color)))  # convert to rgb format
+        hue, lightness, saturation = rgb2hls(r / 255.0, g / 255.0, b / 255.0)
+        r, g, b = hls2rgb(hue, lightness_factor, saturation)
+        return mpl.colors.to_hex([r, g, b])
 
 
 COLOR_PALETTE = _ColorPalette()
@@ -118,28 +263,6 @@ def _colormap_to_colorscale(cmap, n_colors):
     Function that transforms a matplotlib colormap to a list of colors
     """
     return [to_hex(cmap(k*1/(n_colors-1))) for k in range(n_colors)]
-
-
-def _adjust_color_lightness(r, g, b, factor):
-    """
-    Generate the color corresponding to the input primary color corrected by a lightness or darkness defined by the
-    input factor percentage. Lighter colors are obtained with a factor >1 and darker colors with a factor <1.
-
-    :param r:       Intensity of red color between 0 and 255.
-    :type r:        float
-    :param g:       Intensity of green color between 0 and 255.
-    :type g:        float
-    :param b:       Intensity of blue color between 0 and 255.
-    :type b:        float
-    :param factor:  Factor defining the percentage of lightness (>1) or darkness (<1).
-    :type factor:   float
-    :return:        color in hex format
-    :rtype:         hex
-    """
-    hue, lightness, saturation = rgb2hls(r / 255.0, g / 255.0, b / 255.0)
-    lightness = max(min(lightness * factor, 1.0), 0.0)
-    r, g, b = hls2rgb(hue, lightness, saturation)
-    return rgb2hex(int(r * 255), int(g * 255), int(b * 255))
 
 
 def plot_monthly_means(data, coverage=None, ylbl=''):
@@ -602,7 +725,7 @@ def _scatter_subplot(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=F
         low_y, high_y = ax.get_ylim()
         low = max(low_x, low_y)
         high = min(high_x, high_y)
-        ax.plot([low, high], [low, high], color=COLOR_PALETTE.secondary_70, label='1:1 line')
+        ax.plot([low, high], [low, high], color=COLOR_PALETTE.tenth_40, label='1:1 line')
 
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
@@ -1218,12 +1341,15 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         # The offset in x direction of that bar
         x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
         r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(bar_color)))  # hex to rgb format
+        hue, lightness, saturation = rgb2hls(r / 255, g / 255, b / 255)
+        lightness_factor = max(min(lightness * 1.8, 1.0), 0.0)
 
         for data_bar, data_bin in zip(data[name], data_bins):
             if not np.isnan(data_bar):
                 if vertical_bars:
                     ax.imshow(np.array([[mpl.colors.to_rgb(bar_color)],
-                                        [mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8))]]),
+                                        [mpl.colors.to_rgb(COLOR_PALETTE._adjust_color_lightness(bar_color,
+                                                           lightness_factor=lightness_factor))]]),
                               interpolation='gaussian', extent=(data_bin + x_offset - bar_width / 2,
                                                                 data_bin + x_offset + bar_width / 2, 0,
                                                                 data_bar),
@@ -1232,7 +1358,8 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                                  edgecolor=bar_color, linewidth=line_width, fill=False,
                                  zorder=1)#5
                 else:
-                    cmp = _create_colormap(mpl.colors.to_rgb(_adjust_color_lightness(r, g, b, factor=1.8)),
+                    cmp = _create_colormap(mpl.colors.to_rgb(COLOR_PALETTE._adjust_color_lightness(bar_color,
+                                                             lightness_factor=lightness_factor)),
                                            mpl.colors.to_rgb(bar_color))
                     ax.imshow(_gradient_image(direction=1, cmap_range=(0, 1)), cmap=cmp,
                               interpolation='gaussian',
@@ -2001,14 +2128,20 @@ def plot_dist_matrix(matrix, colorbar_label=None, xticklabels=None, yticklabels=
     return ax.get_figure()
 
 
-def render_table(data, col_width=3.0, row_height=0.625, font_size=16, header_color=COLOR_PALETTE.primary,
-                 row_colors=[COLOR_PALETTE.primary_90, 'w'], edge_color='w', bbox=[0, 0, 1, 1],
+def render_table(data, col_width=3.0, row_height=0.625, font_size=16, header_color=None,
+                 row_colors=None, edge_color='w', bbox=[0, 0, 1, 1],
                  header_columns=0, show_col_head=1,
                  ax=None, cellLoc='center', padding=0.01, **kwargs):
     if ax is None:
         size = (np.array(data.shape[::-1]) + np.array([0, 1])) * np.array([col_width, row_height])
         fig, ax = plt.subplots(figsize=size)
         ax.axis('off')
+
+    if row_colors is None:
+        row_colors = [COLOR_PALETTE.primary_90, 'w']
+
+    if header_color is None:
+        header_color = COLOR_PALETTE.primary
 
     if show_col_head == 1:
         mpl_table = ax.table(cellText=data.values, bbox=bbox, colLabels=data.columns, cellLoc=cellLoc, **kwargs)
