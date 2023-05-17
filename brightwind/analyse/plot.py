@@ -153,17 +153,9 @@ class _ColorPalette:
         # set the mpl color cycler to our colors. It has 10 colors
         # mpl.rcParams['axes.prop_cycle']
 
-    @staticmethod
-    def _set_col_map(color_map_name, col_map_colors):
-        return LinearSegmentedColormap.from_list(color_map_name, col_map_colors, N=256)
-
     @property
     def primary(self):
         return self._primary
-
-    @property
-    def tenth(self):
-        return self._tenth
 
     @primary.setter
     def primary(self, val):
@@ -174,28 +166,45 @@ class _ColorPalette:
         self.primary_90 = self._adjust_color_lightness(self._primary, 0.90)  # light green, 90% lightness of primary
         self.primary_95 = self._adjust_color_lightness(self._primary, 0.95)  # lightest green, 95% lightness of primary
 
+    @property
+    def tenth(self):
+        return self._tenth
+
     @tenth.setter
     def tenth(self, val):
         self._tenth = val
         self.tenth_40 = self._adjust_color_lightness(self._tenth, 0.4)  # darker grayish red, 40% lightness of tenth
 
     @property
-    def set_color_map_colors(self):
-        return self._set_color_map_colors
+    def color_list(self):
+        return [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
+                self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
 
-    @set_color_map_colors.setter
-    def set_color_map_colors(self, val):
-        self._set_color_map_colors = val
+    @property
+    def color_map(self):
+        self._color_map = self._set_col_map('color_map', self._get_color_map_colors())
+        return self._color_map
+
+    @staticmethod
+    def _set_col_map(color_map_name, col_map_colors):
+        return LinearSegmentedColormap.from_list(color_map_name, col_map_colors, N=256)
 
     @property
     def color_map_colors(self):
+        return self._get_color_map_colors()
+
+    @color_map_colors.setter
+    def color_map_colors(self, val):
+        self._set_color_map_colors = val
+
+    def _get_color_map_colors(self):
         if self._set_color_map_colors:
-            self._color_map_colors = self._set_color_map_colors
+            color_map_colors = self._set_color_map_colors
         else:
-            self._color_map_colors = [self.primary_95,  # lightest primary
-                                      self.primary,     # primary
-                                      self.primary_10]  # darkest primary
-        return self._color_map_colors
+            color_map_colors = [self.primary_95,  # lightest primary
+                                self.primary,     # primary
+                                self.primary_10]  # darkest primary
+        return color_map_colors
 
     @property
     def set_color_map_cyclical_colors(self):
@@ -212,17 +221,6 @@ class _ColorPalette:
         else:
             self._color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
         return self._color_map_cyclical_colors
-
-    @property
-    def color_map(self):
-        _col_map_colors = self.color_map_colors
-        self._color_map = self._set_col_map('color_map', _col_map_colors)
-        return self._color_map
-
-    @property
-    def color_list(self):
-        return [self.primary, self.secondary, self.tertiary, self.fourth, self.fifth, self.sixth,
-                self.seventh, self.eighth, self.ninth, self.tenth, self.eleventh, self.primary_35]
 
     @property
     def color_map_cyclical(self):
