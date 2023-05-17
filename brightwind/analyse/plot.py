@@ -1345,29 +1345,30 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         lightness_factor = max(min(lightness * 1.8, 1.0), 0.0)
 
         for data_bar, data_bin in zip(data[name], data_bins):
-            if vertical_bars:
-                ax.imshow(np.array([[mpl.colors.to_rgb(bar_color)],
-                                    [mpl.colors.to_rgb(COLOR_PALETTE._adjust_color_lightness(bar_color,
-                                                       lightness_factor=lightness_factor))]]),
-                          interpolation='gaussian', extent=(data_bin + x_offset - bar_width / 2,
-                                                            data_bin + x_offset + bar_width / 2, 0,
-                                                            data_bar),
-                          aspect='auto', zorder=2)#3
-                bar = ax.bar(data_bin + x_offset, data_bar, width=bar_width,
-                             edgecolor=bar_color, linewidth=line_width, fill=False,
-                             zorder=1)#5
-            else:
-                cmp = _create_colormap(mpl.colors.to_rgb(COLOR_PALETTE._adjust_color_lightness(bar_color,
-                                                         lightness_factor=lightness_factor)),
-                                       mpl.colors.to_rgb(bar_color))
-                ax.imshow(_gradient_image(direction=1, cmap_range=(0, 1)), cmap=cmp,
-                          interpolation='gaussian',
-                          extent=(0, data_bar, data_bin + x_offset - bar_width / 2,
-                                  data_bin + x_offset + bar_width / 2),
-                          aspect='auto', zorder=2, vmin=0, vmax=1)
-                bar = ax.barh(data_bin + x_offset, data_bar, height=bar_width,
-                              edgecolor=bar_color, linewidth=line_width, fill=False,
-                              zorder=1)#2
+            if not np.isnan(data_bar):
+                if vertical_bars:
+                    ax.imshow(np.array([[mpl.colors.to_rgb(bar_color)],
+                                        [mpl.colors.to_rgb(COLOR_PALETTE._adjust_color_lightness(bar_color,
+                                                           lightness_factor=lightness_factor))]]),
+                              interpolation='gaussian', extent=(data_bin + x_offset - bar_width / 2,
+                                                                data_bin + x_offset + bar_width / 2, 0,
+                                                                data_bar),
+                              aspect='auto', zorder=2)#3
+                    bar = ax.bar(data_bin + x_offset, data_bar, width=bar_width,
+                                 edgecolor=bar_color, linewidth=line_width, fill=False,
+                                 zorder=1)#5
+                else:
+                    cmp = _create_colormap(mpl.colors.to_rgb(COLOR_PALETTE._adjust_color_lightness(bar_color,
+                                                             lightness_factor=lightness_factor)),
+                                           mpl.colors.to_rgb(bar_color))
+                    ax.imshow(_gradient_image(direction=1, cmap_range=(0, 1)), cmap=cmp,
+                              interpolation='gaussian',
+                              extent=(0, data_bar, data_bin + x_offset - bar_width / 2,
+                                      data_bin + x_offset + bar_width / 2),
+                              aspect='auto', zorder=2, vmin=0, vmax=1)
+                    bar = ax.barh(data_bin + x_offset, data_bar, height=bar_width,
+                                  edgecolor=bar_color, linewidth=line_width, fill=False,
+                                  zorder=1)#2
         # Add a handle to the last drawn bar, which we'll need for the legend
         bar[0].set_color(bar_color)
         bar[0].set_fill(True)
