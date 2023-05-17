@@ -1255,7 +1255,7 @@ class LoadBrightHub:
         :rtype:                          dict
         """
         start_end_dates = LoadBrightHub._brighthub_request(
-            url_end="/start-end-dates/{}".format(measurement_station_uuid))
+            url_end="/measurement-locations/{}/start-end-dates".format(measurement_station_uuid))
 
         if start_end_dates.headers.get('content-type') != 'application/json.':
             start_end_dates.raise_for_status()
@@ -1296,7 +1296,7 @@ class LoadBrightHub:
 
         """
         data_model = LoadBrightHub._brighthub_request(
-            url_end="/data-models/{}".format(measurement_station_uuid))
+            url_end="/measurement-locations/{}/data-model".format(measurement_station_uuid))
 
         if data_model.headers.get('content-type') != 'application/json.':
             data_model.raise_for_status()
