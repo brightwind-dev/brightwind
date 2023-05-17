@@ -147,7 +147,7 @@ class _ColorPalette:
         self.tenth = '#A49E9D'          # Quick Silver, rgb(164/255, 158/255, 157/255)
         self.eleventh = '#DA9BA6'       # Parrot Pink, rgb(218/255, 155/255, 166/255)
 
-        self._set_color_map_colors = None
+        self._color_map_colors = None
         self._set_color_map_cyclical_colors = None
 
         # set the mpl color cycler to our colors. It has 10 colors
@@ -195,11 +195,11 @@ class _ColorPalette:
 
     @color_map_colors.setter
     def color_map_colors(self, val):
-        self._set_color_map_colors = val
+        self._color_map_colors = val
 
     def _get_color_map_colors(self):
-        if self._set_color_map_colors:
-            color_map_colors = self._set_color_map_colors
+        if self._color_map_colors:
+            color_map_colors = self._color_map_colors
         else:
             color_map_colors = [self.primary_95,  # lightest primary
                                 self.primary,     # primary
