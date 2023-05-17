@@ -80,16 +80,16 @@ class _ColorPalette:
            This color list is used primarily in line and scatter plots.
 
         4) The color sequence used for defining the color_map variable is as below. This variable is a
-           color map having a linear color pattern from the first color to the last color of the _color_map_colors list.
-            self._color_map_colors = [self.primary_95,  # lightest primary
+           color map having a linear color pattern from the first color to the last color of the color_map_colors list.
+            self.color_map_colors = [self.primary_95,  # lightest primary
                                       self.primary,     # primary
                                       self.primary_10]  # darkest primary
 
            This color map is used in the wind rose plot and also the 12x24 heat map plot from a shear by time of day.
 
         5) The color sequence used for defining the color_map_cyclical variable is as below. This variable is a
-           color map having a cyclical color pattern from/to the first color of the _color_map_cyclical_colors.
-            self._color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
+           color map having a cyclical color pattern from/to the first color of the color_map_cyclical_colors.
+            self.color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
 
            This sequence of colors is for plots where the pattern is cyclical such as a seasons. This is also used in
            12x24 plot from a shear by time of day.
@@ -118,16 +118,16 @@ class _ColorPalette:
 
             # The colors used for defining the color_map can also be reset by using the example code below:
 
-            bw.analyse.plot.COLOR_PALETTE.set_color_map_colors = ['#ccfffc',   # lightest primary
-                                                                  '#00b4aa',   # vert-dark
-                                                                  '#008079']   # darkest primary
+            bw.analyse.plot.COLOR_PALETTE.color_map_colors = ['#ccfffc',   # lightest primary
+                                                              '#00b4aa',   # vert-dark
+                                                              '#008079']   # darkest primary
 
             # The colors used for defining the color_map_cyclical can also be reset by using the example code below:
 
-            bw.analyse.plot.COLOR_PALETTE.set_color_map_cyclical = ['#ccfffc',   # lightest primary
-                                                                    '#00b4aa',   # vert-dark
-                                                                    '#008079',   # darkest primary
-                                                                    '#ccfffc']   # lightest primary
+            bw.analyse.plot.COLOR_PALETTE.color_map_cyclical_colors = ['#ccfffc',   # lightest primary
+                                                                       '#00b4aa',   # vert-dark
+                                                                       '#008079',   # darkest primary
+                                                                       '#ccfffc']   # lightest primary
 
             # The hex color value corresponding to an input color adjusted by a percentage lightness (e.g 0.5 %)
             # can be derived as below:
