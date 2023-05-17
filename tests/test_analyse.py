@@ -30,6 +30,40 @@ def test_monthly_means():
                                      "For example, hourly data should not be averaged to 10 minute data."
 
 
+def test_momm():
+    # Derive mean of monthly mean with standard method
+    momm_standard = bw.momm(DATA[['Spd40mN', 'Spd40mS']])
+    assert round(momm_standard.T['Spd40mN'].values[0], 6) == 6.802488
+
+    # Derive mean of monthly mean with standard method only using a certain period
+    momm_standard = bw.momm(DATA[['Spd40mN', 'Spd40mS']], date_from='2016-06-01', date_to='2017-05-31')
+    assert round(momm_standard.T['Spd40mS'].values[0], 6) == 6.684251
+
+    # Derive mean of monthly mean with standard method only using a certain period and imposing coverage_threshold
+    # equal to 0.7
+    momm_standard = bw.momm(DATA[['Spd40mN', 'Spd40mS']], date_from='2016-05-01', date_to='2017-05-31',
+                            coverage_threshold=0.7)
+    assert round(momm_standard.T['Spd40mS'].values[0], 6) == 6.684251
+
+    # Derive mean of monthly mean seasonal adjusted and imposing coverage_threshold equal to 0.7
+    momm_seas_adj = bw.momm(DATA[['Spd40mN', 'Spd40mS']], seasonal_adjustment=True, coverage_threshold=0.7)
+    assert round(momm_seas_adj.T['Spd40mN'].values[0], 6) == 6.749667
+
+    # Derive mean of monthly mean seasonal adjusted and imposing coverage_threshold equal to zero
+    momm_seas_adj = bw.momm(DATA[['Spd40mN', 'Spd40mS']], seasonal_adjustment=True, coverage_threshold=0)
+    assert round(momm_seas_adj.T['Spd40mN'].values[0], 6) == 6.797647
+
+    # Derive mean of monthly mean seasonal adjusted and imposing coverage_threshold equal to None
+    momm_seas_adj = bw.momm(DATA[['Spd40mN', 'Spd40mS']], seasonal_adjustment=True, coverage_threshold=None)
+    momm_seas_adj1 = bw.momm(DATA[['Spd40mN', 'Spd40mS']], seasonal_adjustment=True, coverage_threshold=0.8)
+    assert round(momm_seas_adj.T['Spd40mS'].values[0], 6) == round(momm_seas_adj1.T['Spd40mS'].values[0], 6)
+
+    # Derive mean of monthly mean seasonal adjusted with months of zero coverage
+    data_test = DATA.drop(DATA.loc[str(DATA.index[0].year) + '-' + str(DATA.index.month.unique()[3])].index)
+    momm_seas_adj = bw.momm(data_test[['Spd40mN', 'Spd40mS']], seasonal_adjustment=True, coverage_threshold=0.7)
+    assert round(momm_seas_adj.T['Spd40mS'].values[0], 6) == 6.864868
+
+
 def test_sector_ratio():
     bw.sector_ratio(DATA['Spd80mN'], DATA['Spd80mS'], DATA['Dir78mS'], sectors=72, boom_dir_1=0,
                     boom_dir_2=180, return_data=True)
@@ -44,8 +78,8 @@ def test_sector_ratio():
                     DATA[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180,
                     figure_size=(25,25))
     bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']], DATA[['Spd80mS', 'Spd60mS', 'Spd40mS']],
-                 DATA[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25),
-                 return_data=True)
+                    DATA[['Dir78mS', 'Dir58mS', 'Dir38mS']], boom_dir_1=0, boom_dir_2=180, figure_size=(25, 25),
+                    return_data=True)
     bw.sector_ratio(DATA['Spd80mN'], DATA['Spd80mS'], DATA['Dir78mS'], boom_dir_1=0, boom_dir_2=180, return_data=True)
     bw.sector_ratio(DATA[['Spd80mN', 'Spd60mN']], DATA[['Spd80mS', 'Spd60mS']],
                     DATA[['Dir78mS', 'Dir58mS']], boom_dir_1=[0, 350], boom_dir_2=[180, 170], figure_size=(25, 25))
