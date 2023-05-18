@@ -235,7 +235,7 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     return bw_plt.plot_monthly_means(df, ylbl=ylabel)
 
 
-def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage, coverage_threshold, analysis_type,
+def _filter_out_months_based_on_coverage_threshold(var_series, coverage_threshold, analysis_type,
                                                    seasonal_adjustment):
     """
     Filter out var_series data periods when coverage is lower than coverage_threshold and return a text message
@@ -243,8 +243,6 @@ def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
 
     :param var_series:              Series of variable whose monthly data are filtered out from.
     :type var_series:               pandas.Series
-    :param monthly_coverage:        Monthly coverage of var_series data derived using brightwind.coverage() function.
-    type monthly_coverage:          pandas.Dataframe
     :param coverage_threshold:      In this case monthly coverage threshold. Coverage is defined as the ratio of the
                                     number of data points present in the month and the maximum number of data points
                                     that a month should have. Example, for 10 minute data for June, the maximum number
@@ -265,12 +263,24 @@ def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
     :return text_msg_out:           A text message explaining the monthly coverage threshold filter applied.
     :rtype text_msg_out:            str
     """
+
+    coverage_threshold = validate_coverage_threshold(coverage_threshold)
+
     text_msg_out = None
 
     if seasonal_adjustment:
         text_seas_adj = 'seasonally adjusted '
     else:
         text_seas_adj = ''
+
+    # Derive monthly coverage
+    # Check if var_series data resolution is more than the monthly period, if it is the case then the monthly coverage
+    # can not be derived and the data_resolution needs to be given as input to the coverage function.
+    if var_series.index[0] + tf._freq_str_to_dateoffset('1M') < \
+            var_series.index[0] + tf._get_data_resolution(var_series.index):
+        monthly_coverage = coverage(var_series, period='1M', data_resolution=pd.DateOffset(months=1))
+    else:
+        monthly_coverage = coverage(var_series, period='1M')
 
     # Remove months with coverage threshold lower than the input coverage_threshold.
     if (monthly_coverage < coverage_threshold).sum() > 0:
@@ -451,23 +461,10 @@ def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False
     if seasonal_adjustment and coverage_threshold is None:
         coverage_threshold = 0.8
 
-    coverage_threshold = validate_coverage_threshold(coverage_threshold)
-
     output = pd.DataFrame([np.nan * np.ones(len(sliced_data.columns))], columns=sliced_data.columns, index=['MOMM'])
 
     for col in sliced_data.columns:
-
-        # Derive monthly coverage
-        # Check if sliced_data resolution is more than the monthly period, if it is the case then the monthly coverage
-        # can not be derived and the data_resolution needs to be given as input to the coverage function.
-        if sliced_data[col].index[0] + tf._freq_str_to_dateoffset('1M') < \
-                sliced_data[col].index[0] + tf._get_data_resolution(sliced_data[col].index):
-            monthly_coverage = coverage(sliced_data[col], period='1M', data_resolution=pd.DateOffset(months=1))
-        else:
-            monthly_coverage = coverage(sliced_data[col], period='1M')
-
-        var_series, text_msg = _filter_out_months_based_on_coverage_threshold(sliced_data[col], monthly_coverage,
-                                                                              coverage_threshold,
+        var_series, text_msg = _filter_out_months_based_on_coverage_threshold(sliced_data[col], coverage_threshold,
                                                                               analysis_type='mean of monthly mean',
                                                                               seasonal_adjustment=seasonal_adjustment)
         if text_msg:
