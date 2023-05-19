@@ -254,7 +254,7 @@ def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
                                     between 0 and 1. If it is None or 0 data is not filtered.
     :type coverage_threshold:       int, float or None
     :param analysis_type:           Text reporting the type of analysis to report in the warning messages
-                                    e.g 'mean of monthly mean' .
+                                    e.g 'mean of monthly mean' or 'frequency table'.
     :type analysis_type:            str
     :param seasonal_adjustment:     Optional, False by default. If True, returns text messages for seasonal adjusted
                                     method.
@@ -275,6 +275,11 @@ def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
     else:
         text_seas_adj = ''
 
+    if analysis_type == 'mean of monthly mean':
+        variable_name = ' for {}'.format(var_series.name)
+    else:
+        variable_name = ''
+
     # Remove months with coverage threshold lower than the input coverage_threshold.
     if (monthly_coverage < coverage_threshold).sum() > 0:
         # apply monthly coverage threshold provided as input to the function
@@ -288,9 +293,8 @@ def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
             months_fail_coverage[months_fail_coverage > 0].index.strftime('%Y-%m'))).set_index(index_name).iloc[:, 0]
 
         text_months_fail = ", ".join(map(str, list(months_fail_coverage.index.strftime('%b-%Y'))))
-        text_warning = 'These months are filtered out for deriving the {}{} {}.'.format(text_seas_adj,
-                                                                                        var_series_filtered.name,
-                                                                                        analysis_type)
+        text_warning = 'These months are filtered out for deriving the {}{}.'.format(text_seas_adj,
+                                                                                      analysis_type)
     else:
         text_months_fail = ''
         text_warning = ''
@@ -312,26 +316,26 @@ def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
     if coverage_threshold < coverage_threshold_recommended:
         if (monthly_coverage < coverage_threshold).sum() > 0 and (
                 monthly_coverage < coverage_threshold_recommended).sum() > 0:
-            text_msg_out = 'The monthly coverage for {} is lower than the coverage threshold value of ' \
-                           '{}. {}'.format(text_months_fail, coverage_threshold, text_warning)
+            text_msg_out = 'Note{}: The monthly coverage for {} is lower than the coverage threshold value of ' \
+                           '{}. {}'.format(variable_name, text_months_fail, coverage_threshold, text_warning)
             if seasonal_adjustment:
                 text_msg_out = '{} The {}'.format(text_msg_out, text_warning_threshold_recommended)
         elif (monthly_coverage < coverage_threshold).sum() == 0 and (
                 monthly_coverage < coverage_threshold_recommended).sum() > 0 and seasonal_adjustment:
-            text_msg_out = 'Note: A coverage threshold value of {} is set for {}. The {}{} {}' \
-                           ''.format(coverage_threshold, var_series_filtered.name, text_seas_adj, analysis_type,
+            text_msg_out = 'Note{}: A coverage threshold value of {} is set. The {}{} {}' \
+                           ''.format(variable_name, coverage_threshold, text_seas_adj, analysis_type,
                                      text_warning_threshold_recommended)
         else:
             text_msg_out = None
     elif coverage_threshold >= coverage_threshold_recommended and (monthly_coverage < coverage_threshold).sum() > 0:
-        text_msg_out = 'Note: The monthly coverage for {} is lower than the coverage threshold value of {}.' \
-                       ' {}'.format(text_months_fail, coverage_threshold, text_warning)
+        text_msg_out = 'Note{}: The monthly coverage for {} is lower than the coverage threshold value of {}.' \
+                       ' {}'.format(variable_name, text_months_fail, coverage_threshold, text_warning)
 
     # check that var_series_filtered dataset has data for all calendar months
     if len(var_series_filtered.index.month.unique()) < 12 and seasonal_adjustment:
-        raise ValueError('The input {} series filtered by the input monthly coverage threshold do not cover all '
+        raise ValueError('Note{}: The input series filtered by the input monthly coverage threshold do not cover all '
                          'calendar months. The seasonal adjusted {} '
-                         'cannot be derived.'.format(var_series_filtered.name, analysis_type))
+                         'cannot be derived.'.format(variable_name, analysis_type))
 
     return var_series_filtered, text_msg_out
 
