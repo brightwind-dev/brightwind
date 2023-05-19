@@ -871,7 +871,7 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
 
 def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_series, direction_series, var_bin_array,
                                                      sectors=12, direction_bin_array=None, direction_bin_labels=None,
-                                                     aggregation_method='%frequency', coverage_threshold=0.8):
+                                                     aggregation_method='%frequency'):
     """
     Calculates distribution matrix of a variable against another variable and wind direction applying a
     seasonal adjustment.
@@ -910,84 +910,14 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
                                 %frequency or a custom function. It cannot be 'count' or 'sum'. Computes frequency in
                                 percentages by default.
     :type aggregation_method:   str
-    :param coverage_threshold:  In this case monthly coverage threshold. Coverage is defined as the ratio of the number
-                                of data points present in the month and the maximum number of data points that a month
-                                should have. Example, for 10 minute data for June, the maximum number of data points is
-                                43,200. But if the number if data points available is only 30,000 the coverage is
-                                0.69. A coverage_threshold value of 0.8 will filter out any months with a coverage less
-                                than this. Coverage_threshold should be a value between 0 and 1. If it is None or 0,
-                                data is not filtered. Default value is 0.8.
-    :type coverage_threshold:   int, float or None
     :return:                    A distribution matrix for the given Series of variable and a text message explaining
                                 the monthly coverage threshold filter applied.
     :rtype:                     pandas.DataFrame and str
 
     """
-    text_msg_out = None
-
     if (aggregation_method == 'count') or (aggregation_method == 'sum'):
         raise ValueError("The input 'aggregation_method' cannot be 'count' or 'sum' when a seasonal adjustment is "
                          "applied to the frequency table.")
-
-    coverage_threshold = validate_coverage_threshold(coverage_threshold)
-    # derive monthly coverage considering var_series, var_to_bin_series, direction_series inputs
-    monthly_coverage = coverage(pd.concat([var_series.rename('var_data'), var_to_bin_series,
-                                           direction_series], axis=1).dropna())['var_data_Coverage'].combine(
-        coverage(var_series), min).replace(np.nan, 0.0)
-
-    # Remove months with coverage threshold lower than the input coverage_threshold.
-    if (monthly_coverage < coverage_threshold).sum() > 0:
-        # apply monthly coverage threshold provided as input to the function
-        months_fail_coverage = monthly_coverage[monthly_coverage < coverage_threshold].dropna()
-        # remove data for months with coverage lower than the coverage_threshold
-        tmp_var_series = pd.DataFrame(var_series)
-        tmp_var_series['Months'] = list(var_series.index.strftime("%Y-%m"))
-        index_name = tmp_var_series.index.name
-        tmp_var_series[index_name] = list(var_series.index)
-        var_series = tmp_var_series.set_index('Months').drop(labels=list(
-            months_fail_coverage[months_fail_coverage > 0].index.strftime('%Y-%m'))).set_index(index_name).iloc[:, 0]
-
-        text_months_fail = ", ".join(map(str, list(months_fail_coverage.index.strftime('%b-%Y'))))
-        text_warning = 'These months are filtered out for deriving the seasonally adjusted frequency table.'
-    else:
-        text_months_fail = ''
-        text_warning = ''
-
-    # Check if there are any months with coverage threshold lower than the recommended value of 0.8.
-    coverage_threshold_recommended = 0.8
-    if (coverage_threshold < coverage_threshold_recommended) and \
-            (monthly_coverage < coverage_threshold_recommended).sum() > 0:
-
-        text_warning_threshold_recommended = 'results may be incorrect when ' \
-                                             'you use an insufficient data coverage threshold, i.e. below our ' \
-                                             'recommended value of 0.8. Some months may have very little data ' \
-                                             'coverage and so may skew the statistics.'
-    else:
-        text_warning_threshold_recommended = ''
-
-    # Generate text for coverage_threshold warning message raised.
-    if coverage_threshold < coverage_threshold_recommended:
-        if (monthly_coverage < coverage_threshold).sum() > 0 and (
-                monthly_coverage < coverage_threshold_recommended).sum() > 0:
-            text_msg_out = 'Note: The monthly coverage for {} is lower than the coverage threshold value of ' \
-                           '{}. {} The {}'.format(text_months_fail, coverage_threshold, text_warning,
-                                                  text_warning_threshold_recommended)
-        elif (monthly_coverage < coverage_threshold).sum() == 0 and (
-                monthly_coverage < coverage_threshold_recommended).sum() > 0:
-            text_msg_out = 'Note: A coverage threshold value of {} is set.' \
-                           ' The seasonally adjusted frequency table {}'.format(coverage_threshold,
-                                                                                text_warning_threshold_recommended)
-        else:
-            text_msg_out = None
-    elif coverage_threshold >= coverage_threshold_recommended and (monthly_coverage < coverage_threshold).sum() > 0:
-        text_msg_out = 'Note: The monthly coverage for {} is lower than the coverage threshold value of {}.' \
-                       ' {}'.format(text_months_fail, coverage_threshold, text_warning)
-
-    # check that var_series dataset has data for all calendar months
-    if len(var_series.index.month.unique()) < 12:
-        raise ValueError('The input series filtered by the input monthly coverage threshold do not cover all '
-                         'calendar months. The seasonal adjusted distribution matrix by directional sector '
-                         'cannot be derived.')
 
     results = {}
     number_days_month = {}
@@ -1011,7 +941,7 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
 
     average_results = (pd.Series(results) * pd.Series(number_days_month) / sum(
         number_days_month.values())).sum(skipna=True)
-    return average_results, text_msg_out
+    return average_results
 
 
 def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series,
@@ -1120,7 +1050,7 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
 
 def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
                direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, seasonal_adjustment=False,
-               coverage_threshold=0.8, target_freq_table_mean=None, plot_bins=None, plot_labels=None,
+               coverage_threshold=None, target_freq_table_mean=None, plot_bins=None, plot_labels=None,
                return_data=False):
     """
     Create a frequency distribution table, typically of wind speed and wind direction i.e. how often the wind
@@ -1175,14 +1105,17 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     :param seasonal_adjustment:     Optional, False by default. If True, returns the frequency distribution seasonal
                                     adjusted
     :type seasonal_adjustment:      bool
-    :param coverage_threshold:      In this case monthly coverage threshold. Only applied if `seasonal_adjustment`
-                                    is True. Coverage is defined as the ratio of the number of data points present in
-                                    the month and the maximum number of data points that a month should have.
-                                    Example, for 10 minute data for June, the maximum number of data points is 43,200.
-                                    But if the number if data points available is only 30,000 the coverage is 0.69.
-                                    A coverage_threshold value of 0.8 will filter out any months with a coverage less
-                                    than this. Coverage_threshold should be a value between 0 and 1.
-                                    If it is None or 0, data is not filtered. Default value is 0.8.
+    :param coverage_threshold:      In this case, coverage threshold is applied to a month. Coverage is defined as the
+                                    ratio of the number of data points present in the month and the maximum number of
+                                    data points that a month should have. Example, for 10 minute data for June,
+                                    the maximum number of data points is 43,200. But if the number if data points
+                                    available is only 30,000 the coverage is 0.69. A coverage_threshold value of 0.8
+                                    will filter out any months with a coverage less than this.
+                                    Coverage_threshold should be a value between 0 and 1. If it is 0, data is not
+                                    filtered. If it is None, data is also not filtered, except for when the
+                                    seasonal_adjustment is True. If seasonal_adjustment is True, then set
+                                    coverage_threshold to 0 to not filter out data.
+                                    Default value is None, except when 'seasonal_adjustment'=True when it is 0.8.
     :type coverage_threshold:       int, float or None
     :param target_freq_table_mean:  Target value used to scale the mean of the frequency distribution.
                                     If None then no scaling is applied. The mean of frequency distribution is considered
@@ -1250,6 +1183,9 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         display(freq_table)
     """
 
+    if seasonal_adjustment and coverage_threshold is None:
+        coverage_threshold = 0.8
+
     if (freq_as_percentage is False) and (seasonal_adjustment is True):
         raise ValueError("The input 'freq_as_percentage' cannot be set to False if `seasonal_adjustment` is "
                          "set to True. \nThis because the 'count' aggregation method cannot be used when a "
@@ -1264,6 +1200,16 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     var_series = _convert_df_to_series(var_series).copy()
     direction_series = _convert_df_to_series(direction_series).copy()
     data_concurrent = pd.concat([var_series, direction_series], axis=1).dropna()
+
+    # derive monthly coverage considering var_series, direction_series inputs
+    monthly_coverage = coverage(pd.concat([var_series.rename('var_data'), direction_series],
+                                          axis=1).dropna())['var_data_Coverage'].combine(
+        coverage(var_series), min).replace(np.nan, 0.0)
+
+    var_series, text_msg_out = _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
+                                                                              coverage_threshold,
+                                                                              analysis_type='frequency table',
+                                                                              seasonal_adjustment=seasonal_adjustment)
 
     # If `target_freq_table_mean` is given as input to function then derive scale factor as ratio of
     # `target_freq_table_mean` and `data_concurrent` means.
@@ -1283,17 +1229,15 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     k = 1
     while k > 0:
         if seasonal_adjustment:
-            result, text_msg_out = _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series=var_series_scaled,
-                                                                                    var_to_bin_series=var_series_scaled,
-                                                                                    direction_series=direction_series,
-                                                                                    var_bin_array=var_bin_array,
-                                                                                    coverage_threshold=
-                                                                                    coverage_threshold,
-                                                                                    sectors=sectors,
-                                                                                    direction_bin_array=
-                                                                                    direction_bin_array,
-                                                                                    direction_bin_labels=None,
-                                                                                    aggregation_method=agg_method)
+            result = _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series=var_series_scaled,
+                                                                      var_to_bin_series=var_series_scaled,
+                                                                      direction_series=direction_series,
+                                                                      var_bin_array=var_bin_array,
+                                                                      sectors=sectors,
+                                                                      direction_bin_array=
+                                                                      direction_bin_array,
+                                                                      direction_bin_labels=None,
+                                                                      aggregation_method=agg_method)
             result = result.replace(np.nan, 0.0)
         else:
             result = _get_dist_matrix_by_dir_sector(var_series=var_series_scaled, var_to_bin_series=var_series_scaled,
