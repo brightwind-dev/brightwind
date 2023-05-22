@@ -1066,7 +1066,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     direction are binned.
 
     If 'seasonal_adjustment' input is set to True then the frequency table is seasonally adjusted.
-    NOTE; that if the input datasets ('var_series' or 'direction_series') don't have data for each calendar month
+    NOTE; that if the input datasets ('var_series' or/and 'direction_series') don't have data for each calendar month
     then the seasonal adjustment is not derived and the function will raise an error.
 
     The seasonal adjusted frequency table is derived following the method below:
@@ -1204,7 +1204,6 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     # Create Dataframe with same coverage for var_series and direction_series to handle inconsistent coverage
     var_series = _convert_df_to_series(var_series).copy()
     direction_series = _convert_df_to_series(direction_series).copy()
-    data_concurrent = pd.concat([var_series, direction_series], axis=1).dropna()
 
     # derive monthly coverage considering var_series, direction_series inputs
     monthly_coverage = coverage(pd.concat([var_series.rename('var_data'), direction_series],
@@ -1216,6 +1215,8 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                                                                               coverage_threshold,
                                                                               analysis_type='frequency table',
                                                                               seasonal_adjustment=seasonal_adjustment)
+
+    data_concurrent = pd.concat([var_series, direction_series], axis=1).dropna()
 
     # If `target_freq_table_mean` is given as input to function then derive scale factor as ratio of
     # `target_freq_table_mean` and `data_concurrent` means.
