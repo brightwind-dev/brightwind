@@ -275,8 +275,8 @@ def test_freq_table():
     assert 'Some months may have very little data coverage' in str(fig_rose.get_default_bbox_extra_artists()[1])
 
     fig_rose, freq_tbl_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=True, seasonal_adjustment=True,
-                                                coverage_threshold=0.8, target_freq_table_mean=8.5)
-    assert round(8.5, 3) == round(bw.export.export._calc_mean_speed_of_freq_tab(freq_tbl_seas_adj), 3)
+                                                coverage_threshold=0.8, target_freq_table_mean=8.55)
+    assert round(8.55, 3) == round(bw.export.export._calc_mean_speed_of_freq_tab(freq_tbl_seas_adj), 3)
     assert 'is lower than the coverage threshold value of 0.8' in str(fig_rose.get_default_bbox_extra_artists()[1])
     assert 'Some months may have very little data coverage' not in str(fig_rose.get_default_bbox_extra_artists()[1])
 
