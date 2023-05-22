@@ -289,6 +289,33 @@ def test_freq_table():
                              return_data=False, seasonal_adjustment=True, coverage_threshold=0.9)
     assert isinstance(fig_rose.get_axes()[0], mpl.projections.polar.PolarAxes)
 
+    fig_rose, freq_tbl_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=True, seasonal_adjustment=True,
+                                                coverage_threshold=0)
+
+    assert freq_tbl_seas_adj.sum().round(6).to_dict()['105.0-135.0'] == 5.140507
+
+    fig_rose, freq_tbl_no_seas_adj = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=True,
+                                                   seasonal_adjustment=False, coverage_threshold=0)
+
+    assert round(bw.export.export._calc_mean_speed_of_freq_tab(freq_tbl_no_seas_adj), 3) == 6.764
+    assert freq_tbl_no_seas_adj.sum().round(6).to_dict() == target_freq_dict_no_seas_adj_sum
+
+    fig_rose, freq_tbl_no_seas_adj1 = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS['2016-06-01':], return_data=True,
+                                                    seasonal_adjustment=False,
+                                                    coverage_threshold=0.5)
+    fig_rose, freq_tbl_no_seas_adj2 = bw.freq_table(DATA.Spd40mN['2016-06-01':], DATA.Dir38mS, return_data=True,
+                                                    seasonal_adjustment=False,
+                                                    coverage_threshold=0.5)
+
+    assert round(bw.export.export._calc_mean_speed_of_freq_tab(freq_tbl_no_seas_adj1), 3) == round(
+        bw.export.export._calc_mean_speed_of_freq_tab(freq_tbl_no_seas_adj2), 3)
+
+    assert round(bw.export.export._calc_mean_speed_of_freq_tab(freq_tbl_no_seas_adj1), 3) == 6.713
+
+    rose, freq_table = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=True, coverage_threshold=0.5,
+                                     target_freq_table_mean=8)
+    assert round(bw.export.export._calc_mean_speed_of_freq_tab(freq_table), 3) == 8
+
 
 def test_dist():
     bw.dist(DATA[['Spd40mN']], bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
