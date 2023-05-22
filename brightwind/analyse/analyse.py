@@ -1153,9 +1153,20 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         display(rose)
         display(freq_table)
 
+        # To get the plot and the freq table imposing a coverage_threshold of 0.5.
+        rose, freq_table = bw.freq_table(data.Spd40mN, data.Dir38mS, return_data=True, coverage_threshold=0.5)
+        display(rose)
+        display(freq_table)
+
         # Apply seasonal adjustment and coverage threshold of 70%
         rose, freq_table = bw.freq_table(data.Spd40mN, data.Dir38mS, return_data=True, seasonal_adjustment=True,
                                          coverage_threshold=0.7)
+        display(rose)
+        display(freq_table)
+
+        # Apply seasonal adjustment and set coverage_threshold to 0 to not filter out data.
+        rose, freq_table = bw.freq_table(data.Spd40mN, data.Dir38mS, return_data=True, seasonal_adjustment=True,
+                                         coverage_threshold=0)
         display(rose)
         display(freq_table)
 
@@ -1252,7 +1263,6 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
                                                     sectors=sectors, direction_bin_array=direction_bin_array,
                                                     direction_bin_labels=None, aggregation_method=agg_method
                                                     ).replace(np.nan, 0.0)
-            text_msg_out = None
 
         if target_freq_table_mean is None:
             k = -1
