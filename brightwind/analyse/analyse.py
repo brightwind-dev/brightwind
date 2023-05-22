@@ -294,7 +294,7 @@ def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
 
         text_months_fail = ", ".join(map(str, list(months_fail_coverage.index.strftime('%b-%Y'))))
         text_warning = 'These months are filtered out for deriving the {}{}.'.format(text_seas_adj,
-                                                                                      analysis_type)
+                                                                                     analysis_type)
     else:
         text_months_fail = ''
         text_warning = ''
@@ -332,7 +332,8 @@ def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
                        ' {}'.format(variable_name, text_months_fail, coverage_threshold, text_warning)
 
     # check that var_series_filtered dataset has data for all calendar months
-    if len(var_series_filtered.index.month.unique()) < 12 and seasonal_adjustment:
+    if len(monthly_coverage[monthly_coverage >= coverage_threshold].dropna().index.month.unique()) < 12 \
+            and seasonal_adjustment:
         raise ValueError('Note{}: The input series filtered by the input monthly coverage threshold do not cover all '
                          'calendar months. The seasonal adjusted {} '
                          'cannot be derived.'.format(variable_name, analysis_type))
@@ -1207,10 +1208,11 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
 
     # derive monthly coverage considering var_series, direction_series inputs
     monthly_coverage = coverage(pd.concat([var_series.rename('var_data'), direction_series],
-                                          axis=1).dropna())['var_data_Coverage'].combine(
-        coverage(var_series), min).replace(np.nan, 0.0)
+                                          axis=1)).min(axis=1).replace(np.nan, 0.0)
 
-    var_series, text_msg_out = _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
+    var_series, text_msg_out = _filter_out_months_based_on_coverage_threshold(pd.concat([var_series, direction_series],
+                                                                                        axis=1)[var_series.name],
+                                                                              monthly_coverage,
                                                                               coverage_threshold,
                                                                               analysis_type='frequency table',
                                                                               seasonal_adjustment=seasonal_adjustment)
