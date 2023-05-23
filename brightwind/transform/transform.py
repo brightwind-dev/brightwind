@@ -1270,27 +1270,37 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
     """
     Offset timestamps by a certain time period
 
-    :param data: DateTimeIndex or Series/DataFrame with DateTimeIndex
-    :type data: pandas.DateTimeIndex, pandas.Series, pandas.DataFrame
-    :param offset: A string specifying the time to offset the time-series.
+    :param data:        DateTimeIndex or Series/DataFrame with DateTimeIndex
+    :type data:         pandas.DateTimeIndex, pandas.Series, pandas.DataFrame
+    :param offset:      A string specifying the time to offset the time-series.
 
-            - Set offset to 10min to add 10 minutes to each timestamp, -10min to subtract 10 minutes and so on
-                for 4min, 20min, etc.
-            - Set offset to 1H to add 1 hour to each timestamp and -1H to subtract and so on for 5H, 6H, etc.
-            - Set offset to 1D to add a day and -1D to subtract and so on for 5D, 7D, 15D, etc.
-            - Set offset to 1W to add a week and -1W to subtract from each timestamp and so on for 2W, 4W, etc.
-            - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on for 2M, 3M, etc.
-            - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on for 2Y, 3Y, etc.
+                        - Set offset to 10min to add 10 minutes to each timestamp, -10min to subtract 10 minutes and so
+                          on for 4min, 20min, etc.
+                        - Set offset to 1H to add 1 hour to each timestamp and -1H to subtract and so on for 5H, 6H,
+                          etc.
+                        - Set offset to 1D to add a day and -1D to subtract and so on for 5D, 7D, 15D, etc.
+                        - Set offset to 1W to add a week and -1W to subtract from each timestamp and so on for 2W,
+                          4W, etc.
+                        - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on
+                          for 2M, 3M, etc.
+                        - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on
+                          for 2Y, 3Y, etc.
 
-    :type offset: str
-    :param date_from: (Optional) The timestamp from input data where to start offsetting from.
-    :type date_from: str, datetime, dict
-    :param date_to: (Optional) The timestamp from input data where to end offsetting.
-    :type date_to: str, datetime, dict
-    :param overwrite: Change to True to overwrite the unadjusted timestamps if they are same outside of the slice of
-        data you want to offset. False by default.
-    :type overwrite: bool
-    :returns: Offsetted DateTimeIndex/Series/DataFrame, same format is input data
+    :type offset:       str
+    :param date_from:   (Optional) The timestamp from input data where to start offsetting from. If format of date_from
+                        is YYYY-MM-DD, then the first timestamp of the date is used (e.g if date_from=2023-01-01 then
+                        2023-01-01 00:00 is the first timestamp of when to start offsetting from). If date_from is not
+                        given then the offset is applied from the first timestamp of the dataset.
+    :type date_from:    str, datetime, dict
+    :param date_to:     (Optional) The timestamp from input data where to end offsetting. If format date_to is
+                        YYYY-MM-DD, then the last timestamp of the previous day is used (e.g if date_to=2023-02-01 then
+                        2023-01-31 23:50 is the last timestamp of when to end offsetting to). If date_to is not given
+                        then the offset is applied up to the last timestamp of the dataset.
+    :type date_to:      str, datetime, dict
+    :param overwrite:   Change to True to overwrite the unadjusted timestamps if they are same outside of the slice of
+                        data you want to offset. False by default.
+    :type overwrite:    bool
+    :returns:           Offsetted DateTimeIndex/Series/DataFrame, same format is input data
 
     **Example usage**
     ::

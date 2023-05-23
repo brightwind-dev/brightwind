@@ -65,7 +65,7 @@ def slice_data(data, date_from=None, date_to=None):
     :param date_from:   Start date as string in format YYYY-MM-DD or YYYY-MM-DD HH:DD. If format of date_from is
                         YYYY-MM-DD, then the first timestamp of the date is used (e.g if date_from=2023-01-01 then
                         2023-01-01 00:00 is the first timestamp of the sliced data). If date_from is not given then
-                        the sliced data are taken up to the first timestamp of the dataset.
+                        the sliced data are taken from the first timestamp of the dataset.
     :type:              str
     :param date_to:     End date as string in format YYYY-MM-DD or YYYY-MM-DD HH:DD. If format date_to is
                         YYYY-MM-DD, then the last timestamp of the previous day is used (e.g if date_to=2023-02-01 then

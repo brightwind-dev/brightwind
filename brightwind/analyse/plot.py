@@ -481,7 +481,7 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     :param date_from:               Start date as string in format YYYY-MM-DD or YYYY-MM-DD HH:DD. If format of
                                     date_from is YYYY-MM-DD, then the first timestamp of the date is used
                                     (e.g if date_from=2023-01-01 then 2023-01-01 00:00 is the first timestamp of the
-                                    sliced data). If date_from is not given then the sliced data are taken up to the
+                                    sliced data). If date_from is not given then the sliced data are taken from the
                                     first timestamp of the dataset.
     :type date_from:                str
     :param date_to:                 End date as string in format YYYY-MM-DD or YYYY-MM-DD HH:DD. If format date_to is
