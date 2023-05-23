@@ -38,12 +38,12 @@ def test_plot_timeseries():
     bw.plot_timeseries(DATA[['Spd40mN', 'Spd60mS', 'T2m']])
     bw.plot_timeseries(DATA[['Spd40mN']], date_from='2017-09-01')
     bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', x_label='Time', y_label='Spd40mN', legend=False)
-    bw.plot_timeseries(DATA.Spd40mN, date_to='2017-10-01')
-    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', x_tick_label_angle=25)
-    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=(0, None))
-    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=None)
-    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=(0, 25))
-    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=(None, 25))
+    bw.plot_timeseries(DATA.Spd40mN, date_to='2017-10-01 00:00')
+    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01 00:00', x_tick_label_angle=25)
+    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01 00:00', y_limits=(0, None))
+    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01 00:00', y_limits=None)
+    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01 00:00', y_limits=(0, 25))
+    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01 00:00', y_limits=(None, 25))
     bw.plot_timeseries(DATA[['Spd40mN', 'Spd60mS', 'T2m']], line_colors=['#009991', '#171a28', '#726e83'],
                        figure_size=(20, 4))
 

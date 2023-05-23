@@ -36,12 +36,12 @@ def test_momm():
     assert round(momm_standard.T['Spd40mN'].values[0], 6) == 6.802488
 
     # Derive mean of monthly mean with standard method only using a certain period
-    momm_standard = bw.momm(DATA[['Spd40mN', 'Spd40mS']], date_from='2016-06-01', date_to='2017-05-31')
+    momm_standard = bw.momm(DATA[['Spd40mN', 'Spd40mS']], date_from='2016-06-01', date_to='2017-05-31 00:00')
     assert round(momm_standard.T['Spd40mS'].values[0], 6) == 6.684251
 
     # Derive mean of monthly mean with standard method only using a certain period and imposing coverage_threshold
     # equal to 0.7
-    momm_standard = bw.momm(DATA[['Spd40mN', 'Spd40mS']], date_from='2016-05-01', date_to='2017-05-31',
+    momm_standard = bw.momm(DATA[['Spd40mN', 'Spd40mS']], date_from='2016-05-01', date_to='2017-05-31 00:00',
                             coverage_threshold=0.7)
     assert round(momm_standard.T['Spd40mS'].values[0], 6) == 6.684251
 
