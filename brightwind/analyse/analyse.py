@@ -398,7 +398,7 @@ def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False
     is not derived and the function will raise an error.
 
     :param data:                Pandas DataFrame or Series with timestamp as index and a column with wind speed
-    :type data:                 pd.DataFrame or pd.Series
+    :type data:                 pandas.DataFrame or pandas.Series
     :param date_from:           Start date as string in format YYYY-MM-DD
     :type:                      str
     :param date_to:             End date as string in format YYYY-MM-DD
@@ -418,7 +418,7 @@ def momm(data, date_from: str = '', date_to: str = '', seasonal_adjustment=False
                                 Default value is None, except when 'seasonal_adjustment'=True when it is 0.8.
     :type coverage_threshold:   int, float or None
     :returns:                   Long term reference speed
-    :rtype:                     panda.Dataframe
+    :rtype:                     pandas.Dataframe
 
     **Example usage**
     ::
