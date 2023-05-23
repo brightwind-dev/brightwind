@@ -56,7 +56,7 @@ def validate_coverage_threshold(coverage_threshold):
     return coverage_threshold
 
 
-def slice_data(data, date_from, date_to):
+def slice_data(data, date_from='', date_to=''):
     """
     Returns the slice of data between the two date or datetime ranges.
 
@@ -64,11 +64,13 @@ def slice_data(data, date_from, date_to):
     :type data:         pandas.DataFrame or pandas.Series
     :param date_from:   Start date as string in format YYYY-MM-DD or YYYY-MM-DD HH:DD. If format of input start date is
                         YYYY-MM-DD, then the first timestamp of the date is used (e.g if date_from=2023-01-01 then
-                        2023-01-01 00:00 is the first timestamp of the sliced data).
+                        2023-01-01 00:00 is the first timestamp of the sliced data). If date_from is not given then
+                        the sliced data are taken up to the first timestamp of the dataset.
     :type:              str
     :param date_to:     End date as string in format YYYY-MM-DD or YYYY-MM-DD HH:DD. If fomat of input end date is
                         YYYY-MM-DD, then the last timestamp of the previous day is used (e.g if date_to=2023-02-01 then
-                        2023-01-31 23:50 is the last timestamp of the sliced data).
+                        2023-01-31 23:50 is the last timestamp of the sliced data). If date_to is not given then
+                        the sliced data are taken up to the last timestamp of the dataset.
     :type:              str
     :returns:           Sliced data
     :rtype:             pandas.Dataframe or pandas.Series
@@ -84,9 +86,14 @@ def slice_data(data, date_from, date_to):
         # Return the slice of data between two input dates
         data_sliced = bw.utils.utils.slice_data(DATA, date_from='2016-11-23', date_to='2017-10-23')
 
+        # Return the slice of data from an input date up to the end of the dataset.
+        data_sliced = bw.utils.utils.slice_data(DATA, date_from='2016-11-23')
+
     """
     date_from = pd.to_datetime(date_from, format="%Y-%m-%d %H:%M")
-    if (pd.to_datetime(date_to, format="%Y-%m-%d %H:%M").time() == datetime.time(0)) and len(date_to) <= 10:
+    if date_to is '':
+        date_to = pd.to_datetime(date_to, format="%Y-%m-%d")
+    elif (pd.to_datetime(date_to, format="%Y-%m-%d %H:%M").time() == datetime.time(0)) and len(date_to) <= 10:
         date_to = pd.to_datetime(date_to, format="%Y-%m-%d") - datetime.timedelta(seconds=1)
     else:
         date_to = pd.to_datetime(date_to, format="%Y-%m-%d")
