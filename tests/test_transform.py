@@ -295,6 +295,26 @@ def test_offset_timestamps():
     assert (op.loc['2016-01-10 00:40:00'] == series1.Spd60mN.loc['2016-01-10 00:30:00']).all()
     assert len(op) + 1 == len(series1.Spd60mN)
 
+    op = bw.offset_timestamps(series1.Spd60mN, '30min', date_from='2016-01-11', date_to='2016-01-12',
+                              overwrite=False)
+
+    assert (op.loc['2016-01-11 00:30:00'] == series1.Spd60mN.loc['2016-01-11 00:00:00']).all()
+    assert (op.loc['2016-01-11 23:50:00'] == series1.Spd60mN.loc['2016-01-11 23:20:00']).all()
+    assert (op.loc['2016-01-12 00:00:00'] == series1.Spd60mN.loc['2016-01-12 00:00:00']).all()
+
+    op = bw.offset_timestamps(series1.Spd60mN, '30min', date_from='2016-01-11', date_to='2016-01-12',
+                              overwrite=True)
+    assert (op.loc['2016-01-11 00:30:00'] == series1.Spd60mN.loc['2016-01-11 00:00:00']).all()
+    assert (op.loc['2016-01-11 23:50:00'] == series1.Spd60mN.loc['2016-01-11 23:20:00']).all()
+    assert (op.loc['2016-01-12 00:00:00'] == series1.Spd60mN.loc['2016-01-11 23:30:00']).all()
+    assert (op.loc['2016-01-12 00:30:00'] == series1.Spd60mN.loc['2016-01-12 00:30:00']).all()
+
+    assert bw.offset_timestamps(DATA.index[0], offset='4H') == pd.Timestamp('2016-01-09 19:30:00')
+    assert bw.offset_timestamps(datetime.datetime(2016, 2, 1, 0, 20), offset='3.5H'
+                                ) == datetime.datetime(2016, 2, 1, 3, 50)
+    assert bw.offset_timestamps(datetime.date(2016, 2, 1), offset='-5H') == datetime.datetime(2016, 1, 31, 19, 0)
+    assert bw.offset_timestamps(datetime.time(0, 20), offset='30min') == datetime.time(0, 50)
+
 
 def test_average_wdirs():
     wdirs = np.array([350, 10])
