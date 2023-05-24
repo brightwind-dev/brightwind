@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import datetime
 import os
 
 __all__ = ['slice_data',
@@ -60,20 +61,25 @@ def slice_data(data, date_from: str='', date_to: str=''):
     Returns the slice of data between the two date ranges,
     Date format: YYYY-MM-DD
     """
-    import datetime
-    date_from = pd.to_datetime(date_from, format="%Y-%m-%d")
-    date_to = pd.to_datetime(date_to, format="%Y-%m-%d")
+    if pd.__version__ < '2.0.0':
+        date_format = "%Y-%m-%d %H:%M"
+    else:
+        date_format = 'ISO8601'
 
     if pd.isnull(date_from):
         date_from = data.index[0]
+    else:
+        date_from = pd.to_datetime(date_from, format=date_format)
 
     if pd.isnull(date_to):
         date_to = data.index[-1]
+    else:
+        date_to = pd.to_datetime(date_to, format=date_format) - datetime.timedelta(seconds=1)
 
     if date_to < date_from:
         raise ValueError('date_to must be greater than date_from')
 
-    return data.loc[date_from:date_to, :]
+    return data.loc[date_from:date_to]
 
     # if (isinstance(date_from, datetime.date) or isinstance(date_from, datetime.datetime)) \
     #         and (isinstance(date_to, datetime.date) or isinstance(date_to, datetime.datetime)):
