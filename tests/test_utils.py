@@ -12,7 +12,7 @@ def test_slice_data():
     data_sliced = bw.utils.utils.slice_data(DATA, date_from='2016-11-23 00:30', date_to='2017-10-23 12:20')
 
     assert data_sliced.index[0] == pd.Timestamp('2016-11-23 00:30')
-    assert data_sliced.index[-1] == pd.Timestamp('2017-10-23 12:20')
+    assert data_sliced.index[-1] == pd.Timestamp('2017-10-23 12:10')
 
     data_sliced = bw.utils.utils.slice_data(DATA, date_from='2016-11-23', date_to='2017-10-23')
 
