@@ -62,15 +62,15 @@ def slice_data(data, date_from=None, date_to=None):
 
     :param data:        Pandas DataFrame or Series with timestamp as index.
     :type data:         pandas.DataFrame or pandas.Series
-    :param date_from:   Start date as string in format YYYY-MM-DD or YYYY-MM-DD HH:DD. If format of date_from is
-                        YYYY-MM-DD, then the first timestamp of the date is used (e.g if date_from=2023-01-01 then
-                        2023-01-01 00:00 is the first timestamp of the sliced data). If date_from is not given then
-                        the sliced data are taken from the first timestamp of the dataset.
+    :param date_from:   Start date as string in format YYYY-MM-DD or YYYY-MM-DD HH:DD. Start date is included in the
+                        sliced data. If format of date_from is YYYY-MM-DD, then the first timestamp of the date is used
+                        (e.g if date_from=2023-01-01 then 2023-01-01 00:00 is the first timestamp of the sliced data).
+                        If date_from is not given then sliced data are taken from the first timestamp of the dataset.
     :type:              str
-    :param date_to:     End date as string in format YYYY-MM-DD or YYYY-MM-DD HH:DD. If format date_to is
-                        YYYY-MM-DD, then the last timestamp of the previous day is used (e.g if date_to=2023-02-01 then
-                        2023-01-31 23:50 is the last timestamp of the sliced data). If date_to is not given then
-                        the sliced data are taken up to the last timestamp of the dataset.
+    :param date_to:     End date as string in format YYYY-MM-DD or YYYY-MM-DD HH:DD. End date is not included in the
+                        sliced data. If format date_to is YYYY-MM-DD, then the last timestamp of the previous day is
+                        used (e.g if date_to=2023-02-01 then 2023-01-31 23:50 is the last timestamp of the sliced data).
+                        If date_to is not given then sliced data are taken up to the last timestamp of the dataset.
     :type:              str
     :returns:           Sliced data
     :rtype:             pandas.Dataframe or pandas.Series
@@ -97,10 +97,8 @@ def slice_data(data, date_from=None, date_to=None):
 
     if pd.isnull(date_to):
         date_to = data.index[-1]
-    elif (pd.to_datetime(date_to, format="%Y-%m-%d %H:%M").time() == datetime.time(0)) and len(date_to) <= 10:
-        date_to = pd.to_datetime(date_to, format="%Y-%m-%d") - datetime.timedelta(seconds=1)
     else:
-        date_to = pd.to_datetime(date_to, format="%Y-%m-%d")
+        date_to = pd.to_datetime(date_to, format="%Y-%m-%d") - datetime.timedelta(seconds=1)
 
     if date_to < date_from:
         raise ValueError('date_to must be greater than date_from')
