@@ -1820,20 +1820,22 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
     | Spd80m | 2018-10-23 12:30:00 | 2018-10-25 14:20:00
     | Dir78m | 2018-12-23 02:40:00 |
 
-    :param filepath:  File path of the file which contains the the list of sensor names along with the start and
-           end timestamps of the periods that are flagged.
+    :param filepath:            File path of the file which contains the the list of sensor names along with the start
+                                and end timestamps of the periods that are flagged.
     :type filepath: str
-    :param date_from_col_name: The column name of the date_from or the start date of the period to be cleaned.
-    :type date_from_col_name: str, default 'Start'
-    :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
-    :type date_to_col_name: str, default 'Stop'
-    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
-            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
-    :type dayfirst: bool, default False
-    :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
-    :return: A DataFrame where each row contains the sensor name and the start and end timestamps of the flagged data.
-    :rtype: pandas.DataFrame
+    :param date_from_col_name:  The column name of the date_from or the start date of the period to be cleaned.
+    :type date_from_col_name:   str, default 'Start'
+    :param date_to_col_name:    The column name of the date_to or the end date of the period to be cleaned.
+    :type date_to_col_name:     str, default 'Stop'
+    :param dayfirst:            If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true.
+                                Pandas defaults to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses
+                                dates with the day first, eg 10/11/12 is parsed as 2012-11-10. More info on
+                                pandas.read_csv parameters.
+    :type dayfirst:             bool, default False
+    :param kwargs:              All the kwargs from pandas.read_csv can be passed to this function.
+    :return:                    A DataFrame where each row contains the sensor name and the start and end timestamps of
+                                the flagged data.
+    :rtype:                     pandas.DataFrame
 
     **Example usage**
     ::
