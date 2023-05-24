@@ -1867,8 +1867,8 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     | Spd80m | 2018-10-23 12:30:00 | 2018-10-25 14:20:00
     | Dir78m | 2018-12-23 02:40:00 |
 
-    :param data: Data to be cleaned.
-    :type data: pandas.DataFrame
+    :param data:                    Data to be cleaned.
+    :type data:                     pandas.DataFrame
     :param cleaning_file_or_df:     File path of the csv file or a pandas DataFrame which contains the list of sensor
                                     names along with the start and end timestamps of the periods that are flagged.
     :type cleaning_file_or_df:      str, pd.DataFrame
