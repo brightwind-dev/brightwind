@@ -41,7 +41,7 @@ _line_colors_, _legend_ and _figure_size_. (Issue #[349](https://github.com/brig
 18. Fixed bug for `SpeedSort` where the `sector_predict` function was not interpolating data using two fit lines. (Issue #[377](https://github.com/brightwind-dev/brightwind/issues/377)).
 19. Updated `_ColorPalette` to automatically update color_list, color_map, color_map_cyclical and adjusted lightness color variables when main colors (primary, secondary etc.) are changed. (Issue #[381](https://github.com/brightwind-dev/brightwind/issues/381)).
 19. Allow `momm` function to derive a seasonal adjusted mean of monthly mean, if user sets `seasonal_adjustment` to true, and allow to apply a `coverage_threshold` (Issue #[298](https://github.com/brightwind-dev/brightwind/issues/298))
-20. Updated `slice_data`, `offset_timestamps` functions to use data up to the end of the day before the date_to value provided as input. This only if date_to is a date format and not datetime. (Issue #[385](https://github.com/brightwind-dev/brightwind/issues/385))
+20. Updated `slice_data`, `offset_timestamps`, `_LoadBWPlatform.get_data` functions to use data_to not included if provided as input. (Issue #[385](https://github.com/brightwind-dev/brightwind/issues/385))
 
 
 
