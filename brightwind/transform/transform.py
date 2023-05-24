@@ -1288,15 +1288,17 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
                           for 2Y, 3Y, etc.
 
     :type offset:       str
-    :param date_from:   (Optional) The timestamp from input data where to start offsetting from. If format of date_from
-                        is YYYY-MM-DD, then the first timestamp of the date is used (e.g if date_from=2023-01-01 then
-                        2023-01-01 00:00 is the first timestamp of when to start offsetting from). If date_from is not
-                        given then the offset is applied from the first timestamp of the dataset.
+    :param date_from:   (Optional) The timestamp from input data where to start offsetting from. Start date is
+                        included in the offsetted data. If format of date_from is YYYY-MM-DD, then the first timestamp
+                        of the date is used (e.g if date_from=2023-01-01 then 2023-01-01 00:00 is the first timestamp of
+                        when to start offsetting from). If date_from is not given then the offset is applied from the
+                        first timestamp of the dataset.
     :type date_from:    str, datetime, dict
-    :param date_to:     (Optional) The timestamp from input data where to end offsetting. If format date_to is
-                        YYYY-MM-DD, then the last timestamp of the previous day is used (e.g if date_to=2023-02-01 then
-                        2023-01-31 23:50 is the last timestamp of when to end offsetting to). If date_to is not given
-                        then the offset is applied up to the last timestamp of the dataset.
+    :param date_to:     (Optional) The timestamp from input data where to end offsetting. End date is not included in
+                        the offsetted data. If format date_to is YYYY-MM-DD, then the last timestamp of the previous day
+                        is used (e.g if date_to=2023-02-01 then 2023-01-31 23:50 is the last timestamp of when to end
+                        offsetting to). If date_to is not given then the offset is applied up to the last timestamp of
+                        the dataset.
     :type date_to:      str, datetime, dict
     :param overwrite:   Change to True to overwrite the unadjusted timestamps if they are same outside of the slice of
                         data you want to offset. False by default.
@@ -1352,10 +1354,8 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             date_to = data[-1]
         elif isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
             date_to = data.index[-1]
-    elif (pd.to_datetime(date_to, format="%Y-%m-%d %H:%M").time() == datetime.time(0)) and len(date_to) <= 10:
-        date_to = pd.to_datetime(date_to, format="%Y-%m-%d") - datetime.timedelta(seconds=1)
     else:
-        date_to = pd.to_datetime(date_to)
+        date_to = pd.to_datetime(date_to) - datetime.timedelta(seconds=1)
 
     if isinstance(data, pd.Timestamp):
         return data + _freq_str_to_dateoffset(offset)

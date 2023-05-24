@@ -245,7 +245,8 @@ def test_offset_timestamps():
     assert op[1] == pd.to_datetime('2016-01-10 00:12:00')
 
     op = bw.offset_timestamps(series1.index, '2min', date_to='2016-01-10 00:30:00')
-    assert op[3] == pd.to_datetime('2016-01-10 00:32:00')
+    assert op[2] == pd.to_datetime('2016-01-10 00:22:00')
+    assert op[3] == pd.to_datetime('2016-01-10 00:30:00')
     assert op[4] == pd.to_datetime('2016-01-10 00:40:00')
 
     op = bw.offset_timestamps(series1.index, '3min', date_from='2016-01-10 00:10:00', date_to='2016-01-10 00:30:00')
@@ -271,9 +272,11 @@ def test_offset_timestamps():
     assert (op.loc['2016-01-10 00:40:00'] == series1.loc['2016-01-10 00:40:00']).all()
     assert len(op) + 1 == len(series1)
 
-    op = bw.offset_timestamps(series1, '10min', date_from='2016-01-10 00:10:00', date_to='2016-01-10 00:30:00',
+    op = bw.offset_timestamps(series1, '10min', date_from='2016-01-10 00:10:00', date_to='2016-01-10 00:40:00',
                               overwrite=True)
-    assert (op.loc['2016-01-10 00:40:00'] == series1.loc['2016-01-10 00:30:00']).all()
+    assert (op.loc['2016-01-10 00:20:00'] == series1.loc['2016-01-10 00:10:00']).all()
+    assert (op.loc['2016-01-10 00:30:00'] == series1.loc['2016-01-10 00:20:00']).all()
+    assert (op.loc['2016-01-10 00:50:00'] == series1.loc['2016-01-10 00:50:00']).all()
     assert len(op) + 1 == len(series1)
 
     # sending Series with datetime index
@@ -290,8 +293,9 @@ def test_offset_timestamps():
     assert (op.loc['2016-01-10 00:40:00'] == series1.Spd60mN.loc['2016-01-10 00:40:00']).all()
     assert len(op) + 1 == len(series1.Spd60mN)
 
-    op = bw.offset_timestamps(series1.Spd60mN, '10min', date_from='2016-01-10 00:10:00', date_to='2016-01-10 00:30:00',
+    op = bw.offset_timestamps(series1.Spd60mN, '10min', date_from='2016-01-10 00:10:00', date_to='2016-01-10 00:40:00',
                               overwrite=True)
+    assert (op.loc['2016-01-10 00:30:00'] == series1.Spd60mN.loc['2016-01-10 00:20:00']).all()
     assert (op.loc['2016-01-10 00:40:00'] == series1.Spd60mN.loc['2016-01-10 00:30:00']).all()
     assert len(op) + 1 == len(series1.Spd60mN)
 
