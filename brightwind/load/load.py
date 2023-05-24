@@ -1606,14 +1606,16 @@ class _LoadBWPlatform:
         """
         Retrieve measurement data from the brightwind platform and return it in a DataFrame with index as Timestamp.
 
-        :param measurement_location_uuid: The measurement location uuid.
-        :type measurement_location_uuid: str or uuid
-        :param from_date: Datetime representing the start of the measurement period you want.
-        :type from_date: datetime or str
-        :param to_date: Datetime representing the end of the measurement period you want.
-        :type to_date: datetime or str
-        :return: DataFrame with index as a timestamp.
-        :rtype: pd.DataFrame
+        :param measurement_location_uuid:   The measurement location uuid.
+        :type measurement_location_uuid:    str or uuid
+        :param from_date:                   Datetime representing the start of the measurement period you want
+                                            (included).
+        :type from_date:                    datetime or str
+        :param to_date:                     Datetime representing the end of the measurement period you want
+                                            (not included).
+        :type to_date:                      datetime or str
+        :return:                            DataFrame with index as a timestamp.
+        :rtype:                             pd.DataFrame
 
         **Example usage**
         ::
@@ -1645,7 +1647,7 @@ class _LoadBWPlatform:
         if isinstance(from_date, str):
             from_date = parse(from_date)
         if isinstance(to_date, str):
-            to_date = parse(to_date)
+            to_date = parse(to_date) - datetime.timedelta(seconds=1)
 
         response = requests.get(_LoadBWPlatform._base_url + '/api/resource-data-measurement-location', params={
             'measurement_location_uuid': measurement_location_uuid,
