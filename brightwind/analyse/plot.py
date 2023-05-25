@@ -1695,6 +1695,49 @@ def plot_TI_by_sector(turbulence, wdir, ti):
 
 
 def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'):
+    """
+    Plot shear by directional sectors and wind rose.
+
+    :param scale_variable:  Shear values by directional sectors derived with brightwind.Shear.BySector().
+    :type scale_variable:   pandas.Series
+    :param wind_rose_data:  Wind speed %frequency distribution by sectors, with wind direction sector as row indexes.
+                            This distribution is derived using brightwind.dist_by_dir_sector() function.
+    :type wind_rose_data:   pandas.Series
+    :param calc_method:     Method to use for calculation, either 'power_law' (returns alpha) or 'log_law'
+                            (returns the roughness coefficient).
+    :type calc_method:      str
+    :return:                Plots shear values by directional sectors & distribution of wind speed by directional bins.
+
+    **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_csv(bw.demo_datasets.demo_data)
+
+            alpha = pd.Series({'345.0-15.0': 0.216, '15.0-45.0': 0.196, '45.0-75.0': 0.170, '75.0-105.0': 0.182,
+                     '105.0-135.0': 0.148, '135.0-165.0': 0.129, '165.0-195.0': 0.156, '195.0-225.0': 0.159,
+                     '225.0-255.0': 0.160, '255.0-285.0': 0.169, '285.0-315.0': 0.187, '315.0-345.0': 0.188})
+
+            roughness = pd.Series({'345.0-15.0': 0.537, '15.0-45.0': 0.342, '45.0-75.0': 0.156, '75.0-105.0': 0.231,
+                         '105.0-135.0': 0.223, '135.0-165.0': 0.124, '165.0-195.0': 0.135,
+                         '195.0-225.0': 0.145, '225.0-255.0': 0.108, '255.0-285.0': 0.149,
+                         '285.0-315.0': 0.263, '315.0-345.0': 0.275})
+
+            wind_rose_plot, wind_rose_dist = bw.analyse.analyse.dist_by_dir_sector(data.Spd80mS, data.Dir78mS,
+                                                    direction_bin_array=None,
+                                                    sectors=12,
+                                                    direction_bin_labels=None,
+                                                    return_data=True)
+
+            # Plots shear by directional sectors with calculation method as 'power law'.
+            bw.analyse.plot.plot_shear_by_sector(scale_variable=alpha, wind_rose_data=wind_rose_dist,
+            calc_method='power_law')
+
+            # Plots shear by directional sectors with calculation method as 'log law'.
+            bw.analyse.plot.plot_shear_by_sector(scale_variable=roughness, wind_rose_data=wind_rose_dist,
+            calc_method='log_law')
+
+
+    """
     result = wind_rose_data.copy(deep=False)
     radians = np.radians(utils._get_dir_sector_mid_pts(scale_variable.index))
     sectors = len(result)
@@ -1715,7 +1758,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
 
     scale_variable_y = np.append(scale_variable, scale_variable[0])
     plot_x = np.append(radians, radians[0])
-    scale_to_fit = max(scale_variable) / max(result / 100)
+    scale_to_fit = max(scale_variable[np.isfinite(scale_variable)]) / max(result / 100)
     wind_rose_r = (result / 100) * scale_to_fit
     bin_edges = np.array(bin_edges)
     width = pd.Series([], dtype='float64')
@@ -1732,7 +1775,8 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
            edgecolor=[COLOR_PALETTE.secondary for i in range(len(result))],
            alpha=0.8, label='Wind_Directional_Frequency')
 
-    maxlevel = (max(scale_variable_y)) + max(scale_variable_y) * .1
+    maxlevel = (max(scale_variable_y[np.isfinite(scale_variable_y)])) + max(
+        scale_variable_y[np.isfinite(scale_variable_y)]) * .1
     ax.set_thetagrids(radians * 180 / np.pi)
     ax.plot(plot_x, scale_variable_y, color=COLOR_PALETTE.primary, linewidth=4, label=label)
     ax.set_ylim(0, top=maxlevel)
