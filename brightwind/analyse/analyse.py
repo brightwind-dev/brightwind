@@ -399,13 +399,13 @@ def momm(data, date_from=None, date_to=None, seasonal_adjustment=False, coverage
 
     :param data:                Pandas DataFrame or Series with timestamp as index and a column with wind speed
     :type data:                 pandas.DataFrame or pandas.Series
-    :param date_from:           Start date as string in format YYYY-MM-DD or YYYY-MM-DD HH:DD. Start date is included in
+    :param date_from:           Start date as string in format YYYY-MM-DD or YYYY-MM-DD hh:mm. Start date is included in
                                 the sliced data. If format of date_from is YYYY-MM-DD, then the first timestamp of the
                                 date is used (e.g if date_from=2023-01-01 then 2023-01-01 00:00 is the first timestamp
                                 of the sliced data). If date_from is not given then the sliced data are taken from the
                                 first timestamp of the dataset.
     :type:                      str
-    :param date_to:             End date as string in format YYYY-MM-DD or YYYY-MM-DD HH:DD. End date is not included in
+    :param date_to:             End date as string in format YYYY-MM-DD or YYYY-MM-DD hh:mm. End date is not included in
                                 the sliced data. If format date_to is YYYY-MM-DD, then the last timestamp of the
                                 previous day is used (e.g if date_to=2023-02-01 then 2023-01-31 23:50 is the last
                                 timestamp of the sliced data). If date_to is not given then the sliced data are taken up
