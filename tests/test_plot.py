@@ -196,5 +196,41 @@ def test_ColorPalette():
     assert bw.analyse.plot.COLOR_PALETTE.color_map_cyclical_colors == ['#ccfffc', '#00b4aa', '#008079', '#ccfffc']
 
 
+def test_plot_shear_by_sector():
 
+    alpha = pd.Series({'345.0-15.0': 0.216, '15.0-45.0': 0.196, '45.0-75.0': 0.170, '75.0-105.0': 0.182,
+                       '105.0-135.0': 0.148, '135.0-165.0': 0.129, '165.0-195.0': 0.156, '195.0-225.0': 0.159,
+                       '225.0-255.0': 0.160, '255.0-285.0': 0.169, '285.0-315.0': 0.187, '315.0-345.0': 0.188})
+
+    roughness = pd.Series({'345.0-15.0': 0.537, '15.0-45.0': 0.342, '45.0-75.0': 0.156, '75.0-105.0': 0.231,
+                           '105.0-135.0': 0.223, '135.0-165.0': 0.124, '165.0-195.0': 0.135,
+                           '195.0-225.0': 0.145, '225.0-255.0': 0.108, '255.0-285.0': 0.149,
+                           '285.0-315.0': 0.263, '315.0-345.0': 0.275})
+
+    wind_rose_plot, wind_rose_dist = bw.analyse.analyse.dist_by_dir_sector(DATA.Spd80mS, DATA.Dir78mS,
+                                                                           direction_bin_array=None,
+                                                                           sectors=12,
+                                                                           direction_bin_labels=None,
+                                                                           return_data=True)
+
+    # Plots shear by directional sectors with calculation method as 'power law'.
+    bw.analyse.plot.plot_shear_by_sector(scale_variable=alpha, wind_rose_data=wind_rose_dist,
+                                         calc_method='power_law')
+
+    # Plots shear by directional sectors with calculation method as 'log law'.
+    bw.analyse.plot.plot_shear_by_sector(scale_variable=roughness, wind_rose_data=wind_rose_dist,
+                                         calc_method='log_law')
+
+    alpha1 = alpha.copy()
+    alpha1['135.0-165.0'] = np.nan
+    roughness1 = roughness.copy()
+    roughness1['135.0-165.0'] = np.inf
+
+    # Plots shear by directional sectors with calculation method as 'power law'.
+    bw.analyse.plot.plot_shear_by_sector(scale_variable=alpha1, wind_rose_data=wind_rose_dist,
+                                         calc_method='power_law')
+
+    # Plots shear by directional sectors with calculation method as 'log law'.
+    bw.analyse.plot.plot_shear_by_sector(scale_variable=roughness1, wind_rose_data=wind_rose_dist,
+                                         calc_method='log_law')
 
