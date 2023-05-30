@@ -471,18 +471,24 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     return ax
 
 
-def plot_timeseries(data, date_from='', date_to='', x_label=None, y_label=None, y_limits=None,
+def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=None, y_limits=None,
                     x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8)):
     """
     Plot a timeseries of data.
 
     :param data:                    Data in the form of a Pandas DataFrame/Series to plot.
     :type data:                     pd.DataFrame, pd.Series
-    :param date_from:               Start date used for plotting, if not specified the first timestamp of data is
-                                    considered. Should be in yyyy-mm-dd format
+    :param date_from:               Start date as string in format YYYY-MM-DD or YYYY-MM-DD hh:mm. Start date is
+                                    included in the sliced data. If format of date_from is YYYY-MM-DD, then the first
+                                    timestamp of the date is used (e.g if date_from=2023-01-01 then 2023-01-01 00:00
+                                    is the first timestamp of the sliced data). If date_from is not given then the
+                                    sliced data are taken from the first timestamp of the dataset.
     :type date_from:                str
-    :param date_to:                 End date used for plotting, if not specified last timestamp of data is considered.
-                                    Should be in yyyy-mm-dd format
+    :param date_to:                 End date as string in format YYYY-MM-DD or YYYY-MM-DD hh:mm. End date is not
+                                    included in the sliced data. If format date_to is YYYY-MM-DD, then the last
+                                    timestamp of the previous day is used (e.g if date_to=2023-02-01 then
+                                    2023-01-31 23:50 is the last timestamp of the sliced data). If date_to is not given
+                                    then the sliced data are taken up to the  last timestamp of the dataset.
     :type date_to:                  str
     :param x_label:                 Label for the x-axis. Default is None.
     :type x_label:                  str, None

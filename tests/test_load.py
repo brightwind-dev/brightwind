@@ -1,6 +1,8 @@
 import pytest
 import brightwind as bw
 import os
+import pandas as pd
+import numpy as np
 
 DEMO_DATA_FOLDER = os.path.join(os.path.dirname(__file__), '../brightwind/demo_datasets')
 
@@ -20,6 +22,18 @@ def test_apply_cleaning():
     data_clnd4 = bw.apply_cleaning(data, os.path.join(DEMO_DATA_FOLDER, 'demo_cleaning_file2.csv'), dayfirst=True)
     data_clnd5 = bw.apply_cleaning(data, os.path.join(DEMO_DATA_FOLDER, 'demo_cleaning_file3.csv'), dayfirst=True)
 
+    cleaning_dict = {0: {'Sensor': 'All', 'Start': '2016-01-09 15:30:00', 'Stop': '2016-01-09 17:10:00',
+                         'Reason': 'Installation'},
+                     1: {'Sensor': 'Spd', 'Start': '2016-03-09 06:20:00', 'Stop': '2016-03-11',
+                         'Reason': 'Icing'},
+                     2: {'Sensor': 'Dir', 'Start': '2016-03-09 06:20:00', 'Stop': '2016-03-11',
+                         'Reason': 'Icing'},
+                     3: {'Sensor': 'Spd', 'Start': '2016-03-29', 'Stop': '2016-03-30 07:10:00',
+                         'Reason': 'Icing'},
+                     4: {'Sensor': 'Dir', 'Start': '2016-03-29 ', 'Stop': '2016-03-30 07:10:00',
+                         'Reason': 'Icing'}}
+    data_clnd6 = bw.apply_cleaning(data, pd.DataFrame(cleaning_dict).T)
+
     assert (data_clnd2.drop(['RECORD', 'Site', 'LoggerID'], axis=1).fillna(-999) ==
             data_clnd3.drop(['RECORD', 'Site', 'LoggerID'], axis=1).fillna(-999)).all().all()
 
@@ -28,6 +42,13 @@ def test_apply_cleaning():
 
     assert (data_clnd3.drop(['RECORD', 'Site', 'LoggerID'], axis=1).fillna(-999) ==
             data_clnd5.drop(['RECORD', 'Site', 'LoggerID'], axis=1).fillna(-999)).all().all()
+
+    assert np.isnan(data_clnd6.Spd40mN['2016-03-09 06:20:00'])
+    assert not np.isnan(data_clnd6.Spd40mN['2016-03-09 06:10:00'])
+    assert np.isnan(data_clnd6.Spd40mN['2016-03-10 23:50:00'])
+    assert not np.isnan(data_clnd6.Spd40mN['2016-03-11 00:00:00'])
+    assert not np.isnan(data_clnd6.Spd40mN['2016-03-28 23:50'])
+    assert np.isnan(data_clnd6.Spd40mN['2016-03-29 00:00'])
 
 
 def test_load_csv():

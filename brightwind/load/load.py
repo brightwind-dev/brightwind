@@ -1606,14 +1606,16 @@ class _LoadBWPlatform:
         """
         Retrieve measurement data from the brightwind platform and return it in a DataFrame with index as Timestamp.
 
-        :param measurement_location_uuid: The measurement location uuid.
-        :type measurement_location_uuid: str or uuid
-        :param from_date: Datetime representing the start of the measurement period you want.
-        :type from_date: datetime or str
-        :param to_date: Datetime representing the end of the measurement period you want.
-        :type to_date: datetime or str
-        :return: DataFrame with index as a timestamp.
-        :rtype: pd.DataFrame
+        :param measurement_location_uuid:   The measurement location uuid.
+        :type measurement_location_uuid:    str or uuid
+        :param from_date:                   Datetime representing the start of the measurement period you want
+                                            (included).
+        :type from_date:                    datetime or str
+        :param to_date:                     Datetime representing the end of the measurement period you want
+                                            (not included).
+        :type to_date:                      datetime or str
+        :return:                            DataFrame with index as a timestamp.
+        :rtype:                             pd.DataFrame
 
         **Example usage**
         ::
@@ -1645,7 +1647,7 @@ class _LoadBWPlatform:
         if isinstance(from_date, str):
             from_date = parse(from_date)
         if isinstance(to_date, str):
-            to_date = parse(to_date)
+            to_date = parse(to_date) - datetime.timedelta(seconds=1)
 
         response = requests.get(_LoadBWPlatform._base_url + '/api/resource-data-measurement-location', params={
             'measurement_location_uuid': measurement_location_uuid,
@@ -1820,20 +1822,22 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
     | Spd80m | 2018-10-23 12:30:00 | 2018-10-25 14:20:00
     | Dir78m | 2018-12-23 02:40:00 |
 
-    :param filepath:  File path of the file which contains the the list of sensor names along with the start and
-           end timestamps of the periods that are flagged.
+    :param filepath:            File path of the file which contains the the list of sensor names along with the start
+                                and end timestamps of the periods that are flagged.
     :type filepath: str
-    :param date_from_col_name: The column name of the date_from or the start date of the period to be cleaned.
-    :type date_from_col_name: str, default 'Start'
-    :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
-    :type date_to_col_name: str, default 'Stop'
-    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
-            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
-    :type dayfirst: bool, default False
-    :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
-    :return: A DataFrame where each row contains the sensor name and the start and end timestamps of the flagged data.
-    :rtype: pandas.DataFrame
+    :param date_from_col_name:  The column name of the date_from or the start date of the period to be cleaned.
+    :type date_from_col_name:   str, default 'Start'
+    :param date_to_col_name:    The column name of the date_to or the end date of the period to be cleaned.
+    :type date_to_col_name:     str, default 'Stop'
+    :param dayfirst:            If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true.
+                                Pandas defaults to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses
+                                dates with the day first, eg 10/11/12 is parsed as 2012-11-10. More info on
+                                pandas.read_csv parameters.
+    :type dayfirst:             bool, default False
+    :param kwargs:              All the kwargs from pandas.read_csv can be passed to this function.
+    :return:                    A DataFrame where each row contains the sensor name and the start and end timestamps of
+                                the flagged data.
+    :rtype:                     pandas.DataFrame
 
     **Example usage**
     ::
@@ -1865,32 +1869,33 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     | Spd80m | 2018-10-23 12:30:00 | 2018-10-25 14:20:00
     | Dir78m | 2018-12-23 02:40:00 |
 
-    :param data: Data to be cleaned.
-    :type data: pandas.DataFrame
-    :param cleaning_file_or_df: File path of the csv file or a pandas DataFrame which contains the list of sensor
-                                names along with the start and end timestamps of the periods that are flagged.
-    :type cleaning_file_or_df: str, pd.DataFrame
-    :param inplace: If 'inplace' is True, the original data, 'data', will be modified and and replaced with the cleaned
-                    data. If 'inplace' is False, the original data will not be touched and instead a new object
-                    containing the cleaned data is created. To store this cleaned data, please ensure it is assigned
-                    to a new variable.
+    :param data:                    Data to be cleaned.
+    :type data:                     pandas.DataFrame
+    :param cleaning_file_or_df:     File path of the csv file or a pandas DataFrame which contains the list of sensor
+                                    names along with the start and end timestamps of the periods that are flagged.
+    :type cleaning_file_or_df:      str, pd.DataFrame
+    :param inplace:                 If 'inplace' is True, the original data, 'data', will be modified and and replaced
+                                    with the cleaned data. If 'inplace' is False, the original data will not be touched
+                                    and instead a new object containing the cleaned data is created. To store this
+                                    cleaned data, please ensure it is assigned to a new variable.
     :type inplace: Boolean
-    :param sensor_col_name: The column name which contains the list of sensor names that have flagged periods.
-    :type sensor_col_name: str, default 'Sensor'
-    :param date_from_col_name: The column name of the date_from or the start date of the period to be cleaned.
-    :type date_from_col_name: str, default 'Start'
-    :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
-    :type date_to_col_name: str, default 'Stop'
-    :param all_sensors_descriptor: A text descriptor that represents ALL sensors in the DataFrame.
-    :type all_sensors_descriptor: str, default 'All'
-    :param replacement_text: Text used to replace the flagged data.
-    :type replacement_text: str, default 'NaN'
-    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
-            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
-    :type dayfirst: bool, default False
-    :return: DataFrame with the flagged data removed.
-    :rtype: pandas.DataFrame
+    :param sensor_col_name:         The column name which contains the list of sensor names that have flagged periods.
+    :type sensor_col_name:          str, default 'Sensor'
+    :param date_from_col_name:      The column name of the date_from or the start date of the period to be cleaned.
+    :type date_from_col_name:       str, default 'Start'
+    :param date_to_col_name:        The column name of the date_to or the end date of the period to be cleaned.
+    :type date_to_col_name:         str, default 'Stop'
+    :param all_sensors_descriptor:  A text descriptor that represents ALL sensors in the DataFrame.
+    :type all_sensors_descriptor:   str, default 'All'
+    :param replacement_text:        Text used to replace the flagged data.
+    :type replacement_text:         str, default 'NaN'
+    :param dayfirst:                If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true.
+                                    Pandas defaults to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas
+                                    parses dates with the day first, eg 10/11/12 is parsed as 2012-11-10.
+                                    More info on pandas.read_csv parameters.
+    :type dayfirst:                 bool, default False
+    :return:                        DataFrame with the flagged data removed.
+    :rtype:                         pandas.DataFrame
 
     **Example usage**
     ::

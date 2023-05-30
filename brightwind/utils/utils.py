@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import datetime
 import os
 
 __all__ = ['slice_data',
@@ -55,37 +56,57 @@ def validate_coverage_threshold(coverage_threshold):
     return coverage_threshold
 
 
-def slice_data(data, date_from: str='', date_to: str=''):
+def slice_data(data, date_from=None, date_to=None):
     """
-    Returns the slice of data between the two date ranges,
-    Date format: YYYY-MM-DD
-    """
-    import datetime
-    date_from = pd.to_datetime(date_from, format="%Y-%m-%d")
-    date_to = pd.to_datetime(date_to, format="%Y-%m-%d")
+    Returns the slice of data between the two date or datetime ranges.
 
+    :param data:        Pandas DataFrame or Series with timestamp as index.
+    :type data:         pandas.DataFrame or pandas.Series
+    :param date_from:   Start date as string in format YYYY-MM-DD or YYYY-MM-DD hh:mm. Start date is included in the
+                        sliced data. If format of date_from is YYYY-MM-DD, then the first timestamp of the date is used
+                        (e.g if date_from=2023-01-01 then 2023-01-01 00:00 is the first timestamp of the sliced data).
+                        If date_from is not given then sliced data are taken from the first timestamp of the dataset.
+    :type:              str
+    :param date_to:     End date as string in format YYYY-MM-DD or YYYY-MM-DD hh:mm. End date is not included in the
+                        sliced data. If format date_to is YYYY-MM-DD, then the last timestamp of the previous day is
+                        used (e.g if date_to=2023-02-01 then 2023-01-31 23:50 is the last timestamp of the sliced data).
+                        If date_to is not given then sliced data are taken up to the last timestamp of the dataset.
+    :type:              str
+    :returns:           Sliced data
+    :rtype:             pandas.Dataframe or pandas.Series
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+
+        # Return the slice of data between two input datetimes
+        data_sliced = bw.utils.utils.slice_data(DATA, date_from='2016-11-23 00:30', date_to='2017-10-23 12:20')
+
+        # Return the slice of data between two input dates
+        data_sliced = bw.utils.utils.slice_data(DATA, date_from='2016-11-23', date_to='2017-10-23')
+
+        # Return the slice of data from an input date up to the end of the dataset.
+        data_sliced = bw.utils.utils.slice_data(DATA, date_from='2016-11-23')
+
+    """
     if pd.isnull(date_from):
         date_from = data.index[0]
+    else:
+        date_from = pd.to_datetime(date_from, format="%Y-%m-%d %H:%M")
 
     if pd.isnull(date_to):
         date_to = data.index[-1]
+    else:
+        date_to = pd.to_datetime(date_to, format="%Y-%m-%d %H:%M")
 
     if date_to < date_from:
         raise ValueError('date_to must be greater than date_from')
 
-    return data.loc[date_from:date_to, :]
-
-    # if (isinstance(date_from, datetime.date) or isinstance(date_from, datetime.datetime)) \
-    #         and (isinstance(date_to, datetime.date) or isinstance(date_to, datetime.datetime)):
-    #     sliced_data = data.loc[date_from:date_to, :]
-    # elif date_from and date_to:
-    #     import datetime as dt
-    #     date_from = dt.datetime.strptime(date_from[:10], "%Y-%m-%d")
-    #     date_to = dt.datetime.strptime(date_to[:10], "%Y-%m-%d")
-    #     sliced_data = data.loc[date_from:date_to, :]
-    # else:
-    #     return data
-    # return sliced_data
+    if date_to == data.index[-1]:
+        return data[(data.index >= date_from)]
+    else:
+        return data[(data.index >= date_from) & (data.index < date_to)]
 
 
 def is_float_or_int(value):
