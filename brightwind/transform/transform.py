@@ -1355,7 +1355,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
         elif isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
             date_to = data.index[-1]
     else:
-        date_to = pd.to_datetime(date_to) - datetime.timedelta(seconds=1)
+        date_to = pd.to_datetime(date_to)
 
     if isinstance(data, pd.Timestamp):
         return data + _freq_str_to_dateoffset(offset)
@@ -1370,9 +1370,9 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
     elif isinstance(data, pd.DatetimeIndex):
         original = pd.to_datetime(data.values)
 
-        shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_dateoffset(offset)
+        shifted_slice = original[(original >= date_from) & (original < date_to)] + _freq_str_to_dateoffset(offset)
         shifted = original[original < date_from].append(shifted_slice)
-        shifted = shifted.append(original[original > date_to])
+        shifted = shifted.append(original[original >= date_to])
         shifted = shifted.drop_duplicates().sort_values()
         return pd.DatetimeIndex(shifted)
 
@@ -1384,19 +1384,19 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             original = pd.to_datetime(data.index.values)
             df_copy = data.copy(deep=False)
 
-            shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_dateoffset(offset)
+            shifted_slice = original[(original >= date_from) & (original < date_to)] + _freq_str_to_dateoffset(offset)
             intersection_front = original[(original < date_from)].intersection(shifted_slice)
-            intersection_back = original[(original > date_to)].intersection(shifted_slice)
+            intersection_back = original[(original >= date_to)].intersection(shifted_slice)
             if overwrite:
                 df_copy = df_copy.drop(intersection_front, axis=0)
                 df_copy = df_copy.drop(intersection_back, axis=0)
                 sec1 = original[original < date_from].drop(intersection_front)
-                sec2 = original[original > date_to].drop(intersection_back)
+                sec2 = original[original >= date_to].drop(intersection_back)
                 shifted = (sec1.append(shifted_slice)).append(sec2)
             else:
                 df_copy = df_copy.drop(intersection_front - _freq_str_to_dateoffset(offset), axis=0)
                 df_copy = df_copy.drop(intersection_back - _freq_str_to_dateoffset(offset), axis=0)
                 sec_mid = shifted_slice.drop(intersection_front).drop(intersection_back)
-                shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original > date_to)])
+                shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original >= date_to)])
             df_copy.index = shifted
             return df_copy.sort_index()
