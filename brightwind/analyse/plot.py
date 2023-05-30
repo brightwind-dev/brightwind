@@ -1612,7 +1612,9 @@ def plot_TI_by_speed(wspd, wspd_std, ti, min_speed=3, percentile=90, IEC_class=N
                         example usage.
     :param min_speed:   Set the minimum wind speed. Default is 3 m/s.
     :type min_speed:    integer or float
-    :param percentile:  The percentile representative of TI. Default is set to 90 percentile.
+    :param percentile:  The percentile used for deriving the representative TI. This should be the same value as used
+                        when calling the bw.TI.by_speed() function that derives the representative TI.
+                        Default is set to 90 percentile.
     :type percentile:   float, integer
     :type IEC_class:    None or pandas.DataFrame
     :return:            Plots scatter plot of turbulence intensity (TI) & distribution of TI by speed bins
