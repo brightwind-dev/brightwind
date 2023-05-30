@@ -1270,103 +1270,133 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
     """
     Offset timestamps by a certain time period
 
-    :param data: DateTimeIndex or Series/DataFrame with DateTimeIndex
-    :type data: pandas.DateTimeIndex, pandas.Series, pandas.DataFrame
-    :param offset: A string specifying the time to offset the time-series.
+    :param data:        The timestamp or DateTimeIndex or Dataframe or Series to which apply the time offset.
+    :type data:         pandas.DateTimeIndex, pandas.Series, pandas.DataFrame, pandas.Timestamp, datetime.datetime,
+                        datetime.date, datetime.time
+    :param offset:      A string specifying the time to offset the time-series.
 
-            - Set offset to 10min to add 10 minutes to each timestamp, -10min to subtract 10 minutes and so on
-                for 4min, 20min, etc.
-            - Set offset to 1H to add 1 hour to each timestamp and -1H to subtract and so on for 5H, 6H, etc.
-            - Set offset to 1D to add a day and -1D to subtract and so on for 5D, 7D, 15D, etc.
-            - Set offset to 1W to add a week and -1W to subtract from each timestamp and so on for 2W, 4W, etc.
-            - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on for 2M, 3M, etc.
-            - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on for 2Y, 3Y, etc.
+                        - Set offset to 10min to add 10 minutes to each timestamp, -10min to subtract 10 minutes and so
+                          on for 4min, 20min, etc.
+                        - Set offset to 1H to add 1 hour to each timestamp and -1H to subtract and so on for 5H, 6H,
+                          etc.
+                        - Set offset to 1D to add a day and -1D to subtract and so on for 5D, 7D, 15D, etc.
+                        - Set offset to 1W to add a week and -1W to subtract from each timestamp and so on for 2W,
+                          4W, etc.
+                        - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on
+                          for 2M, 3M, etc.
+                        - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on
+                          for 2Y, 3Y, etc.
 
-    :type offset: str
-    :param date_from: (Optional) The timestamp from input data where to start offsetting from.
-    :type date_from: str, datetime, dict
-    :param date_to: (Optional) The timestamp from input data where to end offsetting.
-    :type date_to: str, datetime, dict
-    :param overwrite: Change to True to overwrite the unadjusted timestamps if they are same outside of the slice of
-        data you want to offset. False by default.
-    :type overwrite: bool
-    :returns: Offsetted DateTimeIndex/Series/DataFrame, same format is input data
+    :type offset:       str
+    :param date_from:   (Optional) The timestamp from input data where to start offsetting from. Start date is
+                        included in the offsetted data. If format of date_from is YYYY-MM-DD, then the first timestamp
+                        of the date is used (e.g if date_from=2023-01-01 then 2023-01-01 00:00 is the first timestamp of
+                        when to start offsetting from). If date_from is not given then the offset is applied from the
+                        first timestamp of the dataset.
+    :type date_from:    str, datetime, dict
+    :param date_to:     (Optional) The timestamp from input data where to end offsetting. End date is not included in
+                        the offsetted data. If format date_to is YYYY-MM-DD, then the last timestamp of the previous day
+                        is used (e.g if date_to=2023-02-01 then 2023-01-31 23:50 is the last timestamp of when to end
+                        offsetting to). If date_to is not given then the offset is applied up to the last timestamp of
+                        the dataset.
+    :type date_to:      str, datetime, dict
+    :param overwrite:   Change to True to overwrite the unadjusted timestamps if they are same outside of the slice of
+                        data you want to offset. False by default.
+    :type overwrite:    bool
+    :returns:           Offsetted Timestamp/DateTimeIndex/Series/DataFrame/datetime.datetime/datetime.time,
+                        same format is input data
 
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.demo_datasets.demo_site_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
-        #To decrease 10 minutes within a given date range and overwrite the original data
-        op1 = bw.offset_timestamps(data, offset='1H', date_from='2016-01-01 00:20:00',
-            date_to='2016-01-01 01:40:00', overwrite=True)
+        # To decrease 10 minutes within a given date range and overwrite the original data
+        op1 = bw.offset_timestamps(data, offset='1H', date_from='2016-02-01 00:20:00',
+            date_to='2016-02-01 01:40:00', overwrite=True)
 
-        #To decrease 10 minutes within a given date range not overwriting the original data
-        op2 = bw.offset_timestamps(data, offset='-10min', date_from='2016-01-01 00:20:00',
-            date_to='2016-01-01 01:40:00')
+        # To decrease 10 minutes within a given date range not overwriting the original data
+        op2 = bw.offset_timestamps(data, offset='-10min', date_from='2016-02-01 00:20:00',
+            date_to='2016-02-01 01:40:00')
 
-        #Can accept Series or index as input
-        op3 = bw.offset_timestamps(data.Spd80mS, offset='1D', date_from='2016-01-01 00:20:00')
+        # To decrease 30 minutes within a given date range not overwriting the original data and giving as input dates
+        # for date_from and date_to
+        op2 = bw.offset_timestamps(DATA, offset='-30min', date_from='2016-01-09', date_to='2016-01-10')
 
-        op4 = bw.offset_timestamps(data.index, offset='-10min', date_from='2016-01-01 00:20:00',
-            date_from='2016-01-01 01:40:00')
+        # Can accept Series or index as input
+        op3 = bw.offset_timestamps(data.Spd80mS, offset='1D', date_from='2016-02-01 00:20:00')
 
-        #Can also except decimal values for offset, like 3.5H for 3 hours and 30 minutes
+        op4 = bw.offset_timestamps(data.index, offset='-10min', date_from='2016-02-01 00:20:00',
+            date_to='2016-02-01 01:40:00')
 
-        op5 = bw.offset_timestamps(data.index, offset='3.5H', date_from='2016-01-01 00:20:00',
-            date_from='2016-01-01 01:40:00')
+        # Can also except decimal values for offset, like 3.5H for 3 hours and 30 minutes
+        op5 = bw.offset_timestamps(data.index, offset='3.5H', date_from='2016-02-01 00:20:00',
+            date_to='2016-02-01 01:40:00')
+
+        # Can accept also Timestamp and datetime objects
+        bw.offset_timestamps(data.index[0], offset='4H')
+        bw.offset_timestamps(datetime.datetime(2016, 2, 1, 0, 20), offset='3.5H')
+        bw.offset_timestamps(datetime.date(2016, 2, 1), offset='-5H')
+        bw.offset_timestamps(datetime.time(0, 20), offset='30min')
 
     """
-    
-    date_from = pd.to_datetime(date_from)
-    date_to = pd.to_datetime(date_to)
 
-    if isinstance(data, pd.Timestamp) or isinstance(data, datetime.date)\
-            or isinstance(data, datetime.time)\
-            or isinstance(data, datetime.datetime):
+    if pd.isnull(date_from):
+        if isinstance(data, pd.DatetimeIndex):
+            date_from = data[0]
+        elif isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
+            date_from = data.index[0]
+    else:
+        date_from = pd.to_datetime(date_from)
+
+    if pd.isnull(date_to):
+        if isinstance(data, pd.DatetimeIndex):
+            date_to = data[-1]
+        elif isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
+            date_to = data.index[-1]
+    else:
+        date_to = pd.to_datetime(date_to)
+
+    if isinstance(data, pd.Timestamp):
         return data + _freq_str_to_dateoffset(offset)
 
-    if isinstance(data, pd.DatetimeIndex):
+    elif isinstance(data, datetime.date)\
+            or isinstance(data, datetime.datetime):
+        return (data + _freq_str_to_dateoffset(offset)).to_pydatetime()
+
+    elif isinstance(data, datetime.time):
+        return (datetime.datetime.combine(datetime.date.today(), data) + _freq_str_to_dateoffset(offset)).time()
+
+    elif isinstance(data, pd.DatetimeIndex):
         original = pd.to_datetime(data.values)
 
-        if pd.isnull(date_from):
-            date_from = data[0]
-
-        if pd.isnull(date_to):
-            date_to = data[-1]
-
-        shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_dateoffset(offset)
+        shifted_slice = original[(original >= date_from) & (original < date_to)] + _freq_str_to_dateoffset(offset)
         shifted = original[original < date_from].append(shifted_slice)
-        shifted = shifted.append(original[original > date_to])
+        shifted = shifted.append(original[original >= date_to])
         shifted = shifted.drop_duplicates().sort_values()
         return pd.DatetimeIndex(shifted)
 
-    if isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
+    elif isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
 
         if not isinstance(data.index, pd.DatetimeIndex):
             raise TypeError('Input must have datetime index')
         else:
             original = pd.to_datetime(data.index.values)
             df_copy = data.copy(deep=False)
-            if pd.isnull(date_from):
-                date_from = data.index[0]
 
-            if pd.isnull(date_to):
-                date_to = data.index[-1]
-
-            shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_dateoffset(offset)
+            shifted_slice = original[(original >= date_from) & (original < date_to)] + _freq_str_to_dateoffset(offset)
             intersection_front = original[(original < date_from)].intersection(shifted_slice)
-            intersection_back = original[(original > date_to)].intersection(shifted_slice)
+            intersection_back = original[(original >= date_to)].intersection(shifted_slice)
             if overwrite:
                 df_copy = df_copy.drop(intersection_front, axis=0)
                 df_copy = df_copy.drop(intersection_back, axis=0)
                 sec1 = original[original < date_from].drop(intersection_front)
-                sec2 = original[original > date_to].drop(intersection_back)
+                sec2 = original[original >= date_to].drop(intersection_back)
                 shifted = (sec1.append(shifted_slice)).append(sec2)
             else:
                 df_copy = df_copy.drop(intersection_front - _freq_str_to_dateoffset(offset), axis=0)
                 df_copy = df_copy.drop(intersection_back - _freq_str_to_dateoffset(offset), axis=0)
                 sec_mid = shifted_slice.drop(intersection_front).drop(intersection_back)
-                shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original > date_to)])
+                shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original >= date_to)])
             df_copy.index = shifted
             return df_copy.sort_index()
