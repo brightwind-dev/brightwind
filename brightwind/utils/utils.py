@@ -98,12 +98,15 @@ def slice_data(data, date_from=None, date_to=None):
     if pd.isnull(date_to):
         date_to = data.index[-1]
     else:
-        date_to = pd.to_datetime(date_to, format="%Y-%m-%d %H:%M") - datetime.timedelta(seconds=1)
+        date_to = pd.to_datetime(date_to, format="%Y-%m-%d %H:%M")
 
     if date_to < date_from:
         raise ValueError('date_to must be greater than date_from')
 
-    return data.loc[date_from:date_to]
+    if date_to == data.index[-1]:
+        return data[(data.index >= date_from)]
+    else:
+        return data[(data.index >= date_from) & (data.index < date_to)]
 
 
 def is_float_or_int(value):
