@@ -1667,7 +1667,7 @@ class TI:
         ti_dist.index.rename('Speed Bin', inplace=True)
         ti_dist.index = [i.mid for i in ti_dist.index]
         graph_ti_dist_by_speed = bw_plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, min_speed=min_speed,
-                                                         IEC_class=IEC_class)
+                                                         percentile=percentile, IEC_class=IEC_class)
 
         # replace index of ti_dist with input speed_bin_labels only after generating the plot
         if speed_bin_labels:

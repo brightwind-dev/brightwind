@@ -1600,7 +1600,7 @@ def plot_rose_with_gradient(freq_table, percent_symbol=True, plot_bins=None, plo
     return ax.get_figure()
 
 
-def plot_TI_by_speed(wspd, wspd_std, ti, min_speed=3, IEC_class=None):
+def plot_TI_by_speed(wspd, wspd_std, ti, min_speed=3, percentile=90, IEC_class=None):
     """
     Plot turbulence intensity graphs alongside with IEC standards
 
@@ -1618,6 +1618,10 @@ def plot_TI_by_speed(wspd, wspd_std, ti, min_speed=3, IEC_class=None):
                         example usage.
     :param min_speed:   Set the minimum wind speed. Default is 3 m/s.
     :type min_speed:    integer or float
+    :param percentile:  The percentile used for deriving the representative TI. This should be the same value as used
+                        when calling the bw.TI.by_speed() function that derives the representative TI.
+                        Default is set to 90 percentile.
+    :type percentile:   float, integer
     :type IEC_class:    None or pandas.DataFrame
     :return:            Plots scatter plot of turbulence intensity (TI) & distribution of TI by speed bins
                         derived as for statistics below and the IEC Class curves defined as for IEC_class input.
@@ -1667,7 +1671,8 @@ def plot_TI_by_speed(wspd, wspd_std, ti, min_speed=3, IEC_class=None):
     ax.scatter(wspd.loc[common_idxs], wspd_std.loc[common_idxs] / wspd.loc[common_idxs],
                color=COLOR_PALETTE.primary, alpha=0.3, marker='.')
     ax.plot(ti.index.values, ti.loc[:, 'Mean_TI'].values, color=COLOR_PALETTE.secondary, label='Mean_TI')
-    ax.plot(ti.index.values, ti.loc[:, 'Rep_TI'].values, color=COLOR_PALETTE.primary_35, label='Rep_TI')
+    ax.plot(ti.index.values, ti.loc[:, 'Rep_TI'].values, color=COLOR_PALETTE.primary_35,
+            label='Rep_TI ({}th percentile)'.format(percentile))
     for icol in range(1, len(IEC_class.columns)):
         ax.plot(IEC_class.iloc[:, 0], IEC_class.iloc[:, icol], color=COLOR_PALETTE.color_list[1+icol],
                 linestyle='dashed', label=IEC_class.columns[icol])
