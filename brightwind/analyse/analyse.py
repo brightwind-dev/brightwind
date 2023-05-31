@@ -1224,18 +1224,16 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     var_series = _convert_df_to_series(var_series).copy()
     direction_series = _convert_df_to_series(direction_series).copy()
 
-    # derive monthly coverage considering var_series, direction_series inputs
-    monthly_coverage = coverage(pd.concat([var_series.rename('var_data'), direction_series],
-                                          axis=1)).min(axis=1).replace(np.nan, 0.0)
+    data_concurrent = pd.concat([var_series, direction_series], axis=1).dropna()
 
-    var_series, text_msg_out = _filter_out_months_based_on_coverage_threshold(pd.concat([var_series, direction_series],
-                                                                                        axis=1)[var_series.name],
+    # derive monthly coverage considering var_series, direction_series inputs
+    monthly_coverage = coverage(data_concurrent)[var_series.name + '_Coverage']
+
+    var_series, text_msg_out = _filter_out_months_based_on_coverage_threshold(data_concurrent[var_series.name],
                                                                               monthly_coverage,
                                                                               coverage_threshold,
                                                                               analysis_type='frequency table',
                                                                               seasonal_adjustment=seasonal_adjustment)
-
-    data_concurrent = pd.concat([var_series, direction_series], axis=1).dropna()
 
     # If `target_freq_table_mean` is given as input to function then derive scale factor as ratio of
     # `target_freq_table_mean` and `data_concurrent` means.

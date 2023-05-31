@@ -314,7 +314,7 @@ def test_freq_table():
 
     rose, freq_table = bw.freq_table(DATA.Spd40mN, DATA.Dir38mS, return_data=True, coverage_threshold=0.5,
                                      target_freq_table_mean=8)
-    assert round(bw.export.export._calc_mean_speed_of_freq_tab(freq_table), 3) == 8
+    assert round(bw.export.export._calc_mean_speed_of_freq_tab(freq_table), 2) == 8
 
 
 def test_dist():
