@@ -28,7 +28,7 @@ to true. (Issue #[334](https://github.com/brightwind-dev/brightwind/issues/334))
 _line_colors_, _legend_ and _figure_size_. (Issue #[349](https://github.com/brightwind-dev/brightwind/issues/349)).
 11. In `average_data_by_period()` fixed issue when wind direction average is derived for a period equal to the data resolution period 
 (Issue #[319](https://github.com/brightwind-dev/brightwind/issues/319)).
-13. In `freq_tab()` added option to give as input target wind speed we want the mean frequency distribution to have 
+13. In `freq_table` added option to give as input target wind speed we want the mean frequency distribution to have 
 (Issue #[269](https://github.com/brightwind-dev/brightwind/issues/269)).
 12. Fixed bugs for `TI.by_speed` and `TI.by_sector` and added tests. Solved versions issue that were raised from Pandas 1.3.3. (Issue #[317](https://github.com/brightwind-dev/brightwind/issues/317)).
 11. Address errors and warnings generated for `Shear.TimeOfDay` and `Shear` when pandas >=1.0.0 (Issue #[347](https://github.com/brightwind-dev/brightwind/issues/347)).
@@ -42,6 +42,7 @@ _line_colors_, _legend_ and _figure_size_. (Issue #[349](https://github.com/brig
 19. Updated `_ColorPalette` to automatically update color_list, color_map, color_map_cyclical and adjusted lightness color variables when main colors (primary, secondary etc.) are changed. (Issue #[381](https://github.com/brightwind-dev/brightwind/issues/381)).
 19. Allow `momm` function to derive a seasonal adjusted mean of monthly mean, if user sets `seasonal_adjustment` to true, and allow to apply a `coverage_threshold` (Issue #[298](https://github.com/brightwind-dev/brightwind/issues/298))
 20. Updated `slice_data`, `offset_timestamps`, `_LoadBWPlatform.get_data` functions to use 'less than' data_to if provided as input. (Issue #[385](https://github.com/brightwind-dev/brightwind/issues/385))
+20. Allow `freq_table` function to apply a `coverage_threshold` for both seasonal adjusted and base methods. (Issue #[386](https://github.com/brightwind-dev/brightwind/issues/386))
 
 
 
