@@ -90,15 +90,20 @@ def slice_data(data, date_from=None, date_to=None):
         data_sliced = bw.utils.utils.slice_data(DATA, date_from='2016-11-23')
 
     """
+    if pd.__version__ < '2.0.0':
+        date_format = "%Y-%m-%d %H:%M"
+    else:
+        date_format = 'ISO8601'
+
     if pd.isnull(date_from):
         date_from = data.index[0]
     else:
-        date_from = pd.to_datetime(date_from, format="%Y-%m-%d %H:%M")
+        date_from = pd.to_datetime(date_from, format=date_format)
 
     if pd.isnull(date_to):
         date_to = data.index[-1]
     else:
-        date_to = pd.to_datetime(date_to, format="%Y-%m-%d %H:%M")
+        date_to = pd.to_datetime(date_to, format=date_format)
 
     if date_to < date_from:
         raise ValueError('date_to must be greater than date_from')
