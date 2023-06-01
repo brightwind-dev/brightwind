@@ -7,21 +7,52 @@
  /_.___/_/  /_/\__, /_/ /_/\__/ |__/|__/_/_/ /_/\__,_/
               /____/
  ```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**A Python library primarily for wind resource assessments.**
+
 --------------
 
 <br>
 
-The brightwind python library aims to **empower wind resource analysts** and establish a common **industry standard toolset**.
+Brightwind is a Python library specifically built for wind analysis. It can load in wind speed, wind direction and 
+other metrological timeseries data. There are various plots you can use to understand this data and to find any 
+potential issues. You can perform many common functions to the data such as shear and long-term adjustments. The 
+resulting adjusted data is then outputted as a frequency distribution tab file which can be used in wind analysis 
+software such as WAsP.
+
+This library can also be used for solar resource analysis.
 
 <br>
 
+---
+### Installation
+
+You can use pip from the command line to install the library.
+
+```
+C:\Users\Stephen> pip install brightwind
+```
+It is advisable to use a separate environment to avoid any dependency clashes with other libraries such as Pandas, Numpy 
+or Matplotlib you may already have installed.
+
+<br>
+
+For those that do not have Python installed and are just getting started, we recommend installing Anaconda. Anaconda is 
+a Python distribution for scientific computing and so provides everything you need, Python, pip and Jupyter Notebook 
+along with libraries such as Pandas, Numpy and Matplotlib. Datacamp provide a good tutorial for [installing 
+Anaconda on Windows](https://www.datacamp.com/tutorial/installing-anaconda-windows) to get started.
+
+Once Anaconda is installed, you can use the **Anaconda Prompt** to run the above command line `pip install brightwind`. 
+Or first use **Anaconda Navigator** to create an environment.
+
+---
 ### Documentation
 
 Documentation on how to get setup and use the library can be found at https://brightwind-dev.github.io/brightwind-docs/
 
 <br>
 
-Example usage is shown below via a Jupyter Notebook.
+Example usage of the brightwind library is shown below using Jupyter Notebook. Jupyter Notebook is a powerful way to 
+immediately see the results of code you have written.
 <br>
 
 <p>
@@ -39,8 +70,8 @@ Example usage is shown below via a Jupyter Notebook.
 The library provides wind analysts with easy to use tools for working with
 meteorological data. It supports loading of meteorological data, averaging,
 filtering, plotting, correlations, shear analysis, long term adjustments, etc.
-The library can export a resulting long term adjusted tab file to be used in
-other software.
+The library can then export a resulting long term adjusted tab file to be used in
+other wind analysis software.
 
 <br>
 
@@ -62,33 +93,19 @@ The library is licensed under the MIT license.
 <br>
 
 ---
-### Installation
-
-The library can be installed by using pip install from the command line (for those that have pip installed).
-
-<br>
-
-```
-C:\Users\Stephen> pip install brightwind
-```
-
-<br>
-
-For those that do not already have Python or pip, please follow this tutorial,
-[getting started on Windows](https://brightwind-dev.github.io/brightwind-docs/tutorials/getting_started_on_windows.html),
-to get set up.
-
-<br>
-
----
 ### Test datasets
-A test dataset is included in this repository and is used to test functions in the code. The source of the dataset is:
+A test dataset is included in this repository and is used to demonstrate function and test functions in the code. 
+Other files and datasets are also included to complement this demo dataset. These are outlined below:
 
 <br>
 
-| Dataset            | Source           | Notes  |
-|:------------------ |:-------------|:-----|
-| Demo data          | Anonymous | A modified 2 year met mast dataset in various logger formats along with associated 18-yr MERRA-2 data. |
+| Dataset               | Source           | Notes  |
+|:--------------------- |:-------------|:-----|
+| demo_data.csv         | BrightWind | A modified 2 year met mast dataset in csv and Campbell Scientific format. |
+| MERRA-2_XX_2000-01-01_2017-06-30.csv | NASA [GES DISC](https://disc.gsfc.nasa.gov/) | 4 x MERRA-2 18-yr datasets to complement the demo data for long term analyses. |
+| demo_cleaning_file.csv | BrightWind | A file containing information on what periods to clean out from the demo data. |
+| windographer_flagging_log.txt | BrightWind | The same cleaning info as found in 'demo_cleaning_file.csv' formatted as a Windographer flagging file. |
+| demo_data_iea43_wra_data_model.json | BrightWind | A JSON file formatted according to the IEA Wind Task 43 [WRA Data Model](https://github.com/IEA-Task-43/digital_wra_data_standard) standard which describes the mast configuration for the demo data. |
 
 <br>
 
