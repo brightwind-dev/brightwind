@@ -6,12 +6,10 @@ import warnings
 import json
 
 
-def _get_schema():
-    with open(bw.demo_datasets.demo_wra_data_model_schema) as json_file:
+def _get_schema(schema):
+    with open(schema) as json_file:
         schema = json.load(json_file)
     return schema
-
-SCHEMA = _get_schema()
 
 
 def test_get_title():
@@ -20,7 +18,7 @@ def test_get_title():
         "latitude_ddeg": "Latitude [ddeg]",
         "pole_diameter_mm": "Pole Diameter [mm]",
         "device_datum_plane_height_m": "Device Datum Plane Height [m]",
-        "sensor_config": "Sensor Configuration",
+        "logger_measurement_config": "Logger Measurement Configuration",
         "statistic_type_id": "Statistic Type",
         "sensitivity": "Logger Sensitivity",
         "date_of_calibration": "Date of Calibration",
@@ -30,5 +28,41 @@ def test_get_title():
         "date_from": "Date From",
         "author2": "author2"
     }
+
+    property_name_title_v1_2 = {
+        "device_vertical_orientation": "Device Vertical Orientation",
+        "logger_firmware_version": "Logger Firmware Version",
+        "logger_stated_boom_orientation_deg": "Logger Stated Boom Orientation [deg]",
+        "sensor_body_size_mm": "Sensor Body Size [mm]",
+        "diameter_of_interference_structure_mm": "Diameter of Interference Structure [mm]"
+    }
+
     for name, title in property_name_title.items():
-        assert bw.load.station._get_title(name, SCHEMA) == title
+        assert bw.load.station._get_title(name, _get_schema(bw.demo_datasets.iea43_wra_data_model_schema_v1_0)) == title
+
+    for name, title in property_name_title.items():
+        assert bw.load.station._get_title(name, _get_schema(bw.demo_datasets.iea43_wra_data_model_schema_v1_2)) == title
+
+    for name, title in property_name_title_v1_2.items():
+        assert bw.load.station._get_title(name, _get_schema(bw.demo_datasets.iea43_wra_data_model_schema_v1_2)) == title
+
+
+def test_get_table():
+    mm1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
+
+    for value in mm1.get_table(horizontal_table_orientation=True).T['Test_MM1'].to_dict().values():
+        assert value in mm1.properties.values()
+
+    for value in mm1.logger_main_configs.get_table(horizontal_table_orientation=True).T['AName_MM1'].to_dict().values():
+        assert value in mm1.logger_main_configs.properties[0].values()
+
+    for value in mm1.measurements.get_table(detailed=True).T['Dir_76mNW'].to_dict().values():
+        if value is not '-':
+            assert value in mm1.measurements.properties[10].values()
+
+    mm2 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_iea43_wra_data_model_v1_2)
+
+    for value in mm2.measurements.get_table(detailed=True).T['Dir_80m_MC'].to_dict().values():
+        if value is not '-':
+            assert value in mm2.measurements.properties[4].values()
+

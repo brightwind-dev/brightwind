@@ -13,13 +13,13 @@ from brightwind.utils import utils
 import pprint
 import warnings
 
-
 __all__ = ['']
 
 
 class CorrelBase:
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None, target_dir=None,
                  sectors=12, direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean'):
+
         self.ref_spd = ref_spd
         self.ref_dir = ref_dir
         self.target_spd = target_spd
@@ -34,18 +34,23 @@ class CorrelBase:
         self._ref_dir_col_name = ref_dir.name if ref_dir is not None else None
         self._tar_spd_col_name = target_spd.name if target_spd is not None else None
         self._tar_dir_col_name = target_dir.name if target_dir is not None else None
+
+        # Rename speed and direction reference column name(s) if any equal to target column name
+        self.ref_spd, self._ref_spd_col_name, self._ref_spd_col_names, self.ref_dir, self._ref_dir_col_name = \
+            self._rename_duplicated_columns()
+
         # Average and merge datasets into one df
-        self.data = CorrelBase._averager(self, ref_spd, target_spd, averaging_prd, coverage_threshold,
-                                         ref_dir, target_dir, ref_aggregation_method, target_aggregation_method)
+        self.data = CorrelBase._averager(self, self.ref_spd, target_spd, averaging_prd, coverage_threshold,
+                                         self.ref_dir, target_dir, ref_aggregation_method, target_aggregation_method)
         self.num_data_pts = len(self.data)
         self.params = {'status': 'not yet run'}
 
         # The self variables defined below are defined for OrdinaryLeastSquares, OrthogonalLeastSquares and SpeedSort
         if ref_dir is not None:
             self.sectors = sectors
-            self.direction_bin_array = direction_bin_array
 
             if direction_bin_array is None:
+                self.direction_bin_array = direction_bin_array
                 sector_direction_bins = utils.get_direction_bin_array(sectors)
                 step = float(max(np.unique(np.diff(sector_direction_bins))))
                 self._dir_sector_max = [angle for i, angle in enumerate(sector_direction_bins)
@@ -54,14 +59,20 @@ class CorrelBase:
                 self._dir_sector_min.insert(0, self._dir_sector_min.pop())
             else:
                 raise NotImplementedError("Analysis using direction_bin_array input not implemented yet.")
+                # self.direction_bin_array = direction_bin_array.copy()
                 # self.sectors = len(direction_bin_array) - 1
-                # self._dir_sector_max = direction_bin_array[1:]
-                # self._dir_sector_min = direction_bin_array[:-1]
+                # if 0 not in direction_bin_array:
+                #     direction_bin_array.insert(0, 0)
+                # if 360 not in direction_bin_array:
+                #     direction_bin_array.append(360)
+
+                self._dir_sector_max = direction_bin_array[1:]
+                self._dir_sector_min = direction_bin_array[:-1]
 
             self._ref_dir_bins = _binned_direction_series(self.data[self._ref_dir_col_name], sectors,
-                                                          direction_bin_array=self.direction_bin_array
+                                                          direction_bin_array=direction_bin_array
                                                           ).rename('ref_dir_bin')
-            self._predict_ref_spd = pd.Series()
+            self._predict_ref_spd = pd.Series(dtype='float64')
 
     def _averager(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir, target_dir,
                   ref_aggregation_method, target_aggregation_method):
@@ -144,6 +155,61 @@ class CorrelBase:
             logic_sector = ((ref_dir >= sector_min) & (ref_dir <= 360)) | \
                            ((ref_dir < sector_max) & (ref_dir >= 0))
         return logic_sector
+
+    @staticmethod
+    def _convert_str_to_list(input):
+        return [input] if type(input) is str else input
+
+    def _rename_equal_elements_between_two_inputs(self, input1, input2, input1_suffix='_1'):
+        """
+        Rename all string elements of input1 if any is equal to at least one of the input2. The input1_suffix is added
+        to the input1 strings. Note that both input1 and input2 must contain unique elements.
+
+        :param input1:          Input1 string or list of strings.
+        :type input1:           str or list(str)
+        :param input2:          Input2 string or list of strings.
+        :type input2:           str or list(str)
+        :param input1_suffix:   Input1 suffix to add to the input1 strings if any is in common with input2.
+                                Default suffix is '_1'.
+        :type input1_suffix:    str
+        :returns input1_new:    String or list of strings with renamed elements if any string is in common with input2.
+        :rtype:                 str or list(str)
+
+        """
+
+        input1_new = self._convert_str_to_list(input1)
+        input2_new = self._convert_str_to_list(input2)
+
+        if any(map(lambda v: v in input2_new, input1_new)):
+            input1_new = list(map(lambda v: v + input1_suffix, input1_new))
+            if type(input1) is str:
+                return input1_new[0]
+            else:
+                return input1_new
+        else:
+            return input1
+
+    def _rename_duplicated_columns(self):
+        # Rename speed reference column name(s) if equal to target column name
+        if isinstance(self.ref_spd, pd.Series) and self._ref_spd_col_name is not None:
+            self._ref_spd_col_name = self._rename_equal_elements_between_two_inputs(self._ref_spd_col_name,
+                                                                                    self._tar_spd_col_name,
+                                                                                    input1_suffix='_ref')
+            self.ref_spd = self.ref_spd.rename(self._ref_spd_col_name)
+        elif isinstance(self.ref_spd, pd.DataFrame) and self._ref_spd_col_names is not None:
+            self._ref_spd_col_names = self._rename_equal_elements_between_two_inputs(list(self._ref_spd_col_names),
+                                                                                     self._tar_spd_col_name,
+                                                                                     input1_suffix='_ref')
+            self.ref_spd.columns = self._ref_spd_col_names
+
+        # Rename direction reference column name if equal to target column name
+        if self._ref_dir_col_name is not None and self._tar_dir_col_name is not None:
+            self._ref_dir_col_name = self._rename_equal_elements_between_two_inputs(self._ref_dir_col_name,
+                                                                                    self._tar_dir_col_name,
+                                                                                    input1_suffix='_ref')
+            self.ref_dir = self.ref_dir.rename(self._ref_dir_col_name)
+
+        return self.ref_spd, self._ref_spd_col_name, self._ref_spd_col_names, self.ref_dir, self._ref_dir_col_name
 
     def _get_synth_start_dates(self):
         none_even_freq = ['5H', '7H', '9H', '10H', '11H', '13H', '14H', '15H', '16H', '17H', '18H', '19H',
@@ -365,7 +431,7 @@ class OrdinaryLeastSquares(CorrelBase):
         elif type(self.ref_dir) is pd.Series:
             self.params = []
             for sector, group in pd.concat([self.data, self._ref_dir_bins],
-                                           axis=1, join='inner').dropna().groupby(['ref_dir_bin']):
+                                           axis=1, join='inner').dropna().groupby('ref_dir_bin'):
                 # print('Processing sector:', sector)
                 if len(group) > 1:
                     slope, offset = self._leastsquare(ref_spd=group[self._ref_spd_col_name],
@@ -530,7 +596,8 @@ class MultipleLinearRegression(CorrelBase):
     Series with timestamps as indexes. Also sen is an averaging period which merges the datasets by this time period
     before performing the correlation.
 
-    :param ref_spd:                   A list of Series containing reference wind speed as a column, timestamp as the index.
+    :param ref_spd:                   A list of Series containing reference wind speed as a column, timestamp as the
+                                      index.
     :type ref_spd:                    List(pd.Series)
     :param target_spd:                Series containing target wind speed as a column, timestamp as the index.
     :type target_spd:                 pd.Series
@@ -621,9 +688,12 @@ class MultipleLinearRegression(CorrelBase):
     @staticmethod
     def _merge_ref_spds(ref_spds):
         # ref_spds is a list of pd.Series that may have the same names.
-        for idx, ref_spd in enumerate(ref_spds):
-            ref_spd.name = ref_spd.name + '_' + str(idx + 1)
-        return pd.concat(ref_spds, axis=1, join='inner')
+        df = pd.concat(ref_spds, axis=1, join='inner')
+        cols = pd.Series(df.columns)
+        for dup in cols[cols.duplicated()].unique():
+            cols[cols[cols == dup].index.values.tolist()] = [dup + '_' + str(i) for i in range(sum(cols == dup))]
+        df.columns = cols
+        return df
 
     def run(self, show_params=True):
         p, res = lstsq(np.column_stack((self.data[self._ref_spd_col_names].values, np.ones(len(self.data)))),
@@ -713,8 +783,10 @@ class SimpleSpeedRatio:
         # calculate the coverage of the target data to raise warning if poor
         tar_count = self.data[1].dropna().count()
         tar_res = tf._get_data_resolution(self.data[1].index)
-        max_pts = (self._end_ts - self._start_ts) / tar_res
-        if tar_res == pd.Timedelta(1, unit='M'):  # if is monthly
+        # This is a little hacky but a relatively simple way to convert offsets to timedelta
+        tar_res_as_timeDelta = self._start_ts + tar_res - self._start_ts
+        max_pts = (self._end_ts - self._start_ts) / tar_res_as_timeDelta
+        if tar_res == pd.DateOffset(months=1):  # if is monthly
             # round the result to 0 decimal to make whole months.
             max_pts = np.round(max_pts, 0)
         target_overlap_coverage = tar_count / max_pts
@@ -760,12 +832,18 @@ class SpeedSort(CorrelBase):
             self.params = dict()
             self.params['slope'] = (ymean2 - ymean1) / (xmean2 - xmean1)
             self.params['offset'] = ymean1 - (xmean1 * self.params['slope'])
+            self.params['cutoff'] = cutoff
             # print(self.params)
 
         def sector_predict(self, x):
-            def linear_function(x, slope, offset):
-                return x * slope + offset
-            return x.transform(linear_function, slope=self.params['slope'], offset=self.params['offset'])
+            def bilinear_function(x, slope, offset, cutoff):
+                if x < cutoff:
+                    return (slope * cutoff + offset) * x / cutoff  # Line passing through zero
+                else:
+                    return x * slope + offset  # Line not passing through zero
+
+            return x.transform(bilinear_function, slope=self.params['slope'], offset=self.params['offset'],
+                               cutoff=self.params['cutoff'])
 
         def plot_model(self):
             return plot_scatter(self.sector_ref,
@@ -906,7 +984,7 @@ class SpeedSort(CorrelBase):
         self.params['target_veer_cutoff'] = round(self.target_veer_cutoff, 5)
         self.params['overall_average_veer'] = round(self.overall_veer, 5)
         for sector, group in pd.concat([self.data, self._ref_dir_bins],
-                                       axis=1, join='inner').dropna().groupby(['ref_dir_bin']):
+                                       axis=1, join='inner').dropna().groupby('ref_dir_bin'):
             # print('Processing sector:', sector)
             self.speed_model[sector] = SpeedSort.SectorSpeedModel(ref_spd=group[self._ref_spd_col_name],
                                                                   target_spd=group[self._tar_spd_col_name],
@@ -931,10 +1009,44 @@ class SpeedSort(CorrelBase):
         result = result.sort_index()
         return result
 
-    def plot(self):
+    def plot(self, figure_size=(10, 10.2)):
+        """
+        Plots scatter plot of reference versus target speed data for each sector. The regression line and the line of
+        slope 1 passing through the origin are also shown on each plot.
+
+        :param figure_size: Figure size in tuple format (width, height)
+        :type figure_size:  tuple
+        :returns:           A matplotlib figure
+        :rtype:             matplotlib.figure.Figure
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_csv(bw.demo_datasets.demo_data)
+            m2_ne = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
+
+            # Correlate by directional sector, using 36 sectors.
+            spd_srt_cor = bw.Correl.SpeedSort(m2_ne['WS50m_m/s'], m2_ne['WD50m_deg'],
+                                          data['Spd80mN'], data['Dir78mS'], averaging_prd='1D',
+                                          coverage_threshold=0.9, sectors=12)
+            spd_srt_cor.run()
+
+            # To plot the scatter subplots by directional sectors, the regression line and the line of
+            # slope 1 passing through the origin
+            spd_srt_cor.plot()
+
+            # To set the figure size
+            spd_srt_cor.plot(figure_size=(20, 20.2))
+
+        """
+        predict = self.data[self._ref_spd_col_name] * np.nan
         for model in self.speed_model:
-            self.speed_model[model].plot_model('Sector ' + str(model))
-        return self.plot_wind_directions()
+            predict = predict.combine_first(self.speed_model[model].sector_predict(self.speed_model[model].sector_ref))
+
+        return plot_scatter_by_sector(self.data[self._ref_spd_col_name], self.data[self._tar_spd_col_name],
+                                      self.data[self._ref_dir_col_name], trendline_y=predict,
+                                      sort_trendline_inputs=True, sectors=self.sectors,
+                                      line_of_slope_1=True, figure_size=figure_size)
 
     @staticmethod
     def _linear_interpolation(xa, xb, ya, yb, xc):
@@ -949,7 +1061,7 @@ class SpeedSort(CorrelBase):
         sector_min = []
         sector_max = []
         if self.direction_bin_array is None:
-            # First sector is centered at 0.
+            # First sector is centered at 0 and all sectors are equally spaced.
             step = 360/self.sectors
             veer_bins = list(map(float, np.arange(0, 360 + step, step)))
             for veer_bin in veer_bins:
@@ -967,14 +1079,16 @@ class SpeedSort(CorrelBase):
                 sec_veers[-1] = sec_veers[0]
 
         else:
+            # Sectors are as for user input and can be not centered at 0 and not equally spaced. There isn't however
+            # any gap between sectors.
             veer_bins = []
             sec_veers = []
-            # Calculate middle point of each sector, as each sectoral veer is applied at the mid-point of the sector.
             for key in self.params.keys():
                 if type(key) is int:
                     sec_veers.append(self.params[key]['average_veer'])
                     sector_min.append(self.params[key]['sector_min'])
                     sector_max.append(self.params[key]['sector_max'])
+                    # Calculate middle point of each sector.
                     if self.params[key]['sector_min'] < self.params[key]['sector_max']:
                         veer_bins.append((self.params[key]['sector_min'] + self.params[key]['sector_max']) / 2)
                     else:
@@ -991,15 +1105,18 @@ class SpeedSort(CorrelBase):
                                                             sec_veers[-1], sec_veers[1], 360))
                 veer_bins.insert(0, 0)
                 veer_bins.append(360)
-                sector_min.insert(0, sector_min[-1])
-                sector_min.append(sector_min[0])
-                sector_max.insert(0, sector_max[0])
-                sector_max.append(sector_max[0])
+                sector_min.insert(0, 0)
+                sector_min.append(360)
+                sector_max.insert(0, 0)
+                sector_max.append(360)
 
         # The veer correction is derived linear interpolating the veer between two mid-points of near sectors.
         adjustment = x_dir.rename('adjustment').copy() * np.nan
         for i in range(1, len(veer_bins)):
 
+            # If wind direction is missing for some sectors then the veer value for these sector is NaN. The adjustment
+            # for not Nan veer sectors is set at equal to the veer at the mid point if veer for nearby sectors is NaN
+            # otherwise the adjustment is derived interpolating between two veer values from nearby sectors.
             if np.isnan(sec_veers[i - 1]) and not np.isnan(sec_veers[i]):
                 logic_sect_mid_min_sector = self._get_logic_dir_sector(ref_dir=x_dir,
                                                                        sector_min=sector_min[i],
@@ -1025,6 +1142,23 @@ class SpeedSort(CorrelBase):
                         adjustment[logic_sect_min_max_sector] = offset_wind_direction(
                             x_dir[logic_sect_min_max_sector] * 0, sec_veers[i])
 
+                elif not np.isnan(sec_veers[i]) and np.isnan(sec_veers[i + 1]):
+                    logic_sect_mid_max_sector = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                                           sector_min=veer_bins[i],
+                                                                           sector_max=sector_max[i])
+                    if logic_sect_mid_max_sector.sum() > 0:
+                        adjustment[logic_sect_mid_max_sector] = offset_wind_direction(
+                            x_dir[logic_sect_mid_max_sector] * 0, sec_veers[i])
+
+            elif (sector_min[i] == sector_min[0]) and np.isnan(sec_veers[1]) and not np.isnan(sec_veers[i]):
+                logic_sect_min_max_sector = self._get_logic_dir_sector(ref_dir=x_dir,
+                                                                       sector_min=veer_bins[i],
+                                                                       sector_max=sector_max[i])
+                if logic_sect_min_max_sector.sum() > 0:
+                    adjustment[logic_sect_min_max_sector] = offset_wind_direction(
+                        x_dir[logic_sect_min_max_sector] * 0, sec_veers[i])
+
+            # Adjustment is derived interpolating between two veer values from nearby sectors
             logic_sect_mid_point = self._get_logic_dir_sector(ref_dir=x_dir,
                                                               sector_min=veer_bins[i - 1],
                                                               sector_max=veer_bins[i])
@@ -1041,8 +1175,8 @@ class SpeedSort(CorrelBase):
                        _binned_direction_series(x_dir, self.sectors,
                                                 direction_bin_array=self.direction_bin_array).rename('ref_dir_bin')],
                       axis=1, join='inner').dropna()
-        prediction = pd.Series().rename('spd')
-        for sector, data in x.groupby(['ref_dir_bin']):
+        prediction = pd.Series(dtype='float64').rename('spd')
+        for sector, data in x.groupby('ref_dir_bin'):
             if sector in list(self.speed_model.keys()):
                 prediction_spd = self.speed_model[sector].sector_predict(data['spd'])
             else:
@@ -1067,13 +1201,16 @@ class SpeedSort(CorrelBase):
             dir_output = self._predict_dir(tf.average_data_by_period(self.ref_dir[ref_start_date:], self.averaging_prd,
                                                                      wdir_column_names=self._ref_dir_col_name,
                                                                      return_coverage=False))
+            dir_output = tf.average_data_by_period(self.target_dir[target_start_date:], self.averaging_prd,
+                                                   wdir_column_names=self._tar_dir_col_name,
+                                                   return_coverage=False).combine_first(dir_output)
 
         else:
             output = self._predict(input_spd, input_dir)
             dir_output = self._predict_dir(input_dir)
         output[output < 0] = 0
         return pd.concat([output.rename(self._tar_spd_col_name + "_Synthesized"),
-                          dir_output.rename(self._tar_dir_col_name + "_Synthesized")], axis=1, join='inner')
+                          dir_output.rename(self._tar_dir_col_name + "_Synthesized")], axis=1, join='outer')
 
     def plot_wind_directions(self):
         """

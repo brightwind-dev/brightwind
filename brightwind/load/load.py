@@ -11,8 +11,7 @@ import json
 from io import StringIO
 import warnings
 from dateutil.parser import parse
-from brightwind.analyse import plot as plt
-import boto3
+from brightwind.analyse import plot as bw_plt
 import time
 import concurrent
 import math
@@ -901,12 +900,150 @@ class LoadBrightdata:
             raise error
 
 
+class _BrighthubAuth:
+    """
+    This class is used to define general functions that are then called by LoadBrightHub. Functions in this
+    class are outside of LoadBrightHub and will be called only once during the analysis and this will avoid making
+    multiple login to the Brighthub user pool.
+
+    """
+
+    # List possible errors encountered on Login
+    __BRIGHTHUB_LOGIN_ERROR_MAP = {
+        "not_authorized": "The Brighthub Email or Password is incorrect",
+        "user_not_confirmed": "The User is not confirmed. Please confirm your email and try again.",
+        "unexpected_error": "An unexpected error occurred.",
+        "new_password_required": "Your password has expired or needs to be reset. "
+                                 "Kindly reset your Brighthub password and try again.",
+        "password_not_verified": "Could not verify your password. "
+                                 "Please ensure you have confirmed your email and the password is correct."
+    }
+    ID_TOKEN = ''
+    REFRESH_TOKEN = ''
+    USERNAME = ''
+    PASSWORD = ''
+
+    @staticmethod
+    def _get_cognito_request():
+        """
+        Function to form a request for Cognito Auth APIs
+        """
+        url = "https://cognito-idp.eu-west-1.amazonaws.com/"
+        headers = {
+            'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
+            'Content-Type': 'application/x-amz-json-1.1'
+        }
+        client_id = "3qkkpikve578cbok46p136au3g"
+
+        return url, headers, client_id
+
+    @staticmethod
+    def _get_id_token():
+        """
+        Function to login to the Brighthub user pool.
+        Assign a id_token and a refresh_token to the global variables ID_TOKEN, REFRESH_TOKEN which can be used to
+        make requests to the APIs.
+        In case of an error, a error message will be returned
+
+        """
+        url, headers, client_id = _BrighthubAuth._get_cognito_request()
+
+        if not _BrighthubAuth.USERNAME:
+            _BrighthubAuth.USERNAME = utils.get_environment_variable('BRIGHTHUB_EMAIL')
+
+        if not _BrighthubAuth.PASSWORD:
+            _BrighthubAuth.PASSWORD = utils.get_environment_variable('BRIGHTHUB_PASSWORD')
+
+        body = {
+            "AuthParameters": {
+                "USERNAME": _BrighthubAuth.USERNAME,
+                "PASSWORD": _BrighthubAuth.PASSWORD
+            },
+            "AuthFlow": "USER_PASSWORD_AUTH",
+            "ClientId": client_id
+        }
+
+        response = requests.post(url, headers=headers, json=body)
+        login_response = response.json()
+
+        # a login error occurred
+        if login_response.get("__type"):
+            if login_response["__type"] == "NotAuthorizedException":
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
+            elif login_response["__type"] == "UserNotConfirmedException":
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+            else:
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+
+        # challenge returned
+        if login_response.get("ChallengeName"):
+            if login_response["ChallengeName"] == "NEW_PASSWORD_REQUIRED":
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["new_password_required"])
+            elif login_response["ChallengeName"] == "PASSWORD_VERIFIER":
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["password_verifier"])
+            else:
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+
+        # login successful
+        id_token = login_response['AuthenticationResult']['IdToken']
+        refresh_token = login_response['AuthenticationResult']['RefreshToken']
+
+        _BrighthubAuth.ID_TOKEN = id_token
+        _BrighthubAuth.REFRESH_TOKEN = refresh_token
+
+        return {}
+
+    @staticmethod
+    def _brighthub_refresh_token():
+        """
+        Function to generate a new token if the current id_token has expired. The new tokens are assigned to the global
+        variables ID_TOKEN, REFRESH_TOKEN.
+        In case of an error, a error message will be returned
+
+        """
+        url, headers, client_id = _BrighthubAuth._get_cognito_request()
+
+        body = {
+            "AuthParameters": {
+                "REFRESH_TOKEN": _BrighthubAuth.REFRESH_TOKEN
+            },
+            "AuthFlow": "REFRESH_TOKEN_AUTH",
+            "ClientId": client_id
+        }
+        response = requests.post(url, headers=headers, json=body)
+        login_response = response.json()
+
+        # a login error occurred
+        if login_response.get("__type"):
+            if login_response["__type"] == "NotAuthorizedException":
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
+            elif login_response["__type"] == "UserNotConfirmedException":
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+            else:
+                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+
+        id_token = login_response['AuthenticationResult']['IdToken']
+        _BrighthubAuth.ID_TOKEN = id_token
+        new_refresh_token = ""
+
+        # refresh token only expires after 30 days, it is not returned in the response if it is still valid
+        if login_response['AuthenticationResult'].get('RefreshToken'):
+            new_refresh_token = login_response['AuthenticationResult']['RefreshToken']
+
+        # add the refresh token only if it has been generated again
+        # this functionality hasn't been tested as we could not replicate an expired refresh token
+        if new_refresh_token:
+            _BrighthubAuth.REFRESH_TOKEN = new_refresh_token
+
+        return {}
+
+
 class LoadBrightHub:
     """
     LoadBrightHub allows you to pull meta data and timeseries data of measurements from the BrightHub
     platform. This is a fast way to get access to the available open datasets on the platform.
 
-    To use LoadBrightHub, first sign up on www.brightwindhub.com and note your email and password.
+    To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
 
     For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
     BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
@@ -923,28 +1060,49 @@ class LoadBrightHub:
     bw.LoadBrightHub.get_measurement_stations()
 
     """
-    # SHOULD I INITIATE BY GETTING ID-TOKEN? CAN INITIALISE BY SENDING A USERNAME, PASSWORD.
-    # IF I INITIATE IT NEEDS TO BE ASSIGNED TO SOMETHING.
-    __BASE_URI = 'https://api.brightwindhub.com'
-    # __BASE_URI = 'http://localhost:5000/'
+
+    __BASE_URI = 'https://api.brighthub.io'
 
     @staticmethod
-    def _get_id_token():
-        client = boto3.client('cognito-idp')
+    def _brighthub_request(url_end, params=None):
+        """
+        Function to make a GET request to the Brighthub endpoints
 
-        username = utils.get_environment_variable('BRIGHTHUB_EMAIL')
-        password = utils.get_environment_variable('BRIGHTHUB_PASSWORD')
+        :param url_end:     The end of the url to be concatenated with the __BASE_URI in order to make the request
+        :type url_end:      str
+        :param params:      Optional. A dictionary, list of tuples or bytes to send as a query string. Default None
+        :type params:       dict, list(tuples), bytes
+        :return response:   The requests reponse object returned by requests.get()
+        :rtype:             requests.Response object
+        """
 
-        login_response = client.initiate_auth(
-            AuthFlow='USER_PASSWORD_AUTH',
-            AuthParameters={
-                'USERNAME': username,
-                'PASSWORD': password,
-            },
-            ClientId='3qkkpikve578cbok46p136au3g',  # Hard code this in the library
-        )
-        id_token = login_response['AuthenticationResult']['IdToken']
-        return id_token
+        if not _BrighthubAuth.ID_TOKEN:
+            login_response = _BrighthubAuth._get_id_token()
+            if "error" in login_response:
+                return ImportError(login_response)
+
+        url = "{}{}".format(LoadBrightHub.__BASE_URI, url_end)
+        headers = {"authorization": _BrighthubAuth.ID_TOKEN}
+
+        response = requests.get(url=url, headers=headers, params=params)
+
+        # If there is an auth error due to expired token
+        if response.status_code == 401 and response.json().get("message") == "The incoming token has expired":
+            # generate the token again
+            refresh_token_response = _BrighthubAuth._brighthub_refresh_token()
+
+            # if an error occurred
+            if refresh_token_response.get("error"):
+                return ImportError(refresh_token_response)
+            else:
+                # token refreshed successfully
+                headers = {"authorization": _BrighthubAuth.ID_TOKEN}
+
+                # make the request again
+                response = requests.get(url=url, headers=headers, params=params)
+                return response
+
+        return response
 
     @staticmethod
     def get_plants(plant_type=None, plant_uuid=None):
@@ -958,7 +1116,7 @@ class LoadBrightHub:
         :return:           A table showing the available plants.
         :rtype:            pd.DataFrame
 
-        To use LoadBrightHub, first sign up on www.brightwindhub.com and note your email and password.
+        To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
 
         For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
         BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
@@ -991,23 +1149,13 @@ class LoadBrightHub:
         plants = None
         if plant_type is None and plant_uuid is None:
             # get all
-            plants = requests.get(
-                "{}/plants".format(LoadBrightHub.__BASE_URI),
-                headers={"authorization": LoadBrightHub._get_id_token()}
-            )
+            plants = LoadBrightHub._brighthub_request(url_end="/plants")
         elif plant_type in ['onshore_wind', 'offshore_wind', 'solar'] and plant_uuid is None:
             # get all for a specific plant_type
-            plants = requests.get(
-                "{}/plants".format(LoadBrightHub.__BASE_URI),
-                params={'plant_type_id': plant_type},
-                headers={"authorization": LoadBrightHub._get_id_token()}
-            )
+            plants = LoadBrightHub._brighthub_request(url_end="/plants", params={'plant_type_id': plant_type})
         elif plant_uuid is not None:
             # get all for plant_uuid
-            plants = requests.get(
-                "{}/plants/{}".format(LoadBrightHub.__BASE_URI, plant_uuid),
-                headers={"authorization": LoadBrightHub._get_id_token()}
-            )
+            plants = LoadBrightHub._brighthub_request(url_end="/plants/{}".format(plant_uuid))
 
         if plants.headers.get('content-type') != 'application/json.':
             plants.raise_for_status()
@@ -1037,7 +1185,7 @@ class LoadBrightHub:
         :return:                         A table showing the available measurement stations.
         :rtype:                          pd.DataFrame
 
-        To use LoadBrightHub, first sign up on www.brightwindhub.com and note your email and password.
+        To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
 
         For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
         BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
@@ -1069,23 +1217,15 @@ class LoadBrightHub:
         measurement_locations = None
         if plant_uuid is None and measurement_station_uuid is None:
             # get all
-            measurement_locations = requests.get(
-                "{}/measurement-locations".format(LoadBrightHub.__BASE_URI),
-                headers={"authorization": LoadBrightHub._get_id_token()}
-            )
+            measurement_locations = LoadBrightHub._brighthub_request(url_end="/measurement-locations")
         elif plant_uuid is not None and measurement_station_uuid is None:
             # get all for plant_uuid
-            measurement_locations = requests.get(
-                "{}/measurement-locations".format(LoadBrightHub.__BASE_URI),
-                params={'plant_uuid': plant_uuid},
-                headers={"authorization": LoadBrightHub._get_id_token()}
-            )
+            measurement_locations = LoadBrightHub._brighthub_request(url_end="/measurement-locations",
+                                                                     params={'plant_uuid': plant_uuid})
         elif measurement_station_uuid is not None:
             # get for measurement_station_uuid
-            measurement_locations = requests.get(
-                "{}/measurement-locations/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
-                headers={"authorization": LoadBrightHub._get_id_token()}
-            )
+            measurement_locations = LoadBrightHub._brighthub_request(
+                url_end="/measurement-locations/{}".format(measurement_station_uuid))
 
         if measurement_locations.headers.get('content-type') != 'application/json.':
             measurement_locations.raise_for_status()
@@ -1114,10 +1254,8 @@ class LoadBrightHub:
                                                                         'end_date': '2016-12-19T23:01:00'}
         :rtype:                          dict
         """
-        start_end_dates = requests.get(
-            "{}/start-end-dates/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
-            headers={"authorization": LoadBrightHub._get_id_token()}
-        )
+        start_end_dates = LoadBrightHub._brighthub_request(
+            url_end="/measurement-locations/{}/start-end-dates".format(measurement_station_uuid))
 
         if start_end_dates.headers.get('content-type') != 'application/json.':
             start_end_dates.raise_for_status()
@@ -1146,13 +1284,10 @@ class LoadBrightHub:
         ::
             import brightwind as bw
 
-        To get all available measurement stations
-        ::
-            bw.LoadBrightHub.get_measurement_stations()
-
         To get the data model for a specific measurement station
         ::
-            data_model_json - bw.LoadBrightHub.get_data_model(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
+            data_model_json - bw.LoadBrightHub.get_data_model(
+                                                    measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
 
         Using the data model
         ::
@@ -1160,10 +1295,8 @@ class LoadBrightHub:
             demo_mast.get_table()
 
         """
-        data_model = requests.get(
-            "{}/data-models/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
-            headers={"authorization": LoadBrightHub._get_id_token()}
-        )
+        data_model = LoadBrightHub._brighthub_request(
+            url_end="/measurement-locations/{}/data-model".format(measurement_station_uuid))
 
         if data_model.headers.get('content-type') != 'application/json.':
             data_model.raise_for_status()
@@ -1202,10 +1335,6 @@ class LoadBrightHub:
         ::
             import brightwind as bw
 
-        To get all available measurement stations to pick out the measurement station's uuid
-        ::
-            bw.LoadBrightHub.get_measurement_stations()
-
         To get all the data for the specific measurement station
         ::
             data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
@@ -1228,16 +1357,9 @@ class LoadBrightHub:
                                              date_to='2016-07-01')
 
         """
-        id_token = LoadBrightHub._get_id_token()
         if not date_from or not date_to:
-            # Duplicating calling for start-end-time so I don't ending up getting an id_token again if I
-            # call get_start_end_dates().
-            # We will replace once we get code to check if the token has expired.
-            start_end_dates = requests.get(
-                "{}/start-end-dates/{}".format(LoadBrightHub.__BASE_URI, measurement_station_uuid),
-                headers={"authorization": id_token}
-            )
-            start_end_dates = start_end_dates.json()
+            start_end_dates = LoadBrightHub.get_start_end_dates(measurement_station_uuid)
+
             if not date_from:
                 date_from = start_end_dates['start_date']
             if not date_to:
@@ -1277,18 +1399,18 @@ class LoadBrightHub:
             chunks = [(date_from_dt.strftime(LoadBrightHub.__DATE_FORMAT),
                        date_to_dt.strftime(LoadBrightHub.__DATE_FORMAT))]
 
-        def get_chunk(_date_from, _date_to, _id_token):
-            response = requests.get("https://api.brightwindhub.com/resource-data",
-                                    params={"measurement_location_uuid": measurement_station_uuid,
-                                            "date_from": _date_from, "date_to": _date_to},
-                                    headers={"authorization": _id_token})
+        def get_chunk(_date_from, _date_to):
+            response = LoadBrightHub._brighthub_request(
+                url_end="/resource-data",
+                params={"measurement_location_uuid": measurement_station_uuid,
+                        "date_from": _date_from, "date_to": _date_to})
             pre_signed_url = response.json()["url"]
             response = requests.get(pre_signed_url)
             return response.text
 
         master_df = pd.DataFrame()
         with concurrent.futures.ThreadPoolExecutor() as executor:  # optimally defined number of threads
-            res = [executor.submit(get_chunk, chunk[0], chunk[1], id_token) for chunk in chunks]
+            res = [executor.submit(get_chunk, chunk[0], chunk[1]) for chunk in chunks]
             concurrent.futures.wait(res)
             for result in res:
                 chunk_df = pd.read_csv(StringIO(result.result()),)
@@ -1484,14 +1606,16 @@ class _LoadBWPlatform:
         """
         Retrieve measurement data from the brightwind platform and return it in a DataFrame with index as Timestamp.
 
-        :param measurement_location_uuid: The measurement location uuid.
-        :type measurement_location_uuid: str or uuid
-        :param from_date: Datetime representing the start of the measurement period you want.
-        :type from_date: datetime or str
-        :param to_date: Datetime representing the end of the measurement period you want.
-        :type to_date: datetime or str
-        :return: DataFrame with index as a timestamp.
-        :rtype: pd.DataFrame
+        :param measurement_location_uuid:   The measurement location uuid.
+        :type measurement_location_uuid:    str or uuid
+        :param from_date:                   Datetime representing the start of the measurement period you want
+                                            (included).
+        :type from_date:                    datetime or str
+        :param to_date:                     Datetime representing the end of the measurement period you want
+                                            (not included).
+        :type to_date:                      datetime or str
+        :return:                            DataFrame with index as a timestamp.
+        :rtype:                             pd.DataFrame
 
         **Example usage**
         ::
@@ -1523,7 +1647,7 @@ class _LoadBWPlatform:
         if isinstance(from_date, str):
             from_date = parse(from_date)
         if isinstance(to_date, str):
-            to_date = parse(to_date)
+            to_date = parse(to_date) - datetime.timedelta(seconds=1)
 
         response = requests.get(_LoadBWPlatform._base_url + '/api/resource-data-measurement-location', params={
             'measurement_location_uuid': measurement_location_uuid,
@@ -1671,7 +1795,7 @@ class _LoadBWPlatform:
         sensor_table['Date From'] = pd.to_datetime(sensor_table['Date From'])
         sensor_table.sort_values(by=['Sensor Name', 'Date From'], inplace=True)
         sensor_table['Date From'] = sensor_table['Date From'].dt.strftime("%d-%b-%Y")  # this code is shit!!!
-        table = plt.render_table(sensor_table, header_columns=0, col_width=3.3)
+        table = bw_plt.render_table(sensor_table, header_columns=0, col_width=3.3)
 
         if return_data:
             return table, sensor_table.set_index('Sensor Name')
@@ -1698,20 +1822,22 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
     | Spd80m | 2018-10-23 12:30:00 | 2018-10-25 14:20:00
     | Dir78m | 2018-12-23 02:40:00 |
 
-    :param filepath:  File path of the file which contains the the list of sensor names along with the start and
-           end timestamps of the periods that are flagged.
+    :param filepath:            File path of the file which contains the the list of sensor names along with the start
+                                and end timestamps of the periods that are flagged.
     :type filepath: str
-    :param date_from_col_name: The column name of the date_from or the start date of the period to be cleaned.
-    :type date_from_col_name: str, default 'Start'
-    :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
-    :type date_to_col_name: str, default 'Stop'
-    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
-            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
-    :type dayfirst: bool, default False
-    :param kwargs: All the kwargs from pandas.read_csv can be passed to this function.
-    :return: A DataFrame where each row contains the sensor name and the start and end timestamps of the flagged data.
-    :rtype: pandas.DataFrame
+    :param date_from_col_name:  The column name of the date_from or the start date of the period to be cleaned.
+    :type date_from_col_name:   str, default 'Start'
+    :param date_to_col_name:    The column name of the date_to or the end date of the period to be cleaned.
+    :type date_to_col_name:     str, default 'Stop'
+    :param dayfirst:            If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true.
+                                Pandas defaults to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses
+                                dates with the day first, eg 10/11/12 is parsed as 2012-11-10. More info on
+                                pandas.read_csv parameters.
+    :type dayfirst:             bool, default False
+    :param kwargs:              All the kwargs from pandas.read_csv can be passed to this function.
+    :return:                    A DataFrame where each row contains the sensor name and the start and end timestamps of
+                                the flagged data.
+    :rtype:                     pandas.DataFrame
 
     **Example usage**
     ::
@@ -1721,12 +1847,17 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
         print(cleaning_df)
 
     """
+    if pd.__version__ < '2.0.0':
+        date_format = None
+    else:
+        date_format = 'mixed'
+
     cleaning_df = _pandas_read_csv(filepath, **kwargs)
     # Issue when the date format is not the same in the full dataset.
     cleaning_df[date_from_col_name] = pd.to_datetime(cleaning_df[date_from_col_name],
-                                                     dayfirst=dayfirst).dt.tz_localize(None)
+                                                     dayfirst=dayfirst, format=date_format).dt.tz_localize(None)
     cleaning_df[date_to_col_name] = pd.to_datetime(cleaning_df[date_to_col_name],
-                                                   dayfirst=dayfirst).dt.tz_localize(None)
+                                                   dayfirst=dayfirst, format=date_format).dt.tz_localize(None)
     return cleaning_df
 
 
@@ -1743,32 +1874,33 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     | Spd80m | 2018-10-23 12:30:00 | 2018-10-25 14:20:00
     | Dir78m | 2018-12-23 02:40:00 |
 
-    :param data: Data to be cleaned.
-    :type data: pandas.DataFrame
-    :param cleaning_file_or_df: File path of the csv file or a pandas DataFrame which contains the list of sensor
-                                names along with the start and end timestamps of the periods that are flagged.
-    :type cleaning_file_or_df: str, pd.DataFrame
-    :param inplace: If 'inplace' is True, the original data, 'data', will be modified and and replaced with the cleaned
-                    data. If 'inplace' is False, the original data will not be touched and instead a new object
-                    containing the cleaned data is created. To store this cleaned data, please ensure it is assigned
-                    to a new variable.
+    :param data:                    Data to be cleaned.
+    :type data:                     pandas.DataFrame
+    :param cleaning_file_or_df:     File path of the csv file or a pandas DataFrame which contains the list of sensor
+                                    names along with the start and end timestamps of the periods that are flagged.
+    :type cleaning_file_or_df:      str, pd.DataFrame
+    :param inplace:                 If 'inplace' is True, the original data, 'data', will be modified and and replaced
+                                    with the cleaned data. If 'inplace' is False, the original data will not be touched
+                                    and instead a new object containing the cleaned data is created. To store this
+                                    cleaned data, please ensure it is assigned to a new variable.
     :type inplace: Boolean
-    :param sensor_col_name: The column name which contains the list of sensor names that have flagged periods.
-    :type sensor_col_name: str, default 'Sensor'
-    :param date_from_col_name: The column name of the date_from or the start date of the period to be cleaned.
-    :type date_from_col_name: str, default 'Start'
-    :param date_to_col_name: The column name of the date_to or the end date of the period to be cleaned.
-    :type date_to_col_name: str, default 'Stop'
-    :param all_sensors_descriptor: A text descriptor that represents ALL sensors in the DataFrame.
-    :type all_sensors_descriptor: str, default 'All'
-    :param replacement_text: Text used to replace the flagged data.
-    :type replacement_text: str, default 'NaN'
-    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
-            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
-    :type dayfirst: bool, default False
-    :return: DataFrame with the flagged data removed.
-    :rtype: pandas.DataFrame
+    :param sensor_col_name:         The column name which contains the list of sensor names that have flagged periods.
+    :type sensor_col_name:          str, default 'Sensor'
+    :param date_from_col_name:      The column name of the date_from or the start date of the period to be cleaned.
+    :type date_from_col_name:       str, default 'Start'
+    :param date_to_col_name:        The column name of the date_to or the end date of the period to be cleaned.
+    :type date_to_col_name:         str, default 'Stop'
+    :param all_sensors_descriptor:  A text descriptor that represents ALL sensors in the DataFrame.
+    :type all_sensors_descriptor:   str, default 'All'
+    :param replacement_text:        Text used to replace the flagged data.
+    :type replacement_text:         str, default 'NaN'
+    :param dayfirst:                If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true.
+                                    Pandas defaults to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas
+                                    parses dates with the day first, eg 10/11/12 is parsed as 2012-11-10.
+                                    More info on pandas.read_csv parameters.
+    :type dayfirst:                 bool, default False
+    :return:                        DataFrame with the flagged data removed.
+    :rtype:                         pandas.DataFrame
 
     **Example usage**
     ::

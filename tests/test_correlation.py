@@ -237,7 +237,8 @@ def test_synthesize():
     synth = correl.synthesize(target_coverage_threshold=0)
 
     for idx, row in pd.DataFrame(result_ord_lst_sq).iterrows():
-        assert str(row[0]) == str(synth.loc[idx][0])
+        # Comparing the first 6 digits to avoid issuing with floating point precision
+        assert str(row[0])[0:6] == str(synth.loc[idx][0])[0:6]
 
     # Test the synthesise for when the ref_dir is given as input.
     correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s']['2016-03-02 00:00:00':],
@@ -262,6 +263,59 @@ def test_synthesize():
     for idx, row in pd.DataFrame(result_speed_sort).iterrows():
         print(idx)
         assert str(row[0]) == str(round(synth.loc[idx][0], 6))
+
+    # Test the synthesise when SpeedSort correlation is used using 10 min averaging period.
+    data_test = DATA_CLND[['Spd80mN', 'Spd60mN', 'Dir78mS', 'Dir58mS']].copy()
+    data_test['Dir78mS']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.NaN
+    data_test['Spd80mN']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.NaN
+    data_test['Dir58mS']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.NaN
+    data_test['Spd60mN']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.NaN
+    ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir58mS'],
+                                 averaging_prd='10min')
+    ss_cor.run()
+    data_synt = ss_cor.synthesize()
+    assert (~data_synt['Dir58mS_Synthesized']['2016-01-09 18:00:00':'2016-01-09 19:10:00'].isnull()
+            ).all() and data_test['Dir58mS']['2016-01-09 18:00:00':'2016-01-09 19:10:00'].isnull().all()
+    assert (~data_synt['Spd60mN_Synthesized']['2016-01-09 18:00:00':'2016-01-09 19:10:00'].isnull()
+            ).all() and data_test['Spd60mN']['2016-01-09 18:00:00':'2016-01-09 19:10:00'].isnull().all()
+    assert ((data_synt['Spd60mN_Synthesized']['2016-01-09 18:00:00':'2016-01-09 18:30:00'] /
+            [7.466936, 8.120195, 9.297239, 9.777865] - 1) < 1e-6).all()
+    assert ((data_synt['Dir58mS_Synthesized']['2016-01-09 18:00:00':'2016-01-09 18:30:00'] /
+            [116.348903, 115.747725, 120.156364, 115.547333] - 1) < 1e-6).all()
+    assert (data_synt['Spd60mN_Synthesized']['2016-01-09 17:10:00':'2016-01-09 17:40:00']
+            == data_test['Spd60mN']['2016-01-09 17:10:00':'2016-01-09 17:40:00']).all()
+    assert (data_synt['Dir58mS_Synthesized']['2016-01-09 17:10:00':'2016-01-09 17:40:00']
+            == data_test['Dir58mS']['2016-01-09 17:10:00':'2016-01-09 17:40:00']).all()
+
+    # Test SpeedSort prediction when used for speeds lower than the reference speed cutoff.
+    index_test = (ss_cor.data[ss_cor._ref_dir_col_name] > ss_cor.params[2]['sector_min']
+                  ) & (ss_cor.data[ss_cor._ref_dir_col_name] < ss_cor.params[2]['sector_max']
+                       ) & (ss_cor.data[ss_cor._ref_spd_col_name] < ss_cor.cutoff)
+
+    test_predict_below_cutoff = ((ss_cor.params[2]['slope'] * ss_cor.cutoff + ss_cor.params[2]['offset']) * ss_cor.data[
+        ss_cor._ref_spd_col_name][index_test] / ss_cor.cutoff)
+
+    assert ((1 - (test_predict_below_cutoff / (ss_cor._predict(ss_cor.data[ss_cor._ref_spd_col_name][index_test],
+                                                               ss_cor.data[ss_cor._ref_dir_col_name][index_test]))
+                  )) < 10 ** -5).all()
+
+    # Test the synthesise when SpeedSort correlation is used and ref_dir and target_dir are the same
+    ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir78mS'],
+                                 averaging_prd='10min')
+    ss_cor.run(show_params=False)
+    data_synt = ss_cor.synthesize()
+    assert (data_synt['Dir78mS_Synthesized'].dropna() == data_test['Dir78mS'].dropna()).all()
+    assert ss_cor._ref_dir_col_name == 'Dir78mS_ref'
+    assert ss_cor._tar_dir_col_name == 'Dir78mS'
+
+    # Test the synthesise when SpeedSort correlation is used and ref_spd and target_spd are the same
+    ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd80mN'], data_test['Dir58mS'],
+                                 averaging_prd='10min')
+    ss_cor.run(show_params=False)
+    data_synt = ss_cor.synthesize()
+    assert (data_synt['Spd80mN_Synthesized'].dropna() == data_test['Spd80mN'].dropna()).all()
+    assert ss_cor._ref_spd_col_name == 'Spd80mN_ref'
+    assert ss_cor._tar_spd_col_name == 'Spd80mN'
 
 
 def test_orthogonal_least_squares():
@@ -362,90 +416,114 @@ def test_simple_speed_ratio():
 
 def test_speed_sort():
     result = {
-        1: {'average_veer': 11.08645,
-            'num_pts_for_speed_fit': 464,
-            'num_pts_for_veer': 317,
-            'num_total_pts': 556,
-            'offset': -4.15875,
-            'slope': 1.59577,
-            'target_speed_cutoff': 3.01367},
-        2: {'average_veer': 5.37546,
-            'num_pts_for_speed_fit': 236,
-            'num_pts_for_veer': 157,
-            'num_total_pts': 325,
-            'offset': -0.12061,
-            'slope': 1.102,
+        1: {'average_veer': 10.88491,
+            'num_pts_for_speed_fit': 457,
+            'num_pts_for_veer': 312,
+            'num_total_pts': 542,
+            'offset': -4.15475,
+            'sector_max': 15.0,
+            'sector_min': 345.0,
+            'slope': 1.59418,
+            'target_speed_cutoff': 2.972},
+        2: {'average_veer': 5.93992,
+            'num_pts_for_speed_fit': 243,
+            'num_pts_for_veer': 162,
+            'num_total_pts': 334,
+            'offset': -0.22207,
+            'sector_max': 45.0,
+            'sector_min': 15.0,
+            'slope': 1.11641,
             'target_speed_cutoff': 3.825},
-        3: {'average_veer': 2.02807,
+        3: {'average_veer': 2.02802,
             'num_pts_for_speed_fit': 621,
             'num_pts_for_veer': 455,
-            'num_total_pts': 751,
+            'num_total_pts': 748,
             'offset': -0.84763,
+            'sector_max': 75.0,
+            'sector_min': 45.0,
             'slope': 1.01131,
             'target_speed_cutoff': 3.4115},
-        4: {'average_veer': 8.7018,
-            'num_pts_for_speed_fit': 739,
-            'num_pts_for_veer': 429,
-            'num_total_pts': 864,
-            'offset': -3.37205,
-            'slope': 1.32232,
+        4: {'average_veer': 8.64983,
+            'num_pts_for_speed_fit': 719,
+            'num_pts_for_veer': 419,
+            'num_total_pts': 842,
+            'offset': -3.40724,
+            'sector_max': 105.0,
+            'sector_min': 75.0,
+            'slope': 1.32397,
             'target_speed_cutoff': 2.19117},
-        5: {'average_veer': 12.80534,
-            'num_pts_for_speed_fit': 599,
-            'num_pts_for_veer': 336,
-            'num_total_pts': 764,
-            'offset': -3.67068,
-            'slope': 1.46735,
-            'target_speed_cutoff': 1.98667},
-        6: {'average_veer': 21.84119,
+        5: {'average_veer': 12.74973,
+            'num_pts_for_speed_fit': 619,
+            'num_pts_for_veer': 346,
+            'num_total_pts': 790,
+            'offset': -3.6857,
+            'sector_max': 135.0,
+            'sector_min': 105.0,
+            'slope': 1.46936,
+            'target_speed_cutoff': 1.99233},
+        6: {'average_veer': 21.84114,
             'num_pts_for_speed_fit': 685,
             'num_pts_for_veer': 460,
-            'num_total_pts': 845,
-            'offset': -2.34562,
-            'slope': 1.16502,
-            'target_speed_cutoff': 2.74767},
-        7: {'average_veer': 12.00857,
-            'num_pts_for_speed_fit': 1300,
-            'num_pts_for_veer': 1144,
-            'num_total_pts': 1435,
-            'offset': -0.68645,
-            'slope': 1.10294,
-            'target_speed_cutoff': 3.88083},
-        8: {'average_veer': 1.59793,
-            'num_pts_for_speed_fit': 1400,
-            'num_pts_for_veer': 1175,
-            'num_total_pts': 1550,
-            'offset': -0.02292,
-            'slope': 1.02148,
-            'target_speed_cutoff': 3.80183},
-        9: {'average_veer': -2.56125,
+            'num_total_pts': 843,
+            'offset': -2.32778,
+            'sector_max': 165.0,
+            'sector_min': 135.0,
+            'slope': 1.16328,
+            'target_speed_cutoff': 2.784},
+        7: {'average_veer': 12.17665,
+            'num_pts_for_speed_fit': 1251,
+            'num_pts_for_veer': 1102,
+            'num_total_pts': 1376,
+            'offset': -0.72769,
+            'sector_max': 195.0,
+            'sector_min': 165.0,
+            'slope': 1.10583,
+            'target_speed_cutoff': 3.719},
+        8: {'average_veer': 1.80507,
+            'num_pts_for_speed_fit': 1449,
+            'num_pts_for_veer': 1217,
+            'num_total_pts': 1607,
+            'offset': -0.07497,
+            'sector_max': 225.0,
+            'sector_min': 195.0,
+            'slope': 1.02707,
+            'target_speed_cutoff': 3.792},
+        9: {'average_veer': -2.56129,
             'num_pts_for_speed_fit': 1468,
             'num_pts_for_veer': 1239,
-            'num_total_pts': 1617,
-            'offset': -0.62316,
-            'slope': 1.07478,
-            'target_speed_cutoff': 3.55967},
-        10: {'average_veer': -1.06416,
-             'num_pts_for_speed_fit': 1714,
-             'num_pts_for_veer': 1473,
-             'num_total_pts': 1889,
-             'offset': -1.68963,
-             'slope': 1.2476,
-             'target_speed_cutoff': 3.71267},
-        11: {'average_veer': -3.56724,
-             'num_pts_for_speed_fit': 1039,
-             'num_pts_for_veer': 773,
-             'num_total_pts': 1173,
-             'offset': -3.26636,
-             'slope': 1.41472,
-             'target_speed_cutoff': 2.84083},
-        12: {'average_veer': -1.6001,
+            'num_total_pts': 1623,
+            'offset': -0.59047,
+            'sector_max': 255.0,
+            'sector_min': 225.0,
+            'slope': 1.072,
+            'target_speed_cutoff': 3.58933},
+        10: {'average_veer': -1.02411,
+             'num_pts_for_speed_fit': 1666,
+             'num_pts_for_veer': 1435,
+             'num_total_pts': 1831,
+             'offset': -1.66741,
+             'sector_max': 285.0,
+             'sector_min': 255.0,
+             'slope': 1.2459,
+             'target_speed_cutoff': 3.74917},
+        11: {'average_veer': -3.52079,
+             'num_pts_for_speed_fit': 1087,
+             'num_pts_for_veer': 811,
+             'num_total_pts': 1231,
+             'offset': -3.23099,
+             'sector_max': 315.0,
+             'sector_min': 285.0,
+             'slope': 1.41057,
+             'target_speed_cutoff': 2.87767},
+        12: {'average_veer': -1.60016,
              'num_pts_for_speed_fit': 514,
              'num_pts_for_veer': 323,
-             'num_total_pts': 600,
-             'offset': -3.31562,
-             'slope': 1.37569,
-             'target_speed_cutoff': 2.27833},
+             'num_total_pts': 602,
+             'offset': -3.24583,
+             'sector_max': 345.0,
+             'sector_min': 315.0,
+             'slope': 1.37065,
+             'target_speed_cutoff': 2.30867},
         'overall_average_veer': 3.73915,
         'ref_speed_cutoff': 3.81325,
         'ref_veer_cutoff': 4.91168,

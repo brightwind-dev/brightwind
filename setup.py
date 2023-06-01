@@ -34,7 +34,7 @@ setup(
     },
     url='https://github.com/brightwind-dev/brightwind.git',
     # UPDATE VERSION NUMBER HERE:
-    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.0.0.tar.gz',
+    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.1.0.tar.gz',
     license='MIT',
     author='Stephen Holleran of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
@@ -44,7 +44,7 @@ setup(
     keywords=['BRIGHT', 'WIND', 'RESOURCE', 'DATA', 'ANALYSTS', 'PROCESSING', 'WASP', 'ROSE', 'WINDFARMER', 'OPENWIND',
               'WIND PRO', 'WINDOGRAPHER'],
     install_requires=[
-        'pandas>=0.24.0, <=0.25.3',
+        'pandas>=0.24.0, <=2.0.1',
         'numpy>=1.16.4',
         'scikit-learn>=0.19.1',
         'matplotlib>=3.0.3',
@@ -56,11 +56,16 @@ setup(
         'ipywidgets>=7.4.2',
         'ipython>=7.4.0',
         'gmaps>=0.9.0',
-        'boto3>=1.9.66'
+        'colormap>=1.0.1',
+        'easydev>=0.10.0'
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: MIT License",
     ],
 )
