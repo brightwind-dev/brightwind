@@ -9,6 +9,11 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
+## [2.X.0]
+1. Add your change here linking to the issue.
+
+
+
 ## [2.1.0]
 1. Update behaviour of `time_continuity_gaps` to find any gap that
 is not equal to the derived temporal resolution.
