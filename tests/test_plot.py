@@ -1,10 +1,13 @@
 import pytest
 import brightwind as bw
+from brightwind.analyse import plot as bw_plt
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from matplotlib.ticker import PercentFormatter
 from matplotlib.dates import DateFormatter
+import matplotlib as mpl
+from colormap import rgb2hex, rgb2hls, hls2rgb
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -34,13 +37,15 @@ def test_plot_sector_ratio():
 def test_plot_timeseries():
     bw.plot_timeseries(DATA[['Spd40mN', 'Spd60mS', 'T2m']])
     bw.plot_timeseries(DATA[['Spd40mN']], date_from='2017-09-01')
-    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01')
-    bw.plot_timeseries(DATA.Spd40mN, date_to='2017-10-01')
-    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01')
-    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=(0, None))
-    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=None)
-    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=(0, 25))
-    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01', y_limits=(None, 25))
+    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', x_label='Time', y_label='Spd40mN', legend=False)
+    bw.plot_timeseries(DATA.Spd40mN, date_to='2017-10-01 00:00')
+    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01 00:00', x_tick_label_angle=25)
+    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01 00:00', y_limits=(0, None))
+    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01 00:00', y_limits=None)
+    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01 00:00', y_limits=(0, 25))
+    bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01 00:00', y_limits=(None, 25))
+    bw.plot_timeseries(DATA[['Spd40mN', 'Spd60mS', 'T2m']], line_colors=['#009991', '#171a28', '#726e83'],
+                       figure_size=(20, 4))
 
     assert True
 
@@ -129,8 +134,103 @@ def test_plot_freq_distribution():
                                                             var_to_bin_against=DATA['Spd80mN'],
                                                             aggregation_method='count').rename('Spd80mN')
 
-    bw.analyse.plot.plot_freq_distribution(pd.concat([distribution1, distribution2], axis=1
-                                                     ).replace([np.inf, -np.inf], np.NAN).dropna(),
+    # The below is a workaround to be able to work with pandas >= 0.24.0, < 0.25.0, this shouldbe replaced with
+    # distributions = pd.concat([distribution1, distribution2], axis=1)
+    # when these versions of pandas will not be supported anymore by brightwind library. This version of pandas
+    # doesn't allow to concatenate two pandas.Series with a CategoricalIndex if having a different index length
+    temp_dist = pd.concat([pd.DataFrame(distribution1).reset_index().rename(columns={'variable_bin': 'variable_bin1'}),
+                           pd.DataFrame(distribution2).reset_index()], axis=1
+                          ).set_index('variable_bin')
+    distributions = temp_dist.drop(['variable_bin1'], axis=1)
+
+    bw.analyse.plot.plot_freq_distribution(distributions,
                                            max_y_value=None, x_tick_labels=None, x_label=None,
                                            y_label='count', total_width=1, legend=True)
     assert True
+
+
+def test_adjust_color_lightness():
+    input_color = '#9CC537'
+    r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(input_color)))
+    hue, lightness, saturation = rgb2hls(r / 255, g / 255, b / 255)
+    r, g, b = tuple(255 * np.array(mpl.colors.to_rgb(bw_plt.COLOR_PALETTE._adjust_color_lightness(
+        input_color, 0.1))))
+    hue1, lightness1, saturation1 = rgb2hls(r / 255, g / 255, b / 255)
+    assert (int(hue * 100) == int(hue1 * 100)) and (int(saturation * 100) == int(saturation1 * 100)) and \
+           (lightness1 == 0.1)
+
+    assert bw_plt.COLOR_PALETTE._adjust_color_lightness(
+        input_color, 0.1) == "#20280b"  # darkest green, 10% of primary
+    assert bw_plt.COLOR_PALETTE._adjust_color_lightness(
+        input_color, 0.35) == "#6e8c27"  # dark green, 35% of primary
+    assert bw_plt.COLOR_PALETTE._adjust_color_lightness(
+        input_color, 0.8) == "#d8e9af"  # light green, 80% of primary
+    assert bw_plt.COLOR_PALETTE._adjust_color_lightness(
+        input_color, 0.9) == "#ecf4d7"  # light green, 90% of primary
+    assert bw_plt.COLOR_PALETTE._adjust_color_lightness(
+        input_color, 0.95) == "#f5f9eb"  # lightest green, 95% of primary
+
+
+def test_ColorPalette():
+    color_palette = bw.analyse.plot.COLOR_PALETTE
+    assert color_palette.color_list == ['#9CC537', '#2E3743', '#9B2B2C', '#E57925', '#ffc008', '#AB8D60', '#A4D29F',
+                                        '#01958a', '#3D636F', '#A49E9D', '#DA9BA6', '#6e8c27']
+
+    color_palette.primary = '#3366CC'
+    assert bw.analyse.plot.COLOR_PALETTE.primary == '#3366CC'
+    assert color_palette.color_list[0] == bw.analyse.plot.COLOR_PALETTE.primary
+    assert bw.analyse.plot.COLOR_PALETTE.color_map_colors[1] == color_palette.primary
+
+    color_palette.secondary = '#726e83'
+    assert bw.analyse.plot.COLOR_PALETTE.color_list[1] == '#726e83'
+    assert bw.analyse.plot.COLOR_PALETTE.color_list[2] == '#9B2B2C'
+
+    color_palette.primary_10 = '#0a1429'
+    assert bw.analyse.plot.COLOR_PALETTE.primary_10 == '#0a1429'
+    assert color_palette.color_map_colors[-1] == color_palette.primary_10
+
+    color_palette.color_map_colors = ['#ccfffc', '#00b4aa', '#008079']
+    assert bw.analyse.plot.COLOR_PALETTE.color_map_colors == ['#ccfffc', '#00b4aa', '#008079']
+
+    color_palette.color_map_cyclical_colors = ['#ccfffc', '#00b4aa', '#008079', '#ccfffc']
+    assert bw.analyse.plot.COLOR_PALETTE.color_map_cyclical_colors == ['#ccfffc', '#00b4aa', '#008079', '#ccfffc']
+
+
+def test_plot_shear_by_sector():
+
+    alpha = pd.Series({'345.0-15.0': 0.216, '15.0-45.0': 0.196, '45.0-75.0': 0.170, '75.0-105.0': 0.182,
+                       '105.0-135.0': 0.148, '135.0-165.0': 0.129, '165.0-195.0': 0.156, '195.0-225.0': 0.159,
+                       '225.0-255.0': 0.160, '255.0-285.0': 0.169, '285.0-315.0': 0.187, '315.0-345.0': 0.188})
+
+    roughness = pd.Series({'345.0-15.0': 0.537, '15.0-45.0': 0.342, '45.0-75.0': 0.156, '75.0-105.0': 0.231,
+                           '105.0-135.0': 0.223, '135.0-165.0': 0.124, '165.0-195.0': 0.135,
+                           '195.0-225.0': 0.145, '225.0-255.0': 0.108, '255.0-285.0': 0.149,
+                           '285.0-315.0': 0.263, '315.0-345.0': 0.275})
+
+    wind_rose_plot, wind_rose_dist = bw.analyse.analyse.dist_by_dir_sector(DATA.Spd80mS, DATA.Dir78mS,
+                                                                           direction_bin_array=None,
+                                                                           sectors=12,
+                                                                           direction_bin_labels=None,
+                                                                           return_data=True)
+
+    # Plots shear by directional sectors with calculation method as 'power law'.
+    bw.analyse.plot.plot_shear_by_sector(scale_variable=alpha, wind_rose_data=wind_rose_dist,
+                                         calc_method='power_law')
+
+    # Plots shear by directional sectors with calculation method as 'log law'.
+    bw.analyse.plot.plot_shear_by_sector(scale_variable=roughness, wind_rose_data=wind_rose_dist,
+                                         calc_method='log_law')
+
+    alpha1 = alpha.copy()
+    alpha1['135.0-165.0'] = np.nan
+    roughness1 = roughness.copy()
+    roughness1['135.0-165.0'] = np.inf
+
+    # Plots shear by directional sectors with calculation method as 'power law'.
+    bw.analyse.plot.plot_shear_by_sector(scale_variable=alpha1, wind_rose_data=wind_rose_dist,
+                                         calc_method='power_law')
+
+    # Plots shear by directional sectors with calculation method as 'log law'.
+    bw.analyse.plot.plot_shear_by_sector(scale_variable=roughness1, wind_rose_data=wind_rose_dist,
+                                         calc_method='log_law')
+

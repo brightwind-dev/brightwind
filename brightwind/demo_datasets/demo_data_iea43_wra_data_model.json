@@ -1,8 +1,10 @@
 {
-  "author": "BrightHub",
+  "author": "Bianca Morandi",
   "organisation": "BrightWind",
-  "date": "2021-02-24",
-  "version": "0.1.0-2021.01",
+  "date": "2023-02-03",
+  "version": "1.0.0-2022.01",
+  "plant_name": "Demo Site",
+  "plant_type": "onshore_wind",
   "measurement_location": [
     {
       "name": "Demo Mast",
@@ -11,13 +13,37 @@
       "measurement_station_type_id": "mast",
       "notes": "A fabricated dataset located at our office.",
       "update_at": "2021-02-24T17:04:34",
+      "mast_properties": {
+        "mast_geometry_id": "lattice_triangle",
+        "mast_oem": "A Mast Manufacturer",
+        "mast_serial_number": "MM01234",
+        "mast_model": "SLX80m",
+        "mast_height_m": 78.5,
+        "notes": "I can write anything I want here.",
+        "update_at": "2021-02-24T17:04:34",
+        "mast_section_geometry": [{
+          "uuid": "bf078172-bbb6-48fe-ac1f-c6605dffb1b5",
+          "pole_diameter_mm": null,
+          "lattice_face_width_at_bottom_mm": 500,
+          "lattice_face_width_at_top_mm": 500,
+          "lattice_leg_width_mm": 50,
+          "lattice_leg_is_round_cross_section": true,
+          "lattice_bracing_member_diameter_mm": 12,
+          "lattice_number_of_diagonal_bracing_members": 2,
+          "lattice_bracing_member_height_mm": 900,
+          "lattice_has_horizontal_member": false,
+          "notes": "I can write anything I want here.",
+          "update_at": "2021-02-24T17:04:34"
+        }]
+      },
       "logger_main_config": [
         {
-          "logger_model_name": "CR1000",
-          "logger_oem_id": "Campbell Scientific",
           "logger_serial_number": "1234567",
+          "logger_model_name": "CR1000",
           "logger_id": "L1234567",
+          "logger_oem_id": "Campbell Scientific",
           "logger_name": "demo",
+          "logger_firmware_version": "3.2.3",
           "date_from": "2016-01-09T15:30:00",
           "date_to": null,
           "encryption_pin_or_key": null,
@@ -28,6 +54,7 @@
           "averaging_period_minutes": 10,
           "timestamp_is_end_of_period": null,
           "clock_is_auto_synced": null,
+          "logger_acquisition_uncertainty": 0.1,
           "notes": null,
           "update_at": "2021-02-24T17:04:34"
         }
@@ -67,6 +94,7 @@
               "model": "First Class Advanced",
               "serial_number": "0654321",
               "sensor_type_id": "anemometer",
+              "classification": "1.2A",
               "instrument_poi_height_mm": null,
               "is_heated": null,
               "date_from": "2016-01-09T15:30:00",
@@ -75,22 +103,77 @@
               "update_at": "2021-02-24T17:04:37",
               "calibration": [
                 {
+                  "measurement_type_id": "wind_speed",
                   "slope": 0.046,
                   "offset": 0.243,
                   "sensitivity": null,
                   "report_file_name": "Test Report",
                   "report_link": null,
                   "date_of_calibration": "2015-08-19",
+                  "revision": "A",
                   "calibration_organisation": "Deutsche WindGuard",
                   "place_of_calibration": null,
                   "uncertainty_k_factor": null,
                   "notes": null,
-                  "update_at": "2021-02-24T17:04:37"
+                  "update_at": "2021-02-24T17:04:37",
+                  "calibration_uncertainty": [{
+                      "reference_bin": 4,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                    },{
+                      "reference_bin": 5.93,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                    },{
+                      "reference_bin": 7.93,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                    },{
+                      "reference_bin": 9.92,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                    },{
+                      "reference_bin": 11.9,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                    },{
+                      "reference_bin": 13.88,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                    },{
+                      "reference_bin": 15.88,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                    },{
+                      "reference_bin": 14.88,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                    },{
+                      "reference_bin": 12.88,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                    },{
+                      "reference_bin": 10.91,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                    },{
+                      "reference_bin": 8.91,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                    },{
+                      "reference_bin": 6.92,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                    },{
+                      "reference_bin": 4.98,
+                      "reference_unit": "m/s",
+                      "combined_uncertainty": 0.1
+                  }]
                 }
               ]
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": 0.046,
               "offset": 0.243,
@@ -186,7 +269,7 @@
               ]
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": 0.8445,
               "offset": 0.321,
@@ -282,7 +365,7 @@
               ]
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": 0.4605,
               "offset": 0.2374,
@@ -378,7 +461,7 @@
               ]
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": 0.04567,
               "offset": 0.2557,
@@ -474,7 +557,7 @@
               ]
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": 0.8446,
               "offset": 0.321,
@@ -570,7 +653,7 @@
               ]
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": 0.0459,
               "offset": 0.2554,
@@ -687,7 +770,7 @@
               "update_at": "2021-02-24T17:04:38"
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": 0.351,
               "offset": 180,
@@ -773,7 +856,7 @@
               "update_at": "2021-02-24T17:04:38"
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": 0.351,
               "offset": 0,
@@ -876,7 +959,7 @@
               "update_at": "2021-02-24T17:04:38"
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": 0.351,
               "offset": 0,
@@ -950,7 +1033,7 @@
               "update_at": "2021-02-24T17:04:38"
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": 1,
               "offset": 0,
@@ -1017,7 +1100,7 @@
               "update_at": "2021-02-24T17:04:38"
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": 0.5,
               "offset": 600,
@@ -1084,7 +1167,7 @@
               "update_at": "2021-02-24T17:04:38"
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": 1,
               "offset": 0,
@@ -1130,7 +1213,7 @@
               "update_at": "2021-02-24T17:04:39"
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": null,
               "offset": null,
@@ -1176,7 +1259,7 @@
               "update_at": "2021-02-24T17:04:39"
             }
           ],
-          "sensor_config": [
+          "logger_measurement_config": [
             {
               "slope": null,
               "offset": null,
@@ -1203,7 +1286,5 @@
         }
       ]
     }
-  ],
-  "plant_name": "Demo Site",
-  "plant_type": "onshore_wind"
+  ]
 }

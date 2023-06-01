@@ -4,6 +4,7 @@ import pandas as pd
 from brightwind.utils import utils
 from brightwind.load.station import _Measurements
 from brightwind.load.station import DATE_INSTEAD_OF_NONE
+from brightwind.utils.utils import validate_coverage_threshold
 import copy
 import warnings
 
@@ -17,20 +18,6 @@ __all__ = ['average_data_by_period',
            'selective_avg',
            'offset_timestamps',
            'apply_wspd_slope_offset_adj']
-
-
-def _validate_coverage_threshold(coverage_threshold):
-    """
-    Validate that coverage_threshold is between 0 and 1 and if it is None set to zero.
-    :param coverage_threshold: Should be number between or equal to 0 and 1.
-    :type coverage_threshold:  float or int
-    :return:                   coverage_threshold
-    :rtype:                    float or int
-    """
-    coverage_threshold = 0 if coverage_threshold is None else coverage_threshold
-    if coverage_threshold < 0 or coverage_threshold > 1:
-        raise TypeError("Invalid coverage_threshold, this should be between or equal to 0 and 1.")
-    return coverage_threshold
 
 
 def _compute_wind_vector(wspd, wdir):
@@ -252,23 +239,36 @@ def _get_overlapping_data(df1, df2, averaging_prd=None):
     # averaging will start from this timestamp.
     if not (df2.index == start).any():
         if type(df2) == pd.DataFrame:
-            df2 = df2.append(pd.DataFrame({cols: [np.NaN] for cols in df2.columns}, index=[pd.to_datetime(start)]))
+            df2 = pd.concat([df2, pd.DataFrame({cols: [np.NaN] for cols in df2.columns},
+                                               index=[pd.to_datetime(start)])])
         else:
             df2[pd.to_datetime(start)] = np.NaN
         df2.sort_index(inplace=True)
     if not (df1.index == start).any():
         # df1.loc[pd.to_datetime(start)] = np.NaN
         if type(df1) == pd.DataFrame:
-            df1 = df1.append(pd.DataFrame({cols: [np.NaN] for cols in df1.columns}, index=[pd.to_datetime(start)]))
+            df1 = pd.concat([df1, pd.DataFrame({cols: [np.NaN] for cols in df1.columns},
+                                               index=[pd.to_datetime(start)])])
         else:
             df1[pd.to_datetime(start)] = np.NaN
         df1.sort_index(inplace=True)
     return df1[start:], df2[start:]
 
 
-def _max_coverage_count(data_index, averaged_data_index, data_resolution=None) -> pd.Float64Index:
+def _max_coverage_count(data_index, averaged_data_index, data_resolution=None):
     """
     For a given resolution of data finds the maximum number of data points in the averaging period
+
+    :param data_index:          The index of a Pandas Dataframe or Series to find the maximum number of data points for.
+    :type  data_index:          pd.Index
+    :param averaged_data_index: The index of the averaged grouped object.
+    :type  averaged_data_index: pd.Index
+    :param data_resolution:     Data resolution to give as input if the coverage of the data timeseries is extremely low
+                                and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:      None or pd.DateOffset
+    :return max_pts:            The maximum number of data points in the averaging period.
+    :rtype:                     np.float64
+
     """
 
     if data_resolution is None:
@@ -353,7 +353,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
                                3/6=0.5. It should be greater than 0 and less than or equal to 1. It is set to None by
                                default. If it is None or 0, data is not filtered. Otherwise periods where coverage is
                                less than the coverage_threshold are removed.
-    :type coverage_threshold:  float
+    :type coverage_threshold:  float, int or None
     :param return_coverage:    If True appends and additional column in the DataFrame returned, with coverage calculated
                                for each period. The columns with coverage are named as <column name>_Coverage
     :type return_coverage:     bool
@@ -391,7 +391,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
                                                            data_resolution=pd.DateOffset(minutes=10))
 
     """
-    coverage_threshold = _validate_coverage_threshold(coverage_threshold)
+    coverage_threshold = validate_coverage_threshold(coverage_threshold)
 
     if isinstance(period, str):
         if period[-1] == 'D':
@@ -411,10 +411,12 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
             raise ValueError("The time period specified is less than the temporal resolution of the data. "
                              "For example, hourly data should not be averaged to 10 minute data.")
     data = data.sort_index()
-    grouper_obj = data.resample(period, axis=0, closed='left', label='left', base=0,
+    grouper_obj = data.resample(period, axis=0, closed='left', label='left',
                                 convention='start', kind='timestamp')
 
-    if wdir_column_names is not None and aggregation_method == 'mean':
+    # if period is equal to data resolution then no need to vector average wind direction
+    is_period_not_equal_to_resolution = (_freq_str_to_dateoffset(period) != _get_data_resolution(data.index))
+    if wdir_column_names is not None and aggregation_method == 'mean' and is_period_not_equal_to_resolution:
         # do vector averaging on wdirs if aggregation method of mean is requested
         wdir_column_names = [wdir_column_names] if isinstance(wdir_column_names, str) else wdir_column_names
 
@@ -773,8 +775,8 @@ def merge_datasets_by_period(data_1, data_2, period,
     data_1_overlap, data_2_overlap = _get_overlapping_data(data_1.sort_index().dropna(),
                                                            data_2.sort_index().dropna(),
                                                            period)
-    coverage_threshold_1 = _validate_coverage_threshold(coverage_threshold_1)
-    coverage_threshold_2 = _validate_coverage_threshold(coverage_threshold_2)
+    coverage_threshold_1 = validate_coverage_threshold(coverage_threshold_1)
+    coverage_threshold_2 = validate_coverage_threshold(coverage_threshold_2)
 
     mrgd_data = pd.concat(list(average_data_by_period(data_1_overlap, period=period,
                                                       wdir_column_names=wdir_column_names_1,
@@ -946,8 +948,8 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
                 date_to_txt = date_to
 
             variables = {
-                'slope': 'sensor_config.slope',
-                'offset': 'sensor_config.offset',
+                'slope': 'logger_measurement_config.slope',
+                'offset': 'logger_measurement_config.offset',
                 'cal_slope': 'calibration.slope',
                 'cal_offset': 'calibration.offset'
             }
@@ -961,7 +963,7 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
             elif float(wspd_prop[variables['slope']]) != float(wspd_prop[variables['cal_slope']]) or \
                     float(wspd_prop[variables['offset']]) != float(wspd_prop[variables['cal_offset']]):
                 try:
-                    df[name][date_from:date_to] = \
+                    df.loc[date_from:date_to, name] = \
                         adjust_slope_offset(df[name][date_from:date_to],
                                             current_slope=float(wspd_prop[variables['slope']]),
                                             current_offset=float(wspd_prop[variables['offset']]),
@@ -1103,7 +1105,7 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
             deadband = wdir_prop.get('vane_dead_band_orientation_deg')
             date_from = wdir_prop['date_from']
             # Account for a logger offset
-            logger_offset = wdir_prop.get('sensor_config.offset')
+            logger_offset = wdir_prop.get('logger_measurement_config.offset')
             offset = deadband
             additional_comment_txt = 'to account for deadband'
             if logger_offset is not None and logger_offset != 0 and deadband is not None:
@@ -1268,103 +1270,133 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
     """
     Offset timestamps by a certain time period
 
-    :param data: DateTimeIndex or Series/DataFrame with DateTimeIndex
-    :type data: pandas.DateTimeIndex, pandas.Series, pandas.DataFrame
-    :param offset: A string specifying the time to offset the time-series.
+    :param data:        The timestamp or DateTimeIndex or Dataframe or Series to which apply the time offset.
+    :type data:         pandas.DateTimeIndex, pandas.Series, pandas.DataFrame, pandas.Timestamp, datetime.datetime,
+                        datetime.date, datetime.time
+    :param offset:      A string specifying the time to offset the time-series.
 
-            - Set offset to 10min to add 10 minutes to each timestamp, -10min to subtract 10 minutes and so on
-                for 4min, 20min, etc.
-            - Set offset to 1H to add 1 hour to each timestamp and -1H to subtract and so on for 5H, 6H, etc.
-            - Set offset to 1D to add a day and -1D to subtract and so on for 5D, 7D, 15D, etc.
-            - Set offset to 1W to add a week and -1W to subtract from each timestamp and so on for 2W, 4W, etc.
-            - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on for 2M, 3M, etc.
-            - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on for 2Y, 3Y, etc.
+                        - Set offset to 10min to add 10 minutes to each timestamp, -10min to subtract 10 minutes and so
+                          on for 4min, 20min, etc.
+                        - Set offset to 1H to add 1 hour to each timestamp and -1H to subtract and so on for 5H, 6H,
+                          etc.
+                        - Set offset to 1D to add a day and -1D to subtract and so on for 5D, 7D, 15D, etc.
+                        - Set offset to 1W to add a week and -1W to subtract from each timestamp and so on for 2W,
+                          4W, etc.
+                        - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on
+                          for 2M, 3M, etc.
+                        - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on
+                          for 2Y, 3Y, etc.
 
-    :type offset: str
-    :param date_from: (Optional) The timestamp from input data where to start offsetting from.
-    :type date_from: str, datetime, dict
-    :param date_to: (Optional) The timestamp from input data where to end offsetting.
-    :type date_to: str, datetime, dict
-    :param overwrite: Change to True to overwrite the unadjusted timestamps if they are same outside of the slice of
-        data you want to offset. False by default.
-    :type overwrite: bool
-    :returns: Offsetted DateTimeIndex/Series/DataFrame, same format is input data
+    :type offset:       str
+    :param date_from:   (Optional) The timestamp from input data where to start offsetting from. Start date is
+                        included in the offsetted data. If format of date_from is YYYY-MM-DD, then the first timestamp
+                        of the date is used (e.g if date_from=2023-01-01 then 2023-01-01 00:00 is the first timestamp of
+                        when to start offsetting from). If date_from is not given then the offset is applied from the
+                        first timestamp of the dataset.
+    :type date_from:    str, datetime, dict
+    :param date_to:     (Optional) The timestamp from input data where to end offsetting. End date is not included in
+                        the offsetted data. If format date_to is YYYY-MM-DD, then the last timestamp of the previous day
+                        is used (e.g if date_to=2023-02-01 then 2023-01-31 23:50 is the last timestamp of when to end
+                        offsetting to). If date_to is not given then the offset is applied up to the last timestamp of
+                        the dataset.
+    :type date_to:      str, datetime, dict
+    :param overwrite:   Change to True to overwrite the unadjusted timestamps if they are same outside of the slice of
+                        data you want to offset. False by default.
+    :type overwrite:    bool
+    :returns:           Offsetted Timestamp/DateTimeIndex/Series/DataFrame/datetime.datetime/datetime.time,
+                        same format is input data
 
     **Example usage**
     ::
         import brightwind as bw
-        data = bw.load_campbell_scientific(bw.demo_datasets.demo_site_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
 
-        #To decrease 10 minutes within a given date range and overwrite the original data
-        op1 = bw.offset_timestamps(data, offset='1H', date_from='2016-01-01 00:20:00',
-            date_to='2016-01-01 01:40:00', overwrite=True)
+        # To decrease 10 minutes within a given date range and overwrite the original data
+        op1 = bw.offset_timestamps(data, offset='1H', date_from='2016-02-01 00:20:00',
+            date_to='2016-02-01 01:40:00', overwrite=True)
 
-        #To decrease 10 minutes within a given date range not overwriting the original data
-        op2 = bw.offset_timestamps(data, offset='-10min', date_from='2016-01-01 00:20:00',
-            date_to='2016-01-01 01:40:00')
+        # To decrease 10 minutes within a given date range not overwriting the original data
+        op2 = bw.offset_timestamps(data, offset='-10min', date_from='2016-02-01 00:20:00',
+            date_to='2016-02-01 01:40:00')
 
-        #Can accept Series or index as input
-        op3 = bw.offset_timestamps(data.Spd80mS, offset='1D', date_from='2016-01-01 00:20:00')
+        # To decrease 30 minutes within a given date range not overwriting the original data and giving as input dates
+        # for date_from and date_to
+        op2 = bw.offset_timestamps(DATA, offset='-30min', date_from='2016-01-09', date_to='2016-01-10')
 
-        op4 = bw.offset_timestamps(data.index, offset='-10min', date_from='2016-01-01 00:20:00',
-            date_from='2016-01-01 01:40:00')
+        # Can accept Series or index as input
+        op3 = bw.offset_timestamps(data.Spd80mS, offset='1D', date_from='2016-02-01 00:20:00')
 
-        #Can also except decimal values for offset, like 3.5H for 3 hours and 30 minutes
+        op4 = bw.offset_timestamps(data.index, offset='-10min', date_from='2016-02-01 00:20:00',
+            date_to='2016-02-01 01:40:00')
 
-        op5 = bw.offset_timestamps(data.index, offset='3.5H', date_from='2016-01-01 00:20:00',
-            date_from='2016-01-01 01:40:00')
+        # Can also except decimal values for offset, like 3.5H for 3 hours and 30 minutes
+        op5 = bw.offset_timestamps(data.index, offset='3.5H', date_from='2016-02-01 00:20:00',
+            date_to='2016-02-01 01:40:00')
+
+        # Can accept also Timestamp and datetime objects
+        bw.offset_timestamps(data.index[0], offset='4H')
+        bw.offset_timestamps(datetime.datetime(2016, 2, 1, 0, 20), offset='3.5H')
+        bw.offset_timestamps(datetime.date(2016, 2, 1), offset='-5H')
+        bw.offset_timestamps(datetime.time(0, 20), offset='30min')
 
     """
-    
-    date_from = pd.to_datetime(date_from)
-    date_to = pd.to_datetime(date_to)
 
-    if isinstance(data, pd.Timestamp) or isinstance(data, datetime.date)\
-            or isinstance(data, datetime.time)\
-            or isinstance(data, datetime.datetime):
+    if pd.isnull(date_from):
+        if isinstance(data, pd.DatetimeIndex):
+            date_from = data[0]
+        elif isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
+            date_from = data.index[0]
+    else:
+        date_from = pd.to_datetime(date_from)
+
+    if pd.isnull(date_to):
+        if isinstance(data, pd.DatetimeIndex):
+            date_to = data[-1]
+        elif isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
+            date_to = data.index[-1]
+    else:
+        date_to = pd.to_datetime(date_to)
+
+    if isinstance(data, pd.Timestamp):
         return data + _freq_str_to_dateoffset(offset)
 
-    if isinstance(data, pd.DatetimeIndex):
+    elif isinstance(data, datetime.date)\
+            or isinstance(data, datetime.datetime):
+        return (data + _freq_str_to_dateoffset(offset)).to_pydatetime()
+
+    elif isinstance(data, datetime.time):
+        return (datetime.datetime.combine(datetime.date.today(), data) + _freq_str_to_dateoffset(offset)).time()
+
+    elif isinstance(data, pd.DatetimeIndex):
         original = pd.to_datetime(data.values)
 
-        if pd.isnull(date_from):
-            date_from = data[0]
-
-        if pd.isnull(date_to):
-            date_to = data[-1]
-
-        shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_dateoffset(offset)
+        shifted_slice = original[(original >= date_from) & (original < date_to)] + _freq_str_to_dateoffset(offset)
         shifted = original[original < date_from].append(shifted_slice)
-        shifted = shifted.append(original[original > date_to])
+        shifted = shifted.append(original[original >= date_to])
         shifted = shifted.drop_duplicates().sort_values()
         return pd.DatetimeIndex(shifted)
 
-    if isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
+    elif isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
 
         if not isinstance(data.index, pd.DatetimeIndex):
             raise TypeError('Input must have datetime index')
         else:
             original = pd.to_datetime(data.index.values)
             df_copy = data.copy(deep=False)
-            if pd.isnull(date_from):
-                date_from = data.index[0]
 
-            if pd.isnull(date_to):
-                date_to = data.index[-1]
-
-            shifted_slice = original[(original >= date_from) & (original <= date_to)] + _freq_str_to_dateoffset(offset)
+            shifted_slice = original[(original >= date_from) & (original < date_to)] + _freq_str_to_dateoffset(offset)
             intersection_front = original[(original < date_from)].intersection(shifted_slice)
-            intersection_back = original[(original > date_to)].intersection(shifted_slice)
+            intersection_back = original[(original >= date_to)].intersection(shifted_slice)
             if overwrite:
                 df_copy = df_copy.drop(intersection_front, axis=0)
                 df_copy = df_copy.drop(intersection_back, axis=0)
                 sec1 = original[original < date_from].drop(intersection_front)
-                sec2 = original[original > date_to].drop(intersection_back)
+                sec2 = original[original >= date_to].drop(intersection_back)
                 shifted = (sec1.append(shifted_slice)).append(sec2)
             else:
                 df_copy = df_copy.drop(intersection_front - _freq_str_to_dateoffset(offset), axis=0)
                 df_copy = df_copy.drop(intersection_back - _freq_str_to_dateoffset(offset), axis=0)
                 sec_mid = shifted_slice.drop(intersection_front).drop(intersection_back)
-                shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original > date_to)])
+                shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original >= date_to)])
             df_copy.index = shifted
             return df_copy.sort_index()

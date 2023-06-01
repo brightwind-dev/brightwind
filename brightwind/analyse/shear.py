@@ -4,6 +4,7 @@ import datetime
 import calendar
 from math import e
 from brightwind.analyse import plot as bw_plt
+from brightwind.transform import transform as tf
 # noinspection PyProtectedMember
 from brightwind.analyse.analyse import dist_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
 from ipywidgets import FloatProgress
@@ -18,6 +19,9 @@ __all__ = ['Shear']
 
 
 class Shear:
+
+    def __init__(self):
+        pass
 
     class TimeSeries:
 
@@ -155,36 +159,40 @@ class Shear:
 
     class TimeOfDay:
 
-        def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', by_month=True, segment_start_time=7,
-                     segments_per_day=24, plot_type='line'):
+        def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', by_month=True, segments_per_day=24,
+                     segment_start_time=7, plot_type='line'):
             """
             Calculates alpha, using the power law, or the roughness coefficient, using the log law, for a wind series
             binned by time of the day and (optionally by) month, depending on the user's inputs. The alpha/roughness
             coefficient values are calculated based on the average wind speeds at each measurement height in each bin.
 
-            :param wspds: pandas.DataFrame, list of pandas.Series or list of wind speeds to be used for calculating
-             shear.
-            :type wspds:  pandas.DataFrame, list of pandas.Series or list.
-            :param heights: List of anemometer heights..
-            :type heights: list
-            :param min_speed: Only speeds higher than this would be considered for calculating shear, default is 3
-            :type min_speed: float
-            :param calc_method: method to use for calculation, either 'power_law' (returns alpha) or 'log_law'
-                                (returns the roughness coefficient).
-            :type calc_method: str
-            :param by_month: If True, calculate alpha or roughness coefficient values for each daily segment and month.
-                             If False, average alpha or roughness coefficient values are calculated for each daily
-                             segment across all months.
-            :type by_month: Boolean
-            :param segment_start_time: Starting time for first segment.
-            :type segment_start_time: int
-            :param segments_per_day: Number of segments into which each 24 period is split. Must be a divisor of 24.
-            :type segments_per_day: int
-            :param plot_type: Type of plot to be generated. Options include 'line', 'step' and '12x24'.
-            :type plot_type: str
-            :return: TimeOfDay object containing calculated alpha/roughness coefficient values, a plot
-                     and other data.
-            :rtype: TimeOfDay object
+            :param wspds:               pandas.DataFrame, list of pandas.Series or list of wind speeds to be used for
+                                        calculating shear.
+            :type wspds:                pandas.DataFrame, list of pandas.Series or list.
+            :param heights:             List of wind speed heights.
+            :type heights:              list
+            :param min_speed:           Only speeds higher than this will be considered for calculating shear, default
+                                        is 3
+            :type min_speed:            float
+            :param calc_method:         method to use for calculation, either 'power_law' (returns alpha) or 'log_law'
+                                        (returns the roughness coefficient). Default is 'power_law'.
+            :type calc_method:          str
+            :param by_month:            If True, calculate alpha or roughness coefficient values for each daily segment
+                                        and month. If False, average alpha or roughness coefficient values are
+                                        calculated for each daily segment across all months.
+            :type by_month:             bool
+            :param segments_per_day:    Number of segments a day is split into. Must be a divisor of 24.
+                                        Default is 24.
+            :type segments_per_day:     int
+            :param segment_start_time:  Starting time for first segment. It must be an integer between 0 and 23.
+                                        Default is 7.
+            :type segment_start_time:   int
+            :param plot_type:           Type of plot to be generated. Options include 'line', 'step' and '12x24'.
+                                        Default is 'line'.
+            :type plot_type:            str
+            :return:                    TimeOfDay object containing calculated alpha/roughness coefficient values,
+                                        a plot and other data.
+            :rtype:                     TimeOfDay object
 
             **Example usage**
             ::
@@ -192,12 +200,12 @@ class Shear:
                 import pprint
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
 
                 # Using with a DataFrame of wind speeds
-                timeofday_power_law = bw.Shear.TimeOfDay(anemometers, heights, daily_segments=2, segment_start_time=7)
+                timeofday_power_law = bw.Shear.TimeOfDay(anemometers, heights, segments_per_day=2, segment_start_time=7)
                 timeofday_log_law = bw.Shear.TimeOfDay(anemometers, heights, calc_method='log_law', by_month=False)
 
                 # Get alpha or roughness values calculated
@@ -220,15 +228,18 @@ class Shear:
 
             wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
 
+            # get data resolution
+            resolution = tf._get_data_resolution(wspds.index)
+
             # initialise empty series for later use
-            start_times = pd.Series([])
-            time_wspds = pd.Series([])
-            mean_time_wspds = pd.Series([])
-            c = pd.Series([])
-            slope = pd.Series([])
-            intercept = pd.Series([])
-            alpha = pd.Series([])
-            roughness = pd.Series([])
+            start_times = pd.Series([], dtype='float64')
+            time_wspds = pd.Series([], dtype='float64')
+            mean_time_wspds = pd.Series([], dtype='float64')
+            c = pd.Series([], dtype='float64')
+            slope = pd.Series([], dtype='float64')
+            intercept = pd.Series([], dtype='float64')
+            alpha = pd.Series([], dtype='float64')
+            roughness = pd.Series([], dtype='float64')
             slope_df = pd.DataFrame([])
             intercept_df = pd.DataFrame([])
             roughness_df = pd.DataFrame([])
@@ -238,13 +249,13 @@ class Shear:
             interval = int(24 / segments_per_day)
 
             if by_month is False and plot_type == '12x24':
-                raise ValueError("12x24 plot is only possible when 'by_month=True'")
+                raise ValueError("12x24 plot is only possible when 'by_month=True'.")
 
-            if not int(segment_start_time) % 1 == 0:
-                raise ValueError("'segment_start_time' must be an integer between 0 and 24'")
+            if (type(segment_start_time) != int) or not ((segment_start_time >= 0) and (segment_start_time <= 23)):
+                raise ValueError("'segment_start_time' must be an integer between 0 and 23 (inclusive).")
 
-            if not (24 % segments_per_day == 0) | (segments_per_day == 1):
-                raise ValueError("'segments_per_day' must be a divisor of 24'")
+            if not (24 % segments_per_day == 0):
+                raise ValueError("'segments_per_day' must be a divisor of 24.")
 
             segment_start_time = str(segment_start_time)
             start_times[0] = datetime.datetime.strptime(segment_start_time, '%H')
@@ -265,17 +276,15 @@ class Shear:
                         mean_time_wspds[i] = anemometers_df.mean().dropna()
 
                     elif i == segments_per_day - 1:
-                        start_times[i] = start_times[i].strftime("%H:%M:%S")
                         start = str(start_times[i].time())
-                        end = str(start_times[0].time())
-                        time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end, include_end=False)
+                        end = str((start_times[0] - resolution).time())
+                        time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end)
                         mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
 
                     else:
-                        start_times[i] = start_times[i].strftime("%H:%M:%S")
                         start = str(start_times[i].time())
-                        end = str(start_times[i + 1].time())
-                        time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end, include_end=False)
+                        end = str((start_times[i + 1] - resolution).time())
+                        time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end)
                         mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
 
                 # calculate shear
@@ -610,10 +619,10 @@ class Shear:
                 sectors = len(direction_bin_array) - 1
 
             wdir = _convert_df_to_series(wdir)
-            mean_wspds = pd.Series([])
+            mean_wspds = pd.Series([], dtype='float64')
             mean_wspds_df = pd.DataFrame([])
             count_df = pd.DataFrame([])
-            count = pd.Series([])
+            count = pd.Series([], dtype='float64')
 
             for i in range(len(wspds.columns)):
 
@@ -920,8 +929,8 @@ class Shear:
 
     @staticmethod
     def _apply(self, wspds, height, shear_to, wdir=None):
-        scaled_wspds = pd.Series([])
-        result = pd.Series([])
+        scaled_wspds = pd.Series([], dtype='float64')
+        result = pd.Series([], dtype='float64')
 
         if self.origin == 'TimeSeries':
 
@@ -981,8 +990,8 @@ class Shear:
         if self.origin == 'BySector':
 
             # initialise series for later use
-            bin_edges = pd.Series([])
-            by_sector = pd.Series([])
+            bin_edges = pd.Series([], dtype='float64')
+            by_sector = pd.Series([], dtype='float64')
 
             if self.calc_method == 'power_law':
                 direction_bins = self.alpha
@@ -1083,7 +1092,7 @@ class Shear:
             df_12x24 = pd.DataFrame([[None for y in range(12)] for x in range(24)])
             df_12x24.index = df.index
             for i in range(12):
-                df_12x24.iloc[:, i] = df.iloc[:, 0]
+                df_12x24[df_12x24.columns[i]] = df.iloc[:, 0]
             df = df_12x24
 
         return df

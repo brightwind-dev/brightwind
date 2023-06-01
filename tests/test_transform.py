@@ -245,7 +245,8 @@ def test_offset_timestamps():
     assert op[1] == pd.to_datetime('2016-01-10 00:12:00')
 
     op = bw.offset_timestamps(series1.index, '2min', date_to='2016-01-10 00:30:00')
-    assert op[3] == pd.to_datetime('2016-01-10 00:32:00')
+    assert op[2] == pd.to_datetime('2016-01-10 00:22:00')
+    assert op[3] == pd.to_datetime('2016-01-10 00:30:00')
     assert op[4] == pd.to_datetime('2016-01-10 00:40:00')
 
     op = bw.offset_timestamps(series1.index, '3min', date_from='2016-01-10 00:10:00', date_to='2016-01-10 00:30:00')
@@ -271,9 +272,11 @@ def test_offset_timestamps():
     assert (op.loc['2016-01-10 00:40:00'] == series1.loc['2016-01-10 00:40:00']).all()
     assert len(op) + 1 == len(series1)
 
-    op = bw.offset_timestamps(series1, '10min', date_from='2016-01-10 00:10:00', date_to='2016-01-10 00:30:00',
+    op = bw.offset_timestamps(series1, '10min', date_from='2016-01-10 00:10:00', date_to='2016-01-10 00:40:00',
                               overwrite=True)
-    assert (op.loc['2016-01-10 00:40:00'] == series1.loc['2016-01-10 00:30:00']).all()
+    assert (op.loc['2016-01-10 00:20:00'] == series1.loc['2016-01-10 00:10:00']).all()
+    assert (op.loc['2016-01-10 00:30:00'] == series1.loc['2016-01-10 00:20:00']).all()
+    assert (op.loc['2016-01-10 00:50:00'] == series1.loc['2016-01-10 00:50:00']).all()
     assert len(op) + 1 == len(series1)
 
     # sending Series with datetime index
@@ -290,10 +293,31 @@ def test_offset_timestamps():
     assert (op.loc['2016-01-10 00:40:00'] == series1.Spd60mN.loc['2016-01-10 00:40:00']).all()
     assert len(op) + 1 == len(series1.Spd60mN)
 
-    op = bw.offset_timestamps(series1.Spd60mN, '10min', date_from='2016-01-10 00:10:00', date_to='2016-01-10 00:30:00',
+    op = bw.offset_timestamps(series1.Spd60mN, '10min', date_from='2016-01-10 00:10:00', date_to='2016-01-10 00:40:00',
                               overwrite=True)
+    assert (op.loc['2016-01-10 00:30:00'] == series1.Spd60mN.loc['2016-01-10 00:20:00']).all()
     assert (op.loc['2016-01-10 00:40:00'] == series1.Spd60mN.loc['2016-01-10 00:30:00']).all()
     assert len(op) + 1 == len(series1.Spd60mN)
+
+    op = bw.offset_timestamps(series1.Spd60mN, '30min', date_from='2016-01-11', date_to='2016-01-12',
+                              overwrite=False)
+
+    assert (op.loc['2016-01-11 00:30:00'] == series1.Spd60mN.loc['2016-01-11 00:00:00']).all()
+    assert (op.loc['2016-01-11 23:50:00'] == series1.Spd60mN.loc['2016-01-11 23:20:00']).all()
+    assert (op.loc['2016-01-12 00:00:00'] == series1.Spd60mN.loc['2016-01-12 00:00:00']).all()
+
+    op = bw.offset_timestamps(series1.Spd60mN, '30min', date_from='2016-01-11', date_to='2016-01-12',
+                              overwrite=True)
+    assert (op.loc['2016-01-11 00:30:00'] == series1.Spd60mN.loc['2016-01-11 00:00:00']).all()
+    assert (op.loc['2016-01-11 23:50:00'] == series1.Spd60mN.loc['2016-01-11 23:20:00']).all()
+    assert (op.loc['2016-01-12 00:00:00'] == series1.Spd60mN.loc['2016-01-11 23:30:00']).all()
+    assert (op.loc['2016-01-12 00:30:00'] == series1.Spd60mN.loc['2016-01-12 00:30:00']).all()
+
+    assert bw.offset_timestamps(DATA.index[0], offset='4H') == pd.Timestamp('2016-01-09 19:30:00')
+    assert bw.offset_timestamps(datetime.datetime(2016, 2, 1, 0, 20), offset='3.5H'
+                                ) == datetime.datetime(2016, 2, 1, 3, 50)
+    assert bw.offset_timestamps(datetime.date(2016, 2, 1), offset='-5H') == datetime.datetime(2016, 1, 31, 19, 0)
+    assert bw.offset_timestamps(datetime.time(0, 20), offset='30min') == datetime.time(0, 50)
 
 
 def test_average_wdirs():
@@ -497,7 +521,7 @@ def test_average_data_by_period():
                     ('Dir58mS', 8),
                     ('Dir38mS', 19)]
     idx = 0
-    for col_name, val in data_monthly[0].count().iteritems():
+    for col_name, val in data_monthly[0].count().items():
         assert col_name == count_months[idx][0]
         assert val == count_months[idx][1]
         idx += 1
@@ -511,7 +535,7 @@ def test_average_data_by_period():
                         ('Dir58mS_Coverage', 23),
                         ('Dir38mS_Coverage', 23)]
     idx = 0
-    for col_name, val in data_monthly[1].count().iteritems():
+    for col_name, val in data_monthly[1].count().items():
         assert col_name == count_cov_months[idx][0]
         assert val == count_cov_months[idx][1]
         idx += 1
@@ -526,7 +550,7 @@ def test_average_data_by_period():
     data_monthly, coverage_monthly = bw.average_data_by_period(data_test, period='1M', wdir_column_names='Dir78mS',
                                                                return_coverage=True,
                                                                data_resolution=pd.DateOffset(minutes=10))
-    table_count = data_test.resample('1MS', axis=0, closed='left', label='left', base=0,
+    table_count = data_test.resample('1MS', axis=0, closed='left', label='left',
                                      convention='start', kind='timestamp').count()
     assert (table_count['Dir78mS']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Dir78mS_Coverage']['2016-01-01']
             ) < 1e-5
