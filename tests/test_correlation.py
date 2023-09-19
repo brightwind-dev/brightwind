@@ -43,6 +43,7 @@ def test_ordinary_least_squares():
                             7.73957917, 6.63575403, 7.81355417]
     correl_monthly_results = {'slope': 0.91963, 'offset': 0.61137, 'r2': 0.8192, 'num_data_points': 18}
     correl_monthly_results_90 = {'slope': 0.99357, 'offset': -0.03654, 'r2': 0.9433, 'num_data_points': 16}
+    correl_monthly_results_90_intercept = {'slope': 0.98880, 'offset': 0, 'r2': 0.9432, 'num_data_points': 16}
     correl_hourly_results = {'slope': 0.98922, 'offset': -0.03616, 'r2': 0.7379, 'num_data_points': 12369}
     correl_monthly_by_sector_results = [{'num_data_points': 54, 'offset': -1.2344603199476245, 'r2': 0.8783996355797528,
                                          'sector_max': 45.0, 'sector_min': 315.0, 'sector_number': 1,
@@ -78,6 +79,15 @@ def test_ordinary_least_squares():
     assert round(correl.params['offset'], 5) == correl_monthly_results_90['offset']
     assert round(correl.params['r2'], 4) == correl_monthly_results_90['r2']
     assert round(correl.params['num_data_points'], 5) == correl_monthly_results_90['num_data_points']
+
+    # check 90% coverage, forced intercept, checked against Excel
+    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+                                            coverage_threshold=0.9, forced_intercept=True)
+    correl.run()
+    assert round(correl.params['slope'], 5) == correl_monthly_results_90_intercept['slope']
+    assert round(correl.params['offset'], 5) == correl_monthly_results_90_intercept['offset']
+    assert round(correl.params['r2'], 4) == correl_monthly_results_90_intercept['r2']
+    assert round(correl.params['num_data_points'], 5) == correl_monthly_results_90_intercept['num_data_points']
 
     # check hourly, checked against Excel
     correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1H',

@@ -18,7 +18,7 @@ __all__ = ['']
 
 class CorrelBase:
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None, target_dir=None,
-                 sectors=12, direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean'):
+                 sectors=12, direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean', forced_intercept=None):
 
         self.ref_spd = ref_spd
         self.ref_dir = ref_dir
@@ -28,6 +28,7 @@ class CorrelBase:
         self.coverage_threshold = coverage_threshold
         self.ref_aggregation_method = ref_aggregation_method
         self.target_aggregation_method = target_aggregation_method
+        self.forced_intercept = forced_intercept
         # Get the name of the columns so they can be passed around
         self._ref_spd_col_name = ref_spd.name if ref_spd is not None and isinstance(ref_spd, pd.Series) else None
         self._ref_spd_col_names = ref_spd.columns if ref_spd is not None and isinstance(ref_spd, pd.DataFrame) else None
@@ -345,6 +346,8 @@ class OrdinaryLeastSquares(CorrelBase):
                                       median, product, summation, standard deviation, variance, maximum and minimum
                                       respectively.
     :type target_aggregation_method:  str
+    :param forced_intercept:          Default None; if set to True will force the regression to pass through [0; 0]
+    :type forced_intercept:           boolean
     :returns:                         An object representing ordinary least squares fit model
 
     **Example usage**
@@ -405,28 +408,45 @@ class OrdinaryLeastSquares(CorrelBase):
 
     """
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9, ref_dir=None, sectors=12,
-                 direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean'):
+                 direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean', forced_intercept=None):
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
                             sectors=sectors, direction_bin_array=direction_bin_array,
                             ref_aggregation_method=ref_aggregation_method,
-                            target_aggregation_method=target_aggregation_method)
+                            target_aggregation_method=target_aggregation_method, forced_intercept=forced_intercept)
 
     def __repr__(self):
         return 'Ordinary Least Squares Model ' + str(self.params)
 
     @staticmethod
-    def _leastsquare(ref_spd, target_spd):
-        p, res = lstsq(np.nan_to_num(ref_spd.values.flatten()[:, np.newaxis] ** [1, 0]),
-                       np.nan_to_num(target_spd.values.flatten()))[0:2]
-        return p[0], p[1]
+    def _leastsquare(ref_spd, target_spd, forced_intercept):
+        if forced_intercept==True:
+            x = np.nan_to_num(ref_spd.values.flatten()[:, np.newaxis] )
+            y = np.nan_to_num(target_spd.values.flatten())
+            p, res = lstsq(x, y)[0:2]
+            r2 = 1 - res / (y.size * y.var())
+            return p[0], r2
+        else:
+            p, res = lstsq(np.nan_to_num(ref_spd.values.flatten()[:, np.newaxis] ** [1, 0]),
+                            np.nan_to_num(target_spd.values.flatten()))[0:2]
+            return p[0], p[1]
 
     def run(self, show_params=True):
         if self.ref_dir is None:
-            slope, offset = self._leastsquare(ref_spd=self.data[self._ref_spd_col_name],
-                                              target_spd=self.data[self._tar_spd_col_name])
-            self.params = dict([('slope', slope), ('offset', offset)])
-            self.params['r2'] = self._get_r2(target_spd=self.data[self._tar_spd_col_name],
-                                             predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]))
+            if self.forced_intercept==True:
+                slope, r2 = self._leastsquare(ref_spd=self.data[self._ref_spd_col_name],
+                                    target_spd=self.data[self._tar_spd_col_name], 
+                                    forced_intercept=self.forced_intercept)
+                offset = 0
+                self.params = dict([('slope', slope), ('offset', offset)])
+                self.params['r2'] = r2
+            else:
+                slope, offset = self._leastsquare(ref_spd=self.data[self._ref_spd_col_name],
+                                              target_spd=self.data[self._tar_spd_col_name], 
+                                              forced_intercept=self.forced_intercept)
+                self.params = dict([('slope', slope), ('offset', offset)])
+                self.params['r2'] = self._get_r2(target_spd=self.data[self._tar_spd_col_name],
+                                    predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]))
+            
             self.params['num_data_points'] = self.num_data_pts
         elif type(self.ref_dir) is pd.Series:
             self.params = []
@@ -435,7 +455,7 @@ class OrdinaryLeastSquares(CorrelBase):
                 # print('Processing sector:', sector)
                 if len(group) > 1:
                     slope, offset = self._leastsquare(ref_spd=group[self._ref_spd_col_name],
-                                                      target_spd=group[self._tar_spd_col_name])
+                                                      target_spd=group[self._tar_spd_col_name], forced_intercept=self.forced_intercept)
                     predict_ref_spd_sector = self._predict(ref_spd=group[self._ref_spd_col_name],
                                                            slope=slope, offset=offset)
                     r2 = self._get_r2(target_spd=group[self._tar_spd_col_name],
