@@ -602,7 +602,7 @@ class OrthogonalLeastSquares(CorrelBase):
         output = model.run()
         self.params = dict([('slope', output.beta[0]), ('offset', output.beta[1])])
         self.params['r2'] = self._get_r2(target_spd=self.data[self._tar_spd_col_name],
-                                         predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]))
+                                         predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]),forced_intercept_origin=False)
         self.params['num_data_points'] = self.num_data_pts
         # print("Model output:", output.pprint())
         if show_params:
