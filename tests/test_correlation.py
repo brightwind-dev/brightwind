@@ -82,7 +82,7 @@ def test_ordinary_least_squares():
 
     # check 90% coverage, forced intercept, checked against Excel
     correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
-                                            coverage_threshold=0.9, forced_intercept=True)
+                                            coverage_threshold=0.9, forced_intercept_origin=True)
     correl.run()
     assert round(correl.params['slope'], 5) == correl_monthly_results_90_intercept['slope']
     assert round(correl.params['offset'], 5) == correl_monthly_results_90_intercept['offset']
