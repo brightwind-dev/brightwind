@@ -19,7 +19,7 @@ __all__ = ['']
 class CorrelBase:
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None, target_dir=None,
                  sectors=12, direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean',
-                 forced_intercept=None):
+                 forced_intercept_origin=False):
 
         self.ref_spd = ref_spd
         self.ref_dir = ref_dir
@@ -29,7 +29,7 @@ class CorrelBase:
         self.coverage_threshold = coverage_threshold
         self.ref_aggregation_method = ref_aggregation_method
         self.target_aggregation_method = target_aggregation_method
-        self.forced_intercept = forced_intercept
+        self.forced_intercept_origin = forced_intercept_origin
         # Get the name of the columns so they can be passed around
         self._ref_spd_col_name = ref_spd.name if ref_spd is not None and isinstance(ref_spd, pd.Series) else None
         self._ref_spd_col_names = ref_spd.columns if ref_spd is not None and isinstance(ref_spd, pd.DataFrame) else None
@@ -144,10 +144,16 @@ class CorrelBase:
                                           line_of_slope_1=True, figure_size=figure_size)
 
     @staticmethod
-    def _get_r2(target_spd, predict_spd):
+    def _get_r2(target_spd, predict_spd, forced_intercept_origin):
         """Returns the r2 score of the model"""
-        return 1.0 - (sum((target_spd - predict_spd) ** 2) /
-                      (sum((target_spd - target_spd.mean()) ** 2)))
+        if forced_intercept_origin==True:
+            x = np.nan_to_num(predict_spd.values.flatten()[:, np.newaxis])
+            y = np.nan_to_num(target_spd.values.flatten())
+            p, res = lstsq(x, y)[0:2]
+            return 1 - res / (y.size * y.var())
+        if forced_intercept_origin==False:
+            return 1.0 - (sum((target_spd - predict_spd) ** 2) /
+                        (sum((target_spd - target_spd.mean()) ** 2)))
 
     @staticmethod
     def _get_logic_dir_sector(ref_dir, sector_min, sector_max):
@@ -347,8 +353,8 @@ class OrdinaryLeastSquares(CorrelBase):
                                       median, product, summation, standard deviation, variance, maximum and minimum
                                       respectively.
     :type target_aggregation_method:  str
-    :param forced_intercept:          Default None; if set to True will force the regression to pass through [0; 0]
-    :type forced_intercept:           boolean
+    :param forced_intercept_origin:          Default False; if set to True will force the regression to pass through [0; 0]
+    :type forced_intercept_origin:           boolean
     :returns:                         An object representing ordinary least squares fit model
 
     **Example usage**
@@ -402,6 +408,10 @@ class OrdinaryLeastSquares(CorrelBase):
                                                  averaging_prd='1H', coverage_threshold=0,
                                                  ref_aggregation_method='min', target_aggregation_method='min')
 
+        # Correlate wind speeds on a monthly basis and force the intercept through the origin.
+        ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
+                                                 coverage_threshold=0.95, forced_intercept_origin=True)
+
         # Correlate by directional sector, using 36 sectors.
         ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'],
                                                 ref_dir=m2_ne['WD50m_deg'], averaging_prd='1D',
@@ -410,44 +420,37 @@ class OrdinaryLeastSquares(CorrelBase):
     """
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9, ref_dir=None, sectors=12,
                  direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean',
-                 forced_intercept=None):
+                 forced_intercept_origin=False):
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
                             sectors=sectors, direction_bin_array=direction_bin_array,
                             ref_aggregation_method=ref_aggregation_method,
-                            target_aggregation_method=target_aggregation_method, forced_intercept=forced_intercept)
+                            target_aggregation_method=target_aggregation_method, forced_intercept_origin=forced_intercept_origin)
 
     def __repr__(self):
         return 'Ordinary Least Squares Model ' + str(self.params)
 
     @staticmethod
-    def _leastsquare(ref_spd, target_spd, forced_intercept):
-        if forced_intercept:
+    def _leastsquare(ref_spd, target_spd, forced_intercept_origin):
+        if forced_intercept_origin==True:
             x = np.nan_to_num(ref_spd.values.flatten()[:, np.newaxis])
             y = np.nan_to_num(target_spd.values.flatten())
             p, res = lstsq(x, y)[0:2]
-            r2 = 1 - res / (y.size * y.var())
-            return p[0], r2
-        else:
+            return p[0], 0
+        elif forced_intercept_origin==False:
             p, res = lstsq(np.nan_to_num(ref_spd.values.flatten()[:, np.newaxis] ** [1, 0]),
                            np.nan_to_num(target_spd.values.flatten()))[0:2]
             return p[0], p[1]
 
     def run(self, show_params=True):
         if self.ref_dir is None:
-            if self.forced_intercept:
-                slope, r2 = self._leastsquare(ref_spd=self.data[self._ref_spd_col_name],
-                                              target_spd=self.data[self._tar_spd_col_name],
-                                              forced_intercept=self.forced_intercept)
-                offset = 0
-                self.params = dict([('slope', slope), ('offset', offset)])
-                self.params['r2'] = r2
-            else:
-                slope, offset = self._leastsquare(ref_spd=self.data[self._ref_spd_col_name],
-                                                  target_spd=self.data[self._tar_spd_col_name],
-                                                  forced_intercept=self.forced_intercept)
-                self.params = dict([('slope', slope), ('offset', offset)])
-                self.params['r2'] = self._get_r2(target_spd=self.data[self._tar_spd_col_name],
-                                                 predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]))
+
+            slope, offset = self._leastsquare(ref_spd=self.data[self._ref_spd_col_name],
+                                            target_spd=self.data[self._tar_spd_col_name],
+                                            forced_intercept_origin=self.forced_intercept_origin)
+
+            self.params = dict([('slope', slope), ('offset', offset)])
+            self.params['r2'] = self._get_r2(target_spd=self.data[self._tar_spd_col_name],
+                                                predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]),forced_intercept_origin=self.forced_intercept_origin)
             
             self.params['num_data_points'] = self.num_data_pts
         elif type(self.ref_dir) is pd.Series:
@@ -458,11 +461,11 @@ class OrdinaryLeastSquares(CorrelBase):
                 if len(group) > 1:
                     slope, offset = self._leastsquare(ref_spd=group[self._ref_spd_col_name],
                                                       target_spd=group[self._tar_spd_col_name],
-                                                      forced_intercept=self.forced_intercept)
+                                                      forced_intercept_origin=self.forced_intercept_origin)
                     predict_ref_spd_sector = self._predict(ref_spd=group[self._ref_spd_col_name],
                                                            slope=slope, offset=offset)
                     r2 = self._get_r2(target_spd=group[self._tar_spd_col_name],
-                                      predict_spd=predict_ref_spd_sector)
+                                      predict_spd=predict_ref_spd_sector,forced_intercept_origin=self.forced_intercept_origin)
                 else:
                     slope = np.nan
                     offset = np.nan
