@@ -353,8 +353,8 @@ class OrdinaryLeastSquares(CorrelBase):
                                       median, product, summation, standard deviation, variance, maximum and minimum
                                       respectively.
     :type target_aggregation_method:  str
-    :param forced_intercept_origin:          Default False; if set to True will force the regression to pass through [0; 0]
-    :type forced_intercept_origin:           boolean
+    :param forced_intercept_origin:   Default False; if set to True will force the regression to pass through [0; 0]
+    :type forced_intercept_origin:    boolean
     :returns:                         An object representing ordinary least squares fit model
 
     **Example usage**
@@ -424,7 +424,8 @@ class OrdinaryLeastSquares(CorrelBase):
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
                             sectors=sectors, direction_bin_array=direction_bin_array,
                             ref_aggregation_method=ref_aggregation_method,
-                            target_aggregation_method=target_aggregation_method, forced_intercept_origin=forced_intercept_origin)
+                            target_aggregation_method=target_aggregation_method,
+                            forced_intercept_origin=forced_intercept_origin)
 
     def __repr__(self):
         return 'Ordinary Least Squares Model ' + str(self.params)
@@ -445,12 +446,13 @@ class OrdinaryLeastSquares(CorrelBase):
         if self.ref_dir is None:
 
             slope, offset = self._leastsquare(ref_spd=self.data[self._ref_spd_col_name],
-                                            target_spd=self.data[self._tar_spd_col_name],
-                                            forced_intercept_origin=self.forced_intercept_origin)
+                                              target_spd=self.data[self._tar_spd_col_name],
+                                              forced_intercept_origin=self.forced_intercept_origin)
 
             self.params = dict([('slope', slope), ('offset', offset)])
             self.params['r2'] = self._get_r2(target_spd=self.data[self._tar_spd_col_name],
-                                                predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]),forced_intercept_origin=self.forced_intercept_origin)
+                                             predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]),
+                                             forced_intercept_origin=self.forced_intercept_origin)
             
             self.params['num_data_points'] = self.num_data_pts
         elif type(self.ref_dir) is pd.Series:
@@ -465,7 +467,8 @@ class OrdinaryLeastSquares(CorrelBase):
                     predict_ref_spd_sector = self._predict(ref_spd=group[self._ref_spd_col_name],
                                                            slope=slope, offset=offset)
                     r2 = self._get_r2(target_spd=group[self._tar_spd_col_name],
-                                      predict_spd=predict_ref_spd_sector,forced_intercept_origin=self.forced_intercept_origin)
+                                      predict_spd=predict_ref_spd_sector,
+                                      forced_intercept_origin=self.forced_intercept_origin)
                 else:
                     slope = np.nan
                     offset = np.nan
@@ -602,7 +605,8 @@ class OrthogonalLeastSquares(CorrelBase):
         output = model.run()
         self.params = dict([('slope', output.beta[0]), ('offset', output.beta[1])])
         self.params['r2'] = self._get_r2(target_spd=self.data[self._tar_spd_col_name],
-                                         predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]),forced_intercept_origin=False)
+                                         predict_spd=self._predict(ref_spd=self.data[self._ref_spd_col_name]),
+                                         forced_intercept_origin=False)
         self.params['num_data_points'] = self.num_data_pts
         # print("Model output:", output.pprint())
         if show_params:
