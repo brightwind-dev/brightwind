@@ -57,6 +57,18 @@ def test_ordinary_least_squares():
                                         {'num_data_points': 206, 'offset': -0.08618395596626072,
                                          'r2': 0.9304631940882327, 'sector_max': 315.0, 'sector_min': 225.0,
                                          'sector_number': 4, 'slope': 1.028330085357324}]
+    correl_monthly_by_sector_results_intercept = [{'num_data_points': 54, 'offset': 0, 'r2': 0.8595896851938659,
+                                                   'sector_max': 45.0, 'sector_min': 315.0, 'sector_number': 1,
+                                                   'slope': 1.0028904308035693},
+                                                  {'num_data_points': 92, 'offset': 0, 'r2': 0.7756707924863292,
+                                                   'sector_max': 135.0, 'sector_min': 45.0, 'sector_number': 2,
+                                                   'slope': 0.8946418832099897},
+                                                  {'num_data_points': 157, 'offset': 0, 'r2': 0.8942127924928862,
+                                                   'sector_max': 225.0, 'sector_min': 135.0, 'sector_number': 3,
+                                                   'slope': 0.9905793805063279},
+                                                  {'num_data_points': 206, 'offset': 0, 'r2': 0.9303789093801886,
+                                                   'sector_max': 315.0, 'sector_min': 225.0, 'sector_number': 4,
+                                                   'slope': 1.0191891569486033}]
 
     correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
                                             coverage_threshold=0)
@@ -119,6 +131,23 @@ def test_ordinary_least_squares():
     assert len(correl_monthly_by_sector_results) == len(correl.params)
 
     for test_param, param in zip(correl_monthly_by_sector_results, correl.params):
+        assert round(test_param['slope'], 5) == round(param['slope'], 5)
+        assert round(test_param['offset'], 5) == round(param['offset'], 5)
+        assert round(test_param['r2'], 5) == round(param['r2'], 5)
+        assert test_param['num_data_points'] == param['num_data_points']
+        assert test_param['sector_min'] == param['sector_min']
+        assert test_param['sector_max'] == param['sector_max']
+        assert test_param['sector_number'] == param['sector_number']
+
+    # check correlation by sector including intercept
+    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'],
+                                            ref_dir=MERRA2_NE['WD50m_deg'], averaging_prd='1D',
+                                            coverage_threshold=0.9, sectors=4, forced_intercept_origin=True)
+    correl.run()
+    correl.plot()
+    assert len(correl_monthly_by_sector_results_intercept) == len(correl.params)
+
+    for test_param, param in zip(correl_monthly_by_sector_results_intercept, correl.params):
         assert round(test_param['slope'], 5) == round(param['slope'], 5)
         assert round(test_param['offset'], 5) == round(param['offset'], 5)
         assert round(test_param['r2'], 5) == round(param['r2'], 5)

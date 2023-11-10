@@ -153,7 +153,7 @@ class CorrelBase:
             return 1 - res / (y.size * y.var())
         if forced_intercept_origin==False:
             return 1.0 - (sum((target_spd - predict_spd) ** 2) /
-                        (sum((target_spd - target_spd.mean()) ** 2)))
+                          (sum((target_spd - target_spd.mean()) ** 2)))
 
     @staticmethod
     def _get_logic_dir_sector(ref_dir, sector_min, sector_max):
@@ -417,6 +417,10 @@ class OrdinaryLeastSquares(CorrelBase):
                                                 ref_dir=m2_ne['WD50m_deg'], averaging_prd='1D',
                                                 coverage_threshold=0.9, sectors=36)
 
+        # Correlate by directional sector forcing the intercept through the origin.
+        ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'],
+                                                 ref_dir=m2_ne['WD50m_deg'], averaging_prd='1H',
+                                                 coverage_threshold=0.9, forced_intercept_origin=True)
     """
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9, ref_dir=None, sectors=12,
                  direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean',
