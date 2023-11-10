@@ -146,12 +146,12 @@ class CorrelBase:
     @staticmethod
     def _get_r2(target_spd, predict_spd, forced_intercept_origin):
         """Returns the r2 score of the model"""
-        if forced_intercept_origin==True:
+        if forced_intercept_origin:
             x = np.nan_to_num(predict_spd.values.flatten()[:, np.newaxis])
             y = np.nan_to_num(target_spd.values.flatten())
             p, res = lstsq(x, y)[0:2]
             return 1 - res / (y.size * y.var())
-        if forced_intercept_origin==False:
+        if not forced_intercept_origin:
             return 1.0 - (sum((target_spd - predict_spd) ** 2) /
                           (sum((target_spd - target_spd.mean()) ** 2)))
 
@@ -436,12 +436,12 @@ class OrdinaryLeastSquares(CorrelBase):
 
     @staticmethod
     def _leastsquare(ref_spd, target_spd, forced_intercept_origin):
-        if forced_intercept_origin==True:
+        if forced_intercept_origin:
             x = np.nan_to_num(ref_spd.values.flatten()[:, np.newaxis])
             y = np.nan_to_num(target_spd.values.flatten())
             p, res = lstsq(x, y)[0:2]
             return p[0], 0
-        elif forced_intercept_origin==False:
+        elif not forced_intercept_origin:
             p, res = lstsq(np.nan_to_num(ref_spd.values.flatten()[:, np.newaxis] ** [1, 0]),
                            np.nan_to_num(target_spd.values.flatten()))[0:2]
             return p[0], p[1]
