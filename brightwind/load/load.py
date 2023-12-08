@@ -1310,6 +1310,27 @@ class LoadBrightHub:
     __DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
     @staticmethod
+    def get_timeseries_data(measurement_station_uuid):
+        """
+        Get the timeseries data from BrightHub for a particular measurement station.
+
+        :param measurement_station_uuid: A specific measurement station's uuid.
+        :type measurement_station_uuid:  str
+        :return:                         The timeseries data.
+        :rtype:                          pd.DataFrame
+        """
+        response = LoadBrightHub._brighthub_request(url_end="/measurement-locations/{}/timeseries-data"
+                                                    .format(measurement_station_uuid))
+        response_json = response.json()
+        if 'error' in response_json:  # catch if error comes back e.g. measurement_location_uuid isn't found
+            raise ValueError(response_json['error'])
+
+        pre_signed_url = response_json["url"]
+        timeseries_response = requests.get(pre_signed_url)
+        df = pd.read_csv(StringIO(timeseries_response.text, ))
+        return df.set_index('Timestamp')
+
+    @staticmethod
     def __get_date_range_as_chunks(date_from, date_to, interval):
         # Based on: https://stackoverflow.com/a/29721341/7373512
         diff = (date_to - date_from) / interval
