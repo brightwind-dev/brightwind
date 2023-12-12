@@ -933,7 +933,7 @@ class _BrighthubAuth:
             'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
             'Content-Type': 'application/x-amz-json-1.1'
         }
-        client_id = "3qkkpikve578cbok46p136au3g"
+        client_id = os.getenv("BRIGHTHUB_USER_POOL_CLIENT_ID","3qkkpikve578cbok46p136au3g")
 
         return url, headers, client_id
 
@@ -1061,7 +1061,7 @@ class LoadBrightHub:
 
     """
 
-    __BASE_URI = 'https://api.brighthub.io'
+    __BASE_URI = os.getenv("BRIGHTHUB_API_BASE_URL", "https://api.brighthub.io")
 
     @staticmethod
     def _brighthub_request(url_end, params=None):
