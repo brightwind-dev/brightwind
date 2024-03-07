@@ -1324,6 +1324,10 @@ def time_continuity_gaps(data):
     less than the derived temporal resolution displays a NaN. These may be caused by some irregular time stamps.
 
     The gaps are defined by showing the start and end timestamps just before and after the missing data periods.
+    
+    It should be noted that were a timestamp exists for a row of data, but where all values in that row are NaN's, 
+    this row will also be considered a time continuity gap as it represents a break in the data and ordinary 
+    functioning of the logging unit.
 
     A missing data period is one where data is not available for some consecutive timestamps. This breaks
     time continuity of the data. The function derives the temporal resolution of the data by
