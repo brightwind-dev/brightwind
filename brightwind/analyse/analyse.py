@@ -1325,13 +1325,10 @@ def time_continuity_gaps(data):
 
     The gaps are defined by showing the start and end timestamps just before and after the missing data periods.
 
-    A missing data period is one where data is not available for some consecutive timestamps. Also, where a  timestamp
-    exists for a row of data, but where all values in that row are NaN's, this row will also be considered a time
-    continuity gap as it represents a break in the ordinary functioning of the logging unit.
-
-    The function derives the temporal resolution of the data by finding the most common time difference between
-    consecutive timestamps. Then it searches where the time difference between consecutive timestamps does not match
-    the resolution, this is the missing data period.
+    A missing data period is one where data is not available for some consecutive timestamps. This breaks
+    time continuity of the data. The function derives the temporal resolution of the data by
+    finding the most common time difference between consecutive timestamps. Then it searches where the time
+    difference between consecutive timestamps does not match the resolution, this is the missing data period.
 
     It returns a DataFrame where the first column is the starting timestamp of the missing period (timestamp recorded
     immediately before the gap) and the second column is the end date of the missing period (timestamp recorded
