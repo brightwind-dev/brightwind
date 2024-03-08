@@ -9,6 +9,13 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
+## [2.X.0]
+1. Modify `Correl.OrdinaryLeastSquares()` to force the intercept to pass through the origin (Issue [#412](https://github.com/brightwind-dev/brightwind/issues/412)).
+1. Modify `load.apply_cleaning()` and `apply_cleaning_windographer()` to clean columns specified in cleaning file by 
+matching the sensor name from the beginning of the string. (Issue [#249](https://github.com/brightwind-dev/brightwind/issues/249)).
+
+
+
 ## [2.1.0]
 1. Update behaviour of `time_continuity_gaps` to find any gap that
 is not equal to the derived temporal resolution.
