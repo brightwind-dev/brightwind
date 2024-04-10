@@ -1310,17 +1310,25 @@ class LoadBrightHub:
     __DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
     @staticmethod
-    def get_timeseries_data(measurement_station_uuid):
+    def get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None):
         """
         Get the timeseries data from BrightHub for a particular measurement station.
 
+        When using the date filters, the brightwind convention is greater than and equal to 'date_from'
+        to less than 'date_to'.
+
         :param measurement_station_uuid: A specific measurement station's uuid.
         :type measurement_station_uuid:  str
+        :param date_from:                Optional filter to retrieve data from and including this date onwards.
+        :type date_from:                 str
+        :param date_to:                  Optional filter to retrieve data up to this date.
         :return:                         The timeseries data.
         :rtype:                          pd.DataFrame
         """
         response = LoadBrightHub._brighthub_request(url_end="/measurement-locations/{}/timeseries-data"
-                                                    .format(measurement_station_uuid))
+                                                    .format(measurement_station_uuid),
+                                                    params={"date_from": date_from, "date_to": date_to})
+
         response_json = response.json()
         if 'error' in response_json:  # catch if error comes back e.g. measurement_location_uuid isn't found
             raise ValueError(response_json['error'])
