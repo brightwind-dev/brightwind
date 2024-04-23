@@ -934,6 +934,7 @@ class _BrighthubAuth:
             'Content-Type': 'application/x-amz-json-1.1'
         }
         client_id = "3qkkpikve578cbok46p136au3g"
+        # client_id = utils.get_environment_variable('BRIGHTHUB_USER_POOL_CLIENT_ID')
 
         return url, headers, client_id
 
@@ -1062,6 +1063,7 @@ class LoadBrightHub:
     """
 
     __BASE_URI = 'https://api.brighthub.io'
+    # __BASE_URI = utils.get_environment_variable('BRIGHTHUB_BASE_URI')
 
     @staticmethod
     def _brighthub_request(url_end, params=None):
@@ -1072,7 +1074,7 @@ class LoadBrightHub:
         :type url_end:      str
         :param params:      Optional. A dictionary, list of tuples or bytes to send as a query string. Default None
         :type params:       dict, list(tuples), bytes
-        :return response:   The requests reponse object returned by requests.get()
+        :return response:   The requests response object returned by requests.get()
         :rtype:             requests.Response object
         """
 
