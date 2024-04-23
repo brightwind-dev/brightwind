@@ -1833,33 +1833,38 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
 def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Sensor', date_from_col_name='Start',
                    date_to_col_name='Stop', all_sensors_descriptor='All', replacement_text='NaN', dayfirst=False):
     """
-    Apply cleaning to a DataFrame using predetermined flagged periods for each sensor listed in a cleaning file.
-    The flagged data will be replaced with NaN values which then do not appear in any plots or effect calculations.
+    Apply cleaning to a timeseries DataFrame using predetermined flagged periods for each sensor listed in a cleaning
+    file. For each row in the cleaning file, if the 'Sensor' string is found at the start of a column name in the
+    timeseries DataFrame, then that column of data is flagged for the specified period. The flagged data will be
+    replaced with NaN values which then do not appear in any plots or effect calculations.
 
-    This file is a simple comma separated file with the sensor name along with the start and end timestamps for the
-    flagged period. There may be other columns in the file however these will be ignores.  E.g.:
+    This file is a simple comma separated file with the 'Sensor' name along with the 'Start' and 'Stop' timestamps for
+    the flagged period. There may be other columns in the file however these will be ignores.  E.g.:
     | Sensor |      Start          |       Stop
     ----------------------------------------------------
     | Spd80m | 2018-10-23 12:30:00 | 2018-10-25 14:20:00
     | Dir78m | 2018-12-23 02:40:00 |
+
+    If the 'Stop' timestamp is missing, the data from the 'Start' until the end of the timeseries will be flagged.
 
     :param data:                    Data to be cleaned.
     :type data:                     pandas.DataFrame
     :param cleaning_file_or_df:     File path of the csv file or a pandas DataFrame which contains the list of sensor
                                     names along with the start and end timestamps of the periods that are flagged.
     :type cleaning_file_or_df:      str, pd.DataFrame
-    :param inplace:                 If 'inplace' is True, the original data, 'data', will be modified and and replaced
+    :param inplace:                 If 'inplace' is True, the original data, 'data', will be modified and replaced
                                     with the cleaned data. If 'inplace' is False, the original data will not be touched
                                     and instead a new object containing the cleaned data is created. To store this
                                     cleaned data, please ensure it is assigned to a new variable.
-    :type inplace: Boolean
+    :type inplace:                  bool
     :param sensor_col_name:         The column name which contains the list of sensor names that have flagged periods.
     :type sensor_col_name:          str, default 'Sensor'
     :param date_from_col_name:      The column name of the date_from or the start date of the period to be cleaned.
     :type date_from_col_name:       str, default 'Start'
     :param date_to_col_name:        The column name of the date_to or the end date of the period to be cleaned.
     :type date_to_col_name:         str, default 'Stop'
-    :param all_sensors_descriptor:  A text descriptor that represents ALL sensors in the DataFrame.
+    :param all_sensors_descriptor:  A text descriptor that represents ALL sensors in the DataFrame. If found, it will
+                                    remove all data for that period.
     :type all_sensors_descriptor:   str, default 'All'
     :param replacement_text:        Text used to replace the flagged data.
     :type replacement_text:         str, default 'NaN'
@@ -1915,7 +1920,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
             data.loc[(data.index >= date_from) & (data.index < date_to), data.columns] = replacement_text
         else:
             for col in data.columns:
-                if cleaning_df[sensor_col_name][k] in col:
+                if col.find(cleaning_df[sensor_col_name][k]) == 0:
                     data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
@@ -1925,30 +1930,33 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
 def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags_to_exclude=['Synthesized'],
                                 replacement_text='NaN', dayfirst=False):
     """
-    Apply cleaning to a DataFrame using the Windographer flagging log file after Windographer was used to clean and
-    filter the data.
-    The flagged data will be replaced with NaN values which then do not appear in any plots or effect calculations.
+    Apply cleaning to a timeseries DataFrame using the Windographer flagging log file after Windographer was used to
+    clean and filter the data. For each row in the Windographer flagging log file, if the 'Data Column' string is found
+    at the start of a column name in the timeseries DataFrame, then that column of data is flagged for the specified
+    period. The flagged data will be replaced with NaN values which then do not appear in any plots or effect
+    calculations.
 
-    :param data: Data to be cleaned.
-    :type data: pandas.DataFrame
+    :param data:                 Data to be cleaned.
+    :type data:                  pandas.DataFrame
     :param windog_cleaning_file: File path of the Windographer flagging log file which contains the list of sensor
                                  names along with the start and end timestamps of the periods that are flagged.
-    :type windog_cleaning_file: str
-    :param inplace: If 'inplace' is True, the original data, 'data', will be modified and and replaced with the cleaned
-                    data. If 'inplace' is False, the original data will not be touched and instead a new object
-                    containing the cleaned data is created. To store this cleaned data, please ensure it is assigned
-                    to a new variable.
-    :type inplace: Boolean
-    :param flags_to_exclude: List of flags you do not want to use to clean the data e.g. Synthesized.
-    :type flags_to_exclude: List[str], default ['Synthesized']
-    :param replacement_text: Text used to replace the flagged data.
-    :type replacement_text: str, default 'NaN'
-    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
-            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
-    :type dayfirst: bool, default False
-    :return: DataFrame with the flagged data removed.
-    :rtype: pandas.DataFrame
+    :type windog_cleaning_file:  str
+    :param inplace:              If 'inplace' is True, the original data, 'data', will be modified and and replaced with
+                                 the cleaned data. If 'inplace' is False, the original data will not be touched and
+                                 instead a new object containing the cleaned data is created. To store this cleaned
+                                 data, please ensure it is assigned to a new variable.
+    :type inplace:               bool
+    :param flags_to_exclude:     List of flags you do not want to use to clean the data e.g. Synthesized.
+    :type flags_to_exclude:      List[str], default ['Synthesized']
+    :param replacement_text:     Text used to replace the flagged data.
+    :type replacement_text:      str, default 'NaN'
+    :param dayfirst:             If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true.
+                                 Pandas defaults to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses
+                                 dates with the day first, eg 10/11/12 is parsed as 2012-11-10.
+                                 More info on pandas.read_csv parameters.
+    :type dayfirst:              bool, default False
+    :return:                     DataFrame with the flagged data removed.
+    :rtype:                      pandas.DataFrame
 
     **Example usage**
     ::
@@ -1992,7 +2000,7 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
 
         pd.options.mode.chained_assignment = None
         for col in data.columns:
-            if cleaning_df[sensor_col_name][k] in col:
+            if col.find(cleaning_df[sensor_col_name][k]) == 0:
                 if cleaning_df[flag_col_name][k] not in flags_to_exclude:
                     data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
