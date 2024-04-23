@@ -11,6 +11,7 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ## [2.X.0]
 1. Modify `Correl.OrdinaryLeastSquares()` to force the intercept to pass through the origin (Issue [#412](https://github.com/brightwind-dev/brightwind/issues/412)).
+2. Update `LoadBrightHub.get_data()` to use a new API (Issue [#419](https://github.com/brightwind-dev/brightwind/issues/419)).
 
 
 
