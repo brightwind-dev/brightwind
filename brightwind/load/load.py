@@ -1310,46 +1310,21 @@ class LoadBrightHub:
     __DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
     @staticmethod
-    def get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None):
+    def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None):
         """
-        Get the timeseries data from BrightHub for a particular measurement station.
-
-        When using the date filters, the brightwind convention is greater than and equal to 'date_from'
-        to less than 'date_to'.
-
-        :param measurement_station_uuid: A specific measurement station's uuid.
-        :type measurement_station_uuid:  str
-        :param date_from:                Optional filter to retrieve data from and including this date onwards.
-        :type date_from:                 str
-        :param date_to:                  Optional filter to retrieve data up to this date.
-        :return:                         The timeseries data.
-        :rtype:                          pd.DataFrame
+        Sub function to get the actual timeseries so retry and back off can be implemented.
         """
-        response = LoadBrightHub._brighthub_request(url_end="/measurement-locations/{}/timeseries-data"
-                                                    .format(measurement_station_uuid),
-                                                    params={"date_from": date_from, "date_to": date_to})
-
-        response_json = response.json()
-        if 'error' in response_json:  # catch if error comes back e.g. measurement_location_uuid isn't found
-            raise ValueError(response_json['error'])
-
-        pre_signed_url = response_json["url"]
-        timeseries_response = requests.get(pre_signed_url)
-        df = pd.read_csv(StringIO(timeseries_response.text, ))
-        return df.set_index('Timestamp')
-
-    @staticmethod
-    def __get_date_range_as_chunks(date_from, date_to, interval):
-        # Based on: https://stackoverflow.com/a/29721341/7373512
-        diff = (date_to - date_from) / interval
-        for i in range(interval):
-            yield (date_from + diff * i).strftime(LoadBrightHub.__DATE_FORMAT)
-        yield date_to.strftime(LoadBrightHub.__DATE_FORMAT)
+        return LoadBrightHub._brighthub_request(url_end="/measurement-locations/{}/timeseries-data"
+                                                .format(measurement_station_uuid),
+                                                params={"date_from": date_from, "date_to": date_to})
 
     @staticmethod
     def get_data(measurement_station_uuid, date_from=None, date_to=None):
         """
         Get the timeseries data from BrightHub for a particular measurement station.
+
+        When using the date filters, the brightwind convention for date ranges is greater than and equal to 'date_from'
+        to less than 'date_to'.
 
         :param measurement_station_uuid: A specific measurement station's uuid.
         :type measurement_station_uuid:  str
@@ -1386,70 +1361,35 @@ class LoadBrightHub:
                                              date_to='2016-07-01')
 
         """
-        if not date_from or not date_to:
-            start_end_dates = LoadBrightHub.get_start_end_dates(measurement_station_uuid)
+        response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to)
+        response_json = response.json()
 
-            if not date_from:
-                date_from = start_end_dates['start_date']
-            if not date_to:
-                date_to = start_end_dates['end_date']
-
-        date_from_dt = pd.to_datetime(date_from)
-        date_to_dt = pd.to_datetime(date_to)
-
-        time_diff = date_to_dt - date_from_dt
-        time_diff_in_secs = time_diff.total_seconds()
-
-        number_of_days_per_chunk = 30
-        secs_in_single_day = 60 * 60 * 24
-        chunk_size_in_secs = secs_in_single_day * number_of_days_per_chunk
-
-        if time_diff_in_secs > chunk_size_in_secs:
-            # Round up to ensure no data lost
-            number_of_chunks = math.ceil(time_diff_in_secs / chunk_size_in_secs)
-            chunk_dates = list(
-                LoadBrightHub.__get_date_range_as_chunks(date_from_dt, date_to_dt, number_of_chunks)
-            )
-            chunks = [
-                (chunk_date, chunk_dates[idx + 1])
-                for (idx, chunk_date) in enumerate(chunk_dates)
-                if idx < len(chunk_dates) - 1
-            ]
-        # Chunk into 3 if between 5 and 30 days data requested
-        elif time_diff_in_secs > secs_in_single_day * 5:
-            chunk_dates = list(LoadBrightHub.__get_date_range_as_chunks(date_from_dt, date_to_dt, 3))
-            chunks = [
-                (chunk_date, chunk_dates[idx + 1])
-                for (idx, chunk_date) in enumerate(chunk_dates)
-                if idx < len(chunk_dates) - 1
-            ]
-        # Don't bother splitting if less than 5 days data requested
-        else:
-            chunks = [(date_from_dt.strftime(LoadBrightHub.__DATE_FORMAT),
-                       date_to_dt.strftime(LoadBrightHub.__DATE_FORMAT))]
-
-        def get_chunk(_date_from, _date_to):
-            response = LoadBrightHub._brighthub_request(
-                url_end="/resource-data",
-                params={"measurement_location_uuid": measurement_station_uuid,
-                        "date_from": _date_from, "date_to": _date_to})
-            pre_signed_url = response.json()["url"]
-            response = requests.get(pre_signed_url)
-            return response.text
-
-        master_df = pd.DataFrame()
-        with concurrent.futures.ThreadPoolExecutor() as executor:  # optimally defined number of threads
-            res = [executor.submit(get_chunk, chunk[0], chunk[1]) for chunk in chunks]
-            concurrent.futures.wait(res)
-            for result in res:
-                chunk_df = pd.read_csv(StringIO(result.result()),)
-                chunk_df["Timestamp"] = pd.to_datetime(chunk_df["Timestamp"])
-                chunk_df.index = pd.DatetimeIndex(chunk_df.pop("Timestamp"))
-                if master_df.empty:
-                    master_df = chunk_df
+        assembly_in_progress_err_msg = 'The server is currently busy assembling the timeseries file.'
+        if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+            retry_after = int(response.headers.get('Retry-After', 60))  # Default retry after default 60 seconds
+            for _ in range(4):  # attempt 4 more times
+                time.sleep(retry_after)  # Wait before retrying
+                response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to)
+                response_json = response.json()
+                if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+                    retry_after *= 2  # double the retry time for each attempt i.e. back-off.
+                    continue  # try again
                 else:
-                    master_df = pd.concat([master_df, chunk_df])
-        return master_df
+                    # either the call was a success or there was a different error
+                    break  # exit for loop
+            # raise the 503 error if all the attempts have been used up
+            if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+                raise ValueError("{}. {}".format(response_json['error'], response_json['details']))
+
+        if response.status_code == 404 and 'details' in response_json:  # other BrightHub specific errors.
+            raise ValueError("{}. {}".format(response_json.get('error', ''), response_json['details']))
+        elif 'error' in response_json:
+            raise ValueError("Unexpected error: Status Code {}. {}".format(response.status_code, response.text))
+
+        pre_signed_url = response_json["url"]
+        timeseries_response = requests.get(pre_signed_url)
+        df = pd.read_csv(StringIO(timeseries_response.text, ))
+        return df.set_index('Timestamp')
 
 
 class _LoadBWPlatform:
