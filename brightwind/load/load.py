@@ -1312,11 +1312,11 @@ class LoadBrightHub:
     @staticmethod
     def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None):
         """
-        Sub function to get the actual timeseries so retry and back off can be implemented.
+        Sub function to return the Brighthub GET timeseries-data API response.
         """
-        return LoadBrightHub._brighthub_request(url_end="/measurement-locations/{}/timeseries-data"
-                                                .format(measurement_station_uuid),
-                                                params={"date_from": date_from, "date_to": date_to})
+        return LoadBrightHub._brighthub_request(
+            url_end=f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
+            params={"date_from": date_from, "date_to": date_to})
 
     @staticmethod
     def get_data(measurement_station_uuid, date_from=None, date_to=None):
@@ -1364,31 +1364,40 @@ class LoadBrightHub:
         response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to)
         response_json = response.json()
 
+        # Handle 503 Service Unavailable error response using Retry-After header.
+        # 503 error is returned when the timeseries data file is being assembled by Brighthub.
+        # This is to ensure that only the most up to date data can be downloaded.
         assembly_in_progress_err_msg = 'The server is currently busy assembling the timeseries file.'
         if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
-            retry_after = int(response.headers.get('Retry-After', 60))  # Default retry after default 60 seconds
+            retry_after = int(response.headers.get('Retry-After', 60))  # default retry after default 60 seconds
             for _ in range(4):  # attempt 4 more times
-                time.sleep(retry_after)  # Wait before retrying
+                time.sleep(retry_after)  # wait before retrying
                 response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to)
                 response_json = response.json()
                 if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
-                    retry_after *= 2  # double the retry time for each attempt i.e. back-off.
+                    retry_after *= 2  # double the retry time for each attempt
                     continue  # try again
                 else:
-                    # either the call was a success or there was a different error
+                    # Either the call was a success or there was a different error.
                     break  # exit for loop
-            # raise the 503 error if all the attempts have been used up
+            # Raise the 503 error if all the attempts have been used up.
             if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
-                raise ValueError("{}. {}".format(response_json['error'], response_json['details']))
+                raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
 
         if response.status_code == 404 and 'details' in response_json:  # other BrightHub specific errors.
-            raise ValueError("{}. {}".format(response_json.get('error', ''), response_json['details']))
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         elif 'error' in response_json:
-            raise ValueError("Unexpected error: Status Code {}. {}".format(response.status_code, response.text))
+            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
-        pre_signed_url = response_json["url"]
-        timeseries_response = requests.get(pre_signed_url)
-        df = pd.read_csv(StringIO(timeseries_response.text, ))
+        presigned_url = response_json["url"]
+
+        try:
+            timeseries_response = requests.get(presigned_url)
+        except requests.exceptions.RequestException as e:
+            # Handle all request-related errors
+            raise RuntimeError(f"An error occurred while fetching the data: {e}")
+
+        df = pd.read_csv(StringIO(timeseries_response.text))
         return df.set_index('Timestamp')
 
 
