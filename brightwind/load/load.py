@@ -1314,6 +1314,9 @@ class LoadBrightHub:
         """
         Sub function to return the Brighthub GET timeseries-data API response.
         """
+        date_from = LoadBrightHub.__reformat_datetime_str(date_from) if date_from is not None else None
+        date_to = LoadBrightHub.__reformat_datetime_str(date_to) if date_to is not None else None
+        
         return LoadBrightHub._brighthub_request(
             url_end=f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
             params={"date_from": date_from, "date_to": date_to})
@@ -1399,6 +1402,18 @@ class LoadBrightHub:
 
         df = pd.read_csv(StringIO(timeseries_response.text))
         return df.set_index('Timestamp')
+        
+    @staticmethod
+    def __reformat_datetime_str(date_str):
+        """
+        Convert datetime string into '%Y-%m-%d %H:%M:%S' format.
+
+        :param date_str: Input timestamp.
+        :type date_str: str
+        :return: Timestamp in '%Y-%m-%d %H:%M:%S' format.
+        :rtype: str
+        """
+        return pd.to_datetime(date_str).strftime('%Y-%m-%d %H:%M:%S')
 
 
 class _LoadBWPlatform:
