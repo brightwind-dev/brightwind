@@ -1306,16 +1306,25 @@ class LoadBrightHub:
 
         return data_model.json()
 
-    # Pulling the timeseries data.
-    __DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
+    @staticmethod
+    def __date_to_datetime_str(date_str):
+        """
+        Convert date string into a datetime string.
+
+        :param date_str: Input date.
+        :type date_str:  str
+        :return:         Datetime formatted string.
+        :rtype:          str
+        """
+        return pd.to_datetime(date_str).strftime('%Y-%m-%d %H:%M:%S')
 
     @staticmethod
     def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None):
         """
         Sub function to return the Brighthub GET timeseries-data API response.
         """
-        date_from = LoadBrightHub.__reformat_datetime_str(date_from) if date_from is not None else None
-        date_to = LoadBrightHub.__reformat_datetime_str(date_to) if date_to is not None else None
+        date_from = LoadBrightHub.__date_to_datetime_str(date_from) if date_from is not None else None
+        date_to = LoadBrightHub.__date_to_datetime_str(date_to) if date_to is not None else None
         
         return LoadBrightHub._brighthub_request(
             url_end=f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
@@ -1402,18 +1411,6 @@ class LoadBrightHub:
 
         df = pd.read_csv(StringIO(timeseries_response.text))
         return df.set_index('Timestamp')
-        
-    @staticmethod
-    def __reformat_datetime_str(date_str):
-        """
-        Convert datetime string into '%Y-%m-%d %H:%M:%S' format.
-
-        :param date_str: Input timestamp.
-        :type date_str: str
-        :return: Timestamp in '%Y-%m-%d %H:%M:%S' format.
-        :rtype: str
-        """
-        return pd.to_datetime(date_str).strftime('%Y-%m-%d %H:%M:%S')
 
 
 class _LoadBWPlatform:
