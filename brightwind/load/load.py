@@ -1416,6 +1416,59 @@ class LoadBrightHub:
         return df.set_index('Timestamp')
 
     @staticmethod
+    def get_cleaning_log(measurement_station_uuid):
+        """
+        Get the cleaning log from BrightHub for a particular measurement station.
+
+        :param measurement_station_uuid: A specific measurement station's uuid.
+        :type measurement_station_uuid:  str
+        :return:                         The cleaning logs for the measurement station.
+        :rtype:                          pd.DataFrame
+
+        **Example usage**
+        ::
+            import brightwind as bw
+
+        To get the cleaning logs for the specific measurement station
+        ::
+            measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14'
+            cleaning_log = bw.LoadBrightHub.get_cleaning_log(measurement_station_uuid)
+            cleaning_log.head()
+
+        Applying the cleaning to the timeseries data.
+        ::
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid)
+
+            # Apply the cleaning logs to the data resulting in a dataset that is ready to work with.
+            data_clnd = bw.apply_cleaning(data, cleaning_log, sensor_col_name='MeasurementName',
+                                          date_from_col_name='DateFrom', date_to_col_name='DateTo')
+        """
+        response = LoadBrightHub._brighthub_request(
+            url_end=f"/measurement-locations/{measurement_station_uuid}/cleaning-log")
+        response_json = response.json()
+
+        # error handling
+        if response.status_code == 400 and 'details' in response_json:  # request parameters invalid or missing
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 403 and 'details' in response_json:  # insufficient permissions or download limit
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 404 and 'details' in response_json:  # requested resource not found
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 500 and 'details' in response_json:  # unexpected server error
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        elif 'error' in response_json:
+            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
+
+        presigned_url = response_json["url"]
+
+        try:
+            cleaning_log_response = requests.get(presigned_url)
+        except requests.exceptions.RequestException as e:
+            # Handle all request-related errors
+            raise RuntimeError(f"An error occurred while fetching the cleaning log: {e}")
+        return pd.read_csv(StringIO(cleaning_log_response.text))
+
+    @staticmethod
     def get_reanalysis(reanalysis_name, latitude_ddeg, longitude_ddeg, date_from=None, date_to=None, nearest_nodes=1,
                        variables=None):
         """
