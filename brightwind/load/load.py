@@ -1416,6 +1416,19 @@ class LoadBrightHub:
         return df.set_index('Timestamp')
 
     @staticmethod
+    def __parse_variables(variables_list):
+        # Check if variables_list is a list
+        if not isinstance(variables_list, list):
+            raise TypeError("Expected a list as input")
+
+        var_parsed = None
+        if variables_list is not None:
+            var_parsed = variables_list[0]
+            for variable in variables_list[1:]:
+                var_parsed = var_parsed + ',' + variable
+        return var_parsed
+
+    @staticmethod
     def get_reanalysis(reanalysis_name, latitude_ddeg, longitude_ddeg, date_from=None, date_to=None, nearest_nodes=1,
                        variables=None):
         """
@@ -1491,7 +1504,7 @@ class LoadBrightHub:
                        url_end=f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
                        params={"date_from": LoadBrightHub.__date_to_datetime_str(date_from),
                                "date_to": LoadBrightHub.__date_to_datetime_str(date_to),
-                               "variables": LoadBrightdata._parse_variables(variables)})
+                               "variables": LoadBrightHub.__parse_variables(variables)})
         response_json = response.json()
 
         # error handling
@@ -1509,6 +1522,7 @@ class LoadBrightHub:
         df = pd.DataFrame(response_json['timeseries_data']['data'], 
                           columns=response_json['timeseries_data']['columns'])
         return response_json['metadata'], df.set_index('Timestamp')
+
 
 class _LoadBWPlatform:
     """
