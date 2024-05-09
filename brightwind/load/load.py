@@ -15,7 +15,7 @@ from brightwind.analyse import plot as bw_plt
 import time
 import concurrent
 import math
-
+from brightwind.load.station import MeasurementStation
 
 __all__ = ['load_csv',
            'load_campbell_scientific',
@@ -1318,15 +1318,16 @@ class LoadBrightHub:
         :return:         Datetime formatted string.
         :rtype:          str
         """
-        return pd.to_datetime(date_str).strftime('%Y-%m-%d %H:%M:%S')
+        date_str = pd.to_datetime(date_str).strftime('%Y-%m-%d %H:%M:%S') if date_str is not None else None
+        return date_str
 
     @staticmethod
     def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None):
         """
         Sub function to return the Brighthub GET timeseries-data API response.
         """
-        date_from = LoadBrightHub.__date_to_datetime_str(date_from) if date_from is not None else None
-        date_to = LoadBrightHub.__date_to_datetime_str(date_to) if date_to is not None else None
+        date_from = LoadBrightHub.__date_to_datetime_str(date_from)
+        date_to = LoadBrightHub.__date_to_datetime_str(date_to)
         
         return LoadBrightHub._brighthub_request(
             url_end=f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
@@ -1414,6 +1415,79 @@ class LoadBrightHub:
         df = pd.read_csv(StringIO(timeseries_response.text))
         return df.set_index('Timestamp')
 
+    @staticmethod
+    def get_reanalysis(reanalysis_name, latitude_ddeg, longitude_ddeg, date_from=None, date_to=None,
+                       nearest_nodes=1, variables=None):
+        """
+        Get the reanalysis data from BrightHub for the n nearest nodes to a particular measurement station.
+
+        When using the date filters, the brightwind convention for date ranges is greater than and equal to 'date_from'
+        to less than 'date_to'.
+
+        :param reanalysis_name:          The name of the reanalysis dataset. Allowed values: ERA5, MERRA-2.
+        :type reanalysis_name:           str
+        :param latitude_ddeg:            Latitude of the node in decimal degrees.
+        :type latitude_ddeg:             float
+        :param longitude_ddeg:           Longitude of the node in decimal degrees.
+        :type longitude_ddeg:            float
+        :param date_from:                Optional filter to retrieve data from this date onwards.
+        :type date_from:                 str
+        :param date_to:                  Optional filter to retrieve data up to this date.
+        :type date_to:                   str
+        :param nearest_nodes:            The number of nodes closest to the measurement station to return for
+                                         each reanalysis dataset.
+        :type nearest_nodes:             int
+        :param variables:                Specify variables to be retrieved.
+                                         None value will return Spd_50m_mps for merra2 and Spd_100m_mps for era5.
+                                         Variables for each dataset are:
+                                             merra2                    era5
+                                           - Spd_50m_mps               - Spd_100m_mps
+                                           - Dir_50m_deg               - Dir_100m_deg
+                                           - Tmp_2m_degC               - Tmp_2m_degC
+                                           - Prs_0m_hPa                - Prs_0m_hPa
+                                           - Spd_850pa_mps
+                                           - Spd_10m_mps
+        :type  variables:                list
+        :return:                         List of reanalysis nodes.
+        :rtype:                          list
+
+        **Example usage**
+        ::
+            import brightwind as bw
+
+        To get all the data for the specific measurement station
+        ::
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
+            data.head()
+
+        To get data for a specific time period
+        ::
+            data = bw.LoadBrightHub.get_reanalysis_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
+                                                        date_from='2016-06-01',
+                                                        date_to='2016-07-01')
+
+        To get data from a specific date
+        ::
+            data = bw.LoadBrightHub.get_reanalysis_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
+                                                        date_from='2016-06-01')
+
+        To get data from the nearest 4 nodes
+        ::
+            data = bw.LoadBrightHub.get_reanalysis_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
+                                                        nearest_nodes=4)
+
+        """
+
+        response = LoadBrightHub._brighthub_request(
+                       url_end=f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
+                       params={"date_from": LoadBrightHub.__date_to_datetime_str(date_from),
+                               "date_to": LoadBrightHub.__date_to_datetime_str(date_to),
+                               "variables":variables})
+        response_json = response.json()
+        response_metadata = MeasurementStation(response_json['metadata'])
+        response_timeseries = pd.DataFrame(response_json['timeseries_data']['data'], columns=response_json['timeseries_data']['columns'])
+        response_timeseries.set_index('Timestamp', inplace=True)
+        return response_metadata, response_timeseries
 
 class _LoadBWPlatform:
     """
