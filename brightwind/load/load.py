@@ -1447,7 +1447,6 @@ class LoadBrightHub:
                                            - Dir_50m_deg               - Dir_100m_deg
                                            - Tmp_2m_degC               - Tmp_2m_degC
                                            - Prs_0m_hPa                - Prs_0m_hPa
-                                           - Spd_850pa_mps
         :type  variables:                list
         :return:                         IEA Task 43 Data Model and timeseries for reanalysis node.
         :rtype:                          dict, pandas.DataFrame
@@ -1486,8 +1485,20 @@ class LoadBrightHub:
                                "date_to": LoadBrightHub.__date_to_datetime_str(date_to),
                                "variables": LoadBrightdata._parse_variables(variables)})
         response_json = response.json()
-        df = pd.DataFrame(response_json['timeseries_data']['data'], columns=response_json['timeseries_data']['columns'])
 
+        # error handling
+        if response.status_code == 400 and 'details' in response_json:  # request parameters invalid or missing
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 403 and 'details' in response_json:  # insufficient permissions or download limit exceeded
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 404 and 'details' in response_json:  # requested resource not found
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 500 and 'details' in response_json:  # unexpected server error
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        elif 'error' in response_json:
+            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
+
+        df = pd.DataFrame(response_json['timeseries_data']['data'], columns=response_json['timeseries_data']['columns'])
         return response_json['metadata'], df.set_index('Timestamp')
 
 class _LoadBWPlatform:
