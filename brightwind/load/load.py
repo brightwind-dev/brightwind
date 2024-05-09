@@ -15,7 +15,7 @@ from brightwind.analyse import plot as bw_plt
 import time
 import concurrent
 import math
-from brightwind.load.station import MeasurementStation
+
 
 __all__ = ['load_csv',
            'load_campbell_scientific',
@@ -1416,13 +1416,15 @@ class LoadBrightHub:
         return df.set_index('Timestamp')
 
     @staticmethod
-    def get_reanalysis(reanalysis_name, latitude_ddeg, longitude_ddeg, date_from=None, date_to=None,
-                       nearest_nodes=1, variables=None):
+    def get_reanalysis(reanalysis_name, latitude_ddeg, longitude_ddeg, date_from=None, date_to=None, variables=None):
         """
-        Get the reanalysis data from BrightHub for the n nearest nodes to a particular measurement station.
+        Get the reanalysis data from BrightHub for the n nearest nodes to a particular location. The IEA Task 43 WRA
+        Daa Model and the timeseries for the reanlaysis data is retrieved.
 
         When using the date filters, the brightwind convention for date ranges is greater than and equal to 'date_from'
         to less than 'date_to'.
+
+        Once the data model is retrieved you can use the brightwind MeasurementStation class to view and use the data from it.
 
         :param reanalysis_name:          The name of the reanalysis dataset. Allowed values: ERA5, MERRA-2.
         :type reanalysis_name:           str
@@ -1446,35 +1448,35 @@ class LoadBrightHub:
                                            - Tmp_2m_degC               - Tmp_2m_degC
                                            - Prs_0m_hPa                - Prs_0m_hPa
                                            - Spd_850pa_mps
-                                           - Spd_10m_mps
         :type  variables:                list
-        :return:                         List of reanalysis nodes.
-        :rtype:                          list
+        :return:                         IEA Task 43 Data Model and timeseries for reanalysis node.
+        :rtype:                          dict, pandas.DataFrame
 
         **Example usage**
         ::
             import brightwind as bw
 
-        To get all the data for the specific measurement station
+        To get all the data for the specific reanalysis node
         ::
-            data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
-            data.head()
+            metadata, timeseries = bw.LoadBrightHub.get_data(reanalysis_name='ERA5', latitude_ddeg=53.5, longtude_ddeg=-10.8)
+            timeseries.head()
 
         To get data for a specific time period
         ::
-            data = bw.LoadBrightHub.get_reanalysis_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
-                                                        date_from='2016-06-01',
-                                                        date_to='2016-07-01')
-
-        To get data from a specific date
-        ::
-            data = bw.LoadBrightHub.get_reanalysis_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
-                                                        date_from='2016-06-01')
+            metadata, timeseries = bw.LoadBrightHub.get_reanalysis_data(reanalysis_name='ERA5', latitude_ddeg=53.5, longtude_ddeg=-10.8,
+                                                                        date_from='2016-06-01',
+                                                                        date_to='2016-07-01')
 
         To get data from the nearest 4 nodes
         ::
-            data = bw.LoadBrightHub.get_reanalysis_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
-                                                        nearest_nodes=4)
+            metadata, timeseries = bw.LoadBrightHub.get_reanalysis_data(reanalysis_name='ERA5', latitude_ddeg=53.5, longtude_ddeg=-10.8,
+                                                                        nearest_nodes=4)
+
+        Using the data model
+        ::
+            demo_reanalysis = bw.MeasurementStation(metadata)
+            demo_reanalysis.measurements
+            demo_reanalysis.header
 
         """
 
@@ -1482,12 +1484,11 @@ class LoadBrightHub:
                        url_end=f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
                        params={"date_from": LoadBrightHub.__date_to_datetime_str(date_from),
                                "date_to": LoadBrightHub.__date_to_datetime_str(date_to),
-                               "variables":variables})
+                               "variables": LoadBrightdata._parse_variables(variables)})
         response_json = response.json()
-        response_metadata = MeasurementStation(response_json['metadata'])
-        response_timeseries = pd.DataFrame(response_json['timeseries_data']['data'], columns=response_json['timeseries_data']['columns'])
-        response_timeseries.set_index('Timestamp', inplace=True)
-        return response_metadata, response_timeseries
+        df = pd.DataFrame(response_json['timeseries_data']['data'], columns=response_json['timeseries_data']['columns'])
+
+        return response_json['metadata'], df.set_index('Timestamp')
 
 class _LoadBWPlatform:
     """
