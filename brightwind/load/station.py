@@ -15,7 +15,7 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from brightwind.load.load import _is_file
+from brightwind.utils.utils import is_file
 import numpy as np
 import pandas as pd
 import requests

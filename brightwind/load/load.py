@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from brightwind.utils import utils
+from brightwind.utils import utils, gis
 import datetime
 import requests
 from typing import List
@@ -84,21 +84,6 @@ def _assemble_df_from_folder(source_folder, file_type, function_to_get_df, print
     return assembled_df.sort_index()
 
 
-def _is_file(file_or_folder):
-    """
-    Returns True is file_or_folder is a file.
-    :param file_or_folder: The file or folder path.
-    :type file_or_folder: str
-    :return: True if a file.
-    """
-    if os.path.isfile(file_or_folder):
-        return True
-    elif os.path.isdir(file_or_folder):
-        return False
-    else:
-        raise FileNotFoundError("File or folder doesn't seem to exist.")
-
-
 def _pandas_read_csv(filepath, **kwargs):
     """
     Wrapper function around the Pandas read_csv function.
@@ -161,7 +146,7 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
         df = bw.load_csv(filepath, skiprows=0)
     """
 
-    is_file = _is_file(filepath_or_folder)
+    is_file = utils.is_file(filepath_or_folder)
     fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True, 'dayfirst': dayfirst}
     merged_fn_args = {**fn_arguments, **kwargs}
     if is_file:
@@ -211,7 +196,7 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, dayfirst=Fa
 
     """
 
-    is_file = _is_file(filepath)
+    is_file = utils.is_file(filepath)
     if is_file:
         # Need to replace the flag text before loading into the DataFrame as this text could be a string or a number
         # and Pandas will throw and warning msg if data types in a column are mixed setting the column as string.
@@ -281,7 +266,7 @@ def load_campbell_scientific(filepath_or_folder, print_progress=True, dayfirst=F
         df = bw.load_campbell_scientific(folder, print_progress=True)
     """
 
-    is_file = _is_file(filepath_or_folder)
+    is_file = utils.is_file(filepath_or_folder)
     fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True, 'skiprows': [0, 2, 3],  'dayfirst': dayfirst}
     merged_fn_args = {**fn_arguments, **kwargs}
     if is_file:
@@ -350,7 +335,7 @@ def load_excel(filepath_or_folder, search_by_file_type=['.xlsx'], print_progress
         df = bw.load_excel(filepath, skiprows=0)
     """
 
-    is_file = _is_file(filepath_or_folder)
+    is_file = utils.is_file(filepath_or_folder)
     fn_arguments = {'index_col': 0, 'parse_dates': True, 'sheet_name': sheet_name}
     merged_fn_args = {**fn_arguments, **kwargs}
     if is_file:
@@ -1458,6 +1443,42 @@ class LoadBrightHub:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         return response_json
+
+    @staticmethod
+    def __get_nearest_nodes(reanalysis_name, latitude_ddeg, longitude_ddeg, nearest_nodes):
+        """
+        Get the nearest nodes to my point of interest.
+
+        :param reanalysis_name:
+        :param latitude_ddeg:
+        :param longitude_ddeg:
+        :param nearest_nodes:
+        :return:
+        """
+        # Set what the half distance of the surrounding box will be.
+        if reanalysis_name == 'ERA5':
+            box_half_distance = 0.9
+        else:
+            box_half_distance = 1.5
+
+        # Set the extents of the box.
+        min_latitude_ddeg = latitude_ddeg - box_half_distance
+        max_latitude_ddeg = latitude_ddeg + box_half_distance
+        min_longitude_ddeg = longitude_ddeg - box_half_distance
+        max_longitude_ddeg = longitude_ddeg + box_half_distance
+
+        # Get the list of nodes within the box.
+        nodes = LoadBrightHub.__get_reanalysis_nodes(reanalysis_name, min_latitude_ddeg, max_latitude_ddeg,
+                                                     min_longitude_ddeg, max_longitude_ddeg)
+
+        # Calculate the distance of each node to the point of interest.
+        for node in nodes:
+            node['distance'] = gis.distance_between_points_haversine(
+                node['latitude_ddeg'], node['longitude_ddeg'], latitude_ddeg, longitude_ddeg)
+
+        # Sort nodes by distance to point of interest (ascending order)
+        nodes_sorted = sorted(nodes, key=lambda x: x['distance'])
+        return nodes_sorted[:nearest_nodes]
 
     @staticmethod
     def __parse_variables(variables_list):
