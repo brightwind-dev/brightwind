@@ -1485,12 +1485,11 @@ class LoadBrightHub:
 
     @staticmethod
     def __parse_variables(variables_list):
-        # Check if variables_list is a list
-        if not isinstance(variables_list, list):
-            raise TypeError("Expected a list as input")
-
         var_parsed = None
         if variables_list is not None:
+            # Check if variables_list is a list
+            if not isinstance(variables_list, list):
+                raise TypeError("Expected a list as input")
             var_parsed = variables_list[0]
             for variable in variables_list[1:]:
                 var_parsed = var_parsed + ',' + variable
