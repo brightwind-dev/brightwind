@@ -1318,16 +1318,15 @@ class LoadBrightHub:
         :return:         Datetime formatted string.
         :rtype:          str
         """
-        date_str = pd.to_datetime(date_str).strftime('%Y-%m-%d %H:%M:%S') if date_str is not None else None
-        return date_str
+        return pd.to_datetime(date_str).strftime('%Y-%m-%d %H:%M:%S')
 
     @staticmethod
     def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None):
         """
         Sub function to return the Brighthub GET timeseries-data API response.
         """
-        date_from = LoadBrightHub.__date_to_datetime_str(date_from)
-        date_to = LoadBrightHub.__date_to_datetime_str(date_to)
+        date_from = LoadBrightHub.__date_to_datetime_str(date_from) if date_from is not None else None
+        date_to = LoadBrightHub.__date_to_datetime_str(date_to) if date_to is not None else None
         
         return LoadBrightHub._brighthub_request(
             url_end=f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
@@ -1468,100 +1467,6 @@ class LoadBrightHub:
             raise RuntimeError(f"An error occurred while fetching the cleaning log: {e}")
         return pd.read_csv(StringIO(cleaning_log_response.text))
 
-    @staticmethod
-    def get_reanalysis(reanalysis_name, latitude_ddeg, longitude_ddeg, date_from=None, date_to=None, nearest_nodes=1,
-                       variables=None):
-        """
-        Get the reanalysis data from BrightHub for the n nearest nodes to a particular location. The IEA Task 43 WRA
-        Daa Model and the timeseries for the reanlaysis data is retrieved.
-
-        When using the date filters, the brightwind convention for date ranges is greater than and equal to 'date_from'
-        to less than 'date_to'.
-
-        Once the data model is retrieved you can use the brightwind MeasurementStation class to view and use the data 
-        from it.
-
-        :param reanalysis_name:          The name of the reanalysis dataset. Allowed values: ERA5, MERRA-2.
-        :type reanalysis_name:           str
-        :param latitude_ddeg:            Latitude of the node in decimal degrees.
-        :type latitude_ddeg:             float
-        :param longitude_ddeg:           Longitude of the node in decimal degrees.
-        :type longitude_ddeg:            float
-        :param date_from:                Optional filter to retrieve data from this date onwards.
-        :type date_from:                 str
-        :param date_to:                  Optional filter to retrieve data up to this date.
-        :type date_to:                   str
-        :param nearest_nodes:            The number of nodes closest to the measurement station to return for
-                                         each reanalysis dataset.
-        :type nearest_nodes:             int
-        :param variables:                Specify variables to be retrieved.
-                                         None value will return Spd_50m_mps for merra2 and Spd_100m_mps for era5.
-                                         Variables for each dataset are:
-                                             merra2                    era5
-                                           - Spd_50m_mps               - Spd_100m_mps
-                                           - Dir_50m_deg               - Dir_100m_deg
-                                           - Tmp_2m_degC               - Tmp_2m_degC
-                                           - Prs_0m_hPa                - Prs_0m_hPa
-        :type  variables:                list
-        :return:                         IEA Task 43 Data Model and timeseries for reanalysis node.
-        :rtype:                          dict, pandas.DataFrame
-
-        **Example usage**
-        ::
-            import brightwind as bw
-
-        To get all the data for the specific reanalysis node
-        ::
-            metadata, timeseries = bw.LoadBrightHub.get_data(reanalysis_name='ERA5', 
-                                                             latitude_ddeg=53.5, 
-                                                             longtude_ddeg=-10.8)
-            timeseries.head()
-
-        To get data for a specific time period
-        ::
-            metadata, timeseries = bw.LoadBrightHub.get_reanalysis_data(reanalysis_name='ERA5', 
-                                                                        latitude_ddeg=53.5, 
-                                                                        longtude_ddeg=-10.8,
-                                                                        date_from='2016-06-01',
-                                                                        date_to='2016-07-01')
-
-        To get data from the nearest 4 nodes
-        ::
-            metadata, timeseries = bw.LoadBrightHub.get_reanalysis_data(reanalysis_name='ERA5',
-                                                                        latitude_ddeg=53.5, 
-                                                                        longtude_ddeg=-10.8,
-                                                                        nearest_nodes=4)
-
-        Using the data model
-        ::
-            demo_reanalysis = bw.MeasurementStation(metadata)
-            demo_reanalysis.measurements
-            demo_reanalysis.header
-
-        """
-
-        response = LoadBrightHub._brighthub_request(
-                       url_end=f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
-                       params={"date_from": LoadBrightHub.__date_to_datetime_str(date_from),
-                               "date_to": LoadBrightHub.__date_to_datetime_str(date_to),
-                               "variables": LoadBrightdata._parse_variables(variables)})
-        response_json = response.json()
-
-        # error handling
-        if response.status_code == 400 and 'details' in response_json:  # request parameters invalid or missing
-            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        if response.status_code == 403 and 'details' in response_json:  # insufficient permissions or download limit 
-            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        if response.status_code == 404 and 'details' in response_json:  # requested resource not found
-            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        if response.status_code == 500 and 'details' in response_json:  # unexpected server error
-            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
-            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
-
-        df = pd.DataFrame(response_json['timeseries_data']['data'], 
-                          columns=response_json['timeseries_data']['columns'])
-        return response_json['metadata'], df.set_index('Timestamp')
 
 class _LoadBWPlatform:
     """
