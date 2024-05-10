@@ -1416,6 +1416,50 @@ class LoadBrightHub:
         return df.set_index('Timestamp')
 
     @staticmethod
+    def __get_reanalysis_nodes(reanalysis_name, min_latitude_ddeg, max_latitude_ddeg,
+                               min_longitude_ddeg, max_longitude_ddeg):
+        """
+        Get the reanalysis nodes from BrightHub within a certain geographical box.
+
+        :param reanalysis_name:     The name of the reanalysis dataset. Allowed values: ERA5, MERRA-2.
+        :type reanalysis_name:      str
+        :param min_latitude_ddeg:   Min latitude of the box in decimal degrees. Allowed values between -90 and 90.
+        :type min_latitude_ddeg:    float
+        :param max_latitude_ddeg:   Max latitude of the box in decimal degrees. Allowed values between -90 and 90.
+        :type max_latitude_ddeg:    float
+        :param min_longitude_ddeg:  Min longitude of the box in decimal degrees. Allowed values between -180 and 180.
+        :type min_longitude_ddeg:   float
+        :param max_longitude_ddeg:  Max longitude of the box in decimal degrees. Allowed values between -180 and 180.
+        :type max_longitude_ddeg:   float
+        :return:                    A list of dictionaries containing the reanalysis_id and the latitude and longitude
+                                    of the nodes.
+        :rtype:                     list(dict)
+        """
+        response = LoadBrightHub._brighthub_request(
+            url_end=f"/reanalysis/{reanalysis_name}/nodes",
+            params={"min_latitude_ddeg": min_latitude_ddeg,
+                    "max_latitude_ddeg": max_latitude_ddeg,
+                    "min_longitude_ddeg": min_longitude_ddeg,
+                    "max_longitude_ddeg": max_longitude_ddeg})
+        response_json = response.json()
+
+        # error handling
+        if response.status_code == 400 and 'details' in response_json:  # request parameters invalid or missing
+            raise ValueError(f"{response_json.get('error', '')}. "
+                             f"Fields: {response_json.get('fields', '')}. "
+                             f"{response_json.get('details', '')}")
+        if response.status_code == 403 and 'details' in response_json:  # insufficient permissions or download limit
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 404 and 'details' in response_json:  # requested resource not found
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 500 and 'details' in response_json:  # unexpected server error
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        elif 'error' in response_json:
+            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
+
+        return response_json
+
+    @staticmethod
     def __parse_variables(variables_list):
         # Check if variables_list is a list
         if not isinstance(variables_list, list):
@@ -1433,7 +1477,7 @@ class LoadBrightHub:
                        variables=None):
         """
         Get the reanalysis data from BrightHub for the n nearest nodes to a particular location. The IEA Task 43 WRA
-        Daa Model and the timeseries for the reanlaysis data is retrieved.
+        Daa Model and the timeseries for the reanalysis data is retrieved.
 
         When using the date filters, the brightwind convention for date ranges is greater than and equal to 'date_from'
         to less than 'date_to'.
