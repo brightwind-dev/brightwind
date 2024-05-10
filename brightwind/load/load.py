@@ -1304,15 +1304,16 @@ class LoadBrightHub:
         :return:         Datetime formatted string.
         :rtype:          str
         """
-        return pd.to_datetime(date_str).strftime('%Y-%m-%d %H:%M:%S')
+        date_str = pd.to_datetime(date_str).strftime('%Y-%m-%d %H:%M:%S') if date_str is not None else None
+        return date_str
 
     @staticmethod
     def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None):
         """
         Sub function to return the Brighthub GET timeseries-data API response.
         """
-        date_from = LoadBrightHub.__date_to_datetime_str(date_from) if date_from is not None else None
-        date_to = LoadBrightHub.__date_to_datetime_str(date_to) if date_to is not None else None
+        date_from = LoadBrightHub.__date_to_datetime_str(date_from)
+        date_to = LoadBrightHub.__date_to_datetime_str(date_to)
         
         return LoadBrightHub._brighthub_request(
             url_end=f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
