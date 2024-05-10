@@ -1496,6 +1496,32 @@ class LoadBrightHub:
         return var_parsed
 
     @staticmethod
+    def __get_reanalysis_single_node(reanalysis_name, latitude_ddeg, longitude_ddeg,
+                                     date_from=None, date_to=None, variables=None):
+        response = LoadBrightHub._brighthub_request(
+            url_end=f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
+            params={"date_from": LoadBrightHub.__date_to_datetime_str(date_from),
+                    "date_to": LoadBrightHub.__date_to_datetime_str(date_to),
+                    "variables": LoadBrightHub.__parse_variables(variables)})
+        response_json = response.json()
+
+        # error handling
+        if response.status_code == 400 and 'details' in response_json:  # request parameters invalid or missing
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 403 and 'details' in response_json:  # insufficient permissions or download limit
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 404 and 'details' in response_json:  # requested resource not found
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 500 and 'details' in response_json:  # unexpected server error
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        elif 'error' in response_json:
+            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
+
+        df = pd.DataFrame(response_json['timeseries_data']['data'],
+                          columns=response_json['timeseries_data']['columns'])
+        return response_json['metadata'], df.set_index('Timestamp')
+
+    @staticmethod
     def get_reanalysis(reanalysis_name, latitude_ddeg, longitude_ddeg, date_from=None, date_to=None, nearest_nodes=1,
                        variables=None):
         """
@@ -1530,8 +1556,10 @@ class LoadBrightHub:
                                            - Tmp_2m_degC               - Tmp_2m_degC
                                            - Prs_0m_hPa                - Prs_0m_hPa
         :type  variables:                list
-        :return:                         IEA Task 43 Data Model and timeseries for reanalysis node.
-        :rtype:                          dict, pandas.DataFrame
+        :return:                         A tuple, or list of tuples, of a MeasurementStation object and the timeseries
+                                         in a DataFrame.
+        :rtype:                          tuple(MeasurementStation, pandas.DataFrame) or
+                                         list(tuple(MeasurementStation, pandas.DataFrame))
 
         **Example usage**
         ::
@@ -1566,29 +1594,19 @@ class LoadBrightHub:
             demo_reanalysis.header
 
         """
-
-        response = LoadBrightHub._brighthub_request(
-                       url_end=f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
-                       params={"date_from": LoadBrightHub.__date_to_datetime_str(date_from),
-                               "date_to": LoadBrightHub.__date_to_datetime_str(date_to),
-                               "variables": LoadBrightHub.__parse_variables(variables)})
-        response_json = response.json()
-
-        # error handling
-        if response.status_code == 400 and 'details' in response_json:  # request parameters invalid or missing
-            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        if response.status_code == 403 and 'details' in response_json:  # insufficient permissions or download limit 
-            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        if response.status_code == 404 and 'details' in response_json:  # requested resource not found
-            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        if response.status_code == 500 and 'details' in response_json:  # unexpected server error
-            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
-            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
-
-        df = pd.DataFrame(response_json['timeseries_data']['data'], 
-                          columns=response_json['timeseries_data']['columns'])
-        return response_json['metadata'], df.set_index('Timestamp')
+        if nearest_nodes < 1 or nearest_nodes > 16:
+            raise ValueError("The number of 'nearest_nodes' is outside the range of 1 to 16.")
+        if nearest_nodes == 1:
+            return LoadBrightHub.__get_reanalysis_single_node(reanalysis_name, latitude_ddeg, longitude_ddeg,
+                                                              date_from, date_to, variables)
+        else:
+            return_list = []
+            nodes = LoadBrightHub.__get_nearest_nodes(reanalysis_name, latitude_ddeg, longitude_ddeg, nearest_nodes)
+            for node in nodes:
+                node_station, node_df = LoadBrightHub.__get_reanalysis_single_node(
+                    reanalysis_name, node["latitude_ddeg"], node["longitude_ddeg"], date_from, date_to, variables)
+                return_list.append((node_station, node_df))
+            return return_list
 
 
 class _LoadBWPlatform:
