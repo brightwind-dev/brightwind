@@ -3,7 +3,9 @@ from brightwind.utils import utils
 import gmaps
 
 
-__all__ = ['plot_meas_station_on_gmap']
+__all__ = ['plot_meas_station_on_gmap',
+           'distance_between_points_haversine'
+           ]
 
 
 def _create_coord_dict(name, latitude, longitude):
