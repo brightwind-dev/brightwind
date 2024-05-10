@@ -12,6 +12,7 @@ Additional labels for pre-release and build metadata are available as extensions
 ## [2.X.0]
 1. Modify `Correl.OrdinaryLeastSquares()` to force the intercept to pass through the origin (Issue [#412](https://github.com/brightwind-dev/brightwind/issues/412)).
 1. Update `LoadBrightHub.get_data()` to use a new API (Issue [#419](https://github.com/brightwind-dev/brightwind/issues/419)).
+1. Added new function `LoadBrightHub.get_data()` to pull the cleaning log for a particular measurement station on BrightHub (Issue [#405](https://github.com/brightwind-dev/brightwind/issues/405)).
 1. Modify `load.apply_cleaning()` and `apply_cleaning_windographer()` to clean columns specified in cleaning file by 
 matching the sensor name from the beginning of the string. (Issue [#249](https://github.com/brightwind-dev/brightwind/issues/249)).
 
