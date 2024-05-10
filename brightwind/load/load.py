@@ -1449,6 +1449,8 @@ class LoadBrightHub:
         """
         Get the nearest nodes to my point of interest.
 
+        There is a known bug if the longitudes value is around the 180th meridian of longitude.
+
         :param reanalysis_name:
         :param latitude_ddeg:
         :param longitude_ddeg:
