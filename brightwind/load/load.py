@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from brightwind.utils import utils, gis
+from brightwind.load.station import MeasurementStation
 import datetime
 import requests
 from typing import List
@@ -1517,40 +1518,38 @@ class LoadBrightHub:
         elif 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
+        node_station = MeasurementStation(response_json['metadata'])
         df = pd.DataFrame(response_json['timeseries_data']['data'],
                           columns=response_json['timeseries_data']['columns'])
-        return response_json['metadata'], df.set_index('Timestamp')
+        return node_station, df.set_index('Timestamp')
 
     @staticmethod
-    def get_reanalysis(reanalysis_name, latitude_ddeg, longitude_ddeg, date_from=None, date_to=None, nearest_nodes=1,
+    def get_reanalysis(reanalysis_name, latitude, longitude, date_from=None, date_to=None, nearest_nodes=1,
                        variables=None):
         """
-        Get the reanalysis data from BrightHub for the n nearest nodes to a particular location. The IEA Task 43 WRA
-        Daa Model and the timeseries for the reanalysis data is retrieved.
+        Get reanalysis data from BrightHub for the n nearest nodes to a particular location. A brightwind
+        MeasurementStation object and the timeseries in a pandas.DataFrame for each reanalysis node is retrieved.
 
         When using the date filters, the brightwind convention for date ranges is greater than and equal to 'date_from'
         to less than 'date_to'.
 
-        Once the data model is retrieved you can use the brightwind MeasurementStation class to view and use the data 
-        from it.
-
         :param reanalysis_name:          The name of the reanalysis dataset. Allowed values: ERA5, MERRA-2.
         :type reanalysis_name:           str
-        :param latitude_ddeg:            Latitude of the node in decimal degrees.
-        :type latitude_ddeg:             float
-        :param longitude_ddeg:           Longitude of the node in decimal degrees.
-        :type longitude_ddeg:            float
+        :param latitude:                 Latitude of the node in decimal degrees. Accepted range is -90 to 90.
+        :type latitude:                  float
+        :param longitude:                Longitude of the node in decimal degrees. Accepted range is -180 to 180.
+        :type longitude:                 float
         :param date_from:                Optional filter to retrieve data from this date onwards.
         :type date_from:                 str
         :param date_to:                  Optional filter to retrieve data up to this date.
         :type date_to:                   str
-        :param nearest_nodes:            The number of nodes closest to the measurement station to return for
-                                         each reanalysis dataset.
+        :param nearest_nodes:            The number of reanalysis nodes to return which are the closest to your
+                                         location of interest. Accepted range is 1 to 16.
         :type nearest_nodes:             int
         :param variables:                Specify variables to be retrieved.
-                                         None value will return Spd_50m_mps for merra2 and Spd_100m_mps for era5.
+                                         None value will return Spd_50m_mps for MERRA-2 and Spd_100m_mps for ERA5.
                                          Variables for each dataset are:
-                                             merra2                    era5
+                                             MERRA-2                    ERA5
                                            - Spd_50m_mps               - Spd_100m_mps
                                            - Dir_50m_deg               - Dir_100m_deg
                                            - Tmp_2m_degC               - Tmp_2m_degC
@@ -1569,39 +1568,35 @@ class LoadBrightHub:
         ::
             metadata, timeseries = bw.LoadBrightHub.get_data(reanalysis_name='ERA5', 
                                                              latitude_ddeg=53.5, 
-                                                             longtude_ddeg=-10.8)
+                                                             longitude_ddeg=-10.8)
             timeseries.head()
 
         To get data for a specific time period
         ::
             metadata, timeseries = bw.LoadBrightHub.get_reanalysis_data(reanalysis_name='ERA5', 
                                                                         latitude_ddeg=53.5, 
-                                                                        longtude_ddeg=-10.8,
+                                                                        longitude_ddeg=-10.8,
                                                                         date_from='2016-06-01',
                                                                         date_to='2016-07-01')
 
         To get data from the nearest 4 nodes
         ::
-            metadata, timeseries = bw.LoadBrightHub.get_reanalysis_data(reanalysis_name='ERA5',
-                                                                        latitude_ddeg=53.5, 
-                                                                        longtude_ddeg=-10.8,
-                                                                        nearest_nodes=4)
-
-        Using the data model
-        ::
-            demo_reanalysis = bw.MeasurementStation(metadata)
-            demo_reanalysis.measurements
-            demo_reanalysis.header
+            nodes = bw.LoadBrightHub.get_reanalysis_data(reanalysis_name='ERA5',
+                                                         latitude_ddeg=53.5,
+                                                         longitude_ddeg=-10.8,
+                                                         nearest_nodes=4)
+            for metadata, timeseries in nodes:
+                print(f"Name: {metadata.name}, Lat: {metadata.lat}, Long: {metadata.long}")
 
         """
         if nearest_nodes < 1 or nearest_nodes > 16:
             raise ValueError("The number of 'nearest_nodes' is outside the range of 1 to 16.")
         if nearest_nodes == 1:
-            return LoadBrightHub.__get_reanalysis_single_node(reanalysis_name, latitude_ddeg, longitude_ddeg,
+            return LoadBrightHub.__get_reanalysis_single_node(reanalysis_name, latitude, longitude,
                                                               date_from, date_to, variables)
         else:
             return_list = []
-            nodes = LoadBrightHub.__get_nearest_nodes(reanalysis_name, latitude_ddeg, longitude_ddeg, nearest_nodes)
+            nodes = LoadBrightHub.__get_nearest_nodes(reanalysis_name, latitude, longitude, nearest_nodes)
             for node in nodes:
                 node_station, node_df = LoadBrightHub.__get_reanalysis_single_node(
                     reanalysis_name, node["latitude_ddeg"], node["longitude_ddeg"], date_from, date_to, variables)
