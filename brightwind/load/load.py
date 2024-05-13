@@ -1547,6 +1547,21 @@ class LoadBrightHub:
     @staticmethod
     def __get_reanalysis_single_node(reanalysis_name, latitude_ddeg, longitude_ddeg,
                                      date_from=None, date_to=None, variables=None, return_metadata_json=False):
+        """
+        Get reanalysis data from BrightHub for a single node nearest to a particular location. A brightwind
+        MeasurementStation object (capturing the metadata) and a pandas.DataFrame (for the timeseries) for each
+        reanalysis node is returned.
+
+        :param reanalysis_name:
+        :param latitude_ddeg:
+        :param longitude_ddeg:
+        :param date_from:
+        :param date_to:
+        :param variables:
+        :param return_metadata_json:
+        :return:                         A tuple of a MeasurementStation object and the timeseries in a DataFrame.
+        :rtype:                          tuple(MeasurementStation, pandas.DataFrame)
+        """
         response = LoadBrightHub._brighthub_request(
             url_end=f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
             params={"date_from": LoadBrightHub.__date_to_datetime_str(date_from),
