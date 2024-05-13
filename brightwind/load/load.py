@@ -1324,12 +1324,12 @@ class LoadBrightHub:
         """
         Get the timeseries data from BrightHub for a particular measurement station.
 
-        When using the date filters, the brightwind convention for date ranges is greater than and equal to 'date_from'
+        When using the date filters, the brightwind convention for date ranges is greater than or equal to 'date_from'
         to less than 'date_to'.
 
         :param measurement_station_uuid: A specific measurement station's uuid.
         :type measurement_station_uuid:  str
-        :param date_from:                Optional filter to retrieve data from this date onwards.
+        :param date_from:                Optional filter to retrieve data from and including this date onwards.
         :type date_from:                 str
         :param date_to:                  Optional filter to retrieve data up to this date.
         :type date_to:                   str
