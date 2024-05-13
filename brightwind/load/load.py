@@ -1499,7 +1499,7 @@ class LoadBrightHub:
         """
         Get the nearest nodes to my point of interest.
 
-        There is a known bug if the longitudes value is around the 180th meridian of longitude.
+        There is a known bug if the longitude values are around the 180th meridian of longitude.
 
         :param reanalysis_name:
         :param latitude_ddeg:
@@ -1573,10 +1573,11 @@ class LoadBrightHub:
 
     @staticmethod
     def get_reanalysis(reanalysis_name, latitude, longitude, date_from=None, date_to=None, nearest_nodes=1,
-                       variables=None):
+                       variables=None, print_status=False):
         """
-        Get reanalysis data from BrightHub for the n nearest nodes to a particular location. A brightwind
-        MeasurementStation object and the timeseries in a pandas.DataFrame for each reanalysis node is retrieved.
+        Get reanalysis data from BrightHub for n nearest nodes to a particular location. A brightwind
+        MeasurementStation object (capturing the metadata) and a pandas.DataFrame (for the timeseries) for each
+        reanalysis node is returned.
 
         When using the date filters, the brightwind convention for date ranges is greater than and equal to 'date_from'
         to less than 'date_to'.
@@ -1603,6 +1604,9 @@ class LoadBrightHub:
                                            - Tmp_2m_degC               - Tmp_2m_degC
                                            - Prs_0m_hPa                - Prs_0m_hPa
         :type  variables:                list
+        :param print_status:             Option to show a print statement of the progress of downloading the reanalysis
+                                         datasets. Only shown when pulling more than 1 dataset.
+        :type print_status:              bool
         :return:                         A tuple, or list of tuples, of a MeasurementStation object and the timeseries
                                          in a DataFrame.
         :rtype:                          tuple(MeasurementStation, pandas.DataFrame) or
@@ -1644,7 +1648,11 @@ class LoadBrightHub:
         else:
             return_list = []
             nodes = LoadBrightHub.__get_nearest_nodes(reanalysis_name, latitude, longitude, nearest_nodes)
-            for node in nodes:
+            for index, node in enumerate(nodes):
+                if print_status:
+                    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    print(f"{timestamp}:\tDownloading reanalysis dataset "
+                          f"{index + 1} of {nearest_nodes} from BrightHub.")
                 node_station, node_df = LoadBrightHub.__get_reanalysis_single_node(
                     reanalysis_name, node["latitude_ddeg"], node["longitude_ddeg"], date_from, date_to, variables)
                 return_list.append((node_station, node_df))
