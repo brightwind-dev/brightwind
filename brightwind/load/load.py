@@ -1546,7 +1546,7 @@ class LoadBrightHub:
 
     @staticmethod
     def __get_reanalysis_single_node(reanalysis_name, latitude_ddeg, longitude_ddeg,
-                                     date_from=None, date_to=None, variables=None):
+                                     date_from=None, date_to=None, variables=None, return_metadata_json=False):
         response = LoadBrightHub._brighthub_request(
             url_end=f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
             params={"date_from": LoadBrightHub.__date_to_datetime_str(date_from),
@@ -1566,14 +1566,15 @@ class LoadBrightHub:
         elif 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
-        node_station = MeasurementStation(response_json['metadata'])
+        node_metadata = (response_json['metadata'] if return_metadata_json
+                         else MeasurementStation(response_json['metadata']))
         df = pd.DataFrame(response_json['timeseries_data']['data'],
                           columns=response_json['timeseries_data']['columns'])
-        return node_station, df.set_index('Timestamp')
+        return node_metadata, df.set_index('Timestamp')
 
     @staticmethod
     def get_reanalysis(reanalysis_name, latitude, longitude, date_from=None, date_to=None, nearest_nodes=1,
-                       variables=None, print_status=False):
+                       variables=None, print_status=False, return_metadata_json=False):
         """
         Get reanalysis data from BrightHub for n nearest nodes to a particular location. A brightwind
         MeasurementStation object (capturing the metadata) and a pandas.DataFrame (for the timeseries) for each
@@ -1607,6 +1608,9 @@ class LoadBrightHub:
         :param print_status:             Option to show a print statement of the progress of downloading the reanalysis
                                          datasets. Only shown when pulling more than 1 dataset.
         :type print_status:              bool
+        :param return_metadata_json:     Option to return the metadata as JSON instead of the brightwind
+                                         MeasurementStation object.
+        :type return_metadata_json:      bool
         :return:                         A tuple, or list of tuples, of a MeasurementStation object and the timeseries
                                          in a DataFrame.
         :rtype:                          tuple(MeasurementStation, pandas.DataFrame) or
@@ -1618,33 +1622,39 @@ class LoadBrightHub:
 
         To get all the data for the specific reanalysis node
         ::
-            metadata, timeseries = bw.LoadBrightHub.get_data(reanalysis_name='ERA5', 
-                                                             latitude_ddeg=53.5, 
-                                                             longitude_ddeg=-10.8)
+            metadata, timeseries = bw.LoadBrightHub.get_reanalysis(reanalysis_name='ERA5',
+                                                                   latitude=53.5, longitude=-10.8)
             timeseries.head()
 
         To get data for a specific time period
         ::
-            metadata, timeseries = bw.LoadBrightHub.get_reanalysis_data(reanalysis_name='ERA5', 
-                                                                        latitude_ddeg=53.5, 
-                                                                        longitude_ddeg=-10.8,
-                                                                        date_from='2016-06-01',
-                                                                        date_to='2016-07-01')
+            metadata, timeseries = bw.LoadBrightHub.get_reanalysis(reanalysis_name='ERA5',
+                                                                   latitude=53.5, longitude=-10.8,
+                                                                   date_from='2016-06-01', date_to='2016-07-01')
 
         To get data from the nearest 4 nodes
         ::
-            nodes = bw.LoadBrightHub.get_reanalysis_data(reanalysis_name='ERA5',
-                                                         latitude_ddeg=53.5,
-                                                         longitude_ddeg=-10.8,
-                                                         nearest_nodes=4)
+            nodes = bw.LoadBrightHub.get_reanalysis(reanalysis_name='MERRA-2',
+                                                    latitude=53.5, longitude=-10.8,
+                                                    date_from='2024-01-01',
+                                                    nearest_nodes=4)
             for metadata, timeseries in nodes:
                 print(f"Name: {metadata.name}, Lat: {metadata.lat}, Long: {metadata.long}")
+
+        To get data from the nearest 4 nodes with a status print statement and the metadata returned as JSON.
+        ::
+            nodes = bw.LoadBrightHub.get_reanalysis(reanalysis_name='MERRA-2',
+                                                    latitude=53.5, longitude=-10.8,
+                                                    date_from='2024-01-01',
+                                                    nearest_nodes=4, print_status=True, return_metadata_json=True)
+            for metadata, timeseries in nodes:
+                print(f"Name: {metadata.get('measurement_location')[0].get('name')}.")
     """
         if nearest_nodes < 1 or nearest_nodes > 16:
             raise ValueError("The number of 'nearest_nodes' is outside the range of 1 to 16.")
         if nearest_nodes == 1:
             return LoadBrightHub.__get_reanalysis_single_node(reanalysis_name, latitude, longitude,
-                                                              date_from, date_to, variables)
+                                                              date_from, date_to, variables, return_metadata_json)
         else:
             return_list = []
             nodes = LoadBrightHub.__get_nearest_nodes(reanalysis_name, latitude, longitude, nearest_nodes)
@@ -1654,7 +1664,8 @@ class LoadBrightHub:
                     print(f"{timestamp}:\tDownloading reanalysis dataset "
                           f"{index + 1} of {nearest_nodes} from BrightHub.")
                 node_station, node_df = LoadBrightHub.__get_reanalysis_single_node(
-                    reanalysis_name, node["latitude_ddeg"], node["longitude_ddeg"], date_from, date_to, variables)
+                    reanalysis_name, node["latitude_ddeg"], node["longitude_ddeg"],
+                    date_from, date_to, variables, return_metadata_json)
                 return_list.append((node_station, node_df))
             return return_list
 
