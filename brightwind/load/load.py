@@ -1595,7 +1595,7 @@ class LoadBrightHub:
         MeasurementStation object (capturing the metadata) and a pandas.DataFrame (for the timeseries) for each
         reanalysis node is returned.
 
-        When using the date filters, the brightwind convention for date ranges is greater than and equal to 'date_from'
+        When using the date filters, the brightwind convention for date ranges is greater than or equal to 'date_from'
         to less than 'date_to'.
 
         :param reanalysis_name:          The name of the reanalysis dataset. Allowed values: ERA5, MERRA-2.
@@ -1604,7 +1604,7 @@ class LoadBrightHub:
         :type latitude:                  float
         :param longitude:                Longitude of the node in decimal degrees. Accepted range is -180 to 180.
         :type longitude:                 float
-        :param date_from:                Optional filter to retrieve data from this date onwards.
+        :param date_from:                Optional filter to retrieve data from and including this date onwards.
         :type date_from:                 str
         :param date_to:                  Optional filter to retrieve data up to this date.
         :type date_to:                   str
