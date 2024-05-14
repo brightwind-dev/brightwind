@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-from brightwind.utils import utils
+from brightwind.utils import utils, gis
+from brightwind.load.station import MeasurementStation
 import datetime
 import requests
 from typing import List
@@ -84,21 +85,6 @@ def _assemble_df_from_folder(source_folder, file_type, function_to_get_df, print
     return assembled_df.sort_index()
 
 
-def _is_file(file_or_folder):
-    """
-    Returns True is file_or_folder is a file.
-    :param file_or_folder: The file or folder path.
-    :type file_or_folder: str
-    :return: True if a file.
-    """
-    if os.path.isfile(file_or_folder):
-        return True
-    elif os.path.isdir(file_or_folder):
-        return False
-    else:
-        raise FileNotFoundError("File or folder doesn't seem to exist.")
-
-
 def _pandas_read_csv(filepath, **kwargs):
     """
     Wrapper function around the Pandas read_csv function.
@@ -161,7 +147,7 @@ def load_csv(filepath_or_folder, search_by_file_type=['.csv'], print_progress=Tr
         df = bw.load_csv(filepath, skiprows=0)
     """
 
-    is_file = _is_file(filepath_or_folder)
+    is_file = utils.is_file(filepath_or_folder)
     fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True, 'dayfirst': dayfirst}
     merged_fn_args = {**fn_arguments, **kwargs}
     if is_file:
@@ -211,7 +197,7 @@ def load_windographer_txt(filepath, delimiter='tab', flag_text=9999, dayfirst=Fa
 
     """
 
-    is_file = _is_file(filepath)
+    is_file = utils.is_file(filepath)
     if is_file:
         # Need to replace the flag text before loading into the DataFrame as this text could be a string or a number
         # and Pandas will throw and warning msg if data types in a column are mixed setting the column as string.
@@ -281,7 +267,7 @@ def load_campbell_scientific(filepath_or_folder, print_progress=True, dayfirst=F
         df = bw.load_campbell_scientific(folder, print_progress=True)
     """
 
-    is_file = _is_file(filepath_or_folder)
+    is_file = utils.is_file(filepath_or_folder)
     fn_arguments = {'header': 0, 'index_col': 0, 'parse_dates': True, 'skiprows': [0, 2, 3],  'dayfirst': dayfirst}
     merged_fn_args = {**fn_arguments, **kwargs}
     if is_file:
@@ -350,7 +336,7 @@ def load_excel(filepath_or_folder, search_by_file_type=['.xlsx'], print_progress
         df = bw.load_excel(filepath, skiprows=0)
     """
 
-    is_file = _is_file(filepath_or_folder)
+    is_file = utils.is_file(filepath_or_folder)
     fn_arguments = {'index_col': 0, 'parse_dates': True, 'sheet_name': sheet_name}
     merged_fn_args = {**fn_arguments, **kwargs}
     if is_file:
@@ -934,6 +920,7 @@ class _BrighthubAuth:
             'Content-Type': 'application/x-amz-json-1.1'
         }
         client_id = "3qkkpikve578cbok46p136au3g"
+        # client_id = utils.get_environment_variable('BRIGHTHUB_USER_POOL_CLIENT_ID')
 
         return url, headers, client_id
 
@@ -1062,6 +1049,7 @@ class LoadBrightHub:
     """
 
     __BASE_URI = 'https://api.brighthub.io'
+    # __BASE_URI = utils.get_environment_variable('BRIGHTHUB_BASE_URI')
 
     @staticmethod
     def _brighthub_request(url_end, params=None):
@@ -1072,7 +1060,7 @@ class LoadBrightHub:
         :type url_end:      str
         :param params:      Optional. A dictionary, list of tuples or bytes to send as a query string. Default None
         :type params:       dict, list(tuples), bytes
-        :return response:   The requests reponse object returned by requests.get()
+        :return response:   The requests response object returned by requests.get()
         :rtype:             requests.Response object
         """
 
@@ -1306,25 +1294,42 @@ class LoadBrightHub:
 
         return data_model.json()
 
-    # Pulling the timeseries data.
-    __DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
+    @staticmethod
+    def __date_to_datetime_str(date_str):
+        """
+        Convert date string into a datetime string.
+
+        :param date_str: Input date.
+        :type date_str:  str
+        :return:         Datetime formatted string.
+        :rtype:          str
+        """
+        date_str = pd.to_datetime(date_str).strftime('%Y-%m-%d %H:%M:%S') if date_str is not None else None
+        return date_str
 
     @staticmethod
-    def __get_date_range_as_chunks(date_from, date_to, interval):
-        # Based on: https://stackoverflow.com/a/29721341/7373512
-        diff = (date_to - date_from) / interval
-        for i in range(interval):
-            yield (date_from + diff * i).strftime(LoadBrightHub.__DATE_FORMAT)
-        yield date_to.strftime(LoadBrightHub.__DATE_FORMAT)
+    def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None):
+        """
+        Sub function to return the Brighthub GET timeseries-data API response.
+        """
+        date_from = LoadBrightHub.__date_to_datetime_str(date_from)
+        date_to = LoadBrightHub.__date_to_datetime_str(date_to)
+        
+        return LoadBrightHub._brighthub_request(
+            url_end=f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
+            params={"date_from": date_from, "date_to": date_to})
 
     @staticmethod
     def get_data(measurement_station_uuid, date_from=None, date_to=None):
         """
         Get the timeseries data from BrightHub for a particular measurement station.
 
+        When using the date filters, the brightwind convention for date ranges is greater than or equal to 'date_from'
+        to less than 'date_to'.
+
         :param measurement_station_uuid: A specific measurement station's uuid.
         :type measurement_station_uuid:  str
-        :param date_from:                Optional filter to retrieve data from this date onwards.
+        :param date_from:                Optional filter to retrieve data from and including this date onwards.
         :type date_from:                 str
         :param date_to:                  Optional filter to retrieve data up to this date.
         :type date_to:                   str
@@ -1357,70 +1362,345 @@ class LoadBrightHub:
                                              date_to='2016-07-01')
 
         """
-        if not date_from or not date_to:
-            start_end_dates = LoadBrightHub.get_start_end_dates(measurement_station_uuid)
+        response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to)
+        response_json = response.json()
 
-            if not date_from:
-                date_from = start_end_dates['start_date']
-            if not date_to:
-                date_to = start_end_dates['end_date']
-
-        date_from_dt = pd.to_datetime(date_from)
-        date_to_dt = pd.to_datetime(date_to)
-
-        time_diff = date_to_dt - date_from_dt
-        time_diff_in_secs = time_diff.total_seconds()
-
-        number_of_days_per_chunk = 30
-        secs_in_single_day = 60 * 60 * 24
-        chunk_size_in_secs = secs_in_single_day * number_of_days_per_chunk
-
-        if time_diff_in_secs > chunk_size_in_secs:
-            # Round up to ensure no data lost
-            number_of_chunks = math.ceil(time_diff_in_secs / chunk_size_in_secs)
-            chunk_dates = list(
-                LoadBrightHub.__get_date_range_as_chunks(date_from_dt, date_to_dt, number_of_chunks)
-            )
-            chunks = [
-                (chunk_date, chunk_dates[idx + 1])
-                for (idx, chunk_date) in enumerate(chunk_dates)
-                if idx < len(chunk_dates) - 1
-            ]
-        # Chunk into 3 if between 5 and 30 days data requested
-        elif time_diff_in_secs > secs_in_single_day * 5:
-            chunk_dates = list(LoadBrightHub.__get_date_range_as_chunks(date_from_dt, date_to_dt, 3))
-            chunks = [
-                (chunk_date, chunk_dates[idx + 1])
-                for (idx, chunk_date) in enumerate(chunk_dates)
-                if idx < len(chunk_dates) - 1
-            ]
-        # Don't bother splitting if less than 5 days data requested
-        else:
-            chunks = [(date_from_dt.strftime(LoadBrightHub.__DATE_FORMAT),
-                       date_to_dt.strftime(LoadBrightHub.__DATE_FORMAT))]
-
-        def get_chunk(_date_from, _date_to):
-            response = LoadBrightHub._brighthub_request(
-                url_end="/resource-data",
-                params={"measurement_location_uuid": measurement_station_uuid,
-                        "date_from": _date_from, "date_to": _date_to})
-            pre_signed_url = response.json()["url"]
-            response = requests.get(pre_signed_url)
-            return response.text
-
-        master_df = pd.DataFrame()
-        with concurrent.futures.ThreadPoolExecutor() as executor:  # optimally defined number of threads
-            res = [executor.submit(get_chunk, chunk[0], chunk[1]) for chunk in chunks]
-            concurrent.futures.wait(res)
-            for result in res:
-                chunk_df = pd.read_csv(StringIO(result.result()),)
-                chunk_df["Timestamp"] = pd.to_datetime(chunk_df["Timestamp"])
-                chunk_df.index = pd.DatetimeIndex(chunk_df.pop("Timestamp"))
-                if master_df.empty:
-                    master_df = chunk_df
+        # Handle 503 Service Unavailable error response using Retry-After header.
+        # 503 error is returned when the timeseries data file is being assembled by Brighthub.
+        # This is to ensure that only the most up to date data can be downloaded.
+        assembly_in_progress_err_msg = 'The server is currently busy assembling the timeseries file.'
+        if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+            retry_after = int(response.headers.get('Retry-After', 60))  # default retry after default 60 seconds
+            for _ in range(4):  # attempt 4 more times
+                time.sleep(retry_after)  # wait before retrying
+                response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to)
+                response_json = response.json()
+                if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+                    retry_after *= 2  # double the retry time for each attempt
+                    continue  # try again
                 else:
-                    master_df = pd.concat([master_df, chunk_df])
-        return master_df
+                    # Either the call was a success or there was a different error.
+                    break  # exit for loop
+            # Raise the 503 error if all the attempts have been used up.
+            if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+                raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+
+        if response.status_code == 404 and 'details' in response_json:  # other BrightHub specific errors.
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        elif 'error' in response_json:
+            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
+
+        presigned_url = response_json["url"]
+
+        try:
+            timeseries_response = requests.get(presigned_url)
+        except requests.exceptions.RequestException as e:
+            # Handle all request-related errors
+            raise RuntimeError(f"An error occurred while fetching the data: {e}")
+
+        df = pd.read_csv(StringIO(timeseries_response.text))
+        df['Timestamp'] = pd.to_datetime(df['Timestamp'])  # this throws error if return doesn't have 'Timestamp'
+        return df.set_index('Timestamp')
+
+    @staticmethod
+    def get_cleaning_log(measurement_station_uuid):
+        """
+        Get the cleaning log from BrightHub for a particular measurement station.
+
+        :param measurement_station_uuid: A specific measurement station's uuid.
+        :type measurement_station_uuid:  str
+        :return:                         The cleaning logs for the measurement station.
+        :rtype:                          pd.DataFrame
+        
+        To get the cleaning logs for the specific measurement station
+        ::
+            measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14'
+            cleaning_log = bw.LoadBrightHub.get_cleaning_log(measurement_station_uuid)
+            cleaning_log.head()
+
+        Applying the cleaning to the timeseries data.
+        ::
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid)
+        
+            # Apply the cleaning logs to the data resulting in a dataset that is ready to work with.
+            data_clnd = bw.apply_cleaning(data, cleaning_log, sensor_col_name='MeasurementName',
+                                          date_from_col_name='DateFrom', date_to_col_name='DateTo')
+        """
+        response = LoadBrightHub._brighthub_request(
+            url_end=f"/measurement-locations/{measurement_station_uuid}/cleaning-log")
+        response_json = response.json()
+
+        # error handling
+        if response.status_code == 400 and 'details' in response_json:  # request parameters invalid or missing
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 403 and 'details' in response_json:  # insufficient permissions or download limit
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 404 and 'details' in response_json:  # requested resource not found
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 500 and 'details' in response_json:  # unexpected server error
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        elif 'error' in response_json:
+            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
+
+        presigned_url = response_json["url"]
+
+        try:
+            cleaning_log_response = requests.get(presigned_url)
+        except requests.exceptions.RequestException as e:
+            # Handle all request-related errors
+            raise RuntimeError(f"An error occurred while fetching the cleaning log: {e}")
+        return pd.read_csv(StringIO(cleaning_log_response.text))
+      
+    @staticmethod
+    def __get_reanalysis_nodes(reanalysis_name, min_latitude_ddeg, max_latitude_ddeg,
+                               min_longitude_ddeg, max_longitude_ddeg):
+        """
+        Get the reanalysis nodes from BrightHub within a certain geographical box.
+
+        :param reanalysis_name:     The name of the reanalysis dataset. Allowed values: ERA5, MERRA-2.
+        :type reanalysis_name:      str
+        :param min_latitude_ddeg:   Min latitude of the box in decimal degrees. Allowed values between -90 and 90.
+        :type min_latitude_ddeg:    float
+        :param max_latitude_ddeg:   Max latitude of the box in decimal degrees. Allowed values between -90 and 90.
+        :type max_latitude_ddeg:    float
+        :param min_longitude_ddeg:  Min longitude of the box in decimal degrees. Allowed values between -180 and 180.
+        :type min_longitude_ddeg:   float
+        :param max_longitude_ddeg:  Max longitude of the box in decimal degrees. Allowed values between -180 and 180.
+        :type max_longitude_ddeg:   float
+        :return:                    A list of dictionaries containing the reanalysis_id and the latitude and longitude
+                                    of the nodes.
+        :rtype:                     list(dict)
+        """
+        response = LoadBrightHub._brighthub_request(
+            url_end=f"/reanalysis/{reanalysis_name}/nodes",
+            params={"min_latitude_ddeg": min_latitude_ddeg,
+                    "max_latitude_ddeg": max_latitude_ddeg,
+                    "min_longitude_ddeg": min_longitude_ddeg,
+                    "max_longitude_ddeg": max_longitude_ddeg})
+        response_json = response.json()
+
+        # error handling
+        if response.status_code == 400 and 'details' in response_json:  # request parameters invalid or missing
+            raise ValueError(f"{response_json.get('error', '')}. "
+                             f"Fields: {response_json.get('fields', '')}. "
+                             f"{response_json.get('details', '')}")
+        if response.status_code == 403 and 'details' in response_json:  # insufficient permissions or download limit
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 404 and 'details' in response_json:  # requested resource not found
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 500 and 'details' in response_json:  # unexpected server error
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        elif 'error' in response_json:
+            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
+
+        return response_json
+
+    @staticmethod
+    def __get_nearest_nodes(reanalysis_name, latitude_ddeg, longitude_ddeg, nearest_nodes):
+        """
+        Get the nearest nodes to my point of interest.
+
+        There is a known bug if the longitude values are around the 180th meridian of longitude.
+
+        :param reanalysis_name:
+        :param latitude_ddeg:
+        :param longitude_ddeg:
+        :param nearest_nodes:
+        :return:
+        """
+        # Set what the half distance of the surrounding box will be.
+        if reanalysis_name == 'ERA5':
+            box_half_distance = 0.9
+        else:
+            box_half_distance = 1.5
+
+        # Set the extents of the box.
+        min_latitude_ddeg = latitude_ddeg - box_half_distance
+        max_latitude_ddeg = latitude_ddeg + box_half_distance
+        min_longitude_ddeg = longitude_ddeg - box_half_distance
+        max_longitude_ddeg = longitude_ddeg + box_half_distance
+
+        # Get the list of nodes within the box.
+        nodes = LoadBrightHub.__get_reanalysis_nodes(reanalysis_name, min_latitude_ddeg, max_latitude_ddeg,
+                                                     min_longitude_ddeg, max_longitude_ddeg)
+
+        # Calculate the distance of each node to the point of interest.
+        for node in nodes:
+            node['distance'] = gis.distance_between_points_haversine(
+                node['latitude_ddeg'], node['longitude_ddeg'], latitude_ddeg, longitude_ddeg)
+
+        # Sort nodes by distance to point of interest (ascending order)
+        nodes_sorted = sorted(nodes, key=lambda x: x['distance'])
+        return nodes_sorted[:nearest_nodes]
+
+    @staticmethod
+    def __parse_variables(variables_list):
+        var_parsed = None
+        if variables_list is not None:
+            # Check if variables_list is a list
+            if not isinstance(variables_list, list):
+                raise TypeError("Expected a list as input")
+            var_parsed = variables_list[0]
+            for variable in variables_list[1:]:
+                var_parsed = var_parsed + ',' + variable
+        return var_parsed
+
+    @staticmethod
+    def __get_reanalysis_single_node(reanalysis_name, latitude_ddeg, longitude_ddeg,
+                                     date_from=None, date_to=None, variables=None, return_metadata_json=False):
+        """
+        Get reanalysis data from BrightHub for a single node nearest to a particular location. A brightwind
+        MeasurementStation object (capturing the metadata) and a pandas.DataFrame (for the timeseries) for each
+        reanalysis node is returned.
+
+        :param reanalysis_name:
+        :param latitude_ddeg:
+        :param longitude_ddeg:
+        :param date_from:
+        :param date_to:
+        :param variables:
+        :param return_metadata_json:
+        :return:                         A tuple of a MeasurementStation object and the timeseries in a DataFrame.
+        :rtype:                          tuple(MeasurementStation, pandas.DataFrame)
+        """
+        response = LoadBrightHub._brighthub_request(
+            url_end=f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
+            params={"date_from": LoadBrightHub.__date_to_datetime_str(date_from),
+                    "date_to": LoadBrightHub.__date_to_datetime_str(date_to),
+                    "variables": LoadBrightHub.__parse_variables(variables)})
+        response_json = response.json()
+
+        # error handling
+        if response.status_code == 400 and 'details' in response_json:  # request parameters invalid or missing
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 403 and 'details' in response_json:  # insufficient permissions or download limit
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 404 and 'details' in response_json:  # requested resource not found
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 500 and 'details' in response_json:  # unexpected server error
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        elif 'error' in response_json:
+            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
+
+        node_metadata = (response_json['metadata'] if return_metadata_json
+                         else MeasurementStation(response_json['metadata']))
+        df = pd.DataFrame(response_json['timeseries_data']['data'],
+                          columns=response_json['timeseries_data']['columns'])
+        df['Timestamp'] = pd.to_datetime(df['Timestamp'])  # this throws error if return doesn't have 'Timestamp'
+        return node_metadata, df.set_index('Timestamp')
+
+    @staticmethod
+    def get_reanalysis(reanalysis_name, latitude, longitude, date_from=None, date_to=None, nearest_nodes=1,
+                       variables=None, print_status=False, return_metadata_json=False):
+        """
+        Get reanalysis data from BrightHub for n nearest nodes to a particular location. A brightwind
+        MeasurementStation object (capturing the metadata) and a pandas.DataFrame (for the timeseries) for each
+        reanalysis node is returned.
+
+        When using the date filters, the brightwind convention for date ranges is greater than or equal to 'date_from'
+        to less than 'date_to'.
+
+        :param reanalysis_name:          The name of the reanalysis dataset. Allowed values: ERA5, MERRA-2.
+        :type reanalysis_name:           str
+        :param latitude:                 Latitude of the node in decimal degrees. Accepted range is -90 to 90.
+        :type latitude:                  float
+        :param longitude:                Longitude of the node in decimal degrees. Accepted range is -180 to 180.
+        :type longitude:                 float
+        :param date_from:                Optional filter to retrieve data from and including this date onwards.
+        :type date_from:                 str
+        :param date_to:                  Optional filter to retrieve data up to this date.
+        :type date_to:                   str
+        :param nearest_nodes:            The number of reanalysis nodes to return which are the closest to your
+                                         location of interest. Accepted range is 1 to 16.
+        :type nearest_nodes:             int
+        :param variables:                Specify variables to be retrieved.
+                                         None value will return Spd_50m_mps for MERRA-2 and Spd_100m_mps for ERA5.
+                                         Variables for each dataset are:
+                                             MERRA-2                    ERA5
+                                           - Spd_50m_mps               - Spd_100m_mps
+                                           - Dir_50m_deg               - Dir_100m_deg
+                                           - Tmp_2m_degC               - Tmp_2m_degC
+                                           - Prs_0m_hPa                - Prs_0m_hPa
+        :type  variables:                list
+        :param print_status:             Option to show a print statement of the progress of downloading the reanalysis
+                                         datasets. Only shown when pulling more than 1 dataset.
+        :type print_status:              bool
+        :param return_metadata_json:     Option to return the metadata as JSON instead of the brightwind
+                                         MeasurementStation object.
+        :type return_metadata_json:      bool
+        :return:                         A tuple, or list of tuples, of a MeasurementStation object and the timeseries
+                                         in a DataFrame.
+        :rtype:                          tuple(MeasurementStation, pandas.DataFrame) or
+                                         list(tuple(MeasurementStation, pandas.DataFrame))
+
+        **Example usage**
+        ::
+            import brightwind as bw
+
+        To get all the data for the specific reanalysis node
+        ::
+            metadata, timeseries = bw.LoadBrightHub.get_reanalysis(reanalysis_name='ERA5',
+                                                                   latitude=53.5, longitude=-10.8)
+            timeseries.head()
+
+        To get data for a specific time period
+        ::
+            metadata, timeseries = bw.LoadBrightHub.get_reanalysis(reanalysis_name='ERA5',
+                                                                   latitude=53.5, longitude=-10.8,
+                                                                   date_from='2016-06-01', date_to='2016-07-01')
+
+        To get data from the nearest 4 nodes
+        ::
+            nodes = bw.LoadBrightHub.get_reanalysis(reanalysis_name='MERRA-2',
+                                                    latitude=53.5, longitude=-10.8,
+                                                    date_from='2024-01-01',
+                                                    nearest_nodes=4)
+            for metadata, timeseries in nodes:
+                print(f"Name: {metadata.name}, Lat: {metadata.lat}, Long: {metadata.long}")
+
+        To get data from the nearest 4 nodes with a status print statement and the metadata returned as JSON.
+        ::
+            nodes = bw.LoadBrightHub.get_reanalysis(reanalysis_name='MERRA-2',
+                                                    latitude=53.5, longitude=-10.8,
+                                                    date_from='2024-01-01',
+                                                    nearest_nodes=4, print_status=True, return_metadata_json=True)
+            for metadata, timeseries in nodes:
+                print(f"Name: {metadata.get('measurement_location')[0].get('name')}.")
+
+        To get data from the nearest 4 nodes with a status print statement and displaying some important metadata.
+        ::
+            nodes = bw.LoadBrightHub.get_reanalysis(reanalysis_name='MERRA-2',
+                                                    latitude=53.5, longitude=-10.8,
+                                                    date_from='2024-01-01',
+                                                    variables=['Spd_50m_mps', 'Dir_50m_deg',
+                                                               'Tmp_2m_degC', 'Prs_0m_hPa'],
+                                                    nearest_nodes=4, print_status=True)
+            for metadata, timeseries in nodes:
+                print(f"Downloaded: {metadata.name}, with Latitude: {metadata.lat} and Longitude: {metadata.long}")
+                print(f"\t Name \t\t Measurement Type \t Height [m] \t Units \t From \t\t\t To")
+                for measurement in metadata.measurements.properties:
+                    print(f"\t {measurement.get('name')}\t {measurement.get('measurement_type_id')}\t\t "
+                          f"{measurement.get('height_m')}\t\t {measurement.get('measurement_units_id')}\t "
+                          f"{measurement.get('date_from')}\t {measurement.get('date_to')}")
+    """
+        if nearest_nodes < 1 or nearest_nodes > 16:
+            raise ValueError("The number of 'nearest_nodes' is outside the range of 1 to 16.")
+        if nearest_nodes == 1:
+            return LoadBrightHub.__get_reanalysis_single_node(reanalysis_name, latitude, longitude,
+                                                              date_from, date_to, variables, return_metadata_json)
+        else:
+            return_list = []
+            nodes = LoadBrightHub.__get_nearest_nodes(reanalysis_name, latitude, longitude, nearest_nodes)
+            for index, node in enumerate(nodes):
+                if print_status:
+                    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    print(f"{timestamp}:\tDownloading reanalysis dataset "
+                          f"{index + 1} of {nearest_nodes} from BrightHub.")
+                node_station, node_df = LoadBrightHub.__get_reanalysis_single_node(
+                    reanalysis_name, node["latitude_ddeg"], node["longitude_ddeg"],
+                    date_from, date_to, variables, return_metadata_json)
+                return_list.append((node_station, node_df))
+            return return_list
 
 
 class _LoadBWPlatform:
@@ -1864,33 +2144,38 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
 def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Sensor', date_from_col_name='Start',
                    date_to_col_name='Stop', all_sensors_descriptor='All', replacement_text='NaN', dayfirst=False):
     """
-    Apply cleaning to a DataFrame using predetermined flagged periods for each sensor listed in a cleaning file.
-    The flagged data will be replaced with NaN values which then do not appear in any plots or effect calculations.
+    Apply cleaning to a timeseries DataFrame using predetermined flagged periods for each sensor listed in a cleaning
+    file. For each row in the cleaning file, if the 'Sensor' string is found at the start of a column name in the
+    timeseries DataFrame, then that column of data is flagged for the specified period. The flagged data will be
+    replaced with NaN values which then do not appear in any plots or effect calculations.
 
-    This file is a simple comma separated file with the sensor name along with the start and end timestamps for the
-    flagged period. There may be other columns in the file however these will be ignores.  E.g.:
+    This file is a simple comma separated file with the 'Sensor' name along with the 'Start' and 'Stop' timestamps for
+    the flagged period. There may be other columns in the file however these will be ignores.  E.g.:
     | Sensor |      Start          |       Stop
     ----------------------------------------------------
     | Spd80m | 2018-10-23 12:30:00 | 2018-10-25 14:20:00
     | Dir78m | 2018-12-23 02:40:00 |
+
+    If the 'Stop' timestamp is missing, the data from the 'Start' until the end of the timeseries will be flagged.
 
     :param data:                    Data to be cleaned.
     :type data:                     pandas.DataFrame
     :param cleaning_file_or_df:     File path of the csv file or a pandas DataFrame which contains the list of sensor
                                     names along with the start and end timestamps of the periods that are flagged.
     :type cleaning_file_or_df:      str, pd.DataFrame
-    :param inplace:                 If 'inplace' is True, the original data, 'data', will be modified and and replaced
+    :param inplace:                 If 'inplace' is True, the original data, 'data', will be modified and replaced
                                     with the cleaned data. If 'inplace' is False, the original data will not be touched
                                     and instead a new object containing the cleaned data is created. To store this
                                     cleaned data, please ensure it is assigned to a new variable.
-    :type inplace: Boolean
+    :type inplace:                  bool
     :param sensor_col_name:         The column name which contains the list of sensor names that have flagged periods.
     :type sensor_col_name:          str, default 'Sensor'
     :param date_from_col_name:      The column name of the date_from or the start date of the period to be cleaned.
     :type date_from_col_name:       str, default 'Start'
     :param date_to_col_name:        The column name of the date_to or the end date of the period to be cleaned.
     :type date_to_col_name:         str, default 'Stop'
-    :param all_sensors_descriptor:  A text descriptor that represents ALL sensors in the DataFrame.
+    :param all_sensors_descriptor:  A text descriptor that represents ALL sensors in the DataFrame. If found, it will
+                                    remove all data for that period.
     :type all_sensors_descriptor:   str, default 'All'
     :param replacement_text:        Text used to replace the flagged data.
     :type replacement_text:         str, default 'NaN'
@@ -1946,7 +2231,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
             data.loc[(data.index >= date_from) & (data.index < date_to), data.columns] = replacement_text
         else:
             for col in data.columns:
-                if cleaning_df[sensor_col_name][k] in col:
+                if col.find(cleaning_df[sensor_col_name][k]) == 0:
                     data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
@@ -1956,30 +2241,33 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
 def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags_to_exclude=['Synthesized'],
                                 replacement_text='NaN', dayfirst=False):
     """
-    Apply cleaning to a DataFrame using the Windographer flagging log file after Windographer was used to clean and
-    filter the data.
-    The flagged data will be replaced with NaN values which then do not appear in any plots or effect calculations.
+    Apply cleaning to a timeseries DataFrame using the Windographer flagging log file after Windographer was used to
+    clean and filter the data. For each row in the Windographer flagging log file, if the 'Data Column' string is found
+    at the start of a column name in the timeseries DataFrame, then that column of data is flagged for the specified
+    period. The flagged data will be replaced with NaN values which then do not appear in any plots or effect
+    calculations.
 
-    :param data: Data to be cleaned.
-    :type data: pandas.DataFrame
+    :param data:                 Data to be cleaned.
+    :type data:                  pandas.DataFrame
     :param windog_cleaning_file: File path of the Windographer flagging log file which contains the list of sensor
                                  names along with the start and end timestamps of the periods that are flagged.
-    :type windog_cleaning_file: str
-    :param inplace: If 'inplace' is True, the original data, 'data', will be modified and and replaced with the cleaned
-                    data. If 'inplace' is False, the original data will not be touched and instead a new object
-                    containing the cleaned data is created. To store this cleaned data, please ensure it is assigned
-                    to a new variable.
-    :type inplace: Boolean
-    :param flags_to_exclude: List of flags you do not want to use to clean the data e.g. Synthesized.
-    :type flags_to_exclude: List[str], default ['Synthesized']
-    :param replacement_text: Text used to replace the flagged data.
-    :type replacement_text: str, default 'NaN'
-    :param dayfirst: If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true. Pandas defaults
-            to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses dates with the day
-            first, eg 10/11/12 is parsed as 2012-11-10. More info on pandas.read_csv parameters.
-    :type dayfirst: bool, default False
-    :return: DataFrame with the flagged data removed.
-    :rtype: pandas.DataFrame
+    :type windog_cleaning_file:  str
+    :param inplace:              If 'inplace' is True, the original data, 'data', will be modified and and replaced with
+                                 the cleaned data. If 'inplace' is False, the original data will not be touched and
+                                 instead a new object containing the cleaned data is created. To store this cleaned
+                                 data, please ensure it is assigned to a new variable.
+    :type inplace:               bool
+    :param flags_to_exclude:     List of flags you do not want to use to clean the data e.g. Synthesized.
+    :type flags_to_exclude:      List[str], default ['Synthesized']
+    :param replacement_text:     Text used to replace the flagged data.
+    :type replacement_text:      str, default 'NaN'
+    :param dayfirst:             If your timestamp starts with the day first e.g. DD/MM/YYYY then set this to true.
+                                 Pandas defaults to reading 10/11/12 as 2012-10-11 (11-Oct-2012). If True, pandas parses
+                                 dates with the day first, eg 10/11/12 is parsed as 2012-11-10.
+                                 More info on pandas.read_csv parameters.
+    :type dayfirst:              bool, default False
+    :return:                     DataFrame with the flagged data removed.
+    :rtype:                      pandas.DataFrame
 
     **Example usage**
     ::
@@ -2023,7 +2311,7 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
 
         pd.options.mode.chained_assignment = None
         for col in data.columns:
-            if cleaning_df[sensor_col_name][k] in col:
+            if col.find(cleaning_df[sensor_col_name][k]) == 0:
                 if cleaning_df[flag_col_name][k] not in flags_to_exclude:
                     data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
         pd.options.mode.chained_assignment = 'warn'

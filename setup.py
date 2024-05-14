@@ -34,7 +34,7 @@ setup(
     },
     url='https://github.com/brightwind-dev/brightwind.git',
     # UPDATE VERSION NUMBER HERE:
-    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.1.0.tar.gz',
+    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.2.0.tar.gz',
     license='MIT',
     author='Stephen Holleran of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',

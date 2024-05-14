@@ -1,9 +1,12 @@
 from brightwind.load.station import MeasurementStation
 from brightwind.utils import utils
 import gmaps
+import math
 
 
-__all__ = ['plot_meas_station_on_gmap']
+__all__ = ['plot_meas_station_on_gmap',
+           'distance_between_points_haversine'
+           ]
 
 
 def _create_coord_dict(name, latitude, longitude):
@@ -77,3 +80,33 @@ def plot_meas_station_on_gmap(meas_station, map_type='TERRAIN', zoom_level=9):
                                     display_info_box=True)
         fig.add_layer(marker)
     return fig
+
+
+def distance_between_points_haversine(lat1, lon1, lat2, lon2):
+    """
+    Calculate the distance between two geographical points using the Haversine formula. The distance is returned in km.
+
+    :param lat1:    Latitude of the first point in decimal degrees.
+    :type lat1:     float
+    :param lon1:    Longitude of the first point in decimal degrees.
+    :type lon1:     float
+    :param lat2:    Latitude of the second point in decimal degrees.
+    :type lat2:     float
+    :param lon2:    Longitude of the second point in decimal degrees.
+    :type lon2:     float
+    :return:        Distance in km.
+    :rtype:         float
+    """
+    radius = 6371  # Radius of the Earth in kilometers
+
+    # Convert decimal degrees to radians
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+
+    # Haversine formula
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    distance = radius * c
+
+    return distance
