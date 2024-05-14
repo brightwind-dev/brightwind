@@ -1399,6 +1399,7 @@ class LoadBrightHub:
             raise RuntimeError(f"An error occurred while fetching the data: {e}")
 
         df = pd.read_csv(StringIO(timeseries_response.text))
+        df['Timestamp'] = pd.to_datetime(df['Timestamp'])  # this throws error if return doesn't have 'Timestamp'
         return df.set_index('Timestamp')
 
     @staticmethod
@@ -1585,6 +1586,7 @@ class LoadBrightHub:
                          else MeasurementStation(response_json['metadata']))
         df = pd.DataFrame(response_json['timeseries_data']['data'],
                           columns=response_json['timeseries_data']['columns'])
+        df['Timestamp'] = pd.to_datetime(df['Timestamp'])  # this throws error if return doesn't have 'Timestamp'
         return node_metadata, df.set_index('Timestamp')
 
     @staticmethod
