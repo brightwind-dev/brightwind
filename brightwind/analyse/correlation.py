@@ -435,7 +435,7 @@ class OrdinaryLeastSquares(CorrelBase):
         return 'Ordinary Least Squares Model ' + str(self.params)
 
     @staticmethod
-    def _leastsquare(ref_spd, target_spd, forced_intercept_origin):
+    def _leastsquare(ref_spd, target_spd, forced_intercept_origin=False):
         if forced_intercept_origin:
             x = np.nan_to_num(ref_spd.values.flatten()[:, np.newaxis])
             y = np.nan_to_num(target_spd.values.flatten())
