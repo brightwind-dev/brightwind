@@ -12,4 +12,4 @@ from .utils.gis import *
 
 __all__ = ['analyse', 'transform', 'export', 'load', 'demo_datasets']
 
-__version__ = '2.2.0.dev'
+__version__ = '2.2.0'
