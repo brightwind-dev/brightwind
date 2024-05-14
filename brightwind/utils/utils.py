@@ -4,7 +4,8 @@ import datetime
 import os
 
 __all__ = ['slice_data',
-           'validate_coverage_threshold']
+           'validate_coverage_threshold',
+           'is_file']
 
 
 def _range_0_to_360(direction):
@@ -158,6 +159,21 @@ def bold(text):
     :return: str in bold
     """
     return '\x1b[1;30m'+text+'\x1b[0m' if text else '\x1b[1;30m'+'\x1b[0m'
+
+
+def is_file(file_or_folder):
+    """
+    Returns True is file_or_folder is a file.
+    :param file_or_folder: The file or folder path.
+    :type file_or_folder: str
+    :return: True if a file.
+    """
+    if os.path.isfile(file_or_folder):
+        return True
+    elif os.path.isdir(file_or_folder):
+        return False
+    else:
+        raise FileNotFoundError("File or folder doesn't seem to exist.")
 
 
 
