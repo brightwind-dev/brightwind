@@ -1666,6 +1666,22 @@ class LoadBrightHub:
                                                     nearest_nodes=4, print_status=True, return_metadata_json=True)
             for metadata, timeseries in nodes:
                 print(f"Name: {metadata.get('measurement_location')[0].get('name')}.")
+
+        To get data from the nearest 4 nodes with a status print statement and displaying some important metadata.
+        ::
+            nodes = bw.LoadBrightHub.get_reanalysis(reanalysis_name='MERRA-2',
+                                                    latitude=53.5, longitude=-10.8,
+                                                    date_from='2024-01-01',
+                                                    variables=['Spd_50m_mps', 'Dir_50m_deg',
+                                                               'Tmp_2m_degC', 'Prs_0m_hPa'],
+                                                    nearest_nodes=4, print_status=True)
+            for metadata, timeseries in nodes:
+                print(f"Downloaded: {metadata.name}, with Latitude: {metadata.lat} and Longitude: {metadata.long}")
+                print(f"\t Name \t\t Measurement Type \t Height [m] \t Units \t From \t\t\t To")
+                for measurement in metadata.measurements.properties:
+                    print(f"\t {measurement.get('name')}\t {measurement.get('measurement_type_id')}\t\t "
+                          f"{measurement.get('height_m')}\t\t {measurement.get('measurement_units_id')}\t "
+                          f"{measurement.get('date_from')}\t {measurement.get('date_to')}")
     """
         if nearest_nodes < 1 or nearest_nodes > 16:
             raise ValueError("The number of 'nearest_nodes' is outside the range of 1 to 16.")
