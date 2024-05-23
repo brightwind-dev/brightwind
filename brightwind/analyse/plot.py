@@ -2145,7 +2145,7 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         ax.set_ylabel(label)
 
         # create x values for plot
-        idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H').time
+        idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H').hour
 
         if plot_type == 'step':
             df = df.shift(+1, axis=0)
@@ -2158,7 +2158,7 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
                 ax.plot(idx, df.iloc[:, i], label=df.iloc[:, i].name, color=colors[i])
 
         ax.legend(bbox_to_anchor=(1.1, 1.05))
-        ax.set_xticks(df.index)
+        ax.set_xticks([ix.hour for ix in df.index])
         ax.xaxis.set_minor_formatter(mpl.dates.DateFormatter("%H-%M"))
         _ = plt.xticks(rotation=90)
         return ax.get_figure()
