@@ -2018,3 +2018,195 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         raise TypeError('elevation_ref should be a number')
     else:
         return ref_air_density
+
+
+def remote_sensor_vertical_speed_filter(data, data_model, vspd_thresh=2, inplace=False):
+    """
+    Filter SoDAR or LiDAR data based on vertical speed values and threshold in order to filter out
+    data collected during rainy periods as droplets fall might interfere with vertical profiling remote
+    sensing device measurements.
+
+    :param data:                The SoDAR or LiDAR raw data Dataframe.
+    :type data:                 pd.DataFrame
+    :param data_model:          IEA Task 43 Data Model for the station
+    :type data_model:           List(Dict)
+    :param vspd_thresh:         Vertical speed threshold. Default is 2 m/s.
+    :type vspd_thresh:          int or float
+    :param inplace:             If 'inplace' is True, the original data, 'data', will be modified and replaced
+                                with the cleaned data. If 'inplace' is False, the original data will not be touched
+                                and instead a new object containing the cleaned data is created. To store this cleaned
+                                data, please ensure it is assigned to a new variable.
+    :type inplace:              Boolean
+    :return:                    Data filtered by vertical wind speed
+    :rtype:                     pd.DataFrame
+    """
+    data_vspd_filter = data.copy(deep=True) if inplace is False else data
+
+    column_names_config = _find_remote_sensor_column_names_to_filter(data_model, data.columns)
+    vspd_columns_config = [get_dict_with_keys(k, list(column_names_config[0].keys()))
+                           for k in data_model if "vertical_wind_speed" in k['measurement_type_id']]
+    vspd_columns_config = get_unique_list_dictionary(vspd_columns_config)
+
+    for vspd_column_config in vspd_columns_config:
+        logic_filter = abs(data[vspd_column_config['name']]) > vspd_thresh
+        meas_height = vspd_column_config['height_m']
+        filter_column_names = get_column_names_for_meas_height_and_type(column_names_config, meas_height,
+                                                                                     meas_types=["wind_speed","wind_direction"])
+        for column_name in filter_column_names:
+            data_vspd_filter[column_name][logic_filter] = np.nan
+
+    return data_vspd_filter
+    
+ 
+def get_dict_with_keys(d, keys):
+    """
+    :param d: Original dictionary.
+    :type d: dict
+    :param keys: Keys to keep in the dictionary.
+    :type keys: str or list(str)
+    :return: Dictionary with only the input keys.
+    :rtype: dict
+    """
+    return {x: d[x] for x in d if x in keys}
+    
+def remote_sensor_quality_filter(data, data_model, filter_thresh, inplace=False):
+    """
+    Filter SoDAR or LiDAR data based on quality factor or availability values recorded by the remote sensor and
+    threshold. Remote sensor wind data is filtered based on these values to ensure high quality measurements.
+
+    :param data:                SoDAR or LiDAR raw data Dataframe.
+    :type data:                 pd.DataFrame
+    :param data_model:          IEA Task 43 data model for station
+    :type data_model:           List(Dict)
+    :param filter_thresh:       Quality factor threshold. e.g. 95% or 0.95.
+    :type filter_thresh:        int or float
+    :param inplace:             If 'inplace' is True, the original data, 'data', will be modified and replaced
+                                with the cleaned data. If 'inplace' is False, the original data will not be touched
+                                and instead a new object containing the cleaned data is created. To store this cleaned
+                                data, please ensure it is assigned to a new variable.
+    :type inplace:              Boolean
+    :return:                    The filtered dataset.
+    :rtype:                     pd.DataFrame
+    """
+    data_filtered = data.copy(deep=True) if inplace is False else data
+
+    column_names_config = _find_remote_sensor_column_names_to_filter(data_model, data.columns)
+    filter_dicts = list(filter(lambda k: 'avail' in k['name'].lower(), column_names_config))
+    filter_column_names = [d.get('name') for d in filter_dicts]
+
+    _validate_filter_thresh(data, filter_column_names, filter_thresh)
+
+    for filter_dict in filter_dicts:
+        logic_filter = data[filter_dict['name']] < filter_thresh
+        meas_height = filter_dict['height_m']
+
+        # filter data based on horizontal wind speed data availability
+        if filter_dict['measurement_type_id'] == 'availability':
+            filter_column_names = \
+                get_column_names_for_meas_height_and_type(column_names_config, meas_height,
+                                                                       ["wind_speed","wind_direction","vertical_wind_speed"])
+        else:
+            raise KeyError("Measurement type {} for quality variable {} not implemented. "
+                           "Updates of the function needed!".format(filter_dict['name'],
+                                                                    filter_dict['measurement_type_id']))
+
+        for column_name in filter_column_names:
+            data_filtered[column_name][logic_filter] = np.nan
+
+    return data_filtered
+
+def _validate_filter_thresh(data, filter_column_names, filter_thresh):
+    """
+    Validate that a filter threshold is between the min and max values in the data and that
+    it is not a questionable value such as less than 1% of the max value.
+    
+    :param data:                Data to be filtered.
+    :type data:                 pd.DataFrame
+    :param filter_column_names: List of columns names in the data to be filtered.
+    :type filter_column_names:  List(str)
+    :param filter_thresh:       Quality factor threshold. e.g. 95% or 0.95.
+    :type filter_thresh:        int or float
+    """
+    if filter_thresh < data[filter_column_names].min().min() or filter_thresh > data[filter_column_names].max().max():
+        raise ValueError("Invalid threshold, should be between {} and {}, both ends inclusive".format(
+            int(data[filter_column_names].min().min()), int(data[filter_column_names].max().max())
+        ))
+    elif data[filter_column_names].min().min() < filter_thresh < data[filter_column_names].max().max()/100:
+        warnings.warn("Input threshold {} is less than 1% of maximum data filter variable value {}. ARE YOU SURE THAT"
+                      " THE INPUT THRESHOLD USED IS CORRECT?".format(filter_thresh,
+                                                                     int(data[filter_column_names].max().max())))
+                                                                 
+def _find_remote_sensor_column_names_to_filter(data_model, data_column_names,data_types_to_filter = ["wind_speed", "vertical_wind_speed", "wind_direction","availability"]):
+    """
+    Extract from IEA Task 43 data model a list of dictionaries with column_name, measurement height and measurement
+    type for all the remote sensor data_column_names and data type variables to filter.
+    
+    :param data_model:              The IEA Task 43 data model for the station
+    :type data_model:               list(dict)
+    :param data_column_names:       list of column names that the configs will be found for
+    :type data_column_names:        list(str)
+    :return column_names_config:    list of dictionary for input column names that the configs is found for
+    :rtype:                         list(dict)
+    """
+
+    column_names_config = []
+    for data_type in data_types_to_filter:
+        for meas_sensor_config in data_model:
+            if meas_sensor_config['measurement_type_id'] == data_type:
+                for name_column in [c for c in data_column_names if c.startswith(meas_sensor_config['name'])]:
+                    try:
+                        column_names_config.append({'name': name_column,
+                                                    'measurement_type_id': meas_sensor_config['measurement_type_id'],
+                                                    'height_m': meas_sensor_config['height_m']})
+                    except KeyError as key_error:
+                        raise KeyError('{} measurement {} not provided. Check Brighthub.'.format(name_column,
+                                                                                                   key_error))
+                    except Exception as error:
+                        raise error
+
+    column_names_config = get_unique_list_dictionary(column_names_config)
+
+    return column_names_config
+
+def get_unique_list_dictionary(list_dictionary):
+    """
+    :param list_dictionary: List of dictionary with duplicates dictionaries.
+    :type list_dictionary: list(dict)
+    :return: List of dictionary with unique dictionaries
+    :rtype: list(dict)
+    """
+    return [dict(t) for t in {tuple(d.items()) for d in list_dictionary}]
+
+def get_column_names_for_meas_height_and_type(data_model, meas_height, meas_types='all'):
+    """
+    Extract all column names from column_names_config for defined input measurement height and types.
+    Set meas_types='all' if you want to extract column names for all measurement types in column_names_config.
+
+    :param data_model:              the IEA Task 43 data model for the station
+    :type data_model:               list(dict)
+    :param meas_height:             The measurement height for which the variables are looked for.
+    :type meas_height:              str or int or float
+    :param meas_types:              If meas_types='all' then are returned all the variables for the measurement types
+                                    in config_column_names. The input can be also a list of only some measurement types
+                                    as for the names assigned in the brightwind platform. The default is meas_types='all'.
+    :type meas_types:               str or list(str)
+    :return:                        column_names
+    :rtype:                         list(str)
+    """
+
+    if meas_types == 'all':
+        meas_types = list(set([d['measurement_type_id'] for d in data_model]))
+    elif isinstance(meas_types, str):
+        meas_types = [meas_types]
+
+    column_names = []
+    for meas_type in meas_types:
+        for meas_sensor_config in data_model:
+            if (meas_sensor_config.get('height_m') is not None) and \
+                    (meas_sensor_config.get('measurement_type_id') is not None):
+                if (float(meas_height) == float(meas_sensor_config['height_m'])) & \
+                        (meas_type == meas_sensor_config['measurement_type_id']):
+                    if meas_sensor_config['name'] not in column_names:
+                        column_names.append(meas_sensor_config['name'])
+
+    return column_names
