@@ -974,11 +974,11 @@ class Shear:
 
                     if self.calc_method == 'power_law':
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      alpha=filled_alpha.iloc[i, j], calc_method=self.calc_method)
+                                                      alpha=filled_alpha.loc[:,calendar.month_abbr[j+1]].iloc[i], calc_method=self.calc_method)
 
                     else:
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      roughness=filled_roughness.iloc[i, j],
+                                                      roughness=filled_roughness.loc[:,calendar.month_abbr[j+1]].iloc[i],
                                                       calc_method=self.calc_method)
 
                     scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
