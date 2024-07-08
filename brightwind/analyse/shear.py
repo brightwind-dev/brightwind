@@ -266,7 +266,7 @@ class Shear:
                 start_times[i] = start_times[i - 1] + dt
 
             # extract wind speeds for each month
-            months_tot = pd.unique(wspds.index.month.values)
+            months_tot = sorted(pd.unique(wspds.index.month.values))
             for j in months_tot:
 
                 anemometers_df = wspds[wspds.index.month == j]
@@ -962,23 +962,23 @@ class Shear:
 
             for i in range(0, 24):
 
-                for j in range(0, 12):
+                for j, month in enumerate(sorted(pd.unique(wspds.index.month.values))):
 
                     if i == 23:
                         df_wspds[i][j] = wspds[
-                            (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.month == j + 1)]
+                            (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.month == month)]
                     else:
                         df_wspds[i][j] = wspds[
                             (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.time < filled_alpha.index[i + 1])
-                            & (wspds.index.month == j + 1)]
+                            & (wspds.index.month == month)]
 
                     if self.calc_method == 'power_law':
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      alpha=filled_alpha.loc[:,calendar.month_abbr[j+1]].iloc[i], calc_method=self.calc_method)
+                                                      alpha=filled_alpha.loc[:,calendar.month_abbr[month]].iloc[i], calc_method=self.calc_method)
 
                     else:
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      roughness=filled_roughness.loc[:,calendar.month_abbr[j+1]].iloc[i],
+                                                      roughness=filled_roughness.loc[:,calendar.month_abbr[month]].iloc[i],
                                                       calc_method=self.calc_method)
 
                     scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
