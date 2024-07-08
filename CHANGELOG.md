@@ -9,6 +9,9 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
+## [2.2.2]
+1. Fix application of `Shear.TimeOfDay()` when `by_month` is True (Issue [#441](https://github.com/brightwind-dev/brightwind/pull/442)).
+
 ## [2.2.1]
 1. Bug fix some users encounter with `plot.plot_shear_time_of_day()` (Issue [#429](https://github.com/brightwind-dev/brightwind/issues/429)).
 
