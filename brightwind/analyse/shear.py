@@ -286,6 +286,9 @@ class Shear:
                         end = str((start_times[i + 1] - resolution).time())
                         time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end)
                         mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
+                        
+                    if len(mean_time_wspds[i])==0:
+                        raise Exception ('Coverage too low for segments_per_day resolution. Shear cannot be done.')
 
                 # calculate shear
                 if calc_method == 'power_law':
