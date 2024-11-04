@@ -27,6 +27,12 @@ def test_export_to_csv():
     assert True
 
 
+def test_export_tws_file():
+    bw.export_tws_file(10, 10, 80, DATA.Spd40mN, DATA.Dir38mS, file_name='export_tws_file.tws', folder_path=TEMP_FOLDER)
+    bw.export_tws_file(10, 10, 80, DATA[['Spd40mN']], DATA[['Dir38mS']], DATA[['Spd40mNStd']], file_name='export_tws_file_1.tws', folder_path=TEMP_FOLDER)
+    assert True
+
+
 def test_calc_mean_speed_of_freq_tab():
     fig, freq_tab = bw.freq_table(DATA.Spd80mN, DATA.Dir38mS, return_data=True)
     assert round(bw.export.export._calc_mean_speed_of_freq_tab(freq_tab), 5) == 7.51925
