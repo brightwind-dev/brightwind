@@ -157,7 +157,7 @@ def export_csv(data, file_name=None, folder_path=None, **kwargs):
 
 
 def export_tws_file(eastings, northings, height, wspd_series, direction_series, wspd_std_series=None, site_name=None, file_name=None, folder_path=None):
-    """Export a WindSim timeseries tws file using a timeseries dataframe of wind speed and direction.
+    """Export a WindSim timeseries tws file using a timeseries of wind speed and direction.
 
     :param eastings: Eastings of the measurement location in meters.
     :type eastings: float
@@ -165,17 +165,17 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
     :type northings: float
     :param height: Height that the timeseries represents in meters.
     :type height: float
-    :param wspd_series: Series of wind speed variable
+    :param wspd_series: Series of wind speed variable.
     :type wspd_series: pandas.Series
-    :param direction_series: Series of wind directions between [0-360]
+    :param direction_series: Series of wind directions between [0-360].
     :type direction_series: pandas.Series
-    :param wspd_std_series: Series of wind speed standard deviations
+    :param wspd_std_series: Series of wind speed standard deviations.
     :type wspd_std_series: pandas.Series
-    :param site_name: The site name to include in the file.
-           i.e 'Demo Data'
+    :param site_name: The site name to include in the file, or use the default "brightwind_site",
+                      i.e 'Demo Data'.
     :type site_name: str
     :param file_name: The file name under which the tab file will be saved, or use the default,
-        i.e '2019-06-07_brightwind_tws_export.tab'
+                      i.e '2019-06-07_brightwind_tws_export.tws'.
     :type file_name: str
     :param folder_path: The directory where the tab file will be saved, default is the working directory.
     :type folder_path: str
@@ -185,9 +185,9 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
     **Example Usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
 
-        bw.export_tws_file(df.Spd80mN, df.Dir78mS, 'Demo Data', 80, file_name='campbell_tws_file', 626100, 827971, folder_path=r'C:\some\folder\')"""
+        bw.export_tws_file(626100, 827971, 80, df.Spd80mN, df.Dir78mS, site_name='Demo Data', file_name='campbell_tws_file')"""
     
     if site_name is None:
         site_name = 'brightwind_site'
@@ -206,7 +206,7 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
     file_name_print = os.path.splitext(file_name)[0]
     file_path = os.path.join(folder_path, file_name)
 
-    eastings, northings = int(eastings), int(northings)
+    eastings, northings = int(rouund(eastings,0)), int(rouund(northings,0))
     
     local_wspd_series = brightwind.analyse.analyse._convert_df_to_series(wspd_series.copy())
     local_direction_series = brightwind.analyse.analyse._convert_df_to_series(direction_series.copy())
