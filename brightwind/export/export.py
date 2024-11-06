@@ -188,25 +188,21 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
         df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
 
         bw.export_tws_file(626100, 827971, 80, df.Spd80mN, df.Dir78mS, site_name='Demo Data', file_name='campbell_tws_file')"""
-    
-    if site_name is None:
-        site_name = 'brightwind_site'
-    
-    if file_name is None:
-        file_name = str(datetime.datetime.now().strftime("%Y-%m-%d")) + '_brightwind_tws_export.tws'
 
-    if folder_path is None:
-        folder_path = os.getcwd()
+    site_name = 'brightwind_site' if site_name is None else site_name
 
-    if '.tws' not in file_name:
-        file_name = file_name + '.tws'
+    file_name = str(datetime.datetime.now().strftime("%Y-%m-%d")) + '_brightwind_tws_export.tws' if file_name is None else file_name
+    
+    folder_path = os.getcwd() if folder_path is None else folder_path
+
+    file_name = file_name + '.tws' if file_name[-4:] != '.tws' else file_name
 
     include_sd = True if wspd_std_series is not None else False
     
     file_name_print = os.path.splitext(file_name)[0]
     file_path = os.path.join(folder_path, file_name)
 
-    eastings, northings = int(rouund(eastings,0)), int(rouund(northings,0))
+    eastings, northings = int(round(eastings,0)), int(round(northings,0))
     
     local_wspd_series = brightwind.analyse.analyse._convert_df_to_series(wspd_series.copy())
     local_direction_series = brightwind.analyse.analyse._convert_df_to_series(direction_series.copy())
@@ -217,8 +213,11 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
     
     tws_string = f"{str(file_name_print)} created using brightwind version {version} at {current_timestamp}.\n"
 
-    tws_output = pd.concat([round(local_direction_series,4),round(local_wspd_series,4)],axis=1, keys=['dir:','speed:']).dropna()
-    if include_sd: tws_output = pd.concat([round(local_direction_series,4),round(local_wspd_series,4), round(local_wspd_sd_series,4)],axis=1, keys=['dir:','speed:','SDspeed:']).dropna()
+    tws_output = pd.concat([round(local_direction_series,4),round(local_wspd_series,4)],axis=1, keys=['dir:','speed:'])
+    if include_sd: 
+        tws_output['SDspeed:'] = round(local_wspd_sd_series,4)
+    
+    tws_output = tws_output.dropna()
 
     tws_output['rec nr:'] = range(1, len(tws_output)+1)
     start_id, end_id = tws_output.index[0].strftime('%B %y'), tws_output.index[-1].strftime('%B %y')
