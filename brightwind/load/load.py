@@ -919,7 +919,7 @@ class _BrighthubAuth:
             'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
             'Content-Type': 'application/x-amz-json-1.1'
         }
-        client_id = utils.get_environment_variable("BRIGHTHUB_USER_POOL_CLIENT_ID", "3qkkpikve578cbok46p136au3g")
+        client_id = os.getenv("BRIGHTHUB_USER_POOL_CLIENT_ID", "3qkkpikve578cbok46p136au3g")
         # client_id = utils.get_environment_variable('BRIGHTHUB_USER_POOL_CLIENT_ID')
 
         return url, headers, client_id
@@ -1048,7 +1048,7 @@ class LoadBrightHub:
 
     """
 
-    __BASE_URI = utils.get_environment_variable('BRIGHTHUB_EMAIL', 'https://api.brighthub.io')
+    __BASE_URI = os.getenv('BRIGHTHUB_EMAIL', 'https://api.brighthub.io')
     # __BASE_URI = utils.get_environment_variable('BRIGHTHUB_BASE_URI')
 
     @staticmethod
