@@ -1048,7 +1048,7 @@ class LoadBrightHub:
 
     """
 
-    __BASE_URI = os.getenv('BRIGHTHUB_EMAIL', 'https://api.brighthub.io')
+    __BASE_URI = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
     # __BASE_URI = utils.get_environment_variable('BRIGHTHUB_BASE_URI')
 
     @staticmethod
