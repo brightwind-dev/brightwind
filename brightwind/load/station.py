@@ -414,7 +414,7 @@ class MeasurementStation:
         # Assess whether filepath or json str sent.
         dm = dict()
         if isinstance(wra_data_model, str) and '.json' == wra_data_model[-5:]:
-            if _is_file(wra_data_model):
+            if is_file(wra_data_model):
                 with open(wra_data_model) as json_file:
                     dm = json.load(json_file)
         elif isinstance(wra_data_model, str):
