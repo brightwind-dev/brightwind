@@ -1071,7 +1071,7 @@ class _Measurements:
         :param measurement_type_id: The measurement_type_id to filter for the names.
         :type measurement_type_id:  str or None
         :return:                    The list of names.
-        :rtype:                     list(str)
+        :rtype:                     str | list[str]
         """
         names = []
         measurement_type_id = measurement_type_id if isinstance(measurement_type_id, list) else [measurement_type_id]
