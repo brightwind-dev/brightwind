@@ -55,11 +55,27 @@ def test_plot_scatter():
     bw.plot_scatter(DATA.Spd80mN, DATA[['Spd80mS']])
     bw.plot_scatter(DATA.Dir78mS, DATA.Dir58mS, x_label='Dir78mS', y_label='Dir58mS',
                     x_limits=(50, 300), y_limits=(250, 300))
+    
+    plt_scatter = bw.plot_scatter(DATA.Dir78mS, DATA.Dir58mS, x_label='Dir78mS', y_label='Dir58mS',
+                    x_limits=(50, 300), y_limits=(250, 300), line_of_slope_1=True)
+    
+    legend_first_text = 'Data points'
+    legend_second_text = '1:1 line'
+    assert plt_scatter.legend().get_texts()[0].get_text() == legend_first_text
+    assert plt_scatter.legend().get_texts()[1].get_text() == legend_second_text
+
     bw.plot_scatter_wdir(DATA.Dir78mS, DATA.Dir58mS, x_label='Reference', y_label='Target',
                          x_limits=(50, 300), y_limits=(250, 300))
-    bw.plot_scatter_wspd(DATA.Spd80mN, DATA.Spd80mS, x_label='Speed at 80m North',
+    plt_scatter_wspd = bw.plot_scatter_wspd(DATA.Spd80mN, DATA.Spd80mS, x_label='Speed at 80m North',
                          y_label='Speed at 80m South', x_limits=(0, 25), y_limits=(0, 25))
-    bw.plot_scatter_wspd(DATA.Spd80mN, DATA.Spd80mN, x_limits=(0, 25), y_limits=(0, 25))
+    
+    assert plt_scatter_wspd.legend().get_texts()[0].get_text() == legend_first_text
+    assert plt_scatter_wspd.legend().get_texts()[1].get_text() == legend_second_text
+    
+    plt_scatter_wdir = bw.plot_scatter_wspd(DATA.Spd80mN, DATA.Spd80mN, x_limits=(0, 25), y_limits=(0, 25))
+    
+    assert plt_scatter_wdir.legend().get_texts()[0].get_text() == legend_first_text
+    assert plt_scatter_wdir.legend().get_texts()[1].get_text() == legend_second_text
 
     assert True
 
