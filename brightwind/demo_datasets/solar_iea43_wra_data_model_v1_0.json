@@ -1,0 +1,123 @@
+{
+    "version": "1.2.0-2023.01",
+    "measurement_location": [{
+        "name": "test_solar_station",
+        "measurement_station_type_id": "solar",
+        "latitude_ddeg": 50,
+        "longitude_ddeg": -1,
+        "sensor": {
+            "serial_number": "SOL123",
+            "oem": "SolarTech",
+            "model": "ST100",
+            "notes": "Test solar sensor",
+            "date_from": "2023-01-01",
+            "date_to": "2023-12-31",
+            "measurement_type_id": "global_horizontal_irradiance",
+            "measurement_units_id": "W/m2"
+        },
+        "logger_main_config": [
+          {
+            "logger_model_name": "Meteo-40S",
+            "logger_oem_id": "Ammonit",
+            "logger_serial_number": "D0",
+            "logger_id": null,
+            "logger_name": "test",
+            "date_from": "2022-08-09T10:00:00",
+            "date_to": "2024-12-17T23:50:00",
+            "encryption_pin_or_key": null,
+            "enclosure_lock_details": null,
+            "data_transfer_details": null,
+            "offset_from_utc_hrs": 0,
+            "sampling_rate_sec": null,
+            "averaging_period_minutes": 10,
+            "timestamp_is_end_of_period": false,
+            "clock_is_auto_synced": null,
+            "notes": null,
+            "update_at": "2024-12-12T12:54:14",
+            "logger_firmware_version": null,
+            "logger_acquisition_uncertainty": null,
+            "uncertainty_k_factor": null
+          }
+        ],
+        "measurement_point": [
+
+    {
+      "name": "Tmp1_2m",
+      "measurement_type_id": "temperature",
+      "height_m": 1,
+      "height_reference_id": "ground_level",
+      "notes": null,
+      "update_at": "2024-07-31T11:07:53",
+      "sensor": [
+        {
+          "oem": "NRG Systems",
+          "model": "T60",
+          "serial_number": null,
+          "sensor_type_id": "thermohygrometer",
+          "instrument_poi_height_mm": null,
+          "is_heated": null,
+          "notes": null,
+          "update_at": "2024-07-31T11:01:20",
+          "sensor_body_size_mm": null,
+          "classification": null,
+          "date_from": "2022-08-09T10:00:00",
+          "date_to": null
+        }
+      ],
+      "logger_measurement_config": [
+        {
+          "slope": 48,
+          "offset": -44,
+          "sensitivity": null,
+          "measurement_units_id": "deg_C",
+          "height_m": 1,
+          "serial_number": null,
+          "connection_channel": "A3",
+          "date_from": "2022-08-09T10:00:00",
+          "date_to": null,
+          "notes": null,
+          "update_at": "2024-07-31T11:01:20",
+          "logger_stated_boom_orientation_deg": null,
+          "column_name": [
+            {
+              "column_name": "NRG T60 Temp Sensor;temperature;Avg",
+              "statistic_type_id": "avg",
+              "is_ignored": false,
+              "notes": null,
+              "update_at": null
+            },
+            {
+              "column_name": "NRG T60 Temp Sensor;temperature;StdDev",
+              "statistic_type_id": "sd",
+              "is_ignored": false,
+              "notes": null,
+              "update_at": null
+            },
+            {
+              "column_name": "NRG T60 Temp Sensor;temperature;Max",
+              "statistic_type_id": "max",
+              "is_ignored": false,
+              "notes": null,
+              "update_at": null
+            },
+            {
+              "column_name": "NRG T60 Temp Sensor;temperature;Min",
+              "statistic_type_id": "min",
+              "is_ignored": false,
+              "notes": null,
+              "update_at": null
+            },
+            {
+              "column_name": "NRG T60 Temp Sensor;temperature;Count",
+              "statistic_type_id": "count",
+              "is_ignored": false,
+              "notes": null,
+              "update_at": null
+            }
+          ]
+        }
+      ]
+    }
+        ]
+    }]
+}

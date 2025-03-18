@@ -291,6 +291,11 @@ PREFIX_DICT = {
         'title_prefix': 'Mast ',
         'keys_to_prefix': ['notes', 'update_at']
     },
+    'logger_main_config': {
+        'prefix_separator': '.',
+        'title_prefix': 'Solar ',
+        'keys_to_prefix': ['notes', 'update_at']
+    },
     'vertical_profiler_properties': {
         'prefix_separator': '.',
         'title_prefix': 'Vert. Prof. Prop. ',
@@ -414,7 +419,7 @@ class MeasurementStation:
         # Assess whether filepath or json str sent.
         dm = dict()
         if isinstance(wra_data_model, str) and '.json' == wra_data_model[-5:]:
-            if _is_file(wra_data_model):
+            if is_file(wra_data_model):
                 with open(wra_data_model) as json_file:
                     dm = json.load(json_file)
         elif isinstance(wra_data_model, str):
@@ -485,6 +490,8 @@ class MeasurementStation:
         elif self.type in ['lidar', 'sodar', 'floating_lidar']:
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model,
                                           property_to_bring_up='vertical_profiler_properties')
+        elif self.type == 'solar':
+            meas_loc_prop = _flatten_dict(self.__meas_loc_data_model, property_to_bring_up='logger_main_config')
         return meas_loc_prop
 
     def get_table(self, horizontal_table_orientation=False):
@@ -628,6 +635,8 @@ class _LoggerMainConfigs:
                 log_configs_flat = _flatten_dict(log_config, property_to_bring_up='lidar_config')
                 for log_config_flat in log_configs_flat:
                     log_cfg_props.append(log_config_flat)
+        elif self._type == 'solar':
+            log_cfg_props = self._log_cfg_data_model  # logger config data model is already a list
         return log_cfg_props
 
     def get_table(self, horizontal_table_orientation=False):
