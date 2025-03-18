@@ -414,7 +414,7 @@ class MeasurementStation:
         # Assess whether filepath or json str sent.
         dm = dict()
         if isinstance(wra_data_model, str) and '.json' == wra_data_model[-5:]:
-            if _is_file(wra_data_model):
+            if is_file(wra_data_model):
                 with open(wra_data_model) as json_file:
                     dm = json.load(json_file)
         elif isinstance(wra_data_model, str):
@@ -1074,6 +1074,7 @@ class _Measurements:
         :rtype:                     list(str)
         """
         names = []
+        measurement_type_id = measurement_type_id if isinstance(measurement_type_id, list) else [measurement_type_id]
         for meas_point in self.__meas_properties:  # use __meas_properties as it is a list and holds it's order
             meas_type = meas_point.get('measurement_type_id')
             meas_name = meas_point.get('name')

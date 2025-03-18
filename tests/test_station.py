@@ -66,3 +66,17 @@ def test_get_table():
         if value is not '-':
             assert value in mm2.measurements.properties[4].values()
 
+
+def test_get_names():
+    mm1 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_iea43_wra_data_model_v1_2)
+    measurement_type_id1= 'vertical_wind_speed'
+    names1 = mm1.measurements._Measurements__get_names(measurement_type_id1)
+    assert names1 == ['VSpd_80']
+    
+    measurement_type_id2= 'wind_speed'
+    names2 = mm1.measurements._Measurements__get_names(measurement_type_id2)
+    assert names2 == ['Spd_80']
+    
+    measurement_type_id3= ['wind_speed', 'vertical_wind_speed']
+    names3 = mm1.measurements._Measurements__get_names(measurement_type_id3)
+    assert sorted(names3) == sorted(['VSpd_80', 'Spd_80'])
