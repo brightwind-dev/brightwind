@@ -66,3 +66,132 @@ def test_get_table():
         if value is not '-':
             assert value in mm2.measurements.properties[4].values()
 
+def test_get_table_drop_methodology(monkeypatch):
+    # Test data with known empty columns and rows
+    test_data = {
+        "version": "1.2.0-2023.01",
+        "measurement_location": [{
+            "measurement_point": [
+                {
+                    "name": "WS1",
+                    "height_m": 80,
+                    "measurement_type_id": "wind_speed",
+                    "empty_col1": None,
+                    "empty_col2": None,
+                    "logger_measurement_config": [
+                        {
+                            "date_from": "2020-01-01",
+                            "date_to": "2020-12-31",
+                            "slope": 1.0
+                        }
+                    ]
+                },
+                {
+                    "name": "WS2", 
+                    "height_m": 60,
+                    "measurement_type_id": "wind_speed",
+                    "empty_col1": None,
+                    "empty_col2": None,
+                    "logger_measurement_config": [
+                        {
+                            "date_from": "2020-01-01",
+                            "date_to": None,
+                            "slope": None
+                        }
+                    ]
+                }
+            ]
+        }]
+    }
+    
+    mm = bw.MeasurementStation(test_data)
+    
+    # Test 1: Default table drops empty columns
+    df = mm.measurements.get_table()
+    assert "empty_col1" not in df.columns
+    assert "empty_col2" not in df.columns
+    
+    # Test 2: Detailed table drops empty columns but keeps required ones
+    df_detailed = mm.measurements.get_table(detailed=True)
+    assert "Name" in df_detailed.index.name
+    assert "Height [m]" in df_detailed.columns
+    
+    # Test 3: Wind speeds table drops measurement_type_id after filtering
+    df_ws = mm.measurements.get_table(wind_speeds=True)
+    assert "measurement_type_id" not in df_ws.columns
+    assert "Measurement Type" not in df_ws.columns
+    
+    # Test 4: Ranking column is dropped after sorting
+    df = mm.measurements.get_table()
+    assert "meas_type_rank" not in df.columns
+    
+    # Test 5: Custom columns handling empty data
+    cols = ["name", "height_m", "empty_col1", "empty_col2"]
+    df_custom = mm.measurements.get_table(columns_to_show=cols)
+    assert df_custom.shape[0] > 0  # Should still return rows even with empty columns
+    assert "Name" in df_custom.index.name
+
+def test_get_table_pandas_version_consistency():
+    # Create test data that could be affected by pandas version differences
+    test_data = {
+        "version": "1.2.0-2023.01",
+        "measurement_location": [{
+            "measurement_point": [
+                {
+                    "name": "Test1",
+                    "height_m": 100,
+                    "measurement_type_id": "wind_speed",
+                    "null_column": None,
+                    "sensor_type_id": 100,
+                    "logger_measurement_config": [
+                        {
+                            "date_from": "2020-01-01",
+                            "date_to": "2020-12-31",
+                            "some_value": np.nan
+                        }
+                    ]
+                }
+            ]
+        }]
+    }
+    test_wind_direction_data = {
+        "version": "1.2.0-2023.01",
+        "measurement_location": [{
+            "measurement_point": [
+                {
+                    "name": "Test1",
+                    "height_m": 100,
+                    "measurement_type_id": "wind_direction",
+                    "null_column": None,
+                    "sensor_type_id": 100,
+                    "logger_measurement_config": [
+                        {
+                            "date_from": "2020-01-01",
+                            "date_to": "2020-12-31",
+                            "some_value": np.nan
+                        }
+                    ]
+                }
+            ]
+        }]
+    }
+    
+    mm = bw.MeasurementStation(test_data)
+    mm2 = bw.MeasurementStation(test_wind_direction_data)
+    
+    df1 = mm.measurements.get_table()
+    df2 = mm.measurements.get_table(detailed=True)
+    df3 = mm.measurements.get_table(wind_speeds=True)
+    df4 = mm2.measurements.get_table(wind_directions=True)
+    
+    assert df1.isnull().sum().sum() == 0
+    
+    assert df1.index.name == 'Name'
+    assert df2.index.name == 'Name'
+    
+    assert "null_column" not in df1.columns
+    assert "null_column" not in df3.columns
+    assert "null_column" not in df4.columns
+
+    assert "measurement_type_id" not in df3.columns
+    assert "measurement_type_id" not in df4.columns

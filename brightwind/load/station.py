@@ -414,7 +414,7 @@ class MeasurementStation:
         # Assess whether filepath or json str sent.
         dm = dict()
         if isinstance(wra_data_model, str) and '.json' == wra_data_model[-5:]:
-            if _is_file(wra_data_model):
+            if is_file(wra_data_model):
                 with open(wra_data_model) as json_file:
                     dm = json.load(json_file)
         elif isinstance(wra_data_model, str):
@@ -972,7 +972,7 @@ class _Measurements:
             order_index = dict(zip(MEAS_TYPE_ORDER, range(len(MEAS_TYPE_ORDER))))
             df['meas_type_rank'] = df['Measurement Type'].map(order_index)
             df.sort_values(['meas_type_rank', 'Height [m]'], ascending=[True, False], inplace=True)
-            df.drop('meas_type_rank', 1, inplace=True)
+            df.drop('meas_type_rank', axis=1, inplace=True)
             df.set_index('Name', inplace=True)
             df.dropna(axis=1, how='all', inplace=True)
             df.fillna('-', inplace=True)
@@ -993,7 +993,7 @@ class _Measurements:
                 order_index = dict(zip(SENSOR_TYPE_ORDER, range(len(SENSOR_TYPE_ORDER))))
                 df['sensor_rank'] = df['sensor_type_id'].map(order_index)
                 df.sort_values(['sensor_rank', 'height_m'], ascending=[True, False], inplace=True)
-                df.drop(columns='sensor_rank', axis=1, inplace=True)
+                df.drop('sensor_rank', axis=1, inplace=True)
             else:
                 df.sort_values(['name', 'height_m'], ascending=[True, False], inplace=True)
             # get titles
@@ -1016,7 +1016,7 @@ class _Measurements:
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
-            df.drop('measurement_type_id', 1, inplace=True)
+            df.drop('measurement_type_id', axis=1, inplace=True)
             # order rows
             df.sort_values(['height_m', 'name'], ascending=[False, True], inplace=True)
             # get titles
@@ -1039,7 +1039,7 @@ class _Measurements:
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
-            df.drop('measurement_type_id', 1, inplace=True)
+            df.drop('measurement_type_id', axis=1, inplace=True)
             # order rows
             df.sort_values(['height_m', 'name'], ascending=[False, True], inplace=True)
             # get titles
