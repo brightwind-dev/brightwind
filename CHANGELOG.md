@@ -11,7 +11,8 @@ Additional labels for pre-release and build metadata are available as extensions
 
 
 ## [2.X.0]
-1. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
+1. Bug fix legend `scatter_plot_wspds` and `scatter_plot_wdirs` functions (Issue [#443](https://github.com/brightwind-dev/brightwind/issues/443)).
+2. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
 
 
 ## [2.2.1]
