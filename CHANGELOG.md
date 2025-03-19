@@ -12,7 +12,8 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ## [2.X.0]
 1. Bug fix calling `is_file` function (Issue [#447](https://github.com/brightwind-dev/brightwind/issues/447)).
-2. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
+2. Bug fix calling `get_table` function for solar and sodar sites as part of `logger_main_configs` (Issue [#454](https://github.com/brightwind-dev/brightwind/issues/454)).
+3. Bug fixed for `__get_properties` function when hygrometers are used and there are multiple calibrations present the correct one is now chosen (Issue [#449](https://github.com/brightwind-dev/brightwind/issues/449)).
 
 
 ## [2.2.1]
