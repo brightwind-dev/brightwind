@@ -50,40 +50,55 @@ def test_get_title():
 def test_get_table():
     mm1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
 
+    ## tests for _Header.get_table()
     for value in mm1.get_table(horizontal_table_orientation=True).T['Test_MM1'].to_dict().values():
         assert value in mm1.properties.values()
 
+    ## tests for logger_main_configs.get_table()
+
     for value in mm1.logger_main_configs.get_table(horizontal_table_orientation=True).T['AName_MM1'].to_dict().values():
         assert value in mm1.logger_main_configs.properties[0].values()
+        
+    ## tests for measurements.get_table()
 
     for value in mm1.measurements.get_table(detailed=True).T['Dir_76mNW'].to_dict().values():
-        if value is not '-':
+        if value != '-':
             assert value in mm1.measurements.properties[10].values()
 
     mm2 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_iea43_wra_data_model_v1_2)
 
     for value in mm2.measurements.get_table(detailed=True).T['Dir_80m_MC'].to_dict().values():
-        if value is not '-':
+        if value != '-':
             assert value in mm2.measurements.properties[4].values()
 
-    with open(bw.demo_datasets.floating_lidar_iea43_wra_data_model_v1_2) as json_file:
-        test_data_null_values = json.load(json_file)
-    for measurement_point in test_data_null_values["measurement_location"][0]["measurement_point"]:
-        measurement_point['notes'] = None
-    mm2 = bw.MeasurementStation(test_data_null_values)
-    measurement_table = mm2.measurements.get_table()
+    test_null_values_json = _get_schema(bw.demo_datasets.floating_lidar_iea43_wra_data_model_v1_2)
+    for measurement_point in test_null_values_json["measurement_location"][0]["measurement_point"]:
+        measurement_point['height_reference'] = None
+    mm3 = bw.MeasurementStation(test_null_values_json)
+    measurement_table = mm3.measurements.get_table(detailed=False, wind_speeds=False, wind_directions=False, 
+                                                   calibrations=False, mounting_arrangements=False, columns_to_show=None)
     assert "meas_type_rank" not in measurement_table.columns
+    # test that the height reference column is present in table even if all values are None
+    assert "Height Reference" in measurement_table.columns
+    assert "Name" in measurement_table.index.name
 
-    measurement_table_detailed = mm2.measurements.get_table(detailed=True)
+    measurement_table_detailed = mm3.measurements.get_table(detailed=True)
     assert "Name" in measurement_table_detailed.index.name
     assert "Height [m]" in measurement_table_detailed.columns
+    assert "sensor_rank" not in measurement_table_detailed.columns
     
-    df_ws = mm2.measurements.get_table(wind_speeds=True)
-    assert "measurement_type_id" not in df_ws.columns
-    
-    # Ranking column is dropped after sorting
-    df = mm2.measurements.get_table()
-    assert "meas_type_rank" not in df.columns
+    measurement_table_wspd = mm3.measurements.get_table(wind_speeds=True)
+    assert "measurement_type_id" not in measurement_table_wspd.columns
 
-    df_wd = mm2.measurements.get_table(wind_directions=True)
-    assert "measurement_type_id" not in df_wd.columns
+    measurement_table_wdir = mm3.measurements.get_table(wind_directions=True)
+    assert "measurement_type_id" not in measurement_table_wdir.columns
+
+    measurement_table_calib = mm1.measurements.get_table(calibrations=True)
+    assert "Calibration Slope" in measurement_table_calib.columns
+
+    measurement_table_calib = mm1.measurements.get_table(mounting_arrangements=True)
+    assert "Boom Orientation [deg]" in measurement_table_calib.columns
+
+    columns = ['calibration.slope', 'calibration.offset', 'calibration.report_file_name', 'date_of_calibration']
+    measurement_table_input_cols = mm1.measurements.get_table(columns_to_show=columns)
+    assert "Calibration Slope" in measurement_table_input_cols.columns
