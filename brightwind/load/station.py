@@ -919,11 +919,11 @@ class _Measurements:
         :type detailed:               bool
         :param wind_speeds:           Wind speed specific details.
         :type wind_speeds:            bool
-        :param wind_directions:       Wind speed specific details.
+        :param wind_directions:       Wind direction specific details.
         :type wind_directions:        bool
-        :param calibrations:          Wind speed specific details.
+        :param calibrations:          Calibration specific details.
         :type calibrations:           bool
-        :param mounting_arrangements: Wind speed specific details.
+        :param mounting_arrangements: Mounting arrangement specific details.
         :type mounting_arrangements:  bool
         :param columns_to_show:       Optionally provide a list of column names you want to see in a table. This list
                                       should be pulled from the list of keys available in the measurements.properties.
