@@ -65,15 +65,12 @@ def test_get_table():
     for value in mm2.measurements.get_table(detailed=True).T['Dir_80m_MC'].to_dict().values():
         if value is not '-':
             assert value in mm2.measurements.properties[4].values()
+            
 
-def test_solar_measurement_station_get_properties():
     # Test data for solar measurement station
     solar_data = bw.demo_datasets.solar_iea43_wra_data_model_v1_0
-    
-    # Create station and get properties
     station = bw.MeasurementStation(solar_data)
     table = station.get_table().data
     
-    assert table.loc["Measurement Station Type"][0] == "solar"
-    assert table.loc["Measurement Type"][0] == "global_horizontal_irradiance"
-    assert table.loc["Measurement Units"][0] == "W/m2"
+    assert table.loc["Measurement Station Type"][1] == "solar"
+    assert table.loc["Name"][1] == "O'Fiaich\xa0College"
