@@ -627,7 +627,7 @@ class _LoggerMainConfigs:
 
     def __get_properties(self):
         log_cfg_props = []
-        if self._type == 'mast':
+        if self._type in ['mast', 'solar', 'sodar'] :
             # if mast, there are no child dictionaries
             log_cfg_props = self._log_cfg_data_model  # logger config data model is already a list
         elif self._type in ['lidar', 'floating_lidar']:
@@ -635,8 +635,6 @@ class _LoggerMainConfigs:
                 log_configs_flat = _flatten_dict(log_config, property_to_bring_up='lidar_config')
                 for log_config_flat in log_configs_flat:
                     log_cfg_props.append(log_config_flat)
-        elif self._type == 'solar':
-            log_cfg_props = self._log_cfg_data_model  # logger config data model is already a list
         return log_cfg_props
 
     def get_table(self, horizontal_table_orientation=False):

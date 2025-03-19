@@ -76,3 +76,14 @@ def test_get_table():
     
     assert table.data.loc["Logger Model Name", 1] == "CR800"
     assert table.data.loc["Logger Serial Number", 1] == "13588"
+    
+    # Test data representing a sodar measurement station
+    sodar_station_data = bw.demo_datasets.sodar_iea43_wra_data_model_v1_0
+
+    station = bw.MeasurementStation(sodar_station_data)
+       
+    table = station.logger_main_configs.get_table()
+    assert isinstance(table, (pd.DataFrame, pd.io.formats.style.Styler))
+    
+    assert table.data.loc["Logger OEM", 1] == "Other"
+    assert table.data.loc["Logger Serial Number", 1] == "Fulcrum3D"
