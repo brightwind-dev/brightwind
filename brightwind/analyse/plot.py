@@ -911,7 +911,6 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_label=None, y_label=None,
     scat_plot = plot_scatter(x_wdir_series, y_wdir_series, x_label=x_label, y_label=y_label,
                              x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True)
 
-    scat_plot.axes[0].legend(['1:1 line', 'Data points'])
     return scat_plot
 
 
@@ -963,7 +962,6 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_label=None, y_label=None,
     scat_plot = plot_scatter(x_wspd_series, y_wspd_series, x_label=x_label, y_label=y_label,
                              x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True)
 
-    scat_plot.axes[0].legend(['1:1 line', 'Data points'])
     return scat_plot
 
 
