@@ -10,9 +10,10 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
 
-## [2.X.0]
+## [2.3.0]
 1. Bug fix legend `plot_scatter_wspd` and `plot_scatter_wdir` functions and added tests (Issue [#443](https://github.com/brightwind-dev/brightwind/issues/443)).
 1. Bug fix calling `is_file` function (Issue [#447](https://github.com/brightwind-dev/brightwind/issues/447)).
+1. Added new function `LoadBrightHub.get_cleaning_rules()` to pull the cleaning rules for a particular measurement station on BrightHub (Issue [#461](https://github.com/brightwind-dev/brightwind/issues/461)).
 
 
 ## [2.2.1]
