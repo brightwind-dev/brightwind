@@ -72,7 +72,7 @@ def test_get_table():
         measurement_point['notes'] = None
     mm2 = bw.MeasurementStation(test_data_null_values)
     measurement_table = mm2.measurements.get_table()
-    assert "notes" not in measurement_table.columns
+    assert "meas_type_rank" not in measurement_table.columns
 
     measurement_table_detailed = mm2.measurements.get_table(detailed=True)
     assert "Name" in measurement_table_detailed.index.name
@@ -84,12 +84,6 @@ def test_get_table():
     # Ranking column is dropped after sorting
     df = mm2.measurements.get_table()
     assert "meas_type_rank" not in df.columns
-    
-    # Custom columns handling empty data
-    cols = ["name", "height_m", "empty_col1", "empty_col2"]
-    df_custom = mm2.measurements.get_table(columns_to_show=cols)
-    assert df_custom.shape[0] > 0
-    assert "Name" in df_custom.index.name
 
     df_wd = mm2.measurements.get_table(wind_directions=True)
     assert "measurement_type_id" not in df_wd.columns

@@ -974,7 +974,6 @@ class _Measurements:
             df.sort_values(['meas_type_rank', 'Height [m]'], ascending=[True, False], inplace=True)
             df.drop('meas_type_rank', axis=1, inplace=True)
             df.set_index('Name', inplace=True)
-            df.dropna(axis=1, how='all', inplace=True)
             df.fillna('-', inplace=True)
         elif detailed is True:
             cols_required = ['name', 'oem', 'model', 'sensor_type_id', 'sensor.serial_number',
@@ -984,7 +983,7 @@ class _Measurements:
                              'calibration.slope', 'calibration.offset',
                              'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties).set_index(
-                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
+                ['date_from', 'date_to']).reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
@@ -1012,7 +1011,7 @@ class _Measurements:
                              'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
             df = df[df['measurement_type_id'] == 'wind_speed'].set_index(
-                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
+                ['date_from', 'date_to']).reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
@@ -1035,7 +1034,7 @@ class _Measurements:
                              'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
             df = df[df['measurement_type_id'] == 'wind_direction'].set_index(
-                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
+                ['date_from', 'date_to']).reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
