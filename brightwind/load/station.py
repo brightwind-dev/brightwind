@@ -915,7 +915,8 @@ class _Measurements:
 
         :param detailed:              For a more detailed table that includes how the sensor is programmed into the
                                       logger, information about the sensor itself and how it is mounted on the mast
-                                      if it was.
+                                      if it was. 
+                                      If detailed=False then table is showing details only for measurement points.
         :type detailed:               bool
         :param wind_speeds:           Wind speed specific details.
         :type wind_speeds:            bool
