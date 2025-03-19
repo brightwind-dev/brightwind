@@ -65,10 +65,6 @@ def test_get_table():
     for value in mm2.measurements.get_table(detailed=True).T['Dir_80m_MC'].to_dict().values():
         if value is not '-':
             assert value in mm2.measurements.properties[4].values()
-
-
-def test_solar_logger_main_configs():
-    """Test logger main configurations for a solar measurement station"""
     
     # Test data representing a solar measurement station
     solar_station_data = bw.demo_datasets.solar_iea43_wra_data_model_v1_0
@@ -78,5 +74,5 @@ def test_solar_logger_main_configs():
     table = station.logger_main_configs.get_table()
     assert isinstance(table, (pd.DataFrame, pd.io.formats.style.Styler))
     
-    assert table.data.loc["Logger Model Name", 1] == "Meteo-40S"
-    assert table.data.loc["Logger Serial Number", 1] == "D0"
+    assert table.data.loc["Logger Model Name", 1] == "CR800"
+    assert table.data.loc["Logger Serial Number", 1] == "13588"

@@ -1,123 +1,359 @@
 {
-    "version": "1.2.0-2023.01",
-    "measurement_location": [{
-        "name": "test_solar_station",
-        "measurement_station_type_id": "solar",
-        "latitude_ddeg": 50,
-        "longitude_ddeg": -1,
-        "sensor": {
-            "serial_number": "SOL123",
-            "oem": "SolarTech",
-            "model": "ST100",
-            "notes": "Test solar sensor",
-            "date_from": "2023-01-01",
-            "date_to": "2023-12-31",
-            "measurement_type_id": "global_horizontal_irradiance",
-            "measurement_units_id": "W/m2"
-        },
-        "logger_main_config": [
-          {
-            "logger_model_name": "Meteo-40S",
-            "logger_oem_id": "Ammonit",
-            "logger_serial_number": "D0",
-            "logger_id": null,
-            "logger_name": "test",
-            "date_from": "2022-08-09T10:00:00",
-            "date_to": "2024-12-17T23:50:00",
-            "encryption_pin_or_key": null,
-            "enclosure_lock_details": null,
-            "data_transfer_details": null,
-            "offset_from_utc_hrs": 0,
-            "sampling_rate_sec": null,
-            "averaging_period_minutes": 10,
-            "timestamp_is_end_of_period": false,
-            "clock_is_auto_synced": null,
-            "notes": null,
-            "update_at": "2024-12-12T12:54:14",
-            "logger_firmware_version": null,
-            "logger_acquisition_uncertainty": null,
-            "uncertainty_k_factor": null
-          }
-        ],
-        "measurement_point": [
-
+  "author": "Brighthub",
+  "organisation": "Brightwind",
+  "date": "2025-03-19",
+  "version": "1.3.0-2024.03",
+  "measurement_location": [
     {
-      "name": "Tmp1_2m",
-      "measurement_type_id": "temperature",
-      "height_m": 1,
-      "height_reference_id": "ground_level",
+      "uuid": "1be02b4a-9a52-467a-b0f9-7a634a22e853",
+      "name": "O'Fiaich College",
+      "latitude_ddeg": 53.98594,
+      "longitude_ddeg": -6.39247,
+      "measurement_station_type_id": "solar",
       "notes": null,
-      "update_at": "2024-07-31T11:07:53",
-      "sensor": [
+      "update_at": "2024-03-22T11:37:02",
+      "logger_main_config": [
         {
-          "oem": "NRG Systems",
-          "model": "T60",
-          "serial_number": null,
-          "sensor_type_id": "thermohygrometer",
-          "instrument_poi_height_mm": null,
-          "is_heated": null,
+          "logger_model_name": "CR800",
+          "logger_oem_id": "Campbell Scientific",
+          "logger_serial_number": "13588",
+          "logger_id": "13588",
+          "logger_name": null,
+          "date_from": "2011-01-01T00:00:00",
+          "date_to": null,
+          "encryption_pin_or_key": null,
+          "enclosure_lock_details": null,
+          "data_transfer_details": null,
+          "offset_from_utc_hrs": null,
+          "sampling_rate_sec": 20,
+          "averaging_period_minutes": 15,
+          "timestamp_is_end_of_period": null,
+          "clock_is_auto_synced": null,
           "notes": null,
-          "update_at": "2024-07-31T11:01:20",
-          "sensor_body_size_mm": null,
-          "classification": null,
-          "date_from": "2022-08-09T10:00:00",
-          "date_to": null
+          "update_at": "2024-03-22T11:37:02",
+          "logger_firmware_version": null,
+          "logger_acquisition_uncertainty": null,
+          "uncertainty_k_factor": null
         }
       ],
-      "logger_measurement_config": [
+      "measurement_point": [
         {
-          "slope": 48,
-          "offset": -44,
-          "sensitivity": null,
-          "measurement_units_id": "deg_C",
+          "name": "Sol_0d",
+          "measurement_type_id": "global_horizontal_irradiance",
           "height_m": 1,
-          "serial_number": null,
-          "connection_channel": "A3",
-          "date_from": "2022-08-09T10:00:00",
-          "date_to": null,
+          "height_reference_id": "ground_level",
           "notes": null,
-          "update_at": "2024-07-31T11:01:20",
-          "logger_stated_boom_orientation_deg": null,
-          "column_name": [
+          "update_at": "2024-03-22T11:37:02",
+          "mounting_arrangement": [
             {
-              "column_name": "NRG T60 Temp Sensor;temperature;Avg",
-              "statistic_type_id": "avg",
-              "is_ignored": false,
+              "mast_section_geometry_uuid": null,
+              "mounting_type_id": null,
+              "boom_orientation_deg": null,
+              "vane_dead_band_orientation_deg": null,
+              "orientation_reference_id": null,
+              "tilt_angle_deg": 0,
+              "boom_oem": null,
+              "boom_model": null,
+              "upstand_height_mm": null,
+              "upstand_diameter_mm": null,
+              "boom_diameter_mm": null,
+              "boom_length_mm": null,
+              "distance_from_mast_to_sensor_mm": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
               "notes": null,
-              "update_at": null
-            },
+              "update_at": "2024-03-22T11:37:02"
+            }
+          ],
+          "sensor": [
             {
-              "column_name": "NRG T60 Temp Sensor;temperature;StdDev",
-              "statistic_type_id": "sd",
-              "is_ignored": false,
+              "oem": "LI-COR",
+              "model": "LI-200",
+              "serial_number": null,
+              "sensor_type_id": "pyranometer",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
               "notes": null,
-              "update_at": null
-            },
+              "update_at": "2024-03-22T11:37:02",
+              "sensor_body_size_mm": null,
+              "classification": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null
+            }
+          ],
+          "logger_measurement_config": [
             {
-              "column_name": "NRG T60 Temp Sensor;temperature;Max",
-              "statistic_type_id": "max",
-              "is_ignored": false,
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "W/m^2",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
               "notes": null,
-              "update_at": null
-            },
+              "update_at": "2024-03-22T11:37:02",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Gi_Avg",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-03-22T11:37:02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Pvar_1m",
+          "measurement_type_id": "other",
+          "height_m": 1,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02",
+          "sensor": [
             {
-              "column_name": "NRG T60 Temp Sensor;temperature;Min",
-              "statistic_type_id": "min",
-              "is_ignored": false,
+              "oem": null,
+              "model": null,
+              "serial_number": null,
+              "sensor_type_id": "other",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
               "notes": null,
-              "update_at": null
-            },
+              "update_at": "2024-03-22T11:37:02",
+              "sensor_body_size_mm": null,
+              "classification": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null
+            }
+          ],
+          "logger_measurement_config": [
             {
-              "column_name": "NRG T60 Temp Sensor;temperature;Count",
-              "statistic_type_id": "count",
-              "is_ignored": false,
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "W",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
               "notes": null,
-              "update_at": null
+              "update_at": "2024-03-22T11:37:02",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Pvar_Avg",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-03-22T11:37:02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Ppv_1m",
+          "measurement_type_id": "other",
+          "height_m": 1,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02",
+          "sensor": [
+            {
+              "oem": null,
+              "model": null,
+              "serial_number": null,
+              "sensor_type_id": "other",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "sensor_body_size_mm": null,
+              "classification": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null
+            }
+          ],
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "W",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Ppv_Avg",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-03-22T11:37:02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Pgi_1m",
+          "measurement_type_id": "other",
+          "height_m": 1,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02",
+          "sensor": [
+            {
+              "oem": null,
+              "model": null,
+              "serial_number": null,
+              "sensor_type_id": "other",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "sensor_body_size_mm": null,
+              "classification": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null
+            }
+          ],
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "W",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Pgi_Avg",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-03-22T11:37:02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Pgo_1m",
+          "measurement_type_id": "other",
+          "height_m": 1,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02",
+          "sensor": [
+            {
+              "oem": null,
+              "model": null,
+              "serial_number": null,
+              "sensor_type_id": "other",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "sensor_body_size_mm": null,
+              "classification": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null
+            }
+          ],
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "W",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Pgo_Avg",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-03-22T11:37:02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "PI_1m",
+          "measurement_type_id": "other",
+          "height_m": 1,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02",
+          "sensor": [
+            {
+              "oem": null,
+              "model": null,
+              "serial_number": null,
+              "sensor_type_id": "other",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "sensor_body_size_mm": null,
+              "classification": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null
+            }
+          ],
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "W",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Pl_Avg",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-03-22T11:37:02"
+                }
+              ]
             }
           ]
         }
       ]
     }
-        ]
-    }]
+  ],
+  "license": "CC BY 4.0"
 }
