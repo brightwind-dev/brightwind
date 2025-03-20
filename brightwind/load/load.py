@@ -16,6 +16,7 @@ from brightwind.analyse import plot as bw_plt
 import time
 import concurrent
 import math
+import operator
 
 
 __all__ = ['load_csv',
@@ -26,6 +27,7 @@ __all__ = ['load_csv',
            'LoadBrightHub',
            'load_cleaning_file',
            'apply_cleaning',
+           'apply_cleaning_rules',
            'apply_cleaning_windographer']
 
 
@@ -2234,6 +2236,109 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
                 if col.find(cleaning_df[sensor_col_name][k]) == 0:
                     data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
+
+    return data
+
+
+def apply_cleaning_rule(df, condition_col, target_cols, threshold, op_code, replacement_value):
+    """Apply cleaning rule based on a single column to replace values on a list of columns
+
+    :param df: Data to be cleaned.       
+    :type df: pandas.DataFrame
+    :param condition_col: Column that the cleaning rule is based on
+    :type condition_col: str
+    :param target_cols: Column to apply the cleaning rule to clean the data of
+    :type target_cols: List[str]
+    :param threshold: Threshold value to use in the cleaning rule
+    :type threshold: float
+    :param op_code: Operator code (1-6)
+    :type op_code: int
+    :param replacement_value: Value or string to replace the data in the target_cols with
+    :type replacement_value: str | np.nan
+    :return: Cleaned data
+    :rtype: pandas.DataFrame
+    """
+
+    operators = {
+        1: operator.lt,
+        2: operator.le,
+        3: operator.gt,
+        4: operator.ge,
+        5: operator.eq,
+        6: operator.ne,
+        }
+    
+    result_df = df.copy()
+    op = operators[op_code]
+    mask = op(df[condition_col], threshold)
+    for col in target_cols:
+        result_df.loc[mask, col] = replacement_value
+    
+    return result_df
+
+
+def apply_cleaning_rules(data, cleaning_rules_file, inplace=False, replacement_text='NaN'):
+    """
+    Apply cleaning to a timeseries DataFrame using cleaning rules either from file or from an API call to retrieve the
+    file. The flagged data will be replaced with replacement_text values which then do not appear in any plots or affect 
+    calculations.
+
+    If the 'Stop' timestamp is missing, the data from the 'Start' until the end of the timeseries will be flagged.
+
+    :param data:                    Data to be cleaned.
+    :type data:                     pandas.DataFrame
+    :param cleaning_rules_file:     File path of the json file or a dictionary which contains the cleaning rules to apply.
+    :type cleaning_rules_file:      str | None
+    :param inplace:                 If 'inplace' is True, the original data, 'data', will be modified and replaced
+                                    with the cleaned data. If 'inplace' is False, the original data will not be touched
+                                    and instead a new object containing the cleaned data is created. To store this
+                                    cleaned data, please ensure it is assigned to a new variable.
+    :type inplace:                  bool
+    :param replacement_text:        Text used to replace the flagged data.
+    :type replacement_text:         str, default 'NaN'
+    :return:                        DataFrame with the flagged data removed.
+    :rtype:                         pandas.DataFrame
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+    Load data:
+        data = bw.load_csv(r'C:\\Users\\Stephen\\Documents\\Analysis\\demo_data')
+        cleaning_rules_file = r'C:\\Users\\Stephen\\Documents\\Analysis\\demo_cleaning_rules_file.json'
+
+    To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
+        data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_file)
+        print(data_cleaned)
+
+    To modify 'data' and replace it with the cleaned data:
+        bw.apply_cleaning(data, cleaning_rules_file, inplace=True)
+        print(data)
+
+    """
+
+
+    if inplace is False:
+        data = data.copy(deep=True)
+
+    if cleaning_rules_file:
+        if isinstance(cleaning_rules_file, str):
+            with open(cleaning_rules_file) as file:
+                cleaning_json = json.load(file)
+        else:
+            return TypeError("Can't recognise the cleaning_rules_file. Please make sure it is a file path or None.")
+    # else:
+        # TODO: implement the API call here
+
+    if replacement_text == 'NaN':
+        replacement_text = np.nan
+    
+    for cleaning_rule in cleaning_json:
+        columns_to_clean = [column_name['assembled_column_name'] for column_name in cleaning_rule['rule']['clean_out']]
+        condition_variable = cleaning_rule['rule']['conditions']['assembled_column_name']
+        condition_value = cleaning_rule['rule']['conditions']['comparator_value']
+        condition_operator_code = cleaning_rule['rule']['conditions']['comparison_operator_id']
+        data = apply_cleaning_rule(data, condition_variable, columns_to_clean, condition_value, condition_operator_code, replacement_text)
 
     return data
 

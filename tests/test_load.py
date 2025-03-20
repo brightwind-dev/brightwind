@@ -51,6 +51,23 @@ def test_apply_cleaning():
     assert np.isnan(data_clnd6.Spd40mN['2016-03-29 00:00'])
 
 
+def test_apply_cleaning_rules():
+    data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+    data_clnd = bw.apply_cleaning_rules(data, bw.demo_datasets.demo_cleaning_rules_file)
+
+    data_cleaned_test = data[data["T2m"] <= 5]
+
+    assert data_clnd["Spd80mN"].min() >= 10
+    assert data_clnd["T2m"].max() <= 5
+    assert np.allclose(data_clnd["Spd80mS"].min(), data_cleaned_test["Spd80mS"].min())
+    assert np.allclose(data_clnd["Spd60mS"].min(), data_cleaned_test["Spd60mS"].min())
+    assert np.allclose(data_clnd["Spd80mS"].max(), data_cleaned_test["Spd80mS"].max())
+    assert np.allclose(data_clnd["Spd60mS"].max(), data_cleaned_test["Spd60mS"].max())
+    assert data_clnd[data["T2m"] > 5]["T2m"].isna().all()
+    assert data_clnd[data["T2m"] > 5]["Spd60mS"].isna().all()
+    assert data_clnd[data["T2m"] > 5]["Spd80mS"].isna().all()
+
+
 def test_load_csv():
     data = bw.load_csv(os.path.join(DEMO_DATA_FOLDER, 'demo_data.csv'))
     data2 = bw.load_csv(os.path.join(DEMO_DATA_FOLDER, 'demo_data2.csv'), dayfirst=True)

@@ -1,0 +1,62 @@
+[
+    {
+      "uuid": "1bc7f4f9-0163-429f-83d4-a660414429b4",
+      "rule": {
+        "clean_out": [
+          {
+            "assembled_column_name": "Spd80mN",
+            "measurement_point_uuid": "4dfb34d3-a852-4066-b0c4-e178fb025f90",
+            "statistic_type_id": "avg"
+          }
+        ],
+        "conditions": {
+          "assembled_column_name": "Spd80mN",
+          "comparator_value": 10,
+          "comparison_operator_id": 1,
+          "measurement_point_uuid": "4dfb34d3-a852-4066-b0c4-e178fb025f90",
+          "statistic_type_id": "avg",
+          "comparison_operator_name": "is less than"
+        }
+      }
+    },
+    {
+      "uuid": "be56c233-f777-4776-9f99-23dc0d13da9a",
+      "rule": {
+        "clean_out": [
+          {
+            "assembled_column_name": "Spd80mN",
+            "measurement_point_uuid": "1810d8ba-19f7-4494-8cfc-bd8bd8f7e9e8",
+            "statistic_type_id": "avg"
+          },
+          {
+            "assembled_column_name": "Spd60mN",
+            "measurement_point_uuid": "1810d8ba-19f7-4494-8cfc-bd8bd8f7e9e8",
+            "statistic_type_id": "avg"
+          },
+          {
+            "assembled_column_name": "Spd80mS",
+            "measurement_point_uuid": "1810d8ba-19f7-4494-8cfc-bd8bd8f7e9e8",
+            "statistic_type_id": "avg"
+          },
+          {
+            "assembled_column_name": "Spd60mS",
+            "measurement_point_uuid": "1810d8ba-19f7-4494-8cfc-bd8bd8f7e9e8",
+            "statistic_type_id": "avg"
+          },
+          {
+            "assembled_column_name": "T2m",
+            "measurement_point_uuid": "1810d8ba-19f7-4494-8cfc-bd8bd8f7e9e8",
+            "statistic_type_id": "avg"
+          }
+        ],
+        "conditions": {
+          "assembled_column_name": "T2m",
+          "comparator_value": 5,
+          "comparison_operator_id": 3,
+          "measurement_point_uuid": "1810d8ba-19f7-4494-8cfc-bd8bd8f7e9e8",
+          "statistic_type_id": "avg",
+          "comparison_operator_name": "is greater than"
+        }
+      }
+    }
+  ]
