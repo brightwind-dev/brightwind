@@ -77,14 +77,14 @@ def test_get_names():
     assert names1 == expected_variable_names
     
     measurement_type_id2= 'vertical_wind_speed'
-    names2 = mm1.measurements._Measurements__get_names(measurement_type_id2)
+    names2 = mm1.measurements.get_names(measurement_type_id2)
     assert names2 == ['VSpd_80']
     
     measurement_type_id3= 'wind_speed'
-    names3 = mm1.measurements._Measurements__get_names(measurement_type_id3)
+    names3 = mm1.measurements.get_names(measurement_type_id3)
     assert names3 == ['Spd_80']
 
     measurement_type_id3= None
-    names3 = mm1.measurements._Measurements__get_names(measurement_type_id3)
+    names3 = mm1.measurements.get_names(measurement_type_id3)
     assert names3 == expected_variable_names
     

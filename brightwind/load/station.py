@@ -729,7 +729,7 @@ class _Measurements:
         :return: The list of names.
         :rtype:  list(str)
         """
-        return self.__get_names()
+        return self.get_names()
 
     @property
     def wspds(self):
@@ -737,7 +737,7 @@ class _Measurements:
 
     @property
     def wspd_names(self):
-        return self.__get_names(measurement_type_id='wind_speed')
+        return self.get_names(measurement_type_id='wind_speed')
 
     @property
     def wspd_heights(self):
@@ -749,7 +749,7 @@ class _Measurements:
 
     @property
     def wdir_names(self):
-        return self.__get_names(measurement_type_id='wind_direction')
+        return self.get_names(measurement_type_id='wind_direction')
 
     @property
     def wdir_heights(self):
@@ -1064,7 +1064,7 @@ class _Measurements:
             df = self.__get_table_for_cols(columns_to_show)
         return df
 
-    def __get_names(self, measurement_type_id=None):
+    def get_names(self, measurement_type_id=None):
         """
         Get the names of measurements for a particular measurement_type or all of them if measurement_type_id is None.
 
@@ -1106,7 +1106,7 @@ class _Measurements:
         """
         heights = []
         if names is None:
-            names = self.__get_names(measurement_type_id=measurement_type_id)
+            names = self.get_names(measurement_type_id=measurement_type_id)
         if isinstance(names, str):
             names = [names]
         for name in names:
