@@ -13,7 +13,9 @@ Additional labels for pre-release and build metadata are available as extensions
 ## [2.X.0]
 1. Bug fix legend `plot_scatter_wspd` and `plot_scatter_wdir` functions and added tests (Issue [#443](https://github.com/brightwind-dev/brightwind/issues/443)).
 2. Bug fix calling `is_file` function (Issue [#447](https://github.com/brightwind-dev/brightwind/issues/447)).
-3. Bug fix in `get_table` function when implemented for solar sites (Issue [#453](https://github.com/brightwind-dev/brightwind/issues/453)).
+3. Bug fix for `_Measurements_get_table` function (Issue [#421](https://github.com/brightwind-dev/brightwind/issues/421)).
+4. Bug fix in `MeasurementStation__get_properties` function when implemented for solar sites (Issue [#453](https://github.com/brightwind-dev/brightwind/issues/453)).
+5. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
 
 
 ## [2.2.1]
