@@ -87,14 +87,29 @@
               "sensor_body_size_mm": null,
               "classification": null,
               "date_from": "2011-01-01T00:00:00",
-              "date_to": null
-            }
-          ],
+              "date_to": null,
+              "calibration": [
+                {
+                  "measurement_type_id": "global_horizontal_irradiance",
+                  "slope": null,
+                  "offset": null,
+                  "sensitivity": 8.5,
+                  "report_file_name": "Test Report",
+                  "report_link": null,
+                  "date_of_calibration": "2015-08-19",
+                  "revision": "A",
+                  "calibration_organisation": "OTT HydroMet B.V.",
+                  "place_of_calibration": null,
+                  "uncertainty_k_factor": null,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:37",
+                  "calibration_uncertainty": []
+            }]}],
           "logger_measurement_config": [
             {
               "slope": null,
               "offset": null,
-              "sensitivity": null,
+              "sensitivity": 8.56,
               "measurement_units_id": "W/m^2",
               "height_m": null,
               "serial_number": null,
