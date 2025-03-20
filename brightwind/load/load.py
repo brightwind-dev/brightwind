@@ -2202,7 +2202,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
         import brightwind as bw
 
     Load data:
-        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
         cleaning_file = bw.demo_datasets.demo_cleaning_file
 
     To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
@@ -2248,7 +2248,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     return data
 
 
-def _apply_cleaning_rule(df, condition_col, target_cols, threshold, op_code, replacement_value):
+def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, comparison_operator_id, replacement_value):
     """Apply cleaning rule based on a single column to replace values on a list of columns
 
     :param df:                      Data to be cleaned.       
@@ -2257,11 +2257,11 @@ def _apply_cleaning_rule(df, condition_col, target_cols, threshold, op_code, rep
     :type condition_col:            str
     :param target_cols:             Column to apply the cleaning rule to clean the data of
     :type target_cols:              List[str]
-    :param threshold:               Threshold value to use in the cleaning rule
-    :type threshold:                float
-    :param op_code:                 Operator code (1-6) defined by the cleaning_rule_json format, to be used with
+    :param comparator_value:        Threshold value to use in the cleaning rule
+    :type comparator_value:         float
+    :param comparison_operator_id:  Operator code (1-6) defined by the cleaning_rule_json format, to be used with
                                     variable operator_dict to define the operator used on the condition column
-    :type op_code:                  int
+    :type comparison_operator_id:   int
     :param replacement_value:       Value or string to replace the data in the target_cols with
     :type replacement_value:        str | np.nan
     :return:                        Cleaned data
@@ -2269,8 +2269,8 @@ def _apply_cleaning_rule(df, condition_col, target_cols, threshold, op_code, rep
     """
 
     result_df = df.copy()
-    op = operator_dict[op_code]
-    mask = op(df[condition_col], threshold)
+    op = operator_dict[comparison_operator_id]
+    mask = op(df[condition_col], comparator_value)
     for col in target_cols:
         result_df.loc[mask, col] = replacement_value
     
@@ -2302,7 +2302,7 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
         import brightwind as bw
 
     Load data:
-        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
         cleaning_rules_file_or_dict = bw.demo_datasets.demo_cleaning_rules_file
 
     To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
@@ -2327,7 +2327,8 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
         elif isinstance(cleaning_rules_file_or_dict, dict):
             cleaning_json = cleaning_rules_file_or_dict
         else:
-            return TypeError("Can't recognise the cleaning_rules_file_or_dict. Please make sure it is a file path or None.")
+            return TypeError("Can't recognise the cleaning_rules_file_or_dict. Please make sure it is a file path, "
+            "dictionary or None.")
     # else:
         # TODO: implement the API call here
 
@@ -2337,9 +2338,10 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
     for cleaning_rule in cleaning_json:
         columns_to_clean = [column_name['assembled_column_name'] for column_name in cleaning_rule['rule']['clean_out']]
         condition_variable = cleaning_rule['rule']['conditions']['assembled_column_name']
-        condition_value = cleaning_rule['rule']['conditions']['comparator_value']
-        condition_operator_code = cleaning_rule['rule']['conditions']['comparison_operator_id']
-        data = _apply_cleaning_rule(data, condition_variable, columns_to_clean, condition_value, condition_operator_code, replacement_text)
+        comparator_value = cleaning_rule['rule']['conditions']['comparator_value']
+        comparison_operator_id = cleaning_rule['rule']['conditions']['comparison_operator_id']
+        data = _apply_cleaning_rule(data, condition_variable, columns_to_clean, comparator_value, comparison_operator_id, 
+                                    replacement_text)
 
     return data
 
@@ -2380,7 +2382,7 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
         import brightwind as bw
 
     Load data:
-        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
         windog_cleaning_file = bw.demo_datasets.demo_windographer_flagging_log
 
     To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
