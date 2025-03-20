@@ -14,7 +14,7 @@
       "update_at": "2024-03-22T11:37:02",
       "mast_properties": {
         "mast_geometry_id": "pole",
-        "mast_oem'=": "A Mast Manufacturer",
+        "mast_oem": "A Mast Manufacturer",
         "mast_serial_number": "MM012T5",
         "mast_model": "t73yy",
         "mast_height_m": 3.0,
