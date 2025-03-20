@@ -1081,9 +1081,14 @@ class _Measurements:
             # To get all measurement point names:
             mm1.measurements.get_names(measurement_type_id=None)
 
-        T   # To get measurement point names only for measurement_type_id='air_temperature':
+            # To get measurement point names only for measurement_type_id='air_temperature':
             mm1.measurements.get_names(measurement_type_id='air_temperature')
+
         """
+
+        if type(measurement_type_id) is not str and measurement_type_id is not None:
+            raise TypeError('measurement_type_id must be a string or None')
+        
         names = []
         for meas_point in self.__meas_properties:  # use __meas_properties as it is a list and holds it's order
             meas_type = meas_point.get('measurement_type_id')
@@ -1114,7 +1119,29 @@ class _Measurements:
         :type measurement_type_id:  str
         :return:                    The heights of the measurements.
         :rtype:                     list(float)
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            mm1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
+
+            # To get heights for all measurements:
+            mm1.measurements.get_heights(names=None, measurement_type_id=None)
+
+            # To get heights only for defined names=['Spd_80mSE', 'Dir_76mNW']:
+            mm1.measurements.get_heights(names=['Spd_80mSE', 'Dir_76mNW'])
+
+            # To get heights only for defined names='Spd_80mSE':
+            mm1.measurements.get_heights(names='Spd_80mSE')
+
+            # To get heights only for measurement_type_id='air_temperature':
+            mm1.measurements.get_heights(measurement_type_id='air_temperature')
+
         """
+
+        if type(measurement_type_id) is not str and measurement_type_id is not None:
+            raise TypeError('measurement_type_id must be a string or None')
+        
         heights = []
         if names is None:
             names = self.get_names(measurement_type_id=measurement_type_id)
