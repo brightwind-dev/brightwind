@@ -59,9 +59,9 @@ def test_get_table():
         assert value in MM1.properties.values()
 
     # Test data for solar measurement station
-    table = SS1.get_table().data
-    assert table.loc["Measurement Station Type"][1] == "solar"
-    assert table.loc["Name"][1] == "O'Fiaich\xa0College"
+    table_test = SS1.get_table().data
+    assert table_test.loc["Measurement Station Type"].values[0] == "solar"
+    assert table_test.loc["Name"].values[0] == "test-solar-site"
 
     ## tests for logger_main_configs.get_table()
 
