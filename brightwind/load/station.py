@@ -1131,8 +1131,8 @@ class _Measurements:
             # To get heights only for defined names=['Spd_80mSE', 'Dir_76mNW']:
             mm1.measurements.get_heights(names=['Spd_80mSE', 'Dir_76mNW'])
 
-            # To get heights only for defined names='Spd_80mSE':
-            mm1.measurements.get_heights(names='Spd_80mSE')
+            # To get heights only for defined names='Spd_40mSE':
+            mm1.measurements.get_heights(names='Spd_40mSE')
 
             # To get heights only for measurement_type_id='air_temperature':
             mm1.measurements.get_heights(measurement_type_id='air_temperature')

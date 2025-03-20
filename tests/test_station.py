@@ -149,8 +149,8 @@ def test_get_heights():
     # To get heights only for defined names=['Spd_80mSE', 'Dir_76mNW']:
     assert MM1.measurements.get_heights(names=['Spd_80mSE', 'Dir_76mNW']) == [80.2, 76.1]
 
-    # To get heights only for defined names='Spd_80mSE':
-    assert MM1.measurements.get_heights(names='Spd_80mSE') == [40.2]
+    # To get heights only for defined names='Spd_40mSE':
+    assert MM1.measurements.get_heights(names='Spd_40mSE') == [40.2]
 
     # To get heights only for measurement_type_id='air_temperature':
     assert MM1.measurements.get_heights(measurement_type_id='air_temperature') == [78, 5]
