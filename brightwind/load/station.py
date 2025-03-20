@@ -1071,15 +1071,14 @@ class _Measurements:
         :param measurement_type_id: The measurement_type_id to filter for the names.
         :type measurement_type_id:  str or None
         :return:                    The list of names.
-        :rtype:                     str | list[str]
+        :rtype:                     list(str)
         """
         names = []
-        measurement_type_id = measurement_type_id if isinstance(measurement_type_id, list) else [measurement_type_id]
         for meas_point in self.__meas_properties:  # use __meas_properties as it is a list and holds it's order
             meas_type = meas_point.get('measurement_type_id')
             meas_name = meas_point.get('name')
             if measurement_type_id is not None:
-                if meas_type is not None and meas_type in measurement_type_id:
+                if meas_type is not None and meas_type == measurement_type_id:
                     if meas_name not in names:
                         names.append(meas_point.get('name'))
             else:

@@ -69,14 +69,22 @@ def test_get_table():
 
 def test_get_names():
     mm1 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_iea43_wra_data_model_v1_2)
-    measurement_type_id1= 'vertical_wind_speed'
-    names1 = mm1.measurements._Measurements__get_names(measurement_type_id1)
-    assert names1 == ['VSpd_80']
+    names1 = mm1.measurements.names
+    expected_variable_names = ['Spd_80', 'Dir_80m', 'VSpd_80', 'Spd_80_MC', 'Dir_80m_MC', 'VSpd_80_MC', 'Water_Tmp',
+                               'Wave_Height_Sig', 'Wave_Height_Max', 'Wave_Dir', 'Wave_Spread', 'Wave_PP', 'WtrSpd5m',
+                               'VWtrSpd5m', 'WtrDir5m', 'Echo_5m', 'SNR_5m', 'Salinity_0m', 'Conductivity_0m', 
+                               'Pressure_0m','Water_Level'] 
+    assert names1 == expected_variable_names
     
-    measurement_type_id2= 'wind_speed'
+    measurement_type_id2= 'vertical_wind_speed'
     names2 = mm1.measurements._Measurements__get_names(measurement_type_id2)
-    assert names2 == ['Spd_80']
+    assert names2 == ['VSpd_80']
     
-    measurement_type_id3= ['wind_speed', 'vertical_wind_speed']
+    measurement_type_id3= 'wind_speed'
     names3 = mm1.measurements._Measurements__get_names(measurement_type_id3)
-    assert sorted(names3) == sorted(['VSpd_80', 'Spd_80'])
+    assert names3 == ['Spd_80']
+
+    measurement_type_id3= None
+    names3 = mm1.measurements._Measurements__get_names(measurement_type_id3)
+    assert names3 == expected_variable_names
+    
