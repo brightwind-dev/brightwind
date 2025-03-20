@@ -480,14 +480,11 @@ class MeasurementStation:
 
     def __get_properties(self):
         meas_loc_prop = []
-        if self.type == 'mast':
+        if self.type in ['mast', 'solar']:
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model, property_to_bring_up='mast_properties')
         elif self.type in ['lidar', 'sodar', 'floating_lidar']:
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model,
                                           property_to_bring_up='vertical_profiler_properties')
-        elif self.type == 'solar':
-            meas_loc_prop = _flatten_dict(self.__meas_loc_data_model,
-                                          property_to_bring_up='sensor')
         return meas_loc_prop
 
     def get_table(self, horizontal_table_orientation=False):
