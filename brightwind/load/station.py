@@ -1072,6 +1072,17 @@ class _Measurements:
         :type measurement_type_id:  str or None
         :return:                    The list of names.
         :rtype:                     list(str)
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            mm1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
+
+            # To get all measurement point names:
+            mm1.measurements.get_names(measurement_type_id=None)
+
+        T   # To get measurement point names only for measurement_type_id='air_temperature':
+            mm1.measurements.get_names(measurement_type_id='air_temperature')
         """
         names = []
         for meas_point in self.__meas_properties:  # use __meas_properties as it is a list and holds it's order
