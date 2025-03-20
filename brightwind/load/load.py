@@ -30,6 +30,14 @@ __all__ = ['load_csv',
            'apply_cleaning_rules',
            'apply_cleaning_windographer']
 
+operator_dict = {
+    1: operator.lt,
+    2: operator.le,
+    3: operator.gt,
+    4: operator.ge,
+    5: operator.eq,
+    6: operator.ne,
+    }
 
 def _list_files(folder_path, file_type):
     """
@@ -2240,7 +2248,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     return data
 
 
-def apply_cleaning_rule(df, condition_col, target_cols, threshold, op_code, replacement_value):
+def _apply_cleaning_rule(df, condition_col, target_cols, threshold, op_code, replacement_value):
     """Apply cleaning rule based on a single column to replace values on a list of columns
 
     :param df: Data to be cleaned.       
@@ -2259,17 +2267,8 @@ def apply_cleaning_rule(df, condition_col, target_cols, threshold, op_code, repl
     :rtype: pandas.DataFrame
     """
 
-    operators = {
-        1: operator.lt,
-        2: operator.le,
-        3: operator.gt,
-        4: operator.ge,
-        5: operator.eq,
-        6: operator.ne,
-        }
-    
     result_df = df.copy()
-    op = operators[op_code]
+    op = operator_dict[op_code]
     mask = op(df[condition_col], threshold)
     for col in target_cols:
         result_df.loc[mask, col] = replacement_value
@@ -2338,7 +2337,7 @@ def apply_cleaning_rules(data, cleaning_rules_file, inplace=False, replacement_t
         condition_variable = cleaning_rule['rule']['conditions']['assembled_column_name']
         condition_value = cleaning_rule['rule']['conditions']['comparator_value']
         condition_operator_code = cleaning_rule['rule']['conditions']['comparison_operator_id']
-        data = apply_cleaning_rule(data, condition_variable, columns_to_clean, condition_value, condition_operator_code, replacement_text)
+        data = _apply_cleaning_rule(data, condition_variable, columns_to_clean, condition_value, condition_operator_code, replacement_text)
 
     return data
 
