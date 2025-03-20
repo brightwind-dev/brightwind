@@ -51,11 +51,15 @@ def test_get_table():
     mm1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
     mm2 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
 
-    ## tests for _Header.get_table()
+    ## tests for MeasurementStation.get_table()
+    mm1.get_table(horizontal_table_orientation=False).data.loc['Name'].values[0] == 'Test_MM1'
     for value in mm1.get_table(horizontal_table_orientation=True).T['Test_MM1'].to_dict().values():
         assert value in mm1.properties.values()
 
     ## tests for logger_main_configs.get_table()
+
+    assert mm1.logger_main_configs.get_table(horizontal_table_orientation=False).data.loc['Logger Name'].values[0] == 'AName_MM1'
+# df.loc['Logger Name']#['AName_MM1'].to_dict().values()
 
     for value in mm1.logger_main_configs.get_table(horizontal_table_orientation=True).T['AName_MM1'].to_dict().values():
         assert value in mm1.logger_main_configs.properties[0].values()
