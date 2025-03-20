@@ -63,9 +63,13 @@ def test_apply_cleaning_rules():
     assert np.allclose(data_clnd["Spd60mS"].min(), data_cleaned_test["Spd60mS"].min())
     assert np.allclose(data_clnd["Spd80mS"].max(), data_cleaned_test["Spd80mS"].max())
     assert np.allclose(data_clnd["Spd60mS"].max(), data_cleaned_test["Spd60mS"].max())
+    assert np.allclose(data_clnd["Spd80mSMax"].max(), data_cleaned_test["Spd80mSMax"].max())
+    assert np.allclose(data_clnd["Spd60mSStd"].max(), data_cleaned_test["Spd60mSStd"].max())
     assert data_clnd[data["T2m"] > 5]["T2m"].isna().all()
     assert data_clnd[data["T2m"] > 5]["Spd60mS"].isna().all()
     assert data_clnd[data["T2m"] > 5]["Spd80mS"].isna().all()
+    assert data_clnd[data["T2m"] > 5]["Spd80mSStd"].isna().all()
+    assert data_clnd[data["T2m"] > 5]["Spd80mSMax"].isna().all()
 
     data_clnd = bw.apply_cleaning_rules(data, bw.demo_datasets.demo_cleaning_rules_file, replacement_text="-")
     assert (data_clnd[data["T2m"] > 5]["T2m"] == "-").all()

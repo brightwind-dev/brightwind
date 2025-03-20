@@ -2337,6 +2337,7 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
     
     for cleaning_rule in cleaning_json:
         columns_to_clean = [column_name['assembled_column_name'] for column_name in cleaning_rule['rule']['clean_out']]
+        columns_to_clean = [column_name for column_to_remove in columns_to_clean for column_name in data.columns if column_to_remove in column_name]
         condition_variable = cleaning_rule['rule']['conditions']['assembled_column_name']
         comparator_value = cleaning_rule['rule']['conditions']['comparator_value']
         comparison_operator_id = cleaning_rule['rule']['conditions']['comparison_operator_id']
