@@ -50,7 +50,7 @@ def test_get_title():
 def test_get_table():
     mm1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
     mm2 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
-    ss1 = bw.MeasurementStation(bw.demo_datasets.solar_iea43_wra_data_model_v1_0)
+    ss1 = bw.MeasurementStation(bw.demo_datasets.solar_iea43_wra_data_model_v1_3)
 
     ## tests for MeasurementStation.get_table()
     mm1.get_table(horizontal_table_orientation=False).data.loc['Name'].values[0] == 'Test_MM1'
