@@ -67,6 +67,11 @@ def test_apply_cleaning_rules():
     assert data_clnd[data["T2m"] > 5]["Spd60mS"].isna().all()
     assert data_clnd[data["T2m"] > 5]["Spd80mS"].isna().all()
 
+    data_clnd = bw.apply_cleaning_rules(data, bw.demo_datasets.demo_cleaning_rules_file, replacement_text="-")
+    assert (data_clnd[data["T2m"] > 5]["T2m"] == "-").all()
+    assert (data_clnd[data["T2m"] > 5]["Spd60mS"] == "-").all()
+    assert (data_clnd[data["T2m"] > 5]["Spd80mS"] == "-").all()
+    
 
 def test_load_csv():
     data = bw.load_csv(os.path.join(DEMO_DATA_FOLDER, 'demo_data.csv'))

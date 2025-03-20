@@ -176,4 +176,23 @@ def is_file(file_or_folder):
         raise FileNotFoundError("File or folder doesn't seem to exist.")
 
 
+def is_extension(file_or_folder, extension_required):
+    """
+    Returns True is file_or_folder is a file of the desired file type.
+    :param file_or_folder: The file or folder path.
+    :type file_or_folder: str
+    :param extension_required: The file extension needed.
+    :type extension_required: str
+    :return: True if a file.
+    """
+    if is_file(file_or_folder):    
+        _, extension = os.path.splitext(file_or_folder)
+        if extension.lower() == extension_required:
+            return True
+        else:
+            raise ValueError(f"Cleaning rules file must be a JSON file, got: {extension}")
+    else:
+        raise ValueError(f"Cleaning rules file must be a JSON file, got: {file_or_folder}")
+
+
 
