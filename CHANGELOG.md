@@ -13,8 +13,10 @@ Additional labels for pre-release and build metadata are available as extensions
 ## [2.X.0]
 1. Bug fix legend `plot_scatter_wspd` and `plot_scatter_wdir` functions and added tests (Issue [#443](https://github.com/brightwind-dev/brightwind/issues/443)).
 2. Bug fix calling `is_file` function (Issue [#447](https://github.com/brightwind-dev/brightwind/issues/447)).
-3. Added new function `load.apply_cleaning_rules()` to clean columns specified in cleaning rules file by 
+3. Bug fix for `get_table` function (Issue [#421](https://github.com/brightwind-dev/brightwind/issues/421)).
+4. Added new function `load.apply_cleaning_rules()` to clean columns specified in cleaning rules file by 
 the condition specified on a specific column in the rule file. (Issue [#462](https://github.com/brightwind-dev/brightwind/issues/462)).
+5. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
 
 ## [2.2.1]
 1. Bug fix some users encounter with `plot.plot_shear_time_of_day()` (Issue [#429](https://github.com/brightwind-dev/brightwind/issues/429)).
