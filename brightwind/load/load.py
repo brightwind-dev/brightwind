@@ -30,7 +30,7 @@ __all__ = ['load_csv',
            'apply_cleaning_rules',
            'apply_cleaning_windographer']
 
-operator_dict = {
+OPERATOR_DICT = {
     1: operator.lt,
     2: operator.le,
     3: operator.gt,
@@ -2269,7 +2269,7 @@ def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, compa
     """
 
     result_df = df.copy()
-    op = operator_dict[comparison_operator_id]
+    op = OPERATOR_DICT[comparison_operator_id]
     mask = op(df[condition_col], comparator_value)
     for col in target_cols:
         result_df.loc[mask, col] = replacement_value
@@ -2336,12 +2336,12 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
         replacement_text = np.nan
     
     for cleaning_rule in cleaning_json:
-        columns_to_clean = [column_name['assembled_column_name'] for column_name in cleaning_rule['rule']['clean_out']]
-        columns_to_clean = [column_name for column_to_remove in columns_to_clean for column_name in data.columns if column_to_remove in column_name]
+        condition_column_name = [column_name['assembled_column_name'] for column_name in cleaning_rule['rule']['clean_out']]
+        condition_column_name = [column_name for column_to_remove in condition_column_name for column_name in data.columns if column_to_remove in column_name]
         condition_variable = cleaning_rule['rule']['conditions']['assembled_column_name']
         comparator_value = cleaning_rule['rule']['conditions']['comparator_value']
         comparison_operator_id = cleaning_rule['rule']['conditions']['comparison_operator_id']
-        data = _apply_cleaning_rule(data, condition_variable, columns_to_clean, comparator_value, comparison_operator_id, 
+        data = _apply_cleaning_rule(data, condition_variable, condition_column_name, comparator_value, comparison_operator_id, 
                                     replacement_text)
 
     return data
