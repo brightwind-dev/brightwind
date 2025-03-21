@@ -291,11 +291,6 @@ PREFIX_DICT = {
         'title_prefix': 'Mast ',
         'keys_to_prefix': ['notes', 'update_at']
     },
-    'logger_main_config': {
-        'prefix_separator': '.',
-        'title_prefix': 'Solar ',
-        'keys_to_prefix': ['notes', 'update_at']
-    },
     'vertical_profiler_properties': {
         'prefix_separator': '.',
         'title_prefix': 'Vert. Prof. Prop. ',

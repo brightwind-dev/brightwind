@@ -12,7 +12,7 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ## [2.X.0]
 1. Bug fix calling `is_file` function (Issue [#447](https://github.com/brightwind-dev/brightwind/issues/447)).
-2. Bug fix calling `get_table` function for solar and sodar sites as part of `logger_main_configs` (Issue [#454](https://github.com/brightwind-dev/brightwind/issues/454)).
+2. Bug fix in `_LoggerMainConfigs__get_properties` function for solar and sodar sites (Issue [#454](https://github.com/brightwind-dev/brightwind/issues/454)).
 
 
 ## [2.2.1]
