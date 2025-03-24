@@ -1066,9 +1066,10 @@ class _Measurements:
 
     def get_names(self, measurement_type_id=None):
         """
-        Get the names of measurements for a particular measurement_type or all of them if measurement_type_id is None.
+        Get the names of measurements for a particular measurement_type, or all of them if measurement_type_id is None.
 
-        :param measurement_type_id: The measurement_type_id to filter for the names.
+        :param measurement_type_id: The measurement_type_id (as defined by the IEA Wind Task 43
+                                    WRA Data Model) to filter for the names.
         :type measurement_type_id:  str or None
         :return:                    The list of names.
         :rtype:                     list(str)
