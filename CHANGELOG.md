@@ -15,7 +15,8 @@ Additional labels for pre-release and build metadata are available as extensions
 2. Bug fix calling `is_file` function (Issue [#447](https://github.com/brightwind-dev/brightwind/issues/447)).
 3. Bug fix for `_Measurements_get_table` function (Issue [#421](https://github.com/brightwind-dev/brightwind/issues/421)).
 4. Bug fix for `_Measurements_get_names` function and made this function public (Issue [#450](https://github.com/brightwind-dev/brightwind/issues/450)).
-4. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
+4. Added options for display of legend and grid for `_timeseries_subplot` function (Issue [#457](https://github.com/brightwind-dev/brightwind/issues/457)).
+5. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
 
 
 ## [2.2.1]
