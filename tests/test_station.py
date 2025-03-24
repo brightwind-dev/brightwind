@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import warnings
 import json
+import copy
 
 
 def _get_schema(schema):
@@ -78,11 +79,6 @@ def test_get_table():
         if value != '-':
             assert value in flr1.measurements.properties[4].values()
 
-    # Check thermohygrometer has correct properties assigned
-    properties = mm1.measurements.properties
-    for measurement in properties:
-        if "Tmp" in measurement['name'] and "logger" not in measurement['name']:
-            assert measurement['measurement_type_id'] == "air_temperature"
     test_null_values_json = _get_schema(bw.demo_datasets.floating_lidar_iea43_wra_data_model_v1_2)
     for measurement_point in test_null_values_json['measurement_location'][0]['measurement_point']:
         measurement_point['height_reference'] = None
@@ -120,3 +116,28 @@ def test_get_table():
     mm2.measurements.get_table(columns_to_show=columns)
     measurement_table_input_cols = mm1.measurements.get_table(columns_to_show=columns)
     assert "Calibration Slope" in measurement_table_input_cols.columns
+
+def test_properties():
+
+    mm1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
+
+    # Check thermometer has correct properties assigned
+    properties = mm1.measurements.properties
+    for measurement in properties:
+        if "Tmp" in measurement['name'] and "logger" not in measurement['name']:
+            assert measurement['measurement_type_id'] == "air_temperature"
+            assert measurement['sensor_type_id'] == 'thermometer'
+
+    # Check thermohygrometer has correct properties assigned
+    obj_test = copy.deepcopy(mm1.measurements)
+    for dm in obj_test._meas_data_model:
+        if dm['name'] == 'Tmp_5m':
+            dm['sensor'][0]['sensor_type_id'] = 'thermohygrometer'
+            dm['sensor'][0]['calibration'] = [{'slope': 100.0, 'offset': -30.0, 'measurement_type_id': 'air_temperature'},
+                                            {'slope': 100.0, 'offset': 0.0, 'measurement_type_id': 'relative_humidity'}]
+
+    properties = obj_test._Measurements__get_properties()
+    for measurement in properties:
+        if "Tmp_5m" in measurement['name']:
+            assert measurement['measurement_type_id'] == "air_temperature"
+            assert measurement['sensor_type_id'] == 'thermohygrometer'
