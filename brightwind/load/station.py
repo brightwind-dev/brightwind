@@ -916,15 +916,16 @@ class _Measurements:
 
         :param detailed:              For a more detailed table that includes how the sensor is programmed into the
                                       logger, information about the sensor itself and how it is mounted on the mast
-                                      if it was.
+                                      if it was. 
+                                      If detailed=False then table is showing details only for measurement points.
         :type detailed:               bool
         :param wind_speeds:           Wind speed specific details.
         :type wind_speeds:            bool
-        :param wind_directions:       Wind speed specific details.
+        :param wind_directions:       Wind direction specific details.
         :type wind_directions:        bool
-        :param calibrations:          Wind speed specific details.
+        :param calibrations:          Calibration specific details.
         :type calibrations:           bool
-        :param mounting_arrangements: Wind speed specific details.
+        :param mounting_arrangements: Mounting arrangement specific details.
         :type mounting_arrangements:  bool
         :param columns_to_show:       Optionally provide a list of column names you want to see in a table. This list
                                       should be pulled from the list of keys available in the measurements.properties.
@@ -973,9 +974,8 @@ class _Measurements:
             order_index = dict(zip(MEAS_TYPE_ORDER, range(len(MEAS_TYPE_ORDER))))
             df['meas_type_rank'] = df['Measurement Type'].map(order_index)
             df.sort_values(['meas_type_rank', 'Height [m]'], ascending=[True, False], inplace=True)
-            df.drop('meas_type_rank', 1, inplace=True)
+            df.drop('meas_type_rank', axis=1, inplace=True)
             df.set_index('Name', inplace=True)
-            df.dropna(axis=1, how='all', inplace=True)
             df.fillna('-', inplace=True)
         elif detailed is True:
             cols_required = ['name', 'oem', 'model', 'sensor_type_id', 'sensor.serial_number',
@@ -985,7 +985,7 @@ class _Measurements:
                              'calibration.slope', 'calibration.offset',
                              'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties).set_index(
-                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
+                ['date_from', 'date_to']).reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
@@ -994,7 +994,7 @@ class _Measurements:
                 order_index = dict(zip(SENSOR_TYPE_ORDER, range(len(SENSOR_TYPE_ORDER))))
                 df['sensor_rank'] = df['sensor_type_id'].map(order_index)
                 df.sort_values(['sensor_rank', 'height_m'], ascending=[True, False], inplace=True)
-                df.drop(columns='sensor_rank', axis=1, inplace=True)
+                df.drop('sensor_rank', axis=1, inplace=True)
             else:
                 df.sort_values(['name', 'height_m'], ascending=[True, False], inplace=True)
             # get titles
@@ -1013,11 +1013,11 @@ class _Measurements:
                              'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
             df = df[df['measurement_type_id'] == 'wind_speed'].set_index(
-                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
+                ['date_from', 'date_to']).reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
-            df.drop('measurement_type_id', 1, inplace=True)
+            df.drop('measurement_type_id', axis=1, inplace=True)
             # order rows
             df.sort_values(['height_m', 'name'], ascending=[False, True], inplace=True)
             # get titles
@@ -1036,11 +1036,11 @@ class _Measurements:
                              'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
             df = df[df['measurement_type_id'] == 'wind_direction'].set_index(
-                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
+                ['date_from', 'date_to']).reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
-            df.drop('measurement_type_id', 1, inplace=True)
+            df.drop('measurement_type_id', axis=1, inplace=True)
             # order rows
             df.sort_values(['height_m', 'name'], ascending=[False, True], inplace=True)
             # get titles
