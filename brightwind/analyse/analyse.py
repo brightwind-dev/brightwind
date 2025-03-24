@@ -557,9 +557,13 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
     var_to_bin_against = _convert_df_to_series(var_to_bin_against)
     var_to_bin = var_to_bin.dropna()
     var_to_bin_against = var_to_bin_against.dropna()
+    if var_to_bin_against.sum() == 0:
+        raise ValueError(f"Cannot create bins: No valid numeric values found in {var_to_bin_against.name}")
 
     if bins is None:
         bins = np.arange(round(var_to_bin_against.min() - 0.5) - 0.5, var_to_bin_against.max() + 0.5, 1)
+    if len(bins) == 1:
+        bins= np.array([bins[0], bins[0] + 1])
     var_binned_series = pd.cut(var_to_bin_against, bins, right=False).rename('variable_bin')
     data = pd.concat([var_to_bin.rename('data'), var_binned_series], join='inner', axis=1)
 

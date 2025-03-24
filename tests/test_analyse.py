@@ -339,6 +339,16 @@ def test_dist():
 
     # For distribution of multiple sum wind speeds with respect themselves
     bw.dist(DATA[['Spd80mN', 'Spd80mS']], aggregation_method='sum')
+    
+    # For distribution of %frequency of wind speeds with no valid data
+    with pytest.raises(ValueError) as excinfo:
+        bw.dist(DATA.Spd40mN * np.nan, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
+    expected_msg = "Cannot create bins: No valid numeric values found in Spd40mN"
+    assert str(excinfo.value) == expected_msg
+
+    # For distribution of %frequency of wind speeds with only one bin
+    DATA.Spd40mN = 2
+    bw.dist(DATA.Spd40mN)
 
     assert True
 
