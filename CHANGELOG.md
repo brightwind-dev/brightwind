@@ -14,7 +14,8 @@ Additional labels for pre-release and build metadata are available as extensions
 1. Bug fix legend `plot_scatter_wspd` and `plot_scatter_wdir` functions and added tests (Issue [#443](https://github.com/brightwind-dev/brightwind/issues/443)).
 2. Bug fix calling `is_file` function (Issue [#447](https://github.com/brightwind-dev/brightwind/issues/447)).
 3. Bug fix for `get_table` function (Issue [#421](https://github.com/brightwind-dev/brightwind/issues/421)).
-4. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
+4. Bug fix for `monthly_means` function and updated functionality of the plots (Issue [#452](https://github.com/brightwind-dev/brightwind/issues/452)) and (Issue [#413](https://github.com/brightwind-dev/brightwind/issues/413)).
+5. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
 
 
 ## [2.2.1]

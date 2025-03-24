@@ -180,25 +180,34 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
-def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]', data_resolution=None):
+def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]', data_resolution=None,
+                  external_legend=False, show_legend=True, xtick_delta='1MS'):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
 
-    :param data: A timeseries to find monthly means of. Can have multiple columns
-    :type data: Series or DataFrame
-    :param return_data: To return data of monthly means along with the plot.
-    :type return_data: bool
-    :param return_coverage: To return monthly coverage along with the data and plot. Also plots the coverage on the
-        same graph if only a single series was passed to data.
-    :type return_coverage: bool
-    :param ylabel: Label for the y-axis, Wind speed [m/s] by default
-    :type   ylabel: str
-    :param data_resolution: Data resolution to give as input if the coverage of the data timeseries is extremely low
-                            and it is not possible to define the most common time interval between timestamps
-    :type data_resolution:  None or pd.DateOffset
-    :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
-        the first element is plot and second is data pertaining to monthly means.
+    :param data:                    A timeseries to find monthly means of. Can have multiple columns
+    :type data:                     Series or DataFrame
+    :param return_data:             To return data of monthly means along with the plot.
+    :type return_data:              bool
+    :param return_coverage:         To return monthly coverage along with the data and plot. Also plots the coverage on the
+                                    same graph if only a single series was passed to data.
+    :type return_coverage:          bool
+    :param ylabel:                  Label for the y-axis, Wind speed [m/s] by default
+    :type   ylabel:                 str
+    :param data_resolution:         Data resolution to give as input if the coverage of the data timeseries is extremely low
+                                    and it is not possible to define the most common time interval between timestamps
+    :type data_resolution:          None or pd.DateOffset
+    :param external_legend:         Flag for option to return legend outside and above the plot area, default False
+    :type external_legend:          bool
+    :param show_legend:             Flag for option to display legend, default True
+    :type show_legend:              bool
+    :param xtick_delta:             String to give the frequency of x ticks. Given as a pandas frequency string, 
+                                    remembering that S at the end is required for months starting on the first day of the 
+                                    month, default '1MS'
+    :type xtick_delta:              str
+    :return:                        A plot of monthly means for the input data. If return data is true it returns a tuple 
+                                    where the first element is plot and second is data pertaining to monthly means.
 
     **Example usage**
     ::
@@ -229,10 +238,16 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
 
     df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True, data_resolution=data_resolution)
     if return_data and not return_coverage:
-        return bw_plt.plot_monthly_means(df, ylbl=ylabel), df
+        return bw_plt.plot_monthly_means(
+            df, ylbl=ylabel, external_legend=external_legend, show_legend=show_legend, xtick_delta=xtick_delta
+            ), df
     if return_coverage:
-        return bw_plt.plot_monthly_means(df, covrg, ylbl=ylabel),  pd.concat([df, covrg], axis=1)
-    return bw_plt.plot_monthly_means(df, ylbl=ylabel)
+        return bw_plt.plot_monthly_means(
+            df, covrg, ylbl=ylabel, external_legend=external_legend, show_legend=show_legend, xtick_delta=xtick_delta
+            ), pd.concat([df, covrg], axis=1)
+    return bw_plt.plot_monthly_means(
+        df, ylbl=ylabel, external_legend=external_legend, show_legend=show_legend, xtick_delta=xtick_delta
+        )
 
 
 def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage, coverage_threshold, analysis_type,

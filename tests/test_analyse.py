@@ -3,6 +3,7 @@ import brightwind as bw
 import pandas as pd
 import numpy as np
 import matplotlib as mpl
+import matplotlib.dates as mdates
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -11,23 +12,60 @@ WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
 
 
 def test_monthly_means():
-    # Load data
-    bw.monthly_means(DATA)
-    bw.monthly_means(DATA[['Spd80mN']])
 
-    assert list(round(bw.monthly_means(DATA[WSPD_COLS], return_data=True)[1][
-                      :'2016-01-01'], 5).values[0]) == [9.25346, 9.22915, 8.51025, 8.68109, 8.10126, 8.20393]
-    assert round(bw.monthly_means(DATA.Spd80mN, return_data=True)[1], 5)[0] == 9.25346
+    monthly_means_multiple_columns_plot, monthly_means_multiple_columns_data = bw.monthly_means(
+        DATA[WSPD_COLS], return_data=True, show_legend=False, ylabel='Test Wind speed [m/s]'
+        )
+    legend = monthly_means_multiple_columns_plot.axes[0].get_legend()
+    assert monthly_means_multiple_columns_plot.axes[0].get_ylabel() == 'Test Wind speed [m/s]'
+    assert len(monthly_means_multiple_columns_plot.axes) == 1
+    assert np.allclose(monthly_means_multiple_columns_data[:'2016-01-01'].values[0], 
+                       [9.25346, 9.22915, 8.51025, 8.68109, 8.10126, 8.20393])
+    assert legend is None
+
+    monthly_means_wcoverage_plot, _ = bw.monthly_means(
+        DATA.Spd80mN, return_data=True, show_legend=False, return_coverage=True, ylabel='Test Wind speed [m/s]'
+        )
+    assert len(monthly_means_wcoverage_plot.axes) >= 2
+    assert monthly_means_wcoverage_plot.axes[0].get_ylabel() == 'Test Wind speed [m/s]'
+    assert monthly_means_wcoverage_plot.axes[1].get_ylabel() == 'Coverage [-]'
+    assert monthly_means_wcoverage_plot.axes[0].get_legend() is None
+
+    monthly_means_single_column_plot, monthly_means_single_column_data = bw.monthly_means(
+        DATA.Spd80mN, return_data=True, xtick_delta='3MS'
+        )
+    xticks = monthly_means_single_column_plot.axes[0].get_xticks()
+    xtick_dates = [pd.Timestamp(mdates.num2date(tick)) for tick in xticks]
+    
+    for i in range(1, len(xtick_dates)):
+        months_diff = (xtick_dates[i].year - xtick_dates[i-1].year) * 12 + (xtick_dates[i].month - xtick_dates[i-1].month)
+        assert months_diff == 3
+        assert xtick_dates[i].day == 1
+    assert np.allclose(monthly_means_single_column_data.iloc[0], 9.25346)
+
     # input data_resolution
     data_monthly = bw.average_data_by_period(DATA.Spd80mS, period='1M')
     data_monthly = data_monthly[data_monthly.index.month.isin([2, 4, 6, 8])]
-    _, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
-                                            data_resolution=pd.DateOffset(months=1))
+    monthly_mean_data_fig, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
+                                            data_resolution=pd.DateOffset(months=1), external_legend=True)
+    legend = monthly_mean_data_fig.axes[0].get_legend()
+    xticks = monthly_mean_data_fig.axes[0].get_xticks()
+    xtick_dates = [pd.Timestamp(mdates.num2date(tick)) for tick in xticks]
+
     assert (monthly_mean_data.dropna() == data_monthly).all()
+    assert legend is not None
+    assert legend._bbox_to_anchor is not None
+    for tick_date in xtick_dates:
+        assert tick_date.day == 1
+
+
+
     with pytest.raises(ValueError) as except_info:
         bw.monthly_means(data_monthly, return_data=True)
     assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
                                      "For example, hourly data should not be averaged to 10 minute data."
+    
+
 
 
 def test_momm():

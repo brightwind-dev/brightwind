@@ -265,27 +265,39 @@ def _colormap_to_colorscale(cmap, n_colors):
     return [to_hex(cmap(k*1/(n_colors-1))) for k in range(n_colors)]
 
 
-def plot_monthly_means(data, coverage=None, ylbl=''):
+def plot_monthly_means(data, coverage=None, ylbl='', external_legend=False, show_legend=True, xtick_delta='1MS'):
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-    if len(data.shape) > 1:
+
+    is_dataframe = len(data.shape) > 1
+    legend_items = list(data.columns) if is_dataframe else [data.name]
+
+    if is_dataframe:
         ax.set_prop_cycle(color=COLOR_PALETTE.color_list)
         ax.plot(data, '-o')
-        ax.legend(list(data.columns))
     else:
-        ax.plot(data, '-o', color=COLOR_PALETTE.primary)
-        ax.legend([data.name])
+        ax.plot(data, '-o', color=COLOR_PALETTE.primary)   
+
+    if show_legend:
+        legend_kwargs = {
+            'bbox_to_anchor':(0, 1.02, 1, 0.2), 'loc':'lower left', 'mode':'expand', 'ncol':5 
+            } if external_legend else {}
+        ax.legend(legend_items, **legend_kwargs)
+
     ax.set_ylabel(ylbl)
 
-    ax.set_xticks(data.index)
-    ax.xaxis.set_major_formatter(DateFormatter("%b %Y"))
+    start_date = data.index[0]
+    end_date = data.index[-1]
+    xticks = pd.date_range(
+        start=pd.Timestamp(year=start_date.year, month=start_date.month, day=1), end=end_date, freq=xtick_delta
+        )
+    ax.set_xticks(xticks[(xticks >= start_date) & (xticks <= end_date)])
+    ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
     fig.autofmt_xdate(rotation=20, ha='center')
 
     if coverage is not None:
-        plot_coverage = True
-        if len(coverage.shape) > 1:
-            if coverage.shape[1] > 1:
-                plot_coverage = False
+        plot_coverage = not (len(coverage.shape) > 1 and coverage.shape[1] > 1)
+
         if plot_coverage:
             ax.clear()
             ax.plot(data, '-o', color=COLOR_PALETTE.secondary)
@@ -308,9 +320,17 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
             ax2.set_axisbelow(True)
             ax.patch.set_visible(False)
             ax2.set_ylabel('Coverage [-]')
+            ax.set_ylabel(ylbl)
+            if show_legend:
+                ax.legend([data.name])
             ax2.yaxis.tick_right()
             ax2.yaxis.set_label_position("right")
-            plt.close()
+            ax.set_xticks(xticks[(xticks >= start_date) & (xticks <= end_date)])
+            ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
+            for tick in ax.get_xticklabels():
+                tick.set_rotation(20)
+                tick.set_horizontalalignment('center')
+                plt.close()
             return ax2.get_figure()
     plt.close()
     return ax.get_figure()
