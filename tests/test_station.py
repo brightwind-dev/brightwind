@@ -134,7 +134,7 @@ def test_properties():
         if dm['name'] == 'Tmp_5m':
             dm['sensor'][0]['sensor_type_id'] = 'thermohygrometer'
             dm['sensor'][0]['calibration'] = [{'slope': 100.0, 'offset': -30.0, 'measurement_type_id': 'air_temperature'},
-                                            {'slope': 100.0, 'offset': 0.0, 'measurement_type_id': 'relative_humidity'}]
+                                              {'slope': 100.0, 'offset': 0.0, 'measurement_type_id': 'relative_humidity'}]
 
     properties = obj_test._Measurements__get_properties()
     for measurement in properties:
