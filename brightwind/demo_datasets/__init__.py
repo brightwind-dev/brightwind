@@ -15,8 +15,8 @@ __all__ = ['demo_data',
            'iea43_wra_data_model_v1_0',
            'iea43_wra_data_model_schema_v1_2',
            'floating_lidar_iea43_wra_data_model_v1_2',
-           'solar_iea43_wra_data_model_v1_0',
-           'sodar_iea43_wra_data_model_v1_0']
+           'solar_iea43_wra_data_model_v1_3',
+           'sodar_iea43_wra_data_model_v1_3']
 
 demo_data = os.path.join(os.path.dirname(__file__), 'demo_data.csv')
 demo_campbell_scientific_data = os.path.join(os.path.dirname(__file__), 'campbell_scientific_demo_data.csv')
@@ -39,10 +39,10 @@ iea43_wra_data_model_v1_0 = os.path.join(os.path.dirname(__file__), 'iea43_wra_d
 iea43_wra_data_model_schema_v1_2 = os.path.join(os.path.dirname(__file__), 'iea43_wra_data_model.schema_v1_2.json')
 floating_lidar_iea43_wra_data_model_v1_2 = os.path.join(os.path.dirname(__file__),
                                                         'floating_lidar_demo_iea43_wra_data_model_v1_2.json')
-solar_iea43_wra_data_model_v1_0 = os.path.join(os.path.dirname(__file__),
-                                                        'solar_iea43_wra_data_model_v1_0.json')
-sodar_iea43_wra_data_model_v1_0 = os.path.join(os.path.dirname(__file__),
-                                                        'sodar_iea43_wra_data_model_v1_0.json')
+solar_iea43_wra_data_model_v1_3 = os.path.join(os.path.dirname(__file__),
+                                                        'solar_iea43_wra_data_model_v1_3.json')
+sodar_iea43_wra_data_model_v1_3 = os.path.join(os.path.dirname(__file__),
+                                                        'sodar_iea43_wra_data_model_v1_3.json')
 
 demo_data_adjusted_for_testing = os.path.join(os.path.dirname(__file__), 'demo_data_adjusted_for_testing.csv')
 
