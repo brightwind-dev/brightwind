@@ -729,7 +729,7 @@ class _Measurements:
         :return: The list of names.
         :rtype:  list(str)
         """
-        return self.__get_names()
+        return self.get_names()
 
     @property
     def wspds(self):
@@ -737,7 +737,7 @@ class _Measurements:
 
     @property
     def wspd_names(self):
-        return self.__get_names(measurement_type_id='wind_speed')
+        return self.get_names(measurement_type_id='wind_speed')
 
     @property
     def wspd_heights(self):
@@ -749,7 +749,7 @@ class _Measurements:
 
     @property
     def wdir_names(self):
-        return self.__get_names(measurement_type_id='wind_direction')
+        return self.get_names(measurement_type_id='wind_direction')
 
     @property
     def wdir_heights(self):
@@ -1065,21 +1065,38 @@ class _Measurements:
             df = self.__get_table_for_cols(columns_to_show)
         return df
 
-    def __get_names(self, measurement_type_id=None):
+    def get_names(self, measurement_type_id=None):
         """
-        Get the names of measurements for a particular measurement_type or all of them if measurement_type_id is None.
+        Get the names of measurements for a particular measurement_type, or all of them if measurement_type_id is None.
 
-        :param measurement_type_id: The measurement_type_id to filter for the names.
+        :param measurement_type_id: The measurement_type_id (as defined by the IEA Wind Task 43
+                                    WRA Data Model) to filter for the names.
         :type measurement_type_id:  str or None
         :return:                    The list of names.
         :rtype:                     list(str)
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            mm1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
+
+            # To get all measurement point names:
+            mm1.measurements.get_names(measurement_type_id=None)
+
+            # To get measurement point names only for measurement_type_id='air_temperature':
+            mm1.measurements.get_names(measurement_type_id='air_temperature')
+
         """
+
+        if type(measurement_type_id) is not str and measurement_type_id is not None:
+            raise TypeError('measurement_type_id must be a string or None')
+        
         names = []
         for meas_point in self.__meas_properties:  # use __meas_properties as it is a list and holds it's order
             meas_type = meas_point.get('measurement_type_id')
             meas_name = meas_point.get('name')
             if measurement_type_id is not None:
-                if meas_type is not None and meas_type in measurement_type_id:
+                if meas_type is not None and meas_type == measurement_type_id:
                     if meas_name not in names:
                         names.append(meas_point.get('name'))
             else:
@@ -1104,10 +1121,32 @@ class _Measurements:
         :type measurement_type_id:  str
         :return:                    The heights of the measurements.
         :rtype:                     list(float)
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            mm1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
+
+            # To get heights for all measurements:
+            mm1.measurements.get_heights(names=None, measurement_type_id=None)
+
+            # To get heights only for defined names=['Spd_80mSE', 'Dir_76mNW']:
+            mm1.measurements.get_heights(names=['Spd_80mSE', 'Dir_76mNW'])
+
+            # To get heights only for defined names='Spd_40mSE':
+            mm1.measurements.get_heights(names='Spd_40mSE')
+
+            # To get heights only for measurement_type_id='air_temperature':
+            mm1.measurements.get_heights(measurement_type_id='air_temperature')
+
         """
+
+        if type(measurement_type_id) is not str and measurement_type_id is not None:
+            raise TypeError('measurement_type_id must be a string or None')
+        
         heights = []
         if names is None:
-            names = self.__get_names(measurement_type_id=measurement_type_id)
+            names = self.get_names(measurement_type_id=measurement_type_id)
         if isinstance(names, str):
             names = [names]
         for name in names:
