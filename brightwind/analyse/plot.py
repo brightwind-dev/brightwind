@@ -318,7 +318,7 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
 
 def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limits=None, x_tick_label_angle=25,
                         line_marker_types=None, line_colors=None, subplot_title=None,
-                        legend=True, ax=None, external_legend=False, show_grid=False):
+                        legend=True, ax=None, external_legend=False, show_grid=False, legend_fontsize=10):
     """
     Plots a timeseries subplot where x is the time axis.
 
@@ -364,6 +364,8 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     :type external_legend:          bool
     :param show_grid:               Flag for option to add a grid to the plot area, default False
     :type show_grid:                bool
+    :param legend_fontsize:         Font size for legend, default 10
+    :type legend_fontsize:          int
     :return:                        A timeseries subplot
     :rtype:                         matplotlib.axes._subplots.AxesSubplot
 
@@ -470,18 +472,23 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         legend_kwargs = {
             'bbox_to_anchor':(0, 1.02, 1, 0.2), 'loc':'lower left', 'mode':'expand', 'ncol':5 
             } if external_legend else {}
+        if legend_fontsize:
+            legend_kwargs['fontsize'] = legend_fontsize
         ax.legend(**legend_kwargs)
     if show_grid:
         ax.grid()
 
     if subplot_title is not None:
         ax.set_title(subplot_title, fontsize=mpl.rcParams['axes.labelsize'])
+    fig = ax.get_figure()
+    fig.tight_layout()
 
     return ax
 
 
 def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=None, y_limits=None,
-                    x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8)):
+                    x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8),
+                    external_legend=False, show_grid=False, legend_fontsize=10):
     """
     Plot a timeseries of data.
 
@@ -520,6 +527,12 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     :type legend:                   Bool
     :param figure_size:             Figure size in tuple format (width, height). Default is (15, 8).
     :type figure_size:              tuple
+    :param external_legend:         Flag for option to return legend outside and above the plot area, default False
+    :type external_legend:          bool
+    :param show_grid:               Flag for option to add a grid to the plot area, default False
+    :type show_grid:                bool
+    :param legend_fontsize:         Font size for legend, default 10
+    :type legend_fontsize:          int
     :return:                        A timeseries plot
     :rtype:                         matplotlib.figure.Figure
 
@@ -568,7 +581,8 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     sliced_data = utils.slice_data(data_to_slice, date_from, date_to)
     _timeseries_subplot(sliced_data.index, sliced_data, x_label=x_label, y_label=y_label,
                         y_limits=y_limits, x_tick_label_angle=x_tick_label_angle,
-                        line_colors=line_colors, legend=legend, ax=axes)
+                        line_colors=line_colors, legend=legend, ax=axes, external_legend=external_legend,
+                        show_grid=show_grid, legend_fontsize=legend_fontsize)
     plt.close()
     return fig
 
