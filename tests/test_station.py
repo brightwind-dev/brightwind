@@ -8,6 +8,7 @@ import json
 MM1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
 MM2 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
 FL1 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_iea43_wra_data_model_v1_2)
+SS1 = bw.MeasurementStation(bw.demo_datasets.solar_iea43_wra_data_model_v1_3)
 
 def _get_schema(schema):
     with open(schema) as json_file:
@@ -56,6 +57,11 @@ def test_get_table():
     MM1.get_table(horizontal_table_orientation=False).data.loc['Name'].values[0] == 'Test_MM1'
     for value in MM1.get_table(horizontal_table_orientation=True).T['Test_MM1'].to_dict().values():
         assert value in MM1.properties.values()
+
+    # Test data for solar measurement station
+    table_test = SS1.get_table().data
+    assert table_test.loc["Measurement Station Type"].values[0] == "solar"
+    assert table_test.loc["Name"].values[0] == "test-solar-site"
 
     ## tests for logger_main_configs.get_table()
 
