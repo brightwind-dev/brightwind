@@ -24,12 +24,12 @@ def test_monthly_means():
     assert legend is None
 
     monthly_means_wcoverage_plot, _ = bw.monthly_means(
-        DATA.Spd80mN, return_data=True, show_legend=False, return_coverage=True, ylabel='Test Wind speed [m/s]'
+        DATA.Spd80mN, return_data=True, show_legend=True, return_coverage=True, ylabel='Test Wind speed [m/s]'
         )
     assert len(monthly_means_wcoverage_plot.axes) >= 2
     assert monthly_means_wcoverage_plot.axes[0].get_ylabel() == 'Test Wind speed [m/s]'
     assert monthly_means_wcoverage_plot.axes[1].get_ylabel() == 'Coverage [-]'
-    assert monthly_means_wcoverage_plot.axes[0].get_legend() is None
+    assert len(monthly_means_wcoverage_plot.legends[0].legendHandles) == 2
 
     monthly_means_single_column_plot, monthly_means_single_column_data = bw.monthly_means(
         DATA.Spd80mN, return_data=True, xtick_delta='3MS'

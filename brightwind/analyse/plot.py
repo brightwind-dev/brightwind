@@ -17,6 +17,7 @@ from colormap import rgb2hex, rgb2hls, hls2rgb
 from matplotlib.ticker import PercentFormatter
 from matplotlib.colors import ListedColormap, to_hex, LinearSegmentedColormap
 import warnings
+from matplotlib.patches import Patch
 
 register_matplotlib_converters()
 
@@ -266,6 +267,27 @@ def _colormap_to_colorscale(cmap, n_colors):
 
 
 def plot_monthly_means(data, coverage=None, ylbl='', external_legend=False, show_legend=True, xtick_delta='1MS'):
+    """
+    Plots the monthly means where x is the time axis.
+
+    :param data:                    A DataFrame with data aggregated as the mean for each month.
+    :type data:                     pd.DataFrame
+    :param coverage:                To return monthly coverage along with the data and plot. Also plots the coverage on 
+                                    the same graph if only a single series was passed to data.
+    :type coverage:                 bool, optional
+    :param ylbl:                    y axis label used on the left hand axis, defaults to ''
+    :type ylbl:                     str, optional
+    :param external_legend:         Flag for option to return legend outside and above the plot area, default False
+    :type external_legend:          bool, optional
+    :param show_legend:             Flag for option to display legend, default True
+    :type show_legend:              bool, optional
+    :param xtick_delta:             String to give the frequency of x ticks. Given as a pandas frequency string, 
+                                    remembering that S at the end is required for months starting on the first day of the 
+                                    month, default '1MS'
+    :type xtick_delta:              str, optional
+    :return:                        A plot of monthly means for the input data.
+    :rtype:                         matplotlib.figure.Figure
+    """
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
 
@@ -300,7 +322,7 @@ def plot_monthly_means(data, coverage=None, ylbl='', external_legend=False, show
 
         if plot_coverage:
             ax.clear()
-            ax.plot(data, '-o', color=COLOR_PALETTE.secondary)
+            line = ax.plot(data, '-o', color=COLOR_PALETTE.secondary, label=data.name)
             ax2 = ax.twinx()
 
             for month, coverage in zip(coverage.index, coverage.values):
@@ -311,7 +333,6 @@ def plot_monthly_means(data, coverage=None, ylbl='', external_legend=False, show
                                                              0, coverage), aspect='auto', zorder=1)
                 ax2.bar(mdates.date2num(month), coverage, edgecolor=COLOR_PALETTE.secondary, linewidth=0.3,
                         fill=False, zorder=0)
-
             ax2.set_ylim(0, 1)
             ax.set_ylim(bottom=0)
             ax.set_xlim(data.index[0] - pd.Timedelta('20days'), data.index[-1] + pd.Timedelta('20days'))
@@ -322,7 +343,15 @@ def plot_monthly_means(data, coverage=None, ylbl='', external_legend=False, show
             ax2.set_ylabel('Coverage [-]')
             ax.set_ylabel(ylbl)
             if show_legend:
-                ax.legend([data.name])
+                # Patch needed purely for legend
+                coverage_patch = Patch(facecolor=COLOR_PALETTE.primary, 
+                                      edgecolor=COLOR_PALETTE.secondary,
+                                      linewidth=0.3, 
+                                      label='Data coverage')
+                handles = [line[0], coverage_patch]
+                labels = [data.name, 'Data coverage']
+                fig = plt.gcf()  # Get current figure
+                fig.legend(handles, labels, loc='lower left', bbox_to_anchor=(0.1, 0.1))
             ax2.yaxis.tick_right()
             ax2.yaxis.set_label_position("right")
             ax.set_xticks(xticks[(xticks >= start_date) & (xticks <= end_date)])
@@ -330,7 +359,7 @@ def plot_monthly_means(data, coverage=None, ylbl='', external_legend=False, show
             for tick in ax.get_xticklabels():
                 tick.set_rotation(20)
                 tick.set_horizontalalignment('center')
-                plt.close()
+            plt.close()
             return ax2.get_figure()
     plt.close()
     return ax.get_figure()

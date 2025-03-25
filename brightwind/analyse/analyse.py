@@ -234,6 +234,10 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
         monthly_means_plot, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
                                                                  data_resolution=pd.DateOffset(months=1))
 
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        monthly_means_plot, monthly_mean_data = bw.monthly_means(data.Spd80mN, return_data=True, xtick_delta='3MS', 
+                                                                 show_legend=True, external_legend= True)
+
     """
 
     df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True, data_resolution=data_resolution)
