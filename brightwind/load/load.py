@@ -2286,7 +2286,7 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
     :param data:                    Data to be cleaned.
     :type data:                     pandas.DataFrame
     :param cleaning_rules_file_or_dict:     File path of the json file or a dictionary which contains the cleaning rules to apply.
-    :type cleaning_rules_file_or_dict:      str | None | dict
+    :type cleaning_rules_file_or_dict:      str | dict
     :param inplace:                 If 'inplace' is True, the original data, 'data', will be modified and replaced
                                     with the cleaned data. If 'inplace' is False, the original data will not be touched
                                     and instead a new object containing the cleaned data is created. To store this
@@ -2319,18 +2319,15 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
     if inplace is False:
         data = data.copy(deep=True)
 
-    if cleaning_rules_file_or_dict:
-        if isinstance(cleaning_rules_file_or_dict, str):
-            if utils.is_extension(cleaning_rules_file_or_dict, ".json"):
-                with open(cleaning_rules_file_or_dict) as file:
-                    cleaning_json = json.load(file)
-        elif isinstance(cleaning_rules_file_or_dict, dict):
-            cleaning_json = cleaning_rules_file_or_dict
-        else:
-            return TypeError("Can't recognise the cleaning_rules_file_or_dict. Please make sure it is a file path, "
-            "dictionary or None.")
-    # else:
-        # TODO: implement the API call here
+    if isinstance(cleaning_rules_file_or_dict, str):
+        if utils.is_extension(cleaning_rules_file_or_dict, ".json"):
+            with open(cleaning_rules_file_or_dict) as file:
+                cleaning_json = json.load(file)
+    elif isinstance(cleaning_rules_file_or_dict, dict):
+        cleaning_json = cleaning_rules_file_or_dict
+    else:
+        return TypeError("Can't recognise the cleaning_rules_file_or_dict. Please make sure it is a file path, "
+        "dictionary or None.")
 
     if replacement_text == 'NaN':
         replacement_text = np.nan
