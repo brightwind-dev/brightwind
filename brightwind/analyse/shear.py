@@ -286,18 +286,27 @@ class Shear:
                         end = str((start_times[i + 1] - resolution).time())
                         time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end)
                         mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
-
-                # calculate shear
-                if calc_method == 'power_law':
-                    for i in range(0, len(mean_time_wspds)):
-                        alpha[i], c[i] = Shear._calc_power_law(mean_time_wspds[i].values, heights, return_coeff=True)
-                    alpha_df = pd.concat([alpha_df, alpha], axis=1)
-
-                if calc_method == 'log_law':
-                    for i in range(0, len(mean_time_wspds)):
-                        slope[i], intercept[i] = Shear._calc_log_law(mean_time_wspds[i].values, heights,
+                
+                for i in range(0, len(mean_time_wspds)):
+                    try:
+                        Shear._valid_wsp_data_error_msg(mean_time_wspds[i], min_speed)
+                        # calculate shear
+                        if calc_method == 'power_law':
+                            alpha[i], c[i] = Shear._calc_power_law(mean_time_wspds[i].values, heights, return_coeff=True)
+                        if calc_method == 'log_law':
+                            slope[i], intercept[i] = Shear._calc_log_law(mean_time_wspds[i].values, heights,
                                                                      return_coeff=True)
-                        roughness[i] = Shear._calc_roughness(slope=slope[i], intercept=intercept[i])
+                            roughness[i] = Shear._calc_roughness(slope=slope[i], intercept=intercept[i])
+                    except ValueError:
+                        if calc_method == 'power_law':
+                            alpha[i], c[i] = np.nan, np.nan
+                        if calc_method == 'log_law':
+                            slope[i], intercept[i] = np.nan, np.nan
+                            roughness[i] = np.nan
+
+                if calc_method == 'power_law':
+                    alpha_df = pd.concat([alpha_df, alpha], axis=1)
+                if calc_method == 'log_law':
                     roughness_df = pd.concat([roughness_df, roughness], axis=1)
                     slope_df = pd.concat([slope_df, slope], axis=1)
                     intercept_df = pd.concat([intercept_df, intercept], axis=1)
@@ -1107,6 +1116,7 @@ class Shear:
             Shear._unequal_wspd_heights_error_msg(wspds, heights)
 
         cvg = None
+        Shear._valid_wsp_data_error_msg(wspds, min_speed)
         if isinstance(wspds.index, pd.DatetimeIndex):
             if maximise_data is False:
                 cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
@@ -1126,6 +1136,13 @@ class Shear:
         raise ValueError('An equal number of wind speed data series and heights is required. ' +
                          str(len(wspds.columns)) + ' wind speed(s) and ' +
                          str(len(heights)) + ' height(s) were given.')
+
+    @staticmethod
+    def _valid_wsp_data_error_msg(wspds, min_speed):
+        if len(wspds.dropna()) == 0:
+            raise ValueError("There is not enough valid data within the dataset provided to calculate shear")
+        if len(wspds[wspds > min_speed].dropna()) == 0:
+            raise ValueError(f"There is not enough valid data above {min_speed} m/s within the dataset provided to calculate shear")
 
     @staticmethod
     def _create_info(self, heights, min_speed, cvg, direction_bin_array=None, segments_per_day=None,
