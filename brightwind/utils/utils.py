@@ -2,10 +2,15 @@ import numpy as np
 import pandas as pd
 import datetime
 import os
+import json
+from jsonschema import validate
+from jsonschema.exceptions import ValidationError
+import brightwind as bw
 
 __all__ = ['slice_data',
            'validate_coverage_threshold',
-           'is_file']
+           'is_file',
+           'check_cleaning_rule_schema']
 
 
 def _range_0_to_360(direction):
@@ -196,3 +201,55 @@ def is_extension(file_or_folder, extension_required):
 
 
 
+def check_cleaning_rule_schema(cleaning_json):
+    """
+    Validates JSON data against a JSON schema.
+
+    :param cleaning_json:           The JSON data to validate
+    :type cleaning_json:            dict | List
+    :return:                        List of validation results, each containing:
+                                    - item_index (int): Index of the item in the list or 0 if single item
+                                    - is_valid (bool): True if validation passes, False otherwise
+                                    - error_message (str): Error message if validation fails, empty string otherwise
+    :rtype: List
+    """
+    results = []
+    with open(bw.demo_datasets.cleaning_rules_schema) as file:
+        schema = json.load(file)
+
+    if isinstance(cleaning_json, list):
+        cleaning_rule = cleaning_json
+    else:
+        cleaning_rule = [cleaning_json]
+    
+    for i, item in enumerate(cleaning_rule):
+        try:
+            validate(instance=item, schema=schema)
+            results.append({
+                "item_index": i,
+                "is_valid": True,
+                "error_message": ""
+            })
+        except ValidationError as e:
+            results.append({
+                "item_index": i,
+                "is_valid": False,
+                "error_message": str(e)
+            })
+        except Exception as e:
+            results.append({
+                "item_index": i,
+                "is_valid": False,
+                "error_message": f"Unexpected error: {str(e)}"
+            })
+    invalid_json = False
+    for check in results:
+        if check['is_valid'] is False:
+            print(check['error_message'])
+            invalid_json = True
+    if invalid_json:
+        raise ValidationError(
+            "There is a problem with the validity of the supplied cleaning rules JSON please check the errors above"
+            )
+    
+    return results

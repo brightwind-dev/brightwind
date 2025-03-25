@@ -2328,6 +2328,8 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
     else:
         return TypeError("Can't recognise the cleaning_rules_file_or_dict. Please make sure it is a file path, "
         "dictionary or None.")
+    
+    is_valid_data = utils.check_cleaning_rule_schema(cleaning_json)
 
     if replacement_text == 'NaN':
         replacement_text = np.nan
