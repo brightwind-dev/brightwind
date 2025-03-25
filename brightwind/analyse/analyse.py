@@ -555,10 +555,17 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
 
     var_to_bin = _convert_df_to_series(var_to_bin)
     var_to_bin_against = _convert_df_to_series(var_to_bin_against)
-    var_to_bin = var_to_bin.dropna()
-    var_to_bin_against = var_to_bin_against.dropna()
-    if var_to_bin_against.sum() == 0:
-        raise ValueError(f"Cannot create bins: No valid numeric values found in {var_to_bin_against.name}")
+
+    if var_to_bin.isnull().all() or (var_to_bin == np.inf).all():
+        raise ValueError(('Cannot derive distribution of {0} as is an empty pandas.Series ' +
+                          'or contains only NaN or Inf values.').format(var_to_bin.name))
+
+    if var_to_bin_against.empty or var_to_bin_against.isnull().all() or (var_to_bin == np.inf).all():
+        raise ValueError(('Cannot derive distribution with respect to {0}: {0} ' + 
+                         'is an empty pandas.Series or contains only NaN or Inf values.').format(var_to_bin_against.name))
+    
+    var_to_bin = var_to_bin.replace([np.inf, -np.inf], np.nan).dropna()
+    var_to_bin_against = var_to_bin_against.replace([np.inf, -np.inf], np.nan).dropna()
 
     if bins is None:
         bins = np.arange(round(var_to_bin_against.min() - 0.5) - 0.5, var_to_bin_against.max() + 0.5, 1)

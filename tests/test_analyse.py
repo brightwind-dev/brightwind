@@ -343,14 +343,20 @@ def test_dist():
     # For distribution of %frequency of wind speeds with no valid data
     with pytest.raises(ValueError) as excinfo:
         bw.dist(DATA.Spd40mN * np.nan, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
-    expected_msg = "Cannot create bins: No valid numeric values found in Spd40mN"
+    expected_msg = "Cannot derive distribution of Spd40mN as is an empty pandas.Series or contains only NaN or Inf values."
+    assert str(excinfo.value) == expected_msg
+    with pytest.raises(ValueError) as excinfo:
+        bw.dist(DATA.Spd40mN, DATA.Spd40mN * np.nan, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
+    expected_msg = "Cannot derive distribution with respect to Spd40mN: Spd40mN is an empty pandas.Series or contains only NaN or Inf values."
     assert str(excinfo.value) == expected_msg
 
     # For distribution of %frequency of wind speeds with only one bin
     DATA.Spd40mN = 2
-    bw.dist(DATA.Spd40mN)
-
-    assert True
+    fig_dist, dist_values = bw.dist(DATA.Spd40mN, x_label='bin', max_y_value=90, return_data=True)
+    assert dist_values.index.to_list() == [pd.Interval(1.5, 2.5, closed='left')]
+    assert fig_dist.axes[0].get_xlabel() == 'bin'
+    assert fig_dist.axes[0].get_xlim() == (1.2, 2.8)
+    assert fig_dist.axes[0].get_ylim() == (0, 90)
 
     # For distribution of multiple mean wind speeds with respect to temperature
     fig, dist = bw.dist(DATA[['Spd80mN', 'Spd80mS']], var_to_bin_against=DATA.T2m,
