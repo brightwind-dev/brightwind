@@ -120,3 +120,44 @@ def test_get_table():
     MM2.measurements.get_table(columns_to_show=columns)
     measurement_table_input_cols = MM1.measurements.get_table(columns_to_show=columns)
     assert "Calibration Slope" in measurement_table_input_cols.columns
+
+
+def test_get_names():
+    names1 = FL1.measurements.names
+    expected_names = ['Spd_80', 'Dir_80m', 'VSpd_80', 'Spd_80_MC', 'Dir_80m_MC', 'VSpd_80_MC', 'Water_Tmp',
+                               'Wave_Height_Sig', 'Wave_Height_Max', 'Wave_Dir', 'Wave_Spread', 'Wave_PP', 'WtrSpd5m',
+                               'VWtrSpd5m', 'WtrDir5m', 'Echo_5m', 'SNR_5m', 'Salinity_0m', 'Conductivity_0m', 
+                               'Pressure_0m','Water_Level'] 
+    assert names1 == expected_names
+
+    assert 'Prs_76m' in MM1.measurements.get_names(measurement_type_id=None)
+    assert MM1.measurements.get_names(measurement_type_id='air_temperature') == ['Tmp_78m', 'Tmp_5m']
+    
+    measurement_type_id2= 'vertical_wind_speed'
+    names2 = FL1.measurements.get_names(measurement_type_id2)
+    assert names2 == ['VSpd_80']
+    
+    measurement_type_id3= 'wind_speed'
+    names3 = FL1.measurements.get_names(measurement_type_id3)
+    assert names3 == ['Spd_80']
+
+    measurement_type_id3= None
+    names3 = FL1.measurements.get_names(measurement_type_id3)
+    assert names3 == expected_names
+
+
+def test_get_heights():
+
+    # To get heights for all measurements:
+    expected_heights =  [80.1, 80.2, 60.1, 60.2, 40.1, 30.1, 40.2, 76.1, 56.1, 78, 5, 5, 76, np.nan]
+    assert MM1.measurements.get_heights(names=None, measurement_type_id=None) == expected_heights
+
+    # To get heights only for defined names=['Spd_80mSE', 'Dir_76mNW']:
+    assert MM1.measurements.get_heights(names=['Spd_80mSE', 'Dir_76mNW']) == [80.2, 76.1]
+
+    # To get heights only for defined names='Spd_40mSE':
+    assert MM1.measurements.get_heights(names='Spd_40mSE') == [40.2]
+
+    # To get heights only for measurement_type_id='air_temperature':
+    assert MM1.measurements.get_heights(measurement_type_id='air_temperature') == [78, 5]
+
