@@ -116,7 +116,8 @@ def _rename_to_title(list_or_dict, schema):
             prefixed_names[prefixed_name] = {'prefix_separator': PREFIX_DICT[key]['prefix_separator'],
                                              'title_prefix': PREFIX_DICT[key]['title_prefix']}
     list_special_cases_no_prefix = ['logger_measurement_config.slope', 'logger_measurement_config.offset',
-                                    'logger_measurement.sensitivity',
+                                    'logger_measurement_config.sensitivity',
+                                    'logger_measurement_config.height_m',
                                     'calibration.slope', 'calibration.offset', 'calibration.sensitivity']
     if isinstance(list_or_dict, dict):
         renamed_dict = {}

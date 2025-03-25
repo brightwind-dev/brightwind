@@ -117,6 +117,9 @@ def test_get_table():
     measurement_table_wspd = MM1.measurements.get_table(wind_speeds=True)
     assert "measurement_type_id" not in measurement_table_wspd.columns
 
+    measurement_table_wspd = SO1.measurements.get_table(wind_speeds=True)
+    assert "Logger Notes" in measurement_table_wspd.columns
+
     MM2.measurements.get_table(wind_directions=True)
     measurement_table_wdir = MM1.measurements.get_table(wind_directions=True)
     assert "measurement_type_id" not in measurement_table_wdir.columns
@@ -133,6 +136,14 @@ def test_get_table():
     MM2.measurements.get_table(columns_to_show=columns)
     measurement_table_input_cols = MM1.measurements.get_table(columns_to_show=columns)
     assert "Calibration Slope" in measurement_table_input_cols.columns
+
+    columns = ['calibration.slope', 'calibration.offset', 'logger_measurement_config.sensitivity',
+               'logger_measurement_config.height_m','calibration.sensitivity']
+    measurement_table_input_cols = SS1.measurements.get_table(columns_to_show=columns)
+    assert "Calibration Sensitivity" in measurement_table_input_cols.columns
+    assert "Logger Sensitivity" in measurement_table_input_cols.columns
+
+
 
 
 def test_get_names():
