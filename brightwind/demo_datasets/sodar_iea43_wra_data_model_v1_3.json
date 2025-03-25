@@ -5,7 +5,7 @@
   "version": "1.3.0-2024.03",
   "measurement_location": [
     {
-      "uuid": "542577b6-5755-test",
+      "uuid": "7ce870fa-e7df-454e-82af-41ab8e1f1e9d",
       "name": "test-sodar",
       "latitude_ddeg": -1,
       "longitude_ddeg": 50,
@@ -14,10 +14,12 @@
       "update_at": "2024-05-23T07:15:14",
       "logger_main_config": [
         {
-          "logger_oem_id": "Other",
           "logger_serial_number": "Fulcrum3D",
+          "logger_model_name": "300M",
           "logger_id": null,
+          "logger_oem_id": "Other",
           "logger_name": "Fulcrum3D",
+          "logger_firmware_version": "1.1.1",
           "date_from": "2020-11-24T00:10:00",
           "date_to": "2020-11-27T23:50:00",
           "encryption_pin_or_key": null,
@@ -28,11 +30,10 @@
           "averaging_period_minutes": 10,
           "timestamp_is_end_of_period": null,
           "clock_is_auto_synced": null,
-          "notes": null,
-          "update_at": "2024-05-23T06:29:23",
-          "logger_firmware_version": null,
           "logger_acquisition_uncertainty": null,
-          "uncertainty_k_factor": null
+          "uncertainty_k_factor": null,
+          "notes": null,
+          "update_at": "2024-05-23T06:29:23"
         }
       ],
       "measurement_point": [
