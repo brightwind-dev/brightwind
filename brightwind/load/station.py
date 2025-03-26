@@ -821,6 +821,7 @@ class _Measurements:
                 sensors = _raise_child(meas_point, child_to_raise='sensor')
             else:
                 sensors = _raise_child(calib_raised, child_to_raise='sensor')
+                sensors = [sensors_needed for sensors_needed in sensors if sensors_needed['measurement_type_id'] == meas_point['measurement_type_id']]
             mounting_arrangements = _raise_child(meas_point, child_to_raise='mounting_arrangement')
 
             if mounting_arrangements is None:

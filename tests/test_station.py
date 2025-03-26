@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import warnings
 import json
+import copy
 
 MM1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
 MM2 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
@@ -121,6 +122,28 @@ def test_get_table():
     measurement_table_input_cols = MM1.measurements.get_table(columns_to_show=columns)
     assert "Calibration Slope" in measurement_table_input_cols.columns
 
+def test_properties():
+
+    # Check thermometer has correct properties assigned
+    properties = MM1.measurements.properties
+    for measurement in properties:
+        if "Tmp" in measurement['name'] and "logger" not in measurement['name']:
+            assert measurement['measurement_type_id'] == "air_temperature"
+            assert measurement['sensor_type_id'] == 'thermometer'
+
+    # Check thermohygrometer has correct properties assigned
+    obj_test = copy.deepcopy(MM1.measurements)
+    for dm in obj_test._meas_data_model:
+        if dm['name'] == 'Tmp_5m':
+            dm['sensor'][0]['sensor_type_id'] = 'thermohygrometer'
+            dm['sensor'][0]['calibration'] = [{'slope': 100.0, 'offset': -30.0, 'measurement_type_id': 'air_temperature'},
+                                              {'slope': 100.0, 'offset': 0.0, 'measurement_type_id': 'relative_humidity'}]
+
+    properties = obj_test._Measurements__get_properties()
+    for measurement in properties:
+        if "Tmp_5m" in measurement['name']:
+            assert measurement['measurement_type_id'] == "air_temperature"
+            assert measurement['sensor_type_id'] == 'thermohygrometer'
 
 def test_get_names():
     names1 = FL1.measurements.names
@@ -161,3 +184,4 @@ def test_get_heights():
     # To get heights only for measurement_type_id='air_temperature':
     assert MM1.measurements.get_heights(measurement_type_id='air_temperature') == [78, 5]
 
+    
