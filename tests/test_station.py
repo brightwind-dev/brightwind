@@ -67,7 +67,6 @@ def test_get_table():
     ## tests for logger_main_configs.get_table()
 
     assert MM1.logger_main_configs.get_table(horizontal_table_orientation=False).data.loc['Logger Name'].values[0] == 'AName_MM1'
-    # df.loc['Logger Name']#['AName_MM1'].to_dict().values()
 
     for value in MM1.logger_main_configs.get_table(horizontal_table_orientation=True).T['AName_MM1'].to_dict().values():
         assert value in MM1.logger_main_configs.properties[0].values()
