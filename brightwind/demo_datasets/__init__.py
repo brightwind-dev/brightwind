@@ -16,8 +16,8 @@ __all__ = ['demo_data',
            'iea43_wra_data_model_schema_v1_2',
            'floating_lidar_iea43_wra_data_model_v1_2',
            'solar_iea43_wra_data_model_v1_3',
-           'demo_celtic_floating_lidar_data.csv',
-           'floating_lidar_celtic_iea43_wra_data_model_v1_2.json'
+           'demo_floating_lidar_data.csv',
+           'floating_lidar_demo_iea43_wra_data_model_v1_3.json'
            ]
 
 demo_data = os.path.join(os.path.dirname(__file__), 'demo_data.csv')
@@ -45,10 +45,10 @@ solar_iea43_wra_data_model_v1_3 = os.path.join(os.path.dirname(__file__),
                                                         'solar_iea43_wra_data_model_v1_3.json')
 
 demo_data_adjusted_for_testing = os.path.join(os.path.dirname(__file__), 'demo_data_adjusted_for_testing.csv')
-demo_celtic_floating_lidar_data = os.path.join(os.path.dirname(__file__),
-                                                        'demo_celtic_floating_lidar_data.csv')
-floating_lidar_celtic_iea43_wra_data_model_v1_2 = os.path.join(os.path.dirname(__file__),
-                                                        'floating_lidar_celtic_iea43_wra_data_model_v1_2.json')
+demo_floating_lidar_data = os.path.join(os.path.dirname(__file__),
+                                                        'demo_floating_lidar_data.csv')
+floating_lidar_demo_iea43_wra_data_model_v1_3 = os.path.join(os.path.dirname(__file__),
+                                                        'floating_lidar_demo_iea43_wra_data_model_v1_3.json')
 
 
 def datasets_available():
