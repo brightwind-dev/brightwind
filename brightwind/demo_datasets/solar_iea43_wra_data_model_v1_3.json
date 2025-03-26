@@ -1,0 +1,383 @@
+{
+  "author": "Brighthub",
+  "organisation": "Brightwind",
+  "date": "2025-03-19",
+  "version": "1.3.0-2024.03",
+  "measurement_location": [
+    {
+      "uuid": "88d3bd6e-dc98-4012-a91a-38644736e440",
+      "name": "test-solar-site",
+      "latitude_ddeg": 0,
+      "longitude_ddeg": -1,
+      "measurement_station_type_id": "solar",
+      "notes": null,
+      "update_at": "2024-03-22T11:37:02",
+      "mast_properties": {
+        "mast_geometry_id": "pole",
+        "mast_oem": "A Mast Manufacturer",
+        "mast_serial_number": "MM012T5",
+        "mast_model": "t73yy",
+        "mast_height_m": 3.0,
+        "notes": "I can write anything I want here.",
+        "update_at": "2024-03-22T11:37:02",
+        "mast_section_geometry": []},
+      "logger_main_config": [
+        {
+          "logger_model_name": "CR800",
+          "logger_oem_id": "Campbell Scientific",
+          "logger_serial_number": "13588",
+          "logger_id": "13588",
+          "logger_name": null,
+          "date_from": "2011-01-01T00:00:00",
+          "date_to": null,
+          "encryption_pin_or_key": null,
+          "enclosure_lock_details": null,
+          "data_transfer_details": null,
+          "offset_from_utc_hrs": null,
+          "sampling_rate_sec": 20,
+          "averaging_period_minutes": 15,
+          "timestamp_is_end_of_period": null,
+          "clock_is_auto_synced": null,
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02",
+          "logger_firmware_version": null,
+          "logger_acquisition_uncertainty": null,
+          "uncertainty_k_factor": null
+        }
+      ],
+      "measurement_point": [
+        {
+          "name": "Sol_0d",
+          "measurement_type_id": "global_horizontal_irradiance",
+          "height_m": 1,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02",
+          "mounting_arrangement": [
+            {
+              "mast_section_geometry_uuid": null,
+              "mounting_type_id": null,
+              "boom_orientation_deg": null,
+              "vane_dead_band_orientation_deg": null,
+              "orientation_reference_id": null,
+              "tilt_angle_deg": 0,
+              "boom_oem": null,
+              "boom_model": null,
+              "upstand_height_mm": null,
+              "upstand_diameter_mm": null,
+              "boom_diameter_mm": null,
+              "boom_length_mm": null,
+              "distance_from_mast_to_sensor_mm": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02"
+            }
+          ],
+          "sensor": [
+            {
+              "oem": "LI-COR",
+              "model": "LI-200",
+              "serial_number": null,
+              "sensor_type_id": "pyranometer",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "sensor_body_size_mm": null,
+              "classification": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
+              "calibration": [
+                {
+                  "measurement_type_id": "global_horizontal_irradiance",
+                  "slope": null,
+                  "offset": null,
+                  "sensitivity": 8.5,
+                  "report_file_name": "Test Report",
+                  "report_link": null,
+                  "date_of_calibration": "2015-08-19",
+                  "revision": "A",
+                  "calibration_organisation": "OTT HydroMet B.V.",
+                  "place_of_calibration": null,
+                  "uncertainty_k_factor": null,
+                  "notes": null,
+                  "update_at": "2021-02-24T17:04:37",
+                  "calibration_uncertainty": []
+            }]}],
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": 8.56,
+              "measurement_units_id": "W/m^2",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Gi_Avg",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-03-22T11:37:02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Pvar_1m",
+          "measurement_type_id": "other",
+          "height_m": 1,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02",
+          "sensor": [
+            {
+              "oem": null,
+              "model": null,
+              "serial_number": null,
+              "sensor_type_id": "other",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "sensor_body_size_mm": null,
+              "classification": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null
+            }
+          ],
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "W",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Pvar_Avg",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-03-22T11:37:02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Ppv_1m",
+          "measurement_type_id": "other",
+          "height_m": 1,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02",
+          "sensor": [
+            {
+              "oem": null,
+              "model": null,
+              "serial_number": null,
+              "sensor_type_id": "other",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "sensor_body_size_mm": null,
+              "classification": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null
+            }
+          ],
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "W",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Ppv_Avg",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-03-22T11:37:02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Pgi_1m",
+          "measurement_type_id": "other",
+          "height_m": 1,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02",
+          "sensor": [
+            {
+              "oem": null,
+              "model": null,
+              "serial_number": null,
+              "sensor_type_id": "other",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "sensor_body_size_mm": null,
+              "classification": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null
+            }
+          ],
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "W",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Pgi_Avg",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-03-22T11:37:02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Pgo_1m",
+          "measurement_type_id": "other",
+          "height_m": 1,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02",
+          "sensor": [
+            {
+              "oem": null,
+              "model": null,
+              "serial_number": null,
+              "sensor_type_id": "other",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "sensor_body_size_mm": null,
+              "classification": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null
+            }
+          ],
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "W",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Pgo_Avg",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-03-22T11:37:02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "PI_1m",
+          "measurement_type_id": "other",
+          "height_m": 1,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02",
+          "sensor": [
+            {
+              "oem": null,
+              "model": null,
+              "serial_number": null,
+              "sensor_type_id": "other",
+              "instrument_poi_height_mm": null,
+              "is_heated": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "sensor_body_size_mm": null,
+              "classification": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null
+            }
+          ],
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "W",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2011-01-01T00:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-03-22T11:37:02",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Pl_Avg",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-03-22T11:37:02"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "license": "CC BY 4.0"
+}
