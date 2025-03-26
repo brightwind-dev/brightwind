@@ -15,7 +15,7 @@ __all__ = ['demo_data',
            'iea43_wra_data_model_v1_0',
            'iea43_wra_data_model_schema_v1_2',
            'floating_lidar_iea43_wra_data_model_v1_2',
-           'solar_iea43_wra_data_model_v1_3'
+           'solar_iea43_wra_data_model_v1_3',
            'demo_celtic_floating_lidar_data.csv',
            'floating_lidar_celtic_iea43_wra_data_model_v1_2.json'
            ]
