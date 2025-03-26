@@ -295,12 +295,12 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
         data = bw.load_csv(bw.demo_datasets.demo_data)
         monthly_means, coverage = bw.average_data_by_period(data[['Spd80mN','Spd80mS']], period='1MS', return_coverage=True)
         
-        # to plot monthly mean speed for all speeds without coverage
-        bw.analyse.plot.plot_monthly_means(monthly_means, ylbl='Speed [m/s]', legend=True, external_legend=False, xtick_delta='1MS')
+        # to plot monthly mean speed for all speeds without coverage and legend outside and above the plot area.
+        bw.analyse.plot.plot_monthly_means(monthly_means, ylbl='Speed [m/s]', legend=True, external_legend=True, xtick_delta='1MS')
 
-        # to plot monthly mean speed with coverage, legend outside and above the plot area and xticks every 3 months
+        # to plot monthly mean speed with coverage and xticks every 3 months.
         bw.analyse.plot.plot_monthly_means(monthly_means.Spd80mN, coverage.Spd80mN_Coverage, 
-                                           ylbl='Speed [m/s]', legend=True, external_legend=True, xtick_delta='3MS')
+                                           ylbl='Speed [m/s]', legend=True, external_legend=False, xtick_delta='3MS')
 
     """
     fig = plt.figure(figsize=(15, 8))
@@ -316,8 +316,10 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
         ax.plot(data, '-o', color=COLOR_PALETTE.primary)   
 
     if legend:
+        ncol_legend = min((len(legend_items)+1)//2,6) if len(legend_items) > 6 else 6
+        print(ncol_legend)
         legend_kwargs = {
-            'bbox_to_anchor':(0, 1.02, 1, 0.2), 'loc':'lower left', 'mode':'expand', 'ncol':5 
+            'bbox_to_anchor':(0.5, 1), 'loc':'lower center', 'ncol':ncol_legend, 
             } if external_legend else {}
         ax.legend(legend_items, **legend_kwargs)
 
@@ -366,7 +368,10 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
                 handles = [line[0], coverage_patch]
                 labels = [data.name, 'Data coverage']
                 fig = plt.gcf()  # Get current figure
-                fig.legend(handles, labels, loc='lower left', bbox_to_anchor=(0.1, 0.1))
+                legend_kwargs = {
+                    'bbox_to_anchor':(0.5, 0.96), 'loc':'upper center', 'ncol':2
+                    } if external_legend else {'bbox_to_anchor':(0.1, 0.1), 'loc':'lower left'}
+                fig.legend(handles, labels, **legend_kwargs)
             ax2.yaxis.tick_right()
             ax2.yaxis.set_label_position("right")
             ax.set_xticks(xticks[(xticks >= start_date) & (xticks <= end_date)])
