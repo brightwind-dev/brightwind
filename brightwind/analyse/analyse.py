@@ -181,7 +181,7 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
 
 
 def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]', data_resolution=None,
-                  legend=True, external_legend=False, xtick_delta='1MS'):
+                  legend=True, external_legend=False, show_grid=False, xtick_delta='1MS'):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
@@ -202,6 +202,9 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     :type legend:                   bool
     :param external_legend:         Flag for option to return legend outside and above the plot area, default False
     :type external_legend:          bool
+    :param show_grid:               Flag for option to add a grid to the plot area when coverage is None, default False.
+                                    When coverage is not None then the grid is always shown.
+    :type show_grid:                bool, optional
     :param xtick_delta:             String to give the frequency of x ticks. Given as a pandas frequency string, 
                                     remembering that S at the end is required for months starting on the first day of the 
                                     month, default '1MS'
@@ -238,19 +241,23 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
         monthly_means_plot, monthly_mean_data = bw.monthly_means(data.Spd80mN, return_data=True,  
                                                                  legend=True, external_legend=True, xtick_delta='3MS')
 
+        # to show legend inside and show grid.
+        monthly_means_plot, monthly_mean_data = bw.monthly_means(data[['Spd80mN', 'Spd80mS']], return_data=True,  
+                                                                 legend=True, external_legend=False, show_grid=True)
+
     """
 
     df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True, data_resolution=data_resolution)
     if return_data and not return_coverage:
         return bw_plt.plot_monthly_means(
-            df, ylbl=ylabel, legend=legend, external_legend=external_legend, xtick_delta=xtick_delta
+            df, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid, xtick_delta=xtick_delta
             ), df
     if return_coverage:
         return bw_plt.plot_monthly_means(
-            df, covrg, ylbl=ylabel, legend=legend, external_legend=external_legend, xtick_delta=xtick_delta
+            df, covrg, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid, xtick_delta=xtick_delta
             ), pd.concat([df, covrg], axis=1)
     return bw_plt.plot_monthly_means(
-        df, ylbl=ylabel, legend=legend, external_legend=external_legend, xtick_delta=xtick_delta
+        df, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid, xtick_delta=xtick_delta
         )
 
 

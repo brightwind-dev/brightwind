@@ -35,7 +35,6 @@ def test_monthly_means():
         DATA.Spd80mN, return_data=False, return_coverage=True, external_legend=True)
     assert monthly_means_wcoverage_plot1.legends[0]._ncols == 2
 
-
     monthly_means_single_column_plot, monthly_means_single_column_data = bw.monthly_means(
         DATA.Spd80mN, return_data=True, xtick_delta='3MS'
         )
@@ -62,6 +61,11 @@ def test_monthly_means():
     assert legend._bbox_to_anchor is not None
     for tick_date in xtick_dates:
         assert tick_date.day == 1
+
+    # to show legend inside and show grid.
+    mm_plot, _ = bw.monthly_means(DATA[['Spd80mN', 'Spd80mS']], return_data=True,  
+                                  legend=True, external_legend=False, show_grid=True)
+    assert any(line.get_visible() for line in mm_plot.axes[0].get_xgridlines() + mm_plot.axes[0].get_ygridlines())
 
     with pytest.raises(ValueError) as except_info:
         bw.monthly_means(data_monthly, return_data=True)
