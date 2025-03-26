@@ -116,7 +116,8 @@ def _rename_to_title(list_or_dict, schema):
             prefixed_names[prefixed_name] = {'prefix_separator': PREFIX_DICT[key]['prefix_separator'],
                                              'title_prefix': PREFIX_DICT[key]['title_prefix']}
     list_special_cases_no_prefix = ['logger_measurement_config.slope', 'logger_measurement_config.offset',
-                                    'logger_measurement.sensitivity',
+                                    'logger_measurement_config.sensitivity',
+                                    'logger_measurement_config.height_m',
                                     'calibration.slope', 'calibration.offset', 'calibration.sensitivity']
     if isinstance(list_or_dict, dict):
         renamed_dict = {}
@@ -480,7 +481,7 @@ class MeasurementStation:
 
     def __get_properties(self):
         meas_loc_prop = []
-        if self.type == 'mast':
+        if self.type in ['mast', 'solar']:
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model, property_to_bring_up='mast_properties')
         elif self.type in ['lidar', 'sodar', 'floating_lidar']:
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model,
@@ -620,7 +621,7 @@ class _LoggerMainConfigs:
 
     def __get_properties(self):
         log_cfg_props = []
-        if self._type == 'mast':
+        if self._type in ['mast', 'solar', 'sodar'] :
             # if mast, there are no child dictionaries
             log_cfg_props = self._log_cfg_data_model  # logger config data model is already a list
         elif self._type in ['lidar', 'floating_lidar']:
@@ -821,6 +822,7 @@ class _Measurements:
                 sensors = _raise_child(meas_point, child_to_raise='sensor')
             else:
                 sensors = _raise_child(calib_raised, child_to_raise='sensor')
+                sensors = [sensors_needed for sensors_needed in sensors if sensors_needed['measurement_type_id'] == meas_point['measurement_type_id']]
             mounting_arrangements = _raise_child(meas_point, child_to_raise='mounting_arrangement')
 
             if mounting_arrangements is None:
