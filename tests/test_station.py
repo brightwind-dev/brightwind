@@ -9,6 +9,7 @@ import copy
 MM1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
 MM2 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
 FL1 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_iea43_wra_data_model_v1_2)
+SO1 = bw.MeasurementStation(bw.demo_datasets.sodar_iea43_wra_data_model_v1_3)
 SS1 = bw.MeasurementStation(bw.demo_datasets.solar_iea43_wra_data_model_v1_3)
 
 def _get_schema(schema):
@@ -53,7 +54,7 @@ def test_get_title():
 
 
 def test_get_table():
-
+  
     ## tests for MeasurementStation.get_table()
     MM1.get_table(horizontal_table_orientation=False).data.loc['Name'].values[0] == 'Test_MM1'
     for value in MM1.get_table(horizontal_table_orientation=True).T['Test_MM1'].to_dict().values():
@@ -67,10 +68,21 @@ def test_get_table():
     ## tests for logger_main_configs.get_table()
 
     assert MM1.logger_main_configs.get_table(horizontal_table_orientation=False).data.loc['Logger Name'].values[0] == 'AName_MM1'
-# df.loc['Logger Name']#['AName_MM1'].to_dict().values()
 
     for value in MM1.logger_main_configs.get_table(horizontal_table_orientation=True).T['AName_MM1'].to_dict().values():
         assert value in MM1.logger_main_configs.properties[0].values()
+        
+    # Test data representing a solar measurement station      
+    table_test = SS1.logger_main_configs.get_table()
+    assert isinstance(table_test, (pd.DataFrame, pd.io.formats.style.Styler))
+    assert table_test.data.loc["Logger Model Name", 1] == "CR800"
+    assert table_test.data.loc["Logger Serial Number", 1] == "13588"
+    
+    # Test data representing a sodar measurement station 
+    table_test = SO1.logger_main_configs.get_table()
+    assert isinstance(table_test, (pd.DataFrame, pd.io.formats.style.Styler))
+    assert table_test.data.loc["Logger OEM", 1] == "Other"
+    assert table_test.data.loc["Logger Serial Number", 1] == "Fulcrum3D"
         
     ## tests for measurements.get_table()
 
@@ -105,6 +117,9 @@ def test_get_table():
     measurement_table_wspd = MM1.measurements.get_table(wind_speeds=True)
     assert "measurement_type_id" not in measurement_table_wspd.columns
 
+    measurement_table_wspd = SO1.measurements.get_table(wind_speeds=True)
+    assert "Logger Notes" in measurement_table_wspd.columns
+
     MM2.measurements.get_table(wind_directions=True)
     measurement_table_wdir = MM1.measurements.get_table(wind_directions=True)
     assert "measurement_type_id" not in measurement_table_wdir.columns
@@ -122,6 +137,13 @@ def test_get_table():
     measurement_table_input_cols = MM1.measurements.get_table(columns_to_show=columns)
     assert "Calibration Slope" in measurement_table_input_cols.columns
 
+    columns = ['calibration.slope', 'calibration.offset', 'logger_measurement_config.sensitivity',
+               'logger_measurement_config.height_m','calibration.sensitivity']
+    measurement_table_input_cols = SS1.measurements.get_table(columns_to_show=columns)
+    assert "Calibration Sensitivity" in measurement_table_input_cols.columns
+    assert "Logger Sensitivity" in measurement_table_input_cols.columns
+
+    
 def test_properties():
 
     # Check thermometer has correct properties assigned
@@ -145,6 +167,7 @@ def test_properties():
             assert measurement['measurement_type_id'] == "air_temperature"
             assert measurement['sensor_type_id'] == 'thermohygrometer'
 
+            
 def test_get_names():
     names1 = FL1.measurements.names
     expected_names = ['Spd_80', 'Dir_80m', 'VSpd_80', 'Spd_80_MC', 'Dir_80m_MC', 'VSpd_80_MC', 'Water_Tmp',

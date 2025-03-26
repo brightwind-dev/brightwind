@@ -17,6 +17,7 @@ Additional labels for pre-release and build metadata are available as extensions
 5. Bug fix in `_Measurements_get_names` function and made this function public (Issue [#450](https://github.com/brightwind-dev/brightwind/issues/450)).
 6. Bug fix in `_Measurements__get_properties` function when sensor can measure multiple measurement types. If there are multiple calibrations present, the correct one is now chosen (Issue [#449](https://github.com/brightwind-dev/brightwind/issues/449)).
 4. Bug fix in `_Measurements__get_properties` function to handle solar sites (Issue [#453](https://github.com/brightwind-dev/brightwind/issues/453)).
+6. Bug fix in `_LoggerMainConfigs__get_properties` function for solar and sodar sites (Issue [#454](https://github.com/brightwind-dev/brightwind/issues/454)).
 
 
 ## [2.2.1]
