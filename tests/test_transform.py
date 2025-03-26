@@ -25,6 +25,8 @@ WSPD_COLS = ['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd60mS', 'Spd40mN', 'Spd40mS']
 WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
 MERRA2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
 
+DATA_LIDAR = bw.load_csv(bw.demo_datasets.demo_celtic_floating_lidar_data)
+STATION_LIDAR = bw.MeasurementStation(bw.demo_datasets.floating_lidar_celtic_iea43_wra_data_model_v1_2)
 
 def np_array_equal(a, b):
     # nan's don't compare so use this instead
@@ -169,6 +171,34 @@ def test_apply_wind_vane_dead_band_offset():
 
     assert (data1.fillna(0).round(10) ==
             data['Dir78mS'].fillna(0).round(10)).all()
+
+
+def test_apply_device_orientation_offset():
+
+    actual_series_result = bw.apply_device_orientation_offset(
+        DATA_LIDAR['Dir_40m'], STATION_LIDAR, STATION_LIDAR.measurements
+        )
+    actual_dataframe_result = bw.apply_device_orientation_offset(
+        DATA_LIDAR, STATION_LIDAR, STATION_LIDAR.measurements
+        )
+
+    assert np.allclose(actual_series_result.iloc[0] - DATA_LIDAR['Dir_40m'].iloc[0], 92)
+    assert np.allclose(actual_series_result.iloc[-1] - DATA_LIDAR['Dir_40m'].iloc[-1], 3)
+    assert np.allclose(
+        actual_series_result.loc['2012-11-16T16:50:00'] - DATA_LIDAR['Dir_40m'].loc['2012-11-16T16:50:00'], 97
+        )
+    assert np.allclose(
+        actual_series_result.loc['2012-11-23T15:10:00'] - DATA_LIDAR['Dir_40m'].loc['2012-11-23T15:10:00'], 100
+        )
+
+    assert np.allclose(actual_dataframe_result['Dir_50m'].iloc[0] - DATA_LIDAR['Dir_50m'].iloc[0], 92)
+    assert np.allclose(actual_dataframe_result['Dir_50m'].iloc[-1] - DATA_LIDAR['Dir_50m'].iloc[-1], 3)
+    assert np.allclose(
+        actual_dataframe_result['Dir_50m'].loc['2012-11-16T16:50:00'] - DATA_LIDAR['Dir_50m'].loc['2012-11-16T16:50:00'], 
+        97)
+    assert np.allclose(
+        actual_dataframe_result['Dir_50m'].loc['2012-11-23T15:10:00'] - DATA_LIDAR['Dir_50m'].loc['2012-11-23T15:10:00'], 
+        100)
 
 
 def test_freq_str_to_dateoffset():
