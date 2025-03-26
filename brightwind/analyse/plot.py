@@ -268,13 +268,14 @@ def _colormap_to_colorscale(cmap, n_colors):
 
 def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legend=False, xtick_delta='1MS'):
     """
-    Plots the monthly means where x is the time axis.
+    Plots the monthly means where x is the time axis. Monthly mean data and coverage can be derived using brightwind function
+    average_data_by_period(data, period='1MS', return_coverage=True)
 
-    :param data:                    A DataFrame with data aggregated as the mean for each month.
-    :type data:                     pd.DataFrame
-    :param coverage:                To return monthly coverage along with the data and plot. Also plots the coverage on 
-                                    the same graph if only a single series was passed to data.
-    :type coverage:                 bool, optional
+    :param data:                    A Series or DataFrame with data aggregated as the mean for each month.
+    :type data:                     pd.Series or pd.DataFrame
+    :param coverage:                A Series with data coverage for each month. Optional. 
+                                    The coverage is plotted along with the data only if a single series is passed to data. 
+    :type coverage:                 pd.Series, optional
     :param ylbl:                    y axis label used on the left hand axis, defaults to ''
     :type ylbl:                     str, optional
     :param legend:                  Boolean to choose if legend is shown. Default is True.
@@ -287,6 +288,20 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
     :type xtick_delta:              str, optional
     :return:                        A plot of monthly means for the input data.
     :rtype:                         matplotlib.figure.Figure
+
+     **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        monthly_means, coverage = bw.average_data_by_period(data[['Spd80mN','Spd80mS']], period='1MS', return_coverage=True)
+        
+        # to plot monthly mean speed for all speeds without coverage
+        bw.analyse.plot.plot_monthly_means(monthly_means, ylbl='Speed [m/s]', legend=True, external_legend=False, xtick_delta='1MS')
+
+        # to plot monthly mean speed with coverage, legend outside and above the plot area and xticks every 3 months
+        bw.analyse.plot.plot_monthly_means(monthly_means.Spd80mN, coverage.Spd80mN_Coverage, 
+                                           ylbl='Speed [m/s]', legend=True, external_legend=True, xtick_delta='3MS')
+
     """
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
