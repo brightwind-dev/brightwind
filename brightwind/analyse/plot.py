@@ -434,6 +434,8 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         y = pd.DataFrame(y, columns=['y'])
     elif type(y) is dict:
         y = pd.DataFrame.from_dict(y)
+    elif type(y) is np.ndarray:
+        y = pd.DataFrame(y, columns=['y']) 
 
     if len(x) != len(y):
         ValueError("Length of x input is different than length of y input. Length of these must be the same.")
@@ -475,14 +477,20 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     ax.tick_params(axis="x", rotation=x_tick_label_angle)
 
     if legend:
+        if isinstance(y, pd.DataFrame):
+            legend_items = list(y.columns)
+        elif isinstance(y, pd.Series):
+            legend_items = [y.name]
+
+        ncol_legend = min((len(legend_items)+1)//2,6) if len(legend_items) > 6 else 6
         legend_kwargs = {
-            'bbox_to_anchor':(0, 1.02, 1, 0.2), 'loc':'lower left', 'mode':'expand', 'ncol':5 
+            'bbox_to_anchor':(0.5, 1), 'loc':'lower center', 'ncol':ncol_legend, 
             } if external_legend else {}
         if legend_fontsize:
             legend_kwargs['fontsize'] = legend_fontsize
         ax.legend(**legend_kwargs)
     if show_grid:
-        ax.grid()
+        ax.grid(linestyle='-', color='gray')
 
     if subplot_title is not None:
         ax.set_title(subplot_title, fontsize=mpl.rcParams['axes.labelsize'])
