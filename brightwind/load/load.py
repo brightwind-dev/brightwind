@@ -13,6 +13,7 @@ from io import StringIO
 import warnings
 from dateutil.parser import parse
 from brightwind.analyse import plot as bw_plt
+from brightwind.demo_datasets import cleaning_rules_schema
 import time
 import concurrent
 import math
@@ -2286,7 +2287,7 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
     :param data:                    Data to be cleaned.
     :type data:                     pandas.DataFrame
     :param cleaning_rules_file_or_dict:     File path of the json file or a dictionary which contains the cleaning rules to apply.
-    :type cleaning_rules_file_or_dict:      str | dict
+    :type cleaning_rules_file_or_dict:      str | List[dict]
     :param inplace:                 If 'inplace' is True, the original data, 'data', will be modified and replaced
                                     with the cleaned data. If 'inplace' is False, the original data will not be touched
                                     and instead a new object containing the cleaned data is created. To store this
@@ -2323,13 +2324,20 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
         if utils.is_extension(cleaning_rules_file_or_dict, ".json"):
             with open(cleaning_rules_file_or_dict) as file:
                 cleaning_json = json.load(file)
-    elif isinstance(cleaning_rules_file_or_dict, dict):
+    elif isinstance(cleaning_rules_file_or_dict, List):
+        if not all(isinstance(item, dict) for item in cleaning_rules_file_or_dict):
+            raise TypeError("All elements in the cleaning_rules_file_or_dict list must be dictionaries.")
         cleaning_json = cleaning_rules_file_or_dict
     else:
         return TypeError("Can't recognise the cleaning_rules_file_or_dict. Please make sure it is a file path, "
         "dictionary or None.")
     
-    is_valid_data = utils.check_cleaning_rule_schema(cleaning_json)
+    cleaning_json_is_valid = True
+    for cleaning_rule in cleaning_json:
+        if utils.check_schema(cleaning_rule, cleaning_rules_schema) is False:
+            cleaning_json_is_valid = False
+    if cleaning_json_is_valid is False:
+        raise ValueError("There is a problem with the validity of the supplied JSON please check the errors above")
 
     if replacement_text == 'NaN':
         replacement_text = np.nan

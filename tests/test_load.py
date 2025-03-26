@@ -3,6 +3,7 @@ import brightwind as bw
 import os
 import pandas as pd
 import numpy as np
+import json
 
 DEMO_DATA_FOLDER = os.path.join(os.path.dirname(__file__), '../brightwind/demo_datasets')
 
@@ -75,6 +76,13 @@ def test_apply_cleaning_rules():
     assert (data_clnd[data["T2m"] > 5]["T2m"] == "-").all()
     assert (data_clnd[data["T2m"] > 5]["Spd60mS"] == "-").all()
     assert (data_clnd[data["T2m"] > 5]["Spd80mS"] == "-").all()
+
+    with open(bw.demo_datasets.demo_cleaning_rules_file) as file:
+        cleaning_json = json.load(file)
+    del cleaning_json[0]['rule']
+    with pytest.raises(ValueError) as except_info:
+        bw.apply_cleaning_rules(data, cleaning_json)
+    assert "There is a problem with the validity of the supplied JSON please check the errors above" in str(except_info.value)
 
 
 def test_load_csv():

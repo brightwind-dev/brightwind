@@ -201,55 +201,29 @@ def is_extension(file_or_folder, extension_required):
 
 
 
-def check_cleaning_rule_schema(cleaning_json):
+def check_schema(json_to_check, schema_path):
     """
     Validates JSON data against a JSON schema.
 
     :param cleaning_json:           The JSON data to validate
-    :type cleaning_json:            dict | List
+    :type cleaning_json:            dict
     :return:                        List of validation results, each containing:
                                     - item_index (int): Index of the item in the list or 0 if single item
                                     - is_valid (bool): True if validation passes, False otherwise
                                     - error_message (str): Error message if validation fails, empty string otherwise
-    :rtype: List
+    :rtype: bool
     """
-    results = []
-    with open(bw.demo_datasets.cleaning_rules_schema) as file:
+    with open(schema_path) as file:
         schema = json.load(file)
-
-    if isinstance(cleaning_json, list):
-        cleaning_rule = cleaning_json
-    else:
-        cleaning_rule = [cleaning_json]
     
-    for i, item in enumerate(cleaning_rule):
-        try:
-            validate(instance=item, schema=schema)
-            results.append({
-                "item_index": i,
-                "is_valid": True,
-                "error_message": ""
-            })
-        except ValidationError as e:
-            results.append({
-                "item_index": i,
-                "is_valid": False,
-                "error_message": str(e)
-            })
-        except Exception as e:
-            results.append({
-                "item_index": i,
-                "is_valid": False,
-                "error_message": f"Unexpected error: {str(e)}"
-            })
-    invalid_json = False
-    for check in results:
-        if check['is_valid'] is False:
-            print(check['error_message'])
-            invalid_json = True
-    if invalid_json:
-        raise ValidationError(
-            "There is a problem with the validity of the supplied cleaning rules JSON please check the errors above"
-            )
+    data_is_valid = True
+    try:
+        validate(instance=json_to_check, schema=schema)
+    except ValidationError as e:
+        print(e)
+        data_is_valid = False
+    except Exception as e:
+        print(e)
+        data_is_valid = False
     
-    return results
+    return data_is_valid
