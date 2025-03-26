@@ -15,8 +15,7 @@ Additional labels for pre-release and build metadata are available as extensions
 2. Bug fix calling `is_file` function (Issue [#447](https://github.com/brightwind-dev/brightwind/issues/447)).
 3. Bug fix for `_Measurements_get_table` function (Issue [#421](https://github.com/brightwind-dev/brightwind/issues/421)).
 4. Bug fix for `_Measurements_get_names` function and made this function public (Issue [#450](https://github.com/brightwind-dev/brightwind/issues/450)).
-5. Bug fixed for `_Measurements__get_properties` function when sensor can measure multiple measurement types. If there are multiple calibrations present the correct one is now chosen (Issue [#449](https://github.com/brightwind-dev/brightwind/issues/449)).
-6. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
+5. Bug fix for `_Measurements__get_properties` function when sensor can measure multiple measurement types. If there are multiple calibrations present, the correct one is now chosen (Issue [#449](https://github.com/brightwind-dev/brightwind/issues/449)).
 
 
 ## [2.2.1]
