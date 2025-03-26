@@ -414,6 +414,12 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         fig, axes = plt.subplots(1, 1)
         sub_plot = bw.analyse.plot._timeseries_subplot(data.index, data.Dir58mS, line_colors=mpl_colors)
 
+        # To use an external legend with a grid displayed and size 8 font
+        fig, axes = plt.subplots(1, 1)
+        bw.analyse.plot._timeseries_subplot(data.index, data[wspd_cols],
+                                            line_marker_types=['.', 'o', 'v', '^', '<', None], ax=axes, 
+                                            external_legend=True, show_grid=True, legend_fontsize=8)
+
     """
 
     if line_colors is None:
@@ -568,6 +574,9 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
         prop_cycle = plt.rcParams['axes.prop_cycle']
         mpl_colors = prop_cycle.by_key()['color']
         bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], line_colors= mpl_colors)
+
+        # To use an external legend with a grid displayed and size 8 font
+        bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], external_legend=True, show_grid=True, legend_fontsize=8)
 
     """
     if line_colors is None:
