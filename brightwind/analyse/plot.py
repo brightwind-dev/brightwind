@@ -340,6 +340,7 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
     ax.set_xticks(xticks[(xticks >= start_date) & (xticks <= end_date)])
     ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
     fig.autofmt_xdate(rotation=20, ha='center')
+    ax.set_xlim(data.index[0] - pd.Timedelta('20days'), data.index[-1] + pd.Timedelta('20days'))
 
     if show_grid:
         ax.grid(linestyle='-', color='gray')
