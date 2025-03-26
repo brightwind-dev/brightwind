@@ -29,7 +29,12 @@ def test_monthly_means():
     assert len(monthly_means_wcoverage_plot.axes) >= 2
     assert monthly_means_wcoverage_plot.axes[0].get_ylabel() == 'Test Wind speed [m/s]'
     assert monthly_means_wcoverage_plot.axes[1].get_ylabel() == 'Coverage [-]'
-    assert len(monthly_means_wcoverage_plot.legends[0].legendHandles) == 2
+    assert len(monthly_means_wcoverage_plot.legends[0].legend_handles) == 2
+
+    monthly_means_wcoverage_plot1, _ = bw.monthly_means(
+        DATA.Spd80mN, return_data=False, return_coverage=True, external_legend=True)
+    assert monthly_means_wcoverage_plot1.legends[0]._ncols == 2
+
 
     monthly_means_single_column_plot, monthly_means_single_column_data = bw.monthly_means(
         DATA.Spd80mN, return_data=True, xtick_delta='3MS'
@@ -58,15 +63,11 @@ def test_monthly_means():
     for tick_date in xtick_dates:
         assert tick_date.day == 1
 
-
-
     with pytest.raises(ValueError) as except_info:
         bw.monthly_means(data_monthly, return_data=True)
     assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
                                      "For example, hourly data should not be averaged to 10 minute data."
     
-
-
 
 def test_momm():
     # Derive mean of monthly mean with standard method
