@@ -202,8 +202,8 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     :type legend:                   bool
     :param external_legend:         Flag for option to return legend outside and above the plot area, default False
     :type external_legend:          bool
-    :param show_grid:               Flag for option to add a grid to the plot area when coverage is None, default False.
-                                    When coverage is not None then the grid is always shown.
+    :param show_grid:               Flag for option to add a grid to the plot area when return_coverage is False, default False.
+                                    When coverage is plotted along with monthly means data the grid is always shown.
     :type show_grid:                bool, optional
     :param xtick_delta:             String to give the frequency of x ticks. Given as a pandas frequency string, 
                                     remembering that S at the end is required for months starting on the first day of the 
