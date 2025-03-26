@@ -14,7 +14,7 @@ WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
 def test_monthly_means():
 
     monthly_means_multiple_columns_plot, monthly_means_multiple_columns_data = bw.monthly_means(
-        DATA[WSPD_COLS], return_data=True, show_legend=False, ylabel='Test Wind speed [m/s]'
+        DATA[WSPD_COLS], return_data=True, legend=False, ylabel='Test Wind speed [m/s]'
         )
     legend = monthly_means_multiple_columns_plot.axes[0].get_legend()
     assert monthly_means_multiple_columns_plot.axes[0].get_ylabel() == 'Test Wind speed [m/s]'
@@ -24,7 +24,7 @@ def test_monthly_means():
     assert legend is None
 
     monthly_means_wcoverage_plot, _ = bw.monthly_means(
-        DATA.Spd80mN, return_data=True, show_legend=True, return_coverage=True, ylabel='Test Wind speed [m/s]'
+        DATA.Spd80mN, return_data=True, legend=True, return_coverage=True, ylabel='Test Wind speed [m/s]'
         )
     assert len(monthly_means_wcoverage_plot.axes) >= 2
     assert monthly_means_wcoverage_plot.axes[0].get_ylabel() == 'Test Wind speed [m/s]'

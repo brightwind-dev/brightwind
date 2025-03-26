@@ -181,7 +181,7 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
 
 
 def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]', data_resolution=None,
-                  external_legend=False, show_legend=True, xtick_delta='1MS'):
+                  legend=True, external_legend=False, xtick_delta='1MS'):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
@@ -198,10 +198,10 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     :param data_resolution:         Data resolution to give as input if the coverage of the data timeseries is extremely low
                                     and it is not possible to define the most common time interval between timestamps
     :type data_resolution:          None or pd.DateOffset
+    :param legend:                  Boolean to choose if legend is shown. Default is True.
+    :type legend:                   bool
     :param external_legend:         Flag for option to return legend outside and above the plot area, default False
     :type external_legend:          bool
-    :param show_legend:             Flag for option to display legend, default True
-    :type show_legend:              bool
     :param xtick_delta:             String to give the frequency of x ticks. Given as a pandas frequency string, 
                                     remembering that S at the end is required for months starting on the first day of the 
                                     month, default '1MS'
@@ -234,23 +234,23 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
         monthly_means_plot, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
                                                                  data_resolution=pd.DateOffset(months=1))
 
-        data = bw.load_csv(bw.demo_datasets.demo_data)
-        monthly_means_plot, monthly_mean_data = bw.monthly_means(data.Spd80mN, return_data=True, xtick_delta='3MS', 
-                                                                 show_legend=True, external_legend= True)
+        # to show the legend outside and above the plot area and set the xticks to every 3 months
+        monthly_means_plot, monthly_mean_data = bw.monthly_means(data.Spd80mN, return_data=True,  
+                                                                 legend=True, external_legend=True, xtick_delta='3MS')
 
     """
 
     df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True, data_resolution=data_resolution)
     if return_data and not return_coverage:
         return bw_plt.plot_monthly_means(
-            df, ylbl=ylabel, external_legend=external_legend, show_legend=show_legend, xtick_delta=xtick_delta
+            df, ylbl=ylabel, legend=legend, external_legend=external_legend, xtick_delta=xtick_delta
             ), df
     if return_coverage:
         return bw_plt.plot_monthly_means(
-            df, covrg, ylbl=ylabel, external_legend=external_legend, show_legend=show_legend, xtick_delta=xtick_delta
+            df, covrg, ylbl=ylabel, legend=legend, external_legend=external_legend, xtick_delta=xtick_delta
             ), pd.concat([df, covrg], axis=1)
     return bw_plt.plot_monthly_means(
-        df, ylbl=ylabel, external_legend=external_legend, show_legend=show_legend, xtick_delta=xtick_delta
+        df, ylbl=ylabel, legend=legend, external_legend=external_legend, xtick_delta=xtick_delta
         )
 
 

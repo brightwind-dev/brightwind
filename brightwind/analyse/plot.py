@@ -266,7 +266,7 @@ def _colormap_to_colorscale(cmap, n_colors):
     return [to_hex(cmap(k*1/(n_colors-1))) for k in range(n_colors)]
 
 
-def plot_monthly_means(data, coverage=None, ylbl='', external_legend=False, show_legend=True, xtick_delta='1MS'):
+def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legend=False, xtick_delta='1MS'):
     """
     Plots the monthly means where x is the time axis.
 
@@ -277,10 +277,10 @@ def plot_monthly_means(data, coverage=None, ylbl='', external_legend=False, show
     :type coverage:                 bool, optional
     :param ylbl:                    y axis label used on the left hand axis, defaults to ''
     :type ylbl:                     str, optional
+    :param legend:                  Boolean to choose if legend is shown. Default is True.
+    :type legend:                   bool, optional
     :param external_legend:         Flag for option to return legend outside and above the plot area, default False
     :type external_legend:          bool, optional
-    :param show_legend:             Flag for option to display legend, default True
-    :type show_legend:              bool, optional
     :param xtick_delta:             String to give the frequency of x ticks. Given as a pandas frequency string, 
                                     remembering that S at the end is required for months starting on the first day of the 
                                     month, default '1MS'
@@ -300,7 +300,7 @@ def plot_monthly_means(data, coverage=None, ylbl='', external_legend=False, show
     else:
         ax.plot(data, '-o', color=COLOR_PALETTE.primary)   
 
-    if show_legend:
+    if legend:
         legend_kwargs = {
             'bbox_to_anchor':(0, 1.02, 1, 0.2), 'loc':'lower left', 'mode':'expand', 'ncol':5 
             } if external_legend else {}
@@ -342,7 +342,7 @@ def plot_monthly_means(data, coverage=None, ylbl='', external_legend=False, show
             ax.patch.set_visible(False)
             ax2.set_ylabel('Coverage [-]')
             ax.set_ylabel(ylbl)
-            if show_legend:
+            if legend:
                 # Patch needed purely for legend
                 coverage_patch = Patch(facecolor=COLOR_PALETTE.primary, 
                                       edgecolor=COLOR_PALETTE.secondary,
