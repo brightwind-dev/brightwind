@@ -527,7 +527,7 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
 
     :param var_to_bin:          Timeseries of the variable whose distribution we need to find
     :type var_to_bin:           pandas.Series
-    :param var_to_bin_against:  Timesseries of the variable which we want to bin against
+    :param var_to_bin_against:  Timeseries of the variable which we want to bin against
     :type var_to_bin_against:   pandas.Series
     :param bins:                Array of numbers where adjacent elements of array form a bin. If set to None, it derives
                                 the min and max from the var_to_bin_against series and creates array in steps of 1.
@@ -552,17 +552,16 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
         dist = bw.analyse.analyse._derive_distribution(data.Spd40mN, var_to_bin_against=data.T2m,
                                                        bins=[0, 2, 10, 30], aggregation_method='count')
     """
-
     var_to_bin = _convert_df_to_series(var_to_bin)
     var_to_bin_against = _convert_df_to_series(var_to_bin_against)
 
     if var_to_bin.isnull().all() or (var_to_bin == np.inf).all():
-        raise ValueError(('Cannot derive distribution of {0} as is an empty pandas.Series ' +
+        raise ValueError(('Cannot derive distribution of {0} as this is either an empty pandas.Series ' +
                           'or contains only NaN or Inf values.').format(var_to_bin.name))
 
-    if var_to_bin_against.empty or var_to_bin_against.isnull().all() or (var_to_bin == np.inf).all():
-        raise ValueError(('Cannot derive distribution with respect to {0}: {0} ' + 
-                         'is an empty pandas.Series or contains only NaN or Inf values.').format(var_to_bin_against.name))
+    if var_to_bin_against.empty or var_to_bin_against.isnull().all() or (var_to_bin_against == np.inf).all():
+        raise ValueError(('Cannot derive distribution with respect to {0} as this is either an empty pandas.Series ' +
+                          'or contains only NaN or Inf values.').format(var_to_bin_against.name))
     
     var_to_bin = var_to_bin.replace([np.inf, -np.inf], np.nan).dropna()
     var_to_bin_against = var_to_bin_against.replace([np.inf, -np.inf], np.nan).dropna()
@@ -570,7 +569,7 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
     if bins is None:
         bins = np.arange(round(var_to_bin_against.min() - 0.5) - 0.5, var_to_bin_against.max() + 0.5, 1)
     if len(bins) == 1:
-        bins= np.array([bins[0], bins[0] + 1])
+        bins = np.array([bins[0], bins[0] + 1])
     var_binned_series = pd.cut(var_to_bin_against, bins, right=False).rename('variable_bin')
     data = pd.concat([var_to_bin.rename('data'), var_binned_series], join='inner', axis=1)
 

@@ -343,11 +343,11 @@ def test_dist():
     # For distribution of %frequency of wind speeds with no valid data
     with pytest.raises(ValueError) as excinfo:
         bw.dist(DATA.Spd40mN * np.nan, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
-    expected_msg = "Cannot derive distribution of Spd40mN as is an empty pandas.Series or contains only NaN or Inf values."
+    expected_msg = "Cannot derive distribution of Spd40mN as this is either an empty pandas.Series or contains only NaN or Inf values."
     assert str(excinfo.value) == expected_msg
     with pytest.raises(ValueError) as excinfo:
         bw.dist(DATA.Spd40mN, DATA.Spd40mN * np.nan, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
-    expected_msg = "Cannot derive distribution with respect to Spd40mN: Spd40mN is an empty pandas.Series or contains only NaN or Inf values."
+    expected_msg = "Cannot derive distribution with respect to Spd40mN as this is either an empty pandas.Series or contains only NaN or Inf values."
     assert str(excinfo.value) == expected_msg
 
     # For distribution of %frequency of wind speeds with only one bin
