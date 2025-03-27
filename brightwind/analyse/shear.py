@@ -84,21 +84,28 @@ class Shear:
            """
             print('This may take a while...')
 
-            wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed, maximise_data=maximise_data)
+            wspds, cvg = Shear._data_prep(
+                wspds=wspds, heights=heights, min_speed=min_speed, maximise_data=maximise_data, return_raw_wspds=True
+                )
+            valid_mask = (wspds > min_speed).all(axis=1) & ~wspds.isna().any(axis=1)
+    
 
             if calc_method == 'power_law':
-                alpha_c = (wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_power_law, heights=heights,
+                alpha = pd.Series(index=wspds.index, dtype=float, name='alpha')
+                alpha_c = (wspds.loc[valid_mask].apply(Shear._calc_power_law, heights=heights,
                                                                         return_coeff=True,
                                                                         maximise_data=maximise_data, axis=1))
-                alpha = pd.Series(alpha_c.iloc[:, 0], name='alpha')
+                alpha.loc[valid_mask] = alpha_c.iloc[:, 0]
                 self._alpha = alpha
 
             elif calc_method == 'log_law':
-                slope_intercept = (wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_log_law, heights=heights,
+                slope = pd.Series(index=wspds.index, dtype=float)
+                intercept = pd.Series(index=wspds.index, dtype=float)
+                slope_intercept = (wspds.loc[valid_mask].apply(Shear._calc_log_law, heights=heights,
                                                                                 return_coeff=True,
                                                                                 maximise_data=maximise_data, axis=1))
-                slope = slope_intercept.iloc[:, 0]
-                intercept = slope_intercept.iloc[:, 1]
+                slope.loc[valid_mask] = slope_intercept.iloc[:, 0]
+                intercept.loc[valid_mask] = slope_intercept.iloc[:, 1]
                 roughness_coefficient = pd.Series(Shear._calc_roughness(slope=slope, intercept=intercept),
                                                   name='roughness_coefficient')
                 self._roughness = roughness_coefficient
@@ -1107,7 +1114,7 @@ class Shear:
         return df
 
     @staticmethod
-    def _data_prep(wspds, heights, min_speed, maximise_data=False):
+    def _data_prep(wspds, heights, min_speed, maximise_data=False, return_raw_wspds=False):
 
         if not isinstance(wspds, pd.DataFrame):
             wspds = pd.DataFrame(wspds).T
@@ -1126,9 +1133,8 @@ class Shear:
                 count = count[count >= 2]
                 count.rename('count', inplace=True)
                 cvg = coverage(count, period='1AS').sum()
-
-        wspds = wspds[wspds > min_speed].dropna()
-
+        if not return_raw_wspds:
+            wspds = wspds[wspds > min_speed].dropna()
         return wspds, cvg
 
     @staticmethod
