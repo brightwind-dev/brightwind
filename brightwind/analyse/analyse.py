@@ -181,36 +181,42 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
 
 
 def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]', data_resolution=None,
-                  legend=True, external_legend=False, show_grid=False, xtick_delta='1MS'):
+                  legend=True, external_legend=False, show_grid=True, xtick_delta='1MS'):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
 
-    :param data:                    A timeseries to find monthly means of. Can have multiple columns
+    :param data:                    A timeseries to find the monthly means of. Can have multiple columns.
     :type data:                     Series or DataFrame
-    :param return_data:             To return data of monthly means along with the plot.
+    :param return_data:             To return data of the monthly means along with the plot.
     :type return_data:              bool
-    :param return_coverage:         To return monthly coverage along with the data and plot. Also plots the coverage on the
-                                    same graph if only a single series was passed to data.
+    :param return_coverage:         To return monthly coverage along with the data and plot. Also plots the coverage on
+                                    the same graph if only a single series was passed to data.
     :type return_coverage:          bool
-    :param ylabel:                  Label for the y-axis, Wind speed [m/s] by default
+    :param ylabel:                  Label for the y-axis. Default is 'Wind speed [m/s]'.
     :type   ylabel:                 str
-    :param data_resolution:         Data resolution to give as input if the coverage of the data timeseries is extremely low
-                                    and it is not possible to define the most common time interval between timestamps
+    :param data_resolution:         Data resolution to give as input if the coverage of the data timeseries is extremely
+                                    low and it is not possible to define the most common time interval between
+                                    timestamps.
     :type data_resolution:          None or pd.DateOffset
-    :param legend:                  Boolean to choose if legend is shown. Default is True.
+    :param legend:                  Flag to show a legend (True) or not (False). Default is True.
     :type legend:                   bool
-    :param external_legend:         Flag for option to return legend outside and above the plot area, default False
+    :param external_legend:         Flag to show legend outside and above the plot area (True) or show it inside
+                                    the plot. Default is False.
     :type external_legend:          bool
-    :param show_grid:               Flag for option to add a grid to the plot area when return_coverage is False, default False.
+    :param show_grid:               Flag to show a grid in the plot area (True) or not (False) when 'return_coverage' is
+                                    False. Default True.
                                     When coverage is plotted along with monthly means data the grid is always shown.
     :type show_grid:                bool, optional
-    :param xtick_delta:             String to give the frequency of x ticks. Given as a pandas frequency string, 
-                                    remembering that S at the end is required for months starting on the first day of the 
-                                    month, default '1MS'
+    :param xtick_delta:             String to give the frequency of x ticks and their associated labels. Given as a
+                                    pandas frequency string, remembering that S at the end is required for months
+                                    starting on the first day of the month. Default '1MS'.
     :type xtick_delta:              str
-    :return:                        A plot of monthly means for the input data. If return data is true it returns a tuple 
-                                    where the first element is plot and second is data pertaining to monthly means.
+    :return:                        A plot of monthly means for the input data. If 'return_data' is True it returns a
+                                    tuple where the first element is the plot and second is data pertaining to monthly
+                                    means as a pandas.DataFrame.
+    :rtype:                         matplotlib.figure.Figure or
+                                    tuple(matplotlib.figure.Figure, pandas.DataFrame)
 
     **Example usage**
     ::
@@ -236,25 +242,30 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
         data_monthly = data_monthly[data_monthly.index.month.isin([2, 4, 6, 8])]
         monthly_means_plot, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
                                                                  data_resolution=pd.DateOffset(months=1))
+        monthly_means_plot
 
         # to show the legend outside and above the plot area and set the xticks to every 3 months
         monthly_means_plot, monthly_mean_data = bw.monthly_means(data.Spd80mN, return_data=True,  
                                                                  legend=True, external_legend=True, xtick_delta='3MS')
+        monthly_means_plot
 
-        # to show legend inside and show grid.
+        # to show legend inside and not to show the grid.
         monthly_means_plot, monthly_mean_data = bw.monthly_means(data[['Spd80mN', 'Spd80mS']], return_data=True,  
-                                                                 legend=True, external_legend=False, show_grid=True)
+                                                                 legend=True, external_legend=False, show_grid=False)
+        monthly_means_plot
 
     """
 
     df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True, data_resolution=data_resolution)
     if return_data and not return_coverage:
         return bw_plt.plot_monthly_means(
-            df, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid, xtick_delta=xtick_delta
+            df, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid,
+            xtick_delta=xtick_delta
             ), df
     if return_coverage:
         return bw_plt.plot_monthly_means(
-            df, covrg, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid, xtick_delta=xtick_delta
+            df, covrg, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid,
+            xtick_delta=xtick_delta
             ), pd.concat([df, covrg], axis=1)
     return bw_plt.plot_monthly_means(
         df, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid, xtick_delta=xtick_delta
