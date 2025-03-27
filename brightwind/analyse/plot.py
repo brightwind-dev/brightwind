@@ -318,7 +318,7 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
 
 def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limits=None, x_tick_label_angle=25,
                         line_marker_types=None, line_colors=None, subplot_title=None,
-                        legend=True, ax=None, external_legend=False, show_grid=False, legend_fontsize=10):
+                        legend=True, ax=None, external_legend=False, show_grid=True, legend_fontsize=10):
     """
     Plots a timeseries subplot where x is the time axis.
 
@@ -362,7 +362,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     :type ax:                       matplotlib.axes._subplots.AxesSubplot or None
     :param external_legend:         Flag for option to return legend outside and above the plot area, default False
     :type external_legend:          bool
-    :param show_grid:               Flag for option to add a grid to the plot area, default False
+    :param show_grid:               Flag for option to add a grid to the plot area, default True
     :type show_grid:                bool
     :param legend_fontsize:         Font size for legend, default 10
     :type legend_fontsize:          int
@@ -414,11 +414,11 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         fig, axes = plt.subplots(1, 1)
         sub_plot = bw.analyse.plot._timeseries_subplot(data.index, data.Dir58mS, line_colors=mpl_colors)
 
-        # To use an external legend with a grid displayed and size 8 font
+        # To use an external legend without a grid displayed and size 8 font
         fig, axes = plt.subplots(1, 1)
         bw.analyse.plot._timeseries_subplot(data.index, data[wspd_cols],
                                             line_marker_types=['.', 'o', 'v', '^', '<', None], ax=axes, 
-                                            external_legend=True, show_grid=True, legend_fontsize=8)
+                                            external_legend=True, show_grid=False, legend_fontsize=8)
 
     """
 
@@ -500,7 +500,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
 def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=None, y_limits=None,
                     x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8),
-                    external_legend=False, show_grid=False):
+                    external_legend=False, show_grid=True):
     """
     Plot a timeseries of data.
 
@@ -541,7 +541,7 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     :type figure_size:              tuple
     :param external_legend:         Flag for option to return legend outside and above the plot area, default False
     :type external_legend:          bool
-    :param show_grid:               Flag for option to add a grid to the plot area, default False
+    :param show_grid:               Flag for option to add a grid to the plot area, default True
     :type show_grid:                bool
     :return:                        A timeseries plot
     :rtype:                         matplotlib.figure.Figure
@@ -579,8 +579,8 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
         mpl_colors = prop_cycle.by_key()['color']
         bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], line_colors= mpl_colors)
 
-        # To use an external legend with a grid displayed
-        bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], external_legend=True, show_grid=True)
+        # To use an external legend without grid displayed
+        bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], external_legend=True, show_grid=False)
 
     """
     if line_colors is None:
