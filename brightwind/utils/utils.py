@@ -10,7 +10,7 @@ import brightwind as bw
 __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
-           'check_cleaning_rule_schema']
+           'check_schema']
 
 
 def _range_0_to_360(direction):
