@@ -202,7 +202,7 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
     :param legend:                  Flag to show a legend (True) or not (False). Default is True.
     :type legend:                   bool
     :param external_legend:         Flag to show legend outside and above the plot area (True) or show it inside
-                                    the plot. Default is False.
+                                    the plot (False). Default is False.
     :type external_legend:          bool
     :param show_grid:               Flag to show a grid in the plot area (True) or not (False) when 'return_coverage' is
                                     False. Default True.

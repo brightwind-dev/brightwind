@@ -282,9 +282,9 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
     :param legend:          Flag to show a legend (True) or not (False). Default is True.
     :type legend:           bool, optional
     :param external_legend: Flag to show legend outside and above the plot area (True) or show it inside
-                            the plot. Default is False.
+                            the plot (False). Default is False.
     :type external_legend:  bool, optional
-    :param show_grid:       Flag to show a grid in the plot area (True) or not (False) when 'coverage' is False.
+    :param show_grid:       Flag to show a grid in the plot area (True) or not (False) when 'coverage' is None.
                             Default True.
                             When 'coverage' is not None then the grid is always shown.
     :type show_grid:        bool, optional
@@ -304,7 +304,7 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
         
         # to plot monthly mean speed for all speeds without coverage and legend outside and above the plot area.
         bw.analyse.plot.plot_monthly_means(monthly_means, ylbl='Speed [m/s]', legend=True, external_legend=True,
-                                           xtick_delta='2MS')
+                                           xtick_delta='1MS')
 
         # to plot monthly mean speed for all speeds without coverage, legend inside and not to show the grid.
         bw.analyse.plot.plot_monthly_means(monthly_means, ylbl='Speed [m/s]', legend=True, external_legend=True, 
