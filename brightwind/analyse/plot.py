@@ -494,8 +494,6 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
     if subplot_title is not None:
         ax.set_title(subplot_title, fontsize=mpl.rcParams['axes.labelsize'])
-    fig = ax.get_figure()
-    fig.tight_layout()
 
     return ax
 
