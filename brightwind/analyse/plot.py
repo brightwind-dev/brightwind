@@ -500,7 +500,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
 def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=None, y_limits=None,
                     x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8),
-                    external_legend=False, show_grid=False, legend_fontsize=10):
+                    external_legend=False, show_grid=False):
     """
     Plot a timeseries of data.
 
@@ -543,8 +543,6 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     :type external_legend:          bool
     :param show_grid:               Flag for option to add a grid to the plot area, default False
     :type show_grid:                bool
-    :param legend_fontsize:         Font size for legend, default 10
-    :type legend_fontsize:          int
     :return:                        A timeseries plot
     :rtype:                         matplotlib.figure.Figure
 
@@ -581,8 +579,8 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
         mpl_colors = prop_cycle.by_key()['color']
         bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], line_colors= mpl_colors)
 
-        # To use an external legend with a grid displayed and size 8 font
-        bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], external_legend=True, show_grid=True, legend_fontsize=8)
+        # To use an external legend with a grid displayed
+        bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], external_legend=True, show_grid=True)
 
     """
     if line_colors is None:
@@ -597,7 +595,7 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     _timeseries_subplot(sliced_data.index, sliced_data, x_label=x_label, y_label=y_label,
                         y_limits=y_limits, x_tick_label_angle=x_tick_label_angle,
                         line_colors=line_colors, legend=legend, ax=axes, external_legend=external_legend,
-                        show_grid=show_grid, legend_fontsize=legend_fontsize)
+                        show_grid=show_grid)
     plt.close()
     return fig
 
