@@ -360,11 +360,12 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     :param ax:                      Subplot axes to which assign the subplot to in a plot. If None then a single plot is
                                     generated
     :type ax:                       matplotlib.axes._subplots.AxesSubplot or None
-    :param external_legend:         Flag for option to return legend outside and above the plot area, default False
+    :param external_legend:         Flag to show legend outside and above the plot area (True) or show it inside
+                                    the plot (False). Default is False.
     :type external_legend:          bool
-    :param legend_fontsize:         Font size for legend, default 12
+    :param legend_fontsize:         Font size for legend. Default 12.
     :type legend_fontsize:          int
-    :param show_grid:               Flag for option to add a grid to the plot area, default True
+    :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
     :type show_grid:                bool
     :return:                        A timeseries subplot
     :rtype:                         matplotlib.axes._subplots.AxesSubplot
@@ -490,7 +491,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
             legend_kwargs['fontsize'] = legend_fontsize
         ax.legend(**legend_kwargs)
     if show_grid:
-        ax.grid(linestyle='-', color='gray')
+        ax.grid(linestyle='-', color='lightgrey')
 
     if subplot_title is not None:
         ax.set_title(subplot_title, fontsize=mpl.rcParams['axes.labelsize'])
@@ -539,11 +540,12 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     :type legend:                   Bool
     :param figure_size:             Figure size in tuple format (width, height). Default is (15, 8).
     :type figure_size:              tuple
-    :param external_legend:         Flag for option to return legend outside and above the plot area, default False
+    :param external_legend:         Flag to show legend outside and above the plot area (True) or show it inside
+                                    the plot (False). Default is False.
     :type external_legend:          bool
-    :param legend_fontsize:         Font size for legend, default 12.
+    :param legend_fontsize:         Font size for legend. Default 12.
     :type legend_fontsize:          int
-    :param show_grid:               Flag for option to add a grid to the plot area, default True
+    :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
     :type show_grid:                bool
     :return:                        A timeseries plot
     :rtype:                         matplotlib.figure.Figure
