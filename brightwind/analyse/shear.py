@@ -1145,10 +1145,10 @@ class Shear:
 
     @staticmethod
     def _valid_wsp_data_error_msg(wspds, min_speed):
-        if len(wspds.dropna()) == 0:
-            raise ValueError("There is not enough valid data within the dataset provided to calculate shear")
+        if wspds.isnull().all().any():
+            raise ValueError("There is not valid data within the dataset provided to calculate shear")
         if len(wspds[wspds > min_speed].dropna()) == 0:
-            raise ValueError(f"There is not enough valid data above {min_speed} m/s within the dataset provided to calculate shear")
+            raise ValueError(f"There is not valid data above {min_speed} m/s within the dataset provided to calculate shear")
 
     @staticmethod
     def _create_info(self, heights, min_speed, cvg, direction_bin_array=None, segments_per_day=None,

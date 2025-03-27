@@ -45,13 +45,13 @@ def test_average():
     heights = [80, 100]
     with pytest.raises(ValueError) as except_info:
         bw.Shear.Average(wspds, heights)
-    assert str(except_info.value) == "There is not enough valid data within the dataset provided to calculate shear"
+    assert str(except_info.value) == "There is not valid data within the dataset provided to calculate shear"
 
     wspds = [8, 2]
     heights = [80, 100]
     with pytest.raises(ValueError) as except_info:
         bw.Shear.Average(wspds, heights)
-    assert str(except_info.value) == "There is not enough valid data above 3 m/s within the dataset provided to calculate shear"
+    assert str(except_info.value) == "There is not valid data above 3 m/s within the dataset provided to calculate shear"
 
 
 def test_by_sector():
@@ -155,7 +155,7 @@ def test_time_of_day():
     shear_by_time_power_law = bw.Shear.TimeOfDay(anemometers, heights)
     assert shear_by_time_power_law.alpha.iloc[2].isna().all()
 
-    DATA.loc[DATA.index.hour == 5, "Spd80mN"] = 2
+    DATA.loc[DATA.index.hour == 5, "Spd80mN"] = np.nan
     anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']]
     shear_by_time_power_law = bw.Shear.TimeOfDay(anemometers, heights)
     assert shear_by_time_power_law.alpha.iloc[5].isna().all()
