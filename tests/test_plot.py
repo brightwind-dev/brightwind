@@ -48,21 +48,23 @@ def test_plot_timeseries():
                        figure_size=(20, 4))
     time_series_plot = bw.plot_timeseries(
         DATA[['Spd40mN', 'Spd60mS', 'T2m']], line_colors=['#009991', '#171a28', '#726e83'],figure_size=(20, 4), 
-        external_legend=True, show_grid=True)
+        external_legend=True, legend_fontsize=14, show_grid=True)
     axes = time_series_plot.get_axes()
     ax = axes[0]
     x_gridlines = ax.xaxis.get_gridlines()
     y_gridlines = ax.yaxis.get_gridlines()
     axes = time_series_plot.get_axes()[0]
     legend = axes.get_legend()
+    actual_fontsize = legend.get_texts()[0].get_fontsize()
 
     assert len(x_gridlines) > 0, "No X-axis gridlines found"
     assert len(y_gridlines) > 0, "No Y-axis gridlines found"
     assert time_series_plot.axes[0].get_legend()._bbox_to_anchor is not None
+    assert actual_fontsize == 14, f"Expected font size {14}, got {actual_fontsize}"
 
     time_series_subplot =  bw.analyse.plot._timeseries_subplot(DATA.index, DATA[['Spd40mN', 'Spd60mS', 'T2m']], 
                                                                line_colors=['#009991', '#171a28', '#726e83'], 
-                                                               external_legend=True, show_grid=True, legend_fontsize=6)
+                                                               external_legend=True, legend_fontsize=6, show_grid=True)
     legend = time_series_subplot.get_legend()
     actual_fontsize = legend.get_texts()[0].get_fontsize()
     assert actual_fontsize == 6, f"Expected font size {6}, got {actual_fontsize}"
