@@ -17,6 +17,7 @@ from colormap import rgb2hex, rgb2hls, hls2rgb
 from matplotlib.ticker import PercentFormatter
 from matplotlib.colors import ListedColormap, to_hex, LinearSegmentedColormap
 import warnings
+from matplotlib.patches import Patch
 
 register_matplotlib_converters()
 
@@ -265,30 +266,95 @@ def _colormap_to_colorscale(cmap, n_colors):
     return [to_hex(cmap(k*1/(n_colors-1))) for k in range(n_colors)]
 
 
-def plot_monthly_means(data, coverage=None, ylbl=''):
+def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legend=False,  show_grid=True,
+                       xtick_delta='1MS'):
+    """
+    Plots the monthly means where x is the time axis. Monthly mean data and coverage can be derived using brightwind
+    function average_data_by_period(data, period='1MS', return_coverage=True).
+
+    :param data:            A Series or DataFrame with data aggregated as the mean for each month.
+    :type data:             pd.Series or pd.DataFrame
+    :param coverage:        A Series with data coverage for each month. Optional.
+                            The coverage is plotted along with the data only if a single series is passed to data.
+    :type coverage:         None or pd.Series, optional
+    :param ylbl:            y axis label used on the left hand axis, defaults to ''.
+    :type ylbl:             str, optional
+    :param legend:          Flag to show a legend (True) or not (False). Default is True.
+    :type legend:           bool, optional
+    :param external_legend: Flag to show legend outside and above the plot area (True) or show it inside
+                            the plot (False). Default is False.
+    :type external_legend:  bool, optional
+    :param show_grid:       Flag to show a grid in the plot area (True) or not (False) when 'coverage' is None.
+                            Default True.
+                            When 'coverage' is not None then the grid is always shown.
+    :type show_grid:        bool, optional
+    :param xtick_delta:     String to give the frequency of x ticks and their associated labels. Given as a pandas
+                            frequency string, remembering that S at the end is required for months starting on the first
+                            day of the month. Default '1MS'.
+    :type xtick_delta:      str, optional
+    :return:                A plot of monthly means for the input data.
+    :rtype:                 matplotlib.figure.Figure
+
+     **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        monthly_means, coverage = bw.average_data_by_period(data[['Spd80mN','Spd80mS']], period='1MS',
+                                                            return_coverage=True)
+        
+        # to plot monthly mean speed for all speeds without coverage and legend outside and above the plot area.
+        bw.analyse.plot.plot_monthly_means(monthly_means, ylbl='Speed [m/s]', legend=True, external_legend=True,
+                                           xtick_delta='1MS')
+
+        # to plot monthly mean speed for all speeds without coverage, legend inside and not to show the grid.
+        bw.analyse.plot.plot_monthly_means(monthly_means, ylbl='Speed [m/s]', legend=True, external_legend=True, 
+                                           show_grid=False)
+
+        # to plot monthly mean speed with coverage and xticks every 3 months.
+        bw.analyse.plot.plot_monthly_means(monthly_means.Spd80mN, coverage.Spd80mN_Coverage, 
+                                           ylbl='Speed [m/s]', legend=True, external_legend=False, xtick_delta='3MS')
+
+    """
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-    if len(data.shape) > 1:
+
+    is_dataframe = len(data.shape) > 1
+    legend_items = list(data.columns) if is_dataframe else [data.name]
+
+    if is_dataframe:
         ax.set_prop_cycle(color=COLOR_PALETTE.color_list)
         ax.plot(data, '-o')
-        ax.legend(list(data.columns))
     else:
-        ax.plot(data, '-o', color=COLOR_PALETTE.primary)
-        ax.legend([data.name])
+        ax.plot(data, '-o', color=COLOR_PALETTE.primary)   
+
+    if legend:
+        ncol_legend = min((len(legend_items)+1)//2, 6) if len(legend_items) > 6 else 6
+        legend_kwargs = {
+            'bbox_to_anchor': (0.5, 1), 'loc': 'lower center', 'ncol': ncol_legend,
+            } if external_legend else {}
+        ax.legend(legend_items, **legend_kwargs)
+
     ax.set_ylabel(ylbl)
 
-    ax.set_xticks(data.index)
-    ax.xaxis.set_major_formatter(DateFormatter("%b %Y"))
+    start_date = data.index[0]
+    end_date = data.index[-1]
+    xticks = pd.date_range(
+        start=pd.Timestamp(year=start_date.year, month=start_date.month, day=1), end=end_date, freq=xtick_delta
+        )
+    ax.set_xticks(xticks[(xticks >= start_date) & (xticks <= end_date)])
+    ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
     fig.autofmt_xdate(rotation=20, ha='center')
+    ax.set_xlim(data.index[0] - pd.Timedelta('20days'), data.index[-1] + pd.Timedelta('20days'))
+
+    if show_grid:
+        ax.grid(linestyle='-', color='lightgrey')
 
     if coverage is not None:
-        plot_coverage = True
-        if len(coverage.shape) > 1:
-            if coverage.shape[1] > 1:
-                plot_coverage = False
+        plot_coverage = not (len(coverage.shape) > 1 and coverage.shape[1] > 1)
+
         if plot_coverage:
             ax.clear()
-            ax.plot(data, '-o', color=COLOR_PALETTE.secondary)
+            line = ax.plot(data, '-o', color=COLOR_PALETTE.secondary, label=data.name)
             ax2 = ax.twinx()
 
             for month, coverage in zip(coverage.index, coverage.values):
@@ -299,17 +365,35 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
                                                              0, coverage), aspect='auto', zorder=1)
                 ax2.bar(mdates.date2num(month), coverage, edgecolor=COLOR_PALETTE.secondary, linewidth=0.3,
                         fill=False, zorder=0)
-
             ax2.set_ylim(0, 1)
             ax.set_ylim(bottom=0)
             ax.set_xlim(data.index[0] - pd.Timedelta('20days'), data.index[-1] + pd.Timedelta('20days'))
             ax.set_zorder(3)
-            ax2.yaxis.grid(True)
+            ax2.yaxis.grid(True, color='lightgrey')
             ax2.set_axisbelow(True)
             ax.patch.set_visible(False)
             ax2.set_ylabel('Coverage [-]')
+            ax.set_ylabel(ylbl)
+            if legend:
+                # Patch needed purely for legend
+                coverage_patch = Patch(facecolor=COLOR_PALETTE.primary, 
+                                       edgecolor=COLOR_PALETTE.secondary,
+                                       linewidth=0.3,
+                                       label='Data coverage')
+                handles = [line[0], coverage_patch]
+                labels = [data.name, 'Data coverage']
+                fig = plt.gcf()  # Get current figure
+                legend_kwargs = {
+                    'bbox_to_anchor': (0.5, 0.96), 'loc': 'upper center', 'ncol': 2
+                    } if external_legend else {'bbox_to_anchor': (0.1, 0.1), 'loc': 'lower left'}
+                fig.legend(handles, labels, **legend_kwargs)
             ax2.yaxis.tick_right()
             ax2.yaxis.set_label_position("right")
+            ax.set_xticks(xticks[(xticks >= start_date) & (xticks <= end_date)])
+            ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
+            for tick in ax.get_xticklabels():
+                tick.set_rotation(20)
+                tick.set_horizontalalignment('center')
             plt.close()
             return ax2.get_figure()
     plt.close()

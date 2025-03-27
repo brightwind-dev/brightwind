@@ -19,7 +19,9 @@ Additional labels for pre-release and build metadata are available as extensions
 6. Bug fix in `_Measurements__get_properties` function to handle solar sites (Issue [#453](https://github.com/brightwind-dev/brightwind/issues/453)).
 7. Bug fix in `dist` function (Issue [#459](https://github.com/brightwind-dev/brightwind/issues/459)).
 8. Bug fix in `_LoggerMainConfigs__get_properties` function for solar and sodar sites (Issue [#454](https://github.com/brightwind-dev/brightwind/issues/454)).
-9. Updated functionality in `plot_timeseries` function (Issue [#457](https://github.com/brightwind-dev/brightwind/issues/457)).
+9. Bug fix in `monthly_means()` function of the plots (Issue [#452](https://github.com/brightwind-dev/brightwind/issues/452)) and (Issue [#413](https://github.com/brightwind-dev/brightwind/issues/413)).
+9. Updated functionality in `monthly_means()` and `plot_monthly_means()` plots (Issue [#452](https://github.com/brightwind-dev/brightwind/issues/452)) and (Issue [#413](https://github.com/brightwind-dev/brightwind/issues/413)).
+10. Updated functionality in `plot_timeseries` function (Issue [#457](https://github.com/brightwind-dev/brightwind/issues/457)).
 
 
 ## [2.2.1]
