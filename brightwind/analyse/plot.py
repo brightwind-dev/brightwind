@@ -1344,7 +1344,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         if index_time:
             bin_tick_label_format = DateFormatter("%Y-%m")
 
-    bin_min_step = np.diff(data_bins).min()
+    bin_min_step = 1 if len(data_bins) == 1 else np.diff(data_bins).min()
     total_width = bin_min_step * total_width
 
     if vertical_bars:
