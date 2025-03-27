@@ -266,44 +266,49 @@ def _colormap_to_colorscale(cmap, n_colors):
     return [to_hex(cmap(k*1/(n_colors-1))) for k in range(n_colors)]
 
 
-def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legend=False,  show_grid=False, xtick_delta='1MS'):
+def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legend=False,  show_grid=True,
+                       xtick_delta='1MS'):
     """
-    Plots the monthly means where x is the time axis. Monthly mean data and coverage can be derived using brightwind function
-    average_data_by_period(data, period='1MS', return_coverage=True)
+    Plots the monthly means where x is the time axis. Monthly mean data and coverage can be derived using brightwind
+    function average_data_by_period(data, period='1MS', return_coverage=True).
 
-    :param data:                    A Series or DataFrame with data aggregated as the mean for each month.
-    :type data:                     pd.Series or pd.DataFrame
-    :param coverage:                A Series with data coverage for each month. Optional. 
-                                    The coverage is plotted along with the data only if a single series is passed to data. 
-    :type coverage:                 None or pd.Series, optional
-    :param ylbl:                    y axis label used on the left hand axis, defaults to ''
-    :type ylbl:                     str, optional
-    :param legend:                  Boolean to choose if legend is shown. Default is True.
-    :type legend:                   bool, optional
-    :param external_legend:         Flag for option to return legend outside and above the plot area, default False
-    :type external_legend:          bool, optional
-    :param show_grid:               Flag for option to add a grid to the plot area when coverage is None, default False.
-                                    When coverage is not None then the grid is always shown.
-    :type show_grid:                bool, optional
-    :param xtick_delta:             String to give the frequency of x ticks. Given as a pandas frequency string, 
-                                    remembering that S at the end is required for months starting on the first day of the 
-                                    month, default '1MS'
-    :type xtick_delta:              str, optional
-    :return:                        A plot of monthly means for the input data.
-    :rtype:                         matplotlib.figure.Figure
+    :param data:            A Series or DataFrame with data aggregated as the mean for each month.
+    :type data:             pd.Series or pd.DataFrame
+    :param coverage:        A Series with data coverage for each month. Optional.
+                            The coverage is plotted along with the data only if a single series is passed to data.
+    :type coverage:         None or pd.Series, optional
+    :param ylbl:            y axis label used on the left hand axis, defaults to ''.
+    :type ylbl:             str, optional
+    :param legend:          Flag to show a legend (True) or not (False). Default is True.
+    :type legend:           bool, optional
+    :param external_legend: Flag to show legend outside and above the plot area (True) or show it inside
+                            the plot. Default is False.
+    :type external_legend:  bool, optional
+    :param show_grid:       Flag to show a grid in the plot area (True) or not (False) when 'coverage' is False.
+                            Default True.
+                            When 'coverage' is not None then the grid is always shown.
+    :type show_grid:        bool, optional
+    :param xtick_delta:     String to give the frequency of x ticks and their associated labels. Given as a pandas
+                            frequency string, remembering that S at the end is required for months starting on the first
+                            day of the month. Default '1MS'.
+    :type xtick_delta:      str, optional
+    :return:                A plot of monthly means for the input data.
+    :rtype:                 matplotlib.figure.Figure
 
      **Example usage**
     ::
         import brightwind as bw
         data = bw.load_csv(bw.demo_datasets.demo_data)
-        monthly_means, coverage = bw.average_data_by_period(data[['Spd80mN','Spd80mS']], period='1MS', return_coverage=True)
+        monthly_means, coverage = bw.average_data_by_period(data[['Spd80mN','Spd80mS']], period='1MS',
+                                                            return_coverage=True)
         
         # to plot monthly mean speed for all speeds without coverage and legend outside and above the plot area.
-        bw.analyse.plot.plot_monthly_means(monthly_means, ylbl='Speed [m/s]', legend=True, external_legend=True, xtick_delta='1MS')
+        bw.analyse.plot.plot_monthly_means(monthly_means, ylbl='Speed [m/s]', legend=True, external_legend=True,
+                                           xtick_delta='2MS')
 
-        # to plot monthly mean speed for all speeds without coverage, legend inside and show grid.
+        # to plot monthly mean speed for all speeds without coverage, legend inside and not to show the grid.
         bw.analyse.plot.plot_monthly_means(monthly_means, ylbl='Speed [m/s]', legend=True, external_legend=True, 
-                                           show_grid=True)
+                                           show_grid=False)
 
         # to plot monthly mean speed with coverage and xticks every 3 months.
         bw.analyse.plot.plot_monthly_means(monthly_means.Spd80mN, coverage.Spd80mN_Coverage, 
@@ -323,9 +328,9 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
         ax.plot(data, '-o', color=COLOR_PALETTE.primary)   
 
     if legend:
-        ncol_legend = min((len(legend_items)+1)//2,6) if len(legend_items) > 6 else 6
+        ncol_legend = min((len(legend_items)+1)//2, 6) if len(legend_items) > 6 else 6
         legend_kwargs = {
-            'bbox_to_anchor':(0.5, 1), 'loc':'lower center', 'ncol':ncol_legend, 
+            'bbox_to_anchor': (0.5, 1), 'loc': 'lower center', 'ncol': ncol_legend,
             } if external_legend else {}
         ax.legend(legend_items, **legend_kwargs)
 
@@ -372,15 +377,15 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
             if legend:
                 # Patch needed purely for legend
                 coverage_patch = Patch(facecolor=COLOR_PALETTE.primary, 
-                                      edgecolor=COLOR_PALETTE.secondary,
-                                      linewidth=0.3, 
-                                      label='Data coverage')
+                                       edgecolor=COLOR_PALETTE.secondary,
+                                       linewidth=0.3,
+                                       label='Data coverage')
                 handles = [line[0], coverage_patch]
                 labels = [data.name, 'Data coverage']
                 fig = plt.gcf()  # Get current figure
                 legend_kwargs = {
-                    'bbox_to_anchor':(0.5, 0.96), 'loc':'upper center', 'ncol':2
-                    } if external_legend else {'bbox_to_anchor':(0.1, 0.1), 'loc':'lower left'}
+                    'bbox_to_anchor': (0.5, 0.96), 'loc': 'upper center', 'ncol': 2
+                    } if external_legend else {'bbox_to_anchor': (0.1, 0.1), 'loc': 'lower left'}
                 fig.legend(handles, labels, **legend_kwargs)
             ax2.yaxis.tick_right()
             ax2.yaxis.set_label_position("right")
