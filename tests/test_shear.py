@@ -80,13 +80,15 @@ def test_by_sector():
     shear_by_sector_log_law.apply(DATA['Spd80mN'], directions, 40, 60)
     shear_by_sector_custom_bins.apply(DATA['Spd80mN'], directions, 40, 60)
 
-    DATA.loc[(DATA.Dir78mS >= 15) & (DATA.Dir78mS <= 45), "Spd80mN"] = 2
-    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    data_test = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN', 'Dir78mS']].copy()
+    data_test.loc[(data_test.Dir78mS >= 15) & (data_test.Dir78mS <= 45), "Spd80mN"] = 2
+    anemometers = data_test[['Spd80mN', 'Spd60mN', 'Spd40mN']]
     shear_by_sector_power_law = bw.Shear.BySector(anemometers, heights, directions)
-    assert pd.isna(shear_by_sector_power_law.alpha.at["15.0-45.0"])
+    assert pd.isna(shear_by_sector_power_law.alpha.at["15.0-45.0"])#
 
-    DATA.loc[(DATA.Dir78mS >= 45) & (DATA.Dir78mS <= 75), "Spd80mN"] = np.nan
-    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    data_test = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN', 'Dir78mS']].copy()
+    data_test.loc[(data_test.Dir78mS >= 45) & (data_test.Dir78mS <= 75), "Spd80mN"] = np.nan
+    anemometers = data_test[['Spd80mN', 'Spd60mN', 'Spd40mN']]
     shear_by_sector_power_law = bw.Shear.BySector(anemometers, heights, directions)
     assert pd.isna(shear_by_sector_power_law.alpha.at["45.0-75.0"])
 
@@ -150,13 +152,15 @@ def test_time_of_day():
         bw.Shear.TimeOfDay(anemometers, heights, by_month=False, plot_type='12x24')
     assert str(except_info.value) == "12x24 plot is only possible when 'by_month=True'."
 
-    DATA.loc[DATA.index.hour == 2, "Spd80mN"] = 2
-    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    data_test = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN', 'Dir78mS']].copy()
+    data_test.loc[data_test.index.hour == 2, "Spd80mN"] = 2
+    anemometers = data_test[['Spd80mN', 'Spd60mN', 'Spd40mN']]
     shear_by_time_power_law = bw.Shear.TimeOfDay(anemometers, heights)
     assert shear_by_time_power_law.alpha.iloc[2].isna().all()
 
-    DATA.loc[DATA.index.hour == 5, "Spd80mN"] = np.nan
-    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    data_test = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN', 'Dir78mS']].copy()
+    data_test.loc[data_test.index.hour == 5, "Spd80mN"] = np.nan
+    anemometers = data_test[['Spd80mN', 'Spd60mN', 'Spd40mN']]
     shear_by_time_power_law = bw.Shear.TimeOfDay(anemometers, heights)
     assert shear_by_time_power_law.alpha.iloc[5].isna().all()
 
