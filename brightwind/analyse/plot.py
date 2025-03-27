@@ -324,7 +324,6 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
 
     if legend:
         ncol_legend = min((len(legend_items)+1)//2,6) if len(legend_items) > 6 else 6
-        print(ncol_legend)
         legend_kwargs = {
             'bbox_to_anchor':(0.5, 1), 'loc':'lower center', 'ncol':ncol_legend, 
             } if external_legend else {}
