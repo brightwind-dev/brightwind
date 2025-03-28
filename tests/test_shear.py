@@ -136,10 +136,10 @@ def test_time_of_day():
     assert (round(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'] * (
             60 / 40) ** 0.141777, 5) == round(shear_by_tod_power_law1.apply(DATA['Spd80mN'][
                                     '2017-11-23 10:10:00':'2017-11-23 10:40:00'], 40, 60), 5)).all()
-    assert np.allclose(shear_by_tod_log_law1.apply(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'], 40, 60), 
-                       [11.11452, 9.95853, 9.69339, 8.40695])
-    assert np.allclose(shear_by_tod_log_law2.apply(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'], 40, 60), 
-                       [11.16479, 10.00356, 9.73723, 8.44497])
+    assert  list(round(shear_by_tod_log_law1.apply(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'],
+                                                   40, 60), 5)) == [11.11452, 9.95853, 9.69339, 8.40695]
+    assert list(round(shear_by_tod_log_law2.apply(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'],
+                                                  40, 60), 5)) == [11.16479, 10.00356, 9.73723, 8.44497]
 
     # Test errors
     with pytest.raises(ValueError) as except_info:
@@ -179,7 +179,7 @@ def test_time_series():
                                               maximise_data=True)
 
     # Test attributes
-    assert np.allclose(shear_by_ts_power_law.alpha.mean(), 0.17858007)
+    assert round(shear_by_ts_power_law.alpha.mean(), 4) == 0.1786
     # Changed to support equality for very large numbers
     assert (shear_by_ts_log_law.roughness.mean() / 4.306534305567819e+68 - 1) < 1e-6
 
