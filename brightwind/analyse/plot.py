@@ -562,12 +562,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     ax.tick_params(axis="x", rotation=x_tick_label_angle)
 
     if legend:
-        if isinstance(y, pd.DataFrame):
-            legend_items = list(y.columns)
-        elif isinstance(y, pd.Series):
-            legend_items = [y.name]
-
-        ncol_legend = min((len(legend_items)+1)//2, 6) if len(legend_items) > 6 else 6
+        ncol_legend = min((len(y.columns)+1)//2, 6) if len(y.columns) > 6 else 6
         legend_kwargs = {
             'bbox_to_anchor': (0.5, 1), 'loc': 'lower center', 'ncol': ncol_legend,
             } if external_legend else {}
