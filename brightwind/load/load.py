@@ -1454,11 +1454,11 @@ class LoadBrightHub:
     @staticmethod
     def get_cleaning_rules(measurement_station_uuid):
         """
-        Get the cleaning log from BrightHub for a particular measurement station.
+        Get the cleaning rules from BrightHub for a particular measurement station.
 
         :param measurement_station_uuid: A specific measurement station's uuid.
         :type measurement_station_uuid:  str
-        :return:                         The cleaning logs for the measurement station.
+        :return:                         The cleaning rules for the measurement station.
         :rtype:                          list(dict)
 
         **Example usage**
@@ -1470,8 +1470,9 @@ class LoadBrightHub:
             measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14'
             cleaning_rules_json = bw.LoadBrightHub.get_cleaning_rules(measurement_station_uuid)
 
-        Applying the cleaning to the timeseries data.
+        Applying the cleaning rules to the timeseries data.
         ::
+            # First get the timeseries data.
             data = bw.LoadBrightHub.get_data(measurement_station_uuid)
 
             # Apply the cleaning rules to the data resulting in a dataset that is ready to work with.
