@@ -509,7 +509,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
     if line_colors is None:
         line_colors = COLOR_PALETTE.color_list
-    print(len(line_colors))
+
     if ax is None:
         ax = plt.gca()
 
@@ -538,7 +538,6 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
                        "of columns provided for y input. Please make sure that length is the same.")
     else:
         line_colors = [line_colors] * len(y.columns)
-    print(len(line_colors))
 
     for i_col, (col, marker_type) in enumerate(zip(y.columns, line_marker_types)):
         ax.plot(x, y.iloc[:, i_col], marker=marker_type, color=line_colors[i_col], label=col)
