@@ -16,8 +16,8 @@ Additional labels for pre-release and build metadata are available as extensions
 3. Bug fix in `_Measurements_get_table` function (Issue [#421](https://github.com/brightwind-dev/brightwind/issues/421)).
 4. Bug fix in `_Measurements__get_properties` function to handle solar sites (Issue [#453](https://github.com/brightwind-dev/brightwind/issues/453)).
 4. Bug fix in `_Measurements_get_names` function and made this function public (Issue [#450](https://github.com/brightwind-dev/brightwind/issues/450)).
-5. More representative error messages returned in `Shear` function when no valid data is available. Additionally Shear for hour of day has now been updated to return np.nan when there is no valid data for that sector or hour (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
-
+5. More representative error messages returned in `Shear` function when no valid data is available (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
+5. `Shear.TimeSeries` and `Shear.TimeOfDay` has been updated to return np.nan when there is no valid data for that timestamp or hour (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
 
 ## [2.2.1]
 1. Bug fix some users encounter with `plot.plot_shear_time_of_day()` (Issue [#429](https://github.com/brightwind-dev/brightwind/issues/429)).
