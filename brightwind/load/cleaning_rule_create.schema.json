@@ -111,7 +111,9 @@
       "required": ["conditions", "clean_out"],
       "additionalProperties": false
     },
-    "notes": { "type": ["string", "null"] }
+    "notes": { "type": ["string", "null"] },
+    "update_at": { "type": ["string", "null"] },
+    "updated_by": { "type": ["string", "null"] }
   },
   "required": ["rule"],
   "additionalProperties": false
