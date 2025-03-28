@@ -2312,7 +2312,7 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
         print(data_cleaned)
 
     To modify 'data' and replace it with the cleaned data:
-        bw.apply_cleaning(data, cleaning_rules_file_or_dict, inplace=True)
+        bw.apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=True)
         print(data)
 
     """
