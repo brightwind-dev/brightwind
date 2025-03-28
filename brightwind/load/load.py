@@ -1475,7 +1475,7 @@ class LoadBrightHub:
             data = bw.LoadBrightHub.get_data(measurement_station_uuid)
 
             # Apply the cleaning rules to the data resulting in a dataset that is ready to work with.
-            data_clnd = bw.apply_cleaning_rules(data, cleaning_rules_json)
+            data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_json)
 
         """
         response = LoadBrightHub._brighthub_request(
