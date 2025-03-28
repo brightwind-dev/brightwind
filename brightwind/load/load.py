@@ -2308,6 +2308,7 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
 
     To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
         data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_file_or_dict)
+        bw.plot_timeseries(data_cleaned[['Spd80mN', 'Spd60mN', 'Spd40mN']], date_from='2016-03-01', date_to='2016-03-15')
         print(data_cleaned)
 
     To modify 'data' and replace it with the cleaned data:
