@@ -567,9 +567,9 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         elif isinstance(y, pd.Series):
             legend_items = [y.name]
 
-        ncol_legend = min((len(legend_items)+1)//2,6) if len(legend_items) > 6 else 6
+        ncol_legend = min((len(legend_items)+1)//2, 6) if len(legend_items) > 6 else 6
         legend_kwargs = {
-            'bbox_to_anchor':(0.5, 1), 'loc':'lower center', 'ncol':ncol_legend, 
+            'bbox_to_anchor': (0.5, 1), 'loc': 'lower center', 'ncol': ncol_legend,
             } if external_legend else {}
         if legend_fontsize:
             legend_kwargs['fontsize'] = legend_fontsize
