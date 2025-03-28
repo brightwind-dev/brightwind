@@ -13,7 +13,7 @@ from io import StringIO
 import warnings
 from dateutil.parser import parse
 from brightwind.analyse import plot as bw_plt
-from brightwind.demo_datasets import cleaning_rules_schema
+from brightwind.load import cleaning_rules_schema
 import time
 import concurrent
 import math
