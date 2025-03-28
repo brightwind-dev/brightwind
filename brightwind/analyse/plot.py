@@ -402,7 +402,7 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
 
 def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limits=None, x_tick_label_angle=25,
                         line_marker_types=None, line_colors=None, subplot_title=None,
-                        legend=True, ax=None):
+                        legend=True, ax=None, external_legend=False, legend_fontsize=12, show_grid=True):
     """
     Plots a timeseries subplot where x is the time axis.
 
@@ -444,6 +444,13 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     :param ax:                      Subplot axes to which assign the subplot to in a plot. If None then a single plot is
                                     generated
     :type ax:                       matplotlib.axes._subplots.AxesSubplot or None
+    :param external_legend:         Flag to show legend outside and above the plot area (True) or show it inside
+                                    the plot (False). Default is False.
+    :type external_legend:          bool
+    :param legend_fontsize:         Font size for legend. Default 12.
+    :type legend_fontsize:          int
+    :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
+    :type show_grid:                bool
     :return:                        A timeseries subplot
     :rtype:                         matplotlib.axes._subplots.AxesSubplot
 
@@ -492,11 +499,17 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         fig, axes = plt.subplots(1, 1)
         sub_plot = bw.analyse.plot._timeseries_subplot(data.index, data.Dir58mS, line_colors=mpl_colors)
 
+        # To use an external legend without a grid displayed and size 8 font
+        fig, axes = plt.subplots(1, 1)
+        bw.analyse.plot._timeseries_subplot(data.index, data[wspd_cols],
+                                            line_marker_types=['.', 'o', 'v', '^', '<', None], ax=axes, 
+                                            external_legend=True, legend_fontsize=8, show_grid=False)
+
     """
 
     if line_colors is None:
         line_colors = COLOR_PALETTE.color_list
-
+    print(len(line_colors))
     if ax is None:
         ax = plt.gca()
 
@@ -506,6 +519,8 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         y = pd.DataFrame(y, columns=['y'])
     elif type(y) is dict:
         y = pd.DataFrame.from_dict(y)
+    elif type(y) is np.ndarray:
+        y = pd.DataFrame(y, columns=['y']) 
 
     if len(x) != len(y):
         ValueError("Length of x input is different than length of y input. Length of these must be the same.")
@@ -523,6 +538,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
                        "of columns provided for y input. Please make sure that length is the same.")
     else:
         line_colors = [line_colors] * len(y.columns)
+    print(len(line_colors))
 
     for i_col, (col, marker_type) in enumerate(zip(y.columns, line_marker_types)):
         ax.plot(x, y.iloc[:, i_col], marker=marker_type, color=line_colors[i_col], label=col)
@@ -538,7 +554,6 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     ax.set_xlim(x_limits[0], x_limits[1])
 
     if y_limits is not None:
-        # y_limits = (y_min, y_max)
         ax.set_ylim(y_limits[0], y_limits[1])
 
     ax.set_xlabel(x_label)
@@ -547,7 +562,15 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     ax.tick_params(axis="x", rotation=x_tick_label_angle)
 
     if legend:
-        ax.legend()
+        ncol_legend = min((len(y.columns)+1)//2, 6) if len(y.columns) > 6 else 6
+        legend_kwargs = {
+            'bbox_to_anchor': (0.5, 1), 'loc': 'lower center', 'ncol': ncol_legend,
+            } if external_legend else {}
+        if legend_fontsize:
+            legend_kwargs['fontsize'] = legend_fontsize
+        ax.legend(**legend_kwargs)
+    if show_grid:
+        ax.grid(linestyle='-', color='lightgrey')
 
     if subplot_title is not None:
         ax.set_title(subplot_title, fontsize=mpl.rcParams['axes.labelsize'])
@@ -556,7 +579,8 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
 
 def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=None, y_limits=None,
-                    x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8)):
+                    x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8),
+                    external_legend=False, legend_fontsize=12, show_grid=True):
     """
     Plot a timeseries of data.
 
@@ -595,6 +619,13 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     :type legend:                   Bool
     :param figure_size:             Figure size in tuple format (width, height). Default is (15, 8).
     :type figure_size:              tuple
+    :param external_legend:         Flag to show legend outside and above the plot area (True) or show it inside
+                                    the plot (False). Default is False.
+    :type external_legend:          bool
+    :param legend_fontsize:         Font size for legend. Default 12.
+    :type legend_fontsize:          int
+    :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
+    :type show_grid:                bool
     :return:                        A timeseries plot
     :rtype:                         matplotlib.figure.Figure
 
@@ -631,6 +662,10 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
         mpl_colors = prop_cycle.by_key()['color']
         bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], line_colors= mpl_colors)
 
+        # To use an external legend with fontsize 14 without grid displayed
+        bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], external_legend=True, legend_fontsize=14, 
+                           show_grid=False)
+
     """
     if line_colors is None:
         line_colors = COLOR_PALETTE.color_list
@@ -643,7 +678,8 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     sliced_data = utils.slice_data(data_to_slice, date_from, date_to)
     _timeseries_subplot(sliced_data.index, sliced_data, x_label=x_label, y_label=y_label,
                         y_limits=y_limits, x_tick_label_angle=x_tick_label_angle,
-                        line_colors=line_colors, legend=legend, ax=axes)
+                        line_colors=line_colors, legend=legend, ax=axes, external_legend=external_legend,
+                        legend_fontsize=legend_fontsize, show_grid=show_grid)
     plt.close()
     return fig
 

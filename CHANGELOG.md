@@ -17,11 +17,11 @@ Additional labels for pre-release and build metadata are available as extensions
 4. Bug fix in `_Measurements_get_names` function and made this function public (Issue [#450](https://github.com/brightwind-dev/brightwind/issues/450)).
 5. Bug fix in `_Measurements__get_properties` function when sensor can measure multiple measurement types. If there are multiple calibrations present, the correct one is now chosen (Issue [#449](https://github.com/brightwind-dev/brightwind/issues/449)).
 6. Bug fix in `_Measurements__get_properties` function to handle solar sites (Issue [#453](https://github.com/brightwind-dev/brightwind/issues/453)).
-6. Bug fix in `dist` function (Issue [#459](https://github.com/brightwind-dev/brightwind/issues/459)).
-7. Bug fix in `_LoggerMainConfigs__get_properties` function for solar and sodar sites (Issue [#454](https://github.com/brightwind-dev/brightwind/issues/454)).
-7. Bug fix in `monthly_means()` function of the plots (Issue [#452](https://github.com/brightwind-dev/brightwind/issues/452)) and (Issue [#413](https://github.com/brightwind-dev/brightwind/issues/413)).
-8. Updated functionality in `monthly_means()` and `plot_monthly_means()` plots (Issue [#452](https://github.com/brightwind-dev/brightwind/issues/452)) and (Issue [#413](https://github.com/brightwind-dev/brightwind/issues/413)).
-9. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
+7. Bug fix in `dist` function (Issue [#459](https://github.com/brightwind-dev/brightwind/issues/459)).
+8. Bug fix in `_LoggerMainConfigs__get_properties` function for solar and sodar sites (Issue [#454](https://github.com/brightwind-dev/brightwind/issues/454)).
+9. Bug fix in `monthly_means()` function of the plots (Issue [#452](https://github.com/brightwind-dev/brightwind/issues/452)) and (Issue [#413](https://github.com/brightwind-dev/brightwind/issues/413)).
+9. Updated functionality in `monthly_means()` and `plot_monthly_means()` plots (Issue [#452](https://github.com/brightwind-dev/brightwind/issues/452)) and (Issue [#413](https://github.com/brightwind-dev/brightwind/issues/413)).
+10. Updated functionality in `plot_timeseries` function (Issue [#457](https://github.com/brightwind-dev/brightwind/issues/457)).
 
 
 ## [2.2.1]
