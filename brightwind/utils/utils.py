@@ -201,29 +201,45 @@ def is_extension(file_or_folder, extension_required):
 
 
 
-def check_schema(json_to_check, schema_path):
+def check_schema(json_to_check, schema):
     """
     Validates JSON data against a JSON schema.
 
     :param cleaning_json:           The JSON data to validate
     :type cleaning_json:            dict
+    :param schema:                  The JSON data to validate
+    :type schema:                   str | dict
     :return:                        List of validation results, each containing:
                                     - item_index (int): Index of the item in the list or 0 if single item
                                     - is_valid (bool): True if validation passes, False otherwise
                                     - error_message (str): Error message if validation fails, empty string otherwise
     :rtype: bool
     """
-    with open(schema_path) as file:
-        schema = json.load(file)
+    if isinstance(schema, str):
+        if is_file(schema):
+            with open(schema) as file:
+                schema = json.load(file)
+    elif isinstance(schema, dict):
+        schema = schema
+    else:
+        raise ValueError("Incorrect schema type used")
     
     data_is_valid = True
     try:
         validate(instance=json_to_check, schema=schema)
     except ValidationError as e:
-        print(e)
+        error_path = " → ".join(str(path) for path in e.path)
+        if error_path:
+            print(f"Validation error at path: {error_path}")
+        print(f"Error message: {e.message}")
+        print(f"Failed schema part: {e.schema_path}")
         data_is_valid = False
     except Exception as e:
-        print(e)
+        error_path = " → ".join(str(path) for path in e.path)
+        if error_path:
+            print(f"Validation error at path: {error_path}")
+        print(f"Error message: {e.message}")
+        print(f"Failed schema part: {e.schema_path}")
         data_is_valid = False
     
     return data_is_valid
