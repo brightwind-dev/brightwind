@@ -509,7 +509,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
                                             line_marker_types=['.', 'o', 'v', '^', '<', None], ax=axes, 
                                             external_legend=True, legend_fontsize=8, show_grid=False)
 
-        # To use a default colourmap
+        # To use the default colourmap
         fig, axes = plt.subplots(1, 1)
         columns_to_plot = ['Spd_Met_2m', 'Spd_20m', 'Spd_40m', 'Spd_60m', 'Spd_80m', 'Spd_100m','Spd_124m','Spd_150m',
                             'Spd_175m','Spd_200m','Spd_20m_min','Spd_40m_min','Spd_60m_min','Spd_80m_min','Spd_100m_min',
@@ -550,7 +550,9 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
     if colourmap:
         if isinstance(colourmap, bool):
-            line_colors = bw.analyse.plot._colormap_to_colorscale(COLOR_PALETTE.color_map, 
+            cmap = LinearSegmentedColormap.from_list('bw_default', [COLOR_PALETTE.tertiary, COLOR_PALETTE.primary, 
+                                                                    COLOR_PALETTE.fifth], N=256)
+            line_colors = bw.analyse.plot._colormap_to_colorscale(cmap, 
                                                          len(y.columns))
         else:
             cmap = plt.get_cmap(colourmap)

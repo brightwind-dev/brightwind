@@ -81,6 +81,18 @@ def test_plot_timeseries():
     ]
     assert all(a == e for a, e in zip(actual_colors[3:], expected_colors))
     
+    time_series_subplot =  bw.analyse.plot._timeseries_subplot(DATA.index, DATA[columns_to_plot], colourmap=True,
+                                                               external_legend=True, legend_fontsize=6, show_grid=True)
+    actual_colors = [line.get_color() for line in time_series_subplot.get_lines()]
+    # Print out details about all lines to see what the first 5 are
+    for i, line in enumerate(time_series_subplot.get_lines()):
+        print(f"Line {i}: Color={line.get_color()}, Label={line.get_label()}, Visible={line.get_visible()}")
+    expected_colors = ['#9B2B2C', '#E57925', '#ffc008', '#AB8D60', '#A4D29F', '#01958a', '#3D636F', '#A49E9D', '#DA9BA6', 
+                       '#6e8c27', '#9CC537', '#2E3743', '#9B2B2C', '#E57925', '#ffc008', '#AB8D60', '#9b2b2c', '#9b3d2d', 
+                       '#9b4f2f', '#9b6130', '#9b7331', '#9c8632', '#9c9834', '#9caa35', '#9cbc36', '#a2c534', '#adc42f', 
+                       '#b9c429', '#c5c324', '#d0c21e', '#dcc219', '#e8c113', '#f3c10e', '#ffc008']
+    assert all(a == e for a, e in zip(actual_colors[5:], expected_colors))
+    
     assert True
 
 
