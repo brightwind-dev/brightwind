@@ -98,7 +98,7 @@ def test_get_table():
 
     test_null_values_json = _get_schema(bw.demo_datasets.floating_lidar_iea43_wra_data_model_v1_2)
     for measurement_point in test_null_values_json['measurement_location'][0]['measurement_point']:
-        measurement_point['height_reference'] = None
+        measurement_point['height_m'] = None
     flr2 = bw.MeasurementStation(test_null_values_json)
     measurement_table = flr2.measurements.get_table(detailed=False, wind_speeds=False, wind_directions=False, 
                                                    calibrations=False, mounting_arrangements=False, columns_to_show=None)
@@ -106,6 +106,12 @@ def test_get_table():
     # test that the height reference column is present in table even if all values are None
     assert "Height Reference" in measurement_table.columns
     assert "Name" in measurement_table.index.name
+
+    for measurement_point in test_null_values_json['measurement_location'][0]['measurement_point']:
+        measurement_point['height_ref_m'] = None
+    with pytest.raises(ValueError) as except_info:
+        bw.MeasurementStation(test_null_values_json)
+    assert str(except_info.value) == "There is a problem with the validity of the supplied WRA data model"
 
     MM2.measurements.get_table(detailed=True)
     measurement_table_detailed = MM1.measurements.get_table(detailed=True)

@@ -16,11 +16,15 @@
 
 
 from brightwind.utils.utils import is_file
+from brightwind.utils import utils
 import numpy as np
 import pandas as pd
 import requests
 import json
 import copy
+import os
+from pathlib import Path
+import importlib.resources as pkg_resources
 
 __all__ = ['MeasurementStation']
 
@@ -375,7 +379,7 @@ class MeasurementStation:
     :rtype:                MeasurementStation
     """
     def __init__(self, wra_data_model):
-        self.__data_model = self._load_wra_data_model(wra_data_model)
+        self.__data_model = self._load_wra_data_model(self, wra_data_model)
         version = self.__data_model.get('version')
         self.__schema = self._get_schema(version=version)
         self.__header = _Header(dm=self.__data_model, schema=self.__schema)
@@ -396,15 +400,14 @@ class MeasurementStation:
         return repr(self.__meas_loc_properties)
 
     @staticmethod
-    def _load_wra_data_model(wra_data_model):
+    def _load_wra_data_model(self, wra_data_model):
         """
         Load a IEA Wind Resource Assessment Data Model.
 
         The IEA Wind: Task 43 Work Package 4 WRA Data Model was first released in January 2021. Versions of the
         Data Model Schema can be found at https://github.com/IEA-Task-43/digital_wra_data_standard
 
-        *** SHOULD INCLUDE CHECKING AGAINST THE JSON SCHEMA (WHICH WOULD MEAN GETTING THE CORRECT VERSION FROM GITHUB)
-            AND MAKE SURE PROPER JSON
+        The wra_data_model supplied is verified against the relevant version schema acquired through `_get_schema`
 
         :param wra_data_model: The filepath to an implementation of the WRA Data Model as a .json file or
                                a json formatted string or
@@ -423,6 +426,13 @@ class MeasurementStation:
         else:
             # it is most likely already a dict so return itself
             dm = wra_data_model
+        
+        version = dm.get('version')
+        schema = self._get_schema(version)
+        is_schema_valid = utils.check_schema(dm, schema)
+        if is_schema_valid is False:
+            raise ValueError("There is a problem with the validity of the supplied WRA data model")
+
         return dm
 
     @staticmethod
