@@ -402,7 +402,8 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
 
 def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limits=None, x_tick_label_angle=25,
                         line_marker_types=None, line_colors=None, subplot_title=None,
-                        legend=True, ax=None, external_legend=False, legend_fontsize=12, show_grid=True):
+                        legend=True, ax=None, external_legend=False, legend_fontsize=12, show_grid=True, 
+                        colourmap=None):
     """
     Plots a timeseries subplot where x is the time axis.
 
@@ -451,6 +452,9 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     :type legend_fontsize:          int
     :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
     :type show_grid:                bool
+    :param colourmap:               Optional argument to choose line colours equally spaced from a colour map. The given 
+                                    string should be the name of a matplotlib colormap. Default None.
+    :type colourmap:                Optional[str | bool]
     :return:                        A timeseries subplot
     :rtype:                         matplotlib.axes._subplots.AxesSubplot
 
@@ -505,10 +509,23 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
                                             line_marker_types=['.', 'o', 'v', '^', '<', None], ax=axes, 
                                             external_legend=True, legend_fontsize=8, show_grid=False)
 
-    """
+        # To use a default colourmap
+        fig, axes = plt.subplots(1, 1)
+        columns_to_plot = ['Spd_Met_2m', 'Spd_20m', 'Spd_40m', 'Spd_60m', 'Spd_80m', 'Spd_100m','Spd_124m','Spd_150m',
+                            'Spd_175m','Spd_200m','Spd_20m_min','Spd_40m_min','Spd_60m_min','Spd_80m_min','Spd_100m_min',
+                         'Spd_124m_min', 'Spd_150m_min','Spd_175m_min','Spd_200m_min']
+        bw.analyse.plot._timeseries_subplot(data.index, data[columns_to_plot], ax=axes, colourmap=True, 
+                                             external_legend=True, legend_fontsize=8)
 
-    if line_colors is None:
-        line_colors = COLOR_PALETTE.color_list
+        # To use a colourmap input the name of the colourmap you wish to use as a string
+        fig, axes = plt.subplots(1, 1)
+        columns_to_plot = ['Spd_Met_2m', 'Spd_20m', 'Spd_40m', 'Spd_60m', 'Spd_80m', 'Spd_100m','Spd_124m','Spd_150m',
+                            'Spd_175m','Spd_200m','Spd_20m_min','Spd_40m_min','Spd_60m_min','Spd_80m_min','Spd_100m_min',
+                         'Spd_124m_min', 'Spd_150m_min','Spd_175m_min','Spd_200m_min']
+        bw.analyse.plot._timeseries_subplot(data.index, data[columns_to_plot], ax=axes, colourmap='viridis', 
+                                             external_legend=True, legend_fontsize=8)
+
+    """
 
     if ax is None:
         ax = plt.gca()
@@ -521,26 +538,46 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         y = pd.DataFrame.from_dict(y)
     elif type(y) is np.ndarray:
         y = pd.DataFrame(y, columns=['y']) 
-
     if len(x) != len(y):
         ValueError("Length of x input is different than length of y input. Length of these must be the same.")
 
     if type(line_marker_types) is list:
         if len(y.columns) != len(line_marker_types):
             ValueError("You have provided 'line_markers_type' input as a list but length is different than the number "
-                       "of columns provided for y input. Please make sure that length is the same.")
+                    "of columns provided for y input. Please make sure that length is the same.")
     elif (type(line_marker_types) is str) or (line_marker_types is None):
         line_marker_types = [line_marker_types] * len(y.columns)
 
-    if type(line_colors) is list:
-        if len(y.columns) > len(line_colors):
-            ValueError("You have provided 'line_colors' input as a list but length is smaller than the number "
-                       "of columns provided for y input. Please make sure that length is the same.")
+    if colourmap:
+        if isinstance(colourmap, bool):
+            line_colors = bw.analyse.plot._colormap_to_colorscale(COLOR_PALETTE.color_map, 
+                                                         len(y.columns))
+        else:
+            cmap = plt.get_cmap(colourmap)
+            line_colors = [cmap(i / len(y.columns)) for i in range(len(y.columns))]
     else:
-        line_colors = [line_colors] * len(y.columns)
+        if line_colors is None:
+            line_colors = COLOR_PALETTE.color_list
+
+        if type(line_colors) is list:
+            if len(y.columns) > len(line_colors):
+                ValueError("You have provided 'line_colors' input as a list but length is smaller than the number "
+                        "of columns provided for y input. Please make sure that length is the same.")
+        else:
+            line_colors = [line_colors] * len(y.columns)
+
+    alpha = [1 for _ in line_colors]
+    num_colour_sets = int(np.ceil(len(y.columns) / len(line_colors)))
+    alpha_delta = 0.8 / num_colour_sets
+    if len(line_colors) < len(y.columns):
+        while len(line_colors) < len(y.columns):
+            for i in range(num_colour_sets - 1):
+                for j in range(len(line_colors)):
+                    line_colors.append(line_colors[j])
+                    alpha.append(1 - alpha_delta * (i + 1))
 
     for i_col, (col, marker_type) in enumerate(zip(y.columns, line_marker_types)):
-        ax.plot(x, y.iloc[:, i_col], marker=marker_type, color=line_colors[i_col], label=col)
+        ax.plot(x, y.iloc[:, i_col], marker=marker_type, color=line_colors[i_col], label=col, alpha=alpha[i_col])
 
     if x_limits is None:
         if type(x) == pd.DatetimeIndex:
@@ -579,7 +616,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
 def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=None, y_limits=None,
                     x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8),
-                    external_legend=False, legend_fontsize=12, show_grid=True):
+                    external_legend=False, legend_fontsize=12, show_grid=True, colourmap=None):
     """
     Plot a timeseries of data.
 
@@ -625,6 +662,9 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     :type legend_fontsize:          int
     :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
     :type show_grid:                bool
+    :param colourmap:               Optional argument to choose line colours equally spaced from a colour map. The given 
+                                    string should be the name of a matplotlib colormap. Default None.
+    :type colourmap:                Optional[str | bool]
     :return:                        A timeseries plot
     :rtype:                         matplotlib.figure.Figure
 
@@ -678,7 +718,7 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     _timeseries_subplot(sliced_data.index, sliced_data, x_label=x_label, y_label=y_label,
                         y_limits=y_limits, x_tick_label_angle=x_tick_label_angle,
                         line_colors=line_colors, legend=legend, ax=axes, external_legend=external_legend,
-                        legend_fontsize=legend_fontsize, show_grid=show_grid)
+                        legend_fontsize=legend_fontsize, show_grid=show_grid, colourmap=colourmap)
     plt.close()
     return fig
 
