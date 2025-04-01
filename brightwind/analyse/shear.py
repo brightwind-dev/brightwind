@@ -782,7 +782,7 @@ class Shear:
         return scaled_wspds
 
     @staticmethod
-    def _calc_log_law(wspds, heights, return_coeff=False, maximise_data=False) -> (np.array, float):
+    def _calc_log_law(wspds, heights, return_coeff=False, maximise_data=False):
         """
         Derive the best fit logarithmic law line from a given time-step of speed data at 2 or more elevations
 
@@ -831,7 +831,7 @@ class Shear:
         return coeffs[0]
 
     @staticmethod
-    def _calc_power_law(wspds, heights, return_coeff=False, maximise_data=False) -> (np.array, float):
+    def _calc_power_law(wspds, heights, return_coeff=False, maximise_data=False):
         """
         Derive the best fit power law exponent (as 1/alpha) from a given time-step of speed data at 2 or more elevations
 
