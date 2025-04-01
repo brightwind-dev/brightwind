@@ -319,10 +319,6 @@ class Shear:
                     slope_df = pd.concat([slope_df, slope], axis=1)
                     intercept_df = pd.concat([intercept_df, intercept], axis=1)
 
-            # error check
-            if mean_time_wspds.shape[0] == 0:
-                raise ValueError('None of the input wind speeds are greater than the min_speed, cannot calculate shear')
-
             if calc_method == 'power_law':
                 alpha_df.index = start_times
                 alpha_df.index = alpha_df.index.time
