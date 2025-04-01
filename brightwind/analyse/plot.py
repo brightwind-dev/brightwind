@@ -2256,6 +2256,9 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         colors = colors[:-1]
         if len(df.columns) == 1:
             colors[0] = COLOR_PALETTE.primary
+        else:
+            months_index = [index-1 for index, month in enumerate(calendar.month_abbr) if month in df.columns]
+            colors = [colors[i] for i in months_index]
 
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.set_xlabel('Time of Day')
