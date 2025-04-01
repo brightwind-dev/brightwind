@@ -17,5 +17,6 @@ dist/
 tmp/
 log/
 tests/temp/*
+temp/*
 brightwind.egg-info/
 **/.ipynb_checkpoints

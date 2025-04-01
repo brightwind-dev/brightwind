@@ -46,6 +46,28 @@ def test_plot_timeseries():
     bw.plot_timeseries(DATA.Spd40mN, date_from='2017-09-01', date_to='2017-10-01 00:00', y_limits=(None, 25))
     bw.plot_timeseries(DATA[['Spd40mN', 'Spd60mS', 'T2m']], line_colors=['#009991', '#171a28', '#726e83'],
                        figure_size=(20, 4))
+    time_series_plot = bw.plot_timeseries(
+        DATA[['Spd40mN', 'Spd60mS', 'T2m']], line_colors=['#009991', '#171a28', '#726e83'],figure_size=(20, 4), 
+        external_legend=True, legend_fontsize=14, show_grid=True)
+    axes = time_series_plot.get_axes()
+    ax = axes[0]
+    x_gridlines = ax.xaxis.get_gridlines()
+    y_gridlines = ax.yaxis.get_gridlines()
+    axes = time_series_plot.get_axes()[0]
+    legend = axes.get_legend()
+    actual_fontsize = legend.get_texts()[0].get_fontsize()
+
+    assert len(x_gridlines) > 0, "No X-axis gridlines found"
+    assert len(y_gridlines) > 0, "No Y-axis gridlines found"
+    assert time_series_plot.axes[0].get_legend()._bbox_to_anchor is not None
+    assert actual_fontsize == 14, f"Expected font size {14}, got {actual_fontsize}"
+
+    time_series_subplot =  bw.analyse.plot._timeseries_subplot(DATA.index, DATA[['Spd40mN', 'Spd60mS', 'T2m']], 
+                                                               line_colors=['#009991', '#171a28', '#726e83'], 
+                                                               external_legend=True, legend_fontsize=6, show_grid=True)
+    legend = time_series_subplot.get_legend()
+    actual_fontsize = legend.get_texts()[0].get_fontsize()
+    assert actual_fontsize == 6, f"Expected font size {6}, got {actual_fontsize}"
 
     assert True
 
@@ -55,10 +77,32 @@ def test_plot_scatter():
     bw.plot_scatter(DATA.Spd80mN, DATA[['Spd80mS']])
     bw.plot_scatter(DATA.Dir78mS, DATA.Dir58mS, x_label='Dir78mS', y_label='Dir58mS',
                     x_limits=(50, 300), y_limits=(250, 300))
-    bw.plot_scatter_wdir(DATA.Dir78mS, DATA.Dir58mS, x_label='Reference', y_label='Target',
+    
+    bw.plot_scatter(DATA.Dir78mS, DATA.Dir58mS, x_label='Dir78mS', y_label='Dir58mS',
+                    x_limits=(50, 300), y_limits=(250, 300), line_of_slope_1=True)
+    
+    plt_scatter = bw.plot_scatter(DATA.Spd80mN, DATA.Spd80mS, trendline_y=[0, 15],trendline_x=[0, 10],
+                                  line_of_slope_1=True, x_label="Reference", y_label="Target")
+
+    legend_data_pnt_text = 'Data points'
+    legend_trendline_text = 'Regression line'
+    legend_line_text = '1:1 line'
+    assert plt_scatter.legend().get_texts()[0].get_text() == legend_data_pnt_text
+    assert plt_scatter.legend().get_texts()[1].get_text() == legend_trendline_text      
+    assert plt_scatter.legend().get_texts()[2].get_text() == legend_line_text
+
+    plt_scatter_wdir = bw.plot_scatter_wdir(DATA.Dir78mS, DATA.Dir58mS, x_label='Reference', y_label='Target',
                          x_limits=(50, 300), y_limits=(250, 300))
-    bw.plot_scatter_wspd(DATA.Spd80mN, DATA.Spd80mS, x_label='Speed at 80m North',
+    
+    assert plt_scatter_wdir.legend().get_texts()[0].get_text() == legend_data_pnt_text
+    assert plt_scatter_wdir.legend().get_texts()[1].get_text() == legend_line_text
+
+    plt_scatter_wspd = bw.plot_scatter_wspd(DATA.Spd80mN, DATA.Spd80mS, x_label='Speed at 80m North',
                          y_label='Speed at 80m South', x_limits=(0, 25), y_limits=(0, 25))
+    
+    assert plt_scatter_wspd.legend().get_texts()[0].get_text() == legend_data_pnt_text
+    assert plt_scatter_wspd.legend().get_texts()[1].get_text() == legend_line_text
+    
     bw.plot_scatter_wspd(DATA.Spd80mN, DATA.Spd80mN, x_limits=(0, 25), y_limits=(0, 25))
 
     assert True

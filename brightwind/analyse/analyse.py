@@ -180,25 +180,43 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     return (ref_value*slope) + offset
 
 
-def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]', data_resolution=None):
+def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]', data_resolution=None,
+                  legend=True, external_legend=False, show_grid=True, xtick_delta='1MS'):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
 
-    :param data: A timeseries to find monthly means of. Can have multiple columns
-    :type data: Series or DataFrame
-    :param return_data: To return data of monthly means along with the plot.
-    :type return_data: bool
-    :param return_coverage: To return monthly coverage along with the data and plot. Also plots the coverage on the
-        same graph if only a single series was passed to data.
-    :type return_coverage: bool
-    :param ylabel: Label for the y-axis, Wind speed [m/s] by default
-    :type   ylabel: str
-    :param data_resolution: Data resolution to give as input if the coverage of the data timeseries is extremely low
-                            and it is not possible to define the most common time interval between timestamps
-    :type data_resolution:  None or pd.DateOffset
-    :return: A plot of monthly means for the input data. If return data is true it returns a tuple where
-        the first element is plot and second is data pertaining to monthly means.
+    :param data:                    A timeseries to find the monthly means of. Can have multiple columns.
+    :type data:                     Series or DataFrame
+    :param return_data:             To return data of the monthly means along with the plot.
+    :type return_data:              bool
+    :param return_coverage:         To return monthly coverage along with the data and plot. Also plots the coverage on
+                                    the same graph if only a single series was passed to data.
+    :type return_coverage:          bool
+    :param ylabel:                  Label for the y-axis. Default is 'Wind speed [m/s]'.
+    :type   ylabel:                 str
+    :param data_resolution:         Data resolution to give as input if the coverage of the data timeseries is extremely
+                                    low and it is not possible to define the most common time interval between
+                                    timestamps.
+    :type data_resolution:          None or pd.DateOffset
+    :param legend:                  Flag to show a legend (True) or not (False). Default is True.
+    :type legend:                   bool
+    :param external_legend:         Flag to show legend outside and above the plot area (True) or show it inside
+                                    the plot (False). Default is False.
+    :type external_legend:          bool
+    :param show_grid:               Flag to show a grid in the plot area (True) or not (False) when 'return_coverage' is
+                                    False. Default True.
+                                    When coverage is plotted along with monthly means data the grid is always shown.
+    :type show_grid:                bool, optional
+    :param xtick_delta:             String to give the frequency of x ticks and their associated labels. Given as a
+                                    pandas frequency string, remembering that S at the end is required for months
+                                    starting on the first day of the month. Default '1MS'.
+    :type xtick_delta:              str
+    :return:                        A plot of monthly means for the input data. If 'return_data' is True it returns a
+                                    tuple where the first element is the plot and second is data pertaining to monthly
+                                    means as a pandas.DataFrame.
+    :rtype:                         matplotlib.figure.Figure or
+                                    tuple(matplotlib.figure.Figure, pandas.DataFrame)
 
     **Example usage**
     ::
@@ -224,15 +242,34 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
         data_monthly = data_monthly[data_monthly.index.month.isin([2, 4, 6, 8])]
         monthly_means_plot, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
                                                                  data_resolution=pd.DateOffset(months=1))
+        monthly_means_plot
+
+        # to show the legend outside and above the plot area and set the xticks to every 3 months
+        monthly_means_plot, monthly_mean_data = bw.monthly_means(data.Spd80mN, return_data=True,  
+                                                                 legend=True, external_legend=True, xtick_delta='3MS')
+        monthly_means_plot
+
+        # to show legend inside and not to show the grid.
+        monthly_means_plot, monthly_mean_data = bw.monthly_means(data[['Spd80mN', 'Spd80mS']], return_data=True,  
+                                                                 legend=True, external_legend=False, show_grid=False)
+        monthly_means_plot
 
     """
 
     df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True, data_resolution=data_resolution)
     if return_data and not return_coverage:
-        return bw_plt.plot_monthly_means(df, ylbl=ylabel), df
+        return bw_plt.plot_monthly_means(
+            df, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid,
+            xtick_delta=xtick_delta
+            ), df
     if return_coverage:
-        return bw_plt.plot_monthly_means(df, covrg, ylbl=ylabel),  pd.concat([df, covrg], axis=1)
-    return bw_plt.plot_monthly_means(df, ylbl=ylabel)
+        return bw_plt.plot_monthly_means(
+            df, covrg, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid,
+            xtick_delta=xtick_delta
+            ), pd.concat([df, covrg], axis=1)
+    return bw_plt.plot_monthly_means(
+        df, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid, xtick_delta=xtick_delta
+        )
 
 
 def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage, coverage_threshold, analysis_type,
@@ -527,7 +564,7 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
 
     :param var_to_bin:          Timeseries of the variable whose distribution we need to find
     :type var_to_bin:           pandas.Series
-    :param var_to_bin_against:  Timesseries of the variable which we want to bin against
+    :param var_to_bin_against:  Timeseries of the variable which we want to bin against
     :type var_to_bin_against:   pandas.Series
     :param bins:                Array of numbers where adjacent elements of array form a bin. If set to None, it derives
                                 the min and max from the var_to_bin_against series and creates array in steps of 1.
@@ -552,14 +589,24 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
         dist = bw.analyse.analyse._derive_distribution(data.Spd40mN, var_to_bin_against=data.T2m,
                                                        bins=[0, 2, 10, 30], aggregation_method='count')
     """
-
     var_to_bin = _convert_df_to_series(var_to_bin)
     var_to_bin_against = _convert_df_to_series(var_to_bin_against)
-    var_to_bin = var_to_bin.dropna()
-    var_to_bin_against = var_to_bin_against.dropna()
+
+    if var_to_bin.isnull().all() or (var_to_bin == np.inf).all():
+        raise ValueError(('Cannot derive distribution of {0} as this is either an empty pandas.Series ' +
+                          'or contains only NaN or Inf values.').format(var_to_bin.name))
+
+    if var_to_bin_against.empty or var_to_bin_against.isnull().all() or (var_to_bin_against == np.inf).all():
+        raise ValueError(('Cannot derive distribution with respect to {0} as this is either an empty pandas.Series ' +
+                          'or contains only NaN or Inf values.').format(var_to_bin_against.name))
+    
+    var_to_bin = var_to_bin.replace([np.inf, -np.inf], np.nan).dropna()
+    var_to_bin_against = var_to_bin_against.replace([np.inf, -np.inf], np.nan).dropna()
 
     if bins is None:
         bins = np.arange(round(var_to_bin_against.min() - 0.5) - 0.5, var_to_bin_against.max() + 0.5, 1)
+    if len(bins) == 1:
+        bins = np.array([bins[0], bins[0] + 1])
     var_binned_series = pd.cut(var_to_bin_against, bins, right=False).rename('variable_bin')
     data = pd.concat([var_to_bin.rename('data'), var_binned_series], join='inner', axis=1)
 
