@@ -978,6 +978,12 @@ class Shear:
 
                 for j, month in enumerate(sorted(pd.unique(wspds.index.month.values))):
 
+                    month_str = calendar.month_abbr[month] 
+
+                    if month_str not in list(filled_alpha.columns):
+                        raise ValueError(f"The shear by TimeOfDay object doesn't have shear values for {month_str}." + 
+                                         " The shear cannot be applied to the input time series for this month.")
+
                     if i == 23:
                         df_wspds[i][j] = wspds[
                             (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.month == month)]
@@ -988,11 +994,11 @@ class Shear:
 
                     if self.calc_method == 'power_law':
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      alpha=filled_alpha.loc[:,calendar.month_abbr[month]].iloc[i], calc_method=self.calc_method)
+                                                      alpha=filled_alpha.loc[:,month_str].iloc[i], calc_method=self.calc_method)
 
                     else:
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      roughness=filled_roughness.loc[:,calendar.month_abbr[month]].iloc[i],
+                                                      roughness=filled_roughness.loc[:,month_str].iloc[i],
                                                       calc_method=self.calc_method)
 
                     scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
