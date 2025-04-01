@@ -1085,9 +1085,9 @@ class Shear:
         Fills a pandas.DataFrame or Series to be a 12 month x 24 hour pandas.DataFrame by duplicating entries.
         Used for plotting TimeOfDay shear.
 
-        :param data: pandas.DataFrame or Series to be turned into a 12x24 dataframe
-        :type data: pandas.Series or pandas.DataFrame.
-        :return: 12x24 pandas.DataFrame
+        :param data:    pandas.DataFrame or Series to be turned into a 12x24 dataframe
+        :type data:     pandas.Series or pandas.DataFrame.
+        :return:        12x24 pandas.DataFrame
 
         """
         # create copy for later use
@@ -1111,8 +1111,9 @@ class Shear:
         if len(df.columns) == 1:
             df_12x24 = pd.DataFrame([[None for y in range(12)] for x in range(24)])
             df_12x24.index = df.index
-            for i in range(12):
+            for i in df_12x24.columns:
                 df_12x24[df_12x24.columns[i]] = df.iloc[:, 0]
+            df_12x24.columns = [calendar.month_abbr[i+1] for i in df_12x24.columns]
             df = df_12x24
 
         return df
