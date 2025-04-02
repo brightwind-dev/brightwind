@@ -169,9 +169,11 @@ def bold(text):
 def is_file(file_or_folder):
     """
     Returns True is file_or_folder is a file.
-    :param file_or_folder: The file or folder path.
-    :type file_or_folder: str
-    :return: True if a file.
+
+    :param file_or_folder:  The file or folder path.
+    :type file_or_folder:   str
+    :return:                If is a file.
+    :rtype:                 bool
     """
     if os.path.isfile(file_or_folder):
         return True
@@ -183,21 +185,23 @@ def is_file(file_or_folder):
 
 def is_extension(file_or_folder, extension_required):
     """
-    Returns True is file_or_folder is a file of the desired file type.
-    :param file_or_folder: The file or folder path.
-    :type file_or_folder: str
-    :param extension_required: The file extension needed.
-    :type extension_required: str
-    :return: True if a file.
+    Returns True if file_or_folder is a file of the desired extension type.
+
+    :param file_or_folder:      The file or folder path.
+    :type file_or_folder:       str
+    :param extension_required:  The file extension needed.
+    :type extension_required:   str
+    :return:                    If is a file with desired extension type.
+    :rtype:                     bool
     """
     if is_file(file_or_folder):    
         _, extension = os.path.splitext(file_or_folder)
         if extension.lower() == extension_required:
             return True
         else:
-            raise ValueError(f"Cleaning rules file must be a JSON file, got: {extension}")
+            raise ValueError(f"File extension must be {extension_required}, got: {extension}")
     else:
-        raise ValueError(f"Cleaning rules file must be a JSON file, got: {file_or_folder}")
+        raise ValueError(f"Input must be a {extension_required} file, got: {file_or_folder}")
 
 
 
@@ -205,6 +209,7 @@ def check_schema(json_to_check, schema):
     """
     Validates JSON data against a JSON schema.
 
+<<<<<<< HEAD
     :param cleaning_json:           The JSON data to validate
     :type cleaning_json:            dict
     :param schema:                  The JSON data to validate
@@ -221,6 +226,17 @@ def check_schema(json_to_check, schema):
         cleaning_rules = bw.demo_datasets.demo_cleaning_rules_file
         bw.check_schema(cleaning_rules[0], bw.load.cleaning_rules_schema)
 
+=======
+    :param cleaning_json:   The JSON data to validate
+    :type cleaning_json:    dict
+    :param schema:          The JSON schema to validate
+    :type schema:           str | dict
+    :return:                List of validation results, each containing:
+                                - item_index (int): Index of the item in the list or 0 if single item
+                                - is_valid (bool): True if validation passes, False otherwise
+                                - error_message (str): Error message if validation fails, empty string otherwise
+    :rtype:                 bool
+>>>>>>> df1f82ce7c958fccb5ec87fef3e71068bd775f4a
     """
     if isinstance(schema, str):
         if is_file(schema):
@@ -229,7 +245,7 @@ def check_schema(json_to_check, schema):
     elif isinstance(schema, dict):
         schema = schema
     else:
-        raise ValueError("Incorrect schema type used")
+        raise ValueError("Incorrect schema type used, this must be a str or a dict.")
     
     data_is_valid = True
     try:

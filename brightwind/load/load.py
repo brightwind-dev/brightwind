@@ -2258,10 +2258,18 @@ def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, compa
     :type condition_col:            str
     :param target_cols:             Column to apply the cleaning rule to clean the data of
     :type target_cols:              List[str]
-    :param comparator_value:        Threshold value to use in the cleaning rule
+    :param comparator_value:        Threshold value to use in the cleaning rule, defined by 
+                                    the cleaning_rule_json format.
     :type comparator_value:         float
     :param comparison_operator_id:  Operator code (1-6) defined by the cleaning_rule_json format, to be used with
-                                    variable operator_dict to define the operator used on the condition column
+                                    variable operator_dict to define the operator used on the condition column.
+                                    Code number corresponds to the following operators:
+                                        1: is less than (<),
+                                        2: is less than or equal (≤),
+                                        3: is greater than (>),
+                                        4: is greater than or equal (≥),
+                                        5: equals (=),
+                                        6: not equals (≠)
     :type comparison_operator_id:   int
     :param replacement_value:       Value or string to replace the data in the target_cols with
     :type replacement_value:        str | np.nan
@@ -2278,41 +2286,41 @@ def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, compa
     return result_df
 
 
-def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, replacement_text='NaN'):
+def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, replacement_text='NaN'):
     """
-    Apply cleaning to a timeseries DataFrame using cleaning rules either from file or from an API call to retrieve the
-    file. The flagged data will be replaced with replacement_text values which then do not appear in any plots or affect 
+    Apply cleaning to a timeseries DataFrame using cleaning rules either from file or from an input list(dict).
+    The flagged data will be replaced with replacement_text values which then do not appear in any plots or affect 
     calculations.
 
-    :param data:                    Data to be cleaned.
-    :type data:                     pandas.DataFrame
-    :param cleaning_rules_file_or_dict:     File path of the json file or a dictionary which contains the cleaning rules to apply.
-    :type cleaning_rules_file_or_dict:      str | List[dict]
-    :param inplace:                 If 'inplace' is True, the original data, 'data', will be modified and replaced
-                                    with the cleaned data. If 'inplace' is False, the original data will not be touched
-                                    and instead a new object containing the cleaned data is created. To store this
-                                    cleaned data, please ensure it is assigned to a new variable.
-    :type inplace:                  bool
-    :param replacement_text:        Text used to replace the flagged data.
-    :type replacement_text:         str | np.nan, default 'NaN'
-    :return:                        DataFrame with the flagged data removed.
-    :rtype:                         pandas.DataFrame
+    :param data:                        Data to be cleaned.
+    :type data:                         pandas.DataFrame
+    :param cleaning_rules_file_or_list: File path of the json file or a list dictionary which contains the cleaning rules to apply.
+    :type cleaning_rules_file_or_list:  str | List[dict]
+    :param inplace:                     If 'inplace' is True, the original data, 'data', will be modified and replaced
+                                        with the cleaned data. If 'inplace' is False, the original data will not be touched
+                                        and instead a new object containing the cleaned data is created. To store this
+                                        cleaned data, please ensure it is assigned to a new variable.
+    :type inplace:                      bool
+    :param replacement_text:            Text used to replace the flagged data.
+    :type replacement_text:             str | np.nan, default 'NaN'
+    :return:                            DataFrame with the flagged data removed.
+    :rtype:                             pandas.DataFrame
 
     **Example usage**
     ::
         import brightwind as bw
 
-    Load data:
+        # Load data:
         data = bw.load_csv(bw.demo_datasets.demo_data)
-        cleaning_rules_file_or_dict = bw.demo_datasets.demo_cleaning_rules_file
+        cleaning_rules_file_or_list = bw.demo_datasets.demo_cleaning_rules_file
 
-    To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
-        data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_file_or_dict)
+        # To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
+        data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_file_or_list)
         bw.plot_timeseries(data_cleaned[['Spd80mN', 'Spd60mN', 'Spd40mN']], date_from='2016-03-01', date_to='2016-03-15')
         print(data_cleaned)
 
-    To modify 'data' and replace it with the cleaned data:
-        bw.apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=True)
+        # To modify 'data' and replace it with the cleaned data:
+        bw.apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=True)
         print(data)
 
     """
@@ -2321,17 +2329,17 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
     if inplace is False:
         data = data.copy(deep=True)
 
-    if isinstance(cleaning_rules_file_or_dict, str):
-        if utils.is_extension(cleaning_rules_file_or_dict, ".json"):
-            with open(cleaning_rules_file_or_dict) as file:
+    if isinstance(cleaning_rules_file_or_list, str):
+        if utils.is_extension(cleaning_rules_file_or_list, ".json"):
+            with open(cleaning_rules_file_or_list) as file:
                 cleaning_json = json.load(file)
-    elif isinstance(cleaning_rules_file_or_dict, List):
-        if not all(isinstance(item, dict) for item in cleaning_rules_file_or_dict):
-            raise TypeError("All elements in the cleaning_rules_file_or_dict list must be dictionaries.")
-        cleaning_json = cleaning_rules_file_or_dict
+    elif isinstance(cleaning_rules_file_or_list, List):
+        if not all(isinstance(item, dict) for item in cleaning_rules_file_or_list):
+            raise TypeError("All elements in the `cleaning_rules_file_or_list` must be dictionaries.")
+        cleaning_json = cleaning_rules_file_or_list
     else:
-        return TypeError("Can't recognise the cleaning_rules_file_or_dict. Please make sure it is a file path, "
-        "dictionary or None.")
+        raise TypeError("Can't recognise the cleaning_rules_file_or_list. Please make sure it is a file path " +
+        "or a list(dict).")
     
     cleaning_json_is_valid = True
     for cleaning_rule in cleaning_json:
@@ -2344,12 +2352,12 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, repla
         replacement_text = np.nan
     
     for cleaning_rule in cleaning_json:
-        condition_column_name = [column_name['assembled_column_name'] for column_name in cleaning_rule['rule']['clean_out']]
-        condition_column_name = [column_name for column_to_remove in condition_column_name for column_name in data.columns if column_to_remove in column_name]
-        condition_variable = cleaning_rule['rule']['conditions']['assembled_column_name']
+        columns_to_clean  = [column_name['assembled_column_name'] for column_name in cleaning_rule['rule']['clean_out']]
+        columns_to_clean  = [column_name for column_to_clean in columns_to_clean for column_name in data.columns if column_to_clean in column_name]
+        condition_column_name = cleaning_rule['rule']['conditions']['assembled_column_name']
         comparator_value = cleaning_rule['rule']['conditions']['comparator_value']
         comparison_operator_id = cleaning_rule['rule']['conditions']['comparison_operator_id']
-        data = _apply_cleaning_rule(data, condition_variable, condition_column_name, comparator_value, comparison_operator_id, 
+        data = _apply_cleaning_rule(data, condition_column_name, columns_to_clean, comparator_value, comparison_operator_id, 
                                     replacement_text)
 
     return data
