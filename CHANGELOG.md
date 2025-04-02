@@ -24,6 +24,7 @@ Additional labels for pre-release and build metadata are available as extensions
 10. Updated functionality in `plot_timeseries` function (Issue [#457](https://github.com/brightwind-dev/brightwind/issues/457)).
 11. More representative error messages returned in `Shear` function when no valid data is available (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
 11. `Shear.TimeSeries` and `Shear.TimeOfDay` has been updated to return np.nan when there is no valid data for that timestamp or hour (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
+12. Updated `_MeasurementStation__load_wra_data_model` function to validate data model against task 43 schema for the relevant version (Issue [#489](https://github.com/brightwind-dev/brightwind/issues/489)).
 
 
 ## [2.2.1]
