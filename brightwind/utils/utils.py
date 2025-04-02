@@ -169,9 +169,11 @@ def bold(text):
 def is_file(file_or_folder):
     """
     Returns True is file_or_folder is a file.
-    :param file_or_folder: The file or folder path.
-    :type file_or_folder: str
-    :return: True if a file.
+
+    :param file_or_folder:  The file or folder path.
+    :type file_or_folder:   str
+    :return:                If is a file.
+    :rtype:                 bool
     """
     if os.path.isfile(file_or_folder):
         return True
@@ -183,21 +185,23 @@ def is_file(file_or_folder):
 
 def is_extension(file_or_folder, extension_required):
     """
-    Returns True is file_or_folder is a file of the desired file type.
-    :param file_or_folder: The file or folder path.
-    :type file_or_folder: str
-    :param extension_required: The file extension needed.
-    :type extension_required: str
-    :return: True if a file.
+    Returns True if file_or_folder is a file of the desired extension type.
+
+    :param file_or_folder:      The file or folder path.
+    :type file_or_folder:       str
+    :param extension_required:  The file extension needed.
+    :type extension_required:   str
+    :return:                    If is a file with desired extension type.
+    :rtype:                     bool
     """
     if is_file(file_or_folder):    
         _, extension = os.path.splitext(file_or_folder)
         if extension.lower() == extension_required:
             return True
         else:
-            raise ValueError(f"Cleaning rules file must be a JSON file, got: {extension}")
+            raise ValueError(f"File extension must be {extension_required}, got: {extension}")
     else:
-        raise ValueError(f"Cleaning rules file must be a JSON file, got: {file_or_folder}")
+        raise ValueError(f"Input must be a {extension_required} file, got: {file_or_folder}")
 
 
 
