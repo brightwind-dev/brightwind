@@ -431,7 +431,8 @@ class MeasurementStation:
         schema = self._get_schema(version)
         is_schema_valid = utils.check_schema(dm, schema)
         if is_schema_valid is False:
-            raise ValueError("There is a problem with the validity of the supplied WRA data model")
+            raise ValueError("There is a problem with the validity of the supplied WRA data model" +
+                             " please check the errors above.")
 
         return dm
 

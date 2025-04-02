@@ -184,15 +184,15 @@ def check_schema(json_to_check, schema):
     """
     Validates JSON data against a JSON schema.
 
-    :param cleaning_json:           The JSON data to validate
-    :type cleaning_json:            dict
-    :param schema:                  The JSON data to validate
-    :type schema:                   str | dict
-    :return:                        List of validation results, each containing:
-                                    - item_index (int): Index of the item in the list or 0 if single item
-                                    - is_valid (bool): True if validation passes, False otherwise
-                                    - error_message (str): Error message if validation fails, empty string otherwise
-    :rtype: bool
+    :param cleaning_json:   The JSON data to validate
+    :type cleaning_json:    dict
+    :param schema:          The JSON schema to validate
+    :type schema:           str | dict
+    :return:                List of validation results, each containing:
+                                - item_index (int): Index of the item in the list or 0 if single item
+                                - is_valid (bool): True if validation passes, False otherwise
+                                - error_message (str): Error message if validation fails, empty string otherwise
+    :rtype:                 bool
     """
     if isinstance(schema, str):
         if is_file(schema):
@@ -201,7 +201,7 @@ def check_schema(json_to_check, schema):
     elif isinstance(schema, dict):
         schema = schema
     else:
-        raise ValueError("Incorrect schema type used")
+        raise ValueError("Incorrect schema type used, this must be a str or a dict.")
     
     data_is_valid = True
     try:
