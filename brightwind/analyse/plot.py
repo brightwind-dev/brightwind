@@ -17,6 +17,7 @@ from colormap import rgb2hex, rgb2hls, hls2rgb
 from matplotlib.ticker import PercentFormatter
 from matplotlib.colors import ListedColormap, to_hex, LinearSegmentedColormap
 import warnings
+from matplotlib.patches import Patch
 
 register_matplotlib_converters()
 
@@ -265,30 +266,95 @@ def _colormap_to_colorscale(cmap, n_colors):
     return [to_hex(cmap(k*1/(n_colors-1))) for k in range(n_colors)]
 
 
-def plot_monthly_means(data, coverage=None, ylbl=''):
+def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legend=False,  show_grid=True,
+                       xtick_delta='1MS'):
+    """
+    Plots the monthly means where x is the time axis. Monthly mean data and coverage can be derived using brightwind
+    function average_data_by_period(data, period='1MS', return_coverage=True).
+
+    :param data:            A Series or DataFrame with data aggregated as the mean for each month.
+    :type data:             pd.Series or pd.DataFrame
+    :param coverage:        A Series with data coverage for each month. Optional.
+                            The coverage is plotted along with the data only if a single series is passed to data.
+    :type coverage:         None or pd.Series, optional
+    :param ylbl:            y axis label used on the left hand axis, defaults to ''.
+    :type ylbl:             str, optional
+    :param legend:          Flag to show a legend (True) or not (False). Default is True.
+    :type legend:           bool, optional
+    :param external_legend: Flag to show legend outside and above the plot area (True) or show it inside
+                            the plot (False). Default is False.
+    :type external_legend:  bool, optional
+    :param show_grid:       Flag to show a grid in the plot area (True) or not (False) when 'coverage' is None.
+                            Default True.
+                            When 'coverage' is not None then the grid is always shown.
+    :type show_grid:        bool, optional
+    :param xtick_delta:     String to give the frequency of x ticks and their associated labels. Given as a pandas
+                            frequency string, remembering that S at the end is required for months starting on the first
+                            day of the month. Default '1MS'.
+    :type xtick_delta:      str, optional
+    :return:                A plot of monthly means for the input data.
+    :rtype:                 matplotlib.figure.Figure
+
+     **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        monthly_means, coverage = bw.average_data_by_period(data[['Spd80mN','Spd80mS']], period='1MS',
+                                                            return_coverage=True)
+        
+        # to plot monthly mean speed for all speeds without coverage and legend outside and above the plot area.
+        bw.analyse.plot.plot_monthly_means(monthly_means, ylbl='Speed [m/s]', legend=True, external_legend=True,
+                                           xtick_delta='1MS')
+
+        # to plot monthly mean speed for all speeds without coverage, legend inside and not to show the grid.
+        bw.analyse.plot.plot_monthly_means(monthly_means, ylbl='Speed [m/s]', legend=True, external_legend=True, 
+                                           show_grid=False)
+
+        # to plot monthly mean speed with coverage and xticks every 3 months.
+        bw.analyse.plot.plot_monthly_means(monthly_means.Spd80mN, coverage.Spd80mN_Coverage, 
+                                           ylbl='Speed [m/s]', legend=True, external_legend=False, xtick_delta='3MS')
+
+    """
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-    if len(data.shape) > 1:
+
+    is_dataframe = len(data.shape) > 1
+    legend_items = list(data.columns) if is_dataframe else [data.name]
+
+    if is_dataframe:
         ax.set_prop_cycle(color=COLOR_PALETTE.color_list)
         ax.plot(data, '-o')
-        ax.legend(list(data.columns))
     else:
-        ax.plot(data, '-o', color=COLOR_PALETTE.primary)
-        ax.legend([data.name])
+        ax.plot(data, '-o', color=COLOR_PALETTE.primary)   
+
+    if legend:
+        ncol_legend = min((len(legend_items)+1)//2, 6) if len(legend_items) > 6 else 6
+        legend_kwargs = {
+            'bbox_to_anchor': (0.5, 1), 'loc': 'lower center', 'ncol': ncol_legend,
+            } if external_legend else {}
+        ax.legend(legend_items, **legend_kwargs)
+
     ax.set_ylabel(ylbl)
 
-    ax.set_xticks(data.index)
-    ax.xaxis.set_major_formatter(DateFormatter("%b %Y"))
+    start_date = data.index[0]
+    end_date = data.index[-1]
+    xticks = pd.date_range(
+        start=pd.Timestamp(year=start_date.year, month=start_date.month, day=1), end=end_date, freq=xtick_delta
+        )
+    ax.set_xticks(xticks[(xticks >= start_date) & (xticks <= end_date)])
+    ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
     fig.autofmt_xdate(rotation=20, ha='center')
+    ax.set_xlim(data.index[0] - pd.Timedelta('20days'), data.index[-1] + pd.Timedelta('20days'))
+
+    if show_grid:
+        ax.grid(linestyle='-', color='lightgrey')
 
     if coverage is not None:
-        plot_coverage = True
-        if len(coverage.shape) > 1:
-            if coverage.shape[1] > 1:
-                plot_coverage = False
+        plot_coverage = not (len(coverage.shape) > 1 and coverage.shape[1] > 1)
+
         if plot_coverage:
             ax.clear()
-            ax.plot(data, '-o', color=COLOR_PALETTE.secondary)
+            line = ax.plot(data, '-o', color=COLOR_PALETTE.secondary, label=data.name)
             ax2 = ax.twinx()
 
             for month, coverage in zip(coverage.index, coverage.values):
@@ -299,17 +365,35 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
                                                              0, coverage), aspect='auto', zorder=1)
                 ax2.bar(mdates.date2num(month), coverage, edgecolor=COLOR_PALETTE.secondary, linewidth=0.3,
                         fill=False, zorder=0)
-
             ax2.set_ylim(0, 1)
             ax.set_ylim(bottom=0)
             ax.set_xlim(data.index[0] - pd.Timedelta('20days'), data.index[-1] + pd.Timedelta('20days'))
             ax.set_zorder(3)
-            ax2.yaxis.grid(True)
+            ax2.yaxis.grid(True, color='lightgrey')
             ax2.set_axisbelow(True)
             ax.patch.set_visible(False)
             ax2.set_ylabel('Coverage [-]')
+            ax.set_ylabel(ylbl)
+            if legend:
+                # Patch needed purely for legend
+                coverage_patch = Patch(facecolor=COLOR_PALETTE.primary, 
+                                       edgecolor=COLOR_PALETTE.secondary,
+                                       linewidth=0.3,
+                                       label='Data coverage')
+                handles = [line[0], coverage_patch]
+                labels = [data.name, 'Data coverage']
+                fig = plt.gcf()  # Get current figure
+                legend_kwargs = {
+                    'bbox_to_anchor': (0.5, 0.96), 'loc': 'upper center', 'ncol': 2
+                    } if external_legend else {'bbox_to_anchor': (0.1, 0.1), 'loc': 'lower left'}
+                fig.legend(handles, labels, **legend_kwargs)
             ax2.yaxis.tick_right()
             ax2.yaxis.set_label_position("right")
+            ax.set_xticks(xticks[(xticks >= start_date) & (xticks <= end_date)])
+            ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
+            for tick in ax.get_xticklabels():
+                tick.set_rotation(20)
+                tick.set_horizontalalignment('center')
             plt.close()
             return ax2.get_figure()
     plt.close()
@@ -318,7 +402,7 @@ def plot_monthly_means(data, coverage=None, ylbl=''):
 
 def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limits=None, x_tick_label_angle=25,
                         line_marker_types=None, line_colors=None, subplot_title=None,
-                        legend=True, ax=None):
+                        legend=True, ax=None, external_legend=False, legend_fontsize=12, show_grid=True):
     """
     Plots a timeseries subplot where x is the time axis.
 
@@ -360,6 +444,13 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     :param ax:                      Subplot axes to which assign the subplot to in a plot. If None then a single plot is
                                     generated
     :type ax:                       matplotlib.axes._subplots.AxesSubplot or None
+    :param external_legend:         Flag to show legend outside and above the plot area (True) or show it inside
+                                    the plot (False). Default is False.
+    :type external_legend:          bool
+    :param legend_fontsize:         Font size for legend. Default 12.
+    :type legend_fontsize:          int
+    :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
+    :type show_grid:                bool
     :return:                        A timeseries subplot
     :rtype:                         matplotlib.axes._subplots.AxesSubplot
 
@@ -408,6 +499,12 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         fig, axes = plt.subplots(1, 1)
         sub_plot = bw.analyse.plot._timeseries_subplot(data.index, data.Dir58mS, line_colors=mpl_colors)
 
+        # To use an external legend without a grid displayed and size 8 font
+        fig, axes = plt.subplots(1, 1)
+        bw.analyse.plot._timeseries_subplot(data.index, data[wspd_cols],
+                                            line_marker_types=['.', 'o', 'v', '^', '<', None], ax=axes, 
+                                            external_legend=True, legend_fontsize=8, show_grid=False)
+
     """
 
     if line_colors is None:
@@ -422,6 +519,8 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         y = pd.DataFrame(y, columns=['y'])
     elif type(y) is dict:
         y = pd.DataFrame.from_dict(y)
+    elif type(y) is np.ndarray:
+        y = pd.DataFrame(y, columns=['y']) 
 
     if len(x) != len(y):
         ValueError("Length of x input is different than length of y input. Length of these must be the same.")
@@ -454,7 +553,6 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     ax.set_xlim(x_limits[0], x_limits[1])
 
     if y_limits is not None:
-        # y_limits = (y_min, y_max)
         ax.set_ylim(y_limits[0], y_limits[1])
 
     ax.set_xlabel(x_label)
@@ -463,7 +561,15 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     ax.tick_params(axis="x", rotation=x_tick_label_angle)
 
     if legend:
-        ax.legend()
+        ncol_legend = min((len(y.columns)+1)//2, 6) if len(y.columns) > 6 else 6
+        legend_kwargs = {
+            'bbox_to_anchor': (0.5, 1), 'loc': 'lower center', 'ncol': ncol_legend,
+            } if external_legend else {}
+        if legend_fontsize:
+            legend_kwargs['fontsize'] = legend_fontsize
+        ax.legend(**legend_kwargs)
+    if show_grid:
+        ax.grid(linestyle='-', color='lightgrey')
 
     if subplot_title is not None:
         ax.set_title(subplot_title, fontsize=mpl.rcParams['axes.labelsize'])
@@ -472,7 +578,8 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
 
 def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=None, y_limits=None,
-                    x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8)):
+                    x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8),
+                    external_legend=False, legend_fontsize=12, show_grid=True):
     """
     Plot a timeseries of data.
 
@@ -511,6 +618,13 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     :type legend:                   Bool
     :param figure_size:             Figure size in tuple format (width, height). Default is (15, 8).
     :type figure_size:              tuple
+    :param external_legend:         Flag to show legend outside and above the plot area (True) or show it inside
+                                    the plot (False). Default is False.
+    :type external_legend:          bool
+    :param legend_fontsize:         Font size for legend. Default 12.
+    :type legend_fontsize:          int
+    :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
+    :type show_grid:                bool
     :return:                        A timeseries plot
     :rtype:                         matplotlib.figure.Figure
 
@@ -547,6 +661,10 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
         mpl_colors = prop_cycle.by_key()['color']
         bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], line_colors= mpl_colors)
 
+        # To use an external legend with fontsize 14 without grid displayed
+        bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], external_legend=True, legend_fontsize=14, 
+                           show_grid=False)
+
     """
     if line_colors is None:
         line_colors = COLOR_PALETTE.color_list
@@ -559,7 +677,8 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     sliced_data = utils.slice_data(data_to_slice, date_from, date_to)
     _timeseries_subplot(sliced_data.index, sliced_data, x_label=x_label, y_label=y_label,
                         y_limits=y_limits, x_tick_label_angle=x_tick_label_angle,
-                        line_colors=line_colors, legend=legend, ax=axes)
+                        line_colors=line_colors, legend=legend, ax=axes, external_legend=external_legend,
+                        legend_fontsize=legend_fontsize, show_grid=show_grid)
     plt.close()
     return fig
 
@@ -1303,7 +1422,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
         if index_time:
             bin_tick_label_format = DateFormatter("%Y-%m")
 
-    bin_min_step = np.diff(data_bins).min()
+    bin_min_step = 1 if len(data_bins) == 1 else np.diff(data_bins).min()
     total_width = bin_min_step * total_width
 
     if vertical_bars:

@@ -23,11 +23,12 @@
         "mast_section_geometry": []},
       "logger_main_config": [
         {
-          "logger_model_name": "CR800",
-          "logger_oem_id": "Campbell Scientific",
           "logger_serial_number": "13588",
+          "logger_model_name": "CR800",
           "logger_id": "13588",
+          "logger_oem_id": "Campbell Scientific",
           "logger_name": null,
+          "logger_firmware_version": null,
           "date_from": "2011-01-01T00:00:00",
           "date_to": null,
           "encryption_pin_or_key": null,
@@ -38,11 +39,10 @@
           "averaging_period_minutes": 15,
           "timestamp_is_end_of_period": null,
           "clock_is_auto_synced": null,
-          "notes": null,
-          "update_at": "2024-03-22T11:37:02",
-          "logger_firmware_version": null,
           "logger_acquisition_uncertainty": null,
-          "uncertainty_k_factor": null
+          "uncertainty_k_factor": null,
+          "notes": null,
+          "update_at": "2024-03-22T11:37:02"
         }
       ],
       "measurement_point": [
