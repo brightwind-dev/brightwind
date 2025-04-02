@@ -2288,13 +2288,13 @@ def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, compa
 
 def apply_cleaning_rules(data, cleaning_rules_file_or_dict, inplace=False, replacement_text='NaN'):
     """
-    Apply cleaning to a timeseries DataFrame using cleaning rules either from file or from an API call to retrieve the
-    file. The flagged data will be replaced with replacement_text values which then do not appear in any plots or affect 
+    Apply cleaning to a timeseries DataFrame using cleaning rules either from file or from an input list(dict).
+    The flagged data will be replaced with replacement_text values which then do not appear in any plots or affect 
     calculations.
 
     :param data:                        Data to be cleaned.
     :type data:                         pandas.DataFrame
-    :param cleaning_rules_file_or_dict: File path of the json file or a dictionary which contains the cleaning rules to apply.
+    :param cleaning_rules_file_or_dict: File path of the json file or a list dictionary which contains the cleaning rules to apply.
     :type cleaning_rules_file_or_dict:  str | List[dict]
     :param inplace:                     If 'inplace' is True, the original data, 'data', will be modified and replaced
                                         with the cleaned data. If 'inplace' is False, the original data will not be touched
