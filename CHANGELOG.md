@@ -16,8 +16,8 @@ Additional labels for pre-release and build metadata are available as extensions
 3. Bug fix in `_Measurements_get_table` function (Issue [#421](https://github.com/brightwind-dev/brightwind/issues/421)).
 4. Bug fix in `_Measurements__get_properties` function to handle solar sites (Issue [#453](https://github.com/brightwind-dev/brightwind/issues/453)).
 5. Bug fix for `_Measurements_get_names` function and made this function public (Issue [#450](https://github.com/brightwind-dev/brightwind/issues/450)).
-6. Added new function `load.apply_cleaning_rules()` to clean columns specified in cleaning rules file by 
-the condition specified on a specific column in the rule file. (Issue [#462](https://github.com/brightwind-dev/brightwind/issues/462)).
+6. Added new function `load.apply_cleaning_rules()` to clean columns specified in cleaning rules by 
+the condition specified for a specific column in the rules. (Issue [#462](https://github.com/brightwind-dev/brightwind/issues/462)).
 7. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
 
 ## [2.2.1]
