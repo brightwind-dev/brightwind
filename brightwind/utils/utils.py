@@ -214,6 +214,13 @@ def check_schema(json_to_check, schema):
                                     - is_valid (bool): True if validation passes, False otherwise
                                     - error_message (str): Error message if validation fails, empty string otherwise
     :rtype: bool
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        cleaning_rules = bw.demo_datasets.demo_cleaning_rules_file
+        bw.check_schema(cleaning_rules[0], bw.load.cleaning_rules_schema)
+
     """
     if isinstance(schema, str):
         if is_file(schema):
