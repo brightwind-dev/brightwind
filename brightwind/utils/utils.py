@@ -10,6 +10,7 @@ import brightwind as bw
 __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
+           'is_file_extension'
            'check_schema']
 
 
@@ -183,7 +184,7 @@ def is_file(file_or_folder):
         raise FileNotFoundError("File or folder doesn't seem to exist.")
 
 
-def is_extension(file_or_folder, extension_required):
+def is_file_extension(file_or_folder, extension_required):
     """
     Returns True if file_or_folder is a file of the desired extension type.
 

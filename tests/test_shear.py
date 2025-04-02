@@ -45,13 +45,13 @@ def test_average():
     heights = [80, 100]
     with pytest.raises(ValueError) as except_info:
         bw.Shear.Average(wspds, heights)
-    assert str(except_info.value) == "There is not valid data within the dataset provided to calculate shear"
+    assert str(except_info.value) == "There is no valid data within the dataset provided to calculate the shear."
 
     wspds = [8, 2]
     heights = [80, 100]
     with pytest.raises(ValueError) as except_info:
         bw.Shear.Average(wspds, heights)
-    assert str(except_info.value) == "There is not valid data above 3 m/s within the dataset provided to calculate shear"
+    assert str(except_info.value) == "There is no valid data above 3 m/s within the dataset provided to calculate the shear."
 
 
 def test_by_sector():

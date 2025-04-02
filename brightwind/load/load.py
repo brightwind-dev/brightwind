@@ -2330,7 +2330,7 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
         data = data.copy(deep=True)
 
     if isinstance(cleaning_rules_file_or_list, str):
-        if utils.is_extension(cleaning_rules_file_or_list, ".json"):
+        if utils.is_file_extension(cleaning_rules_file_or_list, ".json"):
             with open(cleaning_rules_file_or_list) as file:
                 cleaning_json = json.load(file)
     elif isinstance(cleaning_rules_file_or_list, List):
