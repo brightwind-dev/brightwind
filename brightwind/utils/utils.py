@@ -209,24 +209,6 @@ def check_schema(json_to_check, schema):
     """
     Validates JSON data against a JSON schema.
 
-<<<<<<< HEAD
-    :param cleaning_json:           The JSON data to validate
-    :type cleaning_json:            dict
-    :param schema:                  The JSON data to validate
-    :type schema:                   str | dict
-    :return:                        List of validation results, each containing:
-                                    - item_index (int): Index of the item in the list or 0 if single item
-                                    - is_valid (bool): True if validation passes, False otherwise
-                                    - error_message (str): Error message if validation fails, empty string otherwise
-    :rtype: bool
-
-    **Example usage**
-    ::
-        import brightwind as bw
-        cleaning_rules = bw.demo_datasets.demo_cleaning_rules_file
-        bw.check_schema(cleaning_rules[0], bw.load.cleaning_rules_schema)
-
-=======
     :param cleaning_json:   The JSON data to validate
     :type cleaning_json:    dict
     :param schema:          The JSON schema to validate
@@ -236,7 +218,16 @@ def check_schema(json_to_check, schema):
                                 - is_valid (bool): True if validation passes, False otherwise
                                 - error_message (str): Error message if validation fails, empty string otherwise
     :rtype:                 bool
->>>>>>> df1f82ce7c958fccb5ec87fef3e71068bd775f4a
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        import json
+
+        with open(bw.demo_datasets.demo_cleaning_rules_file) as file:
+            cleaning_json = json.load(file)
+        bw.utils.utils.check_schema(cleaning_json[0], bw.load.cleaning_rules_schema)
+
     """
     if isinstance(schema, str):
         if is_file(schema):
