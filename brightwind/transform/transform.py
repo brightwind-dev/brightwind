@@ -1403,7 +1403,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             return df_copy.sort_index()
 
 
-def apply_device_orientation_offset(data, meas_station_data_model, measurements, inplace=False):
+def apply_device_orientation_offset(data, meas_station_data_models, measurements, inplace=False):
     """
     Automatically apply offset to input wind direction data to account for orientation that the remote sensing 
     device (e.g. lidar, sodar and floating lidar) is installed relative to north. This orientation is set as 
@@ -1422,21 +1422,21 @@ def apply_device_orientation_offset(data, meas_station_data_model, measurements,
 
     This function accounts for this adjustment.
 
-    :param data:                    Timeseries data.
-    :type data:                     pd.DataFrame or pd.Series
-    :param meas_station_data_model: A simplified object to represent the data model
-    :type meas_station_data_model:  MeasurementStation.data_model
-    :param measurements:            Measurement information extracted from a WRA Data Model using bw.MeasurementStation
-    :type measurements:             list or dict or _Measurements
-    :param inplace:                 If 'inplace' is True, the original direction data, contained in 'data', will be
-                                    modified and replaced with the adjusted direction data. If 'inplace' is False, the
-                                    original data will not be touched and instead a new DataFrame containing the adjusted
-                                    direction data is created. To store this adjusted direction data, please ensure it is
-                                    assigned to a new variable., defaults to False
-    :type inplace:                  bool, optional
-    :raises ValueError:             _description_
-    :return:                        Data with adjusted wind direction accounting for orientation of the device.
-    :rtype:                         pd.DataFrame or pd.Series
+    :param data:                        Timeseries data.
+    :type data:                         pd.DataFrame or pd.Series
+    :param meas_station_data_models:    A simplified object to represent the data model
+    :type meas_station_data_models:     MeasurementStation
+    :param measurements:                Measurement information extracted from a WRA Data Model using bw.MeasurementStation
+    :type measurements:                 list or dict or _Measurements
+    :param inplace:                     If 'inplace' is True, the original direction data, contained in 'data', will be
+                                        modified and replaced with the adjusted direction data. If 'inplace' is False, the
+                                        original data will not be touched and instead a new DataFrame containing the adjusted
+                                        direction data is created. To store this adjusted direction data, please ensure it is
+                                        assigned to a new variable., defaults to False
+    :type inplace:                      bool, optional
+    :raises ValueError:                 _description_
+    :return:                            Data with adjusted wind direction accounting for orientation of the device.
+    :rtype:                             pd.DataFrame or pd.Series
     
     **Example usage**
     ::
