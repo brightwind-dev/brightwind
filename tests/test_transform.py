@@ -25,7 +25,7 @@ WSPD_COLS = ['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd60mS', 'Spd40mN', 'Spd40mS']
 WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
 MERRA2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
 
-DATA_LIDAR = bw.load_csv(bw.demo_datasets.demo_celtic_floating_lidar_data)
+DATA_LIDAR = bw.load_csv(bw.demo_datasets.demo_floating_lidar_data)
 STATION_LIDAR = bw.MeasurementStation(bw.demo_datasets.floating_lidar_demo_iea43_wra_data_model_v1_3)
 
 def np_array_equal(a, b):
