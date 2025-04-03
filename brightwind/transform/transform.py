@@ -1403,26 +1403,29 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             return df_copy.sort_index()
 
 
-def apply_device_orientation_offset(data, meas_station_data_models, measurements, inplace=False):
+def apply_device_orientation_offset(data, meas_station_data_model, measurements, inplace=False):
     """
-    Automatically apply adjustments to wind vanes to account for orientation of the device and device_orientation_deg 
-    orientation information. The device_orientation_deg orientation information for each wind direction measurement and 
-    time period is contained in the measurements instance from bw.MeasurementStation.
+    Automatically apply offset to input wind direction data to account for orientation that the remote sensing 
+    device (e.g. lidar, sodar and floating lidar) is installed relative to north. This orientation is set as 
+    `device_orientation_deg` on WRA Task 43 data model. The device orientation information for each device
+    and time period is contained in the measurements instance from bw.MeasurementStation.
     
     This uses the brightwind 'offset_wind_direction()' function to apply the actual adjustment to the data.
     Note: Be careful not to run this more than once in an assessment, when using inplace=True, as it will
           apply an offset again.
 
-    If there is a value in the logger for an offset, then the wind direction data has already been adjusted
-    by this amount. This may or may not be equal to the device_orientation_deg offset. Therefore, the adjustment to be made should
-    make up the difference to equal a device_orientation_deg offset. E.g.
+    If there is a value in the logger measurement config for an offset, then the wind direction data has already 
+    been adjusted by this amount. This may or may not be equal to the device_orientation_deg offset. Therefore, 
+    the adjustment to be made should make up the difference to equal a device_orientation_deg offset. E.g.
 
-            offset to be applied = device_orientation_deg - logger offset
+            offset to be applied = device_orientation_deg - logger_offset
+
+    This function accounts for this adjustment.
 
     :param data:                    Timeseries data.
     :type data:                     pd.DataFrame or pd.Series
-    :param meas_station_data_models:A simplified object to represent the data model
-    :type meas_station_data_models: MeasurementStation
+    :param meas_station_data_model: A simplified object to represent the data model
+    :type meas_station_data_model:  MeasurementStation.data_model
     :param measurements:            Measurement information extracted from a WRA Data Model using bw.MeasurementStation
     :type measurements:             list or dict or _Measurements
     :param inplace:                 If 'inplace' is True, the original direction data, contained in 'data', will be
@@ -1432,8 +1435,7 @@ def apply_device_orientation_offset(data, meas_station_data_models, measurements
                                     assigned to a new variable., defaults to False
     :type inplace:                  bool, optional
     :raises ValueError:             _description_
-    :return:                        Data with adjusted wind direction by the deadband orientation accounting for 
-                                    orientation of the device.
+    :return:                        Data with adjusted wind direction accounting for orientation of the device.
     :rtype:                         pd.DataFrame or pd.Series
     
     **Example usage**
