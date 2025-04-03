@@ -185,6 +185,10 @@ class _ColorPalette:
     def color_map(self):
         return self._set_col_map('color_map', self._get_color_map_colors())
 
+    @property
+    def color_map_bw(self):
+        return self._set_col_map('bw_color_map', [COLOR_PALETTE.primary, COLOR_PALETTE.eighth, COLOR_PALETTE.ninth]) # #COLOR_PALETTE.sixth,COLOR_PALETTE.tenth
+
     @staticmethod
     def _set_col_map(color_map_name, col_map_colors):
         return LinearSegmentedColormap.from_list(color_map_name, col_map_colors, N=256)
@@ -452,9 +456,9 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     :type legend_fontsize:          int
     :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
     :type show_grid:                bool
-    :param colourmap:               Optional argument to choose line colours equally spaced from a colour map. The given 
-                                    string should be the name of a matplotlib colormap. Default None.
-    :type colourmap:                Optional[str | bool]
+    :param colourmap:               Optional argument to choose line colours equally spaced from a default colour map. 
+                                    Default None.
+    :type colourmap:                bool
     :return:                        A timeseries subplot
     :rtype:                         matplotlib.axes._subplots.AxesSubplot
 
@@ -512,17 +516,8 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         # To use the default colourmap
         fig, axes = plt.subplots(1, 1)
         columns_to_plot = ['Spd_Met_2m', 'Spd_20m', 'Spd_40m', 'Spd_60m', 'Spd_80m', 'Spd_100m','Spd_124m','Spd_150m',
-                            'Spd_175m','Spd_200m','Spd_20m_min','Spd_40m_min','Spd_60m_min','Spd_80m_min','Spd_100m_min',
-                         'Spd_124m_min', 'Spd_150m_min','Spd_175m_min','Spd_200m_min']
+                            'Spd_175m','Spd_200m']
         bw.analyse.plot._timeseries_subplot(data.index, data[columns_to_plot], ax=axes, colourmap=True, 
-                                             external_legend=True, legend_fontsize=8)
-
-        # To use a colourmap input the name of the colourmap you wish to use as a string
-        fig, axes = plt.subplots(1, 1)
-        columns_to_plot = ['Spd_Met_2m', 'Spd_20m', 'Spd_40m', 'Spd_60m', 'Spd_80m', 'Spd_100m','Spd_124m','Spd_150m',
-                            'Spd_175m','Spd_200m','Spd_20m_min','Spd_40m_min','Spd_60m_min','Spd_80m_min','Spd_100m_min',
-                         'Spd_124m_min', 'Spd_150m_min','Spd_175m_min','Spd_200m_min']
-        bw.analyse.plot._timeseries_subplot(data.index, data[columns_to_plot], ax=axes, colourmap='viridis', 
                                              external_legend=True, legend_fontsize=8)
 
     """
@@ -549,14 +544,8 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         line_marker_types = [line_marker_types] * len(y.columns)
 
     if colourmap:
-        if isinstance(colourmap, bool):
-            cmap = LinearSegmentedColormap.from_list('bw_default', [COLOR_PALETTE.tertiary, COLOR_PALETTE.primary, 
-                                                                    COLOR_PALETTE.fifth], N=256)
-            line_colors = bw.analyse.plot._colormap_to_colorscale(cmap, 
-                                                         len(y.columns))
-        else:
-            cmap = plt.get_cmap(colourmap)
-            line_colors = [cmap(i / len(y.columns)) for i in range(len(y.columns))]
+        cmap = COLOR_PALETTE.color_map_bw
+        line_colors = bw.analyse.plot._colormap_to_colorscale(cmap, len(y.columns))
     else:
         if line_colors is None:
             line_colors = COLOR_PALETTE.color_list

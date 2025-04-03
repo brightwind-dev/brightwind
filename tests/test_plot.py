@@ -71,27 +71,32 @@ def test_plot_timeseries():
 
     columns_to_plot = [a for a in DATA.columns if "Spd" in a]
     time_series_subplot =  bw.analyse.plot._timeseries_subplot(DATA.index, DATA[columns_to_plot], 
-                                                               external_legend=True, legend_fontsize=6, show_grid=True)
-    actual_colors = [line.get_color() for line in time_series_subplot.get_lines()]
+                                                               external_legend=True, legend_fontsize=6, show_grid=True)    
+    actual_colours = np.ones_like(columns_to_plot)
+    for _, line in enumerate(time_series_subplot.get_lines()):
+        for j, column in enumerate(columns_to_plot):
+            if line.get_label() == column:
+                actual_colours[j] = line.get_color()
     expected_colors = [
         '#9CC537', '#2E3743', '#9B2B2C', '#E57925', '#ffc008', '#AB8D60', 
         '#A4D29F', '#01958a', '#3D636F', '#A49E9D', '#DA9BA6', '#6e8c27',
         '#9CC537', '#2E3743', '#9B2B2C', '#E57925', '#ffc008', '#AB8D60', 
         '#A4D29F', '#01958a', '#3D636F', '#A49E9D', '#DA9BA6', '#6e8c27'
     ]
-    assert all(a == e for a, e in zip(actual_colors[3:], expected_colors))
+    assert all(a == e for a, e in zip(actual_colours, expected_colors))
     
     time_series_subplot =  bw.analyse.plot._timeseries_subplot(DATA.index, DATA[columns_to_plot], colourmap=True,
                                                                external_legend=True, legend_fontsize=6, show_grid=True)
     actual_colors = [line.get_color() for line in time_series_subplot.get_lines()]
-    # Print out details about all lines to see what the first 5 are
-    for i, line in enumerate(time_series_subplot.get_lines()):
-        print(f"Line {i}: Color={line.get_color()}, Label={line.get_label()}, Visible={line.get_visible()}")
-    expected_colors = ['#9B2B2C', '#E57925', '#ffc008', '#AB8D60', '#A4D29F', '#01958a', '#3D636F', '#A49E9D', '#DA9BA6', 
-                       '#6e8c27', '#9CC537', '#2E3743', '#9B2B2C', '#E57925', '#ffc008', '#AB8D60', '#9b2b2c', '#9b3d2d', 
-                       '#9b4f2f', '#9b6130', '#9b7331', '#9c8632', '#9c9834', '#9caa35', '#9cbc36', '#a2c534', '#adc42f', 
-                       '#b9c429', '#c5c324', '#d0c21e', '#dcc219', '#e8c113', '#f3c10e', '#ffc008']
-    assert all(a == e for a, e in zip(actual_colors[5:], expected_colors))
+    
+    actual_colours = np.ones_like(columns_to_plot)
+    for _, line in enumerate(time_series_subplot.get_lines()):
+        for j, column in enumerate(columns_to_plot):
+            if line.get_label() == column:
+                actual_colours[j] = line.get_color()
+    expected_colors = ['#9cc537', '#8abf41', '#78ba4b', '#65b454', '#53ae5e', '#41a968', '#2fa372', '#1c9d7b', '#0a9885', 
+                       '#059288', '#0c8c85', '#138682', '#1a807f', '#217b7c', '#287579', '#2f6f75', '#366972', '#3d636f']
+    assert all(a == e for a, e in zip(actual_colours, expected_colors))
     
     assert True
 
