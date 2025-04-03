@@ -117,18 +117,12 @@ class _ColorPalette:
 
             bw.analyse.plot.COLOR_PALETTE.primary_10 = '#0a1429'
 
-            # The colors used for defining the color_map can also be reset by using the example code below:
+            # The colors used for defining any of the three defined colour maps can also be reset by using the 
+            # example code below:
 
             bw.analyse.plot.COLOR_PALETTE.color_map_colors = ['#ccfffc',   # lightest primary
                                                               '#00b4aa',   # vert-dark
                                                               '#008079']   # darkest primary
-
-            # The colors used for defining the color_map_cyclical can also be reset by using the example code below:
-
-            bw.analyse.plot.COLOR_PALETTE.color_map_cyclical_colors = ['#ccfffc',   # lightest primary
-                                                                       '#00b4aa',   # vert-dark
-                                                                       '#008079',   # darkest primary
-                                                                       '#ccfffc']   # lightest primary
 
             # The hex color value corresponding to an input color adjusted by a percentage lightness (e.g 0.5 %)
             # can be derived as below:
@@ -183,11 +177,17 @@ class _ColorPalette:
 
     @property
     def color_map(self):
-        return self._set_col_map('color_map', self._get_color_map_colors())
+        return self._set_col_map('color_map', self._get_color_map_colors([
+            self.primary_95,  # lightest primary
+            self.primary,     # primary
+            self.primary_10   # darkest primary
+            ]))
 
     @property
     def color_map_bw(self):
-        return self._set_col_map('bw_color_map', [COLOR_PALETTE.primary, COLOR_PALETTE.eighth, COLOR_PALETTE.ninth]) # #COLOR_PALETTE.sixth,COLOR_PALETTE.tenth
+        return self._set_col_map('bw_color_map', self._get_color_map_colors([
+            COLOR_PALETTE.primary, COLOR_PALETTE.eighth, COLOR_PALETTE.ninth
+            ]))
 
     @staticmethod
     def _set_col_map(color_map_name, col_map_colors):
@@ -195,43 +195,26 @@ class _ColorPalette:
 
     @property
     def color_map_colors(self):
-        return self._get_color_map_colors()
+        return self._get_color_map_colors([self.primary_95, self.primary, self.primary_10])
 
     @color_map_colors.setter
     def color_map_colors(self, val):
         self._color_map_colors = val
 
-    def _get_color_map_colors(self):
+    def _get_color_map_colors(self, default_color_map_list):
         if self._color_map_colors:
             # if the user has set a new color_map_color, use them.
             color_map_colors = self._color_map_colors
         else:
             # if the user has not set a new one, use our default colors.
-            color_map_colors = [self.primary_95,  # lightest primary
-                                self.primary,     # primary
-                                self.primary_10]  # darkest primary
+            color_map_colors = default_color_map_list
         return color_map_colors
 
     @property
     def color_map_cyclical(self):
-        return self._set_col_map('color_map_cyclical', self._get_color_map_cyclical_colors())
-
-    @property
-    def color_map_cyclical_colors(self):
-        return self._get_color_map_cyclical_colors()
-
-    @color_map_cyclical_colors.setter
-    def color_map_cyclical_colors(self, val):
-        self._color_map_cyclical_colors = val
-
-    def _get_color_map_cyclical_colors(self):
-        if self._color_map_cyclical_colors:
-            # if the user has set a new color_map_cyclical_color, use them.
-            color_map_cyclical_colors = self._color_map_cyclical_colors
-        else:
-            # if the user has not set a new one, use our default colors.
-            color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
-        return color_map_cyclical_colors
+        return self._set_col_map('color_map_cyclical', self._get_color_map_colors([
+            self.secondary, self.fifth, self.primary, self.tertiary, self.secondary
+            ]))
 
     @staticmethod
     def _adjust_color_lightness(input_color, lightness_factor):
@@ -407,7 +390,7 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
 def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limits=None, x_tick_label_angle=25,
                         line_marker_types=None, line_colors=None, subplot_title=None,
                         legend=True, ax=None, external_legend=False, legend_fontsize=12, show_grid=True, 
-                        colourmap=None):
+                        use_colourmap=False):
     """
     Plots a timeseries subplot where x is the time axis.
 
@@ -456,9 +439,9 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     :type legend_fontsize:          int
     :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
     :type show_grid:                bool
-    :param colourmap:               Optional argument to choose line colours equally spaced from a default colour map. 
-                                    Default None.
-    :type colourmap:                bool
+    :param use_colourmap:           Optional argument to choose line colours equally spaced from the default colour map 
+                                    'bw_color_map'. Default False.
+    :type use_colourmap:            bool
     :return:                        A timeseries subplot
     :rtype:                         matplotlib.axes._subplots.AxesSubplot
 
@@ -513,11 +496,11 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
                                             line_marker_types=['.', 'o', 'v', '^', '<', None], ax=axes, 
                                             external_legend=True, legend_fontsize=8, show_grid=False)
 
-        # To use the default colourmap
+        # To use the default 'bw_color_map' colourmap 
         fig, axes = plt.subplots(1, 1)
         columns_to_plot = ['Spd_Met_2m', 'Spd_20m', 'Spd_40m', 'Spd_60m', 'Spd_80m', 'Spd_100m','Spd_124m','Spd_150m',
                             'Spd_175m','Spd_200m']
-        bw.analyse.plot._timeseries_subplot(data.index, data[columns_to_plot], ax=axes, colourmap=True, 
+        bw.analyse.plot._timeseries_subplot(data.index, data[columns_to_plot], ax=axes, use_colourmap=True, 
                                              external_legend=True, legend_fontsize=8)
 
     """
@@ -543,7 +526,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     elif (type(line_marker_types) is str) or (line_marker_types is None):
         line_marker_types = [line_marker_types] * len(y.columns)
 
-    if colourmap:
+    if use_colourmap:
         cmap = COLOR_PALETTE.color_map_bw
         line_colors = bw.analyse.plot._colormap_to_colorscale(cmap, len(y.columns))
     else:
@@ -607,7 +590,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
 def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=None, y_limits=None,
                     x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8),
-                    external_legend=False, legend_fontsize=12, show_grid=True, colourmap=None):
+                    external_legend=False, legend_fontsize=12, show_grid=True, use_colourmap=False):
     """
     Plot a timeseries of data.
 
@@ -653,9 +636,9 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     :type legend_fontsize:          int
     :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
     :type show_grid:                bool
-    :param colourmap:               Optional argument to choose line colours equally spaced from a colour map. The given 
-                                    string should be the name of a matplotlib colormap. Default None.
-    :type colourmap:                Optional[str | bool]
+    :param use_colourmap:           Argument to choose line colours equally spaced from the default 'bw_color_map' colour 
+                                    map. Default False
+    :type use_colourmap:            bool
     :return:                        A timeseries plot
     :rtype:                         matplotlib.figure.Figure
 
@@ -709,7 +692,7 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     _timeseries_subplot(sliced_data.index, sliced_data, x_label=x_label, y_label=y_label,
                         y_limits=y_limits, x_tick_label_angle=x_tick_label_angle,
                         line_colors=line_colors, legend=legend, ax=axes, external_legend=external_legend,
-                        legend_fontsize=legend_fontsize, show_grid=show_grid, colourmap=colourmap)
+                        legend_fontsize=legend_fontsize, show_grid=show_grid, use_colourmap=use_colourmap)
     plt.close()
     return fig
 

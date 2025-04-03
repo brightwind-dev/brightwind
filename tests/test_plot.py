@@ -85,7 +85,7 @@ def test_plot_timeseries():
     ]
     assert all(a == e for a, e in zip(actual_colours, expected_colors))
     
-    time_series_subplot =  bw.analyse.plot._timeseries_subplot(DATA.index, DATA[columns_to_plot], colourmap=True,
+    time_series_subplot =  bw.analyse.plot._timeseries_subplot(DATA.index, DATA[columns_to_plot], use_colourmap=True,
                                                                external_legend=True, legend_fontsize=6, show_grid=True)
     actual_colors = [line.get_color() for line in time_series_subplot.get_lines()]
     
