@@ -16,8 +16,8 @@ __all__ = ['demo_data',
            'iea43_wra_data_model_schema_v1_2',
            'floating_lidar_iea43_wra_data_model_v1_2',
            'solar_iea43_wra_data_model_v1_3',
-           'demo_floating_lidar_data.csv',
-           'floating_lidar_demo_iea43_wra_data_model_v1_3.json'
+           'demo_floating_lidar_data',
+           'floating_lidar_demo_iea43_wra_data_model_v1_3'
            ]
 
 demo_data = os.path.join(os.path.dirname(__file__), 'demo_data.csv')
