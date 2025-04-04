@@ -14,8 +14,16 @@ Additional labels for pre-release and build metadata are available as extensions
 1. Bug fix legend `plot_scatter_wspd` and `plot_scatter_wdir` functions and added tests (Issue [#443](https://github.com/brightwind-dev/brightwind/issues/443)).
 2. Bug fix calling `is_file` function (Issue [#447](https://github.com/brightwind-dev/brightwind/issues/447)).
 3. Bug fix in `_Measurements_get_table` function (Issue [#421](https://github.com/brightwind-dev/brightwind/issues/421)).
-4. Bug fix in `_Measurements__get_properties` function to handle solar sites (Issue [#453](https://github.com/brightwind-dev/brightwind/issues/453)).
 4. Bug fix in `_Measurements_get_names` function and made this function public (Issue [#450](https://github.com/brightwind-dev/brightwind/issues/450)).
+5. Bug fix in `_Measurements__get_properties` function when sensor can measure multiple measurement types. If there are multiple calibrations present, the correct one is now chosen (Issue [#449](https://github.com/brightwind-dev/brightwind/issues/449)).
+6. Bug fix in `_Measurements__get_properties` function to handle solar sites (Issue [#453](https://github.com/brightwind-dev/brightwind/issues/453)).
+7. Bug fix in `dist` function (Issue [#459](https://github.com/brightwind-dev/brightwind/issues/459)).
+8. Bug fix in `_LoggerMainConfigs__get_properties` function for solar and sodar sites (Issue [#454](https://github.com/brightwind-dev/brightwind/issues/454)).
+9. Bug fix in `monthly_means()` function of the plots (Issue [#452](https://github.com/brightwind-dev/brightwind/issues/452)) and (Issue [#413](https://github.com/brightwind-dev/brightwind/issues/413)).
+9. Updated functionality in `monthly_means()` and `plot_monthly_means()` plots (Issue [#452](https://github.com/brightwind-dev/brightwind/issues/452)) and (Issue [#413](https://github.com/brightwind-dev/brightwind/issues/413)).
+10. Updated functionality in `plot_timeseries` function (Issue [#457](https://github.com/brightwind-dev/brightwind/issues/457)).
+11. More representative error messages returned in `Shear` function when no valid data is available (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
+11. `Shear.TimeSeries` and `Shear.TimeOfDay` has been updated to return np.nan when there is no valid data for that timestamp or hour (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
 
 
 ## [2.2.1]

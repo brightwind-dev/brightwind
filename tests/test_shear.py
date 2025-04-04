@@ -1,5 +1,7 @@
 import pytest
 import brightwind as bw
+import numpy as np
+import pandas as pd
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -39,6 +41,18 @@ def test_average():
     specific_test_log = bw.Shear.Average(wspds, heights, calc_method='log_law')
     assert round(specific_test_log.roughness, 9) == 0.602156994
 
+    wspds = [8, np.nan]
+    heights = [80, 100]
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.Average(wspds, heights)
+    assert str(except_info.value) == "There is no valid data within the dataset provided to calculate the shear."
+
+    wspds = [8, 2]
+    heights = [80, 100]
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.Average(wspds, heights)
+    assert str(except_info.value) == "There is no valid data above 3 m/s within the dataset provided to calculate the shear."
+
 
 def test_by_sector():
     # Specify columns in data which contain the anemometer measurements from which to calculate shear
@@ -65,6 +79,18 @@ def test_by_sector():
     shear_by_sector_power_law.apply(DATA['Spd80mN'], directions, 40, 60)
     shear_by_sector_log_law.apply(DATA['Spd80mN'], directions, 40, 60)
     shear_by_sector_custom_bins.apply(DATA['Spd80mN'], directions, 40, 60)
+
+    data_test = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN', 'Dir78mS']].copy()
+    data_test.loc[(data_test.Dir78mS >= 15) & (data_test.Dir78mS <= 45), "Spd80mN"] = 2
+    anemometers = data_test[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    shear_by_sector_power_law = bw.Shear.BySector(anemometers, heights, directions)
+    assert pd.isna(shear_by_sector_power_law.alpha.at["15.0-45.0"])#
+
+    data_test = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN', 'Dir78mS']].copy()
+    data_test.loc[(data_test.Dir78mS >= 45) & (data_test.Dir78mS <= 75), "Spd80mN"] = np.nan
+    anemometers = data_test[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    shear_by_sector_power_law = bw.Shear.BySector(anemometers, heights, directions)
+    assert pd.isna(shear_by_sector_power_law.alpha.at["45.0-75.0"])
 
     assert True
 
@@ -110,8 +136,8 @@ def test_time_of_day():
     assert (round(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'] * (
             60 / 40) ** 0.141777, 5) == round(shear_by_tod_power_law1.apply(DATA['Spd80mN'][
                                     '2017-11-23 10:10:00':'2017-11-23 10:40:00'], 40, 60), 5)).all()
-    assert list(round(shear_by_tod_log_law1.apply(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'],
-                                                  40, 60), 5)) == [11.11452, 9.95853, 9.69339, 8.40695]
+    assert  list(round(shear_by_tod_log_law1.apply(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'],
+                                                   40, 60), 5)) == [11.11452, 9.95853, 9.69339, 8.40695]
     assert list(round(shear_by_tod_log_law2.apply(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'],
                                                   40, 60), 5)) == [11.16479, 10.00356, 9.73723, 8.44497]
 
@@ -125,6 +151,18 @@ def test_time_of_day():
     with pytest.raises(ValueError) as except_info:
         bw.Shear.TimeOfDay(anemometers, heights, by_month=False, plot_type='12x24')
     assert str(except_info.value) == "12x24 plot is only possible when 'by_month=True'."
+
+    data_test = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN', 'Dir78mS']].copy()
+    data_test.loc[data_test.index.hour == 2, "Spd80mN"] = 2
+    anemometers = data_test[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    shear_by_time_power_law = bw.Shear.TimeOfDay(anemometers, heights)
+    assert shear_by_time_power_law.alpha.iloc[2].isna().all()
+
+    data_test = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN', 'Dir78mS']].copy()
+    data_test.loc[data_test.index.hour == 5, "Spd80mN"] = np.nan
+    anemometers = data_test[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    shear_by_time_power_law = bw.Shear.TimeOfDay(anemometers, heights)
+    assert shear_by_time_power_law.alpha.iloc[5].isna().all()
 
 
 def test_time_series():
@@ -148,6 +186,16 @@ def test_time_series():
     # Test apply
     shear_by_ts_power_law.apply(DATA['Spd80mN'], 40, 60)
     shear_by_ts_log_law.apply(DATA['Spd80mN'], 40, 60)
+
+    DATA['Spd80mN'].iloc[0] = 2
+    shear_ts = bw.Shear.TimeSeries(anemometers, heights)
+    alpha = shear_ts.alpha
+    assert pd.isna(alpha.iloc[0])
+
+    DATA['Spd80mN'].iloc[0] = np.nan
+    shear_ts = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law')
+    roughness = shear_ts.roughness
+    assert pd.isna(roughness.iloc[0])
     assert True
 
 
