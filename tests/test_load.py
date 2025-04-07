@@ -112,3 +112,11 @@ def test_load_brighthub():
                                              date_to='2017-01-01').columns
     for col in ['Spd80mN', 'Spd80mS', 'Dir78mS']:
         assert col in data_columns
+
+    # To get cleaning log
+    cleaning_log_df = bw.LoadBrightHub.get_cleaning_log(measurement_station_uuid=measurement_station_uuid)
+    assert len(cleaning_log_df) != 0
+
+    # To get cleaning rules
+    cleaning_rules_json = bw.LoadBrightHub.get_cleaning_rules(measurement_station_uuid=measurement_station_uuid)
+    assert cleaning_rules_json[0]['measurement_location_uuid'] == measurement_station_uuid
