@@ -25,10 +25,12 @@ Additional labels for pre-release and build metadata are available as extensions
 11. More representative error messages returned in `Shear` function when no valid data is available (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
 11. `Shear.TimeSeries` and `Shear.TimeOfDay` has been updated to return np.nan when there is no valid data for that timestamp or hour (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
 1. Added new function `LoadBrightHub.get_cleaning_rules()` to pull the cleaning rules for a particular measurement station on BrightHub (Issue [#461](https://github.com/brightwind-dev/brightwind/issues/461)).
+12. Fix bug for application of `Shear.TimeOfDay()` (Issue [#441](https://github.com/brightwind-dev/brightwind/issues/441)).
 
 
 ## [2.2.1]
 1. Bug fix some users encounter with `plot.plot_shear_time_of_day()` (Issue [#429](https://github.com/brightwind-dev/brightwind/issues/429)).
+
 
 
 ## [2.2.0]
