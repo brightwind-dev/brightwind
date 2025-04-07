@@ -292,7 +292,6 @@ class Shear:
                         end = str((start_times[i + 1] - resolution).time())
                         time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end)
                         mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
-
                 
                 for i in range(0, len(mean_time_wspds)):
                     try:
@@ -814,8 +813,7 @@ class Shear:
                 - zo is the roughness coefficient
 
                                                 2)  $U2 = (ln(z2/z0)/ln(z1/z0))U1$
-
-            """
+        """
 
         if maximise_data:
             log_heights = np.log(
@@ -994,7 +992,8 @@ class Shear:
 
                     if self.calc_method == 'power_law':
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      alpha=filled_alpha.loc[:, month_str].iloc[i], calc_method=self.calc_method)
+                                                      alpha=filled_alpha.loc[:, month_str].iloc[i],
+                                                      calc_method=self.calc_method)
 
                     else:
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
