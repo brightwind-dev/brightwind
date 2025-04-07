@@ -121,6 +121,19 @@ def test_time_of_day():
                                                calc_method='log_law', segments_per_day=12)
     assert shear_by_tod_log_law3.roughness['12_month_average'].round(6).to_list()[5:10] == [
         0.036186, 0.023027, 0.023544, 0.065522, 0.140514]
+    shear_by_tod_power_law4 = bw.Shear.TimeOfDay(anemometers['2016-05-01':], heights)
+    assert shear_by_tod_power_law4.alpha['Jan'].round(6).to_list()[0:5] == [
+        0.219158, 0.183266, 0.159368, 0.159639, 0.170001]
+    assert shear_by_tod_power_law4.alpha['May'].round(6).to_list()[0:5] == \
+        shear_by_tod_power_law1.alpha['May'].round(6).to_list()[0:5]
+    shear_by_tod_log_law4 = bw.Shear.TimeOfDay(anemometers['2016-05-01':], heights, calc_method='log_law')
+    assert shear_by_tod_log_law4.roughness['Jan'].round(6).to_list()[0:5] == [
+        0.613791, 0.252135, 0.111832, 0.111367, 0.162696]
+    assert shear_by_tod_log_law4.roughness['Jun'].round(6).to_list()[0:5] == \
+        shear_by_tod_log_law1.roughness['Jun'].round(6).to_list()[0:5]
+    shear_by_tod_log_law5 = bw.Shear.TimeOfDay(anemometers[anemometers.index.month != 5], heights, calc_method='log_law')
+    assert 'May' not in shear_by_tod_log_law5.roughness.columns
+    
 
     # Test attributes
     assert round(shear_by_tod_power_law2.alpha.mean()[0], 4) == 0.1473
@@ -140,6 +153,27 @@ def test_time_of_day():
                                                    40, 60), 5)) == [11.11452, 9.95853, 9.69339, 8.40695]
     assert list(round(shear_by_tod_log_law2.apply(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'],
                                                   40, 60), 5)) == [11.16479, 10.00356, 9.73723, 8.44497]
+    assert (round(DATA['Spd80mN']['2016-05-10 10:10:00':'2016-05-10 10:40:00'] * (
+            60 / 40) ** 0.096166, 5) == round(shear_by_tod_power_law4.apply(DATA['Spd80mN'][
+                                    '2016-05-10 10:10:00':'2016-05-10 10:40:00'], 40, 60), 5)).all()
+    assert (round(DATA['Spd80mN']['2017-01-23 01:10:00':'2017-01-23 01:40:00'] * (
+            60 / 40) ** 0.183266, 5) == round(shear_by_tod_power_law4.apply(DATA['Spd80mN'][
+                                    '2017-01-23 01:10:00':'2017-01-23 01:40:00'], 40, 60), 5)).all()
+    
+    # Test plot
+    shear_plot4 = shear_by_tod_log_law4.plot
+    legend = shear_plot4.get_axes()[0].get_legend()
+    assert legend.get_lines()[0].get_color() == bw.analyse.plot._colormap_to_colorscale(
+        bw.analyse.plot.COLOR_PALETTE.color_map_cyclical, 13)[0]
+    assert legend.get_lines()[11].get_color() == bw.analyse.plot._colormap_to_colorscale(
+        bw.analyse.plot.COLOR_PALETTE.color_map_cyclical, 13)[11]
+    shear_plot5 = shear_by_tod_log_law5.plot
+    legend = shear_plot5.get_axes()[0].get_legend()
+    assert legend.get_lines()[0].get_color() == bw.analyse.plot._colormap_to_colorscale(
+        bw.analyse.plot.COLOR_PALETTE.color_map_cyclical, 13)[0]
+    assert legend.get_lines()[10].get_color() == bw.analyse.plot._colormap_to_colorscale(
+        bw.analyse.plot.COLOR_PALETTE.color_map_cyclical, 13)[11]
+    
 
     # Test errors
     with pytest.raises(ValueError) as except_info:
