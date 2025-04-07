@@ -205,7 +205,6 @@ def is_file_extension(file_or_folder, extension_required):
         raise ValueError(f"Input must be a {extension_required} file, got: {file_or_folder}")
 
 
-
 def check_schema(json_to_check, schema):
     """
     Validates JSON data against a JSON schema.
