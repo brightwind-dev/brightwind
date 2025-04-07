@@ -103,6 +103,12 @@ def test_load_brighthub():
     assert 'lidar' in device_types
     assert 'mast' in device_types
     assert ['lidar'] == device_types_lidar
+
+    measurement_stations_lidar_mast = bw.LoadBrightHub.get_measurement_stations(
+        measurement_station_type=['lidar', 'mast'])
+    device_types_lidar_mast = measurement_stations_lidar_mast['measurement_station_type'].unique()
+
+    assert ['lidar', 'mast'] == sorted(device_types_lidar_mast)
     # To get a specific measurement station
     # measurement_stations = bw.LoadBrightHub.get_measurement_stations(measurement_station_uuid=measurement_station_uuid)
     # assert (.dropna(    # Doesn't work anymore as more than 1 station is returned now.
