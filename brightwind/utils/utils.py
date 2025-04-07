@@ -10,7 +10,7 @@ import brightwind as bw
 __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
-           'is_file_extension'
+           'is_file_extension',
            'check_schema']
 
 
@@ -209,9 +209,9 @@ def check_schema(json_to_check, schema):
     """
     Validates JSON data against a JSON schema.
 
-    :param cleaning_json:   The JSON data to validate
-    :type cleaning_json:    dict
-    :param schema:          The JSON schema to validate
+    :param json_to_check:   The JSON data to validate.
+    :type json_to_check:    dict
+    :param schema:          The JSON schema to validate against.
     :type schema:           str | dict
     :return:                List of validation results, each containing:
                                 - item_index (int): Index of the item in the list or 0 if single item
