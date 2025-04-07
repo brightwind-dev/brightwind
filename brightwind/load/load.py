@@ -1172,7 +1172,7 @@ class LoadBrightHub:
         :type measurement_station_uuid:  str
         :param measurement_station_type: The type of measurement station i.e. lidar, mast, sodar, etc. If None is set, 
                                          all types will be returned. Default, None.
-        :type measurement_station_type:  str | None
+        :type measurement_station_type:  str | List | None
         :return:                         A table showing the available measurement stations.
         :rtype:                          pd.DataFrame
 
@@ -1230,7 +1230,9 @@ class LoadBrightHub:
             raise ValueError(meas_loc_json['Error'])
         
         if measurement_station_type is not None:
-            meas_loc_json = [m for m in meas_loc_json if m['measurement_station_type_id'] == measurement_station_type]
+            if isinstance (measurement_station_type, str):
+                measurement_station_type = [measurement_station_type]
+            meas_loc_json = [m for m in meas_loc_json if m['measurement_station_type_id'] in measurement_station_type]
 
         meas_loc_df = pd.read_json(json.dumps(meas_loc_json))
         required_cols = ['name', 'measurement_station_type_id',
