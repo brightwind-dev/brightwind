@@ -186,7 +186,7 @@ class _ColorPalette:
     @property
     def color_map_bw(self):
         return self._set_col_map('bw_color_map', self._get_color_map_colors([
-            COLOR_PALETTE.primary, COLOR_PALETTE.eighth, COLOR_PALETTE.ninth
+            COLOR_PALETTE.ninth, COLOR_PALETTE.eighth, COLOR_PALETTE.primary
             ]))
 
     @staticmethod
