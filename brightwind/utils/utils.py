@@ -5,13 +5,13 @@ import os
 import json
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
-import brightwind as bw
+from jsonschema import Draft7Validator
 
 __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
            'is_file_extension',
-           'check_schema']
+           'validate_json']
 
 
 def _range_0_to_360(direction):
@@ -197,7 +197,7 @@ def is_file_extension(file_or_folder, extension_required):
     """
     if is_file(file_or_folder):    
         _, extension = os.path.splitext(file_or_folder)
-        if extension.lower() == extension_required:
+        if extension.lower() == extension_required.lower():
             return True
         else:
             raise ValueError(f"File extension must be {extension_required}, got: {extension}")
@@ -205,7 +205,7 @@ def is_file_extension(file_or_folder, extension_required):
         raise ValueError(f"Input must be a {extension_required} file, got: {file_or_folder}")
 
 
-def check_schema(json_to_check, schema):
+def validate_json(json_to_check, schema):
     """
     Validates JSON data against a JSON schema.
 
@@ -226,7 +226,7 @@ def check_schema(json_to_check, schema):
 
         with open(bw.demo_datasets.demo_cleaning_rules_file) as file:
             cleaning_json = json.load(file)
-        bw.utils.utils.check_schema(cleaning_json[0], bw.load.cleaning_rules_schema)
+        bw.utils.utils.validate_json(cleaning_json[0], bw.load.cleaning_rules_schema)
 
     """
     if isinstance(schema, str):
@@ -238,22 +238,22 @@ def check_schema(json_to_check, schema):
     else:
         raise ValueError("Incorrect schema type used, this must be a str or a dict.")
     
-    data_is_valid = True
-    try:
-        validate(instance=json_to_check, schema=schema)
-    except ValidationError as e:
-        error_path = " → ".join(str(path) for path in e.path)
-        if error_path:
-            print(f"Validation error at path: {error_path}")
-        print(f"Error message: {e.message}")
-        print(f"Failed schema part: {e.schema_path}")
-        data_is_valid = False
-    except Exception as e:
-        error_path = " → ".join(str(path) for path in e.path)
-        if error_path:
-            print(f"Validation error at path: {error_path}")
-        print(f"Error message: {e.message}")
-        print(f"Failed schema part: {e.schema_path}")
-        data_is_valid = False
+    errors = []
+    validator = Draft7Validator(schema)
+    for error in validator.iter_errors(json_to_check):
+        error_path = " → ".join(str(path) for path in error.path) if error.path else "root"
+        error_detail = {
+            "path": error_path,
+            "message": error.message,
+            "schema_path": " → ".join(str(path) for path in error.schema_path)
+        }
+        errors.append(error_detail)
+        
+        # Optional: print errors while collecting them
+        print(f"Validation error at path: {error_path}")
+        print(f"Error message: {error.message}")
+        print(f"Failed schema part: {error.schema_path}")
+    
+    data_is_valid = len(errors) == 0
     
     return data_is_valid

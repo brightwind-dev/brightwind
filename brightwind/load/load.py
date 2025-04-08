@@ -2391,7 +2391,7 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     
     cleaning_json_is_valid = True
     for cleaning_rule in cleaning_json:
-        if utils.check_schema(cleaning_rule, cleaning_rules_schema) is False:
+        if utils.validate_json(cleaning_rule, cleaning_rules_schema) is False:
             cleaning_json_is_valid = False
     if cleaning_json_is_valid is False:
         raise ValueError("There is a problem with the validity of the supplied JSON please check the errors above")
