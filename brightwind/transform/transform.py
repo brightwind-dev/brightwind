@@ -1462,6 +1462,9 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols = 
             if not any(col == prop['name'] for prop in wdirs_properties):
                 print('{} is not found in the wind direction properties.'.format(utils.bold(col)))
 
+
+    _check_measurement_station_overlaps(meas_station_data_models, df)
+
     # Apply the offset
     for wdir_prop in wdirs_properties:
         name = wdir_prop['name']
@@ -1469,21 +1472,30 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols = 
             wdir_in_dataset = True
             date_to = wdir_prop.get('date_to')
             date_from = wdir_prop.get('date_from')
+            date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
+                         if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
             logger_offset = wdir_prop.get('logger_measurement_config.offset')
             for meas_station_data_model in meas_station_data_models:
                 meas_station_data_model_from = meas_station_data_model.get('date_from')
+                meas_station_data_model_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') if
+                                            meas_station_data_model_from is None or meas_station_data_model_from ==
+                                            DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
                 meas_station_data_model_to = meas_station_data_model.get('date_to')
                 meas_station_data_model_to = (df.index[-1].strftime('%Y-%m-%dT%H:%M:%S') if
                                             meas_station_data_model_to is None or meas_station_data_model_to ==
                                             DATE_INSTEAD_OF_NONE else meas_station_data_model_to)
                 
-                date_to_tmp = meas_station_data_model_to if date_to is None or date_to == DATE_INSTEAD_OF_NONE else date_to
+                date_to_tmp = (meas_station_data_model_to 
+                               if date_to is None or date_to == DATE_INSTEAD_OF_NONE else date_to)
                 if date_from <= meas_station_data_model_to and date_to_tmp >= meas_station_data_model_from:
                     device_orientation_deg = meas_station_data_model.get('device_orientation_deg')
-                    apply_offset_from = date_from if date_from > meas_station_data_model_from else meas_station_data_model_from
-                    apply_offset_to = date_to_tmp if date_to_tmp < meas_station_data_model_to else meas_station_data_model_to
+                    apply_offset_from = (date_from if date_from > meas_station_data_model_from 
+                                         else meas_station_data_model_from)
+                    apply_offset_to = (date_to_tmp if date_to_tmp < meas_station_data_model_to 
+                                       else meas_station_data_model_to)
                     # Account for a logger offset
-                    df = _apply_dir_offset_target_orientation(df, name, logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to)
+                    df = _apply_dir_offset_target_orientation(
+                        df, name, logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to)
         else:
             print('{} is not found in data.'.format(utils.bold(name)))
     if wdir_in_dataset is False:
@@ -1492,6 +1504,59 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols = 
     if isinstance(data, pd.Series):
         df = df[df.columns[0]]
     return df
+
+
+def _check_measurement_station_overlaps(meas_station_data_models, df):
+    """
+    Checks if there are any overlapping date ranges with non-zero device orientation offsets.
+    
+    Date ranges are considered as [from, to) where 'from' is inclusive and 'to' is exclusive.
+    Overlapping date ranges with non-zero offsets are not supported and will raise an error.
+    
+    :param meas_station_data_models:     List of measurement station data models to check
+    :type meas_station_data_models:      List
+    :param df:                           DataFrame with the time series data
+    :type df:                            pd.DataFrame
+    :raises ValueError:                  If overlapping date ranges with non-zero offset are detected
+    :return:                             List of processed date ranges
+    :rtype:                              List[dict]
+    """
+    date_ranges = []
+    
+    for meas_station_data_model in meas_station_data_models:
+        date_from = meas_station_data_model.get('date_from')
+        if date_from is None or date_from == DATE_INSTEAD_OF_NONE:
+            date_from = df.index[0].strftime('%Y-%m-%dT%H:%M:%S')
+        date_to = meas_station_data_model.get('date_to')
+        if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+            date_to = df.index[-1].strftime('%Y-%m-%dT%H:%M:%S')
+        device_orientation_deg = meas_station_data_model.get('device_orientation_deg', 0)
+        if device_orientation_deg is None:
+            device_orientation_deg = 0
+        
+        date_ranges.append({
+            'from': pd.to_datetime(date_from),
+            'to': pd.to_datetime(date_to),
+            'offset': device_orientation_deg,
+            'model': meas_station_data_model
+        })
+    
+    for i, range1 in enumerate(date_ranges):
+        for j, range2 in enumerate(date_ranges):
+            if i >= j:
+                continue
+            # Check if date ranges overlap
+            overlap = (range1['from'] < range2['to'] and range2['from'] < range1['to'])
+            
+            # If ranges overlap and at least one has non-zero offset, raise error
+            if overlap and (range1['offset'] != 0 or range2['offset'] != 0):
+                raise ValueError(
+                    f"Overlapping date ranges with non-zero offset detected: "
+                    f"{range1['from']} to {range1['to']} (offset: {range1['offset']}°) and "
+                    f"{range2['from']} to {range2['to']} (offset: {range2['offset']}°) this is currently unsupported."
+                )
+    
+    return date_ranges
 
 
 def _apply_dir_offset_target_orientation(wdir_data, target_orientation_name, logger_offset, device_orientation_deg, 
