@@ -87,15 +87,14 @@ def test_plot_timeseries():
     
     time_series_subplot =  bw.analyse.plot._timeseries_subplot(DATA.index, DATA[columns_to_plot], use_colourmap=True,
                                                                external_legend=True, legend_fontsize=6, show_grid=True)
-    actual_colors = [line.get_color() for line in time_series_subplot.get_lines()]
     
     actual_colours = np.ones_like(columns_to_plot)
     for _, line in enumerate(time_series_subplot.get_lines()):
         for j, column in enumerate(columns_to_plot):
             if line.get_label() == column:
                 actual_colours[j] = line.get_color()
-    expected_colors = ['#9cc537', '#8abf41', '#78ba4b', '#65b454', '#53ae5e', '#41a968', '#2fa372', '#1c9d7b', '#0a9885', 
-                       '#059288', '#0c8c85', '#138682', '#1a807f', '#217b7c', '#287579', '#2f6f75', '#366972', '#3d636f']
+    expected_colors = ['#3d636f', '#366972', '#2f6f75', '#287579', '#217b7c', '#1a807f', '#138682', '#0c8c85', '#059288', 
+                       '#0a9885', '#1c9d7b', '#2fa372', '#41a968', '#53ae5e', '#65b454', '#78ba4b', '#8abf41', '#9cc537']
     assert all(a == e for a, e in zip(actual_colours, expected_colors))
     
     assert True
