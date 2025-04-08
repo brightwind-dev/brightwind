@@ -249,11 +249,12 @@ def validate_json(json_to_check, schema):
         }
         errors.append(error_detail)
         
-        # Optional: print errors while collecting them
-        print(f"Validation error at path: {error_path}")
-        print(f"Error message: {error.message}")
-        print(f"Failed schema part: {error.schema_path}")
-    
     data_is_valid = len(errors) == 0
+    if not data_is_valid:
+        print(f"Total of {len(errors)} errors.\n")
+        for error in reversed(errors):
+            print(f"Validation error at path: {error.get('path')}")
+            print(f"Error message: {error.get('message')}")
+            print(f"Failed schema part: {error.get('schema_path')}\n")
     
     return data_is_valid
