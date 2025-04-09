@@ -1161,7 +1161,7 @@ class LoadBrightHub:
         return plants_df
 
     @staticmethod
-    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None, measurement_station_type = None):
+    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None, measurement_station_type=None):
         """
         Get measurement stations available to you on BrightHub.
 
@@ -1230,7 +1230,7 @@ class LoadBrightHub:
             raise ValueError(meas_loc_json['Error'])
         
         if measurement_station_type is not None:
-            if isinstance (measurement_station_type, str):
+            if isinstance(measurement_station_type, str):
                 measurement_station_type = [measurement_station_type]
             meas_loc_json = [m for m in meas_loc_json if m['measurement_station_type_id'] in measurement_station_type]
 
