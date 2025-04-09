@@ -2348,6 +2348,9 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     The flagged data will be replaced with replacement_text values which then do not appear in any plots or affect 
     calculations.
 
+    The format of the cleaning rules JSON should validate against the 'cleaning_rule.schema.json' file found
+    in the 'load' area of this library.
+
     :param data:                        Data to be cleaned.
     :type data:                         pandas.DataFrame
     :param cleaning_rules_file_or_list: File path of the json file or a list dictionary which contains the cleaning
@@ -2371,15 +2374,28 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
         data = bw.load_csv(bw.demo_datasets.demo_data)
         cleaning_rules_file_or_list = bw.demo_datasets.demo_cleaning_rules_file
 
+        print("Before")
+        display(bw.plot_timeseries(data[['Spd80mN', 'Spd60mN']],
+                                   date_from='2016-03-01', date_to='2016-03-15'))
+
         # To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
         data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_file_or_list)
-        bw.plot_timeseries(data_cleaned[['Spd80mN', 'Spd60mN', 'Spd40mN']],
-                           date_from='2016-03-01', date_to='2016-03-15')
-        print(data_cleaned)
 
+        print("After")
+        display(bw.plot_timeseries(data_cleaned[['Spd80mN', 'Spd60mN']],
+                                   date_from='2016-03-01', date_to='2016-03-15'))
+
+    ::
         # To modify 'data' and replace it with the cleaned data:
         bw.apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=True)
-        print(data)
+        bw.plot_timeseries(data_cleaned[['Spd80mN', 'Spd60mN']],
+                           date_from='2016-03-01', date_to='2016-03-15'))
+
+    ::
+        # To view the cleaning rule schema file:
+        with open(bw.load.load.cleaning_rules_schema) as file:
+            schema = json.load(file)
+        schema
 
     """
 
@@ -2397,13 +2413,13 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     else:
         raise TypeError("Can't recognise the cleaning_rules_file_or_list. Please make sure it is a file path "
                         "or a list(dict).")
-    
+
     cleaning_json_is_valid = True
     for cleaning_rule in cleaning_json:
         if utils.validate_json(cleaning_rule, cleaning_rules_schema) is False:
             cleaning_json_is_valid = False
     if cleaning_json_is_valid is False:
-        raise ValueError("There is a problem with the validity of the supplied JSON please check the errors above")
+        raise ValueError("There is a problem with the validity of the supplied JSON please check the errors above.")
 
     if replacement_text == 'NaN':
         replacement_text = np.nan
