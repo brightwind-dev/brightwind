@@ -63,29 +63,29 @@
               "assembled_column_name": {
                 "type": "string",
                 "description": "The column name in the assembled timeseries these rules will be applied to."
-              },
-              "date_from": {
-                "type": ["string", "null"],
-                "format": "date-time",
-                "description": "The start date for when these cleaning rules would be applied. The format of this date should follow ISO 8601 with the 'T' required.",
-                "examples": [
-                  "2020-07-28T20:00:00",
-                  "2100-01-01T00:00:00"
-                ]
-              },
-              "date_to": {
-                "type": ["string", "null"],
-                "format": "date-time",
-                "description": "The final end date for when these cleaning rules would be applied. The format of this date should follow ISO 8601 with the 'T' required.",
-                "examples": [
-                  "2020-07-28T20:00:00",
-                  "2100-01-01T00:00:00"
-                ]
               }
             },
             "required": ["assembled_column_name"]
           },
           "minItems": 1
+        },
+        "date_from": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "The start date for when these cleaning rules would be applied. This date would be inclusive. The format of this date should follow ISO 8601 with the 'T' required.",
+          "examples": [
+            "2020-07-28T20:00:00",
+            "2100-01-01T00:00:00"
+          ]
+        },
+        "date_to": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "The end date for when these cleaning rules would be applied. This date would be exclusive. The format of this date should follow ISO 8601 with the 'T' required.",
+          "examples": [
+            "2020-07-28T20:00:00",
+            "2100-01-01T00:00:00"
+          ]
         }
       },
       "required": ["conditions", "clean_out"],
