@@ -77,8 +77,21 @@ def test_apply_cleaning_rules():
     assert (data_clnd[data["T2m"] > 5]["Spd60mS"] == "-").all()
     assert (data_clnd[data["T2m"] > 5]["Spd80mS"] == "-").all()
 
+
     with open(bw.demo_datasets.demo_cleaning_rules_file) as file:
         cleaning_json = json.load(file)
+
+    cleaning_json[0]['rule']['clean_out'][0]['date_to'] = "2016-02-01T00:00"
+    cleaning_json[1]['rule']['clean_out'][0]['date_from'] = "2016-02-01T00:00"
+    cleaning_json[1]['rule']['clean_out'][1]['date_to'] = "2017-09-01T00:00"
+    cleaning_json[1]['rule']['clean_out'][1]['date_from'] = "2016-02-01T00:00"
+
+    data_clnd = bw.apply_cleaning_rules(data, cleaning_json)
+    assert data_clnd["Spd80mN"][:"2016-02-01T00:00"].min() >= 10
+    assert data_clnd["Spd80mN"]["2016-02-01T00:00":].min() < 10
+    assert data_clnd[data["T2m"] > 5]["Spd80mN"]["2016-02-01T00:00":].isna().all()
+    assert data_clnd[data["T2m"] > 5]["Spd60mN"]["2016-02-01T00:00":"2017-08-31T23:59"] .isna().all()
+
     del cleaning_json[0]['rule']
     with pytest.raises(ValueError) as except_info:
         bw.apply_cleaning_rules(data, cleaning_json)
