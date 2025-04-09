@@ -2414,12 +2414,12 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
         raise TypeError("Can't recognise the cleaning_rules_file_or_list. Please make sure it is a file path "
                         "or a list(dict).")
 
-    cleaning_json_is_valid = True
+    validation_errors = False
     for cleaning_rule in cleaning_json:
-        if utils.validate_json(cleaning_rule, cleaning_rules_schema) is False:
-            cleaning_json_is_valid = False
-    if cleaning_json_is_valid is False:
-        raise ValueError("There is a problem with the validity of the supplied JSON please check the errors above.")
+        if not utils.validate_json(cleaning_rule, cleaning_rules_schema):
+            validation_errors = True
+    if validation_errors:
+        raise ValueError("There is a problem with the validity of the supplied JSON please check the errors above")
 
     if replacement_text == 'NaN':
         replacement_text = np.nan
