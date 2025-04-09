@@ -1512,8 +1512,9 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
                     apply_offset_to = (date_to_tmp if date_to_tmp < meas_station_data_model_to 
                                        else meas_station_data_model_to)
                     # Account for a logger offset
-                    df = _apply_dir_offset_target_orientation(
-                        df, name, logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to)
+                    df[name] = _apply_dir_offset_target_orientation(
+                        df[name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
+                        target_orientation_name='device orientation')
         else:
             wdir_not_in_dataset = True
             col_not_in_data.append(name)
@@ -1591,42 +1592,61 @@ def _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df
     return date_ranges
 
 
-def _apply_dir_offset_target_orientation(wdir_data, target_orientation_name, logger_offset, device_orientation_deg, 
-                                         apply_offset_from, apply_offset_to):
+def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orientation, apply_offset_from, apply_offset_to,
+                                         target_orientation_name):
     """
-    Function to apply the required offset to the wind direction data.
+    Function to apply the required offset to the wind direction data based on the logger offset and a target orientation.
+    Note that if `wdir_data` is a DataFrame, the adjustment derived from `logger_offset` and `target_orientation` is applied to
+    all columns.
+    
+    This function uses the brightwind 'offset_wind_direction()' function to apply the actual adjustment to 
+    the wind direction data.
 
-    :param wdir_data:               The data which includes a time series of wind direction data.
-    :type wdir_data:                pd.DataFrame or pd.Series
-    :param target_orientation_name: The wind direction column name to apply the offset to.
-    :type target_orientation_name:  str
-    :param logger_offset:           The logger offset value in degrees.
+    If there is a value in the logger measurement config for an offset, then the wind direction data has already 
+    been adjusted by this amount. This may or may not be equal to the target orientation. Therefore, 
+    the adjustment to be made should make up the difference to equal a target orientation. E.g.
+
+            offset to be applied = target_orientation - logger_offset
+
+    This function accounts for this adjustment.
+
+    :param wdir_data:               The wind direction data time series.
+    :type wdir_data:                pd.Series or pd.DataFrame
+    :param logger_offset:           The logger offset value in degrees for the input wind direction data.
     :type logger_offset:            float
-    :param device_orientation_deg:  The device orientation value in degrees.
-    :type device_orientation_deg:   float
+    :param target_orientation:      The target orientation value in degrees.
+    :type target_orientation:       float
     :param apply_offset_from:       The date to apply the offset from.
     :type apply_offset_from:        str | datetime.datetime | pd.Timestamp
     :param apply_offset_to:         The date to apply the offset to.
     :type apply_offset_to:          str | datetime.datetime | pd.Timestamp
+    :param target_orientation_name: The target orientation name to use for the print statements. 
+                                    e.g 'device orientation' or 'deadband orientation'
+    :type target_orientation_name:  str
     """
 
-    offset = device_orientation_deg
-    additional_comment_txt = 'to account for device_orientation'
-    if logger_offset is not None and logger_offset != 0 and device_orientation_deg is not None:
-        offset = offset_wind_direction(float(device_orientation_deg), offset=-float(logger_offset))
+    offset = target_orientation
+    wdir_names = list(wdir_data.columns) if isinstance(wdir_data, pd.DataFrame) else wdir_data.name
+    additional_comment_txt = 'to account for {}'.format(target_orientation_name)
+
+    if logger_offset is not None and logger_offset != 0 and target_orientation is not None:
+        offset = offset_wind_direction(float(target_orientation), offset=-float(logger_offset))
         additional_comment_txt = additional_comment_txt + ' and logger offset'
     if offset:
-        wdir_data[target_orientation_name][apply_offset_from:apply_offset_to] = offset_wind_direction(
-                            wdir_data[target_orientation_name][apply_offset_from:apply_offset_to], float(offset)
+        wdir_data[apply_offset_from:apply_offset_to] = offset_wind_direction(
+                            wdir_data[apply_offset_from:apply_offset_to], float(offset)
                             )
         print('{0} adjusted by {1} degrees from {2} to {3} {4}.\n'
-                            .format(utils.bold(target_orientation_name), utils.bold(str(offset)),
-                                    utils.bold(apply_offset_from), utils.bold(apply_offset_to), additional_comment_txt))
+                            .format(utils.bold(str(wdir_names)), utils.bold(str(offset)),
+                                    utils.bold(str(apply_offset_from)), utils.bold(str(apply_offset_to)), 
+                                    additional_comment_txt))
     elif offset == 0:
-        print('{} has an offset to be applied of 0 from {} to {} {}.\n'
-                            .format(utils.bold(target_orientation_name), utils.bold(apply_offset_from), utils.bold(apply_offset_to),
+        print('{0} has an offset to be applied of 0 degrees from {1} to {2} {3}.\n'
+                            .format(utils.bold(str(wdir_names)), utils.bold(str(apply_offset_from)), 
+                                    utils.bold(str(apply_offset_to)),
                                     additional_comment_txt))
     else:
-        print('{} has device_orientation of None from {} to {}.\n'
-                            .format(utils.bold(target_orientation_name), utils.bold(apply_offset_from), utils.bold(apply_offset_to)))
+        print('{0} has {1} as None from {2} to {3}.\n'
+                            .format(utils.bold(str(wdir_names)), target_orientation_name, 
+                                    utils.bold(str(apply_offset_from)), utils.bold(str(apply_offset_to))))
     return wdir_data
