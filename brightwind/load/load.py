@@ -2296,8 +2296,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     return data
 
 
-def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, comparison_operator_id, replacement_value,
-                         inplace=False):
+def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, comparison_operator_id, replacement_value):
     """Apply cleaning rule based on a single column to replace values on a list of columns
 
     :param df:                      Data to be cleaned.       
@@ -2321,19 +2320,11 @@ def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, compa
     :type comparison_operator_id:   int
     :param replacement_value:       Value or string to replace the data in the target_cols with
     :type replacement_value:        str | np.nan
-    :param inplace:                 If 'inplace' is True, the original data, 'data', will be modified and replaced
-                                    with the cleaned data. If 'inplace' is False, the original data will not be
-                                    touched and instead a new object containing the cleaned data is created.
-                                    To store this cleaned data, please ensure it is assigned to a new variable.
-    :type inplace:                  bool
     :return:                        Cleaned data
     :rtype:                         pandas.DataFrame
     """
 
-    if inplace is False:
-        result_df = df.copy()
-    else:
-        result_df = df
+    result_df = df
     op = OPERATOR_DICT[comparison_operator_id]
     mask = op(df[condition_col], comparator_value)
     for col in target_cols:
@@ -2432,8 +2423,9 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
         comparator_value = cleaning_rule['rule']['conditions']['comparator_value']
         comparison_operator_id = cleaning_rule['rule']['conditions']['comparison_operator_id']
         data = _apply_cleaning_rule(data, condition_column_name, columns_to_clean, comparator_value,
-                                    comparison_operator_id, replacement_text, inplace=inplace)
-    return data
+                                    comparison_operator_id, replacement_text)
+    if inplace is False:
+        return data
 
 
 def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags_to_exclude=['Synthesized'],
