@@ -2296,7 +2296,8 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     return data
 
 
-def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, comparison_operator_id, replacement_value):
+def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, comparison_operator_id, replacement_value, 
+                         dates_from, dates_to):
     """Apply cleaning rule based on a single column to replace values on a list of columns
 
     :param df:                      Data to be cleaned.       
@@ -2320,6 +2321,11 @@ def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, compa
     :type comparison_operator_id:   int
     :param replacement_value:       Value or string to replace the data in the target_cols with
     :type replacement_value:        str | np.nan
+    :param dates_from:              List of datetimes that the cleaning rule should be applied from for each column. 
+    :type dates_from:               List[str]
+    :param dates_to:                List of datetimes that the cleaning rule should be applied until for each column. If
+                                    None is present the data is cleaned until the end of the file.
+    :type dates_to:                 List[str| None]
     :return:                        Cleaned data
     :rtype:                         pandas.DataFrame
     """
@@ -2327,8 +2333,15 @@ def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, compa
     result_df = df
     op = OPERATOR_DICT[comparison_operator_id]
     mask = op(df[condition_col], comparator_value)
-    for col in target_cols:
-        result_df.loc[mask, col] = replacement_value
+
+    for i, col in enumerate(target_cols):
+        mask_date_range = pd.Series(False, index=df.index)
+        if dates_to[i]:
+            date_filter = (df.index >= dates_from[i]) & (df.index < dates_to[i])
+        else:
+            date_filter = (df.index >= dates_from[i])
+        mask_date_range = mask & date_filter
+        result_df.loc[mask_date_range, col] = replacement_value
     
     return result_df
 
@@ -2417,13 +2430,23 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     
     for cleaning_rule in cleaning_json:
         columns_to_clean = [column_name['assembled_column_name'] for column_name in cleaning_rule['rule']['clean_out']]
+        dates_from = [column_applied_to.get('date_from', data.index[0]) 
+                      for column_applied_to in cleaning_rule['rule']['clean_out']]
+        dates_to = [column_applied_to.get('date_to', None) for column_applied_to in cleaning_rule['rule']['clean_out']]
+        dates_from = [dates_from[i] for i, column_to_clean in enumerate(columns_to_clean) for column_name in data.columns 
+                            if column_to_clean in column_name]
+        dates_to = [dates_to[i] for i, column_to_clean in enumerate(columns_to_clean) for column_name in data.columns 
+                            if column_to_clean in column_name]
         columns_to_clean = [column_name for column_to_clean in columns_to_clean for column_name in data.columns 
                             if column_to_clean in column_name]
+
         condition_column_name = cleaning_rule['rule']['conditions']['assembled_column_name']
         comparator_value = cleaning_rule['rule']['conditions']['comparator_value']
         comparison_operator_id = cleaning_rule['rule']['conditions']['comparison_operator_id']
+
+
         data = _apply_cleaning_rule(data, condition_column_name, columns_to_clean, comparator_value,
-                                    comparison_operator_id, replacement_text)
+                                    comparison_operator_id, replacement_text, dates_from, dates_to)
     if inplace is False:
         return data
 
