@@ -1,42 +1,28 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$version": "1.0.0",
   "definitions": {
-    "statistic_type_id": {
-      "type": ["string", "null"],
-      "enum": [
-        "avg",
-        "sd",
-        "max",
-        "min",
-        "count",
-        "availability",
-        "quality",
-        "sum",
-        "median",
-        "mode",
-        "range",
-        "gust",
-        "ti",
-        "ti30sec",
-        "text",
-        null
-      ]
-    },
     "condition": {
       "type": "object",
       "properties": {
-        "measurement_point_uuid": {
+        "assembled_column_name": {
           "type": "string",
-          "format": "regex",
-          "pattern": "^[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}$"
+          "description": "The column name in the assembled timeseries these rules will be applied to."
         },
-        "statistic_type_id": { "$ref": "#/definitions/statistic_type_id" },
         "comparison_operator_id": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 6
+          "oneOf": [
+            { "const": 1, "description": "is less than" },
+            { "const": 2, "description": "is less than or equal" },
+            { "const": 3, "description": "is greater than" },
+            { "const": 4, "description": "is greater than or equal" },
+            { "const": 5, "description": "equals" },
+            { "const": 6, "description": "not equals" }
+          ]
         },
-        "comparator_value": { "type": "number" },
+        "comparator_value": {
+          "type": "number"
+        },
         "and": {
           "type": "array",
           "items": { "$ref": "#/definitions/condition" },
@@ -52,7 +38,7 @@
       "oneOf": [
         {
           "required": [
-            "measurement_point_uuid",
+            "assembled_column_name",
             "comparison_operator_id",
             "comparator_value"
           ]
@@ -65,16 +51,6 @@
   },
   "type": "object",
   "properties": {
-    "uuid": {
-      "type": "string",
-      "format": "regex",
-      "pattern": "^[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}$"
-    },
-    "measurement_location_uuid": {
-      "type": "string",
-      "format": "regex",
-      "pattern": "^[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}$"
-    },
     "rule": {
       "type": "object",
       "properties": {
@@ -84,36 +60,37 @@
           "items": {
             "type": "object",
             "properties": {
-              "measurement_point_uuid": {
+              "assembled_column_name": {
                 "type": "string",
-                "format": "regex",
-                "pattern": "^[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}$"
-              },
-              "statistic_type_id": {
-                "$ref": "#/definitions/statistic_type_id"
+                "description": "The column name in the assembled timeseries these rules will be applied to."
               },
               "date_from": {
                 "type": ["string", "null"],
-                "format": "regex",
-                "pattern": "[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])T(2[0-3]|[01][0-9]):[0-5][0-9]$"
+                "format": "date-time",
+                "description": "The start date for when these cleaning rules would be applied. The format of this date should follow ISO 8601 with the 'T' required.",
+                "examples": [
+                  "2020-07-28T20:00:00",
+                  "2100-01-01T00:00:00"
+                ]
               },
               "date_to": {
                 "type": ["string", "null"],
-                "format": "regex",
-                "pattern": "[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])T(2[0-3]|[01][0-9]):[0-5][0-9]$"
+                "format": "date-time",
+                "description": "The final end date for when these cleaning rules would be applied. The format of this date should follow ISO 8601 with the 'T' required.",
+                "examples": [
+                  "2020-07-28T20:00:00",
+                  "2100-01-01T00:00:00"
+                ]
               }
             },
-            "required": ["measurement_point_uuid"]
+            "required": ["assembled_column_name"]
           },
           "minItems": 1
         }
       },
       "required": ["conditions", "clean_out"],
       "additionalProperties": false
-    },
-    "notes": { "type": ["string", "null"] },
-    "update_at": { "type": ["string", "null"] },
-    "updated_by": { "type": ["string", "null"] }
+    }
   },
   "required": ["rule"],
   "additionalProperties": true
