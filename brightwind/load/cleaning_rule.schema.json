@@ -7,7 +7,7 @@
       "properties": {
         "assembled_column_name": {
           "type": "string",
-          "description": "The column name in the assembled timeseries these rules will be applied to."
+          "description": "The column name in the assembled timeseries this condition tests."
         },
         "comparison_operator_id": {
           "type": "integer",
