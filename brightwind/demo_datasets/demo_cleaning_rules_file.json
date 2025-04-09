@@ -3,7 +3,7 @@
       "rule": {
         "clean_out": [
           {
-            "assembled_column_name": "Spd80mN",
+            "assembled_column_name": "Spd80mN"
           }
         ],
         "conditions": {
