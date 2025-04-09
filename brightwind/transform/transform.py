@@ -1403,15 +1403,18 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             return df_copy.sort_index()
 
 
-def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols = [], inplace=False):
+def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[], inplace=False):
     """    
-    Automatically apply offset to input wind direction data to account for orientation that the remote sensing 
-    device (e.g. lidar, sodar and floating lidar) is installed relative to north. This orientation is set as 
-    `device_orientation_deg` on WRA Task 43 data model. The device orientation information for each device
-    and time period is contained in the measurements instance from bw.MeasurementStation. If wdir_cols is an empty list,
-    this is applied to all wind direction columns in the data, otherwise it is only applied to those columns requested.
+    Automatically apply offset to input wind direction data (for input `wdir_cols`) to account for orientation 
+    that the remote sensing device (e.g. lidar, sodar and floating lidar) is installed relative to north. 
+    This orientation is set as `device_orientation_deg` on IEA WRA Task 43 data model. The device orientation
+    information for each device and time period is contained in the `vertical_profiler_properties` instance 
+    from `bw.MeasurementStation`. 
+    If `wdir_cols` is an empty list, the offset is applied to all wind directions reported in the 
+    `meas_station_data_models` (if these are in the data), otherwise it is only applied to those columns requested.
     
-    This uses the brightwind 'offset_wind_direction()' function to apply the actual adjustment to the data.
+    This function uses the brightwind 'offset_wind_direction()' function to apply the actual adjustment to 
+    the data.
     Note: Be careful not to run this more than once in an assessment, when using inplace=True, as it will
           apply an offset again.
 
@@ -1423,53 +1426,68 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols = 
 
     This function accounts for this adjustment.
 
-    :param data:                       Timeseries data.
-    :type data:                        pd.DataFrame or pd.Series
-    :param meas_station_data_models:   A simplified object to represent the data model
-    :type meas_station_data_models:    MeasurementStation
-    :param measurements:               Measurement information extracted from a WRA Data Model using bw.MeasurementStation
-    :type measurements:                list or dict or _Measurements
-    :param inplace:                    If 'inplace' is True, the original direction data, contained in 'data', will be
-                                       modified and replaced with the adjusted direction data. If 'inplace' is False, the
-                                       original data will not be touched and instead a new DataFrame containing the adjusted
-                                       direction data is created. To store this adjusted direction data, please ensure it is
-                                       assigned to a new variable., defaults to False
-    :type inplace:                     bool, optional
-    :return:                           Data with adjusted wind direction by the deadband orientation accounting for 
-                                       orientation of the device.
-    :rtype:                            pd.DataFrame or pd.Series
+    Overlapping periods in vertical_profiler_properties with non-zero device orientation values are not supported 
+    and will raise an error.
+
+    :param data:                        Timeseries data.
+    :type data:                         pd.DataFrame or pd.Series
+    :param meas_station_data_models:    A simplified object to represent the IEA WRA Task 43 data model.
+    :type meas_station_data_models:     brightwind.load.station.MeasurementStation
+    :param wdir_cols:                   Wind direction column names to apply the offset to. If empty, all wind direction 
+                                        columns in the data are used. Default is an empty list.
+    :type wdir_cols:                    list
+    :param inplace:                     If 'inplace' is True, the original direction data, contained in 'data', will be
+                                        modified and replaced with the adjusted direction data. If 'inplace' is False, the
+                                        original data will not be touched and instead a new DataFrame containing the adjusted
+                                        direction data is created. To store this adjusted direction data, please ensure it is
+                                        assigned to a new variable. Default is False
+    :type inplace:                      bool, optional
+    :return:                            Data with adjusted wind direction by the offset derived accounting for the
+                                        orientation of the device relative to north.
+    :rtype:                             pd.DataFrame or pd.Series
     
     **Example usage**
     ::
-        mm1 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_demo_iea43_wra_data_model_v1_3)
+        fl1 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_demo_iea43_wra_data_model_v1_3)
         data = bw.load_csv(bw.demo_datasets.demo_floating_lidar_data)
 
-        # Adjust wind directions by the device orientation:
-        bw.apply_device_orientation_offset(data, mm1)
+    Adjust only some wind directions by the device orientation, and assign to new variable:
+        data_dev_orient_adj = bw.apply_device_orientation_offset(data, fl1, wdir_cols=['Dir_250m', 'Dir_200m'])
+
+    ::
+    Adjust all wind directions by the device orientation, applying inplace:
+        bw.apply_device_orientation_offset(data, fl1, inplace=True)
         print('Wind direction device orientation offset adjustment is completed.')
+    
     """
     
     measurements = meas_station_data_models.measurements
     wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
     # copy the data if needed
     data = data.copy(deep=True) if inplace is False else data
-    wdir_in_dataset = False
+    wdir_not_in_dataset = False
+    col_not_in_data = []
+    col_not_in_datamodel = []
     df = pd.DataFrame(data) if isinstance(data, pd.Series) else data
     if wdir_cols:
+        wdirs_properties_temp = []
         for col in wdir_cols:
             if col not in df.columns:
-                print('{} is not found in the DataFrame provided'.format(utils.bold(col)))
+                wdir_not_in_dataset = True
+                col_not_in_data.append(col)
             if not any(col == prop['name'] for prop in wdirs_properties):
-                print('{} is not found in the wind direction properties.'.format(utils.bold(col)))
+                col_not_in_datamodel.append(col)
+            else:
+                # keep wind direction properties only for input wdir_cols
+                wdirs_properties_temp.extend([prop for prop in wdirs_properties if col == prop['name']])
+        wdirs_properties = wdirs_properties_temp
 
-
-    _check_measurement_station_overlaps(meas_station_data_models, df)
+    _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df)
 
     # Apply the offset
     for wdir_prop in wdirs_properties:
         name = wdir_prop['name']
-        if name in df.columns and (name in wdir_cols or not wdir_cols):
-            wdir_in_dataset = True
+        if name in df.columns:
             date_to = wdir_prop.get('date_to')
             date_from = wdir_prop.get('date_from')
             date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
@@ -1497,29 +1515,43 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols = 
                     df = _apply_dir_offset_target_orientation(
                         df, name, logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to)
         else:
-            print('{} is not found in data.'.format(utils.bold(name)))
-    if wdir_in_dataset is False:
-        print('No wind direction measurement type found in the data.')
+            wdir_not_in_dataset = True
+            col_not_in_data.append(name)
+    
+    if wdir_not_in_dataset:
+        indexes = np.unique(col_not_in_data, return_index=True)[1]
+        col_not_in_data = [col_not_in_data[index] for index in sorted(indexes)]
+        print_text = 'Following wind direction measurement(s) not found in the data'
+        if wdir_cols:
+            print(print_text + ' for the requested `wdir_cols`: {}.'.format(utils.bold(str(col_not_in_data))))
+        else:
+            print(print_text + ': {}.'.format(utils.bold(str(col_not_in_data))))
+    if col_not_in_datamodel:
+        print('No device orientation offset applied to following requested measurement(s) as no wind direction measurement '
+        'type found in `meas_station_data_models` for these: {}.'.format(utils.bold(str(col_not_in_datamodel))))
     # if a Series is sent, send back a Series
     if isinstance(data, pd.Series):
         df = df[df.columns[0]]
     return df
 
 
-def _check_measurement_station_overlaps(meas_station_data_models, df):
+def _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df):
     """
-    Checks if there are any overlapping date ranges with non-zero device orientation offsets.
+    Checks if in vertical_profiler_properties there are any overlapping 
+    date ranges with non-zero device orientation values.
     
     Date ranges are considered as [from, to) where 'from' is inclusive and 'to' is exclusive.
-    Overlapping date ranges with non-zero offsets are not supported and will raise an error.
+    Overlapping date ranges with non-zero device orientation values are not supported 
+    by apply_device_orientation_offset function and will raise an error.
     
-    :param meas_station_data_models:     List of measurement station data models to check
-    :type meas_station_data_models:      List
-    :param df:                           DataFrame with the time series data
-    :type df:                            pd.DataFrame
-    :raises ValueError:                  If overlapping date ranges with non-zero offset are detected
-    :return:                             List of processed date ranges
-    :rtype:                              List[dict]
+    :param meas_station_data_models:    A simplified object to represent the IEA WRA Task 43 data model.
+    :type meas_station_data_models:     brightwind.load.station.MeasurementStation
+    :param df:                          DataFrame with the time series data
+    :type df:                           pd.DataFrame
+    :raises ValueError:                 If overlapping date ranges with non-zero device orientation 
+                                        values are detected
+    :return:                            List of processed date ranges
+    :rtype:                             List[dict]
     """
     date_ranges = []
     
