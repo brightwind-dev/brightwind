@@ -2296,7 +2296,8 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     return data
 
 
-def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, comparison_operator_id, replacement_value):
+def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, comparison_operator_id, replacement_value,
+                         inplace=False):
     """Apply cleaning rule based on a single column to replace values on a list of columns
 
     :param df:                      Data to be cleaned.       
@@ -2320,11 +2321,19 @@ def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, compa
     :type comparison_operator_id:   int
     :param replacement_value:       Value or string to replace the data in the target_cols with
     :type replacement_value:        str | np.nan
+    :param inplace:                 If 'inplace' is True, the original data, 'data', will be modified and replaced
+                                    with the cleaned data. If 'inplace' is False, the original data will not be
+                                    touched and instead a new object containing the cleaned data is created.
+                                    To store this cleaned data, please ensure it is assigned to a new variable.
+    :type inplace:                  bool
     :return:                        Cleaned data
     :rtype:                         pandas.DataFrame
     """
 
-    result_df = df.copy()
+    if inplace is False:
+        result_df = df.copy()
+    else:
+        result_df = df
     op = OPERATOR_DICT[comparison_operator_id]
     mask = op(df[condition_col], comparator_value)
     for col in target_cols:
@@ -2401,13 +2410,13 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     
     for cleaning_rule in cleaning_json:
         columns_to_clean = [column_name['assembled_column_name'] for column_name in cleaning_rule['rule']['clean_out']]
-        columns_to_clean = [column_name for column_to_clean in columns_to_clean for column_name in data.columns if column_to_clean in column_name]
+        columns_to_clean = [column_name for column_to_clean in columns_to_clean for column_name in data.columns 
+                            if column_to_clean in column_name]
         condition_column_name = cleaning_rule['rule']['conditions']['assembled_column_name']
         comparator_value = cleaning_rule['rule']['conditions']['comparator_value']
         comparison_operator_id = cleaning_rule['rule']['conditions']['comparison_operator_id']
         data = _apply_cleaning_rule(data, condition_column_name, columns_to_clean, comparator_value,
-                                    comparison_operator_id, replacement_text)
-
+                                    comparison_operator_id, replacement_text, inplace=inplace)
     return data
 
 

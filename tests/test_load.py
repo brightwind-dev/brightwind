@@ -84,6 +84,12 @@ def test_apply_cleaning_rules():
         bw.apply_cleaning_rules(data, cleaning_json)
     assert "There is a problem with the validity of the supplied JSON please check the errors above" in str(except_info.value)
 
+    data_original = data.copy(deep=True)
+    bw.apply_cleaning_rules(data, bw.demo_datasets.demo_cleaning_rules_file, replacement_text="-", inplace=True)
+    assert (data[data_original["T2m"] > 5]["T2m"] == "-").all()
+    assert (data[data_original["T2m"] > 5]["Spd60mS"] == "-").all()
+    assert (data[data_original["T2m"] > 5]["Spd80mS"] == "-").all()
+
 
 def test_load_csv():
     data = bw.load_csv(os.path.join(DEMO_DATA_FOLDER, 'demo_data.csv'))
