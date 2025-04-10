@@ -1565,8 +1565,6 @@ def _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df
     :param df:                          DataFrame with the time series data
     :type df:                           pd.DataFrame
     :raises ValueError:                 If overlapping date ranges with device orientation values are detected
-    :return:                            List of processed date ranges
-    :rtype:                             List[dict]
     """
     date_ranges = []
     
@@ -1577,9 +1575,7 @@ def _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df
         date_to = meas_station_data_model.get('date_to')
         if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
             date_to = df.index[-1].strftime('%Y-%m-%dT%H:%M:%S')
-        device_orientation_deg = meas_station_data_model.get('device_orientation_deg', 0)
-        if device_orientation_deg is None:
-            device_orientation_deg = 0
+        device_orientation_deg = meas_station_data_model.get('device_orientation_deg', None)
         
         date_ranges.append({
             'from': pd.to_datetime(date_from),
@@ -1603,8 +1599,6 @@ def _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df
                     f"{range1['from']} to {range1['to']} (device_orientation_deg: {range1['device_orientation_deg']}°) and "
                     f"{range2['from']} to {range2['to']} (device_orientation_deg: {range2['device_orientation_deg']}°) \nthis is currently unsupported."
                 )
-    
-    return date_ranges
 
 
 def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orientation, apply_offset_from, apply_offset_to,
@@ -1646,6 +1640,14 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
     wdir_names = list(wdir_data.columns) if isinstance(wdir_data, pd.DataFrame) else wdir_data.name
     additional_comment_txt = 'to account for {}'.format(target_orientation_name)
 
+    if apply_offset_to is None:
+        to_text = "end of dataframe"
+    else:
+        mask = (wdir_data.index >= pd.Timestamp(apply_offset_from)) & (wdir_data.index < pd.Timestamp(apply_offset_to))
+        idx_pos = wdir_data.index.get_loc(pd.Timestamp(apply_offset_to))
+        apply_offset_to_inclusive = wdir_data.index[idx_pos - 1].strftime('%Y-%m-%dT%H:%M:%S')
+        to_text = f"{apply_offset_to} (exclusive or {apply_offset_to_inclusive} inclusive)"    
+
     if logger_offset is not None and logger_offset != 0 and target_orientation is not None:
         offset = offset_wind_direction(float(target_orientation), offset=-float(logger_offset))
         additional_comment_txt = additional_comment_txt + ' and logger offset'
@@ -1653,10 +1655,6 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
         # Create a mask for the date range with exclusive upper bound or to end of dataframe
         if apply_offset_to is None:
             mask = (wdir_data.index >= pd.Timestamp(apply_offset_from))
-            to_text = "end of dataframe"
-        else:
-            mask = (wdir_data.index >= pd.Timestamp(apply_offset_from)) & (wdir_data.index < pd.Timestamp(apply_offset_to))
-            to_text = str(apply_offset_to) + " (exclusive)"
             
         # Apply offset only to the masked data
         wdir_data.loc[mask] = offset_wind_direction(wdir_data.loc[mask], float(offset))
@@ -1665,22 +1663,12 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
               .format(utils.bold(str(wdir_names)), utils.bold(str(offset)),
                      utils.bold(str(apply_offset_from)), utils.bold(to_text),
                      additional_comment_txt))
-    elif offset == 0:
-        if apply_offset_to is None:
-            to_text = "end of dataframe"
-        else:
-            to_text = str(apply_offset_to) + " (exclusive)"
-            
+    elif offset == 0:            
         print('{0} has an offset to be applied of 0 degrees from {1} to {2} {3}.\n'
               .format(utils.bold(str(wdir_names)), utils.bold(str(apply_offset_from)),
                      utils.bold(to_text),
                      additional_comment_txt))
-    else:
-        if apply_offset_to is None:
-            to_text = "end of dataframe"
-        else:
-            to_text = str(apply_offset_to) + " (exclusive)"
-            
+    else:            
         print('{0} has {1} as None from {2} to {3}.\n'
               .format(utils.bold(str(wdir_names)), target_orientation_name,
                      utils.bold(str(apply_offset_from)), utils.bold(to_text)))
