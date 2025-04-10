@@ -379,9 +379,8 @@ class MeasurementStation:
     :rtype:                MeasurementStation
     """
     def __init__(self, wra_data_model):
-        self.__data_model = self._load_wra_data_model(self, wra_data_model)
-        version = self.__data_model.get('version')
-        self.__schema = self._get_schema(version=version)
+        self.__data_model = self._load_wra_data_model(wra_data_model)
+        self.__schema = self._get_schema(dm=self.__data_model)
         self.__header = _Header(dm=self.__data_model, schema=self.__schema)
         self.__meas_loc_data_model = self._get_meas_loc_data_model(dm=self.__data_model)
         self.__meas_loc_properties = self.__get_properties()
@@ -400,7 +399,7 @@ class MeasurementStation:
         return repr(self.__meas_loc_properties)
 
     @staticmethod
-    def _load_wra_data_model(self, wra_data_model):
+    def _load_wra_data_model(wra_data_model):
         """
         Load a IEA Wind Resource Assessment Data Model.
 
@@ -426,26 +425,21 @@ class MeasurementStation:
         else:
             # it is most likely already a dict so return itself
             dm = wra_data_model
-        
-        version = dm.get('version')
-        schema = self._get_schema(version)
-        is_schema_valid = utils.validate_json(dm, schema)
-        if is_schema_valid is False:
-            raise ValueError("There is a problem with the validity of the supplied WRA data model" +
-                             " please check the errors above.")
 
         return dm
 
     @staticmethod
-    def _get_schema(version):
+    def _get_schema(dm):
         """
-        Get the JSON Schema from GitHub based on the version number in the data model.
+        Get the JSON Schema from GitHub based on the version number in the data model and validate the supplied
+        data model against the schema.
 
-        :param version: The version from the header information from the data model json file.
-        :type version:  str
+        :param dm:      The data model.
+        :type dm:       dict
         :return:        The IEA Wind Task 43 WRA Data Model Schema.
         :rtype:         dict
         """
+        version = dm.get('version')
         schema_link = 'https://github.com/IEA-Task-43/digital_wra_data_standard/releases/download/v{}' \
                       '/iea43_wra_data_model.schema.json'
         response = requests.get(schema_link.format(version))
@@ -453,6 +447,12 @@ class MeasurementStation:
             raise ValueError('Schema could not be downloaded from GitHub. Please check the version number in the '
                              'data model json file.')
         schema = json.loads(response.content)
+
+        is_schema_valid = utils.validate_json(dm, schema)
+        if is_schema_valid is False:
+            raise ValueError("There is a problem with the validity of the supplied WRA Data Model." +
+                             " Please check the errors above.")
+
         return schema
 
     @staticmethod
@@ -472,6 +472,7 @@ class MeasurementStation:
 
     @property
     def schema(self):
+        print("Is schema called?")
         return self.__schema
 
     @property
