@@ -2338,8 +2338,7 @@ def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, compa
     else:
         date_filter = (df.index >= date_from)
 
-    for i, col in enumerate(target_cols):
-        mask_date_range = pd.Series(False, index=df.index)
+    for col in target_cols:
         mask_date_range = mask & date_filter
         result_df.loc[mask_date_range, col] = replacement_value
     
