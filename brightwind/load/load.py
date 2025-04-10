@@ -1236,7 +1236,7 @@ class LoadBrightHub:
             meas_loc_json = [m for m in meas_loc_json if m['measurement_station_type_id'] in measurement_station_type]
             if len(meas_loc_json) == 0:
                 raise ValueError(
-                    f"No measurement stations found for the provided station types {measurement_station_type}."
+                    f"No measurement stations found for the provided station types: {measurement_station_type}. "
                     f"Available data types are: {available_measurement_station_types}."
                     )
 
