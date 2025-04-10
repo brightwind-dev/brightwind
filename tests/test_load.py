@@ -76,12 +76,16 @@ def test_apply_cleaning_rules():
 
     data_clnd = bw.apply_cleaning_rules(data, bw.demo_datasets.demo_cleaning_rules_file, replacement_text="-")
     assert (data_clnd[data["T2m"] > 5][date_from:date_to]["T2m"] == "-").all()
-    before_range = data_clnd[data["T2m"] > 5][:"2016-01-31T23:59"]["T2m"]
-    assert (before_range != "-").all()
-    after_range = data_clnd[data["T2m"] > 5]["2017-09-01T00:00":]["T2m"]
-    assert (after_range != "-").all()
     assert (data_clnd[data["T2m"] > 5][date_from:date_to]["Spd60mS"] == "-").all()
     assert (data_clnd[data["T2m"] > 5][date_from:date_to]["Spd80mS"] == "-").all()
+    before_range = data_clnd[data["T2m"] > 5][:"2016-01-31T23:59"]
+    after_range = data_clnd[data["T2m"] > 5]["2017-09-01T00:00":]
+    assert (before_range["T2m"] != "-").all()
+    assert (after_range["T2m"] != "-").all()
+    assert (before_range["Spd60mS"] != "-").all()
+    assert (after_range["Spd60mS"] != "-").all()
+    assert (before_range["Spd80mS"] != "-").all()
+    assert (after_range["Spd80mS"] != "-").all()
 
 
     with open(bw.demo_datasets.demo_cleaning_rules_file) as file:
