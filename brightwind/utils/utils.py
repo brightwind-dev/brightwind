@@ -1,10 +1,7 @@
 import numpy as np
 import pandas as pd
-import datetime
 import os
 import json
-from jsonschema import validate
-from jsonschema.exceptions import ValidationError
 from jsonschema import Draft7Validator
 
 __all__ = ['slice_data',
@@ -232,9 +229,7 @@ def validate_json(json_to_check, schema):
         if is_file(schema):
             with open(schema) as file:
                 schema = json.load(file)
-    elif isinstance(schema, dict):
-        schema = schema
-    else:
+    elif not isinstance(schema, dict):
         raise ValueError("Incorrect schema type used, this must be a str or a dict.")
     
     errors = []
