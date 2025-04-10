@@ -1584,7 +1584,7 @@ def _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df
         date_ranges.append({
             'from': pd.to_datetime(date_from),
             'to': pd.to_datetime(date_to),
-            'offset': device_orientation_deg,
+            'device_orientation_deg': device_orientation_deg,
             'model': meas_station_data_model
         })
     
@@ -1595,12 +1595,13 @@ def _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df
             # Check if date ranges overlap
             overlap = (range1['from'] < range2['to'] and range2['from'] < range1['to'])
             
-            # If ranges overlap and at least one has offset, raise error
-            if overlap and (range1['offset'] is not None or range2['offset'] is not None):
+            # If ranges overlap and at least one device_orientation_deg has a value different than None, raise error
+            if overlap and (range1['device_orientation_deg'] is not None or range2['device_orientation_deg'] is not None):
                 raise ValueError(
-                    f"Overlapping date ranges with offset detected: "
-                    f"{range1['from']} to {range1['to']} (offset: {range1['offset']}°) and "
-                    f"{range2['from']} to {range2['to']} (offset: {range2['offset']}°) this is currently unsupported."
+                    f"Overlapping periods detected on vertical_profiler_properties with at least one " +
+                    "device_orientation_deg value different than None: \n"
+                    f"{range1['from']} to {range1['to']} (device_orientation_deg: {range1['device_orientation_deg']}°) and "
+                    f"{range2['from']} to {range2['to']} (device_orientation_deg: {range2['device_orientation_deg']}°) \nthis is currently unsupported."
                 )
     
     return date_ranges
