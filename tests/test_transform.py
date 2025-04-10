@@ -181,12 +181,15 @@ def test_apply_device_orientation_offset():
     actual_dataframe_result = bw.apply_device_orientation_offset(
         DATA_LIDAR, STATION_LIDAR
         )
+    # Test for edge cases to ensure double application is not happening and [from, to) is observed
+    overlap_datetime = STATION_LIDAR[0].get('date_to')
 
     assert np.allclose(actual_series_result.iloc[0] - DATA_LIDAR['Dir_40m'].iloc[0], 92)
     assert np.allclose(actual_series_result.iloc[-1] - DATA_LIDAR['Dir_40m'].iloc[-1], 3)
     assert np.allclose(
         actual_series_result.loc['2012-11-16T16:50:00'] - DATA_LIDAR['Dir_40m'].loc['2012-11-16T16:50:00'], 97
         )
+    assert np.allclose(actual_series_result.loc[overlap_datetime] - DATA_LIDAR['Dir_40m'].loc[overlap_datetime], 100)
     assert np.allclose(
         actual_series_result.loc['2012-11-23T15:10:00'] - DATA_LIDAR['Dir_40m'].loc['2012-11-23T15:10:00'], 100
         )

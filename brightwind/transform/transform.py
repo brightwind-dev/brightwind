@@ -1556,18 +1556,17 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
 def _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df):
     """
     Checks if in vertical_profiler_properties there are any overlapping 
-    date ranges with non-zero device orientation values.
+    date ranges with device orientation values.
     
     Date ranges are considered as [from, to) where 'from' is inclusive and 'to' is exclusive.
-    Overlapping date ranges with non-zero device orientation values are not supported 
+    Overlapping date ranges with device orientation values are not supported 
     by apply_device_orientation_offset function and will raise an error.
     
     :param meas_station_data_models:    A simplified object to represent the IEA WRA Task 43 data model.
     :type meas_station_data_models:     brightwind.load.station.MeasurementStation
     :param df:                          DataFrame with the time series data
     :type df:                           pd.DataFrame
-    :raises ValueError:                 If overlapping date ranges with non-zero device orientation 
-                                        values are detected
+    :raises ValueError:                 If overlapping date ranges with device orientation values are detected
     :return:                            List of processed date ranges
     :rtype:                             List[dict]
     """
@@ -1598,10 +1597,10 @@ def _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df
             # Check if date ranges overlap
             overlap = (range1['from'] < range2['to'] and range2['from'] < range1['to'])
             
-            # If ranges overlap and at least one has non-zero offset, raise error
-            if overlap and (range1['offset'] != 0 or range2['offset'] != 0):
+            # If ranges overlap and at least one has offset, raise error
+            if overlap and (range1['offset'] is not None or range2['offset'] is not None):
                 raise ValueError(
-                    f"Overlapping date ranges with non-zero offset detected: "
+                    f"Overlapping date ranges with offset detected: "
                     f"{range1['from']} to {range1['to']} (offset: {range1['offset']}°) and "
                     f"{range2['from']} to {range2['to']} (offset: {range2['offset']}°) this is currently unsupported."
                 )
@@ -1613,8 +1612,8 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
                                          target_orientation_name):
     """
     Function to apply the required offset to the wind direction data based on the logger offset and a target orientation.
-    Note that if `wdir_data` is a DataFrame, the adjustment derived from `logger_offset` and `target_orientation` is applied to
-    all columns.
+    Note that if `wdir_data` is a DataFrame, the adjustment derived from `logger_offset` and `target_orientation` 
+    is applied to all columns.
     
     This function uses the brightwind 'offset_wind_direction()' function to apply the actual adjustment to 
     the wind direction data.
