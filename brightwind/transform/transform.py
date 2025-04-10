@@ -1472,8 +1472,6 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
     col_not_in_data = []
     col_not_in_datamodel = []
     df = pd.DataFrame(data) if isinstance(data, pd.Series) else data
-    # copy of data to be used to avoid applying offset more than once when apply_offset_from == previous_date_to
-    df_temp = pd.DataFrame(data.copy(deep=True)) if isinstance(data, pd.Series) else data.copy(deep=True)
 
     if wdir_cols:
         wdirs_properties_temp = []
@@ -1506,27 +1504,27 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
                                             meas_station_data_model_from is None or meas_station_data_model_from ==
                                             DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
                 meas_station_data_model_to = meas_station_data_model.get('date_to')
-                meas_station_data_model_to = (df.index[-1].strftime('%Y-%m-%dT%H:%M:%S') if
-                                            meas_station_data_model_to is None or meas_station_data_model_to ==
-                                            DATE_INSTEAD_OF_NONE else meas_station_data_model_to)
                 
-                date_to_tmp = (meas_station_data_model_to 
-                               if date_to is None or date_to == DATE_INSTEAD_OF_NONE else date_to)
+                if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+                    date_to_tmp = meas_station_data_model_to
+                else:
+                    idx_pos = df.index.get_loc(pd.Timestamp(date_to))
+                    date_to_tmp = df.index[idx_pos + 1].strftime('%Y-%m-%dT%H:%M:%S') if idx_pos + 1 < len(df.index) else date_to
+
                 if i==0 or previous_name != name:
-                    previous_date_to = date_to_tmp
                     previous_name = name
                     i+=1
-                if date_from <= meas_station_data_model_to and date_to_tmp >= meas_station_data_model_from:
+                if (((meas_station_data_model_to is None) or (date_from <= meas_station_data_model_to)) and 
+                    ((date_to_tmp is None) or (meas_station_data_model_from is None) or 
+                     (date_to_tmp >= meas_station_data_model_from))):
                     device_orientation_deg = meas_station_data_model.get('device_orientation_deg')
                     apply_offset_from = (date_from if date_from > meas_station_data_model_from 
                                          else meas_station_data_model_from)
-                    apply_offset_to = (date_to_tmp if date_to_tmp < meas_station_data_model_to 
-                                       else meas_station_data_model_to)
-                    # Revert data for previous_date_to to avoid applying offset more than once
-                    if apply_offset_from == previous_date_to:
-                        df[name][previous_date_to] = df_temp[name][previous_date_to].copy()
-                    # Account for a logger offset
-                    previous_date_to = apply_offset_to
+                    if date_to_tmp is None or meas_station_data_model_to is None:
+                        apply_offset_to = date_to_tmp if date_to_tmp is not None else meas_station_data_model_to
+                    else:
+                        apply_offset_to = min(date_to_tmp, meas_station_data_model_to)
+
                     previous_name = name
                     df[name] = _apply_dir_offset_target_orientation(
                         df[name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
@@ -1626,6 +1624,8 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
 
     This function accounts for this adjustment.
 
+    Date ranges are considered as [from, to) where 'from' is inclusive and 'to' is exclusive.
+
     :param wdir_data:               The wind direction data time series.
     :type wdir_data:                pd.Series or pd.DataFrame
     :param logger_offset:           The logger offset value in degrees for the input wind direction data.
@@ -1634,7 +1634,7 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
     :type target_orientation:       float
     :param apply_offset_from:       The date to apply the offset from.
     :type apply_offset_from:        str | datetime.datetime | pd.Timestamp
-    :param apply_offset_to:         The date to apply the offset to.
+    :param apply_offset_to:         The date to apply the offset to, treated in and exclusive manner.
     :type apply_offset_to:          str | datetime.datetime | pd.Timestamp
     :param target_orientation_name: The target orientation name to use for the print statements. 
                                     e.g 'device orientation' or 'deadband orientation'
@@ -1649,20 +1649,39 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
         offset = offset_wind_direction(float(target_orientation), offset=-float(logger_offset))
         additional_comment_txt = additional_comment_txt + ' and logger offset'
     if offset:
-        wdir_data[apply_offset_from:apply_offset_to] = offset_wind_direction(
-                            wdir_data[apply_offset_from:apply_offset_to], float(offset)
-                            )
+        # Create a mask for the date range with exclusive upper bound or to end of dataframe
+        if apply_offset_to is None:
+            mask = (wdir_data.index >= pd.Timestamp(apply_offset_from))
+            to_text = "end of dataframe"
+        else:
+            mask = (wdir_data.index >= pd.Timestamp(apply_offset_from)) & (wdir_data.index < pd.Timestamp(apply_offset_to))
+            to_text = str(apply_offset_to) + " (exclusive)"
+            
+        # Apply offset only to the masked data
+        wdir_data.loc[mask] = offset_wind_direction(wdir_data.loc[mask], float(offset))
+        
         print('{0} adjusted by {1} degrees from {2} to {3} {4}.\n'
-                            .format(utils.bold(str(wdir_names)), utils.bold(str(offset)),
-                                    utils.bold(str(apply_offset_from)), utils.bold(str(apply_offset_to)), 
-                                    additional_comment_txt))
+              .format(utils.bold(str(wdir_names)), utils.bold(str(offset)),
+                     utils.bold(str(apply_offset_from)), utils.bold(to_text),
+                     additional_comment_txt))
     elif offset == 0:
+        if apply_offset_to is None:
+            to_text = "end of dataframe"
+        else:
+            to_text = str(apply_offset_to) + " (exclusive)"
+            
         print('{0} has an offset to be applied of 0 degrees from {1} to {2} {3}.\n'
-                            .format(utils.bold(str(wdir_names)), utils.bold(str(apply_offset_from)), 
-                                    utils.bold(str(apply_offset_to)),
-                                    additional_comment_txt))
+              .format(utils.bold(str(wdir_names)), utils.bold(str(apply_offset_from)),
+                     utils.bold(to_text),
+                     additional_comment_txt))
     else:
+        if apply_offset_to is None:
+            to_text = "end of dataframe"
+        else:
+            to_text = str(apply_offset_to) + " (exclusive)"
+            
         print('{0} has {1} as None from {2} to {3}.\n'
-                            .format(utils.bold(str(wdir_names)), target_orientation_name, 
-                                    utils.bold(str(apply_offset_from)), utils.bold(str(apply_offset_to))))
+              .format(utils.bold(str(wdir_names)), target_orientation_name,
+                     utils.bold(str(apply_offset_from)), utils.bold(to_text)))
+    
     return wdir_data
