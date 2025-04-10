@@ -1161,7 +1161,7 @@ class LoadBrightHub:
         return plants_df
 
     @staticmethod
-    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None, measurement_station_type = None):
+    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None, measurement_station_type=None):
         """
         Get measurement stations available to you on BrightHub.
 
@@ -1230,7 +1230,7 @@ class LoadBrightHub:
             raise ValueError(meas_loc_json['Error'])
         
         if measurement_station_type is not None:
-            if isinstance (measurement_station_type, str):
+            if isinstance(measurement_station_type, str):
                 measurement_station_type = [measurement_station_type]
             meas_loc_json = [m for m in meas_loc_json if m['measurement_station_type_id'] in measurement_station_type]
 
@@ -1463,7 +1463,53 @@ class LoadBrightHub:
             # Handle all request-related errors
             raise RuntimeError(f"An error occurred while fetching the cleaning log: {e}")
         return pd.read_csv(StringIO(cleaning_log_response.text))
-      
+
+    @staticmethod
+    def get_cleaning_rules(measurement_station_uuid):
+        """
+        Get the cleaning rules from BrightHub for a particular measurement station.
+
+        :param measurement_station_uuid: A specific measurement station's uuid.
+        :type measurement_station_uuid:  str
+        :return:                         The cleaning rules for the measurement station.
+        :rtype:                          list(dict)
+
+        **Example usage**
+        ::
+            import brightwind as bw
+
+        To get the cleaning rules for a specific measurement station
+        ::
+            measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14'
+            cleaning_rules_json = bw.LoadBrightHub.get_cleaning_rules(measurement_station_uuid)
+
+        Applying the cleaning rules to the timeseries data.
+        ::
+            # First get the timeseries data.
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid)
+
+            # Apply the cleaning rules to the data resulting in a dataset that is ready to work with.
+            data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_json)
+
+        """
+        response = LoadBrightHub._brighthub_request(
+            url_end="/measurement-locations/{}/cleaning-rules".format(measurement_station_uuid))
+        response_json = response.json()
+
+        # error handling
+        if response.status_code == 400 and 'details' in response_json:  # request parameters invalid or missing
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 403 and 'details' in response_json:  # insufficient permissions or download limit
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 404 and 'details' in response_json:  # requested resource not found
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 500 and 'details' in response_json:  # unexpected server error
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        elif 'error' in response_json:
+            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
+
+        return response_json
+
     @staticmethod
     def __get_reanalysis_nodes(reanalysis_name, min_latitude_ddeg, max_latitude_ddeg,
                                min_longitude_ddeg, max_longitude_ddeg):
