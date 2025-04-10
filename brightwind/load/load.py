@@ -1173,7 +1173,8 @@ class LoadBrightHub:
         return plants_df
 
     @staticmethod
-    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None, measurement_station_type=None):
+    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None, measurement_station_type=None,
+                                 return_df=True):
         """
         Get measurement stations available to you on BrightHub.
 
@@ -1185,8 +1186,11 @@ class LoadBrightHub:
         :param measurement_station_type: The type of measurement station i.e. lidar, mast, sodar, etc. If None is set, 
                                          all types will be returned. Default, None.
         :type measurement_station_type:  str | List | None
+        :param return_df:                If True, returns the measurement stations as a pd.DataFrame. Otherwise a JSON
+                                         is returned. Default, True.
+        :type return_df:                 bool
         :return:                         A table showing the available measurement stations.
-        :rtype:                          pd.DataFrame
+        :rtype:                          pd.DataFrame | List[dict]
 
         To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
 
@@ -1215,10 +1219,16 @@ class LoadBrightHub:
         To get a specific measurement station
         ::
             bw.LoadBrightHub.get_measurement_stations(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
-
+        
         To get all available lidar measurement stations
         ::
             bw.LoadBrightHub.get_measurement_stations(measurement_station_type='lidar')
+        
+        To get a specific measurement station as a list of dictionaries instead of a DataFrame
+        ::
+            bw.LoadBrightHub.get_measurement_stations(
+                    measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14', return_df=False
+                    )
 
         """
         measurement_locations = None
@@ -1252,14 +1262,18 @@ class LoadBrightHub:
                     f"Available data types are: {available_measurement_station_types}."
                     )
 
-        meas_loc_df = pd.read_json(json.dumps(meas_loc_json))
-        required_cols = ['name', 'measurement_station_type_id',
-                         'latitude_ddeg', 'longitude_ddeg', 'plant_uuid', 'uuid', 'notes']
-        meas_loc_df = meas_loc_df[required_cols]
-        meas_loc_df.set_index(['name'], inplace=True)
-        meas_loc_df.sort_index(ascending=True, inplace=True)
-        meas_loc_df.rename(columns={'uuid': 'measurement_station_uuid',
-                                    'measurement_station_type_id': 'measurement_station_type'}, inplace=True)
+        if return_df:
+            meas_loc_df = pd.read_json(json.dumps(meas_loc_json))
+            required_cols = ['name', 'measurement_station_type_id',
+                             'latitude_ddeg', 'longitude_ddeg', 'plant_uuid', 'uuid', 'notes']
+            meas_loc_df = meas_loc_df[required_cols]
+            meas_loc_df.set_index(['name'], inplace=True)
+            meas_loc_df.sort_index(ascending=True, inplace=True)
+            meas_loc_df.rename(columns={'uuid': 'measurement_station_uuid',
+                                        'measurement_station_type_id': 'measurement_station_type'}, inplace=True)
+        else:
+            meas_loc_df = meas_loc_json
+        
         return meas_loc_df
 
     @staticmethod

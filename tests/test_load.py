@@ -170,6 +170,19 @@ def test_load_brighthub():
 
     assert ['lidar', 'mast'] == sorted(device_types_lidar_mast)
     # To get a specific measurement station
+    measurement_stations = bw.LoadBrightHub.get_measurement_stations(measurement_station_uuid=measurement_station_uuid)
+    measurement_stations_json = bw.LoadBrightHub.get_measurement_stations(
+        measurement_station_uuid=measurement_station_uuid, return_df=False
+        )
+
+    assert type(measurement_stations) == pd.DataFrame
+    assert type(measurement_stations_json) == list
+    assert type(measurement_stations_json[0]) == dict
+    assert measurement_stations_json[0]["uuid"] == measurement_station_uuid
+
+    # # Doesn't work anymore as more than 1 station is returned now.
+    # measurement_stations2 = bw.LoadBrightHub.get_measurement_stations(plant_uuid=plant_uuid)
+    # assert (measurement_stations2.dropna(axis=1) == measurement_stations.dropna(axis=1)).all().all() 
     # measurement_stations = bw.LoadBrightHub.get_measurement_stations(measurement_station_uuid=measurement_station_uuid)
     # assert (.dropna(    # Doesn't work anymore as more than 1 station is returned now.
     #     axis=1) == measurement_stations.dropna(axis=1)).all().all()
