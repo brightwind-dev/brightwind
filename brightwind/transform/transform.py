@@ -1426,6 +1426,9 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
 
     This function accounts for this adjustment.
 
+    If configuration date from is equal to previous configuration date to then date ranges are considered as 
+    [from, to) where 'from' is inclusive and 'to' is exclusive.
+
     Overlapping periods in vertical_profiler_properties with non-zero device orientation values are not supported 
     and will raise an error.
 
@@ -1469,6 +1472,9 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
     col_not_in_data = []
     col_not_in_datamodel = []
     df = pd.DataFrame(data) if isinstance(data, pd.Series) else data
+    # copy of data to be used to avoid applying offset more than once when apply_offset_from == previous_date_to
+    df_temp = pd.DataFrame(data.copy(deep=True)) if isinstance(data, pd.Series) else data.copy(deep=True)
+
     if wdir_cols:
         wdirs_properties_temp = []
         for col in wdir_cols:
@@ -1484,6 +1490,7 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
 
     _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df)
 
+    i = 0
     # Apply the offset
     for wdir_prop in wdirs_properties:
         name = wdir_prop['name']
@@ -1505,13 +1512,22 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
                 
                 date_to_tmp = (meas_station_data_model_to 
                                if date_to is None or date_to == DATE_INSTEAD_OF_NONE else date_to)
+                if i==0 or previous_name != name:
+                    previous_date_to = date_to_tmp
+                    previous_name = name
+                    i+=1
                 if date_from <= meas_station_data_model_to and date_to_tmp >= meas_station_data_model_from:
                     device_orientation_deg = meas_station_data_model.get('device_orientation_deg')
                     apply_offset_from = (date_from if date_from > meas_station_data_model_from 
                                          else meas_station_data_model_from)
                     apply_offset_to = (date_to_tmp if date_to_tmp < meas_station_data_model_to 
                                        else meas_station_data_model_to)
+                    # Revert data for previous_date_to to avoid applying offset more than once
+                    if apply_offset_from == previous_date_to:
+                        df[name][previous_date_to] = df_temp[name][previous_date_to].copy()
                     # Account for a logger offset
+                    previous_date_to = apply_offset_to
+                    previous_name = name
                     df[name] = _apply_dir_offset_target_orientation(
                         df[name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
                         target_orientation_name='device orientation')
@@ -1533,6 +1549,7 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
     # if a Series is sent, send back a Series
     if isinstance(data, pd.Series):
         df = df[df.columns[0]]
+        data.update(df)
     return df
 
 
