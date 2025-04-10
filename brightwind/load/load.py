@@ -1173,7 +1173,8 @@ class LoadBrightHub:
         return plants_df
 
     @staticmethod
-    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None, measurement_station_type=None, return_df=True):
+    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None, measurement_station_type=None,
+                                 return_df=True):
         """
         Get measurement stations available to you on BrightHub.
 
@@ -1185,8 +1186,8 @@ class LoadBrightHub:
         :param measurement_station_type: The type of measurement station i.e. lidar, mast, sodar, etc. If None is set, 
                                          all types will be returned. Default, None.
         :type measurement_station_type:  str | List | None
-        :param return_df:                If True, returns the measurement stations as a pd.DataFrame. Otherwise a JSON is
-                                         returned. Default, True.
+        :param return_df:                If True, returns the measurement stations as a pd.DataFrame. Otherwise a JSON
+                                         is returned. Default, True.
         :type return_df:                 bool
         :return:                         A table showing the available measurement stations.
         :rtype:                          pd.DataFrame | List[dict]
@@ -1264,7 +1265,7 @@ class LoadBrightHub:
         if return_df:
             meas_loc_df = pd.read_json(json.dumps(meas_loc_json))
             required_cols = ['name', 'measurement_station_type_id',
-                            'latitude_ddeg', 'longitude_ddeg', 'plant_uuid', 'uuid', 'notes']
+                             'latitude_ddeg', 'longitude_ddeg', 'plant_uuid', 'uuid', 'notes']
             meas_loc_df = meas_loc_df[required_cols]
             meas_loc_df.set_index(['name'], inplace=True)
             meas_loc_df.sort_index(ascending=True, inplace=True)
