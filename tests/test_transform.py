@@ -280,7 +280,7 @@ def test_check_vertical_profiler_properties_not_overlap():
     
     with pytest.raises(ValueError) as excinfo:
         check_vertical_profiler_properties_not_overlap(overlapping_station, test_df)
-    assert "Overlapping date ranges with offset detected" in str(excinfo.value)
+    assert "Overlapping periods detected on vertical_profiler_properties with at least one" in str(excinfo.value)
 
 
 def test_freq_str_to_dateoffset():

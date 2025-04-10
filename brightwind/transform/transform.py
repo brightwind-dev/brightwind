@@ -1508,7 +1508,7 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
                 if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
                     date_to_tmp = meas_station_data_model_to
                 else:
-                    idx_pos = df.index.get_loc(pd.Timestamp(date_to))
+                    idx_pos = df.index.get_indexer([pd.Timestamp(date_to)], method='nearest')[0]
                     date_to_tmp = df.index[idx_pos + 1].strftime('%Y-%m-%dT%H:%M:%S') if idx_pos + 1 < len(df.index) else date_to
 
                 if i==0 or previous_name != name:
@@ -1644,7 +1644,7 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
         to_text = "end of dataframe"
     else:
         mask = (wdir_data.index >= pd.Timestamp(apply_offset_from)) & (wdir_data.index < pd.Timestamp(apply_offset_to))
-        idx_pos = wdir_data.index.get_loc(pd.Timestamp(apply_offset_to))
+        idx_pos = wdir_data.index.get_indexer([pd.Timestamp(apply_offset_to)], method='nearest')[0]
         apply_offset_to_inclusive = wdir_data.index[idx_pos - 1].strftime('%Y-%m-%dT%H:%M:%S')
         to_text = f"{apply_offset_to} (exclusive or {apply_offset_to_inclusive} inclusive)"    
 
