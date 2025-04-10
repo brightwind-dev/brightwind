@@ -2439,7 +2439,6 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
         comparator_value = cleaning_rule['rule']['conditions']['comparator_value']
         comparison_operator_id = cleaning_rule['rule']['conditions']['comparison_operator_id']
 
-
         data = _apply_cleaning_rule(data, condition_column_name, columns_to_clean, comparator_value,
                                     comparison_operator_id, replacement_text, date_from, date_to)
     if inplace is False:

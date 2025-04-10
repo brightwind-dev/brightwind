@@ -1,19 +1,19 @@
 [
-    {
-      "rule": {
-        "clean_out": [
-          {
-            "assembled_column_name": "Spd80mN"
-          }
-        ],
-        "conditions": {
-          "assembled_column_name": "Spd80mN",
-          "comparator_value": 10,
-          "comparison_operator_id": 1
+  {
+    "rule": {
+      "clean_out": [
+        {
+          "assembled_column_name": "Spd80mN"
         }
+      ],
+      "conditions": {
+        "assembled_column_name": "Spd80mN",
+        "comparator_value": 10,
+        "comparison_operator_id": 1
       }
-    },
-    {
+    }
+  },
+  {
     "rule": {
       "clean_out": [
         {
