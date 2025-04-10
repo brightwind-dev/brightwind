@@ -1232,7 +1232,13 @@ class LoadBrightHub:
         if measurement_station_type is not None:
             if isinstance(measurement_station_type, str):
                 measurement_station_type = [measurement_station_type]
+            available_measurement_station_types = list(set([m['measurement_station_type_id'] for m in meas_loc_json]))
             meas_loc_json = [m for m in meas_loc_json if m['measurement_station_type_id'] in measurement_station_type]
+            if len(meas_loc_json) == 0:
+                raise ValueError(
+                    f"No measurement stations found for the provided station types {measurement_station_type}."
+                    f"Available data types are: {available_measurement_station_types}."
+                    )
 
         meas_loc_df = pd.read_json(json.dumps(meas_loc_json))
         required_cols = ['name', 'measurement_station_type_id',
