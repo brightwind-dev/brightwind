@@ -3,6 +3,7 @@ import brightwind as bw
 import os
 import pandas as pd
 import numpy as np
+import json
 
 DEMO_DATA_FOLDER = os.path.join(os.path.dirname(__file__), '../brightwind/demo_datasets')
 
@@ -49,6 +50,65 @@ def test_apply_cleaning():
     assert not np.isnan(data_clnd6.Spd40mN['2016-03-11 00:00:00'])
     assert not np.isnan(data_clnd6.Spd40mN['2016-03-28 23:50'])
     assert np.isnan(data_clnd6.Spd40mN['2016-03-29 00:00'])
+
+
+def test_apply_cleaning_rules():
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+    data_clnd = bw.apply_cleaning_rules(data, bw.demo_datasets.demo_cleaning_rules_file)
+
+    date_from = "2016-02-01T00:00"
+    date_to = "2017-08-31T23:59"
+    data_cleaned_test = data[data["T2m"] <= 5][date_from:date_to]
+
+
+    assert data_clnd["Spd80mN"].min() >= 10
+    assert data_clnd["T2m"][date_from:date_to].max() <= 5
+    assert np.allclose(data_clnd["Spd60mS"][date_from:date_to].min(), data_cleaned_test["Spd60mS"].min())
+    assert np.allclose(data_clnd["Spd80mS"][date_from:date_to].max(), data_cleaned_test["Spd80mS"].max())
+    assert np.allclose(data_clnd["Spd60mS"][date_from:date_to].max(), data_cleaned_test["Spd60mS"].max())
+    assert np.allclose(data_clnd["Spd80mSMax"][date_from:date_to].max(), data_cleaned_test["Spd80mSMax"].max())
+    assert np.allclose(data_clnd["Spd60mSStd"][date_from:date_to].max(), data_cleaned_test["Spd60mSStd"].max())
+    assert data_clnd[data["T2m"] > 5][date_from:date_to]["T2m"].isna().all()
+    assert data_clnd[data["T2m"] > 5][date_from:date_to]["Spd60mS"].isna().all()
+    assert data_clnd[data["T2m"] > 5][date_from:date_to]["Spd80mS"].isna().all()
+    assert data_clnd[data["T2m"] > 5][date_from:date_to]["Spd80mSStd"].isna().all()
+    assert data_clnd[data["T2m"] > 5][date_from:date_to]["Spd80mSMax"].isna().all()
+
+    data_clnd = bw.apply_cleaning_rules(data, bw.demo_datasets.demo_cleaning_rules_file, replacement_text="-")
+    assert (data_clnd[data["T2m"] > 5][date_from:date_to]["T2m"] == "-").all()
+    assert (data_clnd[data["T2m"] > 5][date_from:date_to]["Spd60mS"] == "-").all()
+    assert (data_clnd[data["T2m"] > 5][date_from:date_to]["Spd80mS"] == "-").all()
+    before_range = data_clnd[data["T2m"] > 5][:"2016-01-31T23:59"]
+    after_range = data_clnd[data["T2m"] > 5]["2017-09-01T00:00":]
+    assert (before_range["T2m"] != "-").all()
+    assert (after_range["T2m"] != "-").all()
+    assert (before_range["Spd60mS"] != "-").all()
+    assert (after_range["Spd60mS"] != "-").all()
+    assert (before_range["Spd80mS"] != "-").all()
+    assert (after_range["Spd80mS"] != "-").all()
+
+
+    with open(bw.demo_datasets.demo_cleaning_rules_file) as file:
+        cleaning_json = json.load(file)
+
+    cleaning_json[0]['rule']['date_to'] = "2016-02-01T00:00:00"
+
+    data_clnd = bw.apply_cleaning_rules(data, cleaning_json)
+    assert data_clnd["Spd80mN"][:date_from].min() >= 10
+    assert data_clnd["Spd80mN"][date_from:].min() < 10
+    assert data_clnd[data["T2m"] > 5]["Spd80mN"][date_from:date_to].isna().all()
+    assert data_clnd[data["T2m"] > 5]["Spd60mN"][date_from:date_to] .isna().all()
+
+    del cleaning_json[0]['rule']
+    with pytest.raises(ValueError) as except_info:
+        bw.apply_cleaning_rules(data, cleaning_json)
+    assert "There is a problem with the validity of the supplied JSON please check the errors above" in str(except_info.value)
+
+    data_original = data.copy(deep=True)
+    bw.apply_cleaning_rules(data, bw.demo_datasets.demo_cleaning_rules_file, replacement_text="-", inplace=True)
+    assert (data[data_original["T2m"] > 5][date_from:date_to]["T2m"] == "-").all()
+    assert (data[data_original["T2m"] > 5][date_from:date_to]["Spd60mS"] == "-").all()
+    assert (data[data_original["T2m"] > 5][date_from:date_to]["Spd80mS"] == "-").all()
 
 
 def test_load_csv():
