@@ -154,10 +154,25 @@ def test_load_brighthub():
     # assert bw.LoadBrightHub.get_plants(plant_uuid=plant_uuid)[
     #            'plant_type_id'].values[0] == 'onshore_wind'
 
+    measurement_stations2 = bw.LoadBrightHub.get_measurement_stations()
+    device_types = measurement_stations2['measurement_station_type'].values
+
+    measurement_stations_lidar = bw.LoadBrightHub.get_measurement_stations(measurement_station_type='lidar')
+    device_types_lidar = measurement_stations_lidar['measurement_station_type'].unique()
+
+    assert 'lidar' in device_types
+    assert 'mast' in device_types
+    assert ['lidar'] == device_types_lidar
+
+    measurement_stations_lidar_mast = bw.LoadBrightHub.get_measurement_stations(
+        measurement_station_type=['lidar', 'mast'])
+    device_types_lidar_mast = measurement_stations_lidar_mast['measurement_station_type'].unique()
+
+    assert ['lidar', 'mast'] == sorted(device_types_lidar_mast)
     # To get a specific measurement station
-    # assert (bw.LoadBrightHub.get_measurement_stations(plant_uuid=plant_uuid).dropna(    # Doesn't work anymore as more than 1 station is returned now.
-    #     axis=1) == bw.LoadBrightHub.get_measurement_stations(measurement_station_uuid=measurement_station_uuid
-    #                                                          ).dropna(axis=1)).all().all()
+    # measurement_stations = bw.LoadBrightHub.get_measurement_stations(measurement_station_uuid=measurement_station_uuid)
+    # assert (.dropna(    # Doesn't work anymore as more than 1 station is returned now.
+    #     axis=1) == measurement_stations.dropna(axis=1)).all().all()
 
     # To get the data model for a specific measurement station
     assert bw.LoadBrightHub.get_data_model(measurement_station_uuid=measurement_station_uuid

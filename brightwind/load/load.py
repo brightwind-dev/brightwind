@@ -1173,7 +1173,7 @@ class LoadBrightHub:
         return plants_df
 
     @staticmethod
-    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None):
+    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None, measurement_station_type=None):
         """
         Get measurement stations available to you on BrightHub.
 
@@ -1182,6 +1182,9 @@ class LoadBrightHub:
         :param measurement_station_uuid: Filter for a specific measurement station by sending it's uuid. This
                                          preferences over plant_uuid.
         :type measurement_station_uuid:  str
+        :param measurement_station_type: The type of measurement station i.e. lidar, mast, sodar, etc. If None is set, 
+                                         all types will be returned. Default, None.
+        :type measurement_station_type:  str | List | None
         :return:                         A table showing the available measurement stations.
         :rtype:                          pd.DataFrame
 
@@ -1213,6 +1216,10 @@ class LoadBrightHub:
         ::
             bw.LoadBrightHub.get_measurement_stations(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
 
+        To get all available lidar measurement stations
+        ::
+            bw.LoadBrightHub.get_measurement_stations(measurement_station_type='lidar')
+
         """
         measurement_locations = None
         if plant_uuid is None and measurement_station_uuid is None:
@@ -1233,6 +1240,18 @@ class LoadBrightHub:
         meas_loc_json = measurement_locations.json()
         if 'Error' in meas_loc_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
             raise ValueError(meas_loc_json['Error'])
+        
+        if measurement_station_type is not None:
+            if isinstance(measurement_station_type, str):
+                measurement_station_type = [measurement_station_type]
+            available_measurement_station_types = list(set([m['measurement_station_type_id'] for m in meas_loc_json]))
+            meas_loc_json = [m for m in meas_loc_json if m['measurement_station_type_id'] in measurement_station_type]
+            if len(meas_loc_json) == 0:
+                raise ValueError(
+                    f"No measurement stations found for the provided station types: {measurement_station_type}. "
+                    f"Available data types are: {available_measurement_station_types}."
+                    )
+
         meas_loc_df = pd.read_json(json.dumps(meas_loc_json))
         required_cols = ['name', 'measurement_station_type_id',
                          'latitude_ddeg', 'longitude_ddeg', 'plant_uuid', 'uuid', 'notes']
