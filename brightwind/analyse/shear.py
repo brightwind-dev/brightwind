@@ -272,7 +272,7 @@ class Shear:
                 start_times[i] = start_times[i - 1] + dt
 
             # extract wind speeds for each month
-            months_tot = pd.unique(wspds.index.month.values)
+            months_tot = sorted(pd.unique(wspds.index.month.values))
             for j in months_tot:
 
                 anemometers_df = wspds[wspds.index.month == j]
@@ -317,10 +317,6 @@ class Shear:
                     roughness_df = pd.concat([roughness_df, roughness], axis=1)
                     slope_df = pd.concat([slope_df, slope], axis=1)
                     intercept_df = pd.concat([intercept_df, intercept], axis=1)
-
-            # error check
-            if mean_time_wspds.shape[0] == 0:
-                raise ValueError('None of the input wind speeds are greater than the min_speed, cannot calculate shear')
 
             if calc_method == 'power_law':
                 alpha_df.index = start_times
@@ -785,7 +781,7 @@ class Shear:
         return scaled_wspds
 
     @staticmethod
-    def _calc_log_law(wspds, heights, return_coeff=False, maximise_data=False) -> (np.array, float):
+    def _calc_log_law(wspds, heights, return_coeff=False, maximise_data=False):
         """
         Derive the best fit logarithmic law line from a given time-step of speed data at 2 or more elevations
 
@@ -817,8 +813,7 @@ class Shear:
                 - zo is the roughness coefficient
 
                                                 2)  $U2 = (ln(z2/z0)/ln(z1/z0))U1$
-
-            """
+        """
 
         if maximise_data:
             log_heights = np.log(
@@ -834,7 +829,7 @@ class Shear:
         return coeffs[0]
 
     @staticmethod
-    def _calc_power_law(wspds, heights, return_coeff=False, maximise_data=False) -> (np.array, float):
+    def _calc_power_law(wspds, heights, return_coeff=False, maximise_data=False):
         """
         Derive the best fit power law exponent (as 1/alpha) from a given time-step of speed data at 2 or more elevations
 
@@ -979,23 +974,30 @@ class Shear:
 
             for i in range(0, 24):
 
-                for j in range(0, 12):
+                for j, month in enumerate(sorted(pd.unique(wspds.index.month.values))):
+
+                    month_str = calendar.month_abbr[month] 
+
+                    if month_str not in list(filled_alpha.columns):
+                        raise ValueError(f"The shear by TimeOfDay object doesn't have shear values for {month_str}." + 
+                                         " The shear cannot be applied to the input time series for this month.")
 
                     if i == 23:
                         df_wspds[i][j] = wspds[
-                            (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.month == j + 1)]
+                            (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.month == month)]
                     else:
                         df_wspds[i][j] = wspds[
                             (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.time < filled_alpha.index[i + 1])
-                            & (wspds.index.month == j + 1)]
+                            & (wspds.index.month == month)]
 
                     if self.calc_method == 'power_law':
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      alpha=filled_alpha.iloc[i, j], calc_method=self.calc_method)
+                                                      alpha=filled_alpha.loc[:, month_str].iloc[i],
+                                                      calc_method=self.calc_method)
 
                     else:
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      roughness=filled_roughness.iloc[i, j],
+                                                      roughness=filled_roughness.loc[:, month_str].iloc[i],
                                                       calc_method=self.calc_method)
 
                     scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
@@ -1082,9 +1084,9 @@ class Shear:
         Fills a pandas.DataFrame or Series to be a 12 month x 24 hour pandas.DataFrame by duplicating entries.
         Used for plotting TimeOfDay shear.
 
-        :param data: pandas.DataFrame or Series to be turned into a 12x24 dataframe
-        :type data: pandas.Series or pandas.DataFrame.
-        :return: 12x24 pandas.DataFrame
+        :param data:    pandas.DataFrame or Series to be turned into a 12x24 dataframe
+        :type data:     pandas.Series or pandas.DataFrame.
+        :return:        12x24 pandas.DataFrame
 
         """
         # create copy for later use
@@ -1108,8 +1110,9 @@ class Shear:
         if len(df.columns) == 1:
             df_12x24 = pd.DataFrame([[None for y in range(12)] for x in range(24)])
             df_12x24.index = df.index
-            for i in range(12):
+            for i in df_12x24.columns:
                 df_12x24[df_12x24.columns[i]] = df.iloc[:, 0]
+            df_12x24.columns = [calendar.month_abbr[i+1] for i in df_12x24.columns]
             df = df_12x24
 
         return df
