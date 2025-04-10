@@ -32,8 +32,8 @@
           "assembled_column_name": "T2m"
         }
       ],
-      "date_from": "2016-03-01T00:00:00",
-      "date_to": "2016-03-16T00:00:00",
+      "date_from": "2016-02-01T00:00:00",
+      "date_to": "2017-09-01T00:00:00",
       "conditions": {
         "assembled_column_name": "T2m",
         "comparator_value": 5,
