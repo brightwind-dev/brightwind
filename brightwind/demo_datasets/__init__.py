@@ -17,7 +17,11 @@ __all__ = ['demo_data',
            'iea43_wra_data_model_schema_v1_2',
            'floating_lidar_iea43_wra_data_model_v1_2',
            'solar_iea43_wra_data_model_v1_3',
-           'sodar_iea43_wra_data_model_v1_3']
+           'sodar_iea43_wra_data_model_v1_3',
+           'demo_floating_lidar_data',
+           'floating_lidar_demo_iea43_wra_data_model_v1_3'
+           ]
+
 
 demo_data = os.path.join(os.path.dirname(__file__), 'demo_data.csv')
 demo_campbell_scientific_data = os.path.join(os.path.dirname(__file__), 'campbell_scientific_demo_data.csv')
@@ -47,6 +51,10 @@ sodar_iea43_wra_data_model_v1_3 = os.path.join(os.path.dirname(__file__),
                                                'sodar_iea43_wra_data_model_v1_3.json')
 
 demo_data_adjusted_for_testing = os.path.join(os.path.dirname(__file__), 'demo_data_adjusted_for_testing.csv')
+demo_floating_lidar_data = os.path.join(os.path.dirname(__file__),
+                                                        'demo_floating_lidar_data.csv')
+floating_lidar_demo_iea43_wra_data_model_v1_3 = os.path.join(os.path.dirname(__file__),
+                                                        'floating_lidar_demo_iea43_wra_data_model_v1_3.json')
 
 
 def datasets_available():

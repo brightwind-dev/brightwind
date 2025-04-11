@@ -57,7 +57,8 @@ setup(
         'ipython>=7.4.0',
         'gmaps>=0.9.0',
         'colormap>=1.0.1',
-        'easydev>=0.10.0'
+        'easydev>=0.10.0',
+        'jsonschema>=4.17.3'
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",

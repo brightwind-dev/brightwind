@@ -3,6 +3,14 @@ import brightwind as bw
 import pandas as pd
 import numpy as np
 import datetime
+import copy
+import io
+import sys
+import re
+
+from brightwind.transform.transform import (
+    _check_vertical_profiler_properties_overlap as check_vertical_profiler_properties_overlap
+    )
 
 
 wndspd = 8
@@ -25,6 +33,8 @@ WSPD_COLS = ['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd60mS', 'Spd40mN', 'Spd40mS']
 WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
 MERRA2 = bw.load_csv(bw.demo_datasets.demo_merra2_NE)
 
+DATA_LIDAR = bw.load_csv(bw.demo_datasets.demo_floating_lidar_data)
+STATION_LIDAR = bw.MeasurementStation(bw.demo_datasets.floating_lidar_demo_iea43_wra_data_model_v1_3)
 
 def np_array_equal(a, b):
     # nan's don't compare so use this instead
@@ -169,6 +179,108 @@ def test_apply_wind_vane_dead_band_offset():
 
     assert (data1.fillna(0).round(10) ==
             data['Dir78mS'].fillna(0).round(10)).all()
+
+
+def test_apply_device_orientation_offset():
+
+    actual_series_result = bw.apply_device_orientation_offset(
+        DATA_LIDAR['Dir_40m'], STATION_LIDAR
+        )
+    actual_dataframe_result = bw.apply_device_orientation_offset(
+        DATA_LIDAR, STATION_LIDAR
+        )
+    # Test for edge cases to ensure double application is not happening and [from, to) is observed
+    overlap_datetime = STATION_LIDAR[0].get('date_to')
+
+    assert np.allclose(actual_series_result.iloc[0] - DATA_LIDAR['Dir_40m'].iloc[0], 92)
+    assert np.allclose(actual_series_result.iloc[-1] - DATA_LIDAR['Dir_40m'].iloc[-1], 3)
+    assert np.allclose(
+        actual_series_result.loc['2012-11-16T16:50:00'] - DATA_LIDAR['Dir_40m'].loc['2012-11-16T16:50:00'], 97
+        )
+    assert np.allclose(actual_series_result.loc[overlap_datetime] - DATA_LIDAR['Dir_40m'].loc[overlap_datetime], 100)
+    assert np.allclose(
+        actual_series_result.loc['2012-11-23T15:10:00'] - DATA_LIDAR['Dir_40m'].loc['2012-11-23T15:10:00'], 100
+        )
+
+    assert np.allclose(actual_dataframe_result['Dir_50m'].iloc[0] - DATA_LIDAR['Dir_50m'].iloc[0], 92)
+    assert np.allclose(actual_dataframe_result['Dir_50m'].iloc[-1] - DATA_LIDAR['Dir_50m'].iloc[-1], 3)
+    assert np.allclose(
+        actual_dataframe_result['Dir_50m'].loc['2012-11-16T16:50:00'] - DATA_LIDAR['Dir_50m'].loc['2012-11-16T16:50:00'], 
+        97)
+    assert np.allclose(
+        actual_dataframe_result['Dir_50m'].loc['2012-11-23T15:10:00'] - DATA_LIDAR['Dir_50m'].loc['2012-11-23T15:10:00'], 
+        100)
+    
+    modified_data_model = copy.deepcopy(STATION_LIDAR.data_model)
+    vertical_profiler_properties = modified_data_model.get('vertical_profiler_properties', [])
+    vertical_profiler_properties[0]['device_orientation_deg'] = 170
+    vertical_profiler_properties[1]['device_orientation_deg'] = None
+    modified_data_model['vertical_profiler_properties'] = vertical_profiler_properties
+    
+    # Create the top-level data model structure
+    full_data_model = {
+        'measurement_location': [modified_data_model],
+        'version': STATION_LIDAR.data_model.get('version', '1.0.0-2022.01')
+    }    
+    new_station_lidar = bw.MeasurementStation(full_data_model)
+
+    captured_output = io.StringIO()
+    sys.stdout = captured_output
+    actual_dataframe_result = bw.apply_device_orientation_offset(DATA_LIDAR, new_station_lidar)
+    sys.stdout = sys.__stdout__
+    output = captured_output.getvalue()
+
+    clean_output = re.sub(r'\x1b\[[0-9;]*m', '', output)
+
+    assert "Dir_50m has an offset to be applied of 0 degrees from 2012-10-23T13:10:00 to 2012-11-15T13:50:00" in clean_output
+    assert "Dir_50m has device orientation as None from 2013-10-08T14:00:00 to end of dataframe." in clean_output
+    assert "Dir_50m adjusted by 5.0 degrees from 2012-11-15T13:50:00 to 2012-11-23T12:10:00" in clean_output
+    assert np.allclose(actual_dataframe_result['Dir_40m'].iloc[0] - DATA_LIDAR['Dir_40m'].iloc[0], 0)
+    assert np.allclose(actual_dataframe_result['Dir_40m'].iloc[-1] - DATA_LIDAR['Dir_40m'].iloc[-1], 0)
+    assert np.allclose(
+        actual_dataframe_result['Dir_40m'].loc['2012-11-16T16:50:00'] - DATA_LIDAR['Dir_40m'].loc['2012-11-16T16:50:00'], 5
+        )
+    assert np.allclose(actual_dataframe_result['Dir_40m'].loc[overlap_datetime] - DATA_LIDAR['Dir_40m'].loc[overlap_datetime], 0)
+    
+
+def test_check_vertical_profiler_properties_not_overlap():
+    original_data_model = copy.deepcopy(STATION_LIDAR.data_model)
+    date_range = pd.date_range(start='2012-11-01', end='2012-12-01', freq='10min')
+    test_df = pd.DataFrame(index=date_range)
+    
+    vertical_profiler_properties = original_data_model.get('vertical_profiler_properties', [])
+    
+    overlapping_property = copy.deepcopy(vertical_profiler_properties[0])
+    
+    existing_from = pd.to_datetime(vertical_profiler_properties[0].get('date_from'))
+    existing_to = pd.to_datetime(vertical_profiler_properties[0].get('date_to'))
+    
+    # Create an overlap by setting dates that intersect with existing range
+    overlap_from = existing_from + pd.Timedelta(days=3)
+    overlap_to = existing_to + pd.Timedelta(days=3)
+    
+    overlapping_property['date_from'] = overlap_from.strftime('%Y-%m-%dT%H:%M:%S')
+    overlapping_property['date_to'] = overlap_to.strftime('%Y-%m-%dT%H:%M:%S')
+    overlapping_property['device_orientation_deg'] = 45
+    
+    vertical_profiler_properties.append(overlapping_property)
+    
+    # Create a new data model with the modified properties
+    modified_data_model = copy.deepcopy(original_data_model)
+    modified_data_model['vertical_profiler_properties'] = vertical_profiler_properties
+    
+    # Create the top-level data model structure
+    full_data_model = {
+        'measurement_location': [modified_data_model],
+        'version': STATION_LIDAR.data_model.get('version', '1.0.0-2022.01')
+    }
+    
+    # Create a new MeasurementStation with overlapping configurations
+    overlapping_station = bw.MeasurementStation(full_data_model)
+    
+    with pytest.raises(ValueError) as excinfo:
+        check_vertical_profiler_properties_overlap(overlapping_station, test_df)
+    assert "Overlapping periods detected on vertical_profiler_properties with at least one" in str(excinfo.value)
 
 
 def test_freq_str_to_dateoffset():

@@ -17,7 +17,8 @@ __all__ = ['average_data_by_period',
            'offset_wind_direction',
            'selective_avg',
            'offset_timestamps',
-           'apply_wspd_slope_offset_adj']
+           'apply_wspd_slope_offset_adj',
+           'apply_device_orientation_offset']
 
 
 def _compute_wind_vector(wspd, wdir):
@@ -1400,3 +1401,316 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
                 shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original >= date_to)])
             df_copy.index = shifted
             return df_copy.sort_index()
+
+
+def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inplace=False):
+    """
+    Applies a device orientation offset to wind direction data from remote sensing devices
+    (lidar, sodar, or floating lidar) to align measurements with north.
+
+    The device's as-installed orientation is specified in
+    `vertical_profiler_properties.device_orientation_deg` according to the IEA Wind Task 43
+    WRA Data Model. This data model is represented using the `bw.MeasurementStation()` object.
+
+    If `wdir_cols` is empty, the offset is applied to all wind direction columns reported in
+    the measurement station. Otherwise, only the specified columns are adjusted.
+
+    This function uses the brightwind 'offset_wind_direction()' function to apply the adjustment to the data.
+
+    **Note:** When using `inplace=True`, be careful not to apply this function multiple times within
+              the same assessment, as the offset will be applied again.
+
+    If a logger offset is defined in `logger_measurement_config.offset`, this indicates
+    that the wind direction data has already been adjusted by this amount. This value may differ
+    from `device_orientation_deg`, so the function calculates the difference to ensure the total
+    adjustment equals the intended device orientation:
+
+        offset_to_apply = device_orientation_deg - logger_measurement_config.offset
+
+    Configuration date ranges are treated as half-open intervals: [date_from, date_to),
+    meaning 'date_from' is inclusive and 'date_to' is exclusive.
+
+    Overlapping periods with non-zero `device_orientation_deg` values in `vertical_profiler_properties`
+    are not supported and will raise an error.
+
+    :param data:                        Timeseries data.
+    :type data:                         pd.DataFrame or pd.Series
+    :param measurement_station:         A simplified object to represent the IEA Wind Task 43 WRA Data Model.
+    :type measurement_station:          bw.MeasurementStation
+    :param wdir_cols:                   Wind direction column names to apply the offset to. If empty, all wind direction 
+                                        columns in the data are used. Default is an empty list.
+    :type wdir_cols:                    list
+    :param inplace:                     If True, modifies `data` in place. If False, returns a new DataFrame/Series
+                                        with adjusted values. Default is False.
+    :type inplace:                      bool, optional
+    :return:                            Data with wind direction adjusted by the orientation offset.
+    :rtype:                             pd.DataFrame or pd.Series
+    
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        fl1 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_demo_iea43_wra_data_model_v1_3)
+        data = bw.load_csv(bw.demo_datasets.demo_floating_lidar_data)
+
+        # Adjust only specific wind direction columns:
+        data_dev_orient_adj = bw.apply_device_orientation_offset(data, fl1, wdir_cols=['Dir_40m', 'Dir_50m'])
+
+    Adjust all wind directions in-place:
+    ::
+        bw.apply_device_orientation_offset(data, fl1, inplace=True)
+        print('Wind direction device orientation offset adjustment is completed.')
+    
+    """
+    
+    if measurement_station.type not in ['lidar', 'floating_lidar', 'sodar']:
+        raise ValueError(f"Device type: {measurement_station.type} is not supported for this function.")
+    
+    measurements = measurement_station.measurements
+    wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
+    measurement_station_items = list(measurement_station)
+    # copy the data if needed
+    data = data.copy(deep=True) if inplace is False else data
+    wdir_not_in_dataset = False
+    col_not_in_data = []
+    col_not_in_datamodel = []
+    df = pd.DataFrame(data) if isinstance(data, pd.Series) else data
+
+    if wdir_cols:
+        wdirs_properties_temp = []
+        for col in wdir_cols:
+            if col not in df.columns:
+                wdir_not_in_dataset = True
+                col_not_in_data.append(col)
+            if not any(col == prop['name'] for prop in wdirs_properties):
+                col_not_in_datamodel.append(col)
+            else:
+                # keep wind direction properties only for input wdir_cols
+                wdirs_properties_temp.extend([prop for prop in wdirs_properties if col == prop['name']])
+        wdirs_properties = wdirs_properties_temp
+
+    _check_vertical_profiler_properties_overlap(measurement_station, df)
+
+    # Apply the offset
+    for i, wdir_prop in enumerate(wdirs_properties):
+        name = wdir_prop['name']
+        if name in df.columns:
+            date_to = wdir_prop.get('date_to')
+            # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
+            # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
+            if date_to is not None:
+                if pd.to_datetime(date_to) >= df.index[-1]:
+                    date_to = None
+            # If [date_from, date_to) convention has not been used, we force this convention by setting 
+            # date_to to the date_from of the next logger property
+            if i < len(wdirs_properties) - 1:
+                if wdirs_properties[i+1].get('name') == name:
+                    next_date_from = wdirs_properties[i+1].get('date_from')
+                    if next_date_from != date_to:
+                        date_to = next_date_from
+            date_from = wdir_prop.get('date_from')
+            date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
+                         if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
+            logger_offset = wdir_prop.get('logger_measurement_config.offset')
+            for j, device_properties in enumerate(measurement_station):
+                meas_station_data_model_from = device_properties.get('date_from')
+                meas_station_data_model_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') if
+                                                meas_station_data_model_from is None or meas_station_data_model_from ==
+                                                DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
+                meas_station_data_model_to = device_properties.get('date_to')
+                # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
+                # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
+                if meas_station_data_model_to is not None:
+                    if pd.to_datetime(meas_station_data_model_to) >= df.index[-1]:
+                        meas_station_data_model_to = None
+                # If [date_from, date_to) convention has not been used, we force this convention by setting
+                # meas_station_data_model_to to the next_meas_station_data_model_from of the next
+                # measurement_station property.
+                if j < len(measurement_station_items) - 1:
+                    next_meas_station_data_model_from = measurement_station[j+1].get('date_from')
+                    if next_meas_station_data_model_from != meas_station_data_model_to:
+                        meas_station_data_model_to = next_meas_station_data_model_from
+                
+                if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+                    date_to_tmp = meas_station_data_model_to
+                else:
+                    date_to_tmp = date_to
+                
+                date_range_overlaps = False
+                if meas_station_data_model_to is None and date_to_tmp is None:
+                    date_range_overlaps = True
+                elif meas_station_data_model_to is None:
+                    date_range_overlaps = date_to_tmp is None or date_to_tmp >= meas_station_data_model_from
+                elif date_to_tmp is None:
+                    date_range_overlaps = date_from <= meas_station_data_model_to
+                else:
+                    date_range_overlaps = (
+                        date_from <= meas_station_data_model_to and
+                        date_to_tmp >= meas_station_data_model_from
+                    )
+
+                if date_range_overlaps:
+                    device_orientation_deg = device_properties.get('device_orientation_deg')
+                    apply_offset_from = (date_from if date_from > meas_station_data_model_from 
+                                         else meas_station_data_model_from)
+                    if date_to_tmp is None or meas_station_data_model_to is None:
+                        apply_offset_to = date_to_tmp if date_to_tmp is not None else meas_station_data_model_to
+                    else:
+                        apply_offset_to = min(date_to_tmp, meas_station_data_model_to)
+                    df[name] = _apply_dir_offset_target_orientation(
+                        df[name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
+                        target_orientation_name='device orientation')
+        else:
+            wdir_not_in_dataset = True
+            col_not_in_data.append(name)
+    
+    if wdir_not_in_dataset:
+        indexes = np.unique(col_not_in_data, return_index=True)[1]
+        col_not_in_data = [col_not_in_data[index] for index in sorted(indexes)]
+        print_text = 'Following wind direction measurement(s) not found in the data'
+        if wdir_cols:
+            print(print_text + ' for the requested `wdir_cols`: {}.'.format(utils.bold(str(col_not_in_data))))
+        else:
+            print(print_text + ': {}.'.format(utils.bold(str(col_not_in_data))))
+    if col_not_in_datamodel:
+        print('No device orientation offset applied to following requested measurement(s) as no wind direction '
+              'measurement type found in `meas_station_data_models` for these: {}.'
+              .format(utils.bold(str(col_not_in_datamodel))))
+    # if a Series is sent, send back a Series
+    if isinstance(data, pd.Series):
+        df = df[df.columns[0]]
+        data.update(df)
+    return df
+
+
+def _check_vertical_profiler_properties_overlap(measurement_station, df):
+    """
+    Checks if in vertical_profiler_properties there are any overlapping 
+    date ranges with device orientation values.
+    
+    Date ranges are considered as [from, to) where 'from' is inclusive and 'to' is exclusive.
+    Overlapping date ranges with device orientation values are not supported 
+    by apply_device_orientation_offset function and will raise an error.
+    
+    :param measurement_station:         A simplified object to represent the IEA WRA Task 43 data model.
+    :type measurement_station:          brightwind.load.station.MeasurementStation
+    :param df:                          DataFrame with the time series data
+    :type df:                           pd.DataFrame
+    :raises ValueError:                 If overlapping date ranges with device orientation values are detected
+    """
+    date_ranges = []
+    
+    for device_properties in measurement_station:
+        date_from = device_properties.get('date_from')
+        if date_from is None or date_from == DATE_INSTEAD_OF_NONE:
+            date_from = df.index[0].strftime('%Y-%m-%dT%H:%M:%S')
+        date_to = device_properties.get('date_to')
+        if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+            date_to = df.index[-1].strftime('%Y-%m-%dT%H:%M:%S')
+        device_orientation_deg = device_properties.get('device_orientation_deg', None)
+        
+        date_ranges.append({
+            'from': pd.to_datetime(date_from),
+            'to': pd.to_datetime(date_to),
+            'device_orientation_deg': device_orientation_deg,
+            'model': device_properties
+        })
+    
+    for i, range1 in enumerate(date_ranges):
+        for j, range2 in enumerate(date_ranges):
+            if i >= j:
+                continue
+            # Check if date ranges overlap
+            overlap = (range1['from'] < range2['to'] and range2['from'] < range1['to'])
+            
+            # If ranges overlap and at least one device_orientation_deg has a value different than None, raise error
+            if overlap and (range1['device_orientation_deg'] is not None or
+                            range2['device_orientation_deg'] is not None):
+                raise ValueError(
+                    f"Overlapping periods detected on vertical_profiler_properties with at least one " +
+                    "device_orientation_deg value different than None: \n"
+                    f"{range1['from']} to {range1['to']} (device_orientation_deg: {range1['device_orientation_deg']}°) "
+                    f"and "
+                    f"{range2['from']} to {range2['to']} (device_orientation_deg: {range2['device_orientation_deg']}°)"
+                    f"\nthis is currently unsupported."
+                )
+    return False
+
+
+def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orientation, apply_offset_from,
+                                         apply_offset_to, target_orientation_name):
+    """
+    Function to apply the required offset to the wind direction data based on the logger offset and a target
+    orientation.
+    Note that if `wdir_data` is a DataFrame, the adjustment derived from `logger_offset` and `target_orientation` 
+    is applied to all columns.
+    
+    This function uses the brightwind 'offset_wind_direction()' function to apply the actual adjustment to 
+    the wind direction data.
+
+    If there is a value in the logger measurement config for an offset, then the wind direction data has already 
+    been adjusted by this amount. This may or may not be equal to the target orientation. Therefore, 
+    the adjustment to be made should make up the difference to equal a target orientation. E.g.
+
+            offset to be applied = target_orientation - logger_offset
+
+    This function accounts for this adjustment.
+
+    Date ranges are considered as [from, to) where 'from' is inclusive and 'to' is exclusive.
+
+    :param wdir_data:               The wind direction data time series.
+    :type wdir_data:                pd.Series or pd.DataFrame
+    :param logger_offset:           The logger offset value in degrees for the input wind direction data.
+    :type logger_offset:            float
+    :param target_orientation:      The target orientation value in degrees.
+    :type target_orientation:       float
+    :param apply_offset_from:       The date to apply the offset from.
+    :type apply_offset_from:        str | datetime.datetime | pd.Timestamp
+    :param apply_offset_to:         The date to apply the offset to, treated in and exclusive manner.
+    :type apply_offset_to:          str | datetime.datetime | pd.Timestamp
+    :param target_orientation_name: The target orientation name to use for the print statements. 
+                                    e.g 'device orientation' or 'deadband orientation'
+    :type target_orientation_name:  str
+    """
+
+    offset = target_orientation
+    wdir_names = list(wdir_data.columns) if isinstance(wdir_data, pd.DataFrame) else wdir_data.name
+    additional_comment_txt = 'to account for {}'.format(target_orientation_name)
+
+    if apply_offset_to is None:
+        to_text = "end of data"
+        mask = (wdir_data.index >= pd.Timestamp(apply_offset_from))
+    else:
+        mask = (wdir_data.index >= pd.Timestamp(apply_offset_from)) & (wdir_data.index < pd.Timestamp(apply_offset_to))
+        if pd.Timestamp(apply_offset_to) not in wdir_data.index:
+            valid_timestamps = wdir_data.index[wdir_data.index <= pd.Timestamp(apply_offset_to)]
+            apply_offset_to_inclusive = valid_timestamps[-1].strftime('%Y-%m-%dT%H:%M:%S')
+        else:
+            idx_pos = wdir_data.index.get_indexer([pd.Timestamp(apply_offset_to)], method='nearest')[0]
+            apply_offset_to_inclusive = wdir_data.index[idx_pos - 1].strftime('%Y-%m-%dT%H:%M:%S')
+        to_text = f"{apply_offset_to} (exclusive)"
+        if apply_offset_from > apply_offset_to_inclusive:
+            return wdir_data   
+
+    if logger_offset is not None and logger_offset != 0 and target_orientation is not None:
+        offset = offset_wind_direction(float(target_orientation), offset=-float(logger_offset))
+        additional_comment_txt = additional_comment_txt + ' and logger offset'
+    if offset:            
+        # Apply offset only to the masked data
+        wdir_data.loc[mask] = offset_wind_direction(wdir_data.loc[mask], float(offset))
+        
+        print('{0} adjusted by {1} degrees from {2} to {3} {4}.\n'
+              .format(utils.bold(str(wdir_names)), utils.bold(str(offset)),
+                      utils.bold(str(apply_offset_from)), utils.bold(to_text),
+                      additional_comment_txt))
+    elif offset == 0:            
+        print('{0} has an offset to be applied of 0 degrees from {1} to {2} {3}.\n'
+              .format(utils.bold(str(wdir_names)), utils.bold(str(apply_offset_from)),
+                      utils.bold(to_text),
+                      additional_comment_txt))
+    else:            
+        print('{0} has {1} as None from {2} to {3}.\n'
+              .format(utils.bold(str(wdir_names)), target_orientation_name,
+                      utils.bold(str(apply_offset_from)), utils.bold(to_text)))
+    
+    return wdir_data
