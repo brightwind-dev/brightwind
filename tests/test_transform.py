@@ -9,7 +9,7 @@ import sys
 import re
 
 from brightwind.transform.transform import (
-    _check_vertical_profiler_properties_not_overlap as check_vertical_profiler_properties_not_overlap
+    _check_vertical_profiler_properties_overlap as check_vertical_profiler_properties_overlap
     )
 
 
@@ -279,8 +279,8 @@ def test_check_vertical_profiler_properties_not_overlap():
     overlapping_station = bw.MeasurementStation(full_data_model)
     
     with pytest.raises(ValueError) as excinfo:
-        check_vertical_profiler_properties_not_overlap(overlapping_station, test_df)
-    assert "Overlapping date ranges with offset detected" in str(excinfo.value)
+        check_vertical_profiler_properties_overlap(overlapping_station, test_df)
+    assert "Overlapping periods detected on vertical_profiler_properties with at least one" in str(excinfo.value)
 
 
 def test_freq_str_to_dateoffset():
