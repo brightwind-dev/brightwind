@@ -93,8 +93,8 @@ def test_plot_timeseries():
         for j, column in enumerate(columns_to_plot):
             if line.get_label() == column:
                 actual_colours[j] = line.get_color()
-    expected_colors = ['#3d636f', '#4f6d77', '#61787f', '#748287', '#868d8f', '#989798', '#9a9d9c', '#7e9c99', '#619a95',
-                       '#449992', '#27978e', '#0b968b', '#139b80', '#2fa372', '#4aac63', '#65b454', '#81bd46', '#9cc537']
+    expected_colors = ['#3d636f', '#55717a', '#6d7f85', '#868d8f', '#9e9b9a', '#a59b92', '#a79784', '#a99376', '#aa8f67',
+                       '#978e65', '#6f906f', '#479279', '#1f9483', '#0a9885', '#2fa372', '#53ae5e', '#78ba4b', '#9cc537']
     assert all(a == e for a, e in zip(actual_colours, expected_colors))
     
     assert True

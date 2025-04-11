@@ -101,8 +101,9 @@ class _ColorPalette:
            color map having a linear color pattern from the first dark color to the last light color of the 
            color_map_range_colors list.
             self.color_map_range_colors = [self.ninth,      # blue grey
-                                           self.tenth,      # Quick Silver
-                                           self.eighth,     # Dark Cyan
+                                           self.tenth,      # quick silver
+                                           self.sixth,      # bronze (metallic)
+                                           self.eighth,     # dark cyan
                                            self.primary]    # slightly darker than YellowGreen #9acd32
 
            This color map is used in the timeseries plot when several lines needs to be plotted showing a pattern e.g top
@@ -269,7 +270,7 @@ class _ColorPalette:
             color_map_range_colors = self._color_map_range_colors
         else:
             # if the user has not set a new one, use our default colors.
-            color_map_range_colors = [self.ninth, self.tenth, self.eighth, self.primary]
+            color_map_range_colors = [self.ninth, self.tenth, self.sixth, self.eighth, self.primary]
         return color_map_range_colors
 
     @staticmethod
@@ -673,12 +674,12 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     :type x_tick_label_angle:       float or int
     :param line_colors:             Line colors used for the timeseries plot. Colors input can be given as:
                                         1) Single str (https://matplotlib.org/stable/gallery/color/named_colors.html)
-                                           or Hex (https://www.w3schools.com/colors/colors_picker.asp) or tuple (Rgb):
-                                           all plotted timeseries will use the same color.
-                                        2) List of str or Hex or Rgb: the number of colors provided needs to be
-                                           at least equal to the number of columns in the y input.
+                                           or Hex (https://www.w3schools.com/colors/colors_picker.asp) or tuple (Rgb)
+                                        2) List of str or Hex or Rgb
                                         3) None: the default COLOR_PALETTE.color_list will be used for plotting.
-                                    Note that if 'use_colormap' is True then this parameter is ignored and the
+                                    NOTE1: If the number of colors provided is less than the number of columns in the y 
+                                    input then the colors are repeated with a different transparency.
+                                    NOTE2: If 'use_colormap' is True then this parameter is ignored and the
                                     `bw.analyse.plot.COLOR_PALETTE.color_map_range` is used instead for the line colors.
     :type line_colors:              str or list or tuple or None
     :param legend:                  Boolean to choose if legend is shown. Default is True.
