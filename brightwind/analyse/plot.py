@@ -43,7 +43,7 @@ class _ColorPalette:
     def __init__(self):
         """
         Color palette to be used for plotting graphs and tables. This Class generates also color_list, color_map,
-        color_map_3colors, color_map_cyclical and some adjusted lightness color variables that are created from 
+        color_map_range, color_map_cyclical and some adjusted lightness color variables that are created from 
         the main colors defined below and used by several brightwind functions. 
         The color_map, color_map_cyclical, color_map_3colors and the adjusted lightness color variables can also 
         be set independently from the main colors as for examples below.
@@ -97,10 +97,10 @@ class _ColorPalette:
            This sequence of colors is for plots where the pattern is cyclical such as a seasons. This is also used in
            12x24 plot from a shear by time of day.
         
-        6) The color sequence used for defining the color_map_3colors variable is as below. This variable is a
+        6) The color sequence used for defining the color_map_range variable is as below. This variable is a
            color map having a linear color pattern from the first dark color to the last light color of the 
-           color_map_colors list.
-            self.color_map_colors = [self.ninth, self.eighth, self.primary]
+           color_map_range_colors list.
+            self.color_map_range_colors = [self.ninth, self.tenth, self.eighth, self.primary]
 
            This color map is used in the timeseries plot when several lines needs to be plotted showing a pattern e.g top
            to bottom measurements.
@@ -134,11 +134,19 @@ class _ColorPalette:
                                                               '#008079']   # darkest primary
             
             # The colors used for defining the color_map_cyclical can also be reset by using the example code below:
-            
+
             bw.analyse.plot.COLOR_PALETTE.color_map_cyclical_colors = ['#ccfffc',   # lightest primary
                                                                        '#00b4aa',   # vert-dark
                                                                        '#008079',   # darkest primary
                                                                        '#ccfffc']   # lightest primary
+
+            # The colors used for defining the color_map_range can also be reset by using the example code below:
+
+            bw.analyse.plot.COLOR_PALETTE.color_map_range_colors = ['#2E3743',   # asphalt
+                                                                    '#9B2B2C',   # red'ish
+                                                                    '#DA9BA6',   # parrot pink
+                                                                    '#3D636F',   # blue grey
+                                                                    ]   
 
             # The hex color value corresponding to an input color adjusted by a percentage lightness (e.g 0.5 %)
             # can be derived as below:
@@ -160,6 +168,7 @@ class _ColorPalette:
 
         self._color_map_colors = None
         self._color_map_cyclical_colors = None
+        self._color_map_range_colors = None
 
         # set the mpl color cycler to our colors. It has 10 colors
         # mpl.rcParams['axes.prop_cycle']
@@ -194,12 +203,6 @@ class _ColorPalette:
     @property
     def color_map(self):
         return self._set_col_map('color_map', self._get_color_map_colors())
-
-    @property
-    def color_map_3colors(self):
-        return self._set_col_map('bw_color_map', self._get_color_map_colors([
-            COLOR_PALETTE.ninth, COLOR_PALETTE.eighth, COLOR_PALETTE.primary
-            ]))
 
     @staticmethod
     def _set_col_map(color_map_name, col_map_colors):
@@ -244,6 +247,27 @@ class _ColorPalette:
             # if the user has not set a new one, use our default colors.
             color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
         return color_map_cyclical_colors
+
+    @property
+    def color_map_range(self):
+        return self._set_col_map('color_map_range', self._get_color_map_range_colors())
+
+    @property
+    def color_map_range_colors(self):
+        return self._get_color_map_range_colors()
+
+    @color_map_range_colors.setter
+    def color_map_range_colors(self, val):
+        self._color_map_range_colors = val
+
+    def _get_color_map_range_colors(self):
+        if self._color_map_range_colors:
+            # if the user has set a new color_map_range_color, use them.
+            color_map_range_colors = self._color_map_range_colors
+        else:
+            # if the user has not set a new one, use our default colors.
+            color_map_range_colors = [self.ninth, self.tenth, self.eighth, self.primary]
+        return color_map_range_colors
 
     @staticmethod
     def _adjust_color_lightness(input_color, lightness_factor):
@@ -419,7 +443,7 @@ def plot_monthly_means(data, coverage=None, ylbl='', legend=True, external_legen
 def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limits=None, x_tick_label_angle=25,
                         line_marker_types=None, line_colors=None, subplot_title=None,
                         legend=True, ax=None, external_legend=False, legend_fontsize=12, show_grid=True, 
-                        use_colourmap=False):
+                        use_colormap=False):
     """
     Plots a timeseries subplot where x is the time axis.
 
@@ -453,6 +477,8 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
                                         2) List of str or Hex or Rgb: the number of colors provided needs to be
                                            at least equal to the number of columns in the y input.
                                         3) None: the default COLOR_PALETTE.color_list will be used for plotting.
+                                    Note that if 'use_colormap' is True then this parameter is ignored and the
+                                    `bw.analyse.plot.COLOR_PALETTE.color_map_range` is used instead for the line colors.
     :type line_colors:              str or list or tuple or None
     :param subplot_title:           Title show on top of the subplot. Default is None.
     :type subplot_title:            str or None
@@ -468,9 +494,11 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     :type legend_fontsize:          int
     :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
     :type show_grid:                bool
-    :param use_colourmap:           Optional argument to choose line colours equally spaced from the default colour map 
-                                    'bw_color_map'. Default False.
-    :type use_colourmap:            bool
+    :param use_colormap:            Optional argument to choose for using a color map for the line colors. Default False.
+                                        - If True the `bw.analyse.plot.COLOR_PALETTE.color_map_range` color map 
+                                          is used for generating line colors equally spaced. 
+                                        - If False the `line_colors` parameter is used for generating line colors.
+    :type use_colormap:             bool
     :return:                        A timeseries subplot
     :rtype:                         matplotlib.axes._subplots.AxesSubplot
 
@@ -525,12 +553,9 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
                                             line_marker_types=['.', 'o', 'v', '^', '<', None], ax=axes, 
                                             external_legend=True, legend_fontsize=8, show_grid=False)
 
-        # To use the default 'bw_color_map' colourmap 
+        # To use the default 'color_map_range' color map 
         fig, axes = plt.subplots(1, 1)
-        columns_to_plot = ['Spd_Met_2m', 'Spd_20m', 'Spd_40m', 'Spd_60m', 'Spd_80m', 'Spd_100m','Spd_124m','Spd_150m',
-                            'Spd_175m','Spd_200m']
-        bw.analyse.plot._timeseries_subplot(data.index, data[columns_to_plot], ax=axes, use_colourmap=True, 
-                                             external_legend=True, legend_fontsize=8)
+        bw.analyse.plot._timeseries_subplot(data.index, data[wspd_cols], ax=axes, use_colormap=True)
 
     """
 
@@ -551,12 +576,12 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     if type(line_marker_types) is list:
         if len(y.columns) != len(line_marker_types):
             ValueError("You have provided 'line_markers_type' input as a list but length is different than the number "
-                    "of columns provided for y input. Please make sure that length is the same.")
+                       "of columns provided for y input. Please make sure that length is the same.")
     elif (type(line_marker_types) is str) or (line_marker_types is None):
         line_marker_types = [line_marker_types] * len(y.columns)
 
-    if use_colourmap:
-        cmap = COLOR_PALETTE.color_map_3colors
+    if use_colormap:
+        cmap = COLOR_PALETTE.color_map_range
         line_colors = bw.analyse.plot._colormap_to_colorscale(cmap, len(y.columns))
     else:
         if line_colors is None:
@@ -565,10 +590,12 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         if type(line_colors) is list:
             if len(y.columns) > len(line_colors):
                 ValueError("You have provided 'line_colors' input as a list but length is smaller than the number "
-                        "of columns provided for y input. Please make sure that length is the same.")
+                           "of columns provided for y input. Please make sure that length is the same.")
         else:
             line_colors = [line_colors] * len(y.columns)
 
+    # if using default line_colors and not enough colors provided, repeat the colors
+    # and adjust the alpha value used for blending for each set of colors
     alpha = [1 for _ in line_colors]
     num_colour_sets = int(np.ceil(len(y.columns) / len(line_colors)))
     alpha_delta = 0.8 / num_colour_sets
@@ -619,7 +646,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
 
 def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=None, y_limits=None,
                     x_tick_label_angle=25, line_colors=None, legend=True, figure_size=(15, 8),
-                    external_legend=False, legend_fontsize=12, show_grid=True, use_colourmap=False):
+                    external_legend=False, legend_fontsize=12, show_grid=True, use_colormap=False):
     """
     Plot a timeseries of data.
 
@@ -653,6 +680,8 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
                                         2) List of str or Hex or Rgb: the number of colors provided needs to be
                                            at least equal to the number of columns in the y input.
                                         3) None: the default COLOR_PALETTE.color_list will be used for plotting.
+                                    Note that if 'use_colormap' is True then this parameter is ignored and the
+                                    `bw.analyse.plot.COLOR_PALETTE.color_map_range` is used instead for the line colors.
     :type line_colors:              str or list or tuple or None
     :param legend:                  Boolean to choose if legend is shown. Default is True.
     :type legend:                   Bool
@@ -665,9 +694,11 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     :type legend_fontsize:          int
     :param show_grid:               Flag to show a grid in the plot area (True) or not (False). Default True.
     :type show_grid:                bool
-    :param use_colourmap:           Argument to choose line colours equally spaced from the default 'bw_color_map' colour 
-                                    map. Default False
-    :type use_colourmap:            bool
+    :param use_colormap:            Optional argument to choose for using a color map for the line colors. Default False.
+                                        - If True the `bw.analyse.plot.COLOR_PALETTE.color_map_range` color map 
+                                          is used for generating line colors equally spaced. 
+                                        - If False the `line_colors` parameter is used for generating line colors.
+    :type use_colormap:             bool
     :return:                        A timeseries plot
     :rtype:                         matplotlib.figure.Figure
 
@@ -707,6 +738,9 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
         # To use an external legend with fontsize 14 without grid displayed
         bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], external_legend=True, legend_fontsize=14, 
                            show_grid=False)
+        
+        # To use the default 'color_map_range' color map 
+        bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], use_colormap=True)
 
     """
     if line_colors is None:
@@ -721,7 +755,7 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
     _timeseries_subplot(sliced_data.index, sliced_data, x_label=x_label, y_label=y_label,
                         y_limits=y_limits, x_tick_label_angle=x_tick_label_angle,
                         line_colors=line_colors, legend=legend, ax=axes, external_legend=external_legend,
-                        legend_fontsize=legend_fontsize, show_grid=show_grid, use_colourmap=use_colourmap)
+                        legend_fontsize=legend_fontsize, show_grid=show_grid, use_colormap=use_colormap)
     plt.close()
     return fig
 
