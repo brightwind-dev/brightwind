@@ -475,12 +475,12 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     :type line_marker_types:        list or str or None
     :param line_colors:             Line colors used for the timeseries plot. Colors input can be given as:
                                         1) Single str (https://matplotlib.org/stable/gallery/color/named_colors.html)
-                                           or Hex (https://www.w3schools.com/colors/colors_picker.asp) or tuple (Rgb):
-                                           all plotted timeseries will use the same color.
-                                        2) List of str or Hex or Rgb: the number of colors provided needs to be
-                                           at least equal to the number of columns in the y input.
+                                           or Hex (https://www.w3schools.com/colors/colors_picker.asp) or tuple (Rgb)
+                                        2) List of str or Hex or Rgb
                                         3) None: the default COLOR_PALETTE.color_list will be used for plotting.
-                                    Note that if 'use_colormap' is True then this parameter is ignored and the
+                                    NOTE1: If the number of colors provided is less than the number of columns in the y 
+                                    input then the colors are repeated with a different transparency.
+                                    NOTE2: If 'use_colormap' is True then this parameter is ignored and the
                                     `bw.analyse.plot.COLOR_PALETTE.color_map_range` is used instead for the line colors.
     :type line_colors:              str or list or tuple or None
     :param subplot_title:           Title show on top of the subplot. Default is None.
@@ -589,16 +589,11 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     else:
         if line_colors is None:
             line_colors = COLOR_PALETTE.color_list
+        elif type(line_colors) is str or type(line_colors) is tuple:
+            line_colors = [line_colors]
 
-        if type(line_colors) is list:
-            if len(y.columns) > len(line_colors):
-                ValueError("You have provided 'line_colors' input as a list but length is smaller than the number "
-                           "of columns provided for y input. Please make sure that length is the same.")
-        else:
-            line_colors = [line_colors] * len(y.columns)
-
-    # if using default line_colors and not enough colors provided, repeat the colors
-    # and adjust the alpha value used for blending for each set of colors
+    # if the number of colors in `line_colors` is less than the number of columns, repeat the colors
+    # and adjust the alpha value used for blending each set of colors
     alpha = [1 for _ in line_colors]
     num_colour_sets = int(np.ceil(len(y.columns) / len(line_colors)))
     alpha_delta = 0.8 / num_colour_sets
