@@ -25,6 +25,7 @@ Additional labels for pre-release and build metadata are available as extensions
 11. More representative error messages returned in `Shear` function when no valid data is available (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
 11. `Shear.TimeSeries` and `Shear.TimeOfDay` has been updated to return np.nan when there is no valid data for that timestamp or hour (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
 12. Update to `plot_timeseries` and `_timeseries_subplot` to allow more than 12 lines to be plotted and allow the user to choose to use a colour map to determine the colours used (Issue [#492](https://github.com/brightwind-dev/brightwind/issues/492)).
+12. Added new color map `color_map_range_colors` on `_ColorPalette` that automatically update when main colors used for defining the map are changed. (Issue [#492](https://github.com/brightwind-dev/brightwind/issues/492)).
 12. Updated return object type from `get_measurement_stations` to allow return of a list of dictionaries  (Issue [#287](https://github.com/brightwind-dev/brightwind/issues/287)).
 12. Updated functionality in `get_measurement_stations` to enable filtering for device type (Issue [#378](https://github.com/brightwind-dev/brightwind/issues/378)).
 12. Added new function `LoadBrightHub.get_cleaning_rules()` to pull the cleaning rules for a particular measurement station on BrightHub (Issue [#461](https://github.com/brightwind-dev/brightwind/issues/461)).

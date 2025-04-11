@@ -45,7 +45,7 @@ class _ColorPalette:
         Color palette to be used for plotting graphs and tables. This Class generates also color_list, color_map,
         color_map_range, color_map_cyclical and some adjusted lightness color variables that are created from 
         the main colors defined below and used by several brightwind functions. 
-        The color_map, color_map_cyclical, color_map_3colors and the adjusted lightness color variables can also 
+        The color_map, color_map_cyclical, color_map_range and the adjusted lightness color variables can also 
         be set independently from the main colors as for examples below.
 
         1) The main colors used to define the color palette are:
@@ -84,7 +84,7 @@ class _ColorPalette:
         4) The color sequence used for defining the color_map variable is as below. This variable is a
            color map having a linear color pattern from the first color to the last color of the color_map_colors list
            and uses different adjusted lightness of the same color.
-            self.color_map_colors = [self.primary_95,  # lightest primary
+            self.color_map_colors = [self.primary_95,   # lightest primary
                                       self.primary,     # primary
                                       self.primary_10]  # darkest primary
 
@@ -100,7 +100,10 @@ class _ColorPalette:
         6) The color sequence used for defining the color_map_range variable is as below. This variable is a
            color map having a linear color pattern from the first dark color to the last light color of the 
            color_map_range_colors list.
-            self.color_map_range_colors = [self.ninth, self.tenth, self.eighth, self.primary]
+            self.color_map_range_colors = [self.ninth,      # blue grey
+                                           self.tenth,      # Quick Silver
+                                           self.eighth,     # Dark Cyan
+                                           self.primary]    # slightly darker than YellowGreen #9acd32
 
            This color map is used in the timeseries plot when several lines needs to be plotted showing a pattern e.g top
            to bottom measurements.
@@ -740,7 +743,7 @@ def plot_timeseries(data, date_from=None, date_to=None, x_label=None, y_label=No
                            show_grid=False)
         
         # To use the default 'color_map_range' color map 
-        bw.plot_timeseries(data[['Spd40mN', 'Spd60mS', 'T2m']], use_colormap=True)
+        bw.plot_timeseries(data[['Spd80mN', 'Spd80mS', 'Spd60mN', 'Spd60mS', 'Spd40mN', 'Spd40mS']], use_colormap=True)
 
     """
     if line_colors is None:
