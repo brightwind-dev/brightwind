@@ -1515,16 +1515,17 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
             for j, device_properties in enumerate(measurement_station):
                 meas_station_data_model_from = device_properties.get('date_from')
                 meas_station_data_model_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') if
-                                            meas_station_data_model_from is None or meas_station_data_model_from ==
-                                            DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
+                                                meas_station_data_model_from is None or meas_station_data_model_from ==
+                                                DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
                 meas_station_data_model_to = device_properties.get('date_to')
                 # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
                 # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
                 if meas_station_data_model_to is not None:
                     if pd.to_datetime(meas_station_data_model_to) >= df.index[-1]:
                         meas_station_data_model_to = None
-                # If [date_from, date_to) convention has not been used, we force this convention by setting meas_station_data_model_to  
-                # to the next_meas_station_data_model_from of the next measurement_station property
+                # If [date_from, date_to) convention has not been used, we force this convention by setting
+                # meas_station_data_model_to to the next_meas_station_data_model_from of the next
+                # measurement_station property.
                 if j < len(measurement_station_items) - 1:
                     next_meas_station_data_model_from = measurement_station[j+1].get('date_from')
                     if next_meas_station_data_model_from != meas_station_data_model_to:
@@ -1687,7 +1688,7 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
         else:
             idx_pos = wdir_data.index.get_indexer([pd.Timestamp(apply_offset_to)], method='nearest')[0]
             apply_offset_to_inclusive = wdir_data.index[idx_pos - 1].strftime('%Y-%m-%dT%H:%M:%S')
-        to_text = f"{apply_offset_to}, exclusive" 
+        to_text = f"{apply_offset_to} (exclusive)"
         if apply_offset_from > apply_offset_to_inclusive:
             return wdir_data   
 
