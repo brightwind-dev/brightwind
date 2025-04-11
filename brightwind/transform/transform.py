@@ -1420,46 +1420,44 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
     **Note:** When using `inplace=True`, be careful not to apply this function multiple times within
               the same assessment, as the offset will be applied again.
 
-    If a logger offset is defined in `logger_measurement_config.logger_offset`, this indicates
+    If a logger offset is defined in `logger_measurement_config.offset`, this indicates
     that the wind direction data has already been adjusted by this amount. This value may differ
     from `device_orientation_deg`, so the function calculates the difference to ensure the total
     adjustment equals the intended device orientation:
 
-        offset_to_apply = device_orientation_deg - logger_offset
+        offset_to_apply = device_orientation_deg - logger_measurement_config.offset
 
-    If configuration 'date_from' is equal to previous configuration 'date_to' then date ranges are considered as
-    [from, to) where 'from' is inclusive and 'to' is exclusive.
+    Configuration date ranges are treated as half-open intervals: [date_from, date_to),
+    meaning 'date_from' is inclusive and 'date_to' is exclusive.
 
-    Overlapping periods in 'vertical_profiler_properties' with non-zero device orientation values are not supported
-    and will raise an error.
+    Overlapping periods with non-zero `device_orientation_deg` values in `vertical_profiler_properties`
+    are not supported and will raise an error.
 
     :param data:                        Timeseries data.
     :type data:                         pd.DataFrame or pd.Series
-    :param measurement_station:         A simplified object to represent the IEA WRA Task 43 data model.
-    :type measurement_station:          brightwind.load.station.MeasurementStation
+    :param measurement_station:         A simplified object to represent the IEA Wind Task 43 WRA Data Model.
+    :type measurement_station:          bw.MeasurementStation
     :param wdir_cols:                   Wind direction column names to apply the offset to. If empty, all wind direction 
                                         columns in the data are used. Default is an empty list.
     :type wdir_cols:                    list
-    :param inplace:                     If 'inplace' is True, the original direction data, contained in 'data', will be
-                                        modified and replaced with the adjusted direction data. If 'inplace' is False, the
-                                        original data will not be touched and instead a new DataFrame containing the adjusted
-                                        direction data is created. To store this adjusted direction data, please ensure it is
-                                        assigned to a new variable. Default is False
+    :param inplace:                     If True, modifies `data` in place. If False, returns a new DataFrame/Series
+                                        with adjusted values. Default is False.
     :type inplace:                      bool, optional
-    :return:                            Data with adjusted wind direction by the offset derived accounting for the
-                                        orientation of the device relative to north.
+    :return:                            Data with wind direction adjusted by the orientation offset.
     :rtype:                             pd.DataFrame or pd.Series
     
     **Example usage**
     ::
+        import brightwind as bw
+
         fl1 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_demo_iea43_wra_data_model_v1_3)
         data = bw.load_csv(bw.demo_datasets.demo_floating_lidar_data)
 
-    Adjust only some wind directions by the device orientation, and assign to new variable:
+        # Adjust only specific wind direction columns:
         data_dev_orient_adj = bw.apply_device_orientation_offset(data, fl1, wdir_cols=['Dir_250m', 'Dir_200m'])
 
+    Adjust all wind directions in-place:
     ::
-    Adjust all wind directions by the device orientation, applying inplace:
         bw.apply_device_orientation_offset(data, fl1, inplace=True)
         print('Wind direction device orientation offset adjustment is completed.')
     
