@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$version": "1.0.0",
+  "definitions": {
+    "condition": {
+      "type": "object",
+      "properties": {
+        "assembled_column_name": {
+          "type": "string",
+          "description": "The column name in the assembled timeseries this condition tests."
+        },
+        "comparison_operator_id": {
+          "type": "integer",
+          "oneOf": [
+            { "const": 1, "description": "is less than" },
+            { "const": 2, "description": "is less than or equal" },
+            { "const": 3, "description": "is greater than" },
+            { "const": 4, "description": "is greater than or equal" },
+            { "const": 5, "description": "equals" },
+            { "const": 6, "description": "not equals" }
+          ]
+        },
+        "comparator_value": {
+          "type": "number"
+        },
+        "and": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/condition" },
+          "minItems": 2
+        },
+        "or": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/condition" },
+          "minItems": 2
+        },
+        "not": { "$ref": "#/definitions/condition" }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "assembled_column_name",
+            "comparison_operator_id",
+            "comparator_value"
+          ]
+        },
+        { "required": ["and"], "maxProperties": 1 },
+        { "required": ["or"], "maxProperties": 1 },
+        { "required": ["not"], "maxProperties": 1 }
+      ]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "rule": {
+      "type": "object",
+      "properties": {
+        "conditions": { "$ref": "#/definitions/condition" },
+        "clean_out": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "assembled_column_name": {
+                "type": "string",
+                "description": "The column name in the assembled timeseries these rules will be applied to."
+              }
+            },
+            "required": ["assembled_column_name"]
+          },
+          "minItems": 1
+        },
+        "date_from": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "The start date for when these cleaning rules would be applied. This date would be inclusive. The format of this date should follow ISO 8601 with the 'T' required.",
+          "examples": [
+            "2020-07-28T20:00:00",
+            "2100-01-01T00:00:00"
+          ]
+        },
+        "date_to": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "The end date for when these cleaning rules would be applied. This date would be exclusive. The format of this date should follow ISO 8601 with the 'T' required.",
+          "examples": [
+            "2020-07-28T20:00:00",
+            "2100-01-01T00:00:00"
+          ]
+        }
+      },
+      "required": ["conditions", "clean_out"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["rule"],
+  "additionalProperties": true
+}
