@@ -1454,7 +1454,7 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
         data = bw.load_csv(bw.demo_datasets.demo_floating_lidar_data)
 
         # Adjust only specific wind direction columns:
-        data_dev_orient_adj = bw.apply_device_orientation_offset(data, fl1, wdir_cols=['Dir_250m', 'Dir_200m'])
+        data_dev_orient_adj = bw.apply_device_orientation_offset(data, fl1, wdir_cols=['Dir_40m', 'Dir_50m'])
 
     Adjust all wind directions in-place:
     ::
@@ -1677,7 +1677,7 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
     additional_comment_txt = 'to account for {}'.format(target_orientation_name)
 
     if apply_offset_to is None:
-        to_text = "end of dataframe"
+        to_text = "end of data"
         mask = (wdir_data.index >= pd.Timestamp(apply_offset_from))
     else:
         mask = (wdir_data.index >= pd.Timestamp(apply_offset_from)) & (wdir_data.index < pd.Timestamp(apply_offset_to))
