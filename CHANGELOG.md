@@ -29,6 +29,7 @@ Additional labels for pre-release and build metadata are available as extensions
 12. Added new function `LoadBrightHub.get_cleaning_rules()` to pull the cleaning rules for a particular measurement station on BrightHub (Issue [#461](https://github.com/brightwind-dev/brightwind/issues/461)).
 13. Added new function `load.apply_cleaning_rules()` to clean columns specified in cleaning rules by the condition specified for a specific column in the rules. (Issue [#462](https://github.com/brightwind-dev/brightwind/issues/462)).
 14. Fix bug for application of `Shear.TimeOfDay()` (Issue [#441](https://github.com/brightwind-dev/brightwind/issues/441)).
+15. Updated `_MeasurementStation__load_wra_data_model` function to validate data model against task 43 schema for the relevant version (Issue [#489](https://github.com/brightwind-dev/brightwind/issues/489)).
 
 
 ## [2.2.1]
