@@ -43,9 +43,10 @@ class _ColorPalette:
     def __init__(self):
         """
         Color palette to be used for plotting graphs and tables. This Class generates also color_list, color_map,
-        color_map_cyclical and some adjusted lightness color variables that are created from the main colors defined
-        below and used by several brightwind functions. The color_map, color_map_cyclical and the adjusted lightness
-        color variables can also be set independently from the main colors as for examples below.
+        color_map_3colors, color_map_cyclical and some adjusted lightness color variables that are created from 
+        the main colors defined below and used by several brightwind functions. 
+        The color_map, color_map_cyclical, color_map_3colors and the adjusted lightness color variables can also 
+        be set independently from the main colors as for examples below.
 
         1) The main colors used to define the color palette are:
             self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb(156/255, 197/255, 55/255)
@@ -81,7 +82,8 @@ class _ColorPalette:
            This color list is used primarily in line and scatter plots.
 
         4) The color sequence used for defining the color_map variable is as below. This variable is a
-           color map having a linear color pattern from the first color to the last color of the color_map_colors list.
+           color map having a linear color pattern from the first color to the last color of the color_map_colors list
+           and uses different adjusted lightness of the same color.
             self.color_map_colors = [self.primary_95,  # lightest primary
                                       self.primary,     # primary
                                       self.primary_10]  # darkest primary
@@ -94,6 +96,14 @@ class _ColorPalette:
 
            This sequence of colors is for plots where the pattern is cyclical such as a seasons. This is also used in
            12x24 plot from a shear by time of day.
+        
+        6) The color sequence used for defining the color_map_3colors variable is as below. This variable is a
+           color map having a linear color pattern from the first dark color to the last light color of the 
+           color_map_colors list.
+            self.color_map_colors = [self.ninth, self.eighth, self.primary]
+
+           This color map is used in the timeseries plot when several lines needs to be plotted showing a pattern e.g top
+           to bottom measurements.
 
         **Example usage**
         ::
@@ -117,12 +127,16 @@ class _ColorPalette:
 
             bw.analyse.plot.COLOR_PALETTE.primary_10 = '#0a1429'
 
-            # The colors used for defining any of the three defined colour maps can also be reset by using the 
-            # example code below:
-
+            # The colors used for defining the color_map can also be reset by using the example code below:
             bw.analyse.plot.COLOR_PALETTE.color_map_colors = ['#ccfffc',   # lightest primary
                                                               '#00b4aa',   # vert-dark
                                                               '#008079']   # darkest primary
+            
+            # The colors used for defining the color_map_cyclical can also be reset by using the example code below:
+            bw.analyse.plot.COLOR_PALETTE.color_map_cyclical_colors = ['#ccfffc',   # lightest primary
+                                                                       '#00b4aa',   # vert-dark
+                                                                       '#008079',   # darkest primary
+                                                                       '#ccfffc']   # lightest primary
 
             # The hex color value corresponding to an input color adjusted by a percentage lightness (e.g 0.5 %)
             # can be derived as below:
@@ -177,14 +191,10 @@ class _ColorPalette:
 
     @property
     def color_map(self):
-        return self._set_col_map('color_map', self._get_color_map_colors([
-            self.primary_95,  # lightest primary
-            self.primary,     # primary
-            self.primary_10   # darkest primary
-            ]))
+        return self._set_col_map('color_map', self._get_color_map_colors())
 
     @property
-    def color_map_bw(self):
+    def color_map_3colors(self):
         return self._set_col_map('bw_color_map', self._get_color_map_colors([
             COLOR_PALETTE.ninth, COLOR_PALETTE.eighth, COLOR_PALETTE.primary
             ]))
@@ -195,26 +205,43 @@ class _ColorPalette:
 
     @property
     def color_map_colors(self):
-        return self._get_color_map_colors([self.primary_95, self.primary, self.primary_10])
+        return self._get_color_map_colors()
 
     @color_map_colors.setter
     def color_map_colors(self, val):
         self._color_map_colors = val
 
-    def _get_color_map_colors(self, default_color_map_list):
+    def _get_color_map_colors(self):
         if self._color_map_colors:
             # if the user has set a new color_map_color, use them.
             color_map_colors = self._color_map_colors
         else:
             # if the user has not set a new one, use our default colors.
-            color_map_colors = default_color_map_list
+            color_map_colors = [self.primary_95,  # lightest primary
+                                self.primary,     # primary
+                                self.primary_10]  # darkest primary
         return color_map_colors
 
     @property
     def color_map_cyclical(self):
-        return self._set_col_map('color_map_cyclical', self._get_color_map_colors([
-            self.secondary, self.fifth, self.primary, self.tertiary, self.secondary
-            ]))
+        return self._set_col_map('color_map_cyclical', self._get_color_map_cyclical_colors())
+
+    @property
+    def color_map_cyclical_colors(self):
+        return self._get_color_map_cyclical_colors()
+
+    @color_map_cyclical_colors.setter
+    def color_map_cyclical_colors(self, val):
+        self._color_map_cyclical_colors = val
+
+    def _get_color_map_cyclical_colors(self):
+        if self._color_map_cyclical_colors:
+            # if the user has set a new color_map_cyclical_color, use them.
+            color_map_cyclical_colors = self._color_map_cyclical_colors
+        else:
+            # if the user has not set a new one, use our default colors.
+            color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
+        return color_map_cyclical_colors
 
     @staticmethod
     def _adjust_color_lightness(input_color, lightness_factor):
@@ -527,7 +554,7 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
         line_marker_types = [line_marker_types] * len(y.columns)
 
     if use_colourmap:
-        cmap = COLOR_PALETTE.color_map_bw
+        cmap = COLOR_PALETTE.color_map_3colors
         line_colors = bw.analyse.plot._colormap_to_colorscale(cmap, len(y.columns))
     else:
         if line_colors is None:
