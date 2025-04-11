@@ -1404,33 +1404,33 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
 
 def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inplace=False):
-    """    
-    Automatically apply any device orientation offset a remote sensing device (lidar, sodar or floating_lidar)
-    might have relative to north. This adjustment is applied to the wind direction data.
+    """
+    Applies a device orientation offset to wind direction data from remote sensing devices
+    (lidar, sodar, or floating lidar) to align measurements with north.
 
-    The as installed device orientation is set in the `vertical_profiler_properties`.`device_orientation_deg`
-    property according to the IEA Wind Task 43 WRA Data Model.
+    The device's as-installed orientation is specified in
+    `vertical_profiler_properties.device_orientation_deg` according to the IEA Wind Task 43
+    WRA Data Model. This data model is represented using the `bw.MeasurementStation()` object.
 
-    If `wdir_cols` is an empty list, the offset is applied to all wind directions reported in the 
-    `measurement_station` (if these are in the data), otherwise it is only applied to those columns requested.
-    
-    This function uses the brightwind 'offset_wind_direction()' function to apply the actual adjustment to 
-    the data.
-    Note: Be careful not to run this more than once in an assessment, when using inplace=True, as it will
-          apply an offset again.
+    If `wdir_cols` is empty, the offset is applied to all wind direction columns reported in
+    the measurement station. Otherwise, only the specified columns are adjusted.
 
-    If there is a value in the logger measurement config for an offset, then the wind direction data has already 
-    been adjusted by this amount. This may or may not be equal to the device_orientation_deg offset. Therefore, 
-    the adjustment to be made should make up the difference to equal a device_orientation_deg offset. E.g.
+    This function uses the brightwind 'offset_wind_direction()' function to apply the adjustment to the data.
 
-            offset to be applied = device_orientation_deg - logger_offset
+    **Note:** When using `inplace=True`, be careful not to apply this function multiple times within
+              the same assessment, as the offset will be applied again.
 
-    This function accounts for this adjustment.
+    If a logger offset is defined in `logger_measurement_config.logger_offset`, this indicates
+    that the wind direction data has already been adjusted by this amount. This value may differ
+    from `device_orientation_deg`, so the function calculates the difference to ensure the total
+    adjustment equals the intended device orientation:
 
-    If configuration date from is equal to previous configuration date to then date ranges are considered as 
+        offset_to_apply = device_orientation_deg - logger_offset
+
+    If configuration 'date_from' is equal to previous configuration 'date_to' then date ranges are considered as
     [from, to) where 'from' is inclusive and 'to' is exclusive.
 
-    Overlapping periods in vertical_profiler_properties with non-zero device orientation values are not supported 
+    Overlapping periods in 'vertical_profiler_properties' with non-zero device orientation values are not supported
     and will raise an error.
 
     :param data:                        Timeseries data.

@@ -6,7 +6,7 @@
   "measurement_location": [
     {
       "uuid": "f4af1419-147e-420d-b71a-431df3bf4fe2",
-      "name": "MDE-CelticArray-LR1",
+      "name": "MDE-CelticArray-LR1_Modified",
       "latitude_ddeg": 53.815278,
       "longitude_ddeg": -3.561667,
       "measurement_station_type_id": "lidar",
