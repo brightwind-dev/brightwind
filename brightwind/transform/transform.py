@@ -1403,7 +1403,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             return df_copy.sort_index()
 
 
-def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[], inplace=False):
+def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inplace=False):
     """
     Applies a device orientation offset to wind direction data from remote sensing devices
     (lidar, sodar, or floating lidar) to align measurements with north.
@@ -1435,8 +1435,8 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
 
     :param data:                        Timeseries data.
     :type data:                         pd.DataFrame or pd.Series
-    :param meas_station_data_models:    A simplified object to represent the IEA Wind Task 43 WRA Data Model.
-    :type meas_station_data_models:     brightwind.load.station.MeasurementStation
+    :param measurement_station:         A simplified object to represent the IEA WRA Task 43 data model.
+    :type measurement_station:          brightwind.load.station.MeasurementStation
     :param wdir_cols:                   Wind direction column names to apply the offset to. If empty, all wind direction 
                                         columns in the data are used. Default is an empty list.
     :type wdir_cols:                    list
@@ -1465,7 +1465,10 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
     
     """
     
-    measurements = meas_station_data_models.measurements
+    if measurement_station.type not in ['lidar', 'floating_lidar', 'sodar']:
+        raise ValueError(f"Device type: {measurement_station.type} is not supported for this function.")
+    
+    measurements = measurement_station.measurements
     wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
     # copy the data if needed
     data = data.copy(deep=True) if inplace is False else data
@@ -1487,9 +1490,8 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
                 wdirs_properties_temp.extend([prop for prop in wdirs_properties if col == prop['name']])
         wdirs_properties = wdirs_properties_temp
 
-    _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df)
+    _check_vertical_profiler_properties_overlap(measurement_station, df)
 
-    i = 0
     # Apply the offset
     for wdir_prop in wdirs_properties:
         name = wdir_prop['name']
@@ -1499,12 +1501,12 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
             date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
                          if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
             logger_offset = wdir_prop.get('logger_measurement_config.offset')
-            for meas_station_data_model in meas_station_data_models:
-                meas_station_data_model_from = meas_station_data_model.get('date_from')
+            for device_properties in measurement_station:
+                meas_station_data_model_from = device_properties.get('date_from')
                 meas_station_data_model_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') if
-                                                meas_station_data_model_from is None or meas_station_data_model_from ==
-                                                DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
-                meas_station_data_model_to = meas_station_data_model.get('date_to')
+                                            meas_station_data_model_from is None or meas_station_data_model_from ==
+                                            DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
+                meas_station_data_model_to = device_properties.get('date_to')
                 
                 if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
                     date_to_tmp = meas_station_data_model_to
@@ -1512,13 +1514,10 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
                     idx_pos = df.index.get_indexer([pd.Timestamp(date_to)], method='nearest')[0]
                     date_to_tmp = df.index[idx_pos + 1].strftime('%Y-%m-%dT%H:%M:%S') if idx_pos + 1 < len(df.index) else date_to
 
-                if i == 0 or previous_name != name:
-                    previous_name = name
-                    i += 1
                 if (((meas_station_data_model_to is None) or (date_from <= meas_station_data_model_to)) and 
                     ((date_to_tmp is None) or (meas_station_data_model_from is None) or 
                      (date_to_tmp >= meas_station_data_model_from))):
-                    device_orientation_deg = meas_station_data_model.get('device_orientation_deg')
+                    device_orientation_deg = device_properties.get('device_orientation_deg')
                     apply_offset_from = (date_from if date_from > meas_station_data_model_from 
                                          else meas_station_data_model_from)
                     if date_to_tmp is None or meas_station_data_model_to is None:
@@ -1526,7 +1525,6 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
                     else:
                         apply_offset_to = min(date_to_tmp, meas_station_data_model_to)
 
-                    previous_name = name
                     df[name] = _apply_dir_offset_target_orientation(
                         df[name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
                         target_orientation_name='device orientation')
@@ -1553,7 +1551,7 @@ def apply_device_orientation_offset(data, meas_station_data_models, wdir_cols=[]
     return df
 
 
-def _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df):
+def _check_vertical_profiler_properties_overlap(measurement_station, df):
     """
     Checks if in vertical_profiler_properties there are any overlapping 
     date ranges with device orientation values.
@@ -1562,28 +1560,28 @@ def _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df
     Overlapping date ranges with device orientation values are not supported 
     by apply_device_orientation_offset function and will raise an error.
     
-    :param meas_station_data_models:    A simplified object to represent the IEA WRA Task 43 data model.
-    :type meas_station_data_models:     brightwind.load.station.MeasurementStation
+    :param measurement_station:         A simplified object to represent the IEA WRA Task 43 data model.
+    :type measurement_station:          brightwind.load.station.MeasurementStation
     :param df:                          DataFrame with the time series data
     :type df:                           pd.DataFrame
     :raises ValueError:                 If overlapping date ranges with device orientation values are detected
     """
     date_ranges = []
     
-    for meas_station_data_model in meas_station_data_models:
-        date_from = meas_station_data_model.get('date_from')
+    for device_properties in measurement_station:
+        date_from = device_properties.get('date_from')
         if date_from is None or date_from == DATE_INSTEAD_OF_NONE:
             date_from = df.index[0].strftime('%Y-%m-%dT%H:%M:%S')
-        date_to = meas_station_data_model.get('date_to')
+        date_to = device_properties.get('date_to')
         if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
             date_to = df.index[-1].strftime('%Y-%m-%dT%H:%M:%S')
-        device_orientation_deg = meas_station_data_model.get('device_orientation_deg', None)
+        device_orientation_deg = device_properties.get('device_orientation_deg', None)
         
         date_ranges.append({
             'from': pd.to_datetime(date_from),
             'to': pd.to_datetime(date_to),
             'device_orientation_deg': device_orientation_deg,
-            'model': meas_station_data_model
+            'model': device_properties
         })
     
     for i, range1 in enumerate(date_ranges):
@@ -1604,6 +1602,7 @@ def _check_vertical_profiler_properties_not_overlap(meas_station_data_models, df
                     f"{range2['from']} to {range2['to']} (device_orientation_deg: {range2['device_orientation_deg']}°)"
                     f"\nthis is currently unsupported."
                 )
+    return False
 
 
 def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orientation, apply_offset_from,
@@ -1648,20 +1647,17 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
 
     if apply_offset_to is None:
         to_text = "end of dataframe"
+        mask = (wdir_data.index >= pd.Timestamp(apply_offset_from))
     else:
         mask = (wdir_data.index >= pd.Timestamp(apply_offset_from)) & (wdir_data.index < pd.Timestamp(apply_offset_to))
         idx_pos = wdir_data.index.get_indexer([pd.Timestamp(apply_offset_to)], method='nearest')[0]
         apply_offset_to_inclusive = wdir_data.index[idx_pos - 1].strftime('%Y-%m-%dT%H:%M:%S')
-        to_text = f"{apply_offset_to} (exclusive or {apply_offset_to_inclusive} inclusive)"    
+        to_text = f"{apply_offset_to}, exclusive but inclusive of {apply_offset_to_inclusive}"    
 
     if logger_offset is not None and logger_offset != 0 and target_orientation is not None:
         offset = offset_wind_direction(float(target_orientation), offset=-float(logger_offset))
         additional_comment_txt = additional_comment_txt + ' and logger offset'
-    if offset:
-        # Create a mask for the date range with exclusive upper bound or to end of dataframe
-        if apply_offset_to is None:
-            mask = (wdir_data.index >= pd.Timestamp(apply_offset_from))
-            
+    if offset:            
         # Apply offset only to the masked data
         wdir_data.loc[mask] = offset_wind_direction(wdir_data.loc[mask], float(offset))
         
