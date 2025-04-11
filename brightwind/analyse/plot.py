@@ -128,11 +128,13 @@ class _ColorPalette:
             bw.analyse.plot.COLOR_PALETTE.primary_10 = '#0a1429'
 
             # The colors used for defining the color_map can also be reset by using the example code below:
+
             bw.analyse.plot.COLOR_PALETTE.color_map_colors = ['#ccfffc',   # lightest primary
                                                               '#00b4aa',   # vert-dark
                                                               '#008079']   # darkest primary
             
             # The colors used for defining the color_map_cyclical can also be reset by using the example code below:
+            
             bw.analyse.plot.COLOR_PALETTE.color_map_cyclical_colors = ['#ccfffc',   # lightest primary
                                                                        '#00b4aa',   # vert-dark
                                                                        '#008079',   # darkest primary
