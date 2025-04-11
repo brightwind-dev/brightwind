@@ -1498,6 +1498,9 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
         name = wdir_prop['name']
         if name in df.columns:
             date_to = wdir_prop.get('date_to')
+            if date_to is not None:
+                if pd.to_datetime(date_to) >= df.index[-1]:
+                    date_to = None
             if i < len(wdirs_properties) - 1:
                 if wdirs_properties[i+1].get('name') == name:
                     next_date_from = wdirs_properties[i+1].get('date_from')
@@ -1513,6 +1516,9 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
                                             meas_station_data_model_from is None or meas_station_data_model_from ==
                                             DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
                 meas_station_data_model_to = device_properties.get('date_to')
+                if meas_station_data_model_to is not None:
+                    if pd.to_datetime(meas_station_data_model_to) >= df.index[-1]:
+                        meas_station_data_model_to = None
                 if j < len(measurement_station_items) - 1:
                     next_meas_station_data_model_from = measurement_station[j+1].get('date_from')
                     if next_meas_station_data_model_from != meas_station_data_model_to:
@@ -1669,9 +1675,15 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
         mask = (wdir_data.index >= pd.Timestamp(apply_offset_from))
     else:
         mask = (wdir_data.index >= pd.Timestamp(apply_offset_from)) & (wdir_data.index < pd.Timestamp(apply_offset_to))
-        idx_pos = wdir_data.index.get_indexer([pd.Timestamp(apply_offset_to)], method='nearest')[0]
-        apply_offset_to_inclusive = wdir_data.index[idx_pos - 1].strftime('%Y-%m-%dT%H:%M:%S')
-        to_text = f"{apply_offset_to}, exclusive but inclusive of {apply_offset_to_inclusive}"    
+        if pd.Timestamp(apply_offset_to) not in wdir_data.index:
+            valid_timestamps = wdir_data.index[wdir_data.index <= pd.Timestamp(apply_offset_to)]
+            apply_offset_to_inclusive = valid_timestamps[-1].strftime('%Y-%m-%dT%H:%M:%S')
+        else:
+            idx_pos = wdir_data.index.get_indexer([pd.Timestamp(apply_offset_to)], method='nearest')[0]
+            apply_offset_to_inclusive = wdir_data.index[idx_pos - 1].strftime('%Y-%m-%dT%H:%M:%S')
+        to_text = f"{apply_offset_to}, exclusive but inclusive of {apply_offset_to_inclusive}" 
+        if apply_offset_from > apply_offset_to_inclusive:
+            return wdir_data   
 
     if logger_offset is not None and logger_offset != 0 and target_orientation is not None:
         offset = offset_wind_direction(float(target_orientation), offset=-float(logger_offset))
