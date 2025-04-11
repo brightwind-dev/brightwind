@@ -30,7 +30,7 @@ Additional labels for pre-release and build metadata are available as extensions
 13. Added new function `load.apply_cleaning_rules()` to clean columns specified in cleaning rules by the condition specified for a specific column in the rules. (Issue [#462](https://github.com/brightwind-dev/brightwind/issues/462)).
 14. Fix bug for application of `Shear.TimeOfDay()` (Issue [#441](https://github.com/brightwind-dev/brightwind/issues/441)).
 15. Added `apply_device_orientation_offset` function (Issue [#451](https://github.com/brightwind-dev/brightwind/issues/451)).
-
+15. Updated `MeasurementStation()` to validate data model against schema for the relevant version (Issue [#489](https://github.com/brightwind-dev/brightwind/issues/489)).
 
 
 ## [2.2.1]
