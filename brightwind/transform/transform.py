@@ -1496,9 +1496,13 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
         name = wdir_prop['name']
         if name in df.columns:
             date_to = wdir_prop.get('date_to')
+            # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
+            # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
             if date_to is not None:
                 if pd.to_datetime(date_to) >= df.index[-1]:
                     date_to = None
+            # If [date_from, date_to) convention has not been used, we force this convention by setting 
+            # date_to to the date_from of the next logger property
             if i < len(wdirs_properties) - 1:
                 if wdirs_properties[i+1].get('name') == name:
                     next_date_from = wdirs_properties[i+1].get('date_from')
@@ -1514,9 +1518,13 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
                                             meas_station_data_model_from is None or meas_station_data_model_from ==
                                             DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
                 meas_station_data_model_to = device_properties.get('date_to')
+                # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
+                # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
                 if meas_station_data_model_to is not None:
                     if pd.to_datetime(meas_station_data_model_to) >= df.index[-1]:
                         meas_station_data_model_to = None
+                # If [date_from, date_to) convention has not been used, we force this convention by setting meas_station_data_model_to  
+                # to the next_meas_station_data_model_from of the next measurement_station property
                 if j < len(measurement_station_items) - 1:
                     next_meas_station_data_model_from = measurement_station[j+1].get('date_from')
                     if next_meas_station_data_model_from != meas_station_data_model_to:
