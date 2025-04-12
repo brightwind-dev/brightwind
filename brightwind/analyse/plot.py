@@ -46,7 +46,7 @@ class _ColorPalette:
         color_map_range, color_map_cyclical and some adjusted lightness color variables that are created from 
         the main colors defined below and used by several brightwind functions. 
         The color_map, color_map_cyclical, color_map_range and the adjusted lightness color variables can also 
-        be set independently from the main colors as for examples below.
+        be set independently from the main colors as outlined below.
 
         1) The main colors used to define the color palette are:
             self.primary = '#9CC537'        # slightly darker than YellowGreen #9acd32, rgb(156/255, 197/255, 55/255)
@@ -94,27 +94,26 @@ class _ColorPalette:
            color map having a cyclical color pattern from/to the first color of the color_map_cyclical_colors.
             self.color_map_cyclical_colors = [self.secondary, self.fifth, self.primary, self.tertiary, self.secondary]
 
-           This sequence of colors is for plots where the pattern is cyclical such as a seasons. This is also used in
+           This sequence of colors is for plots where the pattern is cyclical such as seasons. This is also used in
            12x24 plot from a shear by time of day.
         
         6) The color sequence used for defining the color_map_range variable is as below. This variable is a
            color map having a linear color pattern from the first dark color to the last light color of the 
            color_map_range_colors list.
-            self.color_map_range_colors = [self.ninth,      # blue grey
-                                           self.tenth,      # quick silver
-                                           self.sixth,      # bronze (metallic)
-                                           self.eighth,     # dark cyan
+            self.color_map_range_colors = [self.secondary,  # Asphalt
+                                           self.tenth,      # Quick Silver
+                                           self.tertiary,   # Red'ish
+                                           self.fifth,      # Mikado Yellow
                                            self.primary]    # slightly darker than YellowGreen #9acd32
 
-           This color map is used in the timeseries plot when several lines needs to be plotted showing a pattern e.g top
-           to bottom measurements.
+           This color map is used in timeseries plots where multiple lines are displayed to show a pattern
+           such as wind speed measurements from high above the ground down to lower elevations.
 
         **Example usage**
         ::
             import brightwind as bw
 
-            # The color palette used by brightwind library by default based on main colors can be visualised using
-            # code below.
+            # The main color palette used by the brightwind library can be visualised using the below code.
 
             import matplotlib.pyplot as plt
             fig, axes = plt.subplots()
@@ -127,29 +126,30 @@ class _ColorPalette:
 
             bw.analyse.plot.COLOR_PALETTE.primary = '#3366CC'
 
-            # If required, the individual adjusted lightness colors can also be reset by using the example code below:
+            # If required, the individual adjusted lightness colors can also be reset:
 
             bw.analyse.plot.COLOR_PALETTE.primary_10 = '#0a1429'
 
-            # The colors used for defining the color_map can also be reset by using the example code below:
+            # The colors used for defining the color_map can also be reset independently:
 
             bw.analyse.plot.COLOR_PALETTE.color_map_colors = ['#ccfffc',   # lightest primary
                                                               '#00b4aa',   # vert-dark
                                                               '#008079']   # darkest primary
             
-            # The colors used for defining the color_map_cyclical can also be reset by using the example code below:
+            # The colors used for defining the color_map_cyclical can also be reset:
 
             bw.analyse.plot.COLOR_PALETTE.color_map_cyclical_colors = ['#ccfffc',   # lightest primary
                                                                        '#00b4aa',   # vert-dark
                                                                        '#008079',   # darkest primary
                                                                        '#ccfffc']   # lightest primary
 
-            # The colors used for defining the color_map_range can also be reset by using the example code below:
+            # The colors used for defining the color_map_range can also be reset:
 
             bw.analyse.plot.COLOR_PALETTE.color_map_range_colors = ['#2E3743',   # asphalt
+                                                                    '#A49E9D',   # quick silver
                                                                     '#9B2B2C',   # red'ish
-                                                                    '#DA9BA6',   # parrot pink
-                                                                    '#3D636F',   # blue grey
+                                                                    '#ffc008',   # mikado yellow
+                                                                    '#9CC537'    # yellowgreen
                                                                     ]   
 
             # The hex color value corresponding to an input color adjusted by a percentage lightness (e.g 0.5 %)
