@@ -45,7 +45,7 @@ setup(
               'WIND PRO', 'WINDOGRAPHER'],
     install_requires=[
         'pandas>=0.24.0, <=2.0.1',
-        'numpy>=1.16.4',
+        'numpy>=1.16.4, <2.0.0',
         'scikit-learn>=0.19.1',
         'matplotlib>=3.0.3',
         'requests>=2.20.0',
