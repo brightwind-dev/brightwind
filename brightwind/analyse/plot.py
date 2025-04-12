@@ -174,9 +174,6 @@ class _ColorPalette:
         self._color_map_cyclical_colors = None
         self._color_map_range_colors = None
 
-        # set the mpl color cycler to our colors. It has 10 colors
-        # mpl.rcParams['axes.prop_cycle']
-
     @property
     def primary(self):
         return self._primary
@@ -270,7 +267,7 @@ class _ColorPalette:
             color_map_range_colors = self._color_map_range_colors
         else:
             # if the user has not set a new one, use our default colors.
-            color_map_range_colors = [self.ninth, self.tenth, self.sixth, self.eighth, self.primary]
+            color_map_range_colors = [self.secondary, self.tenth, self.tertiary, self.fifth, self.primary]
         return color_map_range_colors
 
     @staticmethod
