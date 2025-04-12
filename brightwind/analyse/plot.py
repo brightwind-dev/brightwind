@@ -596,14 +596,22 @@ def _timeseries_subplot(x, y, x_label=None, y_label=None, x_limits=None, y_limit
     # if the number of colors in `line_colors` is less than the number of columns, repeat the colors
     # and adjust the alpha value used for blending each set of colors
     alpha = [1 for _ in line_colors]
+    print(alpha)
+    len_line_colors = len(line_colors)
     num_colour_sets = int(np.ceil(len(y.columns) / len(line_colors)))
-    alpha_delta = 0.8 / num_colour_sets
-    if len(line_colors) < len(y.columns):
+    if num_colour_sets > 1:  # there are less line_colors than are needed, len(line_colors) < len(y.columns):
+        alpha_delta = 0.8 / num_colour_sets
         while len(line_colors) < len(y.columns):
+            remaining = len(y.columns) - len(line_colors)
             for i in range(num_colour_sets - 1):
-                for j in range(len(line_colors)):
+                for j in range(len_line_colors):
+                    if remaining == 0:
+                        break
                     line_colors.append(line_colors[j])
                     alpha.append(1 - alpha_delta * (i + 1))
+                    remaining -= 1
+                if remaining == 0:
+                    break
 
     for i_col, (col, marker_type) in enumerate(zip(y.columns, line_marker_types)):
         ax.plot(x, y.iloc[:, i_col], marker=marker_type, color=line_colors[i_col], label=col, alpha=alpha[i_col])
