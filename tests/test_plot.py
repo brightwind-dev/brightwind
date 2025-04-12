@@ -69,6 +69,34 @@ def test_plot_timeseries():
     actual_fontsize = legend.get_texts()[0].get_fontsize()
     assert actual_fontsize == 6, f"Expected font size {6}, got {actual_fontsize}"
 
+    columns_to_plot = [a for a in DATA.columns if "Spd" in a]
+    time_series_subplot =  bw.analyse.plot._timeseries_subplot(DATA.index, DATA[columns_to_plot], 
+                                                               external_legend=True, legend_fontsize=6, show_grid=True)    
+    actual_colours = np.ones_like(columns_to_plot)
+    for _, line in enumerate(time_series_subplot.get_lines()):
+        for j, column in enumerate(columns_to_plot):
+            if line.get_label() == column:
+                actual_colours[j] = line.get_color()
+    expected_colors = [
+        '#9CC537', '#2E3743', '#9B2B2C', '#E57925', '#ffc008', '#AB8D60', 
+        '#A4D29F', '#01958a', '#3D636F', '#A49E9D', '#DA9BA6', '#6e8c27',
+        '#9CC537', '#2E3743', '#9B2B2C', '#E57925', '#ffc008', '#AB8D60', 
+        '#A4D29F', '#01958a', '#3D636F', '#A49E9D', '#DA9BA6', '#6e8c27'
+    ]
+    assert all(a == e for a, e in zip(actual_colours, expected_colors))
+    
+    time_series_subplot =  bw.analyse.plot._timeseries_subplot(DATA.index, DATA[columns_to_plot], use_colormap=True,
+                                                               external_legend=True, legend_fontsize=6, show_grid=True)
+    
+    actual_colours = np.ones_like(columns_to_plot)
+    for _, line in enumerate(time_series_subplot.get_lines()):
+        for j, column in enumerate(columns_to_plot):
+            if line.get_label() == column:
+                actual_colours[j] = line.get_color()
+    expected_colors = ['#3d636f', '#55717a', '#6d7f85', '#868d8f', '#9e9b9a', '#a59b92', '#a79784', '#a99376', '#aa8f67',
+                       '#978e65', '#6f906f', '#479279', '#1f9483', '#0a9885', '#2fa372', '#53ae5e', '#78ba4b', '#9cc537']
+    assert all(a == e for a, e in zip(actual_colours, expected_colors))
+    
     assert True
 
 
