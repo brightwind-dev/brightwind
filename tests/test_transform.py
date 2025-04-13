@@ -220,8 +220,11 @@ def test_apply_device_orientation_offset():
     # Create the top-level data model structure
     full_data_model = {
         'measurement_location': [modified_data_model],
-        'version': STATION_LIDAR.data_model.get('version', '1.0.0-2022.01')
-    }    
+        'version': STATION_LIDAR.data_model.get('version', '1.3.0-2024.03'),
+        'date': '2025-04-13',
+        'organisation': 'BrightWind',
+        'author': 'brightwind_library'
+    }
     new_station_lidar = bw.MeasurementStation(full_data_model)
 
     captured_output = io.StringIO()
@@ -247,37 +250,40 @@ def test_check_vertical_profiler_properties_not_overlap():
     original_data_model = copy.deepcopy(STATION_LIDAR.data_model)
     date_range = pd.date_range(start='2012-11-01', end='2012-12-01', freq='10min')
     test_df = pd.DataFrame(index=date_range)
-    
+
     vertical_profiler_properties = original_data_model.get('vertical_profiler_properties', [])
-    
+
     overlapping_property = copy.deepcopy(vertical_profiler_properties[0])
-    
+
     existing_from = pd.to_datetime(vertical_profiler_properties[0].get('date_from'))
     existing_to = pd.to_datetime(vertical_profiler_properties[0].get('date_to'))
-    
+
     # Create an overlap by setting dates that intersect with existing range
     overlap_from = existing_from + pd.Timedelta(days=3)
     overlap_to = existing_to + pd.Timedelta(days=3)
-    
+
     overlapping_property['date_from'] = overlap_from.strftime('%Y-%m-%dT%H:%M:%S')
     overlapping_property['date_to'] = overlap_to.strftime('%Y-%m-%dT%H:%M:%S')
     overlapping_property['device_orientation_deg'] = 45
-    
+
     vertical_profiler_properties.append(overlapping_property)
-    
+
     # Create a new data model with the modified properties
     modified_data_model = copy.deepcopy(original_data_model)
     modified_data_model['vertical_profiler_properties'] = vertical_profiler_properties
-    
+
     # Create the top-level data model structure
     full_data_model = {
         'measurement_location': [modified_data_model],
-        'version': STATION_LIDAR.data_model.get('version', '1.0.0-2022.01')
+        'version': STATION_LIDAR.data_model.get('version', '1.3.0-2024.03'),
+        'date': '2025-04-13',
+        'organisation': 'BrightWind',
+        'author': 'brightwind_library'
     }
-    
+
     # Create a new MeasurementStation with overlapping configurations
     overlapping_station = bw.MeasurementStation(full_data_model)
-    
+
     with pytest.raises(ValueError) as excinfo:
         check_vertical_profiler_properties_overlap(overlapping_station, test_df)
     assert "Overlapping periods detected on vertical_profiler_properties with at least one" in str(excinfo.value)
