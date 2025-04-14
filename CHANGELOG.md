@@ -1,4 +1,4 @@
-# Changelog
+# Changelog – Brightwind Python Library
 All notable changes to this project will be documented in this file. If you make a notable change to the project, please add a line describing the change to the "unreleased" section. The maintainers will make an effort to keep the [Github Releases](https://github.com/brightwind-dev/brightwind/releases) page up to date with this changelog. The format is based on [Semantic Versioning](https://semver.org/) e.g. '1.1.0'
 
 Given a version number MAJOR.MINOR.PATCH, increment the:
@@ -9,30 +9,39 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
+---
+
 
 ## [2.3.0]
-1. Bug fix legend `plot_scatter_wspd` and `plot_scatter_wdir` functions and added tests (Issue [#443](https://github.com/brightwind-dev/brightwind/issues/443)).
-2. Bug fix calling `is_file` function (Issue [#447](https://github.com/brightwind-dev/brightwind/issues/447)).
-3. Bug fix in `_Measurements_get_table` function (Issue [#421](https://github.com/brightwind-dev/brightwind/issues/421)).
-4. Bug fix in `_Measurements_get_names` function and made this function public (Issue [#450](https://github.com/brightwind-dev/brightwind/issues/450)).
-5. Bug fix in `_Measurements__get_properties` function when sensor can measure multiple measurement types. If there are multiple calibrations present, the correct one is now chosen (Issue [#449](https://github.com/brightwind-dev/brightwind/issues/449)).
-6. Bug fix in `_Measurements__get_properties` function to handle solar sites (Issue [#453](https://github.com/brightwind-dev/brightwind/issues/453)).
-7. Bug fix in `dist` function (Issue [#459](https://github.com/brightwind-dev/brightwind/issues/459)).
-8. Bug fix in `_LoggerMainConfigs__get_properties` function for solar and sodar sites (Issue [#454](https://github.com/brightwind-dev/brightwind/issues/454)).
-9. Bug fix in `monthly_means()` function of the plots (Issue [#452](https://github.com/brightwind-dev/brightwind/issues/452)) and (Issue [#413](https://github.com/brightwind-dev/brightwind/issues/413)).
-9. Updated functionality in `monthly_means()` and `plot_monthly_means()` plots (Issue [#452](https://github.com/brightwind-dev/brightwind/issues/452)) and (Issue [#413](https://github.com/brightwind-dev/brightwind/issues/413)).
-10. Updated functionality in `plot_timeseries` function (Issue [#457](https://github.com/brightwind-dev/brightwind/issues/457)).
-11. More representative error messages returned in `Shear` function when no valid data is available (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
-11. `Shear.TimeSeries` and `Shear.TimeOfDay` has been updated to return np.nan when there is no valid data for that timestamp or hour (Issue [#205](https://github.com/brightwind-dev/brightwind/issues/205)).
-12. Update to `plot_timeseries` and `_timeseries_subplot` to allow more than 12 lines to be plotted and allow the user to choose to use a colour map to determine the colours used (Issue [#492](https://github.com/brightwind-dev/brightwind/issues/492)).
-12. Added new color map `color_map_range_colors` on `_ColorPalette` that automatically update when main colors used for defining the map are changed. (Issue [#492](https://github.com/brightwind-dev/brightwind/issues/492)).
-12. Updated return object type from `get_measurement_stations` to allow return of a list of dictionaries  (Issue [#287](https://github.com/brightwind-dev/brightwind/issues/287)).
-12. Updated functionality in `get_measurement_stations` to enable filtering for device type (Issue [#378](https://github.com/brightwind-dev/brightwind/issues/378)).
-12. Added new function `LoadBrightHub.get_cleaning_rules()` to pull the cleaning rules for a particular measurement station on BrightHub (Issue [#461](https://github.com/brightwind-dev/brightwind/issues/461)).
-13. Added new function `load.apply_cleaning_rules()` to clean columns specified in cleaning rules by the condition specified for a specific column in the rules. (Issue [#462](https://github.com/brightwind-dev/brightwind/issues/462)).
-14. Fix bug for application of `Shear.TimeOfDay()` (Issue [#441](https://github.com/brightwind-dev/brightwind/issues/441)).
-15. Added `apply_device_orientation_offset` function (Issue [#451](https://github.com/brightwind-dev/brightwind/issues/451)).
-15. Updated `MeasurementStation()` to validate data model against schema for the relevant version (Issue [#489](https://github.com/brightwind-dev/brightwind/issues/489)).
+This update brings a comprehensive set of **bug fixes** and **enhancements** across the Brightwind library. 
+Key improvements include more reliable wind and solar data handling, expanded plotting capabilities (including 
+colormap support and better legends), and the introduction of new functions for downloading and applying cleaning rules 
+and device orientation offsets. 
+Enhanced error messages and schema validation strengthen data integrity and user feedback.
+
+### Bug Fixes
+1. Fixed legend display in `plot_scatter_wspd` and `plot_scatter_wdir`, ensuring correct labeling in plots. ([#443](https://github.com/brightwind-dev/brightwind/issues/443))  
+2. Corrected `is_file` usage, resolving an error when checking file existence. ([#447](https://github.com/brightwind-dev/brightwind/issues/447))  
+3. Fixed bug in `_Measurements_get_table`, which affected how measurement tables were retrieved. ([#421](https://github.com/brightwind-dev/brightwind/issues/421))  
+4. Made `_Measurements_get_names` public and fixed an issue with how names were retrieved. ([#450](https://github.com/brightwind-dev/brightwind/issues/450))  
+5. Improved sensor calibration logic in `_Measurements__get_properties` for multi-type sensors by correctly selecting the appropriate calibration. ([#449](https://github.com/brightwind-dev/brightwind/issues/449))  
+6. Fixed error for solar sites in `_Measurements__get_properties`, improving compatibility. ([#453](https://github.com/brightwind-dev/brightwind/issues/453))  
+8. Improved support for solar and sodar sites in `_LoggerMainConfigs__get_properties`. ([#454](https://github.com/brightwind-dev/brightwind/issues/454))  
+7. Resolved calculation issues in `dist()` function when constant values are sent as well as improved error messages. ([#459](https://github.com/brightwind-dev/brightwind/issues/459))  
+9. Fixed issues in `monthly_means()`, correcting plot output and handling of missing months. ([#452](https://github.com/brightwind-dev/brightwind/issues/452), [#413](https://github.com/brightwind-dev/brightwind/issues/413))  
+10. Corrected `Shear.TimeOfDay()` logic when months are missing along with improving error message and fixing plot labels. ([#441](https://github.com/brightwind-dev/brightwind/issues/441))
+
+### New Features and Enhancements
+
+1. Updated `monthly_means()` and `plot_monthly_means()` to improve output and visual clarity. ([#452](https://github.com/brightwind-dev/brightwind/issues/452), [#413](https://github.com/brightwind-dev/brightwind/issues/413))  
+2. Enhanced `plot_timeseries()` to support more than 12 lines and introduced colormap-based coloring. ([#457](https://github.com/brightwind-dev/brightwind/issues/457), [#492](https://github.com/brightwind-dev/brightwind/issues/492))  
+3. Added error feedback in `Shear`: More informative messages returned when no valid data is available. ([#205](https://github.com/brightwind-dev/brightwind/issues/205))  
+4. `Shear.TimeSeries` and `TimeOfDay` now return `np.nan` for timestamps with no valid data. ([#205](https://github.com/brightwind-dev/brightwind/issues/205))  
+5. Enhanced `LoadBrightHub.get_measurement_stations()` to support device type filtering and optional dictionary return format. ([#287](https://github.com/brightwind-dev/brightwind/issues/287), [#378](https://github.com/brightwind-dev/brightwind/issues/378))  
+6. Added `LoadBrightHub.get_cleaning_rules()`, allowing programmatic retrieval of cleaning rules for a station. ([#461](https://github.com/brightwind-dev/brightwind/issues/461))  
+7. Added `load.apply_cleaning_rules()`, enabling automated column cleaning based on BrightHub rules. ([#462](https://github.com/brightwind-dev/brightwind/issues/462))  
+8. New function: `apply_device_orientation_offset()` adjusts wind direction data based on remote sensing device orientation as stated in it's data model. ([#451](https://github.com/brightwind-dev/brightwind/issues/451))  
+9. Schema validation added to `MeasurementStation()`, ensuring input data matches the expected data model version. ([#489](https://github.com/brightwind-dev/brightwind/issues/489))
 
 
 ## [2.2.1]

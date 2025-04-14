@@ -112,8 +112,8 @@ def test_get_table():
         measurement_point['height_ref_m'] = None
     with pytest.raises(ValueError) as except_info:
         bw.MeasurementStation(test_null_values_json1)
-    assert (str(except_info.value) == "There is a problem with the validity of the supplied WRA data model "
-            "please check the errors above.")
+    assert (str(except_info.value) == "There is a problem with the validity of the supplied WRA Data Model."
+            " Please check the errors above.")
 
     MM2.measurements.get_table(detailed=True)
     measurement_table_detailed = MM1.measurements.get_table(detailed=True)

@@ -29,11 +29,14 @@ def test_monthly_means():
     assert len(monthly_means_wcoverage_plot.axes) >= 2
     assert monthly_means_wcoverage_plot.axes[0].get_ylabel() == 'Test Wind speed [m/s]'
     assert monthly_means_wcoverage_plot.axes[1].get_ylabel() == 'Coverage [-]'
-    assert len(monthly_means_wcoverage_plot.legends[0].legend_handles) == 2
+    assert len(monthly_means_wcoverage_plot.legends[0].get_texts()) == 2
 
     monthly_means_wcoverage_plot1, _ = bw.monthly_means(
         DATA.Spd80mN, return_data=False, return_coverage=True, external_legend=True)
-    assert monthly_means_wcoverage_plot1.legends[0]._ncols == 2
+    legend = monthly_means_wcoverage_plot1.legends[0]
+    nrows = legend.properties().get('nrows', 1)  # Default to 1 if 'nrows' is not found
+    ncols = len(legend.get_texts()) // nrows  # Calculate number of columns
+    assert ncols == 2
 
     monthly_means_single_column_plot, monthly_means_single_column_data = bw.monthly_means(
         DATA.Spd80mN, return_data=True, xtick_delta='3MS'

@@ -30,11 +30,11 @@ setup(
               'brightwind.transform', 'brightwind.demo_datasets'],
     package_data={
         # If any package contains *.mplstyle or *.txt files, include them:
-        '': ['*.mplstyle', 'demo_datasets/*.csv', 'demo_datasets/*.txt', 'demo_datasets/*.json'],
+        '': ['*.mplstyle', 'demo_datasets/*.csv', 'demo_datasets/*.txt', 'demo_datasets/*.json', 'load/*.json'],
     },
     url='https://github.com/brightwind-dev/brightwind.git',
     # UPDATE VERSION NUMBER HERE:
-    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.2.1.tar.gz',
+    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.3.0.tar.gz',
     license='MIT',
     author='Stephen Holleran of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
