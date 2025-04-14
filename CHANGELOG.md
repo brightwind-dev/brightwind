@@ -11,6 +11,8 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ---
 
+## [2.4.0-dev]
+1. 
 
 ## [2.3.0]
 This update brings a comprehensive set of **bug fixes** and **enhancements** across the Brightwind library. 
