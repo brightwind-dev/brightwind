@@ -1,11 +1,14 @@
 import numpy as np
 import pandas as pd
-import datetime
 import os
+import json
+from jsonschema import Draft7Validator
 
 __all__ = ['slice_data',
            'validate_coverage_threshold',
-           'is_file']
+           'is_file',
+           'is_file_extension',
+           'validate_json']
 
 
 def _range_0_to_360(direction):
@@ -164,9 +167,11 @@ def bold(text):
 def is_file(file_or_folder):
     """
     Returns True is file_or_folder is a file.
-    :param file_or_folder: The file or folder path.
-    :type file_or_folder: str
-    :return: True if a file.
+
+    :param file_or_folder:  The file or folder path.
+    :type file_or_folder:   str
+    :return:                If is a file.
+    :rtype:                 bool
     """
     if os.path.isfile(file_or_folder):
         return True
@@ -176,4 +181,74 @@ def is_file(file_or_folder):
         raise FileNotFoundError("File or folder doesn't seem to exist.")
 
 
+def is_file_extension(file_or_folder, extension_required):
+    """
+    Returns True if file_or_folder is a file of the desired extension type.
 
+    :param file_or_folder:      The file or folder path.
+    :type file_or_folder:       str
+    :param extension_required:  The file extension needed.
+    :type extension_required:   str
+    :return:                    If is a file with desired extension type.
+    :rtype:                     bool
+    """
+    if is_file(file_or_folder):    
+        _, extension = os.path.splitext(file_or_folder)
+        if extension.lower() == extension_required.lower():
+            return True
+        else:
+            raise ValueError(f"File extension must be {extension_required}, got: {extension}")
+    else:
+        raise ValueError(f"Input must be a {extension_required} file, got: {file_or_folder}")
+
+
+def validate_json(json_to_check, schema):
+    """
+    Validates JSON data against a JSON schema.
+
+    :param json_to_check:   The JSON data to validate.
+    :type json_to_check:    dict
+    :param schema:          The JSON schema to validate against.
+    :type schema:           str | dict
+    :return:                List of validation results, each containing:
+                                - item_index (int): Index of the item in the list or 0 if single item
+                                - is_valid (bool): True if validation passes, False otherwise
+                                - error_message (str): Error message if validation fails, empty string otherwise
+    :rtype:                 bool
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        import json
+
+        with open(bw.demo_datasets.demo_cleaning_rules_file) as file:
+            cleaning_json = json.load(file)
+        bw.utils.utils.validate_json(cleaning_json[0], bw.load.cleaning_rules_schema)
+    """
+    if isinstance(schema, str):
+        if is_file(schema):
+            with open(schema) as file:
+                schema = json.load(file)
+    elif not isinstance(schema, dict):
+        raise ValueError("Incorrect schema type used, this must be a str or a dict.")
+    
+    errors = []
+    validator = Draft7Validator(schema)
+    for error in validator.iter_errors(json_to_check):
+        error_path = " → ".join(str(path) for path in error.path) if error.path else "root"
+        error_detail = {
+            "path": error_path,
+            "message": error.message,
+            "schema_path": " → ".join(str(path) for path in error.schema_path)
+        }
+        errors.append(error_detail)
+        
+    data_is_valid = len(errors) == 0
+    if not data_is_valid:
+        print(f"Total of {len(errors)} errors.\n")
+        for error in reversed(errors):
+            print(f"Validation error at path: {error.get('path')}")
+            print(f"Error message: {error.get('message')}")
+            print(f"Failed schema part: {error.get('schema_path')}\n")
+    
+    return data_is_valid

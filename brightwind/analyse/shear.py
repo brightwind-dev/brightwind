@@ -31,38 +31,40 @@ class Shear:
             Calculates alpha, using the power law, or the roughness coefficient, using the log law, for each timestamp
             of a wind series.
 
-           :param wspds: pandas DataFrame, list of pandas.Series or list of wind speeds to be used for calculating shear.
-           :type wspds:  pandas.DataFrame, list of pandas.Series or list.
-           :param heights: List of anemometer heights.
-           :type heights: list
-           :param min_speed: Only speeds higher than this would be considered for calculating shear, default is 3.
-           :type min_speed: float
-           :param calc_method: method to use for calculation, either 'power_law' (returns alpha) or 'log_law'
-                              (returns the roughness coefficient).
-           :type calc_method: str
-           :param max_plot_height: height to which the wind profile plot is extended.
-           :type max_plot_height: float
-           :param maximise_data: If maximise_data is True, calculations will be carried out on all data where two or
-                                 more anemometers readings exist for a timestamp. If False, calculations will only be
-                                 carried out on timestamps where readings exist for all anemometers.
-           :type maximise_data: Boolean
-           :return TimeSeries object containing calculated alpha/roughness coefficient values, a plot
-                   and other data.
-           :rtype TimeSeries object
+           :param wspds:            pandas DataFrame, list of pandas.Series or list of wind speeds to be used for
+                                    calculating shear.
+           :type wspds:             pandas.DataFrame, list(pandas.Series) or list().
+           :param heights:          List of wind speed measurement heights.
+           :type heights:           list
+           :param min_speed:        Only wind speeds higher than this would be considered for calculating shear.
+                                    Default is 3.
+           :type min_speed:         float
+           :param calc_method:      Method to use for calculation, either 'power_law' (returns alpha) or 'log_law'
+                                    (returns the roughness coefficient).
+           :type calc_method:       str
+           :param max_plot_height:  Height to which the wind profile plot is extended.
+           :type max_plot_height:   float
+           :param maximise_data:    If 'maximise_data' is True, calculations will be carried out on all data where at
+                                    least two wind speed readings exist for a timestamp. If False, calculations will
+                                    only be carried out on timestamps where readings exist for all wind speed levels.
+           :type maximise_data:     bool
+           :return:                 TimeSeries object containing calculated alpha/roughness coefficient values, a plot
+                                    and other data.
+           :rtype:                  TimeSeries object
 
            **Example usage**
            ::
                 import brightwind as bw
                 import pprint
 
-                # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
-                anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
+                # Load wind speed data to calculate exponents
+                data = bw.load_csv(bw.demo_datasets.demo_data)
+                wspds = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
 
                 # Using with a DataFrame of wind speeds
-                timeseries_power_law = bw.Shear.TimeSeries(anemometers, heights, maximise_data=True)
-                timeseries_log_law = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law',
+                timeseries_power_law = bw.Shear.TimeSeries(wspds, heights, maximise_data=True)
+                timeseries_log_law = bw.Shear.TimeSeries(wspds, heights, calc_method='log_law',
                                                          max_plot_height=120)
 
                 # Get the alpha or roughness values calculated
@@ -84,21 +86,25 @@ class Shear:
            """
             print('This may take a while...')
 
-            wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed, maximise_data=maximise_data)
+            wspds, cvg = Shear._data_prep(
+                wspds=wspds, heights=heights, min_speed=min_speed, maximise_data=maximise_data, return_raw_wspds=True
+                )
+            valid_mask = (wspds > min_speed).all(axis=1) & ~wspds.isna().any(axis=1)
 
             if calc_method == 'power_law':
-                alpha_c = (wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_power_law, heights=heights,
-                                                                        return_coeff=True,
-                                                                        maximise_data=maximise_data, axis=1))
-                alpha = pd.Series(alpha_c.iloc[:, 0], name='alpha')
+                alpha = pd.Series(index=wspds.index, dtype=float, name='alpha')
+                alpha_c = (wspds.loc[valid_mask].apply(Shear._calc_power_law, heights=heights,
+                                                       return_coeff=True, maximise_data=maximise_data, axis=1))
+                alpha.loc[valid_mask] = alpha_c.iloc[:, 0]
                 self._alpha = alpha
 
             elif calc_method == 'log_law':
-                slope_intercept = (wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_log_law, heights=heights,
-                                                                                return_coeff=True,
-                                                                                maximise_data=maximise_data, axis=1))
-                slope = slope_intercept.iloc[:, 0]
-                intercept = slope_intercept.iloc[:, 1]
+                slope = pd.Series(index=wspds.index, dtype=float)
+                intercept = pd.Series(index=wspds.index, dtype=float)
+                slope_intercept = (wspds.loc[valid_mask].apply(Shear._calc_log_law, heights=heights,
+                                                               return_coeff=True, maximise_data=maximise_data, axis=1))
+                slope.loc[valid_mask] = slope_intercept.iloc[:, 0]
+                intercept.loc[valid_mask] = slope_intercept.iloc[:, 1]
                 roughness_coefficient = pd.Series(Shear._calc_roughness(slope=slope, intercept=intercept),
                                                   name='roughness_coefficient')
                 self._roughness = roughness_coefficient
@@ -266,7 +272,7 @@ class Shear:
                 start_times[i] = start_times[i - 1] + dt
 
             # extract wind speeds for each month
-            months_tot = pd.unique(wspds.index.month.values)
+            months_tot = sorted(pd.unique(wspds.index.month.values))
             for j in months_tot:
 
                 anemometers_df = wspds[wspds.index.month == j]
@@ -286,25 +292,31 @@ class Shear:
                         end = str((start_times[i + 1] - resolution).time())
                         time_wspds[i] = pd.DataFrame(anemometers_df).between_time(start, end)
                         mean_time_wspds[i] = time_wspds[i][(time_wspds[i] > min_speed).all(axis=1)].mean().dropna()
+                
+                for i in range(0, len(mean_time_wspds)):
+                    try:
+                        Shear._valid_wsp_data_error_msg(mean_time_wspds[i], min_speed)
+                        # calculate shear
+                        if calc_method == 'power_law':
+                            alpha[i], c[i] = Shear._calc_power_law(mean_time_wspds[i].values, heights,
+                                                                   return_coeff=True)
+                        if calc_method == 'log_law':
+                            slope[i], intercept[i] = Shear._calc_log_law(mean_time_wspds[i].values, heights,
+                                                                         return_coeff=True)
+                            roughness[i] = Shear._calc_roughness(slope=slope[i], intercept=intercept[i])
+                    except ValueError:
+                        if calc_method == 'power_law':
+                            alpha[i], c[i] = np.nan, np.nan
+                        if calc_method == 'log_law':
+                            slope[i], intercept[i] = np.nan, np.nan
+                            roughness[i] = np.nan
 
-                # calculate shear
                 if calc_method == 'power_law':
-                    for i in range(0, len(mean_time_wspds)):
-                        alpha[i], c[i] = Shear._calc_power_law(mean_time_wspds[i].values, heights, return_coeff=True)
                     alpha_df = pd.concat([alpha_df, alpha], axis=1)
-
                 if calc_method == 'log_law':
-                    for i in range(0, len(mean_time_wspds)):
-                        slope[i], intercept[i] = Shear._calc_log_law(mean_time_wspds[i].values, heights,
-                                                                     return_coeff=True)
-                        roughness[i] = Shear._calc_roughness(slope=slope[i], intercept=intercept[i])
                     roughness_df = pd.concat([roughness_df, roughness], axis=1)
                     slope_df = pd.concat([slope_df, slope], axis=1)
                     intercept_df = pd.concat([intercept_df, intercept], axis=1)
-
-            # error check
-            if mean_time_wspds.shape[0] == 0:
-                raise ValueError('None of the input wind speeds are greater than the min_speed, cannot calculate shear')
 
             if calc_method == 'power_law':
                 alpha_df.index = start_times
@@ -346,7 +358,7 @@ class Shear:
                     intercept_df = pd.DataFrame(intercept_df.mean(axis=1))
                     roughness_df = pd.DataFrame(roughness_df.mean(axis=1))
                     roughness_df.columns = slope_df.columns = intercept_df.columns = \
-                                                                            [str(len(months_tot)) + '_month_average']
+                        [str(len(months_tot)) + '_month_average']
                     df_in = pd.DataFrame(Shear._fill_df_12x24(roughness_df).iloc[:, 0])
                     df_in.columns = [str(n_months) + ' Month Average']
                     self.plot = bw_plt.plot_shear_time_of_day(df_in, calc_method=calc_method, plot_type=plot_type)
@@ -485,7 +497,8 @@ class Shear:
                 self._roughness = roughness
                 if plot_both is True:
                     alpha, c = Shear._calc_power_law(mean_wspds.values, heights, return_coeff=True)
-                    self.plot = bw_plt.plot_power_law(avg_alpha=alpha, avg_c=c, avg_slope=slope, avg_intercept=intercept,
+                    self.plot = bw_plt.plot_power_law(avg_alpha=alpha, avg_c=c, avg_slope=slope,
+                                                      avg_intercept=intercept,
                                                       wspds=mean_wspds.values, heights=heights,
                                                       max_plot_height=max_plot_height)
                 else:
@@ -768,7 +781,7 @@ class Shear:
         return scaled_wspds
 
     @staticmethod
-    def _calc_log_law(wspds, heights, return_coeff=False, maximise_data=False) -> (np.array, float):
+    def _calc_log_law(wspds, heights, return_coeff=False, maximise_data=False):
         """
         Derive the best fit logarithmic law line from a given time-step of speed data at 2 or more elevations
 
@@ -800,8 +813,7 @@ class Shear:
                 - zo is the roughness coefficient
 
                                                 2)  $U2 = (ln(z2/z0)/ln(z1/z0))U1$
-
-            """
+        """
 
         if maximise_data:
             log_heights = np.log(
@@ -817,7 +829,7 @@ class Shear:
         return coeffs[0]
 
     @staticmethod
-    def _calc_power_law(wspds, heights, return_coeff=False, maximise_data=False) -> (np.array, float):
+    def _calc_power_law(wspds, heights, return_coeff=False, maximise_data=False):
         """
         Derive the best fit power law exponent (as 1/alpha) from a given time-step of speed data at 2 or more elevations
 
@@ -962,23 +974,30 @@ class Shear:
 
             for i in range(0, 24):
 
-                for j in range(0, 12):
+                for j, month in enumerate(sorted(pd.unique(wspds.index.month.values))):
+
+                    month_str = calendar.month_abbr[month] 
+
+                    if month_str not in list(filled_alpha.columns):
+                        raise ValueError(f"The shear by TimeOfDay object doesn't have shear values for {month_str}." + 
+                                         " The shear cannot be applied to the input time series for this month.")
 
                     if i == 23:
                         df_wspds[i][j] = wspds[
-                            (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.month == j + 1)]
+                            (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.month == month)]
                     else:
                         df_wspds[i][j] = wspds[
                             (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.time < filled_alpha.index[i + 1])
-                            & (wspds.index.month == j + 1)]
+                            & (wspds.index.month == month)]
 
                     if self.calc_method == 'power_law':
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      alpha=filled_alpha.iloc[i, j], calc_method=self.calc_method)
+                                                      alpha=filled_alpha.loc[:, month_str].iloc[i],
+                                                      calc_method=self.calc_method)
 
                     else:
                         df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      roughness=filled_roughness.iloc[i, j],
+                                                      roughness=filled_roughness.loc[:, month_str].iloc[i],
                                                       calc_method=self.calc_method)
 
                     scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
@@ -1065,9 +1084,9 @@ class Shear:
         Fills a pandas.DataFrame or Series to be a 12 month x 24 hour pandas.DataFrame by duplicating entries.
         Used for plotting TimeOfDay shear.
 
-        :param data: pandas.DataFrame or Series to be turned into a 12x24 dataframe
-        :type data: pandas.Series or pandas.DataFrame.
-        :return: 12x24 pandas.DataFrame
+        :param data:    pandas.DataFrame or Series to be turned into a 12x24 dataframe
+        :type data:     pandas.Series or pandas.DataFrame.
+        :return:        12x24 pandas.DataFrame
 
         """
         # create copy for later use
@@ -1091,14 +1110,15 @@ class Shear:
         if len(df.columns) == 1:
             df_12x24 = pd.DataFrame([[None for y in range(12)] for x in range(24)])
             df_12x24.index = df.index
-            for i in range(12):
+            for i in df_12x24.columns:
                 df_12x24[df_12x24.columns[i]] = df.iloc[:, 0]
+            df_12x24.columns = [calendar.month_abbr[i+1] for i in df_12x24.columns]
             df = df_12x24
 
         return df
 
     @staticmethod
-    def _data_prep(wspds, heights, min_speed, maximise_data=False):
+    def _data_prep(wspds, heights, min_speed, maximise_data=False, return_raw_wspds=False):
 
         if not isinstance(wspds, pd.DataFrame):
             wspds = pd.DataFrame(wspds).T
@@ -1107,6 +1127,7 @@ class Shear:
             Shear._unequal_wspd_heights_error_msg(wspds, heights)
 
         cvg = None
+        Shear._valid_wsp_data_error_msg(wspds, min_speed)
         if isinstance(wspds.index, pd.DatetimeIndex):
             if maximise_data is False:
                 cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
@@ -1116,9 +1137,8 @@ class Shear:
                 count = count[count >= 2]
                 count.rename('count', inplace=True)
                 cvg = coverage(count, period='1AS').sum()
-
-        wspds = wspds[wspds > min_speed].dropna()
-
+        if not return_raw_wspds:
+            wspds = wspds[wspds > min_speed].dropna()
         return wspds, cvg
 
     @staticmethod
@@ -1126,6 +1146,14 @@ class Shear:
         raise ValueError('An equal number of wind speed data series and heights is required. ' +
                          str(len(wspds.columns)) + ' wind speed(s) and ' +
                          str(len(heights)) + ' height(s) were given.')
+
+    @staticmethod
+    def _valid_wsp_data_error_msg(wspds, min_speed):
+        if wspds.isnull().all().any():
+            raise ValueError("There is no valid data within the dataset provided to calculate the shear.")
+        if len(wspds[wspds > min_speed].dropna()) == 0:
+            raise ValueError(f"There is no valid data above {min_speed} m/s within the dataset provided to calculate "
+                             f"the shear.")
 
     @staticmethod
     def _create_info(self, heights, min_speed, cvg, direction_bin_array=None, segments_per_day=None,

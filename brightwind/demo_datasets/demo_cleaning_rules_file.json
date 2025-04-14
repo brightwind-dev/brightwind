@@ -1,0 +1,44 @@
+[
+  {
+    "rule": {
+      "clean_out": [
+        {
+          "assembled_column_name": "Spd80mN"
+        }
+      ],
+      "conditions": {
+        "assembled_column_name": "Spd80mN",
+        "comparator_value": 10,
+        "comparison_operator_id": 1
+      }
+    }
+  },
+  {
+    "rule": {
+      "clean_out": [
+        {
+          "assembled_column_name": "Spd80mN"
+        },
+        {
+          "assembled_column_name": "Spd60mN"
+        },
+        {
+          "assembled_column_name": "Spd80mS"
+        },
+        {
+          "assembled_column_name": "Spd60mS"
+        },
+        {
+          "assembled_column_name": "T2m"
+        }
+      ],
+      "date_from": "2016-02-01T00:00:00",
+      "date_to": "2017-09-01T00:00:00",
+      "conditions": {
+        "assembled_column_name": "T2m",
+        "comparator_value": 5,
+        "comparison_operator_id": 3
+      }
+    }
+  }
+]

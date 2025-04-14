@@ -30,11 +30,11 @@ setup(
               'brightwind.transform', 'brightwind.demo_datasets'],
     package_data={
         # If any package contains *.mplstyle or *.txt files, include them:
-        '': ['*.mplstyle', 'demo_datasets/*.csv', 'demo_datasets/*.txt', 'demo_datasets/*.json'],
+        '': ['*.mplstyle', 'demo_datasets/*.csv', 'demo_datasets/*.txt', 'demo_datasets/*.json', 'load/*.json'],
     },
     url='https://github.com/brightwind-dev/brightwind.git',
     # UPDATE VERSION NUMBER HERE:
-    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.2.1.tar.gz',
+    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.3.0.tar.gz',
     license='MIT',
     author='Stephen Holleran of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
@@ -45,7 +45,7 @@ setup(
               'WIND PRO', 'WINDOGRAPHER'],
     install_requires=[
         'pandas>=0.24.0, <=2.0.1',
-        'numpy>=1.16.4',
+        'numpy>=1.16.4, <2.0.0',
         'scikit-learn>=0.19.1',
         'matplotlib>=3.0.3',
         'requests>=2.20.0',
@@ -57,7 +57,8 @@ setup(
         'ipython>=7.4.0',
         'gmaps>=0.9.0',
         'colormap>=1.0.1',
-        'easydev>=0.10.0'
+        'easydev>=0.10.0',
+        'jsonschema>=4.17.3'
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",
