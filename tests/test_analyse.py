@@ -33,7 +33,10 @@ def test_monthly_means():
 
     monthly_means_wcoverage_plot1, _ = bw.monthly_means(
         DATA.Spd80mN, return_data=False, return_coverage=True, external_legend=True)
-    assert monthly_means_wcoverage_plot1.legends[0]._ncols == 2
+    legend = monthly_means_wcoverage_plot1.legends[0]
+    nrows = legend.properties().get('nrows', 1)  # Default to 1 if 'nrows' is not found
+    ncols = len(legend.get_texts()) // nrows  # Calculate number of columns
+    assert ncols == 2
 
     monthly_means_single_column_plot, monthly_means_single_column_data = bw.monthly_means(
         DATA.Spd80mN, return_data=True, xtick_delta='3MS'
