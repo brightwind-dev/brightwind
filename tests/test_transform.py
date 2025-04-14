@@ -236,7 +236,7 @@ def test_apply_device_orientation_offset():
     clean_output = re.sub(r'\x1b\[[0-9;]*m', '', output)
 
     assert "Dir_50m has an offset to be applied of 0 degrees from 2012-10-23T13:10:00 to 2012-11-15T13:50:00" in clean_output
-    assert "Dir_50m has device orientation as None from 2013-10-08T14:00:00 to end of dataframe." in clean_output
+    assert "Dir_50m has device orientation as None from 2013-10-08T14:00:00 to end of data." in clean_output
     assert "Dir_50m adjusted by 5.0 degrees from 2012-11-15T13:50:00 to 2012-11-23T12:10:00" in clean_output
     assert np.allclose(actual_dataframe_result['Dir_40m'].iloc[0] - DATA_LIDAR['Dir_40m'].iloc[0], 0)
     assert np.allclose(actual_dataframe_result['Dir_40m'].iloc[-1] - DATA_LIDAR['Dir_40m'].iloc[-1], 0)
