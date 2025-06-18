@@ -1,5 +1,4 @@
 
-import geopandas as gpd
 from shapely.geometry import Point, Polygon, box
 import pycountry
 from geopy.geocoders import Nominatim
@@ -16,9 +15,11 @@ import rioxarray
 from io import BytesIO
 from pyproj import Transformer, CRS
 import numpy as np
-import re
 
 import brightwind.utils.constants as Constants
+
+
+__all__ = ['call_wind_map_api']
 
 
 def get_country_code_for_geometry(geom):
@@ -103,13 +104,14 @@ def download_newa_data(row, variable_requested, height_requested, model_type):
     :param height_requested:      Height required
     :type height_requested:       float
     :param model_type:            Model type to download from either "mesoscale" or "microscale"
-    :type model_type:             float 
+    :type model_type:             str 
     :return:                      The extracted value(s) from the NEWA wind map for the given geometry and parameters.
-                                  This may be a scalar value (for points), or anxarray.DataArray
-    :rtype:                       float | xarray.DataArray
+                                  This may be a scalar value (for points), or an xarray.DataArray
+    :rtype:                       float | xarray.DataArray | str
     """
 
     newa_data = check_newa_location_valid(row, Constants.NEWA_EXTENT_BOUNDS)
+    
     if isinstance(row.geometry, Point):
         base_url = f"https://wps.neweuropeanwindatlas.eu/api/{model_type}-atlas/v1/get-data-point"
         url_params = {
@@ -128,12 +130,14 @@ def download_newa_data(row, variable_requested, height_requested, model_type):
             "variable": variable_requested
         }
     else:
-        newa_data = "Invalid geometry type must be Point or Polygon"
+        return "Invalid geometry type must be Point or Polygon"
+    
     if "Invalid location" not in newa_data and "Invalid geometry type" not in newa_data:
         if variable_requested in Constants.NEWA_VARIABLES_BY_HEIGHT[model_type]:
             if height_requested is None or height_requested not in Constants.NEWA_VALID_HEIGHTS[model_type]:
-                newa_data = f"Height must be one of {Constants.NEWA_VALID_HEIGHTS[model_type]}"
-                warnings.warn(newa_data)
+                error_msg = f"Height must be one of {Constants.NEWA_VALID_HEIGHTS[model_type]}"
+                warnings.warn(error_msg)
+                return error_msg
             else:
                 url_params["height"] = height_requested
                 newa_data = call_api_with_retry_logic(base_url, url_params)
@@ -160,6 +164,7 @@ def download_newa_data(row, variable_requested, height_requested, model_type):
         newa_data = _reproject_xarray_dataset(newa_data, "EPSG:4326", "west_east", "south_north")
 
     return newa_data
+
 
 def _reproject_xarray_dataset(ds, epsg_required, x_variable, y_variable):
     """
@@ -262,14 +267,16 @@ def call_wind_map_api(wind_map_name, location_to_query, variable_requested, inpu
     location_to_query = location_to_query.set_crs(input_crs) 
     location_to_query = location_to_query.to_crs("EPSG:4326")
 
+    variable_ouput_name = f"{wind_map_name}_{variable_requested}_{height_requested}m" if height_requested else f"{wind_map_name}_{variable_requested}"
+
     if wind_map_name == "gwa":
         if variable_requested not in Constants.GWA_VARIABLES_WITH_HEIGHT and variable_requested not in Constants.GWA_VARIABLES_WITHOUT_HEIGHT:
-            location_to_query[variable_requested] = "Invalid variable requested"
+            location_to_query[variable_ouput_name] = "Invalid variable requested"
             return location_to_query
         if variable_requested in Constants.GWA_VARIABLES_WITH_HEIGHT:
             if height_requested not in Constants.GWA_VARIABLE_HEIGHTS:
-                location_to_query[variable_requested] = ("Invalid height requested for this variable, "
-                f"heights available are: {Constants.GWA_VARIABLE_HEIGHTS}")
+                location_to_query[variable_ouput_name] = ("Invalid height "
+                f"requested for this variable, heights available are: {Constants.GWA_VARIABLE_HEIGHTS}")
                 return location_to_query
         location_to_query['country_code'] = location_to_query.geometry.apply(get_country_code_for_geometry)
         countries_required = set(location_to_query['country_code'])
@@ -281,25 +288,25 @@ def call_wind_map_api(wind_map_name, location_to_query, variable_requested, inpu
                 gwa_api_url = rf"https://globalwindatlas.info/api/gis/country/{country_code}/{variable_requested}"
             ds = rioxarray.open_rasterio(gwa_api_url)
             gwa_datasets.append(ds)
-        combined_gwa_datasets = xr.concat(gwa_datasets, dim="band")
+
         location_to_query['old_geom'] = location_to_query.geometry
         location_to_query.geometry = location_to_query.geometry.apply(
             lambda g: _buffer_only_polygons(g, Constants.WIND_MAP_BUFFER_EPSILON)
             )
-        location_to_query[variable_requested] = location_to_query.apply(
-            lambda row: extract_from_dataset_at_geometry(row, combined_gwa_datasets), axis=1
+        location_to_query[variable_ouput_name] = location_to_query.apply(
+            lambda row: extract_from_dataset_at_geometry(row, gwa_datasets), axis=1
             )
         location_to_query.geometry = location_to_query['old_geom']
         del location_to_query['old_geom']
 
     if "newa" in wind_map_name:
         model_type = wind_map_name.split("-")[-1]
-        location_to_query[variable_requested] = location_to_query.apply(
+        location_to_query[variable_ouput_name] = location_to_query.apply(
             lambda row: download_newa_data(row, variable_requested, height_requested, model_type), axis=1
             )
     
     return location_to_query
-
+    
 
 def _buffer_only_polygons(geom, buffer_dist):
     """
@@ -318,7 +325,7 @@ def _buffer_only_polygons(geom, buffer_dist):
     return geom
 
 
-def extract_from_dataset_at_geometry(row, ds):
+def extract_from_dataset_at_geometry(row, dss):
     """
     Function to extract data from a Dataset or DataArray at a point location and return a float or at a Polygon and 
     return a Dataset or DataArray containing values clipped to this area. Other geometry types are not supported and
@@ -327,18 +334,33 @@ def extract_from_dataset_at_geometry(row, ds):
     :param row:                      A row from a GeoDataFrame, expected to have a 'geometry' attribute containing a 
                                      shapely geometry (Point or Polygon).
     :type row:                       pandas.Series or geopandas.GeoSeries
-    :param ds:                       The Dataset or DataArray to extract data from at the geometry specified
-    :type ds:                        xr.Dataset | xr.DataArray
+    :param dss:                      List of Dataset or DataArray to extract data from at the geometry specified
+    :type dss:                       List[xr.Dataset] | List[xr.DataArray]
     :return:                         Extracted GWA value at Point, GWA surface for Polygon or "Invalid geometry type" for
                                      any other geometry type
     :rtype:                          str | float | xr.DataArray
     """
-    if isinstance(row.geometry, Point):
-        ds_at_geometry = ds.interp(
-            x=row.geometry.x, y=row.geometry.y, method="linear"
-            ).values[0]
-    elif isinstance(row.geometry, Polygon):
-        ds_at_geometry = ds.rio.clip([row.geometry], drop=True)
-    else:
-        ds_at_geometry = "Invalid geometry type"
-    return ds_at_geometry
+    
+    for ds in dss:
+        minx, maxx = float(ds.x.min()), float(ds.x.max())
+        miny, maxy = float(ds.y.min()), float(ds.y.max())
+        if isinstance(row.geometry, Point):
+            if not (minx <= row.geometry.x <= maxx and miny <= row.geometry.y <= maxy):
+                continue
+            ds_at_geometry = ds.interp(
+                x=row.geometry.x, y=row.geometry.y, method="linear"
+                ).item()
+            if not np.isnan(ds_at_geometry):
+                return ds_at_geometry
+        elif isinstance(row.geometry, Polygon):
+            if not row.geometry.intersects(box(minx, miny, maxx, maxy)):
+                continue
+            
+            data_at_centroid = ds.interp(
+                x=row.geometry.centroid.x, y=row.geometry.centroid.y, method="linear"
+                ).item()
+            if not np.isnan(data_at_centroid):
+                return ds.rio.clip([row.geometry], drop=True)
+        else:
+            return "Invalid geometry type"
+    return "Geometry outside dataset bounds"

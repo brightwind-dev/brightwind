@@ -8,6 +8,7 @@ from .transform.transform import *
 from .export.export import *
 from . import demo_datasets
 from .utils.gis import *
+from .utils.wind_map import *
 # from .utils.utils import *
 
 __all__ = ['analyse', 'transform', 'export', 'load', 'demo_datasets']
