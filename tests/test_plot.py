@@ -184,7 +184,7 @@ def test_bar_subplot():
                                                            var_to_bin_against=DATA['Spd80mN'].to_frame(),
                                                            aggregation_method='%frequency')
     fig = plt.figure(figsize=(15, 8))
-    bw.analyse.plot._bar_subplot(distribution.replace([np.inf, -np.inf], np.NAN).dropna(), y_label='%frequency')
+    bw.analyse.plot._bar_subplot(distribution.replace([np.inf, -np.inf], np.nan).dropna(), y_label='%frequency')
 
     assert True
 
@@ -194,7 +194,7 @@ def test_plot_freq_distribution():
     distribution = bw.analyse.analyse._derive_distribution(DATA['Spd40mN'],
                                                            var_to_bin_against=DATA['Spd40mN'], bins=None,
                                                            aggregation_method='%frequency').rename('Spd40mN')
-    bw.analyse.plot.plot_freq_distribution(distribution.replace([np.inf, -np.inf], np.NAN).dropna(),
+    bw.analyse.plot.plot_freq_distribution(distribution.replace([np.inf, -np.inf], np.nan).dropna(),
                                            max_y_value=None, x_tick_labels=[], x_label=None,
                                            y_label='%frequency')
 
