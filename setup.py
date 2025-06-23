@@ -44,8 +44,8 @@ setup(
     keywords=['BRIGHT', 'WIND', 'RESOURCE', 'DATA', 'ANALYSTS', 'PROCESSING', 'WASP', 'ROSE', 'WINDFARMER', 'OPENWIND',
               'WIND PRO', 'WINDOGRAPHER'],
     install_requires=[
-        'pandas>=0.24.0, <=2.0.1',
-        'numpy>=1.16.4, <2.0.0',
+        'pandas>=0.24.0',
+        'numpy>=1.16.4',
         'scikit-learn>=0.19.1',
         'matplotlib>=3.0.3',
         'requests>=2.20.0',
@@ -58,7 +58,8 @@ setup(
         'gmaps>=0.9.0',
         'colormap>=1.0.1',
         'easydev>=0.10.0',
-        'jsonschema>=4.17.3'
+        'jsonschema>=4.17.3',
+        'jinja2>= 3.0.0'
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",
@@ -67,6 +68,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "License :: OSI Approved :: MIT License",
     ],
 )
