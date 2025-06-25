@@ -240,18 +240,18 @@ def _get_overlapping_data(df1, df2, averaging_prd=None):
     # averaging will start from this timestamp.
     if not (df2.index == start).any():
         if type(df2) == pd.DataFrame:
-            df2 = pd.concat([df2, pd.DataFrame({cols: [np.nan] for cols in df2.columns},
+            df2 = pd.concat([df2, pd.DataFrame({cols: [np.NaN] for cols in df2.columns},
                                                index=[pd.to_datetime(start)])])
         else:
-            df2[pd.to_datetime(start)] = np.nan
+            df2[pd.to_datetime(start)] = np.NaN
         df2.sort_index(inplace=True)
     if not (df1.index == start).any():
-        # df1.loc[pd.to_datetime(start)] = np.nan
+        # df1.loc[pd.to_datetime(start)] = np.NaN
         if type(df1) == pd.DataFrame:
-            df1 = pd.concat([df1, pd.DataFrame({cols: [np.nan] for cols in df1.columns},
+            df1 = pd.concat([df1, pd.DataFrame({cols: [np.NaN] for cols in df1.columns},
                                                index=[pd.to_datetime(start)])])
         else:
-            df1[pd.to_datetime(start)] = np.nan
+            df1[pd.to_datetime(start)] = np.NaN
         df1.sort_index(inplace=True)
     return df1[start:], df2[start:]
 
@@ -538,7 +538,7 @@ def _vector_avg_of_wdirs_dataframe(wdirs, wspds=None):
     # means there is no wind direction => return NaN
     nan_mask = (avg_dir_df['sine'] == 0) & (avg_dir_df['cosine'] == 0)
     avg_dir_df['avg_dir'] = np.rad2deg(np.arctan2(sine, cosine)) % 360
-    avg_dir_df['avg_dir'][nan_mask] = np.nan
+    avg_dir_df['avg_dir'][nan_mask] = np.NaN
     return avg_dir_df['avg_dir']
 
 
@@ -582,7 +582,7 @@ def _vector_avg_of_wdirs_list(wdirs, wspds=None):
         wspds = a[1]
     # if the resulting wdir array is empty, return NAN
     if wdirs.size == 0:
-        return np.nan
+        return np.NaN
 
     if wspds is None:
         sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5))  # sin of each angle, East component
@@ -594,7 +594,7 @@ def _vector_avg_of_wdirs_list(wdirs, wspds=None):
     # If both sine and cosine result in zero then all the directions cancel and you end up where you started which
     # means there is no wind direction => return NaN
     if sine == 0 and cosine == 0:
-        avg_dir = np.nan
+        avg_dir = np.NaN
     else:
         avg_dir = np.rad2deg(np.arctan2(sine, cosine)) % 360
         if avg_dir == 360.0:  # preference to have 0 returned instead of 360
