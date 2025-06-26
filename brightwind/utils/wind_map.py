@@ -252,16 +252,44 @@ def call_wind_map_api(wind_map_name, location_to_query, variable_requested, inpu
     area of interest.
 
     :param wind_map_name:        The name of the windmap that data will be extracted from. Options are currently:
-                                 "gwa" or ""
-    :type wind_map_name:         _type_
+                                 "gwa", "newa_mesoscale" or "newa_microscale
+    :type wind_map_name:         str
     :param location_to_query:    The point location or area that the user would like to return wind map data from
-    :type location_to_query:     geodataframe
-    :param variable_requested:
+    :type location_to_query:     GeoDataFrame
+    :param variable_requested:   Name of the variable requested from the API. Examples on how to query available vaiables
+                                 are shown below
     :type variable_requested:    str
-    :param input_crs:
-    :type input_crs:    str
-    :param height_requested:
-    :type height_requested:    int
+    :param input_crs:            The EPSG code for the point locations or areas supplied.
+    :type input_crs:             str
+    :param height_requested:     Height that the variables are requested at if applicable, default None
+    :type height_requested:      Optional[int]
+    
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        # To check GWA variable names
+        print(Constants.GWA_VARIABLES_WITH_HEIGHT)
+        print(Constants.GWA_VARIABLES_WITHOUT_HEIGHT)
+
+        # To check NEWA variable names
+        print(Constants.NEWA_VARIABLES_BY_HEIGHT)
+        print(Constants.NEWA_VARIABLES_WITHOUT_HEIGHT)
+
+        data = {
+            'name': ['point_A', 'point_B', 'polygon_C'],
+            'geometry': [
+                Point(5, 23),
+                Point(-3.9, 57.3),
+                Polygon([(-3, 56), (-2, 56), (-2, 56.1), (-3, 56.1), (-3, 56)])
+            ]
+        }
+        extraction_locations = gpd.GeoDataFrame(data, crs="EPSG:4326")
+
+        new_gdf_gwa = bw.utils.wind_map.call_wind_map_api(
+                    "gwa", extraction_locations, "wind-speed", "EPSG:4326", height_requested=100
+                    )
+
     """
 
     location_to_query = location_to_query.set_crs(input_crs) 
