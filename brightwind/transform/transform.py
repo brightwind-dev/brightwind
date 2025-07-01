@@ -1352,9 +1352,15 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
     if pd.isnull(date_to):
         if isinstance(data, pd.DatetimeIndex):
-            date_to = data[-1]
+            if offset.startswith('-'):
+                date_to = data[-1] - _freq_str_to_dateoffset(offset)
+            else:
+                date_to = data[-1] + _freq_str_to_dateoffset(offset)
         elif isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
-            date_to = data.index[-1]
+            if offset.startswith('-'):
+                date_to = data.index[-1] - _freq_str_to_dateoffset(offset)
+            else:
+                date_to = data.index[-1] + _freq_str_to_dateoffset(offset)
     else:
         date_to = pd.to_datetime(date_to)
 
