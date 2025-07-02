@@ -12,7 +12,7 @@ Additional labels for pre-release and build metadata are available as extensions
 ---
 
 ## [2.4.0-dev]
-1. Edited `offset_timestamps()` to include last timestamp when date_from is unspecified, so that offset is applied to the entire record. ([#504](https://github.com/brightwind-dev/brightwind/issues/504))
+1. 
 
 ## [2.3.0]
 This update brings a comprehensive set of **bug fixes** and **enhancements** across the Brightwind library. 
