@@ -86,9 +86,7 @@ def check_newa_location_valid(row, bounds):
     if row.geometry.within(bbox):
         return True
     else:
-        raise ValueError(f"Invalid location: NEWA covers ({Constants.NEWA_EXTENTS.north}°N to" 
-                f" {Constants.NEWA_EXTENTS.south}°N and {Constants.NEWA_EXTENTS.west}°W to "
-                f"{Constants.NEWA_EXTENTS.east}°W)")
+        return False
 
 
 
@@ -102,7 +100,7 @@ def download_newa_data(row, variable_requested, height_requested, model_type):
     :param variable_requested:    Variable name required
     :type variable_requested:     str
     :param height_requested:      Height required
-    :type height_requested:       float | int | None | ArrayLike
+    :type height_requested:       ArrayLike
     :param model_type:            Model type to download from either "mesoscale" or "microscale"
     :type model_type:             str 
     :return:                      The extracted value(s) from the NEWA wind map for the given geometry and parameters.
@@ -112,7 +110,19 @@ def download_newa_data(row, variable_requested, height_requested, model_type):
     :rtype:                       float | xarray.DataArray | dict
     """
 
-    _ = check_newa_location_valid(row, Constants.NEWA_EXTENT_BOUNDS)
+    valid_location = check_newa_location_valid(row, Constants.NEWA_EXTENT_BOUNDS)
+    if not valid_location:
+        error_message = (f"Invalid location: NEWA covers ({Constants.NEWA_EXTENTS.north}°N to" 
+                f" {Constants.NEWA_EXTENTS.south}°N and {Constants.NEWA_EXTENTS.west}°W to "
+                f"{Constants.NEWA_EXTENTS.east}°W)")
+        if height_requested:
+            newa_data = {}
+            for height in height_requested:
+                newa_data[height] = error_message
+        else:
+            newa_data = error_message
+        return newa_data
+    
     if isinstance(height_requested, float) or isinstance(height_requested, int):
         height_requested = [height_requested]
     
@@ -322,7 +332,8 @@ def call_wind_map_api(wind_map_name, location_to_query, variable_requested, inpu
         variable_ouput_name = f"{wind_map_name}_{variable_requested}"
 
     if wind_map_name == "gwa":
-        if variable_requested not in Constants.GWA_VARIABLES_WITH_HEIGHT and variable_requested not in Constants.GWA_VARIABLES_WITHOUT_HEIGHT:
+        if (variable_requested not in Constants.GWA_VARIABLES_WITH_HEIGHT 
+            and variable_requested not in Constants.GWA_VARIABLES_WITHOUT_HEIGHT):
             location_to_query[variable_ouput_name] = "Invalid variable requested"
             return location_to_query
         if variable_requested in Constants.GWA_VARIABLES_WITH_HEIGHT:

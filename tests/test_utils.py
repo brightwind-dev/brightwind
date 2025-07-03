@@ -106,9 +106,8 @@ def get_country_code_from_coordinates():
 def test_check_newa_location_valid():
 
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[0]
-    with pytest.raises(ValueError) as excinfo:
-        bw.utils.wind_map.check_newa_location_valid(row, Constants.NEWA_EXTENT_BOUNDS)
-    assert "Invalid location" in str(excinfo.value)
+    valid = bw.utils.wind_map.check_newa_location_valid(row, Constants.NEWA_EXTENT_BOUNDS)
+    assert valid is False
 
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[1]
     valid = bw.utils.wind_map.check_newa_location_valid(row, Constants.NEWA_EXTENT_BOUNDS)
@@ -117,28 +116,25 @@ def test_check_newa_location_valid():
 
 def test_download_newa_data():
 
-    row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[1]
+    row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[1]    
     with pytest.raises(ValueError) as excinfo:
-        bw.utils.wind_map.download_newa_data(row, "wind_speed_avg", 100, "mesoscale")
+        bw.utils.wind_map.download_newa_data(row, "wind_speed_avg", [100], "mesoscale")
     assert "Variable name not found please consult documentation" in str(excinfo.value)
     
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[0]
-    with pytest.raises(ValueError) as excinfo:
-        bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", 100, "mesoscale")
-    assert "Invalid location: NEWA covers" in str(excinfo.value)
+    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100], "mesoscale")
+    assert "Invalid location: NEWA covers" in newa_returned[100]
 
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[3]
-    with pytest.raises(ValueError) as excinfo:
-        bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", 100, "mesoscale")
-    assert "Invalid geometry type must be Point or Polygon" in str(excinfo.value)
+    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100], "mesoscale")
+    assert "Invalid geometry type must be Point or Polygon" in newa_returned[100]
     
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[1]
-    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", 100, "mesoscale")
+    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100], "mesoscale")
     assert np.allclose(newa_returned[100], 9.077987670898438)
     
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[2]
-    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", 100, "mesoscale")
-    print(newa_returned)
+    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100], "mesoscale")
     assert np.allclose(newa_returned[100].values[0][0], 7.8734756)
     
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[1]
@@ -166,24 +162,13 @@ def test_call_wind_map_api():
     assert isinstance(new_gdf_gwa.iloc[2][expected_column_name], xr.DataArray)
     assert "Invalid geometry type" in new_gdf_gwa.iloc[3][expected_column_name]
 
-
+    
     with pytest.raises(ValueError) as excinfo:
         bw.utils.wind_map.call_wind_map_api("newa-mesoscale", TEST_WIND_MAP_EXTRACTION_GDF, "wind_speed_avg", 
                                                   "EPSG:4326", height_requested=100)
-    assert "Invalid location: NEWA covers " in str(excinfo.value)
-    
-    with pytest.raises(ValueError) as excinfo:
-        bw.utils.wind_map.call_wind_map_api("newa-mesoscale", TEST_WIND_MAP_EXTRACTION_GDF.loc[1:], "wind_speed_avg", 
-                                                  "EPSG:4326", height_requested=100)
     assert "Variable name not found please consult documentation" in str(excinfo.value)
 
-
-
-    bw.utils.wind_map.call_wind_map_api("newa-mesoscale", TEST_WIND_MAP_EXTRACTION_GDF.loc[[3]], 
-                                                       "wind_speed_mean", "EPSG:4326", height_requested=100)
-
-
-    new_gdf_newa = bw.utils.wind_map.call_wind_map_api("newa-mesoscale", TEST_WIND_MAP_EXTRACTION_GDF.loc[1:], 
+    new_gdf_newa = bw.utils.wind_map.call_wind_map_api("newa-mesoscale", TEST_WIND_MAP_EXTRACTION_GDF, 
                                                        "wind_speed_mean", "EPSG:4326", height_requested=100)
     expected_column_name = "newa-mesoscale_wind_speed_mean_100m"
     
@@ -191,8 +176,9 @@ def test_call_wind_map_api():
     assert isinstance(new_gdf_newa.loc[2][expected_column_name], xr.DataArray)
     assert np.allclose(new_gdf_newa.loc[2][expected_column_name].values[0][0], 7.8734756)
     assert "Invalid geometry type" in new_gdf_newa.loc[3][expected_column_name]
+    assert "Invalid location: NEWA covers" in new_gdf_newa.loc[0][expected_column_name]
 
-    new_gdf_newa = bw.utils.wind_map.call_wind_map_api("newa-mesoscale", TEST_WIND_MAP_EXTRACTION_GDF.loc[1:], 
+    new_gdf_newa = bw.utils.wind_map.call_wind_map_api("newa-mesoscale", TEST_WIND_MAP_EXTRACTION_GDF, 
                                                        "wind_speed_mean", "EPSG:4326", height_requested=[50, 100])
     expected_column_name = "newa-mesoscale_wind_speed_mean_50m"
     assert np.allclose(new_gdf_newa.loc[1][expected_column_name], 7.822887420654297)
