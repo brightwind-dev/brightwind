@@ -5,7 +5,7 @@ from geopy.geocoders import Nominatim
 import geopy.exc
 import requests
 import time
-import warnings
+import logging
 
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -15,9 +15,11 @@ import rioxarray
 from io import BytesIO
 from pyproj import Transformer, CRS
 import numpy as np
+import pandas as pd
 
 import brightwind.utils.constants as Constants
 
+logger = logging.getLogger(__name__)
 
 __all__ = ['call_wind_map_api']
 
@@ -77,18 +79,16 @@ def check_newa_location_valid(row, bounds):
     :type row:         pandas.Series or geopandas.GeoSeries
     :param bounds:     The bounds of the NEWA wind map
     :type bounds:      tuple
-    :return:           A descriptor if the location is or is not valid to extract NEWA wind map data at
-    :rtype:            str
+    :return:           A descriptor if the location is or is not valid.
+    :rtype:            bool
     """
     bbox = box(*bounds)
-    def apply_func(geom):
-        if geom.within(bbox):
-            return "Valid location"
-        else:
-            return (f"Invalid location: NEWA covers ({Constants.NEWA_EXTENTS.north}°N to {Constants.NEWA_EXTENTS.south}°" 
-                    f"N and {Constants.NEWA_EXTENTS.west}°W to {Constants.NEWA_EXTENTS.east}°W)")
-    location_check = apply_func(row.geometry)
-    return location_check
+    if row.geometry.within(bbox):
+        return True
+    else:
+        raise ValueError(f"Invalid location: NEWA covers ({Constants.NEWA_EXTENTS.north}°N to" 
+                f" {Constants.NEWA_EXTENTS.south}°N and {Constants.NEWA_EXTENTS.west}°W to "
+                f"{Constants.NEWA_EXTENTS.east}°W)")
 
 
 
@@ -102,66 +102,85 @@ def download_newa_data(row, variable_requested, height_requested, model_type):
     :param variable_requested:    Variable name required
     :type variable_requested:     str
     :param height_requested:      Height required
-    :type height_requested:       float
+    :type height_requested:       float | int | None | ArrayLike
     :param model_type:            Model type to download from either "mesoscale" or "microscale"
     :type model_type:             str 
     :return:                      The extracted value(s) from the NEWA wind map for the given geometry and parameters.
-                                  This may be a scalar value (for points), or an xarray.DataArray
-    :rtype:                       float | xarray.DataArray | str
+                                  This may be a scalar value (for points), or an xarray.DataArray. If multiple heights
+                                  are requested it will be a dictionary of these data types with keys being the height 
+                                  values requested.
+    :rtype:                       float | xarray.DataArray | dict
     """
 
-    newa_data = check_newa_location_valid(row, Constants.NEWA_EXTENT_BOUNDS)
+    _ = check_newa_location_valid(row, Constants.NEWA_EXTENT_BOUNDS)
+    if isinstance(height_requested, float) or isinstance(height_requested, int):
+        height_requested = [height_requested]
     
     if isinstance(row.geometry, Point):
         base_url = f"https://wps.neweuropeanwindatlas.eu/api/{model_type}-atlas/v1/get-data-point"
-        url_params = {
-            "latitude": row.geometry.y,
-            "longitude": row.geometry.x,
-            "variable": variable_requested
-        }
+        url_params = [
+            ("latitude", row.geometry.y),
+            ("longitude", row.geometry.x),
+            ("variable", variable_requested)
+        ]
     elif isinstance(row.geometry, Polygon):
         base_url = f"https://wps.neweuropeanwindatlas.eu/api/{model_type}-atlas/v1/get-data-bbox"
-        polygon_bounds = row.geometry.bounds
-        url_params = {
-            "southBoundLatitude": polygon_bounds[3] - Constants.WIND_MAP_BUFFER_EPSILON,
-            "northBoundLatitude": polygon_bounds[1] + Constants.WIND_MAP_BUFFER_EPSILON,
-            "westBoundLongitude": polygon_bounds[0] - Constants.WIND_MAP_BUFFER_EPSILON,
-            "eastBoundLongitude": polygon_bounds[2] + Constants.WIND_MAP_BUFFER_EPSILON,
-            "variable": variable_requested
-        }
+        polygon_bounds = row.geometry.bounds   
+        url_params = [
+            ("southBoundLatitude", polygon_bounds[1] - Constants.WIND_MAP_BUFFER_EPSILON),
+            ("northBoundLatitude", polygon_bounds[3] + Constants.WIND_MAP_BUFFER_EPSILON),
+            ("westBoundLongitude", polygon_bounds[0] - Constants.WIND_MAP_BUFFER_EPSILON),
+            ("eastBoundLongitude", polygon_bounds[2] + Constants.WIND_MAP_BUFFER_EPSILON),
+            ("variable", variable_requested)
+            ]
     else:
-        return "Invalid geometry type must be Point or Polygon"
+        if height_requested:
+            newa_data = {}
+            for height in height_requested:
+                newa_data[height] = "Invalid geometry type must be Point or Polygon"
+        else:
+            newa_data = "Invalid geometry type must be Point or Polygon"
+        return newa_data
     
-    if "Invalid location" not in newa_data and "Invalid geometry type" not in newa_data:
-        if variable_requested in Constants.NEWA_VARIABLES_BY_HEIGHT[model_type]:
-            if height_requested is None or height_requested not in Constants.NEWA_VALID_HEIGHTS[model_type]:
-                error_msg = f"Height must be one of {Constants.NEWA_VALID_HEIGHTS[model_type]}"
-                warnings.warn(error_msg)
-                return error_msg
-            else:
-                url_params["height"] = height_requested
-                newa_data = call_api_with_retry_logic(base_url, url_params)
-                if not isinstance(newa_data, str):
-                    newa_data = xr.open_dataset(BytesIO(newa_data))
-        elif variable_requested in Constants.NEWA_VARIABLES_WITHOUT_HEIGHT[model_type]:
+    if variable_requested in Constants.NEWA_VARIABLES_BY_HEIGHT[model_type]:
+        if height_requested is None:
+            raise ValueError(f"Height must be one of {Constants.NEWA_VALID_HEIGHTS[model_type]}")
+        else:
+            for height in height_requested:
+                if height not in Constants.NEWA_VALID_HEIGHTS[model_type]:
+                    raise ValueError(f"Height must be one of {Constants.NEWA_VALID_HEIGHTS[model_type]}")
+                else:
+                    url_params.append(("height", height))
             newa_data = call_api_with_retry_logic(base_url, url_params)
-            if not isinstance(newa_data, str):
-                newa_data = xr.open_dataset(BytesIO(newa_data))
-        else:
-            newa_data = "Variable name not found please consult documentation"
-            warnings.warn(newa_data)
+            newa_data_ds = xr.open_dataset(BytesIO(newa_data))
 
-    if isinstance(row.geometry, Point) and not isinstance(newa_data, str):
-        if "height" in newa_data.coords:
-            newa_data = newa_data.isel(height=0)[variable_requested].values.flatten()[0]
+    elif variable_requested in Constants.NEWA_VARIABLES_WITHOUT_HEIGHT[model_type]:
+        newa_data = call_api_with_retry_logic(base_url, url_params)
+        newa_data_ds = xr.open_dataset(BytesIO(newa_data))
+    else:
+        raise ValueError("Variable name not found please consult documentation")
+
+    if "height" in newa_data_ds.coords and not height_requested:
+        newa_data = newa_data_ds.isel(height=0)[variable_requested]
+    elif "height" in newa_data_ds.coords and height_requested:
+        newa_data = {}
+        for height in height_requested:
+            newa_data[height] = newa_data_ds.sel(height=height)[variable_requested]
+    else:
+        newa_data = newa_data_ds[variable_requested]
+
+    if isinstance(row.geometry, Polygon):
+        if isinstance(newa_data, dict):
+            for height in height_requested:
+                newa_data[height] = _reproject_xarray_dataset(newa_data[height], "EPSG:4326", "west_east", "south_north")
         else:
-            newa_data = newa_data[variable_requested].values.flatten()[0]
-    if isinstance(row.geometry, Polygon) and not isinstance(newa_data, str):
-        if "height" in newa_data.coords:
-            newa_data = newa_data.isel(height=0)[variable_requested]
+            newa_data = _reproject_xarray_dataset(newa_data, "EPSG:4326", "west_east", "south_north")
+    else:
+        if height_requested:
+            for height in height_requested:
+                newa_data[height] = newa_data[height].item()
         else:
-            newa_data = newa_data[variable_requested]
-        newa_data = _reproject_xarray_dataset(newa_data, "EPSG:4326", "west_east", "south_north")
+            newa_data = newa_data.item()
 
     return newa_data
 
@@ -215,7 +234,7 @@ def call_api_with_retry_logic(base_url, url_params, max_retries = 5, backoff_fac
         try:
             if attempt > 0:
                 delay = backoff_factor * (2 ** (attempt - 1)) + random.uniform(0, 1)
-                print(f"Attempt {attempt + 1}/{max_retries + 1} - waiting {delay:.1f}s before retry...")
+                logger.info(f"Attempt {attempt + 1}/{max_retries + 1} - waiting {delay:.1f}s before retry...")
                 time.sleep(delay)
             
             response = session.get(base_url, params=url_params, timeout=timeout)
@@ -229,20 +248,19 @@ def call_api_with_retry_logic(base_url, url_params, max_retries = 5, backoff_fac
         except requests.exceptions.Timeout as e:
             last_exception = e
             if attempt == max_retries:
-                print(f"Final attempt failed: {e}")
-                return None
+                raise ValueError(f"Final attempt failed: {e}")
                 
         except requests.exceptions.ConnectionError as e:
             last_exception = e
             if attempt == max_retries:
-                return f"Final API call attempt failed: {e}"
+                raise ValueError(f"Final API call attempt failed: {e}")
                 
         except requests.exceptions.RequestException as e:
             last_exception = e
             if attempt == max_retries:
-                return f"Final API call attempt failed: {e}"
+                raise ValueError(f"Final API call attempt failed: {e}")
     else:
-        return f"All {max_retries + 1} API call attempts failed. Last error: {last_exception}"
+        raise ValueError(f"All {max_retries + 1} API call attempts failed. Last error: {last_exception}")
     return response.content
 
 
@@ -295,43 +313,75 @@ def call_wind_map_api(wind_map_name, location_to_query, variable_requested, inpu
     location_to_query = location_to_query.set_crs(input_crs) 
     location_to_query = location_to_query.to_crs("EPSG:4326")
 
-    variable_ouput_name = f"{wind_map_name}_{variable_requested}_{height_requested}m" if height_requested else f"{wind_map_name}_{variable_requested}"
+    if height_requested:
+        if isinstance(height_requested, float) or isinstance(height_requested, int):
+            height_requested = [height_requested]
+        for height in height_requested:
+            variable_ouput_name = [f"{wind_map_name}_{variable_requested}_{height}m" for height in height_requested]
+    else:
+        variable_ouput_name = f"{wind_map_name}_{variable_requested}"
 
     if wind_map_name == "gwa":
         if variable_requested not in Constants.GWA_VARIABLES_WITH_HEIGHT and variable_requested not in Constants.GWA_VARIABLES_WITHOUT_HEIGHT:
             location_to_query[variable_ouput_name] = "Invalid variable requested"
             return location_to_query
         if variable_requested in Constants.GWA_VARIABLES_WITH_HEIGHT:
-            if height_requested not in Constants.GWA_VARIABLE_HEIGHTS:
-                location_to_query[variable_ouput_name] = ("Invalid height "
-                f"requested for this variable, heights available are: {Constants.GWA_VARIABLE_HEIGHTS}")
-                return location_to_query
+            for height in height_requested:
+                if height not in Constants.GWA_VARIABLE_HEIGHTS:
+                    raise ValueError("Invalid height requested for this variable, heights available are: " \
+                    f"{Constants.GWA_VARIABLE_HEIGHTS}")
+            if not height_requested:
+                raise ValueError("Invalid height requested for this variable, heights available are: " \
+                f"{Constants.GWA_VARIABLE_HEIGHTS}")
         location_to_query['country_code'] = location_to_query.geometry.apply(get_country_code_for_geometry)
         countries_required = set(location_to_query['country_code'])
-        gwa_datasets = []
-        for country_code in countries_required:
-            if variable_requested in Constants.GWA_VARIABLES_WITH_HEIGHT:
-                gwa_api_url = rf"https://globalwindatlas.info/api/gis/country/{country_code}/{variable_requested}/{height_requested}"
-            else:
-                gwa_api_url = rf"https://globalwindatlas.info/api/gis/country/{country_code}/{variable_requested}"
-            ds = rioxarray.open_rasterio(gwa_api_url)
-            gwa_datasets.append(ds)
 
-        location_to_query['old_geom'] = location_to_query.geometry
-        location_to_query.geometry = location_to_query.geometry.apply(
-            lambda g: _buffer_only_polygons(g, Constants.WIND_MAP_BUFFER_EPSILON)
-            )
-        location_to_query[variable_ouput_name] = location_to_query.apply(
-            lambda row: extract_from_dataset_at_geometry(row, gwa_datasets), axis=1
-            )
-        location_to_query.geometry = location_to_query['old_geom']
-        del location_to_query['old_geom']
+
+        if height_requested:
+            for i, height in enumerate(height_requested):
+                gwa_datasets = []
+                for country_code in countries_required:
+                    gwa_api_url = rf"https://globalwindatlas.info/api/gis/country/{country_code}/{variable_requested}/{height}"
+                    ds = rioxarray.open_rasterio(gwa_api_url)
+                    gwa_datasets.append(ds)
+                location_to_query['old_geom'] = location_to_query.geometry
+                location_to_query.geometry = location_to_query.geometry.apply(
+                    lambda g: _buffer_only_polygons(g, Constants.WIND_MAP_BUFFER_EPSILON)
+                    )
+                location_to_query[variable_ouput_name[i]] = location_to_query.apply(
+                    lambda row: extract_from_dataset_at_geometry(row, gwa_datasets), axis=1
+                    )
+                location_to_query.geometry = location_to_query['old_geom']
+                del location_to_query['old_geom']
+
+        else:
+            gwa_datasets = []
+            for country_code in countries_required:
+                gwa_api_url = rf"https://globalwindatlas.info/api/gis/country/{country_code}/{variable_requested}"
+                ds = rioxarray.open_rasterio(gwa_api_url)
+                gwa_datasets.append(ds)
+            location_to_query['old_geom'] = location_to_query.geometry
+            location_to_query.geometry = location_to_query.geometry.apply(
+                lambda g: _buffer_only_polygons(g, Constants.WIND_MAP_BUFFER_EPSILON)
+                )
+            location_to_query[variable_ouput_name] = location_to_query.apply(
+                lambda row: extract_from_dataset_at_geometry(row, gwa_datasets), axis=1
+                )
+            location_to_query.geometry = location_to_query['old_geom']
+            del location_to_query['old_geom']
 
     if "newa" in wind_map_name:
         model_type = wind_map_name.split("-")[-1]
-        location_to_query[variable_ouput_name] = location_to_query.apply(
+        newa_data = location_to_query.apply(
             lambda row: download_newa_data(row, variable_requested, height_requested, model_type), axis=1
             )
+        if height_requested:
+            newa_data = pd.json_normalize(newa_data)
+            newa_data.columns = variable_ouput_name
+            newa_data.index = location_to_query.index
+            location_to_query = pd.concat([location_to_query, newa_data], axis=1)
+        else:
+            location_to_query[variable_ouput_name] = newa_data
     
     return location_to_query
     
