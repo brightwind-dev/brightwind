@@ -16,12 +16,89 @@ from io import BytesIO
 from pyproj import Transformer, CRS
 import numpy as np
 import pandas as pd
+import json
 
 import brightwind.utils.constants as Constants
 
 logger = logging.getLogger(__name__)
 
 __all__ = ['call_wind_map_api']
+
+
+class NewaVariables:
+    """
+    Class to retrieve and store available variables and their heights from the NEWA API for a given model type.
+
+    On initialization, this class queries the NEWA API for the specified model type (e.g., "mesoscale" or "microscale"),
+    with built-in retry logic for robustness. It stores the variable metadata, lists all available variables, and
+    separates variables that require a height from those that do not.
+
+    :param model_type:      The NEWA model type to query ("mesoscale" or "microscale").
+    :type model_type:       str
+    :param max_retries:     Maximum number of retries for the API request in case of failure.
+    :type max_retries:      int, optional
+    :param backoff_factor:  Backoff factor for retry delays (exponential backoff).
+    :type backoff_factor:   float, optional
+
+    :raises ValueError:     If all attempts to retrieve variables from the API fail.
+    """
+
+    def __init__(self, model_type, max_retries=5, backoff_factor=2):
+        url = f"https://wps.neweuropeanwindatlas.eu/api/{model_type}-atlas/v1/get-variables"
+        session = requests.Session()
+        retry_strategy = Retry(
+            total=max_retries,
+            status_forcelist=[500, 502, 503, 504, 429],
+            method_whitelist=["GET"],
+            backoff_factor=backoff_factor,
+            raise_on_status=False
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+
+        last_exception = None
+        for attempt in range(max_retries + 1):
+            try:
+                if attempt > 0:
+                    delay = backoff_factor * (2 ** (attempt - 1)) + random.uniform(0, 1)
+                    logger.info(f"Attempt {attempt + 1}/{max_retries + 1} - waiting {delay:.1f}s before retry...")
+                    time.sleep(delay)
+                response = session.get(url, timeout=30)
+                if response.status_code == 200:
+                    break
+                else:
+                    if attempt == max_retries:
+                        response.raise_for_status()
+                    continue
+            except requests.exceptions.RequestException as e:
+                last_exception = e
+                if attempt == max_retries:
+                    raise ValueError(f"Final attempt to get NEWA variables failed: {e}")
+        else:
+            raise ValueError(
+                f"All {max_retries + 1} attempts to get NEWA variables failed. Last error: {last_exception}"
+                )
+        
+        self.newa_variable_info = json.loads(response.content)
+        self.all_newa_variables = list(self.newa_variable_info.keys())
+        self.newa_variables_with_height = [
+            var for var in self.all_newa_variables if len(self.newa_variable_info[var]['heights']) > 0
+            ]
+        self.newa_variables_no_height = [
+            var for var in self.all_newa_variables if len(self.newa_variable_info[var]['heights']) == 0
+            ]
+    def find_newa_variable_heights(self, newa_variable):
+        """
+        Returns the list of valid heights for a given NEWA variable.
+
+        :param newa_variable:   The variable name to look up.
+        :type newa_variable:    str
+        :return:                List of valid heights for the variable.
+        :rtype:                 list
+        """
+        self.newa_variable_heights = self.newa_variable_info[newa_variable]['heights']
+        return self.newa_variable_heights
 
 
 def get_country_code_for_geometry(geom):
@@ -90,7 +167,7 @@ def check_newa_location_valid(row, bounds):
 
 
 
-def download_newa_data(row, variable_requested, height_requested, model_type):
+def download_newa_data(row, variable_requested, height_requested, model_type, newa_info):
     """
     Function to download NEWA wind map data from either the meso scale or the micro scale model.
 
@@ -103,6 +180,8 @@ def download_newa_data(row, variable_requested, height_requested, model_type):
     :type height_requested:       ArrayLike
     :param model_type:            Model type to download from either "mesoscale" or "microscale"
     :type model_type:             str 
+    :param newa_info:             Object containing NEWA variable metadata and allowed heights.
+    :type newa_info:              NewaVariables
     :return:                      The extracted value(s) from the NEWA wind map for the given geometry and parameters.
                                   This may be a scalar value (for points), or an xarray.DataArray. If multiple heights
                                   are requested it will be a dictionary of these data types with keys being the height 
@@ -152,19 +231,19 @@ def download_newa_data(row, variable_requested, height_requested, model_type):
             newa_data = "Invalid geometry type must be Point or Polygon"
         return newa_data
     
-    if variable_requested in Constants.NEWA_VARIABLES_BY_HEIGHT[model_type]:
+    if variable_requested in newa_info.newa_variables_with_height:
         if height_requested is None:
-            raise ValueError(f"Height must be one of {Constants.NEWA_VALID_HEIGHTS[model_type]}")
+            raise ValueError(f"Height must be one of {newa_info.newa_variable_heights}")
         else:
             for height in height_requested:
-                if height not in Constants.NEWA_VALID_HEIGHTS[model_type]:
-                    raise ValueError(f"Height must be one of {Constants.NEWA_VALID_HEIGHTS[model_type]}")
+                if height not in newa_info.find_newa_variable_heights(variable_requested):
+                    raise ValueError(f"Height must be one of {newa_info.newa_variable_heights}")
                 else:
                     url_params.append(("height", height))
             newa_data = call_api_with_retry_logic(base_url, url_params)
             newa_data_ds = xr.open_dataset(BytesIO(newa_data))
 
-    elif variable_requested in Constants.NEWA_VARIABLES_WITHOUT_HEIGHT[model_type]:
+    elif variable_requested in newa_info.newa_variables_no_height:
         newa_data = call_api_with_retry_logic(base_url, url_params)
         newa_data_ds = xr.open_dataset(BytesIO(newa_data))
     else:
@@ -383,8 +462,11 @@ def call_wind_map_api(wind_map_name, location_to_query, variable_requested, inpu
 
     if "newa" in wind_map_name:
         model_type = wind_map_name.split("-")[-1]
+        newa_info = NewaVariables(model_type)
         newa_data = location_to_query.apply(
-            lambda row: download_newa_data(row, variable_requested, height_requested, model_type), axis=1
+            lambda row: download_newa_data(
+                row, variable_requested, height_requested, model_type, newa_info
+                ), axis=1
             )
         if height_requested:
             newa_data = pd.json_normalize(newa_data)

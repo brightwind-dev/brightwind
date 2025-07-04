@@ -115,30 +115,30 @@ def test_check_newa_location_valid():
     
 
 def test_download_newa_data():
-
+    newa_info = bw.utils.wind_map.NewaVariables("mesoscale")
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[1]    
     with pytest.raises(ValueError) as excinfo:
-        bw.utils.wind_map.download_newa_data(row, "wind_speed_avg", [100], "mesoscale")
+        bw.utils.wind_map.download_newa_data(row, "wind_speed_avg", [100], "mesoscale", newa_info)
     assert "Variable name not found please consult documentation" in str(excinfo.value)
     
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[0]
-    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100], "mesoscale")
+    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100], "mesoscale", newa_info)
     assert "Invalid location: NEWA covers" in newa_returned[100]
 
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[3]
-    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100], "mesoscale")
+    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100], "mesoscale", newa_info)
     assert "Invalid geometry type must be Point or Polygon" in newa_returned[100]
     
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[1]
-    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100], "mesoscale")
+    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100], "mesoscale", newa_info)
     assert np.allclose(newa_returned[100], 9.077987670898438)
     
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[2]
-    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100], "mesoscale")
+    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100], "mesoscale", newa_info)
     assert np.allclose(newa_returned[100].values[0][0], 7.8734756)
     
     row = TEST_WIND_MAP_EXTRACTION_GDF.iloc[1]
-    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100, 200], "mesoscale")
+    newa_returned = bw.utils.wind_map.download_newa_data(row, "wind_speed_mean", [100, 200], "mesoscale", newa_info)
     assert np.allclose(newa_returned[200], 10.419868469238281)
 
 
