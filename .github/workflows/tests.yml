@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 env:
-  BRIGHTHUB_EMAIL: email
-  BRIGHTHUB_PASSWORD: password
+  BRIGHTHUB_EMAIL: ${{ secrets.BRIGHTHUB_EMAIL }}
+  BRIGHTHUB_PASSWORD: ${{ secrets.BRIGHTHUB_PASSWORD }}
 
 jobs:
   build:
