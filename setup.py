@@ -44,7 +44,7 @@ setup(
     keywords=['BRIGHT', 'WIND', 'RESOURCE', 'DATA', 'ANALYSTS', 'PROCESSING', 'WASP', 'ROSE', 'WINDFARMER', 'OPENWIND',
               'WIND PRO', 'WINDOGRAPHER'],
     install_requires=[
-        'pandas>=0.24.0',
+        'pandas>=0.24.0, <3.0.0',
         'numpy>=1.16.4',
         'scikit-learn>=0.19.1',
         'matplotlib>=3.0.3',
@@ -67,6 +67,8 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "License :: OSI Approved :: MIT License",
     ],
 )
