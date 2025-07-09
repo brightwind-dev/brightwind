@@ -2442,7 +2442,7 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
         if utils.is_file_extension(cleaning_rules_file_or_list, ".json"):
             with open(cleaning_rules_file_or_list) as file:
                 cleaning_json = json.load(file)
-    elif isinstance(cleaning_rules_file_or_list, List):
+    elif isinstance(cleaning_rules_file_or_list, list):
         if not all(isinstance(item, dict) for item in cleaning_rules_file_or_list):
             raise TypeError("All elements in the `cleaning_rules_file_or_list` must be dictionaries.")
         cleaning_json = cleaning_rules_file_or_list
