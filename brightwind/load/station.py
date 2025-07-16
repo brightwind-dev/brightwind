@@ -1165,11 +1165,11 @@ class _Measurements:
                     name_found = True
                     break
                 elif meas_point['name'] == name and meas_point.get('height_m') is None:
-                    heights.append(np.NaN)
+                    heights.append(np.nan)
                     name_found = True
                     break
             if name_found is False:
-                heights.append(np.NaN)
+                heights.append(np.nan)
         return heights
 
 
