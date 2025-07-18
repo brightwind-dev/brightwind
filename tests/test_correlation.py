@@ -309,6 +309,7 @@ def test_synthesize():
     data_test.loc['2016-01-09 17:10:00':'2016-01-09 17:50:00','Spd80mN'] = np.nan
     data_test.loc['2016-01-09 17:50:00':'2016-01-10 19:10:00','Dir58mS'] = np.nan
     data_test.loc['2016-01-09 17:50:00':'2016-01-10 19:10:00','Spd60mN'] = np.nan
+
     ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir58mS'],
                                  averaging_prd='10min')
     ss_cor.run()
