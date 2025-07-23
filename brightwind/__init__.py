@@ -3,6 +3,8 @@ from .load.station import MeasurementStation
 from .analyse import correlation as Correl
 from .analyse.shear import *
 from .analyse.analyse import *
+from .analyse.analyse import remote_sensor_quality_filter
+from .analyse.analyse import remote_sensor_vertical_speed_filter
 from .analyse.plot import *
 from .transform.transform import *
 from .export.export import *
