@@ -5,15 +5,15 @@ import numpy as np
 import warnings
 
 wndspd = 8
-wndspd_df = pd.DataFrame([2, 13, np.NaN, 5, 8])
-wndspd_series = pd.Series([2, 13, np.NaN, 5, 8])
+wndspd_df = pd.DataFrame([2, 13, np.nan, 5, 8])
+wndspd_series = pd.Series([2, 13, np.nan, 5, 8])
 current_slope = 0.045
 current_offset = 0.235
 new_slope = 0.046
 new_offset = 0.236
 wndspd_adj = 8.173555555555556
-wndspd_adj_df = pd.DataFrame([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
-wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
+wndspd_adj_df = pd.DataFrame([2.0402222222222224, 13.284666666666668, np.nan, 5.106888888888888, 8.173555555555556])
+wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.nan, 5.106888888888888, 8.173555555555556])
 
 DATA = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
 DATA_CLND = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -209,62 +209,62 @@ def test_synthesize():
                                                  '2017-06-05 00:00:00': 9.88184374999999,
                                                  '2017-06-15 00:00:00': 7.639711111111101,
                                                  '2017-06-25 00:00:00': 9.144633101851865,
-                                                 '2017-07-05 00:00:00': np.NaN,
-                                                 '2017-07-15 00:00:00': np.NaN,
+                                                 '2017-07-05 00:00:00': np.nan,
+                                                 '2017-07-15 00:00:00': np.nan,
                                                  '2017-07-25 00:00:00': 7.127115740740741,
                                                  '2017-08-04 00:00:00': 6.4158555555555505,
                                                  '2017-08-14 00:00:00': 7.510521527777763,
                                                  '2017-08-24 00:00:00': 5.943415798611104,
-                                                 '2017-09-03 00:00:00': np.NaN,
-                                                 '2017-09-13 00:00:00': np.NaN,
+                                                 '2017-09-03 00:00:00': np.nan,
+                                                 '2017-09-13 00:00:00': np.nan,
                                                  '2017-09-23 00:00:00': 12.601222222222226,
                                                  '2017-10-03 00:00:00': 9.425352777777784,
                                                  '2017-10-13 00:00:00': 9.466307638888878,
                                                  '2017-10-23 00:00:00': 8.84323971518988}}
-    result_ord_lst_sq_dir = {'Spd80mN_Synthesized': {'2016-03-01': np.NaN,
+    result_ord_lst_sq_dir = {'Spd80mN_Synthesized': {'2016-03-01': np.nan,
                                                      '2016-04-01': 6.598875,
-                                                     '2016-05-01': np.NaN,
+                                                     '2016-05-01': np.nan,
                                                      '2016-06-01': 5.108156,
                                                      '2016-07-01': 6.319782,
                                                      '2016-08-01': 7.093956,
-                                                     '2016-09-01': np.NaN,
+                                                     '2016-09-01': np.nan,
                                                      '2016-10-01': 6.669446,
-                                                     '2016-11-01': np.NaN,
+                                                     '2016-11-01': np.nan,
                                                      '2016-12-01': 8.900778,
                                                      '2017-01-01': 9.501281,
                                                      '2017-02-01': 9.134509,
-                                                     '2017-03-01': np.NaN,
+                                                     '2017-03-01': np.nan,
                                                      '2017-04-01': 7.783390,
-                                                     '2017-05-01': np.NaN,
+                                                     '2017-05-01': np.nan,
                                                      '2017-06-01': 8.525249,
                                                      '2017-08-01': 6.715885,
                                                      '2017-10-01': 9.479016}}
-    result_speed_sort = {'Spd80mN_Synthesized': {'2016-03-01': np.NaN,
+    result_speed_sort = {'Spd80mN_Synthesized': {'2016-03-01': np.nan,
                                                  '2016-04-01': 6.598875,
-                                                 '2016-05-01': np.NaN,
+                                                 '2016-05-01': np.nan,
                                                  '2016-06-01': 5.108156,
-                                                 '2016-07-01': np.NaN,
+                                                 '2016-07-01': np.nan,
                                                  '2016-08-01': 7.093956,
-                                                 '2016-09-01': np.NaN,
+                                                 '2016-09-01': np.nan,
                                                  '2016-10-01': 6.669446,
-                                                 '2016-11-01': np.NaN,
+                                                 '2016-11-01': np.nan,
                                                  '2016-12-01': 8.900778,
-                                                 '2017-01-01': np.NaN,
+                                                 '2017-01-01': np.nan,
                                                  '2017-02-01': 9.134509,
-                                                 '2017-03-01': np.NaN},
-                         'Dir78mS_Synthesized': {'2016-03-01': np.NaN,
+                                                 '2017-03-01': np.nan},
+                         'Dir78mS_Synthesized': {'2016-03-01': np.nan,
                                                  '2016-04-01': 318.639591,
-                                                 '2016-05-01': np.NaN,
+                                                 '2016-05-01': np.nan,
                                                  '2016-06-01': 129.720897,
-                                                 '2016-07-01': np.NaN,
+                                                 '2016-07-01': np.nan,
                                                  '2016-08-01': 235.377543,
                                                  '2016-09-01': 223.965222,
                                                  '2016-10-01': 114.451746,
-                                                 '2016-11-01': np.NaN,
+                                                 '2016-11-01': np.nan,
                                                  '2016-12-01': 219.815444,
                                                  '2017-01-01': 237.667123,
                                                  '2017-02-01': 197.538174,
-                                                 '2017-03-01': np.NaN}}
+                                                 '2017-03-01': np.nan}}
 
     data_spd80mn_even_months = DATA_CLND['Spd80mN'][DATA_CLND.index.month.isin([2, 4, 6, 8, 10, 12])]
     # Test the synthesise for when the target data starts before the reference data.
@@ -305,10 +305,10 @@ def test_synthesize():
 
     # Test the synthesise when SpeedSort correlation is used using 10 min averaging period.
     data_test = DATA_CLND[['Spd80mN', 'Spd60mN', 'Dir78mS', 'Dir58mS']].copy()
-    data_test['Dir78mS']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.NaN
-    data_test['Spd80mN']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.NaN
-    data_test['Dir58mS']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.NaN
-    data_test['Spd60mN']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.NaN
+    data_test['Dir78mS']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.nan
+    data_test['Spd80mN']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.nan
+    data_test['Dir58mS']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.nan
+    data_test['Spd60mN']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.nan
     ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir58mS'],
                                  averaging_prd='10min')
     ss_cor.run()

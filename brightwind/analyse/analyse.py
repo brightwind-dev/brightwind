@@ -740,7 +740,7 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
 
     graph = plt.figure(figsize=(15, 8))
     ax = graph.add_axes([0.1, 0.1, 0.8, 0.8])
-    bw_plt._bar_subplot(distributions.replace([np.inf, -np.inf], np.NAN), x_label=x_label, y_label=aggregation_method,
+    bw_plt._bar_subplot(distributions.replace([np.inf, -np.inf], np.nan), x_label=x_label, y_label=aggregation_method,
                         max_bar_axis_limit=max_y_value, bin_tick_labels=bin_labels,
                         bar_tick_label_format=bar_tick_label_format, legend=legend, total_width=0.8, ax=ax)
     plt.close()

@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import numpy as np
 import json
+from unittest.mock import patch
 
 DEMO_DATA_FOLDER = os.path.join(os.path.dirname(__file__), '../brightwind/demo_datasets')
 
@@ -123,6 +124,19 @@ def test_load_csv():
             data3['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999)).all().all()
     assert (data['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999) ==
             data4['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999)).all().all()
+    
+    # test loading files from folder
+    bw.export_csv(data[:'2016-01-09 17:00'], os.path.join(DEMO_DATA_FOLDER, 'temp_test_data_first_chunk.csv'))
+    bw.export_csv(data['2016-01-09 17:10':'2016-01-09 18:00'], os.path.join(DEMO_DATA_FOLDER, 'temp_test_data_second_chunk.csv'))
+    with patch('brightwind.load.load._list_files', return_value=[
+        os.path.join(DEMO_DATA_FOLDER, 'temp_test_data_first_chunk.csv'),
+        os.path.join(DEMO_DATA_FOLDER, 'temp_test_data_second_chunk.csv')]):
+        assert isinstance(bw.load_csv(DEMO_DATA_FOLDER, '.csv'), pd.DataFrame)
+    # Remove the temp files
+    if os.path.exists(os.path.join(DEMO_DATA_FOLDER, 'temp_test_data_first_chunk.csv')):
+        os.remove(os.path.join(DEMO_DATA_FOLDER, 'temp_test_data_first_chunk.csv'))
+    if os.path.exists(os.path.join(DEMO_DATA_FOLDER, 'temp_test_data_second_chunk.csv')):
+        os.remove(os.path.join(DEMO_DATA_FOLDER, 'temp_test_data_second_chunk.csv'))
 
 
 def test_load_windographer_txt():
