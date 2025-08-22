@@ -221,12 +221,12 @@ def test_time_series():
     shear_by_ts_power_law.apply(DATA['Spd80mN'], 40, 60)
     shear_by_ts_log_law.apply(DATA['Spd80mN'], 40, 60)
 
-    DATA.loc[DATA.index[0],'Spd80mN'] = 2
+    DATA.loc[DATA.index[0], 'Spd80mN'] = 2
     shear_ts = bw.Shear.TimeSeries(anemometers, heights)
     alpha = shear_ts.alpha
     assert pd.isna(alpha.iloc[0])
 
-    DATA.loc[DATA.index[0],'Spd80mN'] = np.nan
+    DATA.loc[DATA.index[0], 'Spd80mN'] = np.nan
     shear_ts = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law')
     roughness = shear_ts.roughness
     assert pd.isna(roughness.iloc[0])

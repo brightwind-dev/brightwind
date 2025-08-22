@@ -903,7 +903,7 @@ class _Measurements:
         temp_df.sort_values(['name', 'date_from'], ascending=[True, True], inplace=True)
         temp_df.fillna('-', inplace=True)  # groupby drops nan so need to fill them in
         # group duplicate data for the columns available
-        grouped_by_avail_cols = temp_df.groupby(avail_cols,observed=False)
+        grouped_by_avail_cols = temp_df.groupby(avail_cols, observed=False)
         # get date_to from the last row in each group to assign to the first row.
         new_date_to = grouped_by_avail_cols.last()['date_to']
         df = grouped_by_avail_cols.first()[['date_from', 'date_to']]
