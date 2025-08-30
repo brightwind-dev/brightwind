@@ -12,31 +12,42 @@ import warnings
 import textwrap
 from matplotlib.ticker import PercentFormatter
 
-__all__ = ['monthly_means',
-           'momm',
-           'dist',
-           'dist_matrix',
-           'dist_of_wind_speed',
-           'dist_by_dir_sector',
-           'dist_matrix_by_dir_sector',
-           'dist_12x24',
-           'freq_distribution',
-           'freq_table',
-           'time_continuity_gaps',
-           'coverage',
-           'basic_stats',
-           'TI',
-           'sector_ratio',
-           'calc_air_density']
+__all__ = [
+    "monthly_means",
+    "momm",
+    "dist",
+    "dist_matrix",
+    "dist_of_wind_speed",
+    "dist_by_dir_sector",
+    "dist_matrix_by_dir_sector",
+    "dist_12x24",
+    "freq_distribution",
+    "freq_table",
+    "time_continuity_gaps",
+    "coverage",
+    "basic_stats",
+    "TI",
+    "sector_ratio",
+    "calc_air_density",
+]
 
 
-def dist_matrix(var_series, x_series, y_series,
-                num_bins_x=None, num_bins_y=None,
-                x_bins=None, y_bins=None,
-                x_bin_labels=None, y_bin_labels=None,
-                var_label=None, x_label=None, y_label=None,
-                aggregation_method='%frequency',
-                return_data=False):
+def dist_matrix(
+    var_series,
+    x_series,
+    y_series,
+    num_bins_x=None,
+    num_bins_y=None,
+    x_bins=None,
+    y_bins=None,
+    x_bin_labels=None,
+    y_bin_labels=None,
+    var_label=None,
+    x_label=None,
+    y_label=None,
+    aggregation_method="%frequency",
+    return_data=False,
+):
     """
     Calculates the distribution of a variable against two other variables, on an X-Y plane, returning a heat map.
     By default, the X and Y variables are binned in bins of 1. However, this behaviour can be modified by the user.
@@ -112,30 +123,36 @@ def dist_matrix(var_series, x_series, y_series,
     if y_label is not None:
         y_series.name = y_label
     if var_series.name is None:
-        var_series.name = 'var_series'
+        var_series.name = "var_series"
     if y_series.name is None:
-        y_series.name = 'binned_var_1'
+        y_series.name = "binned_var_1"
     if x_series.name is None:
-        x_series.name = 'binned_var_2'
+        x_series.name = "binned_var_2"
     if var_label is None:
-        var_label = aggregation_method.capitalize() + ' of ' + var_series.name
+        var_label = aggregation_method.capitalize() + " of " + var_series.name
     var_series.name = var_label
     if x_series.name == var_series.name:
-        x_series.name = x_series.name+"_binned"
+        x_series.name = x_series.name + "_binned"
     if y_series.name == var_series.name:
-        y_series.name = y_series.name+"_binned"
+        y_series.name = y_series.name + "_binned"
 
     if num_bins_x is None and x_bins is None:
-        x_bins = np.arange(int(np.floor(x_series.min())), int(np.ceil(x_series.max()) + 1 + (x_series.max() % 1 == 0)),
-                           1)
+        x_bins = np.arange(
+            int(np.floor(x_series.min())),
+            int(np.ceil(x_series.max()) + 1 + (x_series.max() % 1 == 0)),
+            1,
+        )
     elif num_bins_x is not None and x_bins is None:
         x_bins = np.linspace(x_series.min(), x_series.max(), num_bins_x + 1)
     elif x_bins is not None:
         x_bins = x_bins
 
     if num_bins_y is None and y_bins is None:
-        y_bins = np.arange(int(np.floor(y_series.min())), int(np.ceil(y_series.max()) + 1 + (y_series.max() % 1 == 0)),
-                           1)
+        y_bins = np.arange(
+            int(np.floor(y_series.min())),
+            int(np.ceil(y_series.max()) + 1 + (y_series.max() % 1 == 0)),
+            1,
+        )
     elif num_bins_y is not None and y_bins is None:
         y_bins = np.linspace(y_series.min(), y_series.max(), num_bins_y + 1)
     elif y_bins is not None:
@@ -143,14 +160,19 @@ def dist_matrix(var_series, x_series, y_series,
 
     var_binned_series_1 = pd.cut(y_series, y_bins, right=False).rename(y_series.name)
     var_binned_series_2 = pd.cut(x_series, x_bins, right=False).rename(x_series.name)
-    data = pd.concat([var_series, var_binned_series_1, var_binned_series_2], join='inner',
-                     axis=1).dropna()
+    data = pd.concat(
+        [var_series, var_binned_series_1, var_binned_series_2], join="inner", axis=1
+    ).dropna()
 
-    if aggregation_method == '%frequency':
+    if aggregation_method == "%frequency":
         counts = data.groupby([y_series.name, x_series.name]).count().unstack(level=-1)
         distribution = counts / (counts.sum().sum()) * 100.0
     else:
-        distribution = data.groupby([y_series.name, x_series.name]).agg(aggregation_method).unstack(level=-1)
+        distribution = (
+            data.groupby([y_series.name, x_series.name])
+            .agg(aggregation_method)
+            .unstack(level=-1)
+        )
 
     if y_bin_labels is not None:
         distribution.index = y_bin_labels
@@ -165,7 +187,9 @@ def dist_matrix(var_series, x_series, y_series,
     if y_bin_labels is None:
         y_bin_labels = [str(i) for i in distribution.index.values]
 
-    heatmap = bw_plt.plot_dist_matrix(distribution, var_label, xticklabels=x_bin_labels, yticklabels=y_bin_labels)
+    heatmap = bw_plt.plot_dist_matrix(
+        distribution, var_label, xticklabels=x_bin_labels, yticklabels=y_bin_labels
+    )
 
     if return_data:
         return heatmap, distribution
@@ -177,11 +201,20 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     """
     :rtype: np.float64
     """
-    return (ref_value*slope) + offset
+    return (ref_value * slope) + offset
 
 
-def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]', data_resolution=None,
-                  legend=True, external_legend=False, show_grid=True, xtick_delta='1MS'):
+def monthly_means(
+    data,
+    return_data=False,
+    return_coverage=False,
+    ylabel="Wind speed [m/s]",
+    data_resolution=None,
+    legend=True,
+    external_legend=False,
+    show_grid=True,
+    xtick_delta="1MS",
+):
     """
     Plots means for calendar months in a timeseries plot. Input can be a series or a DataFrame. Can
     also return data of monthly means with a plot.
@@ -245,35 +278,55 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
         monthly_means_plot
 
         # to show the legend outside and above the plot area and set the xticks to every 3 months
-        monthly_means_plot, monthly_mean_data = bw.monthly_means(data.Spd80mN, return_data=True,  
+        monthly_means_plot, monthly_mean_data = bw.monthly_means(data.Spd80mN, return_data=True,
                                                                  legend=True, external_legend=True, xtick_delta='3MS')
         monthly_means_plot
 
         # to show legend inside and not to show the grid.
-        monthly_means_plot, monthly_mean_data = bw.monthly_means(data[['Spd80mN', 'Spd80mS']], return_data=True,  
+        monthly_means_plot, monthly_mean_data = bw.monthly_means(data[['Spd80mN', 'Spd80mS']], return_data=True,
                                                                  legend=True, external_legend=False, show_grid=False)
         monthly_means_plot
 
     """
 
-    df, covrg = tf.average_data_by_period(data, period='1MS', return_coverage=True, data_resolution=data_resolution)
+    df, covrg = tf.average_data_by_period(
+        data, period="1MS", return_coverage=True, data_resolution=data_resolution
+    )
     if return_data and not return_coverage:
-        return bw_plt.plot_monthly_means(
-            df, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid,
-            xtick_delta=xtick_delta
-            ), df
+        return (
+            bw_plt.plot_monthly_means(
+                df,
+                ylbl=ylabel,
+                legend=legend,
+                external_legend=external_legend,
+                show_grid=show_grid,
+                xtick_delta=xtick_delta,
+            ),
+            df,
+        )
     if return_coverage:
         return bw_plt.plot_monthly_means(
-            df, covrg, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid,
-            xtick_delta=xtick_delta
-            ), pd.concat([df, covrg], axis=1)
+            df,
+            covrg,
+            ylbl=ylabel,
+            legend=legend,
+            external_legend=external_legend,
+            show_grid=show_grid,
+            xtick_delta=xtick_delta,
+        ), pd.concat([df, covrg], axis=1)
     return bw_plt.plot_monthly_means(
-        df, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid, xtick_delta=xtick_delta
-        )
+        df,
+        ylbl=ylabel,
+        legend=legend,
+        external_legend=external_legend,
+        show_grid=show_grid,
+        xtick_delta=xtick_delta,
+    )
 
 
-def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage, coverage_threshold, analysis_type,
-                                                   seasonal_adjustment):
+def _filter_out_months_based_on_coverage_threshold(
+    var_series, monthly_coverage, coverage_threshold, analysis_type, seasonal_adjustment
+):
     """
     Filter out var_series data periods when coverage is lower than coverage_threshold and return a text message
     explaining the monthly coverage threshold filter applied.
@@ -308,72 +361,123 @@ def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage,
     text_msg_out = None
 
     if seasonal_adjustment:
-        text_seas_adj = 'seasonally adjusted '
+        text_seas_adj = "seasonally adjusted "
     else:
-        text_seas_adj = ''
+        text_seas_adj = ""
 
-    if analysis_type == 'mean of monthly mean':
-        variable_name = ' for {}'.format(var_series.name)
+    if analysis_type == "mean of monthly mean":
+        variable_name = " for {}".format(var_series.name)
     else:
-        variable_name = ''
+        variable_name = ""
 
     # Remove months with coverage threshold lower than the input coverage_threshold.
     if (monthly_coverage < coverage_threshold).sum() > 0:
         # apply monthly coverage threshold provided as input to the function
-        months_fail_coverage = monthly_coverage[monthly_coverage < coverage_threshold].dropna()
+        months_fail_coverage = monthly_coverage[
+            monthly_coverage < coverage_threshold
+        ].dropna()
         # remove data for months with coverage lower than the coverage_threshold
         tmp_var_series = pd.DataFrame(var_series)
-        tmp_var_series['Months'] = list(var_series.index.strftime("%Y-%m"))
+        tmp_var_series["Months"] = list(var_series.index.strftime("%Y-%m"))
         index_name = tmp_var_series.index.name
         tmp_var_series[index_name] = list(var_series.index)
-        var_series_filtered = tmp_var_series.set_index('Months').drop(labels=list(
-            months_fail_coverage[months_fail_coverage > 0].index.strftime('%Y-%m'))).set_index(index_name).iloc[:, 0]
+        var_series_filtered = (
+            tmp_var_series.set_index("Months")
+            .drop(
+                labels=list(
+                    months_fail_coverage[months_fail_coverage > 0].index.strftime(
+                        "%Y-%m"
+                    )
+                )
+            )
+            .set_index(index_name)
+            .iloc[:, 0]
+        )
 
-        text_months_fail = ", ".join(map(str, list(months_fail_coverage.index.strftime('%b-%Y'))))
-        text_warning = 'These months are filtered out for deriving the {}{}.'.format(text_seas_adj,
-                                                                                     analysis_type)
+        text_months_fail = ", ".join(
+            map(str, list(months_fail_coverage.index.strftime("%b-%Y")))
+        )
+        text_warning = "These months are filtered out for deriving the {}{}.".format(
+            text_seas_adj, analysis_type
+        )
     else:
-        text_months_fail = ''
-        text_warning = ''
+        text_months_fail = ""
+        text_warning = ""
         var_series_filtered = var_series.copy()
 
     # Check if there are any months with coverage threshold lower than the recommended value of 0.8.
     coverage_threshold_recommended = 0.8
-    if (coverage_threshold < coverage_threshold_recommended) and \
-            (monthly_coverage < coverage_threshold_recommended).sum() > 0:
+    if (coverage_threshold < coverage_threshold_recommended) and (
+        monthly_coverage < coverage_threshold_recommended
+    ).sum() > 0:
 
-        text_warning_threshold_recommended = 'results may be incorrect when ' \
-                                             'you use an insufficient data coverage threshold, i.e. below our ' \
-                                             'recommended value of 0.8. Some months may have very little data ' \
-                                             'coverage and so may skew the statistics.'
+        text_warning_threshold_recommended = (
+            "results may be incorrect when "
+            "you use an insufficient data coverage threshold, i.e. below our "
+            "recommended value of 0.8. Some months may have very little data "
+            "coverage and so may skew the statistics."
+        )
     else:
-        text_warning_threshold_recommended = ''
+        text_warning_threshold_recommended = ""
 
     # Generate text for coverage_threshold warning message raised.
     if coverage_threshold < coverage_threshold_recommended:
         if (monthly_coverage < coverage_threshold).sum() > 0 and (
-                monthly_coverage < coverage_threshold_recommended).sum() > 0:
-            text_msg_out = 'Note{}: The monthly coverage for {} is lower than the coverage threshold value of ' \
-                           '{}. {}'.format(variable_name, text_months_fail, coverage_threshold, text_warning)
+            monthly_coverage < coverage_threshold_recommended
+        ).sum() > 0:
+            text_msg_out = (
+                "Note{}: The monthly coverage for {} is lower than the coverage threshold value of "
+                "{}. {}".format(
+                    variable_name, text_months_fail, coverage_threshold, text_warning
+                )
+            )
             if seasonal_adjustment:
-                text_msg_out = '{} The {}'.format(text_msg_out, text_warning_threshold_recommended)
-        elif (monthly_coverage < coverage_threshold).sum() == 0 and (
-                monthly_coverage < coverage_threshold_recommended).sum() > 0 and seasonal_adjustment:
-            text_msg_out = 'Note{}: A coverage threshold value of {} is set. The {}{} {}' \
-                           ''.format(variable_name, coverage_threshold, text_seas_adj, analysis_type,
-                                     text_warning_threshold_recommended)
+                text_msg_out = "{} The {}".format(
+                    text_msg_out, text_warning_threshold_recommended
+                )
+        elif (
+            (monthly_coverage < coverage_threshold).sum() == 0
+            and (monthly_coverage < coverage_threshold_recommended).sum() > 0
+            and seasonal_adjustment
+        ):
+            text_msg_out = (
+                "Note{}: A coverage threshold value of {} is set. The {}{} {}"
+                "".format(
+                    variable_name,
+                    coverage_threshold,
+                    text_seas_adj,
+                    analysis_type,
+                    text_warning_threshold_recommended,
+                )
+            )
         else:
             text_msg_out = None
-    elif coverage_threshold >= coverage_threshold_recommended and (monthly_coverage < coverage_threshold).sum() > 0:
-        text_msg_out = 'Note{}: The monthly coverage for {} is lower than the coverage threshold value of {}.' \
-                       ' {}'.format(variable_name, text_months_fail, coverage_threshold, text_warning)
+    elif (
+        coverage_threshold >= coverage_threshold_recommended
+        and (monthly_coverage < coverage_threshold).sum() > 0
+    ):
+        text_msg_out = (
+            "Note{}: The monthly coverage for {} is lower than the coverage threshold value of {}."
+            " {}".format(
+                variable_name, text_months_fail, coverage_threshold, text_warning
+            )
+        )
 
     # check that var_series_filtered dataset has data for all calendar months
-    if len(monthly_coverage[monthly_coverage >= coverage_threshold].dropna().index.month.unique()) < 12 \
-            and seasonal_adjustment:
-        raise ValueError('Note{}: The input series filtered by the input monthly coverage threshold do not cover all '
-                         'calendar months. The seasonal adjusted {} '
-                         'cannot be derived.'.format(variable_name, analysis_type))
+    if (
+        len(
+            monthly_coverage[monthly_coverage >= coverage_threshold]
+            .dropna()
+            .index.month.unique()
+        )
+        < 12
+        and seasonal_adjustment
+    ):
+        raise ValueError(
+            "Note{}: The input series filtered by the input monthly coverage threshold do not cover all "
+            "calendar months. The seasonal adjusted {} "
+            "cannot be derived.".format(variable_name, analysis_type)
+        )
 
     return var_series_filtered, text_msg_out
 
@@ -412,17 +516,35 @@ def _mean_of_monthly_means_seasonal_adjusted(var_series):
     for month in var_series.index.month.unique():
         var_series_month = var_series[var_series.index.month == month]
 
-        number_days_month.update({month: np.mean(list(pd.DatetimeIndex(
-            var_series_month.index.strftime("%Y-%m").unique()).days_in_month))})
+        number_days_month.update(
+            {
+                month: np.mean(
+                    list(
+                        pd.DatetimeIndex(
+                            var_series_month.index.strftime("%Y-%m").unique()
+                        ).days_in_month
+                    )
+                )
+            }
+        )
 
         results.update({month: var_series_month.mean()})
 
-    result = (pd.Series(results) * pd.Series(number_days_month) / sum(
-        number_days_month.values())).sum(skipna=True)
+    result = (
+        pd.Series(results)
+        * pd.Series(number_days_month)
+        / sum(number_days_month.values())
+    ).sum(skipna=True)
     return result
 
 
-def momm(data, date_from=None, date_to=None, seasonal_adjustment=False, coverage_threshold=None):
+def momm(
+    data,
+    date_from=None,
+    date_to=None,
+    seasonal_adjustment=False,
+    coverage_threshold=None,
+):
     """
     Calculates and returns the mean of monthly mean speed. This accepts a DataFrame with timestamps as index column and
     another column with wind speed. You can also specify date_from and date_to to calculate the mean of monthly
@@ -504,23 +626,33 @@ def momm(data, date_from=None, date_to=None, seasonal_adjustment=False, coverage
     if seasonal_adjustment and coverage_threshold is None:
         coverage_threshold = 0.8
 
-    output = pd.DataFrame([np.nan * np.ones(len(sliced_data.columns))], columns=sliced_data.columns, index=['MOMM'])
+    output = pd.DataFrame(
+        [np.nan * np.ones(len(sliced_data.columns))],
+        columns=sliced_data.columns,
+        index=["MOMM"],
+    )
 
     for col in sliced_data.columns:
 
         # Derive monthly coverage
         # Check if sliced_data resolution is more than the monthly period, if it is the case then the monthly coverage
         # can not be derived and the data_resolution needs to be given as input to the coverage function.
-        if sliced_data[col].index[0] + tf._freq_str_to_dateoffset('1M') < \
-                sliced_data[col].index[0] + tf._get_data_resolution(sliced_data[col].index):
-            monthly_coverage = coverage(sliced_data[col], period='1M', data_resolution=pd.DateOffset(months=1))
+        if sliced_data[col].index[0] + tf._freq_str_to_dateoffset("1M") < sliced_data[
+            col
+        ].index[0] + tf._get_data_resolution(sliced_data[col].index):
+            monthly_coverage = coverage(
+                sliced_data[col], period="1M", data_resolution=pd.DateOffset(months=1)
+            )
         else:
-            monthly_coverage = coverage(sliced_data[col], period='1M')
+            monthly_coverage = coverage(sliced_data[col], period="1M")
 
-        var_series, text_msg = _filter_out_months_based_on_coverage_threshold(sliced_data[col], monthly_coverage,
-                                                                              coverage_threshold,
-                                                                              analysis_type='mean of monthly mean',
-                                                                              seasonal_adjustment=seasonal_adjustment)
+        var_series, text_msg = _filter_out_months_based_on_coverage_threshold(
+            sliced_data[col],
+            monthly_coverage,
+            coverage_threshold,
+            analysis_type="mean of monthly mean",
+            seasonal_adjustment=seasonal_adjustment,
+        )
         if text_msg:
             print(text_msg)
 
@@ -540,25 +672,27 @@ def _get_direction_bin_labels(sectors, direction_bins, zero_centred=True):
     mapper = dict()
     for i, lower_bound in enumerate(direction_bins[:sectors]):
         if i == 0 and zero_centred:
-            mapper[i+1] = '{0}-{1}'.format(direction_bins[-2], direction_bins[1])
+            mapper[i + 1] = "{0}-{1}".format(direction_bins[-2], direction_bins[1])
         else:
-            mapper[i+1] = '{0}-{1}'.format(lower_bound, direction_bins[i+1])
+            mapper[i + 1] = "{0}-{1}".format(lower_bound, direction_bins[i + 1])
     return mapper.values()
 
 
 def _map_direction_bin(wdir, bins, sectors):
     kwargs = {}
     if wdir == max(bins):
-        kwargs['right'] = True
+        kwargs["right"] = True
     else:
-        kwargs['right'] = False
+        kwargs["right"] = False
     bin_num = np.digitize([wdir], bins, **kwargs)[0]
-    if bin_num == sectors+1:
+    if bin_num == sectors + 1:
         bin_num = 1
     return bin_num
 
 
-def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_method='%frequency'):
+def _derive_distribution(
+    var_to_bin, var_to_bin_against, bins=None, aggregation_method="%frequency"
+):
     """
     Calculates the distribution of a variable with respect to another variable.
 
@@ -593,33 +727,65 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
     var_to_bin_against = _convert_df_to_series(var_to_bin_against)
 
     if var_to_bin.isnull().all() or (var_to_bin == np.inf).all():
-        raise ValueError(('Cannot derive distribution of {0} as this is either an empty pandas.Series ' +
-                          'or contains only NaN or Inf values.').format(var_to_bin.name))
+        raise ValueError(
+            (
+                "Cannot derive distribution of {0} as this is either an empty pandas.Series "
+                + "or contains only NaN or Inf values."
+            ).format(var_to_bin.name)
+        )
 
-    if var_to_bin_against.empty or var_to_bin_against.isnull().all() or (var_to_bin_against == np.inf).all():
-        raise ValueError(('Cannot derive distribution with respect to {0} as this is either an empty pandas.Series ' +
-                          'or contains only NaN or Inf values.').format(var_to_bin_against.name))
-    
+    if (
+        var_to_bin_against.empty
+        or var_to_bin_against.isnull().all()
+        or (var_to_bin_against == np.inf).all()
+    ):
+        raise ValueError(
+            (
+                "Cannot derive distribution with respect to {0} as this is either an empty pandas.Series "
+                + "or contains only NaN or Inf values."
+            ).format(var_to_bin_against.name)
+        )
+
     var_to_bin = var_to_bin.replace([np.inf, -np.inf], np.nan).dropna()
     var_to_bin_against = var_to_bin_against.replace([np.inf, -np.inf], np.nan).dropna()
 
     if bins is None:
-        bins = np.arange(round(var_to_bin_against.min() - 0.5) - 0.5, var_to_bin_against.max() + 0.5, 1)
+        bins = np.arange(
+            round(var_to_bin_against.min() - 0.5) - 0.5,
+            var_to_bin_against.max() + 0.5,
+            1,
+        )
     if len(bins) == 1:
         bins = np.array([bins[0], bins[0] + 1])
-    var_binned_series = pd.cut(var_to_bin_against, bins, right=False).rename('variable_bin')
-    data = pd.concat([var_to_bin.rename('data'), var_binned_series], join='inner', axis=1)
+    var_binned_series = pd.cut(var_to_bin_against, bins, right=False).rename(
+        "variable_bin"
+    )
+    data = pd.concat(
+        [var_to_bin.rename("data"), var_binned_series], join="inner", axis=1
+    )
 
-    if aggregation_method == '%frequency':
-        distribution = data.groupby(['variable_bin'])['data'].count().rename('%frequency') / len(data) * 100.0
+    if aggregation_method == "%frequency":
+        distribution = (
+            data.groupby(["variable_bin"])["data"].count().rename("%frequency")
+            / len(data)
+            * 100.0
+        )
     else:
-        distribution = data.groupby(['variable_bin'])['data'].agg(aggregation_method)
+        distribution = data.groupby(["variable_bin"])["data"].agg(aggregation_method)
 
     return distribution
 
 
-def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_label=None,
-         max_y_value=None, aggregation_method='%frequency', return_data=False):
+def dist(
+    var_to_bin,
+    var_to_bin_against=None,
+    bins=None,
+    bin_labels=None,
+    x_label=None,
+    max_y_value=None,
+    aggregation_method="%frequency",
+    return_data=False,
+):
     """
     Calculates the distribution of a variable against itself as per the bins specified. If the var_to_bin input is a
     DataFrame then the function derives the distribution for each column against itself. Can also pass another variable
@@ -706,8 +872,9 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
         else:
             var_to_bin_against_series = var_to_bin_against
 
-        distribution = _derive_distribution(var_to_bin[var_name], var_to_bin_against_series, bins,
-                                            aggregation_method)
+        distribution = _derive_distribution(
+            var_to_bin[var_name], var_to_bin_against_series, bins, aggregation_method
+        )
         distribution.name = var_name
 
         if i_dist == 0:
@@ -718,16 +885,27 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
             # when these versions of pandas will not be supported anymore by brightwind library. This version of pandas
             # doesn't allow to concatenate two pandas.Series with a CategoricalIndex if having a different index length
             if len(distributions) >= len(distribution):
-                temp_dist = pd.concat([pd.DataFrame(distributions).reset_index(),
-                                       pd.DataFrame(distribution).reset_index().rename(
-                                           columns={'variable_bin': 'variable_bin1'})], axis=1
-                                      ).set_index('variable_bin')
-                distributions = temp_dist.drop(['variable_bin1'], axis=1)
+                temp_dist = pd.concat(
+                    [
+                        pd.DataFrame(distributions).reset_index(),
+                        pd.DataFrame(distribution)
+                        .reset_index()
+                        .rename(columns={"variable_bin": "variable_bin1"}),
+                    ],
+                    axis=1,
+                ).set_index("variable_bin")
+                distributions = temp_dist.drop(["variable_bin1"], axis=1)
             else:
-                temp_dist = pd.concat([pd.DataFrame(distributions).reset_index().rename(
-                    columns={'variable_bin': 'variable_bin1'}), pd.DataFrame(distribution).reset_index()], axis=1
-                ).set_index('variable_bin')
-                distributions = temp_dist.drop(['variable_bin1'], axis=1)
+                temp_dist = pd.concat(
+                    [
+                        pd.DataFrame(distributions)
+                        .reset_index()
+                        .rename(columns={"variable_bin": "variable_bin1"}),
+                        pd.DataFrame(distribution).reset_index(),
+                    ],
+                    axis=1,
+                ).set_index("variable_bin")
+                distributions = temp_dist.drop(["variable_bin1"], axis=1)
 
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
@@ -735,14 +913,22 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
     # Plot distribution
     bar_tick_label_format = None
     if aggregation_method:
-        if '%' in aggregation_method:
+        if "%" in aggregation_method:
             bar_tick_label_format = PercentFormatter()
 
     graph = plt.figure(figsize=(15, 8))
     ax = graph.add_axes([0.1, 0.1, 0.8, 0.8])
-    bw_plt._bar_subplot(distributions.replace([np.inf, -np.inf], np.nan), x_label=x_label, y_label=aggregation_method,
-                        max_bar_axis_limit=max_y_value, bin_tick_labels=bin_labels,
-                        bar_tick_label_format=bar_tick_label_format, legend=legend, total_width=0.8, ax=ax)
+    bw_plt._bar_subplot(
+        distributions.replace([np.inf, -np.inf], np.nan),
+        x_label=x_label,
+        y_label=aggregation_method,
+        max_bar_axis_limit=max_y_value,
+        bin_tick_labels=bin_labels,
+        bar_tick_label_format=bar_tick_label_format,
+        legend=legend,
+        total_width=0.8,
+        ax=ax,
+    )
     plt.close()
 
     if bin_labels is not None:
@@ -775,9 +961,16 @@ def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
         freq_dist_plot, freq_dist = bw.dist_of_wind_speed(data.Spd80mN, return_data=True)
 
     """
-    freq_dist = dist(wspd, var_to_bin_against=None, bins=np.arange(-0.5, max_speed+1, 1), bin_labels=None,
-                     x_label='Wind Speed [m/s]', max_y_value=max_y_value, aggregation_method='%frequency',
-                     return_data=True)
+    freq_dist = dist(
+        wspd,
+        var_to_bin_against=None,
+        bins=np.arange(-0.5, max_speed + 1, 1),
+        bin_labels=None,
+        x_label="Wind Speed [m/s]",
+        max_y_value=max_y_value,
+        aggregation_method="%frequency",
+        return_data=True,
+    )
     if return_data:
         return freq_dist[0], freq_dist[1]
     return freq_dist[0]
@@ -789,7 +982,9 @@ def freq_distribution(wspd, max_speed=30, max_y_value=None, return_data=False):
 
     """
 
-    return dist_of_wind_speed(wspd, max_speed=max_speed, max_y_value=max_y_value, return_data=return_data)
+    return dist_of_wind_speed(
+        wspd, max_speed=max_speed, max_y_value=max_y_value, return_data=return_data
+    )
 
 
 def _binned_direction_series(direction_series, sectors, direction_bin_array=None):
@@ -806,25 +1001,45 @@ def _binned_direction_series(direction_series, sectors, direction_bin_array=None
     """
     if direction_bin_array is None:
         direction_bin_array = utils.get_direction_bin_array(sectors)
-    return direction_series.dropna().apply(_map_direction_bin, bins=direction_bin_array, sectors=sectors)
+    return direction_series.dropna().apply(
+        _map_direction_bin, bins=direction_bin_array, sectors=sectors
+    )
 
 
-def _get_direction_binned_series(sectors, direction_series, direction_bin_array=None, direction_bin_labels=None):
+def _get_direction_binned_series(
+    sectors, direction_series, direction_bin_array=None, direction_bin_labels=None
+):
     if direction_bin_array is None:
         direction_bin_array = utils.get_direction_bin_array(sectors)
         zero_centered = True
     else:
-        sectors = len(direction_bin_array)-1
+        sectors = len(direction_bin_array) - 1
         zero_centered = False
     if direction_bin_labels is None:
-        direction_bin_labels = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
-    direction_binned_series = _binned_direction_series(direction_series, sectors, direction_bin_array)\
-        .rename('direction_bin')
-    return direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered
+        direction_bin_labels = _get_direction_bin_labels(
+            sectors, direction_bin_array, zero_centered
+        )
+    direction_binned_series = _binned_direction_series(
+        direction_series, sectors, direction_bin_array
+    ).rename("direction_bin")
+    return (
+        direction_binned_series,
+        direction_bin_labels,
+        sectors,
+        direction_bin_array,
+        zero_centered,
+    )
 
 
-def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
-                       direction_bin_array=None, direction_bin_labels=None, return_data=False):
+def dist_by_dir_sector(
+    var_series,
+    direction_series,
+    sectors=12,
+    aggregation_method="%frequency",
+    direction_bin_array=None,
+    direction_bin_labels=None,
+    return_data=False,
+):
     """
     Derive the distribution of a time series variable with respect to wind direction sectors. For example, if time
     series of wind speeds is sent, it produces a wind rose.
@@ -872,23 +1087,38 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
     direction_series = _convert_df_to_series(direction_series)
     var_series = var_series.dropna()
     direction_series = direction_series.dropna()
-    direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
-        _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
-    data = pd.concat([var_series.rename('data'), direction_binned_series], join='inner', axis=1)
-    if aggregation_method == '%frequency':
-        result = data.groupby(['direction_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
+    (
+        direction_binned_series,
+        direction_bin_labels,
+        sectors,
+        direction_bin_array,
+        zero_centered,
+    ) = _get_direction_binned_series(
+        sectors, direction_series, direction_bin_array, direction_bin_labels
+    )
+    data = pd.concat(
+        [var_series.rename("data"), direction_binned_series], join="inner", axis=1
+    )
+    if aggregation_method == "%frequency":
+        result = (
+            data.groupby(["direction_bin"])["data"].count().rename("%frequency")
+            / len(data)
+            * 100.0
+        )
     else:
-        result = data.groupby(['direction_bin'])['data'].agg(aggregation_method)
+        result = data.groupby(["direction_bin"])["data"].agg(aggregation_method)
 
-    for i in range(1, sectors+1):
+    for i in range(1, sectors + 1):
         if not (i in result.index):
             result[i] = 0.0
     result = result.sort_index()
-    result.index = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
+    result.index = _get_direction_bin_labels(
+        sectors, direction_bin_array, zero_centered
+    )
     if var_series.name is None:
-        var_label = aggregation_method.capitalize() + ' of  var_series'
+        var_label = aggregation_method.capitalize() + " of  var_series"
     else:
-        var_label = aggregation_method.capitalize() + ' of ' + var_series.name
+        var_label = aggregation_method.capitalize() + " of " + var_series.name
     graph = bw_plt.plot_rose(result, var_label)
     result.index = direction_bin_labels
     if return_data:
@@ -897,41 +1127,77 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
         return graph
 
 
-def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_series,
-                                   var_bin_array, sectors=12, direction_bin_array=None, direction_bin_labels=None,
-                                   aggregation_method='%frequency'):
+def _get_dist_matrix_by_dir_sector(
+    var_series,
+    var_to_bin_series,
+    direction_series,
+    var_bin_array,
+    sectors=12,
+    direction_bin_array=None,
+    direction_bin_labels=None,
+    aggregation_method="%frequency",
+):
     var_series = _convert_df_to_series(var_series).dropna()
     var_to_bin_series = _convert_df_to_series(var_to_bin_series).dropna()
     direction_series = _convert_df_to_series(direction_series).dropna()
     if var_series.name is None:
-        var_series.name = 'variable_bin'
+        var_series.name = "variable_bin"
     if direction_series.name is None:
-        direction_series.name = 'direction_bin'
+        direction_series.name = "direction_bin"
     if var_to_bin_series.name is None:
-        var_to_bin_series.name = 'var_to_bin_by'
-    direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered = \
-        _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
+        var_to_bin_series.name = "var_to_bin_by"
+    (
+        direction_binned_series,
+        direction_bin_labels,
+        sectors,
+        direction_bin_array,
+        zero_centered,
+    ) = _get_direction_binned_series(
+        sectors, direction_series, direction_bin_array, direction_bin_labels
+    )
 
-    var_binned_series = pd.cut(var_to_bin_series, var_bin_array, right=False).rename(var_to_bin_series.name)
-    data = pd.concat([var_series.rename('var_data'), var_binned_series, direction_binned_series], axis=1).dropna()
+    var_binned_series = pd.cut(var_to_bin_series, var_bin_array, right=False).rename(
+        var_to_bin_series.name
+    )
+    data = pd.concat(
+        [var_series.rename("var_data"), var_binned_series, direction_binned_series],
+        axis=1,
+    ).dropna()
 
-    if aggregation_method == '%frequency':
-        counts = data.groupby([var_to_bin_series.name, 'direction_bin']).count().unstack(level=-1)
-        distribution = counts/(counts.sum().sum()) * 100.0
+    if aggregation_method == "%frequency":
+        counts = (
+            data.groupby([var_to_bin_series.name, "direction_bin"])
+            .count()
+            .unstack(level=-1)
+        )
+        distribution = counts / (counts.sum().sum()) * 100.0
     else:
-        distribution = data.groupby([var_to_bin_series.name, 'direction_bin']).agg(aggregation_method).unstack(level=-1)
+        distribution = (
+            data.groupby([var_to_bin_series.name, "direction_bin"])
+            .agg(aggregation_method)
+            .unstack(level=-1)
+        )
     distribution.columns = distribution.columns.droplevel(0)
     for i in range(1, sectors + 1):
         if not (i in distribution.columns):
             distribution.insert(i - 1, i, np.nan)
 
-    distribution.columns = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
+    distribution.columns = _get_direction_bin_labels(
+        sectors, direction_bin_array, zero_centered
+    )
     return distribution.sort_index()
 
 
-def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_series, direction_series, var_bin_array,
-                                                     sectors=12, direction_bin_array=None, direction_bin_labels=None,
-                                                     aggregation_method='%frequency'):
+def _get_dist_matrix_by_dir_sector_seasonal_adjusted(
+    var_series,
+    var_to_bin_series,
+    direction_series,
+    var_bin_array,
+    sectors=12,
+    direction_bin_array=None,
+    direction_bin_labels=None,
+    aggregation_method="%frequency",
+):
     """
     Calculates distribution matrix of a variable against another variable and wind direction applying a
     seasonal adjustment.
@@ -975,39 +1241,70 @@ def _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series, var_to_bin_seri
     :rtype:                     pandas.DataFrame and str
 
     """
-    if (aggregation_method == 'count') or (aggregation_method == 'sum'):
-        raise ValueError("The input 'aggregation_method' cannot be 'count' or 'sum' when a seasonal adjustment is "
-                         "applied to the frequency table.")
+    if (aggregation_method == "count") or (aggregation_method == "sum"):
+        raise ValueError(
+            "The input 'aggregation_method' cannot be 'count' or 'sum' when a seasonal adjustment is "
+            "applied to the frequency table."
+        )
 
     results = {}
     number_days_month = {}
     # derive distribution and number of days for each calendar month
     for month in var_series.index.month.unique():
         var_series_month = var_series[var_series.index.month == month]
-        var_to_bin_series_month = var_to_bin_series[var_to_bin_series.index.month == month]
+        var_to_bin_series_month = var_to_bin_series[
+            var_to_bin_series.index.month == month
+        ]
         direction_series_month = direction_series[direction_series.index.month == month]
 
-        number_days_month.update({month: np.mean(list(pd.DatetimeIndex(
-            var_series_month.index.strftime("%Y-%m").unique()).days_in_month))})
+        number_days_month.update(
+            {
+                month: np.mean(
+                    list(
+                        pd.DatetimeIndex(
+                            var_series_month.index.strftime("%Y-%m").unique()
+                        ).days_in_month
+                    )
+                )
+            }
+        )
 
-        results.update({month: _get_dist_matrix_by_dir_sector(var_series=var_series_month,
-                                                              var_to_bin_series=var_to_bin_series_month,
-                                                              direction_series=direction_series_month,
-                                                              var_bin_array=var_bin_array,
-                                                              sectors=sectors, direction_bin_array=direction_bin_array,
-                                                              direction_bin_labels=direction_bin_labels,
-                                                              aggregation_method=aggregation_method
-                                                              ).replace(np.nan, 0.0)})
+        results.update(
+            {
+                month: _get_dist_matrix_by_dir_sector(
+                    var_series=var_series_month,
+                    var_to_bin_series=var_to_bin_series_month,
+                    direction_series=direction_series_month,
+                    var_bin_array=var_bin_array,
+                    sectors=sectors,
+                    direction_bin_array=direction_bin_array,
+                    direction_bin_labels=direction_bin_labels,
+                    aggregation_method=aggregation_method,
+                ).replace(np.nan, 0.0)
+            }
+        )
 
-    average_results = (pd.Series(results) * pd.Series(number_days_month) / sum(
-        number_days_month.values())).sum(skipna=True)
+    average_results = (
+        pd.Series(results)
+        * pd.Series(number_days_month)
+        / sum(number_days_month.values())
+    ).sum(skipna=True)
     return average_results
 
 
-def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series,
-                              num_bins=None, var_to_bin_by_array=None, var_to_bin_by_labels=None,
-                              sectors=12, direction_bin_array=None, direction_bin_labels=None,
-                              aggregation_method='mean', return_data=False):
+def dist_matrix_by_dir_sector(
+    var_series,
+    var_to_bin_by_series,
+    direction_series,
+    num_bins=None,
+    var_to_bin_by_array=None,
+    var_to_bin_by_labels=None,
+    sectors=12,
+    direction_bin_array=None,
+    direction_bin_labels=None,
+    aggregation_method="mean",
+    return_data=False,
+):
     """
     Calculates a distribution matrix of a variable against another variable and wind direction. This will plot a
     heatmap by default or if return_data=True, it will return the plot and the frequency table.
@@ -1068,18 +1365,32 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
     """
 
     if num_bins is None and var_to_bin_by_array is None:
-        var_to_bin_by_array = np.arange(int(np.floor(var_to_bin_by_series.min())),
-                                        int(np.ceil(var_to_bin_by_series.max()) + 1 +
-                                            (var_to_bin_by_series.max() % 1 == 0)), 1)
+        var_to_bin_by_array = np.arange(
+            int(np.floor(var_to_bin_by_series.min())),
+            int(
+                np.ceil(var_to_bin_by_series.max())
+                + 1
+                + (var_to_bin_by_series.max() % 1 == 0)
+            ),
+            1,
+        )
     elif num_bins is not None and var_to_bin_by_array is None:
-        var_to_bin_by_array = np.linspace(var_to_bin_by_series.min(), var_to_bin_by_series.max(), num_bins + 1)
+        var_to_bin_by_array = np.linspace(
+            var_to_bin_by_series.min(), var_to_bin_by_series.max(), num_bins + 1
+        )
     elif var_to_bin_by_array is not None:
         var_to_bin_by_array = var_to_bin_by_array
 
-    dist_mat_dir = _get_dist_matrix_by_dir_sector(var_series=var_series, var_to_bin_series=var_to_bin_by_series,
-                                                  direction_series=direction_series, var_bin_array=var_to_bin_by_array,
-                                                  sectors=sectors, direction_bin_array=direction_bin_array,
-                                                  direction_bin_labels=None, aggregation_method=aggregation_method)
+    dist_mat_dir = _get_dist_matrix_by_dir_sector(
+        var_series=var_series,
+        var_to_bin_series=var_to_bin_by_series,
+        direction_series=direction_series,
+        var_bin_array=var_to_bin_by_array,
+        sectors=sectors,
+        direction_bin_array=direction_bin_array,
+        direction_bin_labels=None,
+        aggregation_method=aggregation_method,
+    )
     if direction_bin_labels is not None:
         dist_mat_dir.columns = direction_bin_labels
     else:
@@ -1090,17 +1401,25 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
         var_to_bin_by_labels = dist_mat_dir.index
 
     if var_series.name is None:
-        var_label = aggregation_method.capitalize() + ' of  var_series'
+        var_label = aggregation_method.capitalize() + " of  var_series"
     else:
-        var_label = aggregation_method.capitalize() + ' of ' + var_series.name
+        var_label = aggregation_method.capitalize() + " of " + var_series.name
     table_label = var_label
 
-    dist_mat_dir.columns = pd.MultiIndex(levels=[[table_label], dist_mat_dir.columns],
-                                         codes=[[0 for i in range(len(dist_mat_dir.columns))],
-                                                list(range(len(dist_mat_dir.columns)))],
-                                         names=[None, direction_series.name])
-    heatmap = bw_plt.plot_dist_matrix(dist_mat_dir, var_label, xticklabels=direction_bin_labels,
-                                      yticklabels=var_to_bin_by_labels)
+    dist_mat_dir.columns = pd.MultiIndex(
+        levels=[[table_label], dist_mat_dir.columns],
+        codes=[
+            [0 for i in range(len(dist_mat_dir.columns))],
+            list(range(len(dist_mat_dir.columns))),
+        ],
+        names=[None, direction_series.name],
+    )
+    heatmap = bw_plt.plot_dist_matrix(
+        dist_mat_dir,
+        var_label,
+        xticklabels=direction_bin_labels,
+        yticklabels=var_to_bin_by_labels,
+    )
 
     if return_data:
         return heatmap, dist_mat_dir
@@ -1108,10 +1427,22 @@ def dist_matrix_by_dir_sector(var_series, var_to_bin_by_series, direction_series
         return heatmap
 
 
-def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1), var_bin_labels=None, sectors=12,
-               direction_bin_array=None, direction_bin_labels=None, freq_as_percentage=True, seasonal_adjustment=False,
-               coverage_threshold=None, target_freq_table_mean=None, plot_bins=None, plot_labels=None,
-               return_data=False):
+def freq_table(
+    var_series,
+    direction_series,
+    var_bin_array=np.arange(-0.5, 41, 1),
+    var_bin_labels=None,
+    sectors=12,
+    direction_bin_array=None,
+    direction_bin_labels=None,
+    freq_as_percentage=True,
+    seasonal_adjustment=False,
+    coverage_threshold=None,
+    target_freq_table_mean=None,
+    plot_bins=None,
+    plot_labels=None,
+    return_data=False,
+):
     """
     Create a frequency distribution table, typically of wind speed and wind direction i.e. how often the wind
     blows within a certain wind speed bin and wind direction. This will plot a wind rose by default or if
@@ -1258,29 +1589,35 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         coverage_threshold = 0.8
 
     if (freq_as_percentage is False) and (seasonal_adjustment is True):
-        raise ValueError("The input 'freq_as_percentage' cannot be set to False if `seasonal_adjustment` is "
-                         "set to True. \nThis because the 'count' aggregation method cannot be used when a "
-                         "seasonal adjustment is applied to the frequency table.")
+        raise ValueError(
+            "The input 'freq_as_percentage' cannot be set to False if `seasonal_adjustment` is "
+            "set to True. \nThis because the 'count' aggregation method cannot be used when a "
+            "seasonal adjustment is applied to the frequency table."
+        )
 
     if freq_as_percentage:
-        agg_method = '%frequency'
+        agg_method = "%frequency"
     else:
-        agg_method = 'count'
+        agg_method = "count"
 
     # Create Dataframe with same coverage for var_series and direction_series to handle inconsistent coverage
     var_series = _convert_df_to_series(var_series).copy()
     direction_series = _convert_df_to_series(direction_series).copy()
 
     # derive monthly coverage considering var_series, direction_series inputs
-    monthly_coverage = coverage(pd.concat([var_series.rename('var_data'), direction_series],
-                                          axis=1)).min(axis=1).replace(np.nan, 0.0)
+    monthly_coverage = (
+        coverage(pd.concat([var_series.rename("var_data"), direction_series], axis=1))
+        .min(axis=1)
+        .replace(np.nan, 0.0)
+    )
 
-    var_series, text_msg_out = _filter_out_months_based_on_coverage_threshold(pd.concat([var_series, direction_series],
-                                                                                        axis=1)[var_series.name],
-                                                                              monthly_coverage,
-                                                                              coverage_threshold,
-                                                                              analysis_type='frequency table',
-                                                                              seasonal_adjustment=seasonal_adjustment)
+    var_series, text_msg_out = _filter_out_months_based_on_coverage_threshold(
+        pd.concat([var_series, direction_series], axis=1)[var_series.name],
+        monthly_coverage,
+        coverage_threshold,
+        analysis_type="frequency table",
+        seasonal_adjustment=seasonal_adjustment,
+    )
 
     data_concurrent = pd.concat([var_series, direction_series], axis=1).dropna()
 
@@ -1289,35 +1626,47 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     # This scale factor is used to correct `var_series` when concurrent with `direction_series`.
     if target_freq_table_mean is not None:
         scale_factor = target_freq_table_mean / data_concurrent[var_series.name].mean()
-        var_series_scaled = scale_wind_speed(data_concurrent[var_series.name], scale_factor)
+        var_series_scaled = scale_wind_speed(
+            data_concurrent[var_series.name], scale_factor
+        )
     else:
         var_series_scaled = var_series
 
     if var_series_scaled.max() > np.max(var_bin_array):
-        raise ValueError("The maximum of the input 'var_series' scaled value is {}. This needs to be smaller than the"
-                         " max value of the input 'var_bin_array'.".format(round(var_series_scaled.max(), 3)))
+        raise ValueError(
+            "The maximum of the input 'var_series' scaled value is {}. This needs to be smaller than the"
+            " max value of the input 'var_bin_array'.".format(
+                round(var_series_scaled.max(), 3)
+            )
+        )
 
     # Iterate calculation of frequency distribution table. The mean of frequency distribution is considered to match the
     # target value when difference is minimum or lower than 0.01 %
     k = 1
     while k > 0:
         if seasonal_adjustment:
-            result = _get_dist_matrix_by_dir_sector_seasonal_adjusted(var_series=var_series_scaled,
-                                                                      var_to_bin_series=var_series_scaled,
-                                                                      direction_series=direction_series,
-                                                                      var_bin_array=var_bin_array,
-                                                                      sectors=sectors,
-                                                                      direction_bin_array=
-                                                                      direction_bin_array,
-                                                                      direction_bin_labels=None,
-                                                                      aggregation_method=agg_method)
+            result = _get_dist_matrix_by_dir_sector_seasonal_adjusted(
+                var_series=var_series_scaled,
+                var_to_bin_series=var_series_scaled,
+                direction_series=direction_series,
+                var_bin_array=var_bin_array,
+                sectors=sectors,
+                direction_bin_array=direction_bin_array,
+                direction_bin_labels=None,
+                aggregation_method=agg_method,
+            )
             result = result.replace(np.nan, 0.0)
         else:
-            result = _get_dist_matrix_by_dir_sector(var_series=var_series_scaled, var_to_bin_series=var_series_scaled,
-                                                    direction_series=direction_series, var_bin_array=var_bin_array,
-                                                    sectors=sectors, direction_bin_array=direction_bin_array,
-                                                    direction_bin_labels=None, aggregation_method=agg_method
-                                                    ).replace(np.nan, 0.0)
+            result = _get_dist_matrix_by_dir_sector(
+                var_series=var_series_scaled,
+                var_to_bin_series=var_series_scaled,
+                direction_series=direction_series,
+                var_bin_array=var_bin_array,
+                sectors=sectors,
+                direction_bin_array=direction_bin_array,
+                direction_bin_labels=None,
+                aggregation_method=agg_method,
+            ).replace(np.nan, 0.0)
 
         if target_freq_table_mean is None:
             k = -1
@@ -1326,11 +1675,15 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
             scale_factor = target_freq_table_mean / freq_tab_mean
             var_series_scaled = scale_wind_speed(var_series_scaled, scale_factor)
 
-            abs_percentage_diff = abs(100 * (target_freq_table_mean - freq_tab_mean) / freq_tab_mean)
+            abs_percentage_diff = abs(
+                100 * (target_freq_table_mean - freq_tab_mean) / freq_tab_mean
+            )
             if abs_percentage_diff > 0.01:
                 if k > 1:
                     diff_min = np.append(abs_percentage_diff, diff_min)
-                    if (len(np.unique(diff_min)) != len(diff_min)) and (np.min(diff_min) == abs_percentage_diff):
+                    if (len(np.unique(diff_min)) != len(diff_min)) and (
+                        np.min(diff_min) == abs_percentage_diff
+                    ):
                         k = -1
                 else:
                     diff_min = [abs_percentage_diff]
@@ -1341,16 +1694,37 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     if plot_bins is None:
         plot_bins = [0, 3, 6, 9, 12, 15, 41]
         if plot_labels is None:
-            plot_labels = ['0-3 m/s', '4-6 m/s', '7-9 m/s', '10-12 m/s', '13-15 m/s', '15+ m/s']
+            plot_labels = [
+                "0-3 m/s",
+                "4-6 m/s",
+                "7-9 m/s",
+                "10-12 m/s",
+                "13-15 m/s",
+                "15+ m/s",
+            ]
         else:
             if len(plot_labels) + 1 != len(plot_bins):
-                warnings.warn("Number of plot_labels is not equal to number of plot_bins. Using default plot_labels")
+                warnings.warn(
+                    "Number of plot_labels is not equal to number of plot_bins. Using default plot_labels"
+                )
     # Creating a graph before renaming the direction labels, to help identify sectors while plotting
-    graph = bw_plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
-                                           percent_symbol=freq_as_percentage)
+    graph = bw_plt.plot_rose_with_gradient(
+        result,
+        plot_bins=plot_bins,
+        plot_labels=plot_labels,
+        percent_symbol=freq_as_percentage,
+    )
     if text_msg_out:
-        word_list = textwrap.TextWrapper(width=graph.get_size_inches()[0]*10).wrap(text=text_msg_out)
-        graph.text(.5, 10**-len(word_list), "\n ".join(map(str, word_list)), ha='center', fontsize=14)
+        word_list = textwrap.TextWrapper(width=graph.get_size_inches()[0] * 10).wrap(
+            text=text_msg_out
+        )
+        graph.text(
+            0.5,
+            10 ** -len(word_list),
+            "\n ".join(map(str, word_list)),
+            ha="center",
+            fontsize=14,
+        )
 
     if direction_bin_labels is not None:
         result.columns = direction_bin_labels
@@ -1384,8 +1758,8 @@ def time_continuity_gaps(data):
     immediately before the gap) and the second column is the end date of the missing period (timestamp recorded
     immediately after the gap).
 
-    An additional column also shows how many days of data were lost in a missing period. This is not a difference 
-    in the two available timestamps. It gives the actual amount of data missing e.g. if the two timestamps were 
+    An additional column also shows how many days of data were lost in a missing period. This is not a difference
+    in the two available timestamps. It gives the actual amount of data missing e.g. if the two timestamps were
     2020-01-01 01:10 and 2020-01-01 01:50 the days lost will equate to a 30 min of missing data and not 40 min.
 
     :param data: Data for checking continuity, timestamp must be the index
@@ -1403,46 +1777,56 @@ def time_continuity_gaps(data):
         bw.time_continuity_gaps(data['Spd80mN'])
 
     """
-    indexes = data.dropna(how='all').index
+    indexes = data.dropna(how="all").index
     resolution = tf._get_data_resolution(indexes)
     # If the data resolution is `1 month` or `1 year`, then the resolution will be
     # dependent on which month or year. Hence, this rather hacky way to approach it
-    resolution_days = (indexes[0] + resolution - indexes[0]) / pd.Timedelta('1 days')
+    resolution_days = (indexes[0] + resolution - indexes[0]) / pd.Timedelta("1 days")
 
-    continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1],
-                               'Date To': indexes.values.flatten()[1:]})
-    continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
+    continuity = pd.DataFrame(
+        {
+            "Date From": indexes.values.flatten()[:-1],
+            "Date To": indexes.values.flatten()[1:],
+        }
+    )
+    continuity["Days Lost"] = (
+        continuity["Date To"] - continuity["Date From"]
+    ) / pd.Timedelta("1 days")
 
     # Remove indexes where no days are lost before returning
-    
-    if resolution.kwds == {'months': 1}:
-        index_filter = ~continuity['Days Lost'].isin([28, 29, 30, 31])
-    elif resolution.kwds == {'years': 1}:
-        raise NotImplementedError("time_continuity_gaps calculation not implemented yet "
-                                  "for timeseries with yearly resolution.")
-    else:
-        index_filter = continuity['Days Lost'] != resolution_days
 
-    filtered = continuity[['Date From', 'Date To']][index_filter]
-    days_lost_series = continuity['Days Lost'][index_filter]
+    if resolution.kwds == {"months": 1}:
+        index_filter = ~continuity["Days Lost"].isin([28, 29, 30, 31])
+    elif resolution.kwds == {"years": 1}:
+        raise NotImplementedError(
+            "time_continuity_gaps calculation not implemented yet "
+            "for timeseries with yearly resolution."
+        )
+    else:
+        index_filter = continuity["Days Lost"] != resolution_days
+
+    filtered = continuity[["Date From", "Date To"]][index_filter]
+    days_lost_series = continuity["Days Lost"][index_filter]
 
     # where time interval between timestamps is smaller than resolution because it is an irregular time-step
     # set Days Lost as Nan.
     days_lost_series[days_lost_series < resolution_days] = np.nan
     # where time interval between timestamps is bigger than resolution remove resolution (ie 10 min) from Days Lost.
     if resolution == pd.DateOffset(months=1):
-        days_lost_series[days_lost_series > resolution_days] = \
-            days_lost_series[days_lost_series > resolution_days] - filtered['Date From'][
-                days_lost_series > resolution_days].dt.daysinmonth
+        days_lost_series[days_lost_series > resolution_days] = (
+            days_lost_series[days_lost_series > resolution_days]
+            - filtered["Date From"][days_lost_series > resolution_days].dt.daysinmonth
+        )
     else:
-        days_lost_series[days_lost_series > resolution_days] = \
+        days_lost_series[days_lost_series > resolution_days] = (
             days_lost_series[days_lost_series > resolution_days] - resolution_days
-    filtered['Days Lost'] = days_lost_series
+        )
+    filtered["Days Lost"] = days_lost_series
 
     return filtered
 
- 
-def coverage(data, period='1M', aggregation_method='mean', data_resolution=None):
+
+def coverage(data, period="1M", aggregation_method="mean", data_resolution=None):
     """
     Get the data coverage over the period specified.
 
@@ -1501,8 +1885,13 @@ def coverage(data, period='1M', aggregation_method='mean', data_resolution=None)
     bw.average_data_by_period
     """
 
-    return tf.average_data_by_period(data, period=period, aggregation_method=aggregation_method,
-                                     return_coverage=True, data_resolution=data_resolution)[1]
+    return tf.average_data_by_period(
+        data,
+        period=period,
+        aggregation_method=aggregation_method,
+        return_coverage=True,
+        data_resolution=data_resolution,
+    )[1]
 
 
 def basic_stats(data):
@@ -1529,12 +1918,18 @@ def basic_stats(data):
 
     """
     if isinstance(data, pd.DataFrame):
-        return data.describe(percentiles=[0.5], include='all').T.drop(['50%'], axis=1)
+        return data.describe(percentiles=[0.5], include="all").T.drop(["50%"], axis=1)
     else:
-        return data.to_frame().describe(percentiles=[0.5], include='all').T.drop(['50%'], axis=1)
+        return (
+            data.to_frame()
+            .describe(percentiles=[0.5], include="all")
+            .T.drop(["50%"], axis=1)
+        )
 
 
-def dist_12x24(var_series, aggregation_method='mean', var_name_label=None, return_data=False):
+def dist_12x24(
+    var_series, aggregation_method="mean", var_name_label=None, return_data=False
+):
     """
     Accepts a variable series and returns a plot of 12x24 (12 months x 24 hours) for the 'mean' of the variable with
     the table of data as an optional return. The aggregation_method 'mean' can be can be changed as outlined below.
@@ -1572,15 +1967,30 @@ def dist_12x24(var_series, aggregation_method='mean', var_name_label=None, retur
         var_series = var_series[var_series.columns[0]]
     if isinstance(var_series, pd.Series) and var_name_label is None:
         var_name_label = var_series.name
-    table_12x24 = pd.concat([var_series.rename('Variable'), var_series.index.to_series().dt.month.rename('Month'),
-                             var_series.index.to_series().dt.hour.rename('Hour')], axis=1, join='inner')
-    pvt_tbl = table_12x24.pivot_table(index='Hour', columns='Month', values='Variable', aggfunc=aggregation_method)
+    table_12x24 = pd.concat(
+        [
+            var_series.rename("Variable"),
+            var_series.index.to_series().dt.month.rename("Month"),
+            var_series.index.to_series().dt.hour.rename("Hour"),
+        ],
+        axis=1,
+        join="inner",
+    )
+    pvt_tbl = table_12x24.pivot_table(
+        index="Hour", columns="Month", values="Variable", aggfunc=aggregation_method
+    )
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
     if return_data:
-        return bw_plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method)),\
-               pvt_tbl
-    return bw_plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method))
+        return (
+            bw_plt.plot_12x24_contours(
+                pvt_tbl, label=(var_name_label, aggregation_method)
+            ),
+            pvt_tbl,
+        )
+    return bw_plt.plot_12x24_contours(
+        pvt_tbl, label=(var_name_label, aggregation_method)
+    )
 
 
 class TI:
@@ -1589,12 +1999,24 @@ class TI:
     def calc(wspd, wspd_std, min_speed=3):
         wspd = _convert_df_to_series(wspd).dropna()
         wspd_std = _convert_df_to_series(wspd_std).dropna()
-        ti = pd.concat([wspd[wspd >= min_speed].rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
-        return ti['wspd_std'] / ti['wspd']
+        ti = pd.concat(
+            [wspd[wspd >= min_speed].rename("wspd"), wspd_std.rename("wspd_std")],
+            axis=1,
+            join="inner",
+        )
+        return ti["wspd_std"] / ti["wspd"]
 
     @staticmethod
-    def by_speed(wspd, wspd_std, speed_bin_array=np.arange(-0.5, 41, 1), speed_bin_labels=range(0, 41), min_speed=3,
-                 percentile=90, IEC_class=None, return_data=False):
+    def by_speed(
+        wspd,
+        wspd_std,
+        speed_bin_array=np.arange(-0.5, 41, 1),
+        speed_bin_labels=range(0, 41),
+        min_speed=3,
+        percentile=90,
+        IEC_class=None,
+        return_data=False,
+    ):
         """
         Accepts a wind speed series and its standard deviation, calculates turbulence intensity (TI) and returns a
         scatter plot of TI versus speed and the distribution of TI by speed bins if return_data is set to True.
@@ -1681,55 +2103,100 @@ class TI:
         """
 
         if not (len(speed_bin_array) - 1) == len(speed_bin_labels):
-            raise ValueError('The length of the input `speed_bin_labels` array must be equal to '
-                             'len(`speed_bin_array`) - 1. Speed bin labels correspond with the central '
-                             'bins of each adjacent element of the input `speed_bin_array`.')
+            raise ValueError(
+                "The length of the input `speed_bin_labels` array must be equal to "
+                "len(`speed_bin_array`) - 1. Speed bin labels correspond with the central "
+                "bins of each adjacent element of the input `speed_bin_array`."
+            )
 
         wspd = _convert_df_to_series(wspd)
         wspd_std = _convert_df_to_series(wspd_std)
-        ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std')], axis=1, join='inner')
-        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'], min_speed=min_speed)
-        ti_dist = pd.concat([
-            dist(var_to_bin=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
-                 bins=speed_bin_array, bin_labels=None,
-                 aggregation_method='mean', return_data=True)[-1].rename("Mean_TI"),
-            dist(var_to_bin=ti['Turbulence_Intensity'],
-                 var_to_bin_against=ti['wspd'],
-                 bins=speed_bin_array,
-                 bin_labels=None,
-                 aggregation_method='count', return_data=True)[-1].rename("TI_Count"),
-            dist(var_to_bin=ti['Turbulence_Intensity'],
-                 var_to_bin_against=ti['wspd'],
-                 bins=speed_bin_array,
-                 bin_labels=None,
-                 aggregation_method=lambda x: x.quantile(percentile/100),
-                 return_data=True)[-1].rename("Rep_TI"),
-            dist(var_to_bin=ti['Turbulence_Intensity'],
-                 var_to_bin_against=ti['wspd'],
-                 bins=speed_bin_array,
-                 bin_labels=None,
-                 aggregation_method='std', return_data=True)[-1].rename("TI_2Sigma")], axis=1, join='inner')
-        categ_index = dist(var_to_bin=ti['Turbulence_Intensity'], var_to_bin_against=ti['wspd'],
-                           bins=speed_bin_array, aggregation_method='mean', return_data=True)[-1].index
+        ti = pd.concat(
+            [wspd.rename("wspd"), wspd_std.rename("wspd_std")], axis=1, join="inner"
+        )
+        ti["Turbulence_Intensity"] = TI.calc(
+            ti["wspd"], ti["wspd_std"], min_speed=min_speed
+        )
+        ti_dist = pd.concat(
+            [
+                dist(
+                    var_to_bin=ti["Turbulence_Intensity"],
+                    var_to_bin_against=ti["wspd"],
+                    bins=speed_bin_array,
+                    bin_labels=None,
+                    aggregation_method="mean",
+                    return_data=True,
+                )[-1].rename("Mean_TI"),
+                dist(
+                    var_to_bin=ti["Turbulence_Intensity"],
+                    var_to_bin_against=ti["wspd"],
+                    bins=speed_bin_array,
+                    bin_labels=None,
+                    aggregation_method="count",
+                    return_data=True,
+                )[-1].rename("TI_Count"),
+                dist(
+                    var_to_bin=ti["Turbulence_Intensity"],
+                    var_to_bin_against=ti["wspd"],
+                    bins=speed_bin_array,
+                    bin_labels=None,
+                    aggregation_method=lambda x: x.quantile(percentile / 100),
+                    return_data=True,
+                )[-1].rename("Rep_TI"),
+                dist(
+                    var_to_bin=ti["Turbulence_Intensity"],
+                    var_to_bin_against=ti["wspd"],
+                    bins=speed_bin_array,
+                    bin_labels=None,
+                    aggregation_method="std",
+                    return_data=True,
+                )[-1].rename("TI_2Sigma"),
+            ],
+            axis=1,
+            join="inner",
+        )
+        categ_index = dist(
+            var_to_bin=ti["Turbulence_Intensity"],
+            var_to_bin_against=ti["wspd"],
+            bins=speed_bin_array,
+            aggregation_method="mean",
+            return_data=True,
+        )[-1].index
         num_index = [i.mid for i in categ_index]
-        ti_dist.loc[:, 'Char_TI'] = ti_dist.loc[:, 'Mean_TI'] + (ti_dist.loc[:, 'TI_2Sigma'] / num_index)
+        ti_dist.loc[:, "Char_TI"] = ti_dist.loc[:, "Mean_TI"] + (
+            ti_dist.loc[:, "TI_2Sigma"] / num_index
+        )
 
-        ti_dist.index.rename('Speed Bin', inplace=True)
+        ti_dist.index.rename("Speed Bin", inplace=True)
         ti_dist.index = [i.mid for i in ti_dist.index]
-        graph_ti_dist_by_speed = bw_plt.plot_TI_by_speed(wspd, wspd_std, ti_dist, min_speed=min_speed,
-                                                         percentile=percentile, IEC_class=IEC_class)
+        graph_ti_dist_by_speed = bw_plt.plot_TI_by_speed(
+            wspd,
+            wspd_std,
+            ti_dist,
+            min_speed=min_speed,
+            percentile=percentile,
+            IEC_class=IEC_class,
+        )
 
         # replace index of ti_dist with input speed_bin_labels only after generating the plot
         if speed_bin_labels:
             ti_dist.index = speed_bin_labels
 
         if return_data:
-            return graph_ti_dist_by_speed, ti_dist.dropna(how='any')
+            return graph_ti_dist_by_speed, ti_dist.dropna(how="any")
         return graph_ti_dist_by_speed
 
     @staticmethod
-    def by_sector(wspd, wspd_std, wdir, min_speed=3, sectors=12, direction_bin_array=None,
-                  direction_bin_labels=None, return_data=False):
+    def by_sector(
+        wspd,
+        wspd_std,
+        wdir,
+        min_speed=3,
+        sectors=12,
+        direction_bin_array=None,
+        direction_bin_labels=None,
+        return_data=False,
+    ):
         """
         Accepts a wind speed series, its standard deviation and a direction series. Calculates turbulence intensity (TI)
         and returns a plot of TI by sector and the distribution of TI by sector if return_data is set to True.
@@ -1794,38 +2261,61 @@ class TI:
         wspd_std = _convert_df_to_series(wspd_std)
         wdir = _convert_df_to_series(wdir)
 
-        ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std'), wdir.rename('wdir')], axis=1,
-                       join='inner')
+        ti = pd.concat(
+            [wspd.rename("wspd"), wspd_std.rename("wspd_std"), wdir.rename("wdir")],
+            axis=1,
+            join="inner",
+        )
 
-        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'], min_speed=min_speed)
-        ti_dist = pd.concat([
-            dist_by_dir_sector(var_series=ti['Turbulence_Intensity'],
-                               direction_series=ti['wdir'],
-                               sectors=sectors, direction_bin_array=direction_bin_array,
-                               direction_bin_labels=None,
-                               aggregation_method='mean', return_data=True)[-1].rename("Mean_TI"),
-            dist_by_dir_sector(var_series=ti['Turbulence_Intensity'],
-                               direction_series=ti['wdir'],
-                               sectors=sectors, direction_bin_array=direction_bin_array,
-                               direction_bin_labels=None,
-                               aggregation_method='count', return_data=True)[-1].rename("TI_Count")
-        ], axis=1, join='outer')
+        ti["Turbulence_Intensity"] = TI.calc(
+            ti["wspd"], ti["wspd_std"], min_speed=min_speed
+        )
+        ti_dist = pd.concat(
+            [
+                dist_by_dir_sector(
+                    var_series=ti["Turbulence_Intensity"],
+                    direction_series=ti["wdir"],
+                    sectors=sectors,
+                    direction_bin_array=direction_bin_array,
+                    direction_bin_labels=None,
+                    aggregation_method="mean",
+                    return_data=True,
+                )[-1].rename("Mean_TI"),
+                dist_by_dir_sector(
+                    var_series=ti["Turbulence_Intensity"],
+                    direction_series=ti["wdir"],
+                    sectors=sectors,
+                    direction_bin_array=direction_bin_array,
+                    direction_bin_labels=None,
+                    aggregation_method="count",
+                    return_data=True,
+                )[-1].rename("TI_Count"),
+            ],
+            axis=1,
+            join="outer",
+        )
 
-        ti_dist.index.rename('Direction Bin', inplace=True)
-        graph_ti_dist_by_sector = bw_plt.plot_TI_by_sector(ti['Turbulence_Intensity'], ti['wdir'], ti_dist)
+        ti_dist.index.rename("Direction Bin", inplace=True)
+        graph_ti_dist_by_sector = bw_plt.plot_TI_by_sector(
+            ti["Turbulence_Intensity"], ti["wdir"], ti_dist
+        )
 
         # replace index of ti_dist with input direction_bin_labels only after generating the plot
         if direction_bin_labels:
             ti_dist.index = direction_bin_labels
 
         if return_data:
-            return graph_ti_dist_by_sector, ti_dist.dropna(how='all')
+            return graph_ti_dist_by_sector, ti_dist.dropna(how="all")
         else:
             return graph_ti_dist_by_sector
 
     @staticmethod
-    def twelve_by_24(wspd, wspd_std, return_data=False, var_name_label='Turbulence Intensity'):
-        tab_12x24, graph = dist_12x24(TI.calc(wspd, wspd_std), return_data=True, var_name_label=var_name_label)
+    def twelve_by_24(
+        wspd, wspd_std, return_data=False, var_name_label="Turbulence Intensity"
+    ):
+        tab_12x24, graph = dist_12x24(
+            TI.calc(wspd, wspd_std), return_data=True, var_name_label=var_name_label
+        )
         if return_data:
             return tab_12x24, graph
         return graph
@@ -1835,13 +2325,29 @@ def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
 
     var_1_bounded = var_1[(var_1 >= min_var) & (var_1 < max_var)]
     var_2_bounded = var_2[(var_2 >= min_var) & (var_2 < max_var)]
-    ratio = pd.concat([var_1_bounded.rename('var_1'), var_2_bounded.rename('var_2')], axis=1, join='inner')
+    ratio = pd.concat(
+        [var_1_bounded.rename("var_1"), var_2_bounded.rename("var_2")],
+        axis=1,
+        join="inner",
+    )
 
-    return ratio['var_2'] / ratio['var_1']
+    return ratio["var_2"] / ratio["var_1"]
 
 
-def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_array=None, boom_dir_1=-1,
-                 boom_dir_2=-1, return_data=False, radial_limits=None, annotate=True, figure_size=(10, 10)):
+def sector_ratio(
+    wspd_1,
+    wspd_2,
+    wdir,
+    sectors=72,
+    min_wspd=3,
+    direction_bin_array=None,
+    boom_dir_1=-1,
+    boom_dir_2=-1,
+    return_data=False,
+    radial_limits=None,
+    annotate=True,
+    figure_size=(10, 10),
+):
     """
     Calculates the wind speed ratio of two wind speed time series and plots this ratio, averaged by direction sector,
     in a polar plot using a wind direction time series. The averaged ratio by sector can be optionally returned
@@ -1946,28 +2452,38 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     wd = pd.DataFrame(wdir)
 
     if len(ws_1.columns) != len(ws_2.columns):
-        raise ValueError('Number of anemometers is uneven. ' +
-                         'Please ensure same number of anemometers in wspd_1 and wspd_2.')
+        raise ValueError(
+            "Number of anemometers is uneven. "
+            + "Please ensure same number of anemometers in wspd_1 and wspd_2."
+        )
 
     if (len(wd.columns) != 1) & (len(wd.columns) != len(ws_1.columns)):
-        raise ValueError('Number of anemometers does not match number of wind vanes. ' +
-                         'Please ensure there is one direction vane per anemometer pair or ' +
-                         'include one direction vane only to be used for all anemometer pairs.')
+        raise ValueError(
+            "Number of anemometers does not match number of wind vanes. "
+            + "Please ensure there is one direction vane per anemometer pair or "
+            + "include one direction vane only to be used for all anemometer pairs."
+        )
     if len(wd.columns) != 1:
         if len(wd.columns) != len(ws_1.columns):
-            raise ValueError('Number of anemometers does not match number of wind vanes. ' +
-                             'Please ensure there is one direction vane per anemometer pair or ' +
-                             'include one direction vane only to be used for all anemometer pairs.')
+            raise ValueError(
+                "Number of anemometers does not match number of wind vanes. "
+                + "Please ensure there is one direction vane per anemometer pair or "
+                + "include one direction vane only to be used for all anemometer pairs."
+            )
 
     if type(boom_dir_1) is list:
         if (len(boom_dir_1) != len(ws_1.columns)) & (len(boom_dir_1) != 1):
-            raise ValueError('Number of boom orientations must be 1 or equal to number of ' +
-                             'anemometer pairs.')
+            raise ValueError(
+                "Number of boom orientations must be 1 or equal to number of "
+                + "anemometer pairs."
+            )
 
     if type(boom_dir_2) is list:
         if (len(boom_dir_2) != len(ws_1.columns)) & (len(boom_dir_2) != 1):
-            raise ValueError('Number of boom orientations must be 1 or equal to number of ' +
-                             'anemometer pairs.')
+            raise ValueError(
+                "Number of boom orientations must be 1 or equal to number of "
+                + "anemometer pairs."
+            )
 
     keys = range(len(ws_1.columns))
     sec_rats = {}
@@ -1993,17 +2509,30 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
 
         common_idx = sec_rat.index.intersection(wdir.index)
 
-        sec_rat_plot, sec_rat_dist = dist_by_dir_sector(sec_rat.loc[common_idx], wdir.loc[common_idx], sectors=sectors,
-                                                        aggregation_method='mean',
-                                                        direction_bin_array=direction_bin_array,
-                                                        direction_bin_labels=None, return_data=True)
+        sec_rat_plot, sec_rat_dist = dist_by_dir_sector(
+            sec_rat.loc[common_idx],
+            wdir.loc[common_idx],
+            sectors=sectors,
+            aggregation_method="mean",
+            direction_bin_array=direction_bin_array,
+            direction_bin_labels=None,
+            return_data=True,
+        )
 
-        sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
+        sec_rat_dist = sec_rat_dist.rename("Mean_Sector_Ratio").to_frame()
         sec_rats_dists[sensor_pair] = sec_rat_dist
 
-    fig = bw_plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir_dict, sec_ratio_dist=sec_rats_dists, col_names=col_names,
-                                   boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2, radial_limits=radial_limits,
-                                   annotate=annotate, figure_size=figure_size)
+    fig = bw_plt.plot_sector_ratio(
+        sec_ratio=sec_rats,
+        wdir=wdir_dict,
+        sec_ratio_dist=sec_rats_dists,
+        col_names=col_names,
+        boom_dir_1=boom_dir_1,
+        boom_dir_2=boom_dir_2,
+        radial_limits=radial_limits,
+        annotate=annotate,
+        figure_size=figure_size,
+    )
 
     if return_data:
         sec_rats_df = pd.DataFrame(index=sec_rats_dists[0].index)
@@ -2013,8 +2542,14 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     return fig
 
 
-def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=None, lapse_rate=-0.113,
-                     specific_gas_constant=286.9):
+def calc_air_density(
+    temperature,
+    pressure,
+    elevation_ref=None,
+    elevation_site=None,
+    lapse_rate=-0.113,
+    specific_gas_constant=286.9,
+):
     """
     Calculates air density for a given temperature and pressure and extrapolates that to the site if both reference
     and site elevations are given.
@@ -2052,16 +2587,19 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
     """
 
     temp = temperature
-    temp_kelvin = temp + 273.15     # to convert deg C to Kelvin.
-    pressure = pressure * 100       # to convert hPa to Pa
+    temp_kelvin = temp + 273.15  # to convert deg C to Kelvin.
+    pressure = pressure * 100  # to convert hPa to Pa
     ref_air_density = pressure / (specific_gas_constant * temp_kelvin)
 
     if elevation_ref is not None and elevation_site is not None:
-        site_air_density = round(ref_air_density + (((elevation_site - elevation_ref) / 1000) * lapse_rate), 3)
+        site_air_density = round(
+            ref_air_density + (((elevation_site - elevation_ref) / 1000) * lapse_rate),
+            3,
+        )
         return site_air_density
     elif elevation_site is None and elevation_ref is not None:
-        raise TypeError('elevation_site should be a number')
+        raise TypeError("elevation_site should be a number")
     elif elevation_site is not None and elevation_ref is None:
-        raise TypeError('elevation_ref should be a number')
+        raise TypeError("elevation_ref should be a number")
     else:
         return ref_air_density
