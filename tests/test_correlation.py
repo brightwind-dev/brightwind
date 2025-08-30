@@ -277,7 +277,7 @@ def test_synthesize():
 
     for idx, row in pd.DataFrame(result_ord_lst_sq).iterrows():
         # Comparing the first 6 digits to avoid issuing with floating point precision
-        assert str(row[0])[0:6] == str(synth.loc[idx][0])[0:6]
+        assert str(row.iloc[0])[0:6] == str(synth.loc[idx].iloc[0])[0:6]
 
     # Test the synthesise for when the ref_dir is given as input.
     correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s']['2016-03-02 00:00:00':],
@@ -288,7 +288,7 @@ def test_synthesize():
     synth = correl.synthesize()
 
     for idx, row in pd.DataFrame(result_ord_lst_sq_dir).iterrows():
-        assert str(row[0]) == str(round(synth.loc[idx][0], 6))
+        assert str(row.iloc[0]) == str(round(synth.loc[idx].iloc[0], 6))
 
     # Test the synthesise when SpeedSort correlation is used.
     correl = bw.Correl.SpeedSort(MERRA2_NE['WS50m_m/s']['2016-03-02 00:00:00':'2017-03-02 00:00:00'],
@@ -301,14 +301,14 @@ def test_synthesize():
 
     for idx, row in pd.DataFrame(result_speed_sort).iterrows():
         print(idx)
-        assert str(row[0]) == str(round(synth.loc[idx][0], 6))
+        assert str(row.iloc[0]) == str(round(synth.loc[idx].iloc[0], 6))
 
     # Test the synthesise when SpeedSort correlation is used using 10 min averaging period.
     data_test = DATA_CLND[['Spd80mN', 'Spd60mN', 'Dir78mS', 'Dir58mS']].copy()
-    data_test['Dir78mS']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.nan
-    data_test['Spd80mN']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.nan
-    data_test['Dir58mS']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.nan
-    data_test['Spd60mN']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.nan
+    data_test.loc['2016-01-09 17:10:00':'2016-01-09 17:50:00','Dir78mS'] = np.nan
+    data_test.loc['2016-01-09 17:10:00':'2016-01-09 17:50:00','Spd80mN'] = np.nan
+    data_test.loc['2016-01-09 17:50:00':'2016-01-10 19:10:00','Dir58mS'] = np.nan
+    data_test.loc['2016-01-09 17:50:00':'2016-01-10 19:10:00','Spd60mN'] = np.nan
     ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir58mS'],
                                  averaging_prd='10min')
     ss_cor.run()
@@ -586,3 +586,43 @@ def test_speed_sort():
             assert round(ss_cor.params[key]['offset'], 0) == round(result[key]['offset'], 0)  # comes out different
             assert round(ss_cor.params[key]['slope'], 1) == round(result[key]['slope'], 1)  # comes out different
             assert round(ss_cor.params[key]['target_speed_cutoff'], 0) == round(result[key]['target_speed_cutoff'], 0)
+
+def test_mlp():
+    #reference nodes
+    v_wdnode = 'WD50m_deg'
+    v_wsnode = 'WS50m_m/s'
+    v_tnode = 'T2M_degC'
+    v_pnode = 'PS_hPa'
+
+    #onsite nodes
+    o_wsnode = 'Spd80mN'
+    o_wdnode = 'Dir78mS'
+    
+    mlp = bw.Correl.MultiLayerPerceptron(MERRA2_NE[[v_wsnode,v_wdnode, v_tnode, v_pnode]].dropna(), 
+                                     DATA_CLND[[o_wsnode, o_wdnode]].dropna(),
+                                     alpha=1,
+                                     ref_spd_col=v_wsnode,
+                                     tar_spd_col=o_wsnode,
+                                     ref_dir_col=v_wdnode,
+                                     tar_dir_col=o_wdnode,
+                                     averaging_prd='1H',
+                                     random_state=1 #we fix the randomisation for testing purposes
+                                     )
+    mlp.run()
+    synth = mlp.synthesize(ext_input=mlp.ref_spd[mlp._ref_spd_fit_col_names])
+
+    result_synth_mlp = {'Spd80mN_Synthesized': {'2000-01-01 00:00:00': 5.896543,
+                                          '2000-01-01 01:00:00': 5.330373,
+                                          '2000-01-01 02:00:00': 6.047403,
+                                          '2000-01-01 03:00:00': 7.350323,
+                                          '2000-01-01 04:00:00': 7.931148},												 
+                    'Dir78mS_Synthesized': {'2000-01-01 00:00:00': 273.912748,
+                                            '2000-01-01 01:00:00': 263.949254,
+                                            '2000-01-01 02:00:00': 254.722937,
+                                            '2000-01-01 03:00:00': 245.759566,
+                                            '2000-01-01 04:00:00': 237.516963},}
+    result = {'score': 0.8862840280503164}
+    assert round(mlp.score,4) == round(result['score'],4)
+    for idx, row in pd.DataFrame(result_synth_mlp).iterrows():
+        # Comparing the first 5 digits to avoid issuing with floating point precision
+        assert str(row.iloc[0])[0:5] == str(synth.loc[idx].iloc[0])[0:5]

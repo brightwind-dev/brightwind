@@ -972,7 +972,7 @@ def _get_best_row_col_number_for_subplot(number_subplots):
 
 def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False,
                  x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=True, figure_size=(10, 10.2),
-                 trendline_dots=False, **kwargs):
+                 trendline_dots=False, ax=None, trendline_name=None, **kwargs):
     """
     Plots a scatter plot of x and y data. The trendline_y data is also shown if provided as input of the function.
 
@@ -1064,10 +1064,15 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
     if line_of_slope_1 is True:
         legend = True
 
-    fig, axes = plt.subplots(figsize=figure_size, **kwargs)
+    # Create a new fig/ax only if none was passed
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figure_size, **kwargs)
+    else:
+        fig = ax.figure  # Get the figure from the passed axes
+
     _scatter_subplot(x, y, trendline_y=trendline_y, trendline_x=trendline_x, line_of_slope_1=line_of_slope_1,
                      x_label=x_label, y_label=y_label, x_limits=x_limits, y_limits=y_limits, axes_equal=axes_equal,
-                     trendline_dots=trendline_dots, legend=legend, ax=axes)
+                     trendline_dots=trendline_dots, legend=legend, ax=ax, trendline_name=trendline_name)
 
     plt.close()
     return fig
@@ -1971,7 +1976,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
     if calc_method == 'log_law':
         label = 'Mean_Roughness_Coefficient'
 
-    scale_variable_y = np.append(scale_variable, scale_variable[0])
+    scale_variable_y = np.append(scale_variable, scale_variable.iloc[0])
     plot_x = np.append(radians, radians[0])
     scale_to_fit = max(scale_variable[np.isfinite(scale_variable)]) / max(result / 100)
     wind_rose_r = (result / 100) * scale_to_fit
@@ -2352,7 +2357,7 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         ax.set_ylabel(label)
 
         # create x values for plot
-        idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H').hour
+        idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1h').hour
 
         if plot_type == 'step':
             df = df.shift(+1, axis=0)
