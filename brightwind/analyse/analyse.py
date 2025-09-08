@@ -2065,3 +2065,15 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         raise TypeError('elevation_ref should be a number')
     else:
         return ref_air_density
+    
+
+def lapse_temp(temp_degC, lapse_from_m, lapse_to_m, lapse_rate = -0.0065, print_details = False):
+    temp_lapsed = temp_degC + lapse_rate * (lapse_to_m - lapse_from_m)
+    
+    if print_details:
+        if type(temp_degC) == pd.Series:
+            print(f"Temperatures lapsed from {lapse_from_m} m to {lapse_to_m} m using lapse rate of {lapse_rate} °C/m:")
+            display(pd.concat({f"Temp_{lapse_from_m}m":temp_degC, f"Temp_{lapse_to_m}m":temp_lapsed}, axis = 1))
+        else:
+            print(f"Temperature of {temp_degC} °C ({lapse_from_m} m) lapsed to " + bold(f"{temp_lapsed} °C") + f" ({lapse_to_m} m) using lapse rate of {lapse_rate} °C/m")
+    return temp_lapsed
