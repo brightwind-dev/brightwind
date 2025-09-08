@@ -659,3 +659,10 @@ def test_dist_matrix_by_direction_sector():
                                  var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
 
+def test_lapse_temp():
+    assert bw.lapse_temp(10.0065, 10, 11, print_details=True) == 10.0
+    assert bw.lapse_temp(DATA.T2m.loc['2016-01-09 17:10'], 4, 2, lapse_rate= -0.005)
+    pd.testing.assert_series_equal(bw.lapse_temp(DATA.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'], 2, 20, print_details=True),
+        pd.Series(data = [0.837, 0.746, 0.614, 0.735, 0.654, 0.796], 
+        index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00', '2016-01-09 17:40:00',
+                                '2016-01-09 17:50:00', '2016-01-09 18:00:00'])), check_names=False)

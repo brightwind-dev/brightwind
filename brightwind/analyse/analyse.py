@@ -27,7 +27,8 @@ __all__ = ['monthly_means',
            'basic_stats',
            'TI',
            'sector_ratio',
-           'calc_air_density']
+           'calc_air_density',
+           'lapse_temp']
 
 
 def dist_matrix(var_series, x_series, y_series,
@@ -2067,13 +2068,61 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         return ref_air_density
     
 
-def lapse_temp(temp_degC, lapse_from_m, lapse_to_m, lapse_rate = -0.0065, print_details = False):
-    temp_lapsed = temp_degC + lapse_rate * (lapse_to_m - lapse_from_m)
+def lapse_temp(temperature, lapse_from_m, lapse_to_m, lapse_rate=-0.0065, print_details=False):
+    """
+    Lapses temperature measurement from its measurement height (lapse_from_m) to the height specified as lapse_to_m, using lapse_rate.
+    
+    :param temperature:     Temperature value(s) in degrees Celsius (or Kelvin)
+    :type temperature:      float or pandas.Series
+    :param lapse_from_m:    Height (in metres) at which temperature is valid
+    :type lapse_from_m      Float
+    :param lapse_from_m:    Height (in metres) to lapse temperature to / height of output temperature
+    :type lapse_from_m:     Float
+    :param lapse_rate:      Lapse rate describes how temperature changes with increasing height above the earth's surface in °C/m.
+                            Default value of -6.5 degrees Celsius per km above the earth's surface (or -0.0065 °C/m) is commonly used as an approximation of the atmospheric lapse rate, 
+                            for example in WASP 11:
+                            Mortensen, N. G., Heathfield, D. N., Rathmann, O., & Nielsen, M. (2014). 
+                            Wind Atlas Analysis and Application Program: WAsP 11 Help Facility. Computer programme, Department of Wind Energy, Technical University of Denmark
+                            https://orbit.dtu.dk/en/publications/wind-atlas-analysis-and-application-program-wasp-11-help-facility
+    :type lapse_rate:       Float (default -0.0065)
+    :param print_details:   If True, print details of the lapse rate used and temperature value(s) before and after lapsing
+    :type print_details:    Boolean (default False)
+    :return:                Temperature at specified height of lapse_to_m in degrees Celius (or Kelvin, if temperature input is in Kelvin)
+    :rtype:                 Float or pandas.Series depending on type(temperature) input
+
+        **Example usage**
+    ::
+
+    import brightwind as bw
+
+    bw.lapse_temp(temperature=10.0065, lapse_from_m=10, lapse_to_m=11)
+    # 10.0
+
+    bw.lapse_temp(temperature=10, lapse_from_m=12, lapse_to_m=10, lapse_rate=-0.001, print_details=True)
+    # Temperature of 10 °C (12 m) lapsed to 10.002 °C (10 m) using lapse rate of -0.001 °C/m
+    # 10.002
+
+    DATA = bw.load_csv(bw.demo_datasets.demo_data)
+    DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
+
+    bw.lapse_temp(temperature=DATA.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'], lapse_from_m=2, lapse_to_m=20)
+    # Timestamp
+    # 2016-01-09 17:10:00    0.837
+    # 2016-01-09 17:20:00    0.746
+    # 2016-01-09 17:30:00    0.614
+    # 2016-01-09 17:40:00    0.735
+    # 2016-01-09 17:50:00    0.654
+    # 2016-01-09 18:00:00    0.796
+    # Name: T2m, dtype: float64
+    """
+
+    temp_lapsed = temperature + lapse_rate * (lapse_to_m - lapse_from_m)
     
     if print_details:
-        if type(temp_degC) == pd.Series:
+        if type(temperature) == pd.Series:
             print(f"Temperatures lapsed from {lapse_from_m} m to {lapse_to_m} m using lapse rate of {lapse_rate} °C/m:")
-            display(pd.concat({f"Temp_{lapse_from_m}m":temp_degC, f"Temp_{lapse_to_m}m":temp_lapsed}, axis = 1))
+            temp_lapsed_df = pd.concat({f"Temp_{lapse_from_m}m":temperature, f"Temp_{lapse_to_m}m":temp_lapsed}, axis = 1)
+            print(temp_lapsed_df)
         else:
-            print(f"Temperature of {temp_degC} °C ({lapse_from_m} m) lapsed to " + bold(f"{temp_lapsed} °C") + f" ({lapse_to_m} m) using lapse rate of {lapse_rate} °C/m")
+            print(f"Temperature of {temperature} °C ({lapse_from_m} m) lapsed to {temp_lapsed} °C ({lapse_to_m} m) using lapse rate of {lapse_rate} °C/m")
     return temp_lapsed
