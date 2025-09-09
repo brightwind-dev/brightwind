@@ -2079,8 +2079,9 @@ def lapse_temp(temperature, lapse_from_m, lapse_to_m, lapse_rate=-0.0065, print_
     :param lapse_from_m:    Height (in metres) to lapse temperature to / height of output temperature
     :type lapse_from_m:     Float
     :param lapse_rate:      Lapse rate describes how temperature changes with increasing height above the earth's surface in °C/m.
-                            Default value of -6.5 degrees Celsius per km above the earth's surface (or -0.0065 °C/m) is commonly used as an approximation of the atmospheric lapse rate, 
-                            for example in WASP 11:
+                            Default value of -6.5 degrees Celsius per km above the earth's surface (or -0.0065 °C/m) is commonly used as an approximation of the atmospheric lapse rate.
+                            In particular, the IEC standards rely on the ISO2533:1975 Standard Atmosphere which states that a lapse rate of 6.5 K/km is valid for geopotential altitudes of up to 11 km above earth's surface. 
+                            This value was also adopeted in WASP 11:
                             Mortensen, N. G., Heathfield, D. N., Rathmann, O., & Nielsen, M. (2014). 
                             Wind Atlas Analysis and Application Program: WAsP 11 Help Facility. Computer programme, Department of Wind Energy, Technical University of Denmark
                             https://orbit.dtu.dk/en/publications/wind-atlas-analysis-and-application-program-wasp-11-help-facility
