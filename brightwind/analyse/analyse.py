@@ -2066,49 +2066,48 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
     else:
         return ref_air_density
 
-def lapse_prs(lapse_from_m, lapse_to_m, lapse_from_prs_hPa_mbar, lapse_from_temp_degC, print_details = False):
+def lapse_pressure(reference_height_m, target_height_m, reference_pressure_hPa_mbar, reference_temp_degC, print_details = False):
     """
-    Calculates pressure at height of lapse_to_m using reference pressure (lapse_from_prs_hPa_mbar) and reference temperature (lapse_from_temp_degC) values (reference values valid at height of lapse_from_m).
+    Calculates pressure at target height (target_height_m) using reference pressure (reference_pressure_hPa_mbar) and reference temperature (reference_temp_degC) values (reference values valid at height of reference_height_m).
 
     Calculation based on ISO:2533-1975 Standard Atmosphere (https://www.iso.org/obp/ui/#iso:std:iso:2533:en) as suggested by IEC standard (61400-12-1).
     
-    :param lapse_from_m:                Height (in metres) to lapse pressure to / height of output pressure
-    :type lapse_from_m:                 Float or pandas.Series
-    :param lapse_to_m:                  Height (in metres) at which reference pressure (lapse_from_prs_hPa_mbar) and reference temperature (lapse_from_temp_degC) are valid
-    :type lapse_to_m                    Float or pandas.Series
-    :param lapse_from_prs_hPa_mbar:     Reference pressure value(s) in mbar or hPa (1mbar = 1hPa = 100Pa)
-    :type lapse__from_prs_hPa_mbar:     Float or pandas.Series
-    :param lapse_from_temp_degC:        Reference temperature value(s) in degrees celcius
-    :type lapse_from_temp_degC:         Float or pandas.Series
-    :param print_details:               If True, print details of the calculation and output
-    :type print_details:                Boolean (default False)
-    :return:                            Pressure at specified height of lapse_to_m in Pa
-    :rtype:                             Float or pandas.Series depending on type(lapse_from_prs_hPa_mbar)/type(lapse_from_temp_degC) inputs
+    :param reference_height_m:                Height (in metres) to lapse pressure to / height of output pressure
+    :type reference_height_m:                 Float or pandas.Series
+    :param target_height_m:                   Height (in metres) at which reference pressure (reference_pressure_hPa_mbar) and reference temperature (reference_temp_degC) are valid
+    :type target_height_m                     Float or pandas.Series
+    :param reference_pressure_hPa_mbar:       Reference pressure value(s) in mbar or hPa (1mbar = 1hPa = 100Pa)
+    :type lapse_from_pressure_hPa_mbar:       Float or pandas.Series
+    :param reference_temp_degC:               Reference temperature value(s) in degrees celcius
+    :type reference_temp_degC:                Float or pandas.Series
+    :param print_details:                     If True, print details of the calculation and output
+    :type print_details:                      Boolean (default False)
+    :return:                                  Pressure at specified height of target_height_m in Pa
+    :rtype:                                   Float or pandas.Series depending on type(reference_pressure_hPa_mbar)/type(reference_temp_degC) inputs
 
         **Example usage**
     ::
 
     import brightwind as bw
 
-    bw.lapse_prs(lapse_from_m=10, lapse_to_m=200, lapse_from_prs_hPa_mbar=1000, lapse_from_temp_degC=12)
-    # 97744.5
+    bw.lapse_pressure(reference_height_m=10, target_height_m=200, reference_pressure_hPa_mbar=1000, reference_temp_degC=12)
+    # 977.45
 
-    bw.lapse_prs(lapse_from_m=10, lapse_to_m=200, lapse_from_prs_hPa_mbar=1000, lapse_from_temp_degC=12, print_details=True)
-    # Pressure value of 97744.5  calculated at 200 m from reference temperature and pressure at 10 m
-    # 97744.5
+    bw.lapse_pressure(reference_height_m=10, target_height_m=200, reference_pressure_hPa_mbar=1000, reference_temp_degC=12)
+    # Pressure value of 977.45  calculated at 200 m from reference temperature and pressure at 10 m
+    # 977.45
 
     DATA = bw.load_csv(bw.demo_datasets.demo_data)
     DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 
-    bw.lapse_prs(lapse_from_m=2, lapse_to_m=10, lapse_from_prs_hPa_mbar=DATA['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'], lapse_from_temp_degC=DATA['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'])
-
+    bw.lapse_pressure(reference_height_m=2, target_height_m=10, reference_pressure_hPa_mbar=DATA['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'], reference_temp_degC=DATA['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'])
     # Timestamp
-    # 2016-01-09 17:10:00    93306.9
-    # 2016-01-09 17:20:00    93306.9
-    # 2016-01-09 17:30:00    93306.8
-    # 2016-01-09 17:40:00    93207.0
-    # 2016-01-09 17:50:00    93206.9
-    # 2016-01-09 18:00:00    93207.0
+    # 2016-01-09 17:10:00    933.07
+    # 2016-01-09 17:20:00    933.07
+    # 2016-01-09 17:30:00    933.07
+    # 2016-01-09 17:40:00    932.07
+    # 2016-01-09 17:50:00    932.07
+    # 2016-01-09 18:00:00    932.07
     # dtype: float64
 
     """
@@ -2117,16 +2116,15 @@ def lapse_prs(lapse_from_m, lapse_to_m, lapse_from_prs_hPa_mbar, lapse_from_temp
     L = -0.0065 # temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
     R = 287.05287 #  specific gas const = R_universal / molar_mass_of_air (J/K/kg or m2/K/s2)
 
-    lapse_from_prs_Pa = lapse_from_prs_hPa_mbar * 100 # convert prs units to Pa
-    lapse_from_temp_K = lapse_from_temp_degC + 273.15 # convert temp units to K
-    prs_lapsed_Pa = lapse_from_prs_Pa*((1 + (L/lapse_from_temp_K)*(lapse_to_m - lapse_from_m))**(-g/(L*R)))
+    lapse_from_temp_K = reference_temp_degC + 273.15 # convert temp units to K
+    pressure_lapsed_hPa = reference_pressure_hPa_mbar*((1 + (L/lapse_from_temp_K)*(target_height_m - reference_height_m))**(-g/(L*R)))
 
     if print_details:
-        if type(lapse_from_prs_hPa_mbar) == pd.Series:
-            print(f'Pressure values calculated at {lapse_to_m} m from reference temperature and pressure at {lapse_from_m} m:')
-            prs_lapsed_df = pd.concat({f"Prs_{lapse_from_m}m":lapse_from_prs_Pa, f"Prs_{lapse_to_m}m":prs_lapsed_Pa}, axis = 1)
-            print(prs_lapsed_df)
+        if type(reference_pressure_hPa_mbar) == pd.Series:
+            print(f'Pressure values calculated at {target_height_m} m from reference temperature and pressure at {reference_height_m} m:')
+            pressure_lapsed_df = pd.concat({f"Prs_{reference_height_m}m":reference_pressure_hPa_mbar, f"Prs_{target_height_m}m":pressure_lapsed_hPa}, axis = 1)
+            print(pressure_lapsed_df)
         else:
-            print(f'Pressure value of {round(prs_lapsed_Pa, 1)}  calculated at {lapse_to_m} m from reference temperature and pressure at {lapse_from_m} m')
+            print(f'Pressure value of {round(pressure_lapsed_hPa, 1)}  calculated at {target_height_m} m from reference temperature and pressure at {reference_height_m} m')
 
-    return round(prs_lapsed_Pa, 1)
+    return round(pressure_lapsed_hPa, 2)
