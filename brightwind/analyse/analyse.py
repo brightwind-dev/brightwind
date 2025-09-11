@@ -2097,6 +2097,9 @@ def lapse_prs(lapse_from_m, lapse_to_m, lapse_from_prs_hPa_mbar, lapse_from_temp
     # Pressure value of 97744.5  calculated at 200 m from reference temperature and pressure at 10 m
     # 97744.5
 
+    DATA = bw.load_csv(bw.demo_datasets.demo_data)
+    DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
+
     bw.lapse_prs(lapse_from_m=2, lapse_to_m=10, lapse_from_prs_hPa_mbar=DATA['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'], lapse_from_temp_degC=DATA['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'])
 
     # Timestamp
