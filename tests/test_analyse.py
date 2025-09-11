@@ -659,3 +659,11 @@ def test_dist_matrix_by_direction_sector():
                                  var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
 
+def test_lapse_density():
+    assert bw.lapse_density(reference_density_kg_m3=1.224, reference_height_m=80, target_height_m=100) == 1.22174
+    assert bw.lapse_density(reference_density_kg_m3=1.224, reference_height_m=80, target_height_m=100,lapse_rate=-0.0002,print_details=True) == 1.22
+    test_data = DATA.loc['2016-01-09 17:10':'2016-01-09 18:00']
+    test_density = bw.calc_air_density(test_data.T2m, test_data.P2m)
+    pd.testing.assert_series_equal(bw.lapse_density(reference_density_kg_m3=test_density, reference_height_m=2, target_height_m=10), pd.Series(data = [1.18678, 1.18717, 1.18775, 1.18595, 1.1863 , 1.18569],
+        index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00', '2016-01-09 17:40:00',
+                                '2016-01-09 17:50:00', '2016-01-09 18:00:00'])), check_names=False)
