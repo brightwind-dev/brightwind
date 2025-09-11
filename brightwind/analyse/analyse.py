@@ -28,7 +28,7 @@ __all__ = ['monthly_means',
            'TI',
            'sector_ratio',
            'calc_air_density',
-           'lapse_temp']
+           'lapse_temperature']
 
 
 def dist_matrix(var_series, x_series, y_series,
