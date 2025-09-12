@@ -20,6 +20,10 @@ __all__ = ['average_data_by_period',
            'apply_wspd_slope_offset_adj',
            'apply_device_orientation_offset']
 
+_warned_a = False  # warning for pandas 'A' frequency string so only shows once
+_warned_as = False  # warning for pandas 'AS' frequency string so only shows once
+_warned_h = False  # warning for pandas 'H' frequency string so only shows once
+
 
 def _compute_wind_vector(wspd, wdir):
     """
@@ -40,16 +44,52 @@ def _freq_str_to_dateoffset(period):
     :return:       A pd.DateOffset
     :rtype:        pd.DateOffset
     """
+    global _warned_a
+    global _warned_as
+    global _warned_h
+
     if period[-1] == 'M':
         as_dateoffset = pd.DateOffset(months=int(period[:-1]))
     elif period[-2:] == 'MS':
         as_dateoffset = pd.DateOffset(months=int(period[:-2]))
+    elif period[-1] == 'A':
+        if not _warned_a:
+            warnings.warn(
+                "'A' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_a = True
+        as_dateoffset = pd.DateOffset(years=float(period[:-1]))
+    elif period[-2:] == 'AS':
+        if not _warned_as:
+            warnings.warn(
+                "'AS' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'YS' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_as = True
+        as_dateoffset = pd.DateOffset(years=float(period[:-2]))
     elif period[-2:] == 'YS':
         as_dateoffset = pd.DateOffset(years=float(period[:-2]))
     elif period[-1:] == 'W':
         as_dateoffset = pd.DateOffset(weeks=float(period[:-1]))
     elif period[-1:] == 'D':
         as_dateoffset = pd.DateOffset(days=float(period[:-1]))
+    elif period[-1:] == 'H':
+        if not _warned_h:
+            warnings.warn(
+                "'H' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'h' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_h = True
+        as_dateoffset = pd.DateOffset(hours=float(period[:-1]))
     elif period[-1:] == 'h':
         as_dateoffset = pd.DateOffset(hours=float(period[:-1]))
     elif period[-1:] == 'T':
@@ -335,7 +375,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
             - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
-            - Set period to '1A' for annual average with the timestamp at the start of the year.
+            - Set period to '1YS' for annual average with the timestamp at the start of the year.
 
     :type period:              str
     :param wdir_column_names:  List of wind direction column names. These columns, if the aggregation_method is mean,
@@ -702,7 +742,7 @@ def merge_datasets_by_period(data_1, data_2, period,
             - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
-            - Set period to '1A' for annual average with the timestamp at the start of the year.
+            - Set period to '1YS' for annual average with the timestamp at the start of the year.
 
     :type period:                str
     :param wdir_column_names_1:  List of wind direction column names. These columns, if the aggregation_method is mean,
@@ -1275,14 +1315,14 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
                         - Set offset to 10min to add 10 minutes to each timestamp, -10min to subtract 10 minutes and so
                           on for 4min, 20min, etc.
-                        - Set offset to 1H to add 1 hour to each timestamp and -1H to subtract and so on for 5H, 6H,
+                        - Set offset to 1h to add 1 hour to each timestamp and -1h to subtract and so on for 5h, 6h,
                           etc.
                         - Set offset to 1D to add a day and -1D to subtract and so on for 5D, 7D, 15D, etc.
                         - Set offset to 1W to add a week and -1W to subtract from each timestamp and so on for 2W,
                           4W, etc.
                         - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on
                           for 2M, 3M, etc.
-                        - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on
+                        - Set offset to 1Y to add an year and -1Y to subtract a year from each timestamp and so on
                           for 2Y, 3Y, etc.
 
     :type offset:       str
@@ -1327,7 +1367,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
         op4 = bw.offset_timestamps(data.index, offset='-10min', date_from='2016-02-01 00:20:00',
             date_to='2016-02-01 01:40:00')
 
-        # Can also except decimal values for offset, like 3.5H for 3 hours and 30 minutes
+        # Can also except decimal values for offset, like 3.5h for 3 hours and 30 minutes
         op5 = bw.offset_timestamps(data.index, offset='3.5h', date_from='2016-02-01 00:20:00',
             date_to='2016-02-01 01:40:00')
 
