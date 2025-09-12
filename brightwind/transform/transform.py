@@ -24,6 +24,7 @@ _warned_a = False  # warning for pandas 'A' frequency string so only shows once
 _warned_as = False  # warning for pandas 'AS' frequency string so only shows once
 _warned_h = False  # warning for pandas 'H' frequency string so only shows once
 _warned_t = False  # warning for pandas 'T' frequency string so only shows once
+_warned_s = False  # warning for pandas 'S' frequency string so only shows once
 
 
 def _compute_wind_vector(wspd, wdir):
@@ -49,6 +50,7 @@ def _freq_str_to_dateoffset(period):
     global _warned_as
     global _warned_h
     global _warned_t
+    global _warned_s
 
     if period[-1] == 'M':
         as_dateoffset = pd.DateOffset(months=int(period[:-1]))
@@ -108,9 +110,20 @@ def _freq_str_to_dateoffset(period):
     elif period[-3:] == 'min':
         as_dateoffset = pd.DateOffset(minutes=float(period[:-3]))
     elif period[-1:] == 'S':
+        if not _warned_s:
+            warnings.warn(
+                "'S' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 's' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_s = True
+        as_dateoffset = pd.DateOffset(seconds=float(period[:-1]))
+    elif period[-1:] == 's':
         as_dateoffset = pd.DateOffset(seconds=float(period[:-1]))
     else:
-        raise ValueError('"{}" period not recognized. Only units "M", "MS", "YS", "W", "D", "h", "T", "min", "S" '
+        raise ValueError('"{}" period not recognized. Only units "M", "MS", "YS", "W", "D", "h", "T", "min", "s" '
                          'are recognized'.format(period))
     return as_dateoffset
 
