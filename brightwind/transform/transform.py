@@ -23,6 +23,7 @@ __all__ = ['average_data_by_period',
 _warned_a = False  # warning for pandas 'A' frequency string so only shows once
 _warned_as = False  # warning for pandas 'AS' frequency string so only shows once
 _warned_h = False  # warning for pandas 'H' frequency string so only shows once
+_warned_t = False  # warning for pandas 'T' frequency string so only shows once
 
 
 def _compute_wind_vector(wspd, wdir):
@@ -47,6 +48,7 @@ def _freq_str_to_dateoffset(period):
     global _warned_a
     global _warned_as
     global _warned_h
+    global _warned_t
 
     if period[-1] == 'M':
         as_dateoffset = pd.DateOffset(months=int(period[:-1]))
@@ -93,6 +95,15 @@ def _freq_str_to_dateoffset(period):
     elif period[-1:] == 'h':
         as_dateoffset = pd.DateOffset(hours=float(period[:-1]))
     elif period[-1:] == 'T':
+        if not _warned_t:
+            warnings.warn(
+                "'T' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'min' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_t = True
         as_dateoffset = pd.DateOffset(minutes=float(period[:-1]))
     elif period[-3:] == 'min':
         as_dateoffset = pd.DateOffset(minutes=float(period[:-3]))
