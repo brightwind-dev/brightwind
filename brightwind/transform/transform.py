@@ -123,7 +123,7 @@ def _freq_str_to_dateoffset(period):
     elif period[-1:] == 's':
         as_dateoffset = pd.DateOffset(seconds=float(period[:-1]))
     else:
-        raise ValueError('"{}" period not recognized. Only units "M", "MS", "YS", "W", "D", "h", "T", "min", "s" '
+        raise ValueError('"{}" period not recognized. Only units "M", "MS", "YS", "W", "D", "h", "min", "s" '
                          'are recognized'.format(period))
     return as_dateoffset
 
