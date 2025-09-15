@@ -28,6 +28,7 @@ __all__ = ['monthly_means',
            'TI',
            'sector_ratio',
            'calc_air_density',
+           'lapse_density',
            'extrapolate_temperature']
 
 
@@ -2066,7 +2067,65 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         raise TypeError('elevation_ref should be a number')
     else:
         return ref_air_density
+
+
+def lapse_density(reference_density_kg_m3, reference_height_m, target_height_m, lapse_rate=-0.000113, print_details=False):
+    """
+    Lapses air density measurement (reference_density_kg_m3) from its measurement height (reference_height_m) to the height specified as target_height_m, using lapse_rate.
     
+    :param reference_density_kg_m3:     Air density value(s) in kg/m3
+    :type reference_density_kg_m3:      float or pandas.Series
+    :param reference_height_m:          Height (in metres) at which reference_density_kg_m3 is valid
+    :type reference_height_m            Float
+    :param target_height_m:             Height (in metres) to lapse reference_density_kg_m3 to / height of output air density
+    :type target_height_m:              Float
+    :param lapse_rate:                  Lapse rate describes how air density changes with increasing height above the earth's surface in kg/m3/m.
+                                        Default value of -0.113 kg/m3 per km above the earth's surface (or -0.000113 kg/m3/m).
+    :type lapse_rate:                   Float (default -0.000113)
+    :param print_details:               If True, print details of the lapse rate used and air density value(s) before and after lapsing
+    :type print_details:                Boolean (default False)
+    :return:                            Air density at specified height of target_height_m in kg/m3
+    :rtype:                             Float or pandas.Series depending on type(reference_density_kg_m3) input
+
+        **Example usage**
+    ::
+
+    import brightwind as bw
+
+    bw.lapse_density(reference_density_kg_m3=1.224, reference_height_m=80, target_height_m=100)
+    # 1.22174
+
+    bw.lapse_density(reference_density_kg_m3=1.224, reference_height_m=80, target_height_m=100,lapse_rate=-0.0002,print_details=True)
+    # Air density of 1.224 kg/m3 (80 m) lapsed to 1.22 kg/m3 (100 m) using lapse rate of -0.0002 kg/m3/m
+    # 1.22
+
+    DATA = bw.load_csv(bw.demo_datasets.demo_data)
+    DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
+
+    test_data = DATA.loc['2016-01-09 17:10':'2016-01-09 18:00']
+    test_density = bw.calc_air_density(test_data.T2m, test_data.P2m)
+
+    bw.lapse_density(reference_density_kg_m3=test_density, reference_height_m=2, target_height_m=10)
+    # Timestamp
+    # 2016-01-09 17:10:00    1.18678
+    # 2016-01-09 17:20:00    1.18717
+    # 2016-01-09 17:30:00    1.18775
+    # 2016-01-09 17:40:00    1.18595
+    # 2016-01-09 17:50:00    1.18630
+    # 2016-01-09 18:00:00    1.18569
+    # dtype: float64
+    """
+
+    density_lapsed = reference_density_kg_m3 + lapse_rate * (target_height_m - reference_height_m)
+    
+    if print_details:
+        if type(reference_density_kg_m3) == pd.Series:
+            print(f"Air density lapsed from {reference_height_m} m to {target_height_m} m using lapse rate of {lapse_rate} kg/m3/m:")
+            density_lapsed_df = pd.concat({f"density_{reference_height_m}m":reference_density_kg_m3, f"density_{target_height_m}m":density_lapsed}, axis = 1)
+            print(density_lapsed_df)
+        else:
+            print(f"Air density of {reference_density_kg_m3} kg/m3 ({reference_height_m} m) lapsed to {density_lapsed} kg/m3 ({target_height_m} m) using lapse rate of {lapse_rate} kg/m3/m")
+    return round(density_lapsed, 5)    
 
 def extrapolate_temperature(reference_temperature_degC_K, reference_height_m, target_height_m, lapse_rate=-0.0065, print_details=False):
     """
