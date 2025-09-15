@@ -28,7 +28,7 @@ __all__ = ['monthly_means',
            'TI',
            'sector_ratio',
            'calc_air_density',
-           'lapse_temperature']
+           'extrapolate_temperature']
 
 
 def dist_matrix(var_series, x_series, y_series,
@@ -2068,15 +2068,15 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         return ref_air_density
     
 
-def lapse_temperature(reference_temperature_degC_K, reference_height_m, target_height_m, lapse_rate=-0.0065, print_details=False):
+def extrapolate_temperature(reference_temperature_degC_K, reference_height_m, target_height_m, lapse_rate=-0.0065, print_details=False):
     """
     Lapses temperature measurement (reference_temperature_degC_K) from its measurement height (reference_height_m) to the height specified as target_height_m, using lapse_rate.
     
     :param reference_temperature_degC_K:     Temperature value(s) in degrees Celsius (or Kelvin)
     :type reference_temperature_degC_K:      float or pandas.Series
     :param reference_height_m:    Height (in metres) at which reference_temperature_degC_K is valid
-    :type reference_height_m      Float
-    :param target_height_m:    Height (in metres) to lapse reference_temperature_degC_K to / height of output temperature
+    :type reference_height_m:      Float
+    :param target_height_m:    Height (in metres) to extrapolate reference_temperature_degC_K to / height of output temperature
     :type target_height_m:     Float
     :param lapse_rate:      Lapse rate describes how temperature changes with increasing height above the earth's surface in °C/m.
                             Default value of -6.5 degrees Celsius per km above the earth's surface (or -0.0065 °C/m) is commonly used as an approximation of the atmospheric lapse rate.
@@ -2096,17 +2096,17 @@ def lapse_temperature(reference_temperature_degC_K, reference_height_m, target_h
 
     import brightwind as bw
 
-    bw.lapse_temperature(reference_temperature_degC_K=10.0065, reference_height_m=10, target_height_m=11)
+    bw.extrapolate_temperature(reference_temperature_degC_K=10.0065, reference_height_m=10, target_height_m=11)
     # 10.0
 
-    bw.lapse_temperature(reference_temperature_degC_K=10, reference_height_m=12, target_height_m=10, lapse_rate=-0.001, print_details=True)
-    # Temperature of 10 °C (12 m) lapsed to 10.002 °C (10 m) using lapse rate of -0.001 °C/m
+    bw.extrapolate_temperature(reference_temperature_degC_K=10, reference_height_m=12, target_height_m=10, lapse_rate=-0.001, print_details=True)
+    # Temperature of 10 °C (12 m) extrapolated to 10.002 °C (10 m) using lapse rate of -0.001 °C/m
     # 10.002
 
     DATA = bw.load_csv(bw.demo_datasets.demo_data)
     DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 
-    bw.lapse_temperature(reference_temperature_degC_K=DATA.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'], reference_height_m=2, target_height_m=20)
+    bw.extrapolate_temperature(reference_temperature_degC_K=DATA.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'], reference_height_m=2, target_height_m=20)
     # Timestamp
     # 2016-01-09 17:10:00    0.837
     # 2016-01-09 17:20:00    0.746
@@ -2117,13 +2117,13 @@ def lapse_temperature(reference_temperature_degC_K, reference_height_m, target_h
     # Name: T2m, dtype: float64
     """
 
-    temp_lapsed = reference_temperature_degC_K + lapse_rate * (target_height_m - reference_height_m)
+    temp_extrapolated = utils.vertically_extrapolate_at_constant_rate(variable_reference_value=reference_temperature_degC_K, reference_height=reference_height_m, target_height=target_height_m, lapse_rate=lapse_rate)
     
     if print_details:
         if type(reference_temperature_degC_K) == pd.Series:
-            print(f"Temperatures lapsed from {reference_height_m} m to {target_height_m} m using lapse rate of {lapse_rate} °C/m:")
-            temp_lapsed_df = pd.concat({f"Temp_{reference_height_m}m":reference_temperature_degC_K, f"Temp_{target_height_m}m":temp_lapsed}, axis = 1)
-            print(temp_lapsed_df)
+            print(f"Temperatures extrapolated from {reference_height_m} m to {target_height_m} m using lapse rate of {lapse_rate} °C/m:")
+            temp_extrapolated_df = pd.concat({f"Temp_{reference_height_m}m":reference_temperature_degC_K, f"Temp_{target_height_m}m":temp_extrapolated}, axis = 1)
+            print(temp_extrapolated_df)
         else:
-            print(f"Temperature of {reference_temperature_degC_K} °C ({reference_height_m} m) lapsed to {temp_lapsed} °C ({target_height_m} m) using lapse rate of {lapse_rate} °C/m")
-    return temp_lapsed
+            print(f"Temperature of {reference_temperature_degC_K} °C ({reference_height_m} m) extrapolated to {temp_extrapolated} °C ({target_height_m} m) using lapse rate of {lapse_rate} °C/m")
+    return temp_extrapolated
