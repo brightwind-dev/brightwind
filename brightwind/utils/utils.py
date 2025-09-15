@@ -8,7 +8,8 @@ __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
            'is_file_extension',
-           'validate_json']
+           'validate_json',
+           'vertically_extrapolate_at_constant_rate']
 
 
 def _range_0_to_360(direction):
@@ -252,3 +253,34 @@ def validate_json(json_to_check, schema):
             print(f"Failed schema part: {error.get('schema_path')}\n")
     
     return data_is_valid
+
+def vertically_extrapolate_at_constant_rate(variable_reference_value, reference_height, target_height, lapse_rate):
+    """
+    Perform vertical extrapolation from a known reference value of a variable (variable_reference_value) at the height of reference_height.
+    Output value of the variable at the target_height (variable_extrapolated_value), 
+    assuming that the rate of change of the variable with height is constant and equal to the lapse_rate.
+    
+    :param variable_reference_value:        Values of variable at reference_height
+    :type variable_reference_value:         float or pandas.Series
+    :param reference_height:                Height at which variable_reference_value is valid
+    :type reference_height:                 Float
+    :param target_height:                   Height to extrapolate variable to / height of output
+    :type target_height:                    Float
+    :param lapse_rate:                      Lapse rate describes how variable changes with increasing height above the earth's surface.
+                                            The units of the lapse rate should be consistent with the units in which the reference_height and target_height are provided.
+    :type lapse_rate:                       Float
+    :return:                                Value of variable at specified height of target_height
+    :rtype:                                 Float or pandas.Series depending on type(variable_reference_value) input
+
+        **Example usage**
+    ::
+
+    # lapse reference temperature of 10 degC at 5m to get temperature at 10m, assuming temperature decreases by 0.5 degrees per meter above earth's surface:
+
+    bw.utils.utils.vertically_extrapolate_at_constant_rate(variable_reference_value=10, reference_height=5, target_height=10, lapse_rate=-0.5)
+    # 7.5
+    """
+    variable_extrapolated_value = variable_reference_value + lapse_rate * (target_height - reference_height)
+    return variable_extrapolated_value
+
+
