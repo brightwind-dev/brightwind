@@ -2013,55 +2013,78 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     return fig
 
 
-def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=None, lapse_rate=-0.113,
-                     specific_gas_constant=286.9):
+def calc_air_density(temperature_degC, pressure_hPa_mbar, relative_humidity_percent = 0, elevation_ref_m=None, elevation_site_m=None, lapse_rate=-0.113,
+                     specific_gas_constant=287.05):
     """
-    Calculates air density for a given temperature and pressure and extrapolates that to the site if both reference
-    and site elevations are given.
+    Calculates air density for a given temperature (temperature_degC), pressure (pressure_hPa_mbar) and humidity (relative_humidity_percent) using method outlined in IEC Standard (61400-12-1).
+    Option to extrapolate air density to the elevation of the site if both the reference elevation (elevation_ref_m)
+    and site elevation (elevation_site_m) are provided. The extrapolation is assumes air density decreases with increasing altitude above the earth's surface -
+    a constant air density lapse rate of -0.113 kg/m3/km is adopted.
 
-    :param temperature: Temperature values in degree Celsius
-    :type temperature: float or pandas.Series or pandas.DataFrame
-    :param pressure: Pressure values in hectopascal, hPa, (1,013.25 hPa = 101,325 Pa = 101.325 kPa =
-                    1 atm = 1013.25 mbar)
-    :type pressure: float or pandas.Series or pandas.DataFrame
-    :param elevation_ref: Elevation, in meters, of the reference temperature and pressure location.
-    :type elevation_ref: Floating point value (decimal number)
-    :param elevation_site: Elevation, in meters, of the site location to calculate air density for.
-    :type elevation_site: Floating point values (decimal number)
-    :param lapse_rate: Air density lapse rate kg/m^3/km, default is -0.113
-    :type lapse_rate: Floating point value (decimal number)
-    :param specific_gas_constant: Specific gas constant, R, for humid air J/(kg.K), default is 286.9
-    :type specific_gas_constant:  Floating point value (decimal number)
-    :return: Air density in kg/m^3
-    :rtype: float or pandas.Series depending on the input
+    :param temperature_degC:        Temperature values in degree Celsius
+    :type temperature_degC:         float or pandas.Series
+    :param pressure_hPa_mbar:       Pressure values in hectopascal, hPa or millibar, mbar (Note 1hPa = 1mbar) 
+                                    (1,013.25 hPa = 101,325 Pa = 101.325 kPa = 1 atm = 1013.25 mbar)
+    :type pressure_hPa_mbar:        float or pandas.Series
+    :param elevation_ref_m:         Elevation, in meters, of the reference temperature, pressure and humidity measurement location.
+    :type elevation_ref_m:          Float
+    :param elevation_site_m:        Elevation, in meters, of the site location for which air density is calculated.
+                                    Air density value calculated with reference temperature, pressure and humidity are extrapolated from elevation_ref_m to elevation_site_m if both are specified.
+    :type elevation_site_m:         Float
+    :param lapse_rate:              Air density lapse rate kg/m^3/km
+    :type lapse_rate:               Float (default -0.113)
+    :param specific_gas_constant:   Specific gas constant, R - default value is for dry air J/(kg.K)
+    :type specific_gas_constant:    Float (default 287.05)
+    :return:                        Air density in kg/m^3
+    :rtype:                         float or pandas.Series depending on the input
 
         **Example usage**
     ::
         import brightwind as bw
 
-        #For a series of air densities
-        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
-        air_density = bw.calc_air_density(data.T2m, data.P2m)
+        # Input temperature and pressure series (humidity = 0 by default)
+        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data).head(5)
+        bw.calc_air_density(data.T2m, data.P2m)
+        # Timestamp
+        # 2016-01-09 15:30:00    1.18939
+        # 2016-01-09 15:40:00    1.18974
+        # 2016-01-09 17:00:00    1.18632
+        # 2016-01-09 17:10:00    1.18706
+        # 2016-01-09 17:20:00    1.18746
+        # dtype: float64
 
-        #For a single value
-        bw.calc_air_density(15, 1013)
+        # Input temperature, pressure and humidity series
+        bw.calc_air_density(data.T2m, data.P2m, data.RH2m)
+        # Timestamp
+        # 2016-01-09 15:30:00    1.18616
+        # 2016-01-09 15:40:00    1.18653
+        # 2016-01-09 17:00:00    1.18301
+        # 2016-01-09 17:10:00    1.18379
+        # 2016-01-09 17:20:00    1.18420
+        # dtype: float64
+
+        #Input single float value for each of temperature/pressure/humidity
+        bw.calc_air_density(15, 1013, 50)
+        # 1.22093
 
         #For a single value with ref and site elevation
-        bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200)
-
+        bw.calc_air_density(15, 1013, 50, elevation_ref_m=0, elevation_site_m=200)
+        # 1.19833
     """
+    lapse_rate_per_m = lapse_rate*0.001 # convert lapse rate from kg/m3/km to kg/m3/m
+    temperature_K = temperature_degC + 273.15
+    pressure_Pa = pressure_hPa_mbar*100 
+    vapour_pressure = 0.0000205*np.exp(0.0631846*temperature_K)
+    specific_gas_constant_water = 461.5
+    relative_humidity_decimal = relative_humidity_percent*0.01
+    density = (1/temperature_K)*((pressure_Pa/specific_gas_constant)-relative_humidity_decimal*vapour_pressure*((1/specific_gas_constant)-(1/specific_gas_constant_water)))
 
-    temp = temperature
-    temp_kelvin = temp + 273.15     # to convert deg C to Kelvin.
-    pressure = pressure * 100       # to convert hPa to Pa
-    ref_air_density = pressure / (specific_gas_constant * temp_kelvin)
-
-    if elevation_ref is not None and elevation_site is not None:
-        site_air_density = round(ref_air_density + (((elevation_site - elevation_ref) / 1000) * lapse_rate), 3)
+    if elevation_ref_m is not None and elevation_site_m is not None:
+        site_air_density = extrapolate_density(density, elevation_ref_m, elevation_site_m, lapse_rate=lapse_rate_per_m)
         return site_air_density
-    elif elevation_site is None and elevation_ref is not None:
-        raise TypeError('elevation_site should be a number')
-    elif elevation_site is not None and elevation_ref is None:
-        raise TypeError('elevation_ref should be a number')
+    elif elevation_site_m is None and elevation_ref_m is not None:
+        raise TypeError('Specify value of elevation_site_m (float)')
+    elif elevation_site_m is not None and elevation_ref_m is None:
+        raise TypeError('Specify value of elevation_ref_m (float)')
     else:
-        return ref_air_density
+        return round(density, 5)

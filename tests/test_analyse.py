@@ -634,16 +634,16 @@ def test_ti_by_sector():
 def test_calc_air_density():
     bw.calc_air_density(DATA[['T2m']], DATA[['P2m']])
     bw.calc_air_density(DATA.T2m, DATA.P2m)
-    bw.calc_air_density(DATA.T2m, DATA.P2m, elevation_ref=0, elevation_site=200)
+    bw.calc_air_density(DATA.T2m, DATA.P2m, elevation_ref_m=0, elevation_site_m=200)
 
     with pytest.raises(TypeError) as except_info:
-        bw.calc_air_density(15, 1013, elevation_site=200)
-    assert str(except_info.value) == 'elevation_ref should be a number'
+        bw.calc_air_density(15, 1013, elevation_site_m=200)
+    assert str(except_info.value) == 'Specify value of elevation_ref_m (float)'
     with pytest.raises(TypeError) as except_info:
-        bw.calc_air_density(15, 1013, elevation_ref=200)
-    assert str(except_info.value) == 'elevation_site should be a number'
+        bw.calc_air_density(15, 1013, elevation_ref_m=200)
+    assert str(except_info.value) == 'Specify value of elevation_site_m (float)'
     assert abs(bw.calc_air_density(15, 1013) - 1.225) < 1e-3
-    assert abs(bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200) - 1.203) < 1e-3
+    assert abs(bw.calc_air_density(15, 1013, elevation_ref_m=0, elevation_site_m=200) - 1.20211) < 1e-3
     assert (abs(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])) -
                 pd.Series([1.225, 1.208, 1.326, 1.059])) < 1e-3).all()
 
