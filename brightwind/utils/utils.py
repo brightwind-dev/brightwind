@@ -8,8 +8,7 @@ __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
            'is_file_extension',
-           'validate_json',
-           'vertically_extrapolate_at_constant_rate']
+           'validate_json']
 
 
 def _range_0_to_360(direction):

@@ -2186,5 +2186,6 @@ def scale_air_temperature_to_height(
     # Name: T2m, dtype: float64
     """
 
-    temp_extrapolated = utils._linear_transform(x_target=target_height_m, x_ref=reference_height_m, y_ref=reference_air_temperature, slope = lapse_rate_deg_m)
+    temp_extrapolated = utils._linear_transform(x_target=target_height_m, x_ref=reference_height_m,
+                                                 y_ref=reference_air_temperature, slope = lapse_rate_deg_m)
     return temp_extrapolated
