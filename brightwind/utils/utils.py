@@ -254,33 +254,30 @@ def validate_json(json_to_check, schema):
     
     return data_is_valid
 
-def vertically_extrapolate_at_constant_rate(variable_reference_value, reference_height, target_height, lapse_rate):
+
+def _linear_transform(x_target, x_ref, y_ref, slope):
     """
-    Perform vertical extrapolation from a known reference value of a variable (variable_reference_value) at the height of reference_height.
-    Output value of the variable at the target_height (variable_extrapolated_value), 
-    assuming that the rate of change of the variable with height is constant and equal to the lapse_rate.
+    Apply a linear transformation based on the equation of a straight line in point-slope form [y-y1 = m(x-x1) where m is the slope and (x1, y1) a known point on the line].
+    Calculate y_target values based on the input x_target values where a point (x_ref, y_ref) and the slope of the line are known.
     
-    :param variable_reference_value:        Values of variable at reference_height
-    :type variable_reference_value:         float or pandas.Series
-    :param reference_height:                Height at which variable_reference_value is valid
-    :type reference_height:                 Float
-    :param target_height:                   Height to extrapolate variable to / height of output
-    :type target_height:                    Float
-    :param lapse_rate:                      Lapse rate describes how variable changes with increasing height above the earth's surface.
-                                            The units of the lapse rate should be consistent with the units in which the reference_height and target_height are provided.
-    :type lapse_rate:                       Float
-    :return:                                Value of variable at specified height of target_height
-    :rtype:                                 Float or pandas.Series depending on type(variable_reference_value) input
+    :param x_target:        target x values at which to calculate y_target
+    :type x_target:         float or pandas.Series
+    :param x_ref:           reference x value where (x_ref, y_ref) is a known reference point on the line
+    :type x_ref:            float or pandas.Series
+    :param y_ref:           reference y value where (x_ref, y_ref) is a known reference point on the line
+    :type y_ref:            float or pandas.Series
+    :param slope:           slope of the line equal to (y2-y1)/(x2-x1) where (x1, y1) and (x2, y2) are any two points on the line
+    :type slope:            float or pandas.Series
+    :return:                value of y_target at specified x_target
+    :rtype:                 float or pandas.Series depending on type(x_target) input
 
         **Example usage**
     ::
-
-    # lapse reference temperature of 10 degC at 5m to get temperature at 10m, assuming temperature decreases by 0.5 degrees per meter above earth's surface:
-
-    bw.utils.utils.vertically_extrapolate_at_constant_rate(variable_reference_value=10, reference_height=5, target_height=10, lapse_rate=-0.5)
+    import brightwind as bw
+    
+    # calculate y_target for x_target = 10 where (x_ref, y_ref) = (5, 10) is a point on the line and the slope is -0.5.
+    bw.utils.utils._linear_transform(x_target=10, x_ref=5, y_ref=10, slope = -0.5)
     # 7.5
     """
-    variable_extrapolated_value = variable_reference_value + lapse_rate * (target_height - reference_height)
-    return variable_extrapolated_value
-
-
+    y_target = slope*(x_target - x_ref) + y_ref
+    return y_target

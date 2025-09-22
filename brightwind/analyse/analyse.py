@@ -28,8 +28,8 @@ __all__ = ['monthly_means',
            'TI',
            'sector_ratio',
            'calc_air_density',
-           'extrapolate_density',
-           'extrapolate_temperature']
+           'scale_air_density_to_height',
+           'scale_air_temperature_to_height']
 
 
 def dist_matrix(var_series, x_series, y_series,
@@ -2069,103 +2069,113 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         return ref_air_density
 
 
-def extrapolate_density(reference_density_kg_m3, reference_height_m, target_height_m, lapse_rate=-0.000113, print_details=False):
+def scale_air_density_to_height(
+        reference_air_density_kg_m3, reference_height_m, target_height_m, lapse_rate_kg_m3_m=-0.000113):
     """
-    Lapses air density measurement (reference_density_kg_m3) from its measurement height (reference_height_m) to the height specified as target_height_m, using lapse_rate.
+    Linearly scales reference air density measurement (reference_air_density_kg_m3) from its measurement height
+    (reference_height_m) to the height specified as the target_height_m, by applying a constant lapse_rate_kg_m3_m.
     
-    :param reference_density_kg_m3:     Air density value(s) in kg/m3
-    :type reference_density_kg_m3:      float or pandas.Series
-    :param reference_height_m:          Height (in metres) at which reference_density_kg_m3 is valid
-    :type reference_height_m            Float
-    :param target_height_m:             Height (in metres) to extrapolate reference_density_kg_m3 to / height of output air density
-    :type target_height_m:              Float
-    :param lapse_rate:                  Lapse rate describes how air density changes with increasing height above the earth's surface in kg/m3/m.
-                                        Default value of -0.113 kg/m3 per km above the earth's surface (or -0.000113 kg/m3/m).
-    :type lapse_rate:                   Float (default -0.000113)
-    :param print_details:               If True, print details of the lapse rate used and air density value(s) before and after lapsing
-    :type print_details:                Boolean (default False)
-    :return:                            Air density at specified height of target_height_m in kg/m3
-    :rtype:                             Float or pandas.Series depending on type(reference_density_kg_m3) input
+    :param reference_air_density_kg_m3:     Reference air density value(s) in kg/m3
+    :type reference_air_density_kg_m3:      float or pandas.Series
+    :param reference_height_m:              Height (in metres) at which reference_air_density_kg_m3 is valid
+    :type reference_height_m                float
+    :param target_height_m:                 Height (in metres) to extrapolate reference_air_density_kg_m3 to / height of output
+                                            air density
+    :type target_height_m:                  float
+    :param lapse_rate_kg_m3_m:              Lapse rate describes how air density changes with increasing height above the earth's
+                                            surface in kg/m3/m.
+                                            Default value of -0.113 kg/m3 per km above the earth's surface (or -0.000113 kg/m3/m).
+    :type lapse_rate_kg_m3_m:               float (default -0.000113)
+    :return:                                Air density at specified height of target_height_m in kg/m3
+    :rtype:                                 float or pandas.Series depending on type(reference_air_density_kg_m3) input
 
         **Example usage**
     ::
-
     import brightwind as bw
 
-    bw.extrapolate_density(reference_density_kg_m3=1.224, reference_height_m=80, target_height_m=100)
+    # scale float value of air density using default lapse_rate_kg_m3_m
+    bw.scale_air_density_to_height(reference_air_density_kg_m3=1.224, reference_height_m=80, target_height_m=100)
     # 1.22174
 
-    bw.extrapolate_density(reference_density_kg_m3=1.224, reference_height_m=80, target_height_m=100,lapse_rate=-0.0002,print_details=True)
-    # Air density of 1.224 kg/m3 (80 m) extrapolated to 1.22 kg/m3 (100 m) using lapse rate of -0.0002 kg/m3/m
+    # scale float value of air density using non-default value for lapse_rate_kg_m3_m
+    bw.scale_air_density_to_height(reference_air_density_kg_m3=1.224, reference_height_m=80, target_height_m=100, 
+                                    lapse_rate_kg_m3_m=-0.0002)
     # 1.22
 
-    DATA = bw.load_csv(bw.demo_datasets.demo_data)
-    DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
+    # scale air temperature based on series input values for reference air temperature
+DATA = bw.load_csv(bw.demo_datasets.demo_data)
+DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 
-    test_data = DATA.loc['2016-01-09 17:10':'2016-01-09 18:00']
-    test_density = bw.calc_air_density(test_data.T2m, test_data.P2m)
+bw.scale_air_temperature_to_height(reference_air_temperature=DATA.T2m,
+                                        reference_height_m=2, target_height_m=20).tail(5)
 
-    bw.extrapolate_density(reference_density_kg_m3=test_density, reference_height_m=2, target_height_m=10)
-    # Timestamp
-    # 2016-01-09 17:10:00    1.18678
-    # 2016-01-09 17:20:00    1.18717
-    # 2016-01-09 17:30:00    1.18775
-    # 2016-01-09 17:40:00    1.18595
-    # 2016-01-09 17:50:00    1.18630
-    # 2016-01-09 18:00:00    1.18569
-    # dtype: float64
+Timestamp
+2017-11-23 10:10:00    0.826
+2017-11-23 10:20:00    0.675
+2017-11-23 10:30:00    0.685
+2017-11-23 10:40:00    0.766
+2017-11-23 10:50:00    0.685
+Name: T2m, dtype: float64
     """
-
-    density_extrapolated = utils.vertically_extrapolate_at_constant_rate(variable_reference_value=reference_density_kg_m3, reference_height=reference_height_m, target_height=target_height_m, lapse_rate=lapse_rate)
-
-    if print_details:
-        if type(reference_density_kg_m3) == pd.Series:
-            print(f"Air density extrapolated from {reference_height_m} m to {target_height_m} m using lapse rate of {lapse_rate} kg/m3/m:")
-            density_extrapolated_df = pd.concat({f"density_{reference_height_m}m":reference_density_kg_m3, f"density_{target_height_m}m":density_extrapolated}, axis = 1)
-            print(density_extrapolated_df)
-        else:
-            print(f"Air density of {reference_density_kg_m3} kg/m3 ({reference_height_m} m) extrapolated to {density_extrapolated} kg/m3 ({target_height_m} m) using lapse rate of {lapse_rate} kg/m3/m")
-    return round(density_extrapolated, 5)    
-
-def extrapolate_temperature(reference_temperature_degC_K, reference_height_m, target_height_m, lapse_rate=-0.0065, print_details=False):
-    """
-    Lapses temperature measurement (reference_temperature_degC_K) from its measurement height (reference_height_m) to the height specified as target_height_m, using lapse_rate.
     
-    :param reference_temperature_degC_K:     Temperature value(s) in degrees Celsius (or Kelvin)
-    :type reference_temperature_degC_K:      float or pandas.Series
-    :param reference_height_m:    Height (in metres) at which reference_temperature_degC_K is valid
-    :type reference_height_m:      Float
-    :param target_height_m:    Height (in metres) to extrapolate reference_temperature_degC_K to / height of output temperature
-    :type target_height_m:     Float
-    :param lapse_rate:      Lapse rate describes how temperature changes with increasing height above the earth's surface in °C/m.
-                            Default value of -6.5 degrees Celsius per km above the earth's surface (or -0.0065 °C/m) is commonly used as an approximation of the atmospheric lapse rate.
-                            In particular, the IEC standards rely on the ISO2533:1975 Standard Atmosphere which states that a lapse rate of 6.5 K/km is valid for geopotential altitudes of up to 11 km above earth's surface. 
-                            This value was also adopeted in WASP 11:
-                            Mortensen, N. G., Heathfield, D. N., Rathmann, O., & Nielsen, M. (2014). 
-                            Wind Atlas Analysis and Application Program: WAsP 11 Help Facility. Computer programme, Department of Wind Energy, Technical University of Denmark
-                            https://orbit.dtu.dk/en/publications/wind-atlas-analysis-and-application-program-wasp-11-help-facility
-    :type lapse_rate:       Float (default -0.0065)
-    :param print_details:   If True, print details of the lapse rate used and temperature value(s) before and after lapsing
-    :type print_details:    Boolean (default False)
-    :return:                Temperature at specified height of target_height_m in degrees Celius (or Kelvin, if reference_temperature_degC_K input is in Kelvin)
-    :rtype:                 Float or pandas.Series depending on type(reference_temperature_degC_K) input
+    density_extrapolated = utils._linear_transform(x_target=target_height_m, x_ref=reference_height_m, y_ref=reference_air_density_kg_m3, slope = lapse_rate_kg_m3_m)
+    return round(density_extrapolated, 5)  
+
+
+def scale_air_temperature_to_height(
+        reference_air_temperature, reference_height_m, target_height_m, lapse_rate_deg_m=-0.0065):
+    """
+    Linearly scales reference air temperature measurement (reference_air_temperature) from its measurement height
+    (reference_height_m) to the height specified as target_height_m, by applying the constant lapse_rate_deg_m.
+    
+    :param reference_air_temperature:       Temperature value(s) in degrees [for example in Celsius or Kelvin]
+    :type reference_air_temperature:        float or pandas.Series
+    :param reference_height_m:              Measurement height (in metres) of reference_air_temperature
+    :type reference_height_m:               float
+    :param target_height_m:                 Height (in metres) of output temperature that reference_air_temperature
+                                            is scaled to
+    :type target_height_m:                  float
+    :param lapse_rate_deg_m:                Lapse rate describes how temperature changes with increasing height
+                                            above the earth's surface. 
+                                            Units should be degrees of temperature per unit of height, e.g. °C/m
+                                            or K/m.
+                                            Default value of -6.5 degrees Celsius per km above the earth's surface
+                                            (or -0.0065 °C/m) is commonly used as an approximation of the
+                                            atmospheric lapse rate.
+                                            In particular, the IEC standards rely on the ISO2533:1975 Standard Atmosphere
+                                            which states that a lapse rate of 6.5 K/km is valid for geopotential altitudes
+                                            of up to 11 km above earth's surface. 
+                                            This value was also adopeted in WASP 11:
+                                            Mortensen, N. G., Heathfield, D. N., Rathmann, O., & Nielsen, M. (2014). 
+                                            Wind Atlas Analysis and Application Program: WAsP 11 Help Facility.Computer
+                                            programme, Department of Wind Energy, Technical University of Denmark
+                                            https://orbit.dtu.dk/en/publications/wind-atlas-analysis-and-application-program-wasp-11-help-facility
+    :type lapse_rate_deg_m:                 float (default -0.0065)
+    :return:                                Temperature at specified height of target_height_m in same unit as input
+                                            reference_air_temperature [for example in Celsius or Kelvin].
+    :rtype:                                 float or pandas.Series depending on type(reference_air_temperature) input
 
         **Example usage**
     ::
 
     import brightwind as bw
 
-    bw.extrapolate_temperature(reference_temperature_degC_K=10.0065, reference_height_m=10, target_height_m=11)
+    # scale air temperature based on float input value for reference air temperature
+    bw.scale_air_temperature_to_height(reference_air_temperature=10.0065, reference_height_m=10, target_height_m=11)
     # 10.0
 
-    bw.extrapolate_temperature(reference_temperature_degC_K=10, reference_height_m=12, target_height_m=10, lapse_rate=-0.001, print_details=True)
+    # scale air temperature based on float input value for reference air temperature with non-default lapse_rate_deg_m
+    bw.scale_air_temperature_to_height(reference_air_temperature=10, reference_height_m=12, target_height_m=10, 
+                                        lapse_rate_deg_m=-0.001, print_details=True)
     # Temperature of 10 °C (12 m) extrapolated to 10.002 °C (10 m) using lapse rate of -0.001 °C/m
     # 10.002
 
+    # scale air temperature based on series input values for reference air temperature
     DATA = bw.load_csv(bw.demo_datasets.demo_data)
     DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 
-    bw.extrapolate_temperature(reference_temperature_degC_K=DATA.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'], reference_height_m=2, target_height_m=20)
+    bw.scale_air_temperature_to_height(reference_air_temperature=DATA.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+                                         reference_height_m=2, target_height_m=20)
     # Timestamp
     # 2016-01-09 17:10:00    0.837
     # 2016-01-09 17:20:00    0.746
@@ -2176,13 +2186,5 @@ def extrapolate_temperature(reference_temperature_degC_K, reference_height_m, ta
     # Name: T2m, dtype: float64
     """
 
-    temp_extrapolated = utils.vertically_extrapolate_at_constant_rate(variable_reference_value=reference_temperature_degC_K, reference_height=reference_height_m, target_height=target_height_m, lapse_rate=lapse_rate)
-    
-    if print_details:
-        if type(reference_temperature_degC_K) == pd.Series:
-            print(f"Temperatures extrapolated from {reference_height_m} m to {target_height_m} m using lapse rate of {lapse_rate} °C/m:")
-            temp_extrapolated_df = pd.concat({f"Temp_{reference_height_m}m":reference_temperature_degC_K, f"Temp_{target_height_m}m":temp_extrapolated}, axis = 1)
-            print(temp_extrapolated_df)
-        else:
-            print(f"Temperature of {reference_temperature_degC_K} °C ({reference_height_m} m) extrapolated to {temp_extrapolated} °C ({target_height_m} m) using lapse rate of {lapse_rate} °C/m")
+    temp_extrapolated = utils._linear_transform(x_target=target_height_m, x_ref=reference_height_m, y_ref=reference_air_temperature, slope = lapse_rate_deg_m)
     return temp_extrapolated
