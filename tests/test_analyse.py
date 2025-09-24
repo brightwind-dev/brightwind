@@ -659,14 +659,14 @@ def test_dist_matrix_by_direction_sector():
                                  var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
 
-def test_scale_pressure_to_height():
-    assert bw.scale_pressure_to_height(ref_pressure_hPa=1000, ref_temp_degC=12,
+def test_scale_air_pressure_to_height():
+    assert bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
                                        ref_height_m=10, target_height_m=200) == 977.45
-    assert bw.scale_pressure_to_height(ref_pressure_hPa=1000, ref_temp_degC=12,
+    assert bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
                                        ref_height_m=10, target_height_m=15) == 999.4
-    pd.testing.assert_series_equal(bw.scale_pressure_to_height(
-        ref_pressure_hPa=DATA['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
-        ref_temp_degC=DATA['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+    pd.testing.assert_series_equal(bw.scale_air_pressure_to_height(
+        ref_air_pressure_hPa=DATA['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        ref_air_temp_degC=DATA['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
         ref_height_m=2, target_height_m=10),
         pd.Series(data = [933.07, 933.07, 933.07, 932.07, 932.07, 932.07], 
         index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
