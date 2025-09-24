@@ -661,14 +661,14 @@ def test_dist_matrix_by_direction_sector():
 
 
 def test_scale_air_density_to_height():
-    assert bw.scale_air_density_to_height(reference_air_density_kg_m3=1.224, 
-                                        reference_height_m=80, target_height_m=100) == 1.22174
-    assert bw.scale_air_density_to_height(reference_air_density_kg_m3=1.224,
-                                        reference_height_m=80, target_height_m=100,lapse_rate_kg_m3_m=-0.0002) == 1.22
+    assert bw.scale_air_density_to_height(ref_air_density_kg_m3=1.224, 
+                                        ref_height_m=80, target_height_m=100) == 1.22174
+    assert bw.scale_air_density_to_height(ref_air_density_kg_m3=1.224,
+                                        ref_height_m=80, target_height_m=100,lapse_rate_kg_m3_m=-0.0002) == 1.22
     test_density = bw.calc_air_density(DATA.T2m, DATA.P2m)
     pd.testing.assert_series_equal(bw.scale_air_density_to_height(
-        reference_air_density_kg_m3=test_density.loc['2016-01-09 17:10':'2016-01-09 18:00'],
-        reference_height_m=2, target_height_m=10), 
+        ref_air_density_kg_m3=test_density.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        ref_height_m=2, target_height_m=10), 
         pd.Series(data = [1.18678, 1.18717, 1.18775, 1.18595, 1.1863 , 1.18569],
         index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
                                 '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
@@ -679,8 +679,8 @@ def test_scale_air_temperature_to_height():
     assert bw.scale_air_temperature_to_height(10.0065, 10, 11) == 10.0
     assert bw.scale_air_temperature_to_height(DATA.T2m.loc['2016-01-09 17:10'], 4, 2, lapse_rate_deg_m = -0.005)
     pd.testing.assert_series_equal(bw.scale_air_temperature_to_height(
-        reference_air_temperature=DATA.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'],
-        reference_height_m=2, target_height_m=20),
+        ref_air_temperature=DATA.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        ref_height_m=2, target_height_m=20),
         pd.Series(data=[0.837, 0.746, 0.614, 0.735, 0.654, 0.796], 
         index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
                                 '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
