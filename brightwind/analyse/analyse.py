@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import warnings
 import textwrap
 from matplotlib.ticker import PercentFormatter
+from brightwind.analyse import constants as constants
 
 __all__ = ['monthly_means',
            'momm',
@@ -2078,7 +2079,7 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa, ref_air_temp_degC, ref_he
     where:
     g = 9.80665 is acceleration due to gravity (m/s^2)
     L = -0.0065 is the temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
-    R = 287.05287 is the specific gas const = R_universal / molar_mass_of__dry_air (J/K/kg or m2/K/s2)
+    R = 287.05 is the specific gas const for dry air (J/K/kg or m2/K/s2)
     
     :param ref_air_pressure_hPa:            Reference air pressure value(s) in mbar or hPa (1mbar = 1hPa = 100Pa)
     :type ref_air_pressure_hPa:             float or pandas.Series
@@ -2120,10 +2121,10 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa, ref_air_temp_degC, ref_he
 
     """
     # Constants as outlined in ISO:2533
-    g = 9.80665 # acceleration due to gravity (m/s^2)
-    L = -0.0065 # temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
-    R = 287.05287 #  specific gas const = R_universal / molar_mass_of_air (J/K/kg or m2/K/s2)
-
+    g = constants.accel_due_to_gravity # acceleration due to gravity (m/s^2)
+    L = constants.temp_lapse_rate_standard_atmosphere # temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
+    R = constants.gas_const_dry_air #  specific gas const dry air
+    
     ref_air_temp_K = ref_air_temp_degC + 273.15 # convert temp units to K
     air_pressure_scaled_hPa = ref_air_pressure_hPa*((1 + (L/ref_air_temp_K)*(target_height_m - ref_height_m))**(-g/(L*R)))
     return round(air_pressure_scaled_hPa, 2)
