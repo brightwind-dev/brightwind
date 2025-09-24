@@ -2069,25 +2069,29 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
 
 def scale_pressure_to_height(ref_pressure_hPa, ref_temp_degC, ref_height_m, target_height_m):
     """
-    Calculates pressure at target height (target_height_m) using reference pressure (ref_pressure_hPa) and temperature (ref_temp_degC) values at a reference height (ref_height_m).
+    Calculates pressure at target height (target_height_m) using reference pressure (ref_pressure_hPa)
+    and temperature (ref_temp_degC) values at a reference height (ref_height_m).
 
-    Calculation based on ISO:2533-1975 Standard Atmosphere (https://www.iso.org/obp/ui/#iso:std:iso:2533:en) as suggested by IEC standard (61400-12-1):
+    Calculation based on ISO:2533-1975 Standard Atmosphere (https://www.iso.org/obp/ui/#iso:std:iso:2533:en)
+      as suggested by IEC standard (61400-12-1):
     pressure_scaled_hPa = ref_pressure_hPa*((1 + (L/ref_temp_K)*(target_height_m - ref_height_m))**(-g/(L*R)))
     where:
     g = 9.80665 is acceleration due to gravity (m/s^2)
     L = -0.0065 is the temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
     R = 287.05287 is the specific gas const = R_universal / molar_mass_of__dry_air (J/K/kg or m2/K/s2)
     
-    :param ref_pressure_hPa:       Reference pressure value(s) in mbar or hPa (1mbar = 1hPa = 100Pa)
-    :type ref_pressure_hPa:       float or pandas.Series
-    :param ref_temp_degC:         Reference temperature value(s) in degrees celsius
-    :type ref_temp_degC:           float or pandas.Series
-    :param ref_height_m:           Measurement height (in metres) of reference temperature (ref_temp_degC) and pressure (ref_pressure_hPa)
-    :type ref_height_m:            float
-    :param target_height_m:        Height (in metres) which ref_pressure_hPa is scaled to.
-    :type target_height_m          float
-    :return:                       Pressure at specified height of target_height_m in hPa
-    :rtype:                       float or pandas.Series depending on type(ref_pressure_hPa) and type(ref_temp_degC) inputs
+    :param ref_pressure_hPa:            Reference pressure value(s) in mbar or hPa (1mbar = 1hPa = 100Pa)
+    :type ref_pressure_hPa:             float or pandas.Series
+    :param ref_temp_degC:               Reference temperature value(s) in degrees celsius
+    :type ref_temp_degC:                float or pandas.Series
+    :param ref_height_m:                Measurement height (in metres) of reference temperature (ref_temp_degC)
+                                        and pressure (ref_pressure_hPa)
+    :type ref_height_m:                 float
+    :param target_height_m:             Height (in metres) which ref_pressure_hPa is scaled to.
+    :type target_height_m               float
+    :return:                            Pressure at specified height of target_height_m in hPa
+    :rtype:                             float or pandas.Series depending on type(ref_pressure_hPa) and
+                                        type(ref_temp_degC) inputs
 
         **Example usage**
     ::
@@ -2102,7 +2106,9 @@ def scale_pressure_to_height(ref_pressure_hPa, ref_temp_degC, ref_height_m, targ
     DATA = bw.load_csv(bw.demo_datasets.demo_data)
     DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 
-    bw.scale_pressure_to_height(ref_pressure_hPa=DATA['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'], ref_temp_degC=DATA['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'], ref_height_m=2, target_height_m=10)
+    bw.scale_pressure_to_height(ref_pressure_hPa=DATA['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+                                ref_temp_degC=DATA['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+                                ref_height_m=2, target_height_m=10)
     # Timestamp
     # 2016-01-09 17:10:00    933.07
     # 2016-01-09 17:20:00    933.07
