@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import warnings
 import textwrap
 from matplotlib.ticker import PercentFormatter
+from typing import Union
 
 __all__ = ['monthly_means',
            'momm',
@@ -2069,7 +2070,10 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         return ref_air_density
 
 
-def scale_air_density_to_height(ref_air_density_kg_m3, ref_height_m, target_height_m, lapse_rate_kg_m3_m=-0.000113):
+def scale_air_density_to_height(ref_air_density_kg_m3 : Union[float, pd.Series],
+                                ref_height_m : float,
+                                target_height_m : float,
+                                lapse_rate_kg_m3_m : float = -0.000113) -> Union[float, pd.Series]:
     """
     Linearly scales reference air density measurement (ref_air_density_kg_m3) from its measurement height
     (ref_height_m) to the height specified as the target_height_m, by applying a constant lapse_rate_kg_m3_m.
@@ -2122,7 +2126,10 @@ Name: T2m, dtype: float64
     return round(scaled_air_density, 5)  
 
 
-def scale_air_temperature_to_height(ref_air_temperature, ref_height_m, target_height_m, lapse_rate_deg_m=-0.0065):
+def scale_air_temperature_to_height(ref_air_temperature : Union[float, pd.Series],
+                                    ref_height_m : float,
+                                    target_height_m : float,
+                                    lapse_rate_deg_m : float = -0.0065) -> Union[float, pd.Series]:
     """
     Linearly scales reference air temperature measurement (ref_air_temperature) from its measurement height
     (ref_height_m) to the height specified as target_height_m, by applying the constant lapse_rate_deg_m.
