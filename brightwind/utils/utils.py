@@ -252,3 +252,31 @@ def validate_json(json_to_check, schema):
             print(f"Failed schema part: {error.get('schema_path')}\n")
     
     return data_is_valid
+
+
+def _linear_transform(x_target, x_ref, y_ref, slope):
+    """
+    Apply a linear transformation based on the equation of a straight line in point-slope form [y-y1 = m(x-x1) where m is the slope and (x1, y1) a known point on the line].
+    Calculate y_target values based on the input x_target values where a point (x_ref, y_ref) and the slope of the line are known.
+    
+    :param x_target:        target x values at which to calculate y_target
+    :type x_target:         float or pandas.Series
+    :param x_ref:           reference x value where (x_ref, y_ref) is a known reference point on the line
+    :type x_ref:            float or pandas.Series
+    :param y_ref:           reference y value where (x_ref, y_ref) is a known reference point on the line
+    :type y_ref:            float or pandas.Series
+    :param slope:           slope of the line equal to (y2-y1)/(x2-x1) where (x1, y1) and (x2, y2) are any two points on the line
+    :type slope:            float or pandas.Series
+    :return:                value of y_target at specified x_target
+    :rtype:                 float or pandas.Series depending on type(x_target) input
+
+        **Example usage**
+    ::
+    import brightwind as bw
+    
+    # calculate y_target for x_target = 10 where (x_ref, y_ref) = (5, 10) is a point on the line and the slope is -0.5.
+    bw.utils.utils._linear_transform(x_target=10, x_ref=5, y_ref=10, slope = -0.5)
+    # 7.5
+    """
+    y_target = slope*(x_target - x_ref) + y_ref
+    return y_target

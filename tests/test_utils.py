@@ -24,4 +24,3 @@ def test_slice_data():
 
     data_sliced = bw.utils.utils.slice_data(DATA, date_to='2017-10-23')
     assert data_sliced.index[0] == DATA.index[0]
-
