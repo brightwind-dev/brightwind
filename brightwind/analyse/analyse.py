@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import warnings
 import textwrap
 from matplotlib.ticker import PercentFormatter
+from typing import Union
 from brightwind.analyse import constants as constants
 
 __all__ = ['monthly_means',
@@ -2068,7 +2069,10 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
     else:
         return ref_air_density
 
-def scale_air_pressure_to_height(ref_air_pressure_hPa, ref_air_temp_degC, ref_height_m, target_height_m):
+def scale_air_pressure_to_height(ref_air_pressure_hPa : Union[float, pd.Series],
+                                 ref_air_temp_degC : Union[float, pd.Series],
+                                 ref_height_m: float,
+                                 target_height_m : float) -> Union[float, pd.Series]:
     """
     Calculates air pressure at target height (target_height_m) using reference air pressure (ref_air_pressure_hPa)
     and temperature (ref_air_temp_degC) values at a reference height (ref_height_m).
