@@ -7,12 +7,13 @@ from brightwind.load.station import DATE_INSTEAD_OF_NONE
 from brightwind.utils.utils import validate_coverage_threshold
 import copy
 import warnings
+from typing import Union
 
 __all__ = ['average_data_by_period',
            'merge_datasets_by_period',
            'average_wdirs',
            'adjust_slope_offset',
-           'scale_wind_speed',
+           'apply_scale_factor',
            'apply_wind_vane_deadband_offset',
            'offset_wind_direction',
            'selective_avg',
@@ -994,17 +995,35 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
     return df
 
 
-def scale_wind_speed(spd, scale_factor: float):
+def apply_scale_factor(value : Union[float, pd.Series, np.array],
+                       scale_factor: float):
     """
-    Scales wind speed by the scale_factor
+    Scales value by the scale_factor.
 
-    :param spd: Series or data frame or a single value of wind speed to scale
-    :param scale_factor: Scaling factor in decimal, if scaling factor is 0.8 output would be (1+0.8) times wind speed,
-    if it is -0.8 the output would be (1-0.8) times the wind speed
-    :return: Series or data frame with scaled wind speeds
+    :param value:           Value to scale by the scale_factor
+    :type value:            float or pandas.Series or numpy.array
+    :param scale_factor:    Scale factor as a float.
+    :type scale_factor:     float
+    :returns:               scale_factor times value
+    :rtype:                 float or pandas.Series or numpy.array depending on type(value)
 
+        **Example usage**
+    ::
+    import brightwind as bw
+
+    # scale float by scale_factor of 0.5
+    bw.apply_scale_factor(3, 0.5)
+    # 1.5
+
+    # scale np.array by scale_factor of 0.5
+    bw.apply_scale_factor(np.array([0, 1, 2]), 0.5)
+    # [0, 0.5, 1]
+    
+    # scale pd.Series by scale_factor of -10
+    bw.apply_scale_factor(pd.Series([10, 20, 30, 40]), -10)
+    # [-100, -200, -300, -400]
     """
-    return spd * scale_factor
+    return scale_factor * value
 
 
 def offset_wind_direction(wdir, offset: float):
