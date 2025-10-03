@@ -110,7 +110,7 @@ Transform
 
     average_data_by_period
     adjust_slope_offset
-    scale_wind_speed
+    apply_scale_factor
     offset_wind_direction
     offset_timestamps
 
