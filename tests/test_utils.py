@@ -30,6 +30,7 @@ def test_slice_data():
 def test_linear_transform():
     # test with float and int inputs
     assert bw.utils.utils.linear_transform(x_target=10, x_ref=5, y_ref=10, slope=-0.5) == 7.5
+    
     # test with array input for y_ref
     assert (bw.utils.utils.linear_transform(
         x_target=20,
