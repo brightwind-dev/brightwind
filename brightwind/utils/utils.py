@@ -8,7 +8,8 @@ __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
            'is_file_extension',
-           'validate_json']
+           'validate_json',
+           'linear_transform']
 
 
 def _range_0_to_360(direction):
@@ -254,7 +255,7 @@ def validate_json(json_to_check, schema):
     return data_is_valid
 
 
-def _linear_transform(x_target, x_ref, y_ref, slope):
+def linear_transform(x_target, x_ref, y_ref, slope):
     """
     Apply a linear transformation based on the equation of a straight line in point-slope form [y-y1 = m(x-x1) where m is the slope and (x1, y1) a known point on the line].
     Calculate y_target values based on the input x_target values where a point (x_ref, y_ref) and the slope of the line are known.
