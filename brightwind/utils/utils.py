@@ -327,6 +327,6 @@ def linear_transform(x_target : Union[float, int, np.ndarray, pd.Series],
             if len(y_ref) != len(x_target - x_ref):
                 raise ValueError("y_ref must have the same dimensions as x_target or x_ref.")
 
-    y_target = slope*(x_target - x_ref) + y_ref
+    y_target = slope * (x_target - x_ref) + y_ref
     
     return y_target

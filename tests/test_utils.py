@@ -48,3 +48,36 @@ def test_linear_transform():
                   index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
                                           '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
                   check_names=False)
+
+    # test error raising for invalid input types
+    with pytest.raises(TypeError):
+        bw.utils.utils.linear_transform(
+            x_target='invalid_type',
+            x_ref=2,
+            y_ref=20,
+            slope=-0.0065)
+    
+    #test error raising for invalid slope type
+    with pytest.raises(TypeError):
+        bw.utils.utils.linear_transform(
+            x_target=10,
+            x_ref=2,
+            y_ref=20,
+            slope='invalid_type')
+    
+    #test error raising for mismatched dimensions
+    with pytest.raises(ValueError):
+        bw.utils.utils.linear_transform(
+            x_target=np.array([1, 2, 3]),
+            x_ref=np.array([1, 2]),
+            y_ref=20,
+            slope=-0.5)
+    
+    #test error raising for mismatched dimensions with Series
+    with pytest.raises(ValueError):
+        bw.utils.utils.linear_transform(
+            x_target=pd.Series([1, 2, 3]),
+            x_ref=2,
+            y_ref=pd.Series([1, 2]),
+            slope=-0.5)
+
