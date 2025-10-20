@@ -12,7 +12,6 @@ import warnings
 import textwrap
 from matplotlib.ticker import PercentFormatter
 from typing import Union
-from brightwind.analyse import constants as constants
 
 __all__ = ['monthly_means',
            'momm',
@@ -31,6 +30,15 @@ __all__ = ['monthly_means',
            'sector_ratio',
            'calc_air_density',
            'scale_air_pressure_to_height']
+
+# Acceleration due to gravity (m/s^2)
+ACCEL_DUE_TO_GRAVITY = 9.80665
+
+# Temperature lapse rate (K/m) 
+TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE = -0.0065 
+
+#  Specific gas const for dry air = R_universal / molar_mass_of_dry_air (J/K/kg or m2/K/s2)
+GAS_CONST_DRY_AIR = 287.05 
 
 
 def dist_matrix(var_series, x_series, y_series,
@@ -2125,10 +2133,10 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa : Union[float, pd.Series],
 
     """
     # Constants as outlined in ISO:2533
-    g = constants.accel_due_to_gravity # acceleration due to gravity (m/s^2)
-    L = constants.temp_lapse_rate_standard_atmosphere # temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
-    R = constants.gas_const_dry_air #  specific gas const dry air
+    g = ACCEL_DUE_TO_GRAVITY # Acceleration due to gravity (m/s^2)
+    L = TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE # Temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
+    R = GAS_CONST_DRY_AIR #  Specific gas const dry air
     
-    ref_air_temp_K = ref_air_temp_degC + 273.15 # convert temp units to K
+    ref_air_temp_K = ref_air_temp_degC + 273.15 # Convert temp units to K
     air_pressure_scaled_hPa = ref_air_pressure_hPa*((1 + (L/ref_air_temp_K)*(target_height_m - ref_height_m))**(-g/(L*R)))
     return round(air_pressure_scaled_hPa, 2)
