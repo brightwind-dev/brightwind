@@ -3,12 +3,14 @@ import pandas as pd
 import os
 import json
 from jsonschema import Draft7Validator
+from typing import Union
 
 __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
            'is_file_extension',
-           'validate_json']
+           'validate_json',
+           'linear_transform']
 
 
 def _range_0_to_360(direction):
@@ -254,29 +256,77 @@ def validate_json(json_to_check, schema):
     return data_is_valid
 
 
-def _linear_transform(x_target, x_ref, y_ref, slope):
+def linear_transform(x_target : Union[float, int, np.ndarray, pd.Series],
+                     x_ref : Union[float, int, np.ndarray, pd.Series],
+                     y_ref : Union[float, int, np.ndarray, pd.Series],
+                     slope : Union[float, int]) -> Union[float, int, np.ndarray, pd.Series]:
     """
-    Apply a linear transformation based on the equation of a straight line in point-slope form [y-y1 = m(x-x1) where m is the slope and (x1, y1) a known point on the line].
-    Calculate y_target values based on the input x_target values where a point (x_ref, y_ref) and the slope of the line are known.
+    Calculate y_target value(s) based on the input x_target value(s) where a point or array of points (x_ref, y_ref) 
+    and the slope of the line are known.
+
+    Function applies a linear transformation based on the equation of a straight line in point-slope form below:
+
+        y = m(x - x1) + y1 where m is the slope and (x1, y1) a known point on the line.
     
-    :param x_target:        target x values at which to calculate y_target
-    :type x_target:         float or pandas.Series
-    :param x_ref:           reference x value where (x_ref, y_ref) is a known reference point on the line
-    :type x_ref:            float or pandas.Series
-    :param y_ref:           reference y value where (x_ref, y_ref) is a known reference point on the line
-    :type y_ref:            float or pandas.Series
-    :param slope:           slope of the line equal to (y2-y1)/(x2-x1) where (x1, y1) and (x2, y2) are any two points on the line
-    :type slope:            float or pandas.Series
-    :return:                value of y_target at specified x_target
-    :rtype:                 float or pandas.Series depending on type(x_target) input
+    :param x_target:    target x value(s) at which to calculate y_target
+    :type x_target:     float or int or numpy.ndarray or pandas.Series
+    :param x_ref:       reference x value(s) of known reference point(s) on the line
+    :type x_ref:        float or int or numpy.ndarray or pandas.Series
+    :param y_ref:       reference y value(s) of known reference point(s) on the line
+    :type y_ref:        float or int or numpy.ndarray or pandas.Series
+    :param slope:       slope of the line equal to (y_target - y_ref) / (x_target - x_ref) where 
+                        ref and target x and y are any two points on the line
+    :type slope:        float or int
+    :return:            value(s) of y_target at specified x_target
+    :rtype:             float or int or numpy.ndarray or pandas.Series
 
         **Example usage**
     ::
     import brightwind as bw
     
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+
     # calculate y_target for x_target = 10 where (x_ref, y_ref) = (5, 10) is a point on the line and the slope is -0.5.
-    bw.utils.utils._linear_transform(x_target=10, x_ref=5, y_ref=10, slope = -0.5)
+    bw.utils.utils.linear_transform(x_target=10, x_ref=5, y_ref=10, slope=-0.5)
     # 7.5
+
+    # calculate y_target for x_target as a pandas.Series and (x_ref, y_ref) = (2, 20) is a point on the line
+    # and the slope is -0.0065.
+    bw.utils.utils.linear_transform(
+        x_target=data.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        x_ref=2,
+        y_ref=20,
+        slope=-0.0065)
+
+    # calculate y_target for x_target and x_ref as a int and y_ref as a np.ndarray where (x_ref, y_ref) = (2, y_ref)
+    # are points on the line and the slope is -0.0065.
+    bw.utils.utils.linear_transform(
+        x_target=20,
+        x_ref=2,
+        y_ref=data.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'].values,
+        slope=-0.0065)
     """
-    y_target = slope*(x_target - x_ref) + y_ref
+    # check input types
+    for var, var_name in zip([x_ref, y_ref, x_target], ['x_ref', 'y_ref', 'x_target']):
+        if not (isinstance(var, float) or isinstance(var, int) or isinstance(var, pd.Series) or 
+                isinstance(var, np.ndarray)):
+            raise TypeError(f"{var_name} must be a float or int or a numpy.ndarray or pandas.Series.")
+        
+    if not (isinstance(slope, float) or isinstance(slope, int)):
+        raise TypeError("slope must be a float.")
+
+    # check dimensions of x_ref and x_target if arrays or Series
+    if (isinstance(x_ref, np.ndarray) or isinstance(x_ref, pd.Series)) and (
+        isinstance(x_target, np.ndarray) or isinstance(x_target, pd.Series)):
+        if len(x_ref) != len(x_target):
+            raise ValueError("x_ref and x_target must have the same dimensions.")
+
+    # check dimensions of y_ref if arrays or Series
+    if isinstance(x_target - x_ref, np.ndarray) or isinstance(x_target - x_ref, pd.Series):
+        if isinstance(y_ref, np.ndarray) or isinstance(y_ref, pd.Series):
+            if len(y_ref) != len(x_target - x_ref):
+                raise ValueError("y_ref must have the same dimensions as x_target or x_ref.")
+
+    y_target = slope * (x_target - x_ref) + y_ref
+    
     return y_target
