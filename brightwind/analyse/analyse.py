@@ -6,7 +6,6 @@ from brightwind.analyse import plot as bw_plt
 from brightwind.utils.utils import _convert_df_to_series
 from brightwind.utils.utils import validate_coverage_threshold
 from brightwind.export.export import _calc_mean_speed_of_freq_tab
-from brightwind.transform.transform import scale_wind_speed
 import matplotlib.pyplot as plt
 import warnings
 import textwrap
@@ -1289,7 +1288,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     # This scale factor is used to correct `var_series` when concurrent with `direction_series`.
     if target_freq_table_mean is not None:
         scale_factor = target_freq_table_mean / data_concurrent[var_series.name].mean()
-        var_series_scaled = scale_wind_speed(data_concurrent[var_series.name], scale_factor)
+        var_series_scaled = tf.scale_wind_speed(data_concurrent[var_series.name], scale_factor)
     else:
         var_series_scaled = var_series
 
@@ -1324,7 +1323,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         else:
             freq_tab_mean = _calc_mean_speed_of_freq_tab(result)
             scale_factor = target_freq_table_mean / freq_tab_mean
-            var_series_scaled = scale_wind_speed(var_series_scaled, scale_factor)
+            var_series_scaled = tf.scale_wind_speed(var_series_scaled, scale_factor)
 
             abs_percentage_diff = abs(100 * (target_freq_table_mean - freq_tab_mean) / freq_tab_mean)
             if abs_percentage_diff > 0.01:

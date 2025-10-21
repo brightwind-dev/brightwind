@@ -1,12 +1,15 @@
-import datetime
-import numpy as np
+import copy  
+import datetime  
+import warnings  
+from typing import Union  
+
+import numpy as np  
 import pandas as pd
+
 from brightwind.utils import utils
 from brightwind.load.station import _Measurements
 from brightwind.load.station import DATE_INSTEAD_OF_NONE
 from brightwind.utils.utils import validate_coverage_threshold
-import copy
-import warnings
 
 __all__ = ['average_data_by_period',
            'merge_datasets_by_period',
@@ -999,8 +1002,8 @@ def scale_wind_speed(spd, scale_factor: float):
     Scales wind speed by the scale_factor
 
     :param spd: Series or data frame or a single value of wind speed to scale
-    :param scale_factor: Scaling factor in decimal, if scaling factor is 0.8 output would be (1+0.8) times wind speed,
-    if it is -0.8 the output would be (1-0.8) times the wind speed
+    :param scale_factor: Scaling factor in decimal, if scaling factor is 0.8 output would be 0.8 times wind speed,
+    if it is -0.8 the output would be -0.8 times the wind speed
     :return: Series or data frame with scaled wind speeds
 
     """
