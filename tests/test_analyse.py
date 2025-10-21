@@ -682,7 +682,7 @@ def test_scale_air_pressure_to_height():
             ref_height_m=2,
             target_height_m=10)
 
-    #test error raising for invalid slope type
+    # test error raising for invalid slope type
     with pytest.raises(TypeError):
         bw.scale_air_pressure_to_height(
             ref_air_pressure_hPa=1000,
@@ -690,7 +690,7 @@ def test_scale_air_pressure_to_height():
             ref_height_m=2,
             target_height_m='invalid_type')
 
-    #test error raising for mismatched dimensions with Series
+    # test error raising for mismatched dimensions with Series
     with pytest.raises(ValueError):
         bw.scale_air_pressure_to_height(
             ref_air_pressure_hPa=pd.Series([1, 2, 3]),
