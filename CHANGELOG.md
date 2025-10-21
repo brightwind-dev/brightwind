@@ -13,7 +13,6 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ## [2.4.0-dev]
 1. Fixed pandas<3.0.0 and numpy<2.3.1 dependencies, ([#458](https://github.com/brightwind-dev/brightwind/issues/458))
-2. Renamed `scale_wind_speed` to `apply_scale_factor` and updated docstring. ([#541](https://github.com/brightwind-dev/brightwind/issues/541))
 
 ## [2.3.0]
 This update brings a comprehensive set of **bug fixes** and **enhancements** across the Brightwind library. 

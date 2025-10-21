@@ -153,12 +153,6 @@ def test_apply_wspd_slope_offset_adj():
     data1 = bw.apply_wspd_slope_offset_adj(DATA['Spd60mS'], STATION.measurements['Spd60mS'])
     assert (data1.fillna(0).round(10) ==
             DATA_ADJUSTED['Spd60mS'].fillna(0).round(10)).all()
-    
-
-def test_apply_scale_factor():
-    assert bw.apply_scale_factor(3, 0.5) == 1.5
-    assert (bw.apply_scale_factor(np.array([0, 1, 2]), 0.5) == [0, 0.5, 1]).all()
-    assert (bw.apply_scale_factor(pd.Series([10, 20, 30, 40]), -10) == [-100, -200, -300, -400]).all()
 
 
 def test_offset_wind_direction_float():
