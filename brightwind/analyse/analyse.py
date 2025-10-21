@@ -2087,6 +2087,7 @@ def scale_air_density_to_height(ref_air_density_kg_m3 : Union[float, pd.Series],
     :param lapse_rate_kg_m3_m:        Lapse rate describes how air density changes with increasing height above the
                                       earth's surface in kg/m3/m.
                                       Default value of -0.113 kg/m3 per km above earth's surface (-0.000113 kg/m3/m)
+                                      taken from Windfarmer Theory Manual Version 5.3, DNV GL (April 2014)
     :type lapse_rate_kg_m3_m:         float (default -0.000113)
     :return:                          Air density at specified height of target_height_m in kg/m3
     :rtype:                           float or pandas.Series depending on type(ref_air_density_kg_m3) input
@@ -2105,19 +2106,19 @@ def scale_air_density_to_height(ref_air_density_kg_m3 : Union[float, pd.Series],
     # 1.22
 
     # scale air temperature based on series input values for reference air temperature
-DATA = bw.load_csv(bw.demo_datasets.demo_data)
-DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
+    DATA = bw.load_csv(bw.demo_datasets.demo_data)
+    DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 
-bw.scale_air_temperature_to_height(ref_air_temperature=DATA.T2m,
-                                        ref_height_m=2, target_height_m=20).tail(5)
+    bw.scale_air_temperature_to_height(ref_air_temperature=DATA.T2m,
+                                            ref_height_m=2, target_height_m=20).tail(5)
 
-Timestamp
-2017-11-23 10:10:00    0.826
-2017-11-23 10:20:00    0.675
-2017-11-23 10:30:00    0.685
-2017-11-23 10:40:00    0.766
-2017-11-23 10:50:00    0.685
-Name: T2m, dtype: float64
+    Timestamp
+    2017-11-23 10:10:00    0.826
+    2017-11-23 10:20:00    0.675
+    2017-11-23 10:30:00    0.685
+    2017-11-23 10:40:00    0.766
+    2017-11-23 10:50:00    0.685
+    Name: T2m, dtype: float64
     """
 
     scaled_air_density = utils._linear_transform(x_target=target_height_m, x_ref=ref_height_m,
