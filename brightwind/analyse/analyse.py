@@ -2089,6 +2089,7 @@ def scale_air_density_to_height(ref_air_density_kg_m3 : Union[float, pd.Series],
     :param lapse_rate_kg_m3_m:        Lapse rate describes how air density changes with increasing height above the
                                       earth's surface in kg/m3/m.
                                       Default value of -0.113 kg/m3 per km above earth's surface (-0.000113 kg/m3/m)
+                                      taken from Windfarmer Theory Manual Version 5.3, DNV GL (April 2014)
     :type lapse_rate_kg_m3_m:         float (default -0.000113)
     :return:                          Air density at specified height of target_height_m in kg/m3
     :rtype:                           float or pandas.Series depending on type(ref_air_density_kg_m3) input
