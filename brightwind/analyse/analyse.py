@@ -2080,8 +2080,8 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
 
 def scale_air_pressure_to_height(ref_air_pressure_hPa : Union[float, pd.Series],
                                  ref_air_temp_degC : Union[float, pd.Series],
-                                 ref_height_m: float,
-                                 target_height_m : float) -> Union[float, pd.Series]:
+                                 ref_height_m: Union[float, int],
+                                 target_height_m : Union[float, int]) -> Union[float, int, pd.Series]:
     """
     Calculates air pressure at target height (target_height_m) using reference air pressure (ref_air_pressure_hPa)
     and air temperature (ref_air_temp_degC) values at a reference height (ref_height_m).
@@ -2096,16 +2096,16 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa : Union[float, pd.Series],
     R = 287.05 is the specific gas constant for dry air (J/K/kg or m2/K/s2)
     
     :param ref_air_pressure_hPa:    Reference air pressure value(s) in hPa (1mbar = 1hPa = 100Pa)
-    :type ref_air_pressure_hPa:     float or pandas.Series
+    :type ref_air_pressure_hPa:     float or int or pandas.Series
     :param ref_air_temp_degC:       Reference air temperature value(s) in degrees celsius
-    :type ref_air_temp_degC:        float or pandas.Series
+    :type ref_air_temp_degC:        float or int or pandas.Series
     :param ref_height_m:            Measurement height (in metres) of reference air temperature (ref_air_temp_degC)
                                     and air pressure (ref_air_pressure_hPa)
-    :type ref_height_m:             float
+    :type ref_height_m:             float or int
     :param target_height_m:         Height (in metres) which ref_air_pressure_hPa is scaled to.
-    :type target_height_m           float
+    :type target_height_m           float or int
     :return:                        Air pressure at specified height of target_height_m in hPa (1mbar = 1hPa = 100Pa)
-    :rtype:                         float or pandas.Series depending on type(ref_air_pressure_hPa) and
+    :rtype:                         float or int or pandas.Series depending on type(ref_air_pressure_hPa) and
                                     type(ref_air_temp_degC) inputs
 
         **Example usage**
@@ -2114,8 +2114,8 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa : Union[float, pd.Series],
     import brightwind as bw
 
     # scale float value of air pressure
-    bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12, ref_height_m=10, 
-                                    target_height_m=200)
+    round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12, ref_height_m=10, 
+                                    target_height_m=200), 2)
     # 977.45
 
     # scale air pressure based on input series of reference air pressure and air temperature
@@ -2123,7 +2123,7 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa : Union[float, pd.Series],
 
     bw.scale_air_pressure_to_height(ref_air_pressure_hPa=data['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
                                     ref_air_temp_degC=data['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
-                                    ref_height_m=2, target_height_m=10)
+                                    ref_height_m=2, target_height_m=10).round(2)
     # Timestamp
     # 2016-01-09 17:10:00    933.07
     # 2016-01-09 17:20:00    933.07
@@ -2134,6 +2134,20 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa : Union[float, pd.Series],
     # dtype: float64
 
     """
+
+    # check input types
+    for var, var_name in zip([ref_air_pressure_hPa, ref_air_temp_degC], ['ref_air_pressure_hPa', 'ref_air_temp_degC']):
+        if not ((isinstance(var, float) or isinstance(var, int) or isinstance(var, pd.Series))):
+            raise TypeError(f"{var_name} must be a float or int or pandas.Series.")
+    for var, var_name in zip([ref_height_m, target_height_m], ['ref_height_m', 'target_height_m']):
+        if not (isinstance(var, float) or isinstance(var, int)):
+            raise TypeError(f"{var_name} must be a float or int.")
+
+    # check dimensions of ref_air_pressure_hPa and ref_air_temp_degC if Series
+    if isinstance(ref_air_pressure_hPa, pd.Series) and (isinstance(ref_air_temp_degC, pd.Series)):
+        if len(ref_air_pressure_hPa) != len(ref_air_temp_degC):
+            raise ValueError("ref_air_pressure_hPa and ref_air_temp_degC must have the same dimensions.")
+
     # Constants as outlined in ISO:2533
     g = ACCEL_DUE_TO_GRAVITY # Acceleration due to gravity (m/s^2)
     L = TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE # Temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
