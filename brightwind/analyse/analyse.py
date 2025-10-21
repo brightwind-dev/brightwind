@@ -32,6 +32,8 @@ __all__ = ['monthly_means',
            'scale_air_density_to_height',
            'scale_air_temperature_to_height']
 
+# Temperature lapse rate (K/m or degC/m) from ISO:2533-1975 Standard Atmosphere
+TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE = -0.0065 
 
 def dist_matrix(var_series, x_series, y_series,
                 num_bins_x=None, num_bins_y=None,
@@ -2129,12 +2131,13 @@ def scale_air_density_to_height(ref_air_density_kg_m3 : Union[float, pd.Series],
 def scale_air_temperature_to_height(ref_air_temperature : Union[float, pd.Series],
                                     ref_height_m : float,
                                     target_height_m : float,
-                                    lapse_rate_deg_m : float = -0.0065) -> Union[float, pd.Series]:
+                                    lapse_rate_deg_m : float = TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE
+                                    ) -> Union[float, pd.Series]:
     """
     Linearly scales reference air temperature measurement (ref_air_temperature) from its measurement height
     (ref_height_m) to the height specified as target_height_m, by applying the constant lapse_rate_deg_m.
 
-    :param ref_air_temperature:   Temperature value(s) in degrees [for example in Celsius or Kelvin]
+    :param ref_air_temperature:   Air temperature value(s) in degrees [for example in Celsius or Kelvin]
     :type ref_air_temperature:    float or pandas.Series
     :param ref_height_m:          Measurement height (in metres) of ref_air_temperature
     :type ref_height_m:           float
