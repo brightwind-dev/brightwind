@@ -638,10 +638,10 @@ def test_calc_air_density():
 
     with pytest.raises(TypeError) as except_info:
         bw.calc_air_density(15, 1013, elevation_site_m=200)
-    assert str(except_info.value) == 'Specify value of elevation_ref_m (float)'
+    assert str(except_info.value) == "Specify value of elevation_ref_m (float) when elevation_site_m is provided."
     with pytest.raises(TypeError) as except_info:
         bw.calc_air_density(15, 1013, elevation_ref_m=200)
-    assert str(except_info.value) == 'Specify value of elevation_site_m (float)'
+    assert str(except_info.value) == "Specify value of elevation_site_m (float) when elevation_ref_m is provided."
     assert abs(bw.calc_air_density(15, 1013) - 1.225) < 1e-3
     assert abs(bw.calc_air_density(15, 1013, elevation_ref_m=0, elevation_site_m=200) - 1.203) < 1e-3
     assert (abs(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])) -
@@ -653,6 +653,10 @@ def test_calc_air_density():
                 pd.Series([1.19918, 1.19984, 1.19979, 1.19944, 1.20107])) < 1e-3).all()
     assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m, DATA.RH2m).tail(5).values -
                 pd.Series([1.19529, 1.19601, 1.19592, 1.19555, 1.19719])) < 1e-3).all()
+    assert bw.calc_air_density(15, 1012, 0) == 1.2235
+    assert bw.calc_air_density(15, 1012) == 1.22414
+    assert bw.calc_air_density(15, 1012, specific_gas_constant=287.05) == 1.2235
+    assert bw.calc_air_density(15, 1012, 60, elevation_ref_m=5, elevation_site_m=10) - bw.scale_air_density_to_height(bw.calc_air_density(15, 1012, 60), 5, 10) <1e-3
 
 def test_dist_matrix_by_direction_sector():
     bw.dist_matrix_by_dir_sector(var_series=DATA.Spd80mN, var_to_bin_by_series=DATA.Spd80mN,
