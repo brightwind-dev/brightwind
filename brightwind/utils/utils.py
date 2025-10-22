@@ -256,10 +256,10 @@ def validate_json(json_to_check, schema):
     return data_is_valid
 
 
-def linear_transform(x_target : Union[float, int, np.ndarray, pd.Series],
-                     x_ref : Union[float, int, np.ndarray, pd.Series],
-                     y_ref : Union[float, int, np.ndarray, pd.Series],
-                     slope : Union[float, int]) -> Union[float, int, np.ndarray, pd.Series]:
+def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
+                     x_ref: Union[float, int, np.ndarray, pd.Series],
+                     y_ref: Union[float, int, np.ndarray, pd.Series],
+                     slope: Union[float, int]) -> Union[float, int, np.ndarray, pd.Series]:
     """
     Calculate y_target value(s) based on the input x_target value(s) where a point or array of points (x_ref, y_ref) 
     and the slope of the line are known.
@@ -268,16 +268,16 @@ def linear_transform(x_target : Union[float, int, np.ndarray, pd.Series],
 
         y = m(x - x1) + y1 where m is the slope and (x1, y1) a known point on the line.
     
-    :param x_target:    target x value(s) at which to calculate y_target
+    :param x_target:    Target x value(s) at which to calculate y_target.
     :type x_target:     float or int or numpy.ndarray or pandas.Series
-    :param x_ref:       reference x value(s) of known reference point(s) on the line
+    :param x_ref:       Reference x value(s) of known reference point(s) on the line.
     :type x_ref:        float or int or numpy.ndarray or pandas.Series
-    :param y_ref:       reference y value(s) of known reference point(s) on the line
+    :param y_ref:       Reference y value(s) of known reference point(s) on the line.
     :type y_ref:        float or int or numpy.ndarray or pandas.Series
-    :param slope:       slope of the line equal to (y_target - y_ref) / (x_target - x_ref) where 
-                        ref and target x and y are any two points on the line
+    :param slope:       Slope of the line equal to (y_target - y_ref) / (x_target - x_ref) where
+                        ref and target x and y are any two points on the line.
     :type slope:        float or int
-    :return:            value(s) of y_target at specified x_target
+    :return:            Value(s) of y_target at specified x_target.
     :rtype:             float or int or numpy.ndarray or pandas.Series
 
         **Example usage**
@@ -313,11 +313,11 @@ def linear_transform(x_target : Union[float, int, np.ndarray, pd.Series],
             raise TypeError(f"{var_name} must be a float or int or a numpy.ndarray or pandas.Series.")
         
     if not (isinstance(slope, float) or isinstance(slope, int)):
-        raise TypeError("slope must be a float.")
+        raise TypeError("slope must be a float or int.")
 
     # check dimensions of x_ref and x_target if arrays or Series
     if (isinstance(x_ref, np.ndarray) or isinstance(x_ref, pd.Series)) and (
-        isinstance(x_target, np.ndarray) or isinstance(x_target, pd.Series)):
+            isinstance(x_target, np.ndarray) or isinstance(x_target, pd.Series)):
         if len(x_ref) != len(x_target):
             raise ValueError("x_ref and x_target must have the same dimensions.")
 
