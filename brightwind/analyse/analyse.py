@@ -2139,6 +2139,8 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
         temperature = _convert_df_to_series(temperature).copy()
     if isinstance(pressure, pd.DataFrame):
         pressure = _convert_df_to_series(pressure).copy()
+    if isinstance(rel_humidity_percent, pd.DataFrame):
+        rel_humidity_percent = _convert_df_to_series(rel_humidity_percent).copy()
 
     # Check dimensions of temperature, pressure and rel_humidity_percent if not float or int
     if isinstance(temperature, pd.Series) and (isinstance(pressure, pd.Series)):
