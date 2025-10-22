@@ -2080,19 +2080,20 @@ def scale_air_density_to_height(ref_air_density_kg_m3 : Union[float, pd.Series],
     Linearly scales reference air density measurement (ref_air_density_kg_m3) from its measurement height
     (ref_height_m) to the height specified as the target_height_m, by applying a constant lapse_rate_kg_m3_m.
 
-    :param ref_air_density_kg_m3:     Reference air density value(s) in kg/m3
+    :param ref_air_density_kg_m3:     Reference air density value(s) in kg/m3.
     :type ref_air_density_kg_m3:      float or pandas.Series
-    :param ref_height_m:              Measurement height (in metres) of ref_air_density_kg_m3
+    :param ref_height_m:              Measurement height (in metres) of ref_air_density_kg_m3.
     :type ref_height_m                float
-    :param target_height_m:           Height (in metres) that ref_air_density_kg_m3 is scaled to
+    :param target_height_m:           Height (in metres) that ref_air_density_kg_m3 is scaled to.
     :type target_height_m:            float
     :param lapse_rate_kg_m3_m:        Lapse rate describes how air density changes with increasing height above the
                                       earth's surface in kg/m3/m.
                                       Default value of -0.113 kg/m3 per km above earth's surface (-0.000113 kg/m3/m)
-                                      taken from Windfarmer Theory Manual Version 5.3, DNV GL (April 2014)
-    :type lapse_rate_kg_m3_m:         float (default -0.000113)
-    :return:                          Air density at specified height of target_height_m in kg/m3
-    :rtype:                           float or pandas.Series depending on type(ref_air_density_kg_m3) input
+                                      taken from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014).
+    :type lapse_rate_kg_m3_m:         float
+    :return:                          Air density at specified height of target_height_m in kg/m3. Type depends on type
+                                      of `ref_air_density_kg_m3` input.
+    :rtype:                           float or pandas.Series
 
         **Example usage**
     ::
@@ -2120,7 +2121,7 @@ def scale_air_density_to_height(ref_air_density_kg_m3 : Union[float, pd.Series],
     2016-01-09 17:40:00    1.185950
     2016-01-09 17:50:00    1.186301
     2016-01-09 18:00:00    1.185686
-    Name: T2m, dtype: float64
+    dtype: float64
     """
 
     scaled_air_density = utils.linear_transform(x_target=target_height_m, x_ref=ref_height_m,
