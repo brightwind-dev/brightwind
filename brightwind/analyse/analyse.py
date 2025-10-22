@@ -2084,54 +2084,54 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
     # (rel_humidity_percent=None and specific_gas_constant=286.9 by default)
     bw.calc_air_density(data.T2m, data.P2m).head(5)
     # Timestamp
-    # 2016-01-09 15:30:00    1.19001
-    # 2016-01-09 15:40:00    1.19036
-    # 2016-01-09 17:00:00    1.18694
-    # 2016-01-09 17:10:00    1.18768
-    # 2016-01-09 17:20:00    1.18808
+    # 2016-01-09 15:30:00    1.190011
+    # 2016-01-09 15:40:00    1.190363
+    # 2016-01-09 17:00:00    1.186939
+    # 2016-01-09 17:10:00    1.187684
+    # 2016-01-09 17:20:00    1.188079
     # dtype: float64
 
     # Calculate air density from input air temperature and air pressure series
     # (rel_humidity_percent=None and specific_gas_constant=287.05 which is the constant for dry air)
     bw.calc_air_density(data.T2m, data.P2m, specific_gas_constant=287.05).head(5)
     # Timestamp
-    # 2016-01-09 15:30:00    1.18939
-    # 2016-01-09 15:40:00    1.18974
-    # 2016-01-09 17:00:00    1.18632
-    # 2016-01-09 17:10:00    1.18706
-    # 2016-01-09 17:20:00    1.18746
+    # 2016-01-09 15:30:00    1.189389
+    # 2016-01-09 15:40:00    1.189741
+    # 2016-01-09 17:00:00    1.186319
+    # 2016-01-09 17:10:00    1.187064
+    # 2016-01-09 17:20:00    1.187458
     # dtype: float64
 
     # Calculate air density from single float values of air temperature and air pressure
     # (rel_humidity_percent=None and specific_gas_constant=286.9 by default)
-    bw.calc_air_density(15, 1013)
+    bw.calc_air_density(15, 1013).round(5)
     # 1.22535
 
     # Calculate air density from single float value of air temperature and air pressure
     # (rel_humidity_percent=None and specific_gas_constant=287.05 which is the constant for dry air)
-    bw.calc_air_density(15, 1013, specific_gas_constant=287.05)
+    bw.calc_air_density(15, 1013, specific_gas_constant=287.05).round(5)
     # 1.22471
 
     # Calculate air density from input air temperature, air pressure and relative humidity series
     # As rel_humidity_percent is not None, gas constant for dry air of 287.05 is used
-    bw.calc_air_density(data.T2m, data.P2m, rel_humidity_percent=data.RH2m)
+    bw.calc_air_density(data.T2m, data.P2m, rel_humidity_percent=data.RH2m).head(5)
     # Timestamp
-    # 2016-01-09 15:30:00    1.18616
-    # 2016-01-09 15:40:00    1.18653
-    # 2016-01-09 17:00:00    1.18301
-    # 2016-01-09 17:10:00    1.18379
-    # 2016-01-09 17:20:00    1.18420
+    # 2016-01-09 15:30:00    1.186163
+    # 2016-01-09 15:40:00    1.186530
+    # 2016-01-09 17:00:00    1.183012
+    # 2016-01-09 17:10:00    1.183790
+    # 2016-01-09 17:20:00    1.184202
     # dtype: float64
 
     # Calculate air density from single float value of air temperature, air pressure, relative humidity
     # As rel_humidity_percent is not None, gas constant for dry air of 287.05 is used
-    bw.calc_air_density(15, 1013, rel_humidity_percent=50)
+    bw.calc_air_density(15, 1013, rel_humidity_percent=50).round(5)
     # 1.22093
 
     # Calculate air density from a single float value of air temperature, air pressure, relative humidity
     # and scale result from reference elevation to site elevation.
     bw.calc_air_density(15, 1013, rel_humidity_percent=50, elevation_ref=0, elevation_site=200)
-    # 1.19833
+    # 1.198
 
     """
     # Convert DataFrame inputs to Series
@@ -2168,7 +2168,7 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
         warnings.warn(
         (
             "\nThe `specific_gas_constant` argument of `calc_air_density()` will be removed in a future 3.0 release "
-            "of brightwind. Note that this value is used only when `rel_humidity_percent` is None. Please set "
+            "of brightwind.\nNote that this value is used only when `rel_humidity_percent` is None. \nPlease set "
             "`rel_humidity_percent` to 0 instead if want to use the specific gas constants for dry air (287.05 J/kg*K)."
         ),
         DeprecationWarning,
@@ -2199,7 +2199,7 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
         warnings.warn(
         (
             "\nScaling air density to height within `calc_air_density()` is deprecated and will be removed in a "
-            "future 3.0 release of brightwind. Please call `scale_air_density_to_height()` separately instead. \n"
+            "future 3.0 release of brightwind.\nPlease call `scale_air_density_to_height()` separately instead. \n"
         ),
         DeprecationWarning,
         stacklevel=2

@@ -646,6 +646,8 @@ def test_calc_air_density():
                 pd.Series([1.19918, 1.19984, 1.19979, 1.19944, 1.20107])) < 1e-3).all()
     assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m, rel_humidity_percent=DATA.RH2m).tail(5).values -
                 pd.Series([1.19529, 1.19601, 1.19592, 1.19555, 1.19719])) < 1e-3).all()
+    assert list(bw.calc_air_density(DATA.T2m, DATA.P2m, specific_gas_constant=287.05).head(5).round(6).dropna()
+                ) == [1.187064, 1.187458]
     
     #t test Series inputs with elevation adjustment
     assert list(bw.calc_air_density(DATA.T2m, DATA.P2m, elevation_ref=0, elevation_site=200).tail(5).values
@@ -664,9 +666,9 @@ def test_calc_air_density():
 
     # test float/int inputs with elevation adjustment
     assert bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200) == 1.203
-    assert bw.calc_air_density(15, 1012, rel_humidity_percent=60, elevation_ref=5, elevation_site=10
+    assert bw.calc_air_density(15, 1013, rel_humidity_percent=50, elevation_ref=0, elevation_site=200
                                ) - bw.scale_air_density_to_height(
-                                   bw.calc_air_density(15, 1012, rel_humidity_percent=60), 5, 10) <1e-3
+                                   bw.calc_air_density(15, 1013, rel_humidity_percent=50), 0, 200) <1e-3
     
     # test errors
     with pytest.raises(TypeError) as except_info:
