@@ -2092,8 +2092,8 @@ def scale_air_density_to_height(ref_air_density_kg_m3: Union[float, pd.Series],
                                       Default value of -0.113 kg/m3 per km above earth's surface (-0.000113 kg/m3/m)
                                       taken from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014).
     :type lapse_rate_kg_m3_m:         float
-    :return:                          Air density at specified height of target_height_m in kg/m3. Type depends on type
-                                      of `ref_air_density_kg_m3` input.
+    :return:                          Air density at specified height of target_height_m in kg/m3. Type depends on
+                                      type(ref_air_density_kg_m3) input.
     :rtype:                           float or pandas.Series
 
         **Example usage**
@@ -2140,11 +2140,11 @@ def scale_air_temperature_to_height(ref_air_temperature: Union[float, pd.Series]
     Linearly scales reference air temperature measurement (ref_air_temperature) from its measurement height
     (ref_height_m) to the height specified as target_height_m, by applying the constant lapse_rate_deg_m.
 
-    :param ref_air_temperature:   Air temperature value(s) in degrees [for example in Celsius or Kelvin]
+    :param ref_air_temperature:   Air temperature value(s) in degrees [for example in Celsius or Kelvin].
     :type ref_air_temperature:    float or pandas.Series
-    :param ref_height_m:          Measurement height (in metres) of ref_air_temperature
+    :param ref_height_m:          Measurement height (in metres) of ref_air_temperature.
     :type ref_height_m:           float
-    :param target_height_m:       Height (in metres) that ref_air_temperature is scaled to
+    :param target_height_m:       Height (in metres) that ref_air_temperature is scaled to.
     :type target_height_m:        float
     :param lapse_rate_deg_m:      Lapse rate describes how air temperature changes with increasing height
                                   above the earth's surface.
@@ -2155,15 +2155,16 @@ def scale_air_temperature_to_height(ref_air_temperature: Union[float, pd.Series]
                                   In particular, the IEC standards rely on the ISO2533:1975 Standard Atmosphere
                                   which states that a lapse rate of 6.5 K/km is valid for geopotential altitudes
                                   of up to 11 km above earth's surface.
-                                  This value was also adopeted in WASP 11:
+                                  This value was also adopted in WASP 11:
                                   Mortensen, N. G., Heathfield, D. N., Rathmann, O., & Nielsen, M. (2014).
                                   Wind Atlas Analysis and Application Program: WAsP 11 Help Facility. Computer
                                   programme, Department of Wind Energy, Technical University of Denmark
                                   https://orbit.dtu.dk/en/publications/wind-atlas-analysis-and-application-program-wasp-11-help-facility
-    :type lapse_rate_deg_m:       float (default -0.0065)
+    :type lapse_rate_deg_m:       float
     :return:                      Air temperature at specified height of target_height_m in same unit as input
-                                  ref_air_temperature [for example in Celsius or Kelvin].
-    :rtype:                       float or pandas.Series depending on type(ref_air_temperature) input
+                                  ref_air_temperature [for example in Celsius or Kelvin]. Output type depends on
+                                  type(ref_air_temperature) input.
+    :rtype:                       float or pandas.Series
 
         **Example usage**
     ::
