@@ -3,12 +3,14 @@ import pandas as pd
 import os
 import json
 from jsonschema import Draft7Validator
+from typing import Union
 
 __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
            'is_file_extension',
-           'validate_json']
+           'validate_json',
+           'apply_scale_factor']
 
 
 def _range_0_to_360(direction):
@@ -252,3 +254,39 @@ def validate_json(json_to_check, schema):
             print(f"Failed schema part: {error.get('schema_path')}\n")
     
     return data_is_valid
+
+
+def apply_scale_factor(data : Union[float, pd.Series, np.array],
+                       scale_factor: Union[float, int]):
+    """
+    Scales data by the scale_factor.
+
+    :param value:           Value to scale by the scale_factor
+    :type value:            float or pandas.Series or numpy.array
+    :param scale_factor:    Scale factor as a float.
+    :type scale_factor:     float
+    :returns:               scale_factor times value
+    :rtype:                 float or pandas.Series or numpy.array depending on type(value)
+
+        **Example usage**
+    ::
+    import brightwind as bw
+
+    # scale float by scale_factor of 0.5
+    bw.apply_scale_factor(3, 0.5)
+    # 1.5
+
+    # scale np.array by scale_factor of 0.5
+    bw.apply_scale_factor(np.array([0, 1, 2]), 0.5)
+    # [0, 0.5, 1]
+    
+    # scale pd.Series by scale_factor of -10
+    bw.apply_scale_factor(pd.Series([10, 20, 30, 40]), -10)
+    # [-100, -200, -300, -400]
+    """
+
+    if not isinstance(data, (float, int, pd.Series, np.ndarray)):
+        raise ValueError('data should be a float, pd.Series or np.ndarray')
+    if not isinstance(scale_factor, (float, int)):
+        raise ValueError('scale_factor should be a float or int')
+    return scale_factor * data

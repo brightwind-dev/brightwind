@@ -1,6 +1,9 @@
 import pytest
-import brightwind as bw
 import pandas as pd
+import numpy as np
+
+import brightwind as bw
+from brightwind.utils import utils
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -25,3 +28,7 @@ def test_slice_data():
     data_sliced = bw.utils.utils.slice_data(DATA, date_to='2017-10-23')
     assert data_sliced.index[0] == DATA.index[0]
 
+def test_apply_scale_factor():
+    assert utils.apply_scale_factor(3, 0.5) == 1.5
+    assert (utils.apply_scale_factor(np.array([0, 1, 2]), 0.5) == [0, 0.5, 1]).all()
+    assert (utils.apply_scale_factor(pd.Series([10, 20, 30, 40]), -10) == [-100, -200, -300, -400]).all()

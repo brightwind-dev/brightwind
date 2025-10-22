@@ -1001,13 +1001,13 @@ def scale_wind_speed(spd, scale_factor: float):
     """
     Scales wind speed by the scale_factor
 
-    :param spd: Series or data frame or a single value of wind speed to scale
-    :param scale_factor: Scaling factor in decimal, if scaling factor is 0.8 output would be 0.8 times wind speed,
-    if it is -0.8 the output would be -0.8 times the wind speed
-    :return: Series or data frame with scaled wind speeds
+    :param spd:             Series or data frame or a single value of wind speed to scale
+    :param scale_factor:    Scaling factor in decimal, if scaling factor is 0.8 output would be 0.8 times wind speed,
+                            if it is -0.8 the output would be -0.8 times the wind speed
+    :return:                Series or data frame with scaled wind speeds
 
     """
-    return spd * scale_factor
+    return utils.apply_scale_factor(spd, scale_factor)
 
 
 def offset_wind_direction(wdir, offset: float):
