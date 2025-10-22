@@ -2078,16 +2078,16 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         return ref_air_density
 
 
-def scale_air_pressure_to_height(ref_air_pressure_hPa : Union[float, pd.Series],
-                                 ref_air_temp_degC : Union[float, pd.Series],
+def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
+                                 ref_air_temp_degC: Union[float, pd.Series],
                                  ref_height_m: Union[float, int],
-                                 target_height_m : Union[float, int]) -> Union[float, int, pd.Series]:
+                                 target_height_m: Union[float, int]) -> Union[float, int, pd.Series]:
     """
     Calculates air pressure at target height (target_height_m) using reference air pressure (ref_air_pressure_hPa)
     and air temperature (ref_air_temp_degC) values at a reference height (ref_height_m).
 
     Calculation based on ISO:2533-1975 Standard Atmosphere (https://www.iso.org/obp/ui/#iso:std:iso:2533:en)
-    as suggested by IEC standard (61400-12-1):
+    as suggested by IEC 61400-12-1:
 
     scaled_air_pressure = ref_air_pressure_hPa*((1 + (L/ref_air_temp_K)*(target_height_m - ref_height_m))**(-g/(L*R)))
     where:
@@ -2095,18 +2095,18 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa : Union[float, pd.Series],
     L = -0.0065 is the temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
     R = 287.05 is the specific gas constant for dry air (J/K/kg or m2/K/s2)
     
-    :param ref_air_pressure_hPa:    Reference air pressure value(s) in hPa (1mbar = 1hPa = 100Pa)
+    :param ref_air_pressure_hPa:    Reference air pressure value(s) in hPa (1mbar = 1hPa = 100Pa).
     :type ref_air_pressure_hPa:     float or int or pandas.Series
-    :param ref_air_temp_degC:       Reference air temperature value(s) in degrees celsius
+    :param ref_air_temp_degC:       Reference air temperature value(s) in degrees celsius.
     :type ref_air_temp_degC:        float or int or pandas.Series
-    :param ref_height_m:            Measurement height (in metres) of reference air temperature (ref_air_temp_degC)
-                                    and air pressure (ref_air_pressure_hPa)
+    :param ref_height_m:            Height (in metres) of reference air temperature (ref_air_temp_degC)
+                                    and air pressure (ref_air_pressure_hPa).
     :type ref_height_m:             float or int
     :param target_height_m:         Height (in metres) which ref_air_pressure_hPa is scaled to.
     :type target_height_m           float or int
-    :return:                        Air pressure at specified height of target_height_m in hPa (1mbar = 1hPa = 100Pa)
-    :rtype:                         float or int or pandas.Series depending on type(ref_air_pressure_hPa) and
-                                    type(ref_air_temp_degC) inputs
+    :return:                        Air pressure at specified height of target_height_m in hPa (1mbar = 1hPa = 100Pa).
+                                    Type depends on type(ref_air_pressure_hPa) and type(ref_air_temp_degC) inputs.
+    :rtype:                         float or int or pandas.Series
 
         **Example usage**
     ::
@@ -2137,7 +2137,7 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa : Union[float, pd.Series],
 
     # check input types
     for var, var_name in zip([ref_air_pressure_hPa, ref_air_temp_degC], ['ref_air_pressure_hPa', 'ref_air_temp_degC']):
-        if not ((isinstance(var, float) or isinstance(var, int) or isinstance(var, pd.Series))):
+        if not (isinstance(var, float) or isinstance(var, int) or isinstance(var, pd.Series)):
             raise TypeError(f"{var_name} must be a float or int or pandas.Series.")
     for var, var_name in zip([ref_height_m, target_height_m], ['ref_height_m', 'target_height_m']):
         if not (isinstance(var, float) or isinstance(var, int)):
@@ -2149,11 +2149,11 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa : Union[float, pd.Series],
             raise ValueError("ref_air_pressure_hPa and ref_air_temp_degC must have the same dimensions.")
 
     # Constants as outlined in ISO:2533
-    g = ACCEL_DUE_TO_GRAVITY # Acceleration due to gravity (m/s^2)
-    L = TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE # Temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
-    R = GAS_CONST_DRY_AIR #  Specific gas constant dry air
+    g = ACCEL_DUE_TO_GRAVITY  # Acceleration due to gravity (m/s^2)
+    L = TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE  # Temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
+    R = GAS_CONST_DRY_AIR  # Specific gas constant dry air
     
-    ref_air_temp_K = ref_air_temp_degC + 273.15 # Convert temp units to K
+    ref_air_temp_K = ref_air_temp_degC + 273.15  # Convert temp units to K
 
     scaled_air_pressure_hPa = ref_air_pressure_hPa * ((1 + (L / ref_air_temp_K) * (target_height_m - ref_height_m)
                                                        ) ** (-g / (L * R)))
