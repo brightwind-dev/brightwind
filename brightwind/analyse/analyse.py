@@ -2135,7 +2135,7 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
 
     lapse_rate_per_m = lapse_rate * 0.001 # convert lapse rate from kg/m3/km to kg/m3/m
     temp_K = temperature + 273.15 # to convert deg C to Kelvin.
-    press_Pa = pressure*100  # to convert hPa to Pa
+    press_Pa = pressure * 100  # to convert hPa to Pa
     vapour_press = 0.0000205 * np.exp(0.0631846 * temp_K)
     specific_gas_constant_water = 461.5
     specific_gas_constant_dry_air = 287.05
