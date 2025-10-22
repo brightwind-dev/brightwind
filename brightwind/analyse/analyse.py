@@ -2022,7 +2022,8 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
                      elevation_site: Union[float, int] = None,
                      lapse_rate: float = -0.113,
                      specific_gas_constant: float = 286.9,
-                     rel_humidity_percent: Union[float, pd.Series, pd.DataFrame] = None) ->  Union[float, pd.Series]:
+                     rel_humidity_percent: Union[float, pd.Series, pd.DataFrame] = None
+                     ) ->  Union[float, pd.Series]:
     """
     Calculates air density for a given air temperature (temperature), air pressure (pressure) 
     and relative humidity (rel_humidity_percent) using method outlined in IEC Standard (61400-12-1).
@@ -2069,8 +2070,9 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
                                     calculation ignores humidity.
     :type rel_humidity_percent:     float or pandas.Series or pandas.DataFrame
     :return:                        Air density in kg/m^3. Output type depends on type(temperature), type(pressure),
-                                    type(rel_humidity_percent).
-    :rtype:                         float or pandas.Series or pandas.DataFrame
+                                    type(rel_humidity_percent) provided. If all inputs are float, output is float. 
+                                    If any input is pandas.Series or pandas.DataFrame, output is pandas.Series.
+    :rtype:                         float or pandas.Series
 
         **Example usage**
     ::
@@ -2132,6 +2134,19 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
     # 1.19833
 
     """
+    # Convert DataFrame inputs to Series
+    if isinstance(temperature, pd.DataFrame):
+        temperature = _convert_df_to_series(temperature).copy()
+    if isinstance(pressure, pd.DataFrame):
+        pressure = _convert_df_to_series(pressure).copy()
+
+    # Check dimensions of temperature, pressure and rel_humidity_percent if not float or int
+    if isinstance(temperature, pd.Series) and (isinstance(pressure, pd.Series)):
+        if len(temperature) != len(pressure):
+            raise ValueError("temperature and pressure must have the same dimensions.") 
+        if isinstance(rel_humidity_percent, pd.Series):
+            if len(temperature) != len(rel_humidity_percent):
+                raise ValueError("temperature, pressure and rel_humidity_percent must have the same dimensions.")
 
     lapse_rate_per_m = lapse_rate * 0.001 # convert lapse rate from kg/m3/km to kg/m3/m
     temp_K = temperature + 273.15 # to convert deg C to Kelvin.
