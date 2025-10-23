@@ -9,7 +9,8 @@ __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
            'is_file_extension',
-           'validate_json']
+           'validate_json',
+           'apply_scale_factor']
 
 
 def _range_0_to_360(direction):
@@ -340,19 +341,19 @@ def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
     return y_target
 
 
-def apply_scale_factor(data : Union[float, pd.DataFrame, pd.Series, np.array],
+def apply_scale_factor(data : Union[float, int, pd.DataFrame, pd.Series, np.array],
                        scale_factor: Union[float, int]):
     """
     Scales data by the scale_factor.
 
     If data input is pd.DataFrame, only numeric columns are scaled.
     
-    :param data:            Value to scale by the scale_factor
-    :type data:             float or pandas.Series or pandas.DataFrame or numpy.array
-    :param scale_factor:    Scale factor as a float.
+    :param data:            Data value(s) to scale by the scale_factor.
+    :type data:             float or int or pandas.Series or pandas.DataFrame or numpy.array
+    :param scale_factor:    Scaling factor to use for scaling data values.
     :type scale_factor:     float or int
-    :returns:               scale_factor times data
-    :rtype:                 float or pandas.Series or pandas.DataFrame or numpy.array
+    :returns:               Scaled data value(s). Output type depends on type(data).
+    :rtype:                 float or int or pandas.Series or pandas.DataFrame or numpy.array
 
         **Example usage**
     ::
@@ -385,7 +386,7 @@ def apply_scale_factor(data : Union[float, pd.DataFrame, pd.Series, np.array],
     """
 
     if not isinstance(data, (float, int, pd.DataFrame, pd.Series, np.ndarray)):
-        raise ValueError('data should be a float, pd.DataFrame, pd.Series or np.ndarray')
+        raise ValueError('data should be a float or int or pd.DataFrame or pd.Series or np.ndarray')
     if not isinstance(scale_factor, (float, int)):
         raise ValueError('scale_factor should be a float or int')
     

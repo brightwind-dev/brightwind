@@ -998,24 +998,26 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
 
 
 def scale_wind_speed(spd: Union[pd.Series, pd.DataFrame, float, int],
-                     scale_factor: Union[int, float]):
+                     scale_factor: Union[int, float]) ->  Union[pd.Series, pd.DataFrame, float, int]:
     """
     Scales wind speed by the scale_factor
 
     :param spd:             Wind speed value(s) to scale
-    :type spd:              pd.Series or pd.DataFrame or float or int
-    :param scale_factor:    Scaling factor in decimal.
+    :type spd:              pandas.Series or pandas.DataFrame or float or int
+    :param scale_factor:    Scaling factor to use for scaling wind speed.
                             If scaling factor is 0.8, output would be 0.8 times wind speed.
                             If it is -0.8 the output would be -0.8 times the wind speed
     :type scale_factor:     int or float
-    :return:                Value(s) of scaled wind speeds, with same type as input spd.
-    :rtype:                 pd.Series or pd.DataFrame or float or int
+    :return:                Value(s) of scaled wind speed. Output type depends on type(spd).
+    :rtype:                 pandas.Series or pandas.DataFrame or float or int
 
         **Example usage**
     ::
     import brightwind as bw
     import pandas as pd
     import numpy as np
+
+    data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
 
     # scale float by scale_factor of 0.5
     bw.scale_wind_speed(3, 0.5)
@@ -1026,9 +1028,7 @@ def scale_wind_speed(spd: Union[pd.Series, pd.DataFrame, float, int],
     # array([0. , 0.5, 1. ])
 
     # scale pd.Series by scale_factor of 0.5
-    DATA = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
-    DATA_CLND = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
-    bw.scale_wind_speed(DATA_CLND['Spd40mN'].tail(3), 0.5)
+    bw.scale_wind_speed(data['Spd40mN'].tail(3), 0.5)
     # Timestamp
     # 2017-11-23 10:30:00    4.0150
     # 2017-11-23 10:40:00    3.4055
@@ -1036,7 +1036,7 @@ def scale_wind_speed(spd: Union[pd.Series, pd.DataFrame, float, int],
     # Name: Spd40mN, dtype: float64
 
     # scale pd.DataFrame by scale factor of 2
-    bw.scale_wind_speed(DATA_CLND.tail(3)[['Spd60mS', 'Spd40mS']], 2)
+    bw.scale_wind_speed(data.tail(3)[['Spd60mS', 'Spd40mS']], 2)
     # 	          Spd60mS	    Spd40mS
     # Timestamp		
     # 2017-11-23 10:30:00	16.900	15.750
