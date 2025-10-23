@@ -29,7 +29,9 @@ __all__ = ['monthly_means',
            'TI',
            'sector_ratio',
            'calc_air_density',
-           'scale_air_pressure_to_height']
+           'scale_air_pressure_to_height',
+           'scale_air_density_to_height',
+           'scale_air_temperature_to_height']
 
 # Acceleration due to gravity (m/s^2) from ISO:2533-1975 Standard Atmosphere
 ACCEL_DUE_TO_GRAVITY = 9.80665
@@ -2159,3 +2161,130 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
                                                        ) ** (-g / (L * R)))
     
     return scaled_air_pressure_hPa
+
+
+def scale_air_density_to_height(ref_air_density_kg_m3: Union[float, pd.Series],
+                                ref_height_m: float,
+                                target_height_m: float,
+                                lapse_rate_kg_m3_m: float = -0.000113) -> Union[float, pd.Series]:
+    """
+    Linearly scales reference air density measurement (ref_air_density_kg_m3) from its measurement height
+    (ref_height_m) to the height specified as the target_height_m, by applying a constant lapse_rate_kg_m3_m.
+
+    :param ref_air_density_kg_m3:     Reference air density value(s) in kg/m3.
+    :type ref_air_density_kg_m3:      float or pandas.Series
+    :param ref_height_m:              Measurement height (in metres) of ref_air_density_kg_m3.
+    :type ref_height_m                float
+    :param target_height_m:           Height (in metres) that ref_air_density_kg_m3 is scaled to.
+    :type target_height_m:            float
+    :param lapse_rate_kg_m3_m:        Lapse rate describes how air density changes with increasing height above the
+                                      earth's surface in kg/m3/m.
+                                      Default value of -0.113 kg/m3 per km above earth's surface (-0.000113 kg/m3/m)
+                                      taken from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014).
+    :type lapse_rate_kg_m3_m:         float
+    :return:                          Air density at specified height of target_height_m in kg/m3. Type depends on
+                                      type(ref_air_density_kg_m3) input.
+    :rtype:                           float or pandas.Series
+
+        **Example usage**
+    ::
+    import brightwind as bw
+
+    # scale float value of air density using default lapse_rate_kg_m3_m
+    bw.scale_air_density_to_height(ref_air_density_kg_m3=1.224, ref_height_m=80, target_height_m=100)
+    # 1.22174
+
+    # scale float value of air density using non-default value for lapse_rate_kg_m3_m
+    bw.scale_air_density_to_height(ref_air_density_kg_m3=1.224, ref_height_m=80, target_height_m=100,
+                                    lapse_rate_kg_m3_m=-0.0002)
+    # 1.22
+
+    # derive air density and scale based on series input values for reference air density
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+    test_density = bw.calc_air_density(data.T2m, data.P2m)
+    bw.scale_air_density_to_height(ref_air_density_kg_m3=test_density.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+                                   ref_height_m=2, target_height_m=10)
+
+    Timestamp
+    2016-01-09 17:10:00    1.186780
+    2016-01-09 17:20:00    1.187175
+    2016-01-09 17:30:00    1.187747
+    2016-01-09 17:40:00    1.185950
+    2016-01-09 17:50:00    1.186301
+    2016-01-09 18:00:00    1.185686
+    dtype: float64
+    """
+
+    scaled_air_density = utils.linear_transform(x_target=target_height_m, x_ref=ref_height_m,
+                                                y_ref=ref_air_density_kg_m3, slope=lapse_rate_kg_m3_m)
+
+    return scaled_air_density
+
+
+def scale_air_temperature_to_height(ref_air_temperature: Union[float, pd.Series],
+                                    ref_height_m: float,
+                                    target_height_m: float,
+                                    lapse_rate_deg_m: float = TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE
+                                    ) -> Union[float, pd.Series]:
+    """
+    Linearly scales reference air temperature measurement (ref_air_temperature) from its measurement height
+    (ref_height_m) to the height specified as target_height_m, by applying the constant lapse_rate_deg_m.
+
+    :param ref_air_temperature:   Air temperature value(s) in degrees [for example in Celsius or Kelvin].
+    :type ref_air_temperature:    float or pandas.Series
+    :param ref_height_m:          Measurement height (in metres) of ref_air_temperature.
+    :type ref_height_m:           float
+    :param target_height_m:       Height (in metres) that ref_air_temperature is scaled to.
+    :type target_height_m:        float
+    :param lapse_rate_deg_m:      Lapse rate describes how air temperature changes with increasing height
+                                  above the earth's surface.
+                                  Units should be degrees of temperature per unit of height, e.g. °C/m or K/m.
+                                  Default value of -6.5 degrees Celsius per km above the earth's surface
+                                  (or -0.0065 °C/m) is commonly used as an approximation of the
+                                  atmospheric lapse rate.
+                                  In particular, the IEC standards rely on the ISO2533:1975 Standard Atmosphere
+                                  which states that a lapse rate of 6.5 K/km is valid for geopotential altitudes
+                                  of up to 11 km above earth's surface.
+                                  This value was also adopted in WASP 11:
+                                  Mortensen, N. G., Heathfield, D. N., Rathmann, O., & Nielsen, M. (2014).
+                                  Wind Atlas Analysis and Application Program: WAsP 11 Help Facility. Computer
+                                  programme, Department of Wind Energy, Technical University of Denmark
+                                  https://orbit.dtu.dk/en/publications/wind-atlas-analysis-and-application-program-wasp-11-help-facility
+    :type lapse_rate_deg_m:       float
+    :return:                      Air temperature at specified height of target_height_m in same unit as input
+                                  ref_air_temperature [for example in Celsius or Kelvin]. Output type depends on
+                                  type(ref_air_temperature) input.
+    :rtype:                       float or pandas.Series
+
+        **Example usage**
+    ::
+
+    import brightwind as bw
+
+    # scale air temperature based on float input value for reference air temperature
+    bw.scale_air_temperature_to_height(ref_air_temperature=10.0065, ref_height_m=10, target_height_m=11)
+    # 10.0
+
+    # scale air temperature based on float input value for reference air temperature with non-default lapse_rate_deg_m
+    bw.scale_air_temperature_to_height(ref_air_temperature=10, ref_height_m=12, target_height_m=10,
+                                        lapse_rate_deg_m=-0.001)
+    # 10.002
+
+    # scale air temperature based on series input values for reference air temperature
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+
+    bw.scale_air_temperature_to_height(ref_air_temperature=data.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+                                         ref_height_m=2, target_height_m=20)
+    # Timestamp
+    # 2016-01-09 17:10:00    0.837
+    # 2016-01-09 17:20:00    0.746
+    # 2016-01-09 17:30:00    0.614
+    # 2016-01-09 17:40:00    0.735
+    # 2016-01-09 17:50:00    0.654
+    # 2016-01-09 18:00:00    0.796
+    # Name: T2m, dtype: float64
+    """
+
+    scaled_air_temp = utils.linear_transform(x_target=target_height_m, x_ref=ref_height_m,
+                                             y_ref=ref_air_temperature, slope=lapse_rate_deg_m)
+    return scaled_air_temp
