@@ -9,8 +9,7 @@ __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
            'is_file_extension',
-           'validate_json',
-           'apply_scale_factor']
+           'validate_json']
 
 
 def _range_0_to_360(direction):
@@ -254,6 +253,91 @@ def validate_json(json_to_check, schema):
             print(f"Failed schema part: {error.get('schema_path')}\n")
     
     return data_is_valid
+
+
+def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
+                     x_ref: Union[float, int, np.ndarray, pd.Series],
+                     y_ref: Union[float, int, np.ndarray, pd.Series],
+                     slope: Union[float, int]) -> Union[float, int, np.ndarray, pd.Series]:
+    """
+    Perform a linear transform of known (x_ref, y_ref) to calculate y_target,
+    using a constant slope and known value(s) of x_target.
+
+    Function applies a linear transformation based on the equation of a straight line with constant slope:
+        y_target = slope * (x_target - x_ref) + y_ref,
+    where (x_ref, y_ref) is effectively considered a known point on a line with the inputted slope.
+        
+    Note that if pd.Series or np.ndarray inputs are provided for x_target, x_ref and y_ref, 
+    then the transform is performed on a point by point basis, as in, the n^{th} value of
+    the resulting y_target would be:
+        y_target[n] = slope * (x_target[n] - x_ref[n]) + y_ref[n],
+    where (x_ref[n], y_ref[n]) is effectively considered a known point on a line with the inputted slope.
+    Therefore all three of x_target, x_ref and y_ref must have the same dimensions.
+    The inputted slope is used even in the case of pd.Series or np.ndarray inputs as the purpose of this function
+    is to perform a linear transformation using a predefined slope, not to fit a line to the input data.
+    
+    :param x_target:    Target x value(s) at which to calculate y_target.
+    :type x_target:     float or int or numpy.ndarray or pandas.Series
+    :param x_ref:       Reference x value(s) of known reference point(s) on the line.
+    :type x_ref:        float or int or numpy.ndarray or pandas.Series
+    :param y_ref:       Reference y value(s) of known reference point(s) on the line.
+    :type y_ref:        float or int or numpy.ndarray or pandas.Series
+    :param slope:       Slope of the line equal to (y_target - y_ref) / (x_target - x_ref) where
+                        ref and target x and y are any two points on the line.
+    :type slope:        float or int
+    :return:            Value(s) of y_target at specified x_target.
+    :rtype:             float or int or numpy.ndarray or pandas.Series
+
+        **Example usage**
+    ::
+    import brightwind as bw
+    
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+
+    # calculate y_target for x_target = 11 where (x_ref, y_ref) = (5, 10) is a point on the line and the slope is -0.5.
+    bw.utils.utils.linear_transform(x_target=11, x_ref=5, y_ref=10, slope=-0.5)
+    # 7.0
+
+    # calculate y_target for x_target as a pandas.Series and (x_ref, y_ref) = (2, 20) is a point on the line
+    # and the slope is -0.0065.
+    bw.utils.utils.linear_transform(
+        x_target=data.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        x_ref=2,
+        y_ref=20,
+        slope=-0.0065)
+
+    # calculate y_target for x_target and x_ref as a int and y_ref as a np.ndarray where (x_ref, y_ref) = (2, y_ref)
+    # are points on the line and the slope is -0.0065.
+    bw.utils.utils.linear_transform(
+        x_target=20,
+        x_ref=2,
+        y_ref=data.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'].values,
+        slope=-0.0065)
+    """
+    # check input types
+    for var, var_name in zip([x_ref, y_ref, x_target], ['x_ref', 'y_ref', 'x_target']):
+        if not (isinstance(var, float) or isinstance(var, int) or isinstance(var, pd.Series) or 
+                isinstance(var, np.ndarray)):
+            raise TypeError(f"{var_name} must be a float or int or a numpy.ndarray or pandas.Series.")
+        
+    if not (isinstance(slope, float) or isinstance(slope, int)):
+        raise TypeError("slope must be a float or int.")
+
+    # check dimensions of x_ref and x_target if arrays or Series
+    if (isinstance(x_ref, np.ndarray) or isinstance(x_ref, pd.Series)) and (
+            isinstance(x_target, np.ndarray) or isinstance(x_target, pd.Series)):
+        if len(x_ref) != len(x_target):
+            raise ValueError("x_ref and x_target must have the same dimensions.")
+
+    # check dimensions of y_ref if arrays or Series
+    if isinstance(x_target - x_ref, np.ndarray) or isinstance(x_target - x_ref, pd.Series):
+        if isinstance(y_ref, np.ndarray) or isinstance(y_ref, pd.Series):
+            if len(y_ref) != len(x_target - x_ref):
+                raise ValueError("y_ref must have the same dimensions as x_target or x_ref.")
+
+    y_target = slope * (x_target - x_ref) + y_ref
+    
+    return y_target
 
 
 def apply_scale_factor(data : Union[float, pd.DataFrame, pd.Series, np.array],
