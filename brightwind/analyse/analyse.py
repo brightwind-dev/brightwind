@@ -29,7 +29,7 @@ __all__ = ['monthly_means',
            'TI',
            'sector_ratio',
            'calc_air_density',
-           'scale_air_pressure_to_height'
+           'scale_air_pressure_to_height',
            'scale_air_density_to_height',
            'scale_air_temperature_to_height']
 

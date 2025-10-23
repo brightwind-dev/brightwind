@@ -261,12 +261,21 @@ def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
                      y_ref: Union[float, int, np.ndarray, pd.Series],
                      slope: Union[float, int]) -> Union[float, int, np.ndarray, pd.Series]:
     """
-    Calculate y_target value(s) based on the input x_target value(s) where a point or array of points (x_ref, y_ref) 
-    and the slope of the line are known.
+    Perform a linear transform of known (x_ref, y_ref) to calculate y_target,
+    using a constant slope and known value(s) of x_target.
 
-    Function applies a linear transformation based on the equation of a straight line in point-slope form below:
-
-        y = m(x - x1) + y1 where m is the slope and (x1, y1) a known point on the line.
+    Function applies a linear transformation based on the equation of a straight line with constant slope:
+        y_target = slope * (x_target - x_ref) + y_ref,
+    where (x_ref, y_ref) is effectively considered a known point on a line with the inputted slope.
+        
+    Note that if pd.Series or np.ndarray inputs are provided for x_target, x_ref and y_ref, 
+    then the transform is performed on a point by point basis, as in, the n^{th} value of
+    the resulting y_target would be:
+        y_target[n] = slope * (x_target[n] - x_ref[n]) + y_ref[n],
+    where (x_ref[n], y_ref[n]) is effectively considered a known point on a line with the inputted slope.
+    Therefore all three of x_target, x_ref and y_ref must have the same dimensions.
+    The inputted slope is used even in the case of pd.Series or np.ndarray inputs as the purpose of this function
+    is to perform a linear transformation using a predefined slope, not to fit a line to the input data.
     
     :param x_target:    Target x value(s) at which to calculate y_target.
     :type x_target:     float or int or numpy.ndarray or pandas.Series
@@ -286,9 +295,9 @@ def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
     
     data = bw.load_csv(bw.demo_datasets.demo_data)
 
-    # calculate y_target for x_target = 10 where (x_ref, y_ref) = (5, 10) is a point on the line and the slope is -0.5.
-    bw.utils.utils.linear_transform(x_target=10, x_ref=5, y_ref=10, slope=-0.5)
-    # 7.5
+    # calculate y_target for x_target = 11 where (x_ref, y_ref) = (5, 10) is a point on the line and the slope is -0.5.
+    bw.utils.utils.linear_transform(x_target=11, x_ref=5, y_ref=10, slope=-0.5)
+    # 7.0
 
     # calculate y_target for x_target as a pandas.Series and (x_ref, y_ref) = (2, 20) is a point on the line
     # and the slope is -0.0065.
