@@ -42,6 +42,8 @@ TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE = -0.0065
 #  Specific gas constant for dry air (J/K/kg or m2/K/s2) from ISO:2533-1975 Standard Atmosphere
 GAS_CONST_DRY_AIR = 287.05 
 
+# Air density lapse rate (kg/m3/km) from Windfarmer Theory Manual Version 5.3, DNV GL (April 2014)
+AIR_DENSITY_LAPSE_RATE = -0.113
 
 def dist_matrix(var_series, x_series, y_series,
                 num_bins_x=None, num_bins_y=None,
@@ -2030,7 +2032,7 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
                      pressure: Union[float, pd.Series, pd.DataFrame],
                      elevation_ref: Union[float, int] = None,
                      elevation_site: Union[float, int] = None,
-                     lapse_rate: float = -0.113,
+                     lapse_rate: float = AIR_DENSITY_LAPSE_RATE,
                      specific_gas_constant: float = 286.9,
                      rel_humidity_percent: Union[float, pd.Series, pd.DataFrame] = None
                      ) ->  Union[float, pd.Series]:
@@ -2165,7 +2167,7 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
     press_Pa = pressure * 100  # to convert hPa to Pa
     vapour_press = 0.0000205 * np.exp(0.0631846 * temp_K)
     specific_gas_constant_water = 461.5
-    specific_gas_constant_dry_air = 287.05
+    specific_gas_constant_dry_air = GAS_CONST_DRY_AIR
 
     if rel_humidity_percent is None:
         # If relative humidity is None, the old method ignoring relative humidity is used.
@@ -2318,7 +2320,7 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
 def scale_air_density_to_height(ref_air_density_kg_m3: Union[float, pd.Series],
                                 ref_height_m: float,
                                 target_height_m: float,
-                                lapse_rate_kg_m3_m: float = -0.000113) -> Union[float, pd.Series]:
+                                lapse_rate_kg_m3_m: float = (0.001 * AIR_DENSITY_LAPSE_RATE)) -> Union[float, pd.Series]:
     """
     Linearly scales reference air density measurement (ref_air_density_kg_m3) from its measurement height
     (ref_height_m) to the height specified as the target_height_m, by applying a constant lapse_rate_kg_m3_m.
