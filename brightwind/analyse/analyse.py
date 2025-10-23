@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import warnings
 import textwrap
 from matplotlib.ticker import PercentFormatter
+from typing import Union
 
 __all__ = ['monthly_means',
            'momm',
@@ -27,7 +28,17 @@ __all__ = ['monthly_means',
            'basic_stats',
            'TI',
            'sector_ratio',
-           'calc_air_density']
+           'calc_air_density',
+           'scale_air_pressure_to_height']
+
+# Acceleration due to gravity (m/s^2) from ISO:2533-1975 Standard Atmosphere
+ACCEL_DUE_TO_GRAVITY = 9.80665
+
+# Temperature lapse rate (K/m or degC/m) from ISO:2533-1975 Standard Atmosphere
+TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE = -0.0065 
+
+#  Specific gas constant for dry air (J/K/kg or m2/K/s2) from ISO:2533-1975 Standard Atmosphere
+GAS_CONST_DRY_AIR = 287.05 
 
 
 def dist_matrix(var_series, x_series, y_series,
@@ -2065,3 +2076,86 @@ def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=N
         raise TypeError('elevation_ref should be a number')
     else:
         return ref_air_density
+
+
+def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
+                                 ref_air_temp_degC: Union[float, pd.Series],
+                                 ref_height_m: Union[float, int],
+                                 target_height_m: Union[float, int]) -> Union[float, int, pd.Series]:
+    """
+    Calculates air pressure at target height (target_height_m) using reference air pressure (ref_air_pressure_hPa)
+    and air temperature (ref_air_temp_degC) values at a reference height (ref_height_m).
+
+    Calculation based on ISO:2533-1975 Standard Atmosphere (https://www.iso.org/obp/ui/#iso:std:iso:2533:en)
+    as suggested by IEC 61400-12-1:
+
+    scaled_air_pressure = ref_air_pressure_hPa*((1 + (L/ref_air_temp_K)*(target_height_m - ref_height_m))**(-g/(L*R)))
+    where:
+    g = 9.80665 is acceleration due to gravity (m/s^2)
+    L = -0.0065 is the temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
+    R = 287.05 is the specific gas constant for dry air (J/K/kg or m2/K/s2)
+    
+    :param ref_air_pressure_hPa:    Reference air pressure value(s) in hPa (1mbar = 1hPa = 100Pa).
+    :type ref_air_pressure_hPa:     float or int or pandas.Series
+    :param ref_air_temp_degC:       Reference air temperature value(s) in degrees celsius.
+    :type ref_air_temp_degC:        float or int or pandas.Series
+    :param ref_height_m:            Height (in metres) of reference air temperature (ref_air_temp_degC)
+                                    and air pressure (ref_air_pressure_hPa).
+    :type ref_height_m:             float or int
+    :param target_height_m:         Height (in metres) which ref_air_pressure_hPa is scaled to.
+    :type target_height_m           float or int
+    :return:                        Air pressure at specified height of target_height_m in hPa (1mbar = 1hPa = 100Pa).
+                                    Type depends on type(ref_air_pressure_hPa) and type(ref_air_temp_degC) inputs.
+    :rtype:                         float or int or pandas.Series
+
+        **Example usage**
+    ::
+
+    import brightwind as bw
+
+    # scale float value of air pressure
+    round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12, ref_height_m=10, 
+                                    target_height_m=200), 2)
+    # 977.45
+
+    # scale air pressure based on input series of reference air pressure and air temperature
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+
+    bw.scale_air_pressure_to_height(ref_air_pressure_hPa=data['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+                                    ref_air_temp_degC=data['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+                                    ref_height_m=2, target_height_m=10).round(2)
+    # Timestamp
+    # 2016-01-09 17:10:00    933.07
+    # 2016-01-09 17:20:00    933.07
+    # 2016-01-09 17:30:00    933.07
+    # 2016-01-09 17:40:00    932.07
+    # 2016-01-09 17:50:00    932.07
+    # 2016-01-09 18:00:00    932.07
+    # dtype: float64
+
+    """
+
+    # check input types
+    for var, var_name in zip([ref_air_pressure_hPa, ref_air_temp_degC], ['ref_air_pressure_hPa', 'ref_air_temp_degC']):
+        if not (isinstance(var, float) or isinstance(var, int) or isinstance(var, pd.Series)):
+            raise TypeError(f"{var_name} must be a float or int or pandas.Series.")
+    for var, var_name in zip([ref_height_m, target_height_m], ['ref_height_m', 'target_height_m']):
+        if not (isinstance(var, float) or isinstance(var, int)):
+            raise TypeError(f"{var_name} must be a float or int.")
+
+    # check dimensions of ref_air_pressure_hPa and ref_air_temp_degC if Series
+    if isinstance(ref_air_pressure_hPa, pd.Series) and (isinstance(ref_air_temp_degC, pd.Series)):
+        if len(ref_air_pressure_hPa) != len(ref_air_temp_degC):
+            raise ValueError("ref_air_pressure_hPa and ref_air_temp_degC must have the same dimensions.")
+
+    # Constants as outlined in ISO:2533
+    g = ACCEL_DUE_TO_GRAVITY  # Acceleration due to gravity (m/s^2)
+    L = TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE  # Temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
+    R = GAS_CONST_DRY_AIR  # Specific gas constant dry air
+    
+    ref_air_temp_K = ref_air_temp_degC + 273.15  # Convert temp units to K
+
+    scaled_air_pressure_hPa = ref_air_pressure_hPa * ((1 + (L / ref_air_temp_K) * (target_height_m - ref_height_m)
+                                                       ) ** (-g / (L * R)))
+    
+    return scaled_air_pressure_hPa

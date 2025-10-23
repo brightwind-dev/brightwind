@@ -659,3 +659,41 @@ def test_dist_matrix_by_direction_sector():
                                  var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
 
+
+def test_scale_air_pressure_to_height():
+    assert round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
+                                       ref_height_m=10, target_height_m=200), 2)== 977.45
+    assert round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
+                                       ref_height_m=10, target_height_m=15), 2) == 999.4
+    pd.testing.assert_series_equal(bw.scale_air_pressure_to_height(
+        ref_air_pressure_hPa=DATA['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        ref_air_temp_degC=DATA['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        ref_height_m=2, target_height_m=10),
+        pd.Series(data = [933.07, 933.07, 933.07, 932.07, 932.07, 932.07], 
+        index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
+                                '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
+                                check_names=False)
+    
+    # test error raising for invalid input types
+    with pytest.raises(TypeError):
+        bw.scale_air_pressure_to_height(
+            ref_air_pressure_hPa='invalid_type',
+            ref_air_temp_degC=12,
+            ref_height_m=2,
+            target_height_m=10)
+
+    # test error raising for invalid slope type
+    with pytest.raises(TypeError):
+        bw.scale_air_pressure_to_height(
+            ref_air_pressure_hPa=1000,
+            ref_air_temp_degC=12,
+            ref_height_m=2,
+            target_height_m='invalid_type')
+
+    # test error raising for mismatched dimensions with Series
+    with pytest.raises(ValueError):
+        bw.scale_air_pressure_to_height(
+            ref_air_pressure_hPa=pd.Series([1, 2, 3]),
+            ref_air_temp_degC=pd.Series([1, 2]),
+            ref_height_m=2,
+            target_height_m=10)

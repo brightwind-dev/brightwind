@@ -14,6 +14,13 @@ Additional labels for pre-release and build metadata are available as extensions
 ## [2.4.0-dev]
 1. Fixed pandas<3.0.0 and numpy<2.3.1 dependencies, ([#458](https://github.com/brightwind-dev/brightwind/issues/458))
 
+### Bug Fixes
+1. 
+
+### New Features and Enhancements
+1. Added `scale_air_pressure_to_height` to output an air pressure value for any height based on reference air temperature and air pressure values at a different measurement height ([#531](https://github.com/brightwind-dev/brightwind/issues/531)) 
+
+
 ## [2.3.0]
 This update brings a comprehensive set of **bug fixes** and **enhancements** across the Brightwind library. 
 Key improvements include more reliable wind and solar data handling, expanded plotting capabilities (including 
