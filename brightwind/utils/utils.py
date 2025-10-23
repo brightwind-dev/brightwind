@@ -10,6 +10,7 @@ __all__ = ['slice_data',
            'is_file',
            'is_file_extension',
            'validate_json',
+           'linear_transform',
            'apply_scale_factor']
 
 
