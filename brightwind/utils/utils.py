@@ -256,37 +256,59 @@ def validate_json(json_to_check, schema):
     return data_is_valid
 
 
-def apply_scale_factor(data : Union[float, pd.Series, np.array],
+def apply_scale_factor(data : Union[float, pd.DataFrame, pd.Series, np.array],
                        scale_factor: Union[float, int]):
     """
     Scales data by the scale_factor.
 
-    :param value:           Value to scale by the scale_factor
-    :type value:            float or pandas.Series or numpy.array
+    If data input is pd.DataFrame, only numeric columns are scaled.
+    
+    :param data:            Value to scale by the scale_factor
+    :type data:             float or pandas.Series or pandas.DataFrame or numpy.array
     :param scale_factor:    Scale factor as a float.
-    :type scale_factor:     float
-    :returns:               scale_factor times value
-    :rtype:                 float or pandas.Series or numpy.array depending on type(value)
+    :type scale_factor:     float or int
+    :returns:               scale_factor times data
+    :rtype:                 float or pandas.Series or pandas.DataFrame or numpy.array
 
         **Example usage**
     ::
     import brightwind as bw
+    import pandas as pd
+    import numpy as np
 
     # scale float by scale_factor of 0.5
-    bw.apply_scale_factor(3, 0.5)
+    bw.utils.utils.apply_scale_factor(3, 0.5)
     # 1.5
 
-    # scale np.array by scale_factor of 0.5
-    bw.apply_scale_factor(np.array([0, 1, 2]), 0.5)
-    # [0, 0.5, 1]
-    
+    # # scale np.array by scale_factor of 0.5
+    # bw.utils.utils.apply_scale_factor(np.array([0, 1, 2]), 0.5)
+    # # [0, 0.5, 1]
+
     # scale pd.Series by scale_factor of -10
-    bw.apply_scale_factor(pd.Series([10, 20, 30, 40]), -10)
-    # [-100, -200, -300, -400]
+    bw.utils.utils.apply_scale_factor(pd.Series([10, 20, 30, 40]), -10)
+    # 0   -100
+    # 1   -200
+    # 2   -300
+    # 3   -400
+    # dtype: int64
+
+    # scale pd.DataFrame by scale factor of 2
+    df = pd.DataFrame({'a':[0.5, 1.2], 'b':[3, 4], 'c':['a', 'b']})
+    bw.utils.utils.apply_scale_factor(df, 2)
+    # 	a	b	c
+    # 0	1.0	6	a
+    # 1	2.4	8	b
     """
 
-    if not isinstance(data, (float, int, pd.Series, np.ndarray)):
-        raise ValueError('data should be a float, pd.Series or np.ndarray')
+    if not isinstance(data, (float, int, pd.DataFrame, pd.Series, np.ndarray)):
+        raise ValueError('data should be a float, pd.DataFrame, pd.Series or np.ndarray')
     if not isinstance(scale_factor, (float, int)):
         raise ValueError('scale_factor should be a float or int')
-    return scale_factor * data
+    
+    if isinstance(data, pd.DataFrame):
+        # only apply scaling to numeric columns
+        numeric_df = scale_factor * (data.select_dtypes(include = 'number'))
+        result = pd.concat([numeric_df, data.select_dtypes(exclude='number')], axis = 1)
+        return result
+    else:
+        return scale_factor * data
