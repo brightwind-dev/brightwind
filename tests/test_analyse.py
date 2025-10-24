@@ -632,20 +632,57 @@ def test_ti_by_sector():
 
 
 def test_calc_air_density():
-    bw.calc_air_density(DATA[['T2m']], DATA[['P2m']])
-    bw.calc_air_density(DATA.T2m, DATA.P2m)
-    bw.calc_air_density(DATA.T2m, DATA.P2m, elevation_ref=0, elevation_site=200)
 
+    # test DataFrame input
+    assert (bw.calc_air_density(DATA[['T2m']], DATA[['P2m']]).dropna().values == 
+            bw.calc_air_density(DATA.T2m, DATA.P2m).dropna().values).all()
+    assert (round(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])), 6
+                 ) == pd.Series([1.225350, 1.208010, 1.325842, 1.059254])).all()
+    
+    # test Series inputs
+    assert list(round(bw.calc_air_density(DATA.T2m, DATA.P2m).tail(5), 6).values
+                  ) == [1.199177, 1.199838, 1.199794, 1.199439, 1.201066]
+    assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m).tail(5).values -
+                pd.Series([1.19918, 1.19984, 1.19979, 1.19944, 1.20107])) < 1e-3).all()
+    assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m, rel_humidity_percent=DATA.RH2m).tail(5).values -
+                pd.Series([1.19529, 1.19601, 1.19592, 1.19555, 1.19719])) < 1e-3).all()
+    assert list(bw.calc_air_density(DATA.T2m, DATA.P2m, specific_gas_constant=287.05).head(5).round(6).dropna()
+                ) == [1.187064, 1.187458]
+    
+    #t test Series inputs with elevation adjustment
+    assert list(bw.calc_air_density(DATA.T2m, DATA.P2m, elevation_ref=0, elevation_site=200).tail(5).values
+                ) == [1.177, 1.177, 1.177, 1.177, 1.178]
+
+    # test float/int inputs
+    assert bw.calc_air_density(15, 1013) == 1.2253503331640465
+    assert (bw.calc_air_density(15, 1012, rel_humidity_percent=None, specific_gas_constant=287.05) == 
+            bw.calc_air_density(15, 1012, rel_humidity_percent=0))
+    assert round(bw.calc_air_density(15, 1012, rel_humidity_percent=0), 5) == 1.2235
+    assert round(bw.calc_air_density(15, 1012), 5) == 1.22414
+    assert abs(bw.calc_air_density(15, 1013, specific_gas_constant=287.05) - 1.22471) < 1e-3
+    assert abs(bw.calc_air_density(15, 1013, rel_humidity_percent=50) - 1.22093) < 1e-3
+    assert round(bw.calc_air_density(15, 1013, rel_humidity_percent=50, 
+                                     elevation_ref=0, elevation_site=200), 5) == 1.198
+
+    # test float/int inputs with elevation adjustment
+    assert bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200) == 1.203
+    assert bw.calc_air_density(15, 1013, rel_humidity_percent=50, elevation_ref=0, elevation_site=200
+                               ) - bw.scale_air_density_to_height(
+                                   bw.calc_air_density(15, 1013, rel_humidity_percent=50), 0, 200) <1e-3
+    
+    # test errors
     with pytest.raises(TypeError) as except_info:
         bw.calc_air_density(15, 1013, elevation_site=200)
-    assert str(except_info.value) == 'elevation_ref should be a number'
+    assert str(except_info.value) == "Specify value of elevation_ref (float or int) when elevation_site is provided."
     with pytest.raises(TypeError) as except_info:
         bw.calc_air_density(15, 1013, elevation_ref=200)
-    assert str(except_info.value) == 'elevation_site should be a number'
-    assert abs(bw.calc_air_density(15, 1013) - 1.225) < 1e-3
-    assert abs(bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200) - 1.203) < 1e-3
-    assert (abs(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])) -
-                pd.Series([1.225, 1.208, 1.326, 1.059])) < 1e-3).all()
+    assert str(except_info.value) == "Specify value of elevation_site (float or int) when elevation_ref is provided."
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(DATA.T2m.tail(5), DATA[['P2m']].tail(3), rel_humidity_percent=DATA.RH2m.tail(5)) 
+    assert str(except_info.value) == "temperature and pressure must have the same dimensions."
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(DATA.T2m.tail(5), DATA[['P2m']].tail(5), rel_humidity_percent=DATA.RH2m.tail(3)) 
+    assert str(except_info.value) == "temperature, pressure and rel_humidity_percent must have the same dimensions."
 
 
 def test_dist_matrix_by_direction_sector():
