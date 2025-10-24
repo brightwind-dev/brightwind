@@ -2181,9 +2181,10 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
         # Deprecation warning
         warnings.warn(
             (
-                "\nThe `specific_gas_constant` argument of `calc_air_density()` will be removed in a future 3.0 release "
-                "of brightwind.\nNote that this value is used only when `rel_humidity_percent` is None. \nPlease set "
-                "`rel_humidity_percent` to 0 instead if want to use the specific gas constants for dry air (287.05 J/kg*K)."
+                "\nThe `specific_gas_constant` argument of `calc_air_density()` will be removed in a future 3.0 "
+                "release of brightwind.\nNote that this value is used only when `rel_humidity_percent` is None."
+                "\nPlease set `rel_humidity_percent` to 0 instead if you want to use the specific gas constant "
+                "for dry air (287.05 J/kg*K)."
                 ),
             DeprecationWarning,
             stacklevel=2
