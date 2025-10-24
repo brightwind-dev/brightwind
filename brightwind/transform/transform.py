@@ -998,15 +998,15 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
 
 
 def scale_wind_speed(spd: Union[pd.Series, pd.DataFrame, float, int],
-                     scale_factor: Union[int, float]) ->  Union[pd.Series, pd.DataFrame, float, int]:
+                     scale_factor: Union[int, float]
+                     ) -> Union[pd.Series, pd.DataFrame, float, int]:
     """
     Scales wind speed by the scale_factor
 
-    :param spd:             Wind speed value(s) to scale
+    :param spd:             Wind speed value(s) to scale.
     :type spd:              pandas.Series or pandas.DataFrame or float or int
     :param scale_factor:    Scaling factor to use for scaling wind speed.
                             If scaling factor is 0.8, output would be 0.8 times wind speed.
-                            If it is -0.8 the output would be -0.8 times the wind speed
     :type scale_factor:     int or float
     :return:                Value(s) of scaled wind speed. Output type depends on type(spd).
     :rtype:                 pandas.Series or pandas.DataFrame or float or int
