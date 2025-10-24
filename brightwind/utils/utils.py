@@ -397,4 +397,7 @@ def apply_scale_factor(data : Union[float, int, pd.DataFrame, pd.Series, np.arra
         result = pd.concat([numeric_df, data.select_dtypes(exclude='number')], axis = 1)
         return result
     else:
+        if isinstance(data, pd.Series):
+            if not pd.api.types.is_numeric_dtype(data):
+                raise ValueError('data inputted as a pandas.Series must be numeric')
         return scale_factor * data
