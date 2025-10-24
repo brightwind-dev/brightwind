@@ -343,7 +343,8 @@ def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
 
 
 def apply_scale_factor(data: Union[float, int, pd.DataFrame, pd.Series, np.array],
-                       scale_factor: Union[float, int]):
+                       scale_factor: Union[float, int]
+                       ) -> Union[float, int, pd.DataFrame, pd.Series, np.array]:
     """
     Scales data by the scale_factor.
 

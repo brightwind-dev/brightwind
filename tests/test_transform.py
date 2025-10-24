@@ -808,4 +808,4 @@ def test_scale_wind_speed():
     
     df = pd.DataFrame({'Spd_100m':[0.5, 1.2], 'Spd_100m':[3, 4], 'c':['a', 'b']})
     result_df = pd.DataFrame({'Spd_100m':[1.0, 2.4], 'Spd_100m':[6, 8], 'c':['a', 'b']})
-    assert result_df.equals(bw.utils.utils.apply_scale_factor(df, 2))
+    assert result_df.equals(bw.scale_wind_speed(df, 2))
