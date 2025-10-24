@@ -1,7 +1,8 @@
 import pytest
-import brightwind as bw
 import pandas as pd
 import numpy as np
+
+import brightwind as bw
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -81,3 +82,10 @@ def test_linear_transform():
             y_ref=pd.Series([1, 2]),
             slope=-0.5)
 
+def test_apply_scale_factor():
+    assert bw.utils.utils.apply_scale_factor(3, 0.5) == 1.5
+    assert (bw.utils.utils.apply_scale_factor(np.array([0, 1, 2]), 0.5) == [0, 0.5, 1]).all()
+    assert (bw.utils.utils.apply_scale_factor(pd.Series([10, 20, 30, 40]), -10) == [-100, -200, -300, -400]).all()
+    df = pd.DataFrame({'a':[0.5, 1.2], 'b':[3, 4], 'c':['a', 'b']})
+    result_df = pd.DataFrame({'a':[1.0, 2.4], 'b':[6, 8], 'c':['a', 'b']})
+    assert result_df.equals(bw.utils.utils.apply_scale_factor(df, 2))

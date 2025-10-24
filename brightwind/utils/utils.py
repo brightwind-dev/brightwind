@@ -10,7 +10,8 @@ __all__ = ['slice_data',
            'is_file',
            'is_file_extension',
            'validate_json',
-           'linear_transform']
+           'linear_transform',
+           'apply_scale_factor']
 
 
 def _range_0_to_360(direction):
@@ -339,3 +340,69 @@ def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
     y_target = slope * (x_target - x_ref) + y_ref
     
     return y_target
+
+
+def apply_scale_factor(data: Union[float, int, pd.DataFrame, pd.Series, np.array],
+                       scale_factor: Union[float, int]
+                       ) -> Union[float, int, pd.DataFrame, pd.Series, np.array]:
+    """
+    Scales data by the scale_factor.
+
+    If data input is pd.DataFrame, only numeric columns are scaled.
+    
+    :param data:            Data value(s) to scale by the scale_factor.
+    :type data:             float or int or pandas.Series or pandas.DataFrame or numpy.array
+    :param scale_factor:    Scaling factor to use for scaling data values.
+    :type scale_factor:     float or int
+    :returns:               Scaled data value(s). Output type depends on type(data).
+    :rtype:                 float or int or pandas.Series or pandas.DataFrame or numpy.array
+
+        **Example usage**
+    ::
+    import brightwind as bw
+    import pandas as pd
+    import numpy as np
+
+    # scale float by scale_factor of 0.5
+    bw.utils.utils.apply_scale_factor(3, 0.5)
+    # 1.5
+
+    # # scale np.array by scale_factor of 0.5
+    # bw.utils.utils.apply_scale_factor(np.array([0, 1, 2]), 0.5)
+    # array([0. , 0.5, 1. ])
+
+    # scale pd.Series by scale_factor of -10
+    bw.utils.utils.apply_scale_factor(pd.Series([10, 20, 30, 40]), -10)
+    # 0   -100
+    # 1   -200
+    # 2   -300
+    # 3   -400
+    # dtype: int64
+
+    # scale pd.DataFrame by scale factor of 2
+    df = pd.DataFrame({'a':[0.5, 1.2], 'b':[3, 4], 'c':['a', 'b']})
+    bw.utils.utils.apply_scale_factor(df, 2)
+    # 	a	b	c
+    # 0	1.0	6	a
+    # 1	2.4	8	b
+    """
+
+    if not isinstance(data, (float, int, pd.DataFrame, pd.Series, np.ndarray)):
+        raise ValueError('data should be a float or int or pd.DataFrame or pd.Series or np.ndarray')
+    if not isinstance(scale_factor, (float, int)):
+        raise ValueError('scale_factor should be a float or int')
+    
+    if isinstance(data, pd.DataFrame):
+        # only apply scaling to numeric columns
+        numeric_df = scale_factor * (data.select_dtypes(include='number'))
+        result = pd.concat([numeric_df, data.select_dtypes(exclude='number')], axis=1)
+        return result
+    else:
+        if isinstance(data, pd.Series):
+            if not pd.api.types.is_numeric_dtype(data):
+                raise ValueError('data inputted as a pandas.Series must be numeric')
+        if isinstance(data, np.ndarray):
+            if not np.issubdtype(data.dtype, np.number):
+                raise ValueError('data inputted as a np.ndarray must be numeric')
+            
+        return scale_factor * data

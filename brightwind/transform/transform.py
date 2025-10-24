@@ -1,12 +1,15 @@
-import datetime
-import numpy as np
+import copy  
+import datetime  
+import warnings  
+from typing import Union  
+
+import numpy as np  
 import pandas as pd
+
 from brightwind.utils import utils
 from brightwind.load.station import _Measurements
 from brightwind.load.station import DATE_INSTEAD_OF_NONE
 from brightwind.utils.utils import validate_coverage_threshold
-import copy
-import warnings
 
 __all__ = ['average_data_by_period',
            'merge_datasets_by_period',
@@ -994,17 +997,53 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
     return df
 
 
-def scale_wind_speed(spd, scale_factor: float):
+def scale_wind_speed(spd: Union[pd.Series, pd.DataFrame, float, int],
+                     scale_factor: Union[int, float]
+                     ) -> Union[pd.Series, pd.DataFrame, float, int]:
     """
     Scales wind speed by the scale_factor
 
-    :param spd: Series or data frame or a single value of wind speed to scale
-    :param scale_factor: Scaling factor in decimal, if scaling factor is 0.8 output would be (1+0.8) times wind speed,
-    if it is -0.8 the output would be (1-0.8) times the wind speed
-    :return: Series or data frame with scaled wind speeds
+    :param spd:             Wind speed value(s) to scale.
+    :type spd:              pandas.Series or pandas.DataFrame or float or int
+    :param scale_factor:    Scaling factor to use for scaling wind speed.
+                            If scaling factor is 0.8, output would be 0.8 times wind speed.
+    :type scale_factor:     int or float
+    :return:                Value(s) of scaled wind speed. Output type depends on type(spd).
+    :rtype:                 pandas.Series or pandas.DataFrame or float or int
 
+        **Example usage**
+    ::
+    import brightwind as bw
+    import pandas as pd
+    import numpy as np
+
+    data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+
+    # scale float by scale_factor of 0.5
+    bw.scale_wind_speed(3, 0.5)
+    # 1.5
+
+    # scale np.array by scale_factor of 0.5
+    bw.scale_wind_speed(np.array([0, 1, 2]), 0.5)
+    # array([0. , 0.5, 1. ])
+
+    # scale pd.Series by scale_factor of 0.5
+    bw.scale_wind_speed(data['Spd40mN'].tail(3), 0.5)
+    # Timestamp
+    # 2017-11-23 10:30:00    4.0150
+    # 2017-11-23 10:40:00    3.4055
+    # 2017-11-23 10:50:00    2.9325
+    # Name: Spd40mN, dtype: float64
+
+    # scale pd.DataFrame by scale factor of 2
+    bw.scale_wind_speed(data.tail(3)[['Spd60mS', 'Spd40mS']], 2)
+    # 	          Spd60mS	    Spd40mS
+    # Timestamp		
+    # 2017-11-23 10:30:00	16.900	15.750
+    # 2017-11-23 10:40:00	14.318	13.336
+    # 2017-11-23 10:50:00	12.808	11.498
     """
-    return spd * scale_factor
+    return utils.apply_scale_factor(spd, scale_factor)
 
 
 def offset_wind_direction(wdir, offset: float):
