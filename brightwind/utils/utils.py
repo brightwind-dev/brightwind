@@ -342,7 +342,7 @@ def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
     return y_target
 
 
-def apply_scale_factor(data : Union[float, int, pd.DataFrame, pd.Series, np.array],
+def apply_scale_factor(data: Union[float, int, pd.DataFrame, pd.Series, np.array],
                        scale_factor: Union[float, int]):
     """
     Scales data by the scale_factor.
@@ -393,8 +393,8 @@ def apply_scale_factor(data : Union[float, int, pd.DataFrame, pd.Series, np.arra
     
     if isinstance(data, pd.DataFrame):
         # only apply scaling to numeric columns
-        numeric_df = scale_factor * (data.select_dtypes(include = 'number'))
-        result = pd.concat([numeric_df, data.select_dtypes(exclude='number')], axis = 1)
+        numeric_df = scale_factor * (data.select_dtypes(include='number'))
+        result = pd.concat([numeric_df, data.select_dtypes(exclude='number')], axis=1)
         return result
     else:
         if isinstance(data, pd.Series):
