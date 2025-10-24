@@ -42,7 +42,7 @@ TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE = -0.0065
 #  Specific gas constant for dry air (J/K/kg or m2/K/s2) from ISO:2533-1975 Standard Atmosphere
 GAS_CONST_DRY_AIR = 287.05 
 
-# Air density lapse rate (kg/m3/km) from Windfarmer Theory Manual Version 5.3, DNV GL (April 2014)
+# Air density lapse rate (kg/m3/km) from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014)
 AIR_DENSITY_LAPSE_RATE = -0.113
 
 def dist_matrix(var_series, x_series, y_series,
@@ -2035,24 +2035,24 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
                      lapse_rate: float = AIR_DENSITY_LAPSE_RATE,
                      specific_gas_constant: float = 286.9,
                      rel_humidity_percent: Union[float, pd.Series, pd.DataFrame] = None
-                     ) ->  Union[float, pd.Series]:
+                     ) -> Union[float, pd.Series]:
     """
     Calculates air density for a given air temperature (temperature), air pressure (pressure) 
     and relative humidity (rel_humidity_percent) using method outlined in IEC Standard (61400-12-1).
 
     Note that the value of the specific_gas_constant argument is used only when rel_humidity_percent is None.
     This specific_gas_constant argument and its default value of 286.9 are retained to maintain backwards
-    compatability for when relativrel_humidity_percente_humidity is None.
-    However, if rel_humidity_percent is not None, this argument is ignored as the air density calculation which
-    incorporates humidity depends on the two specific gas constants for dry air (287.05 J/kg*K) and 
-    water vapour (461.5 J/kg*K) and therefore the specific_gas_constant argument is redundant.
+    compatibility for when rel_humidity_percent is None.
+    However, if rel_humidity_percent is not None, the specific_gas_constant is ignored as the air density
+    calculation which incorporates humidity depends on the two specific gas constants for dry air
+    (287.05 J/kg*K) and water vapour (461.5 J/kg*K) and therefore the specific_gas_constant argument is redundant.
 
     WARNING: The `specific_gas_constant` argument will be removed in a future 3.0 release of brightwind.
 
     Function gives option to scale air density to the elevation of the site if both the reference elevation 
     (elevation_ref) and site elevation (elevation_site) are provided. This scaling assumes that air density 
     decreases with increasing altitude above the earth's surface - a default air density lapse rate of -0.113 kg/m3/km 
-    is adopted. Taken from Windfarmer Theory Manual Version 5.3, DNV GL (April 2014)
+    is adopted. Taken from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014)
 
     WARNING: Option of scaling air density to height will be removed in a future 3.0 release of brightwind. Please call 
     `scale_air_density_to_height()` separately instead.
@@ -2075,7 +2075,7 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
                                     If rel_humidity_percent is not None, this argument is ignored and the specific
                                     gas constant for dry air of 287.05 J/(kg*K) is used instead. 
                                     If rel_humidity_percent is None, then provided the user is unconcerned with
-                                    backwards compatability, the user should set the specific_gas_constant to 287.05 or 
+                                    backwards compatibility, the user should set the specific_gas_constant to 287.05 or 
                                     set rel_humidity_percent to 0 to use the specific gas constants for dry air.             
     :type specific_gas_constant:    float
     :param rel_humidity_percent:    Relative humidity values as a percentage. Default is None. If None, the air density 
@@ -2173,20 +2173,20 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
         # If relative humidity is None, the old method ignoring relative humidity is used.
         # To avoid a breaking change, the value of the specific_gas_constant argument is used.
         # (Default specific_gas_constant is 286.9 which is for moist air)
-        # If a user is not concerned with backwards compatability, the value of this argument should be updated to match
+        # If a user is not concerned with backwards compatibility, the value of this argument should be updated to match
         # the specific gas constant for dry air (287.05) which makes more physical sense given relative humidity is
         # taken as zero in the calculation below.
         gas_constant_air = specific_gas_constant
         rel_hum_decimal = 0.0
         # Deprecation warning
         warnings.warn(
-        (
-            "\nThe `specific_gas_constant` argument of `calc_air_density()` will be removed in a future 3.0 release "
-            "of brightwind.\nNote that this value is used only when `rel_humidity_percent` is None. \nPlease set "
-            "`rel_humidity_percent` to 0 instead if want to use the specific gas constants for dry air (287.05 J/kg*K)."
-        ),
-        DeprecationWarning,
-        stacklevel=2
+            (
+                "\nThe `specific_gas_constant` argument of `calc_air_density()` will be removed in a future 3.0 release "
+                "of brightwind.\nNote that this value is used only when `rel_humidity_percent` is None. \nPlease set "
+                "`rel_humidity_percent` to 0 instead if want to use the specific gas constants for dry air (287.05 J/kg*K)."
+                ),
+            DeprecationWarning,
+            stacklevel=2
         )
 
     else:
@@ -2196,7 +2196,6 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
         # sense to use the specific gas constant for dry air in this context.
         gas_constant_air = specific_gas_constant_dry_air
         rel_hum_decimal = rel_humidity_percent * 0.01
-
 
     # Contribution from dry air
     dry_air_term = press_Pa / gas_constant_air
@@ -2211,12 +2210,12 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
     if elevation_ref is not None and elevation_site is not None:
         # Deprecation warning
         warnings.warn(
-        (
-            "\nScaling air density to height within `calc_air_density()` is deprecated and will be removed in a "
-            "future 3.0 release of brightwind.\nPlease call `scale_air_density_to_height()` separately instead. \n"
-        ),
-        DeprecationWarning,
-        stacklevel=2
+            (
+                "\nScaling air density to height within `calc_air_density()` is deprecated and will be removed in a "
+                "future 3.0 release of brightwind.\nPlease call `scale_air_density_to_height()` separately instead. \n"
+                ),
+            DeprecationWarning,
+            stacklevel=2
         )
         # Perform extrapolation
         scaled_air_density = scale_air_density_to_height(air_density,
@@ -2237,7 +2236,8 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
 def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
                                  ref_air_temp_degC: Union[float, pd.Series],
                                  ref_height_m: Union[float, int],
-                                 target_height_m: Union[float, int]) -> Union[float, int, pd.Series]:
+                                 target_height_m: Union[float, int]
+                                 ) -> Union[float, int, pd.Series]:
     """
     Calculates air pressure at target height (target_height_m) using reference air pressure (ref_air_pressure_hPa)
     and air temperature (ref_air_temp_degC) values at a reference height (ref_height_m).
@@ -2320,7 +2320,8 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
 def scale_air_density_to_height(ref_air_density_kg_m3: Union[float, pd.Series],
                                 ref_height_m: float,
                                 target_height_m: float,
-                                lapse_rate_kg_m3_m: float = (0.001 * AIR_DENSITY_LAPSE_RATE)) -> Union[float, pd.Series]:
+                                lapse_rate_kg_m3_m: float = (0.001 * AIR_DENSITY_LAPSE_RATE)
+                                ) -> Union[float, pd.Series]:
     """
     Linearly scales reference air density measurement (ref_air_density_kg_m3) from its measurement height
     (ref_height_m) to the height specified as the target_height_m, by applying a constant lapse_rate_kg_m3_m.

@@ -19,9 +19,9 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ### New Features and Enhancements
 1. Added `scale_air_pressure_to_height` to output an air pressure value for any height based on reference air temperature and air pressure values at a different measurement height ([#531](https://github.com/brightwind-dev/brightwind/issues/531))
-2. Added `scale_air_density_to_height` to output an air density value for any height by applying a constant lapse rate to a known reference air density value at a reference measurement height ([[#534](https://github.com/brightwind-dev/brightwind/issues/534)]) 
-3. Added `scale_air_temperature_to_height` to output an air temperature value for any height by applying a constant lapse rate to a known reference air temperature value at a reference measurement height ([[#530](https://github.com/brightwind-dev/brightwind/issues/530)])
-4. Updated `calc_air_density` to include relative humidity as suggested in IEC 61400-12-1 ([[#535](https://github.com/brightwind-dev/brightwind/issues/535)])
+2. Added `scale_air_density_to_height` to output an air density value for any height by applying a constant lapse rate to a known reference air density value at a reference measurement height ([#534](https://github.com/brightwind-dev/brightwind/issues/534)) 
+3. Added `scale_air_temperature_to_height` to output an air temperature value for any height by applying a constant lapse rate to a known reference air temperature value at a reference measurement height ([#530](https://github.com/brightwind-dev/brightwind/issues/530))
+4. Updated `calc_air_density` to include relative humidity as suggested in IEC 61400-12-1 ([#535](https://github.com/brightwind-dev/brightwind/issues/535))
 
 
 ## [2.3.0]
