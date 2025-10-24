@@ -368,7 +368,7 @@ def apply_scale_factor(data : Union[float, int, pd.DataFrame, pd.Series, np.arra
 
     # # scale np.array by scale_factor of 0.5
     # bw.utils.utils.apply_scale_factor(np.array([0, 1, 2]), 0.5)
-    # # [0, 0.5, 1]
+    # array([0. , 0.5, 1. ])
 
     # scale pd.Series by scale_factor of -10
     bw.utils.utils.apply_scale_factor(pd.Series([10, 20, 30, 40]), -10)
@@ -400,4 +400,8 @@ def apply_scale_factor(data : Union[float, int, pd.DataFrame, pd.Series, np.arra
         if isinstance(data, pd.Series):
             if not pd.api.types.is_numeric_dtype(data):
                 raise ValueError('data inputted as a pandas.Series must be numeric')
+        if isinstance(data, np.ndarray):
+            if not np.issubdtype(data.dtype, np.number):
+                raise ValueError('data inputted as a np.ndarray must be numeric')
+            
         return scale_factor * data
