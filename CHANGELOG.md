@@ -9,6 +9,9 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
+## [2.3.1-dev]
+1. Updated `time_continuity_gaps` in order to take an argument minimum_gap_length which allows the user to filter the gaps returned. (Issue [#545](https://github.com/brightwind-dev/brightwind/issues/545)).
+
 
 ## [2.3.0]
 1. Bug fix legend `plot_scatter_wspd` and `plot_scatter_wdir` functions and added tests (Issue [#443](https://github.com/brightwind-dev/brightwind/issues/443)).
