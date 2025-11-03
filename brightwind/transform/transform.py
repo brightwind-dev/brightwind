@@ -1,12 +1,15 @@
-import datetime
-import numpy as np
+import copy  
+import datetime  
+import warnings  
+from typing import Union  
+
+import numpy as np  
 import pandas as pd
+
 from brightwind.utils import utils
 from brightwind.load.station import _Measurements
 from brightwind.load.station import DATE_INSTEAD_OF_NONE
 from brightwind.utils.utils import validate_coverage_threshold
-import copy
-import warnings
 
 __all__ = ['average_data_by_period',
            'merge_datasets_by_period',
@@ -240,18 +243,18 @@ def _get_overlapping_data(df1, df2, averaging_prd=None):
     # averaging will start from this timestamp.
     if not (df2.index == start).any():
         if type(df2) == pd.DataFrame:
-            df2 = pd.concat([df2, pd.DataFrame({cols: [np.NaN] for cols in df2.columns},
+            df2 = pd.concat([df2, pd.DataFrame({cols: [np.nan] for cols in df2.columns},
                                                index=[pd.to_datetime(start)])])
         else:
-            df2[pd.to_datetime(start)] = np.NaN
+            df2[pd.to_datetime(start)] = np.nan
         df2.sort_index(inplace=True)
     if not (df1.index == start).any():
-        # df1.loc[pd.to_datetime(start)] = np.NaN
+        # df1.loc[pd.to_datetime(start)] = np.nan
         if type(df1) == pd.DataFrame:
-            df1 = pd.concat([df1, pd.DataFrame({cols: [np.NaN] for cols in df1.columns},
+            df1 = pd.concat([df1, pd.DataFrame({cols: [np.nan] for cols in df1.columns},
                                                index=[pd.to_datetime(start)])])
         else:
-            df1[pd.to_datetime(start)] = np.NaN
+            df1[pd.to_datetime(start)] = np.nan
         df1.sort_index(inplace=True)
     return df1[start:], df2[start:]
 
@@ -538,7 +541,7 @@ def _vector_avg_of_wdirs_dataframe(wdirs, wspds=None):
     # means there is no wind direction => return NaN
     nan_mask = (avg_dir_df['sine'] == 0) & (avg_dir_df['cosine'] == 0)
     avg_dir_df['avg_dir'] = np.rad2deg(np.arctan2(sine, cosine)) % 360
-    avg_dir_df['avg_dir'][nan_mask] = np.NaN
+    avg_dir_df['avg_dir'][nan_mask] = np.nan
     return avg_dir_df['avg_dir']
 
 
@@ -582,7 +585,7 @@ def _vector_avg_of_wdirs_list(wdirs, wspds=None):
         wspds = a[1]
     # if the resulting wdir array is empty, return NAN
     if wdirs.size == 0:
-        return np.NaN
+        return np.nan
 
     if wspds is None:
         sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5))  # sin of each angle, East component
@@ -594,7 +597,7 @@ def _vector_avg_of_wdirs_list(wdirs, wspds=None):
     # If both sine and cosine result in zero then all the directions cancel and you end up where you started which
     # means there is no wind direction => return NaN
     if sine == 0 and cosine == 0:
-        avg_dir = np.NaN
+        avg_dir = np.nan
     else:
         avg_dir = np.rad2deg(np.arctan2(sine, cosine)) % 360
         if avg_dir == 360.0:  # preference to have 0 returned instead of 360
@@ -994,17 +997,53 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
     return df
 
 
-def scale_wind_speed(spd, scale_factor: float):
+def scale_wind_speed(spd: Union[pd.Series, pd.DataFrame, float, int],
+                     scale_factor: Union[int, float]
+                     ) -> Union[pd.Series, pd.DataFrame, float, int]:
     """
     Scales wind speed by the scale_factor
 
-    :param spd: Series or data frame or a single value of wind speed to scale
-    :param scale_factor: Scaling factor in decimal, if scaling factor is 0.8 output would be (1+0.8) times wind speed,
-    if it is -0.8 the output would be (1-0.8) times the wind speed
-    :return: Series or data frame with scaled wind speeds
+    :param spd:             Wind speed value(s) to scale.
+    :type spd:              pandas.Series or pandas.DataFrame or float or int
+    :param scale_factor:    Scaling factor to use for scaling wind speed.
+                            If scaling factor is 0.8, output would be 0.8 times wind speed.
+    :type scale_factor:     int or float
+    :return:                Value(s) of scaled wind speed. Output type depends on type(spd).
+    :rtype:                 pandas.Series or pandas.DataFrame or float or int
 
+        **Example usage**
+    ::
+    import brightwind as bw
+    import pandas as pd
+    import numpy as np
+
+    data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+
+    # scale float by scale_factor of 0.5
+    bw.scale_wind_speed(3, 0.5)
+    # 1.5
+
+    # scale np.array by scale_factor of 0.5
+    bw.scale_wind_speed(np.array([0, 1, 2]), 0.5)
+    # array([0. , 0.5, 1. ])
+
+    # scale pd.Series by scale_factor of 0.5
+    bw.scale_wind_speed(data['Spd40mN'].tail(3), 0.5)
+    # Timestamp
+    # 2017-11-23 10:30:00    4.0150
+    # 2017-11-23 10:40:00    3.4055
+    # 2017-11-23 10:50:00    2.9325
+    # Name: Spd40mN, dtype: float64
+
+    # scale pd.DataFrame by scale factor of 2
+    bw.scale_wind_speed(data.tail(3)[['Spd60mS', 'Spd40mS']], 2)
+    # 	          Spd60mS	    Spd40mS
+    # Timestamp		
+    # 2017-11-23 10:30:00	16.900	15.750
+    # 2017-11-23 10:40:00	14.318	13.336
+    # 2017-11-23 10:50:00	12.808	11.498
     """
-    return spd * scale_factor
+    return utils.apply_scale_factor(spd, scale_factor)
 
 
 def offset_wind_direction(wdir, offset: float):

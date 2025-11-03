@@ -29,11 +29,14 @@ def test_monthly_means():
     assert len(monthly_means_wcoverage_plot.axes) >= 2
     assert monthly_means_wcoverage_plot.axes[0].get_ylabel() == 'Test Wind speed [m/s]'
     assert monthly_means_wcoverage_plot.axes[1].get_ylabel() == 'Coverage [-]'
-    assert len(monthly_means_wcoverage_plot.legends[0].legend_handles) == 2
+    assert len(monthly_means_wcoverage_plot.legends[0].get_texts()) == 2
 
     monthly_means_wcoverage_plot1, _ = bw.monthly_means(
         DATA.Spd80mN, return_data=False, return_coverage=True, external_legend=True)
-    assert monthly_means_wcoverage_plot1.legends[0]._ncols == 2
+    legend = monthly_means_wcoverage_plot1.legends[0]
+    nrows = legend.properties().get('nrows', 1)  # Default to 1 if 'nrows' is not found
+    ncols = len(legend.get_texts()) // nrows  # Calculate number of columns
+    assert ncols == 2
 
     monthly_means_single_column_plot, monthly_means_single_column_data = bw.monthly_means(
         DATA.Spd80mN, return_data=True, xtick_delta='3MS'
@@ -635,20 +638,57 @@ def test_ti_by_sector():
 
 
 def test_calc_air_density():
-    bw.calc_air_density(DATA[['T2m']], DATA[['P2m']])
-    bw.calc_air_density(DATA.T2m, DATA.P2m)
-    bw.calc_air_density(DATA.T2m, DATA.P2m, elevation_ref=0, elevation_site=200)
 
+    # test DataFrame input
+    assert (bw.calc_air_density(DATA[['T2m']], DATA[['P2m']]).dropna().values == 
+            bw.calc_air_density(DATA.T2m, DATA.P2m).dropna().values).all()
+    assert (round(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])), 6
+                 ) == pd.Series([1.225350, 1.208010, 1.325842, 1.059254])).all()
+    
+    # test Series inputs
+    assert list(round(bw.calc_air_density(DATA.T2m, DATA.P2m).tail(5), 6).values
+                  ) == [1.199177, 1.199838, 1.199794, 1.199439, 1.201066]
+    assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m).tail(5).values -
+                pd.Series([1.19918, 1.19984, 1.19979, 1.19944, 1.20107])) < 1e-3).all()
+    assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m, rel_humidity_percent=DATA.RH2m).tail(5).values -
+                pd.Series([1.19529, 1.19601, 1.19592, 1.19555, 1.19719])) < 1e-3).all()
+    assert list(bw.calc_air_density(DATA.T2m, DATA.P2m, specific_gas_constant=287.05).head(5).round(6).dropna()
+                ) == [1.187064, 1.187458]
+    
+    #t test Series inputs with elevation adjustment
+    assert list(bw.calc_air_density(DATA.T2m, DATA.P2m, elevation_ref=0, elevation_site=200).tail(5).values
+                ) == [1.177, 1.177, 1.177, 1.177, 1.178]
+
+    # test float/int inputs
+    assert bw.calc_air_density(15, 1013) == 1.2253503331640465
+    assert (bw.calc_air_density(15, 1012, rel_humidity_percent=None, specific_gas_constant=287.05) == 
+            bw.calc_air_density(15, 1012, rel_humidity_percent=0))
+    assert round(bw.calc_air_density(15, 1012, rel_humidity_percent=0), 5) == 1.2235
+    assert round(bw.calc_air_density(15, 1012), 5) == 1.22414
+    assert abs(bw.calc_air_density(15, 1013, specific_gas_constant=287.05) - 1.22471) < 1e-3
+    assert abs(bw.calc_air_density(15, 1013, rel_humidity_percent=50) - 1.22093) < 1e-3
+    assert round(bw.calc_air_density(15, 1013, rel_humidity_percent=50, 
+                                     elevation_ref=0, elevation_site=200), 5) == 1.198
+
+    # test float/int inputs with elevation adjustment
+    assert bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200) == 1.203
+    assert bw.calc_air_density(15, 1013, rel_humidity_percent=50, elevation_ref=0, elevation_site=200
+                               ) - bw.scale_air_density_to_height(
+                                   bw.calc_air_density(15, 1013, rel_humidity_percent=50), 0, 200) <1e-3
+    
+    # test errors
     with pytest.raises(TypeError) as except_info:
         bw.calc_air_density(15, 1013, elevation_site=200)
-    assert str(except_info.value) == 'elevation_ref should be a number'
+    assert str(except_info.value) == "Specify value of elevation_ref (float or int) when elevation_site is provided."
     with pytest.raises(TypeError) as except_info:
         bw.calc_air_density(15, 1013, elevation_ref=200)
-    assert str(except_info.value) == 'elevation_site should be a number'
-    assert abs(bw.calc_air_density(15, 1013) - 1.225) < 1e-3
-    assert abs(bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200) - 1.203) < 1e-3
-    assert (abs(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])) -
-                pd.Series([1.225, 1.208, 1.326, 1.059])) < 1e-3).all()
+    assert str(except_info.value) == "Specify value of elevation_site (float or int) when elevation_ref is provided."
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(DATA.T2m.tail(5), DATA[['P2m']].tail(3), rel_humidity_percent=DATA.RH2m.tail(5)) 
+    assert str(except_info.value) == "temperature and pressure must have the same dimensions."
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(DATA.T2m.tail(5), DATA[['P2m']].tail(5), rel_humidity_percent=DATA.RH2m.tail(3)) 
+    assert str(except_info.value) == "temperature, pressure and rel_humidity_percent must have the same dimensions."
 
 
 def test_dist_matrix_by_direction_sector():
@@ -662,3 +702,86 @@ def test_dist_matrix_by_direction_sector():
                                  var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
 
+
+def test_scale_air_pressure_to_height():
+    assert round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
+                                       ref_height_m=10, target_height_m=200), 2)== 977.45
+    assert round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
+                                       ref_height_m=10, target_height_m=15), 2) == 999.4
+    pd.testing.assert_series_equal(bw.scale_air_pressure_to_height(
+        ref_air_pressure_hPa=DATA['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        ref_air_temp_degC=DATA['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        ref_height_m=2, target_height_m=10),
+        pd.Series(data = [933.07, 933.07, 933.07, 932.07, 932.07, 932.07], 
+        index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
+                                '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
+                                check_names=False)
+    
+    # test error raising for invalid input types
+    with pytest.raises(TypeError):
+        bw.scale_air_pressure_to_height(
+            ref_air_pressure_hPa='invalid_type',
+            ref_air_temp_degC=12,
+            ref_height_m=2,
+            target_height_m=10)
+
+    # test error raising for invalid slope type
+    with pytest.raises(TypeError):
+        bw.scale_air_pressure_to_height(
+            ref_air_pressure_hPa=1000,
+            ref_air_temp_degC=12,
+            ref_height_m=2,
+            target_height_m='invalid_type')
+
+    # test error raising for mismatched dimensions with Series
+    with pytest.raises(ValueError):
+        bw.scale_air_pressure_to_height(
+            ref_air_pressure_hPa=pd.Series([1, 2, 3]),
+            ref_air_temp_degC=pd.Series([1, 2]),
+            ref_height_m=2,
+            target_height_m=10)
+
+def test_scale_air_density_to_height():
+    assert bw.scale_air_density_to_height(ref_air_density_kg_m3=1.224, ref_height_m=80, target_height_m=100) == 1.22174
+
+    assert bw.scale_air_density_to_height(ref_air_density_kg_m3=1.224,
+                                          ref_height_m=80, 
+                                          target_height_m=100, 
+                                          lapse_rate_kg_m3_m=-0.0002) == 1.22
+    
+    test_density = bw.calc_air_density(DATA.T2m, DATA.P2m)
+    pd.testing.assert_series_equal(bw.scale_air_density_to_height(
+        ref_air_density_kg_m3=test_density.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        ref_height_m=2, target_height_m=10), 
+        pd.Series(data = [1.186780, 1.187175, 1.187747, 1.185950, 1.186301 , 1.185686],
+        index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
+                                '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
+                                check_names=False)
+ 
+        
+def test_scale_air_temperature_to_height():
+    assert bw.scale_air_temperature_to_height(10.0065, 10, 11) == 10.0
+
+    assert bw.scale_air_temperature_to_height(ref_air_temperature=10, 
+                                              ref_height_m=12, 
+                                              target_height_m=10,
+                                              lapse_rate_deg_m=-0.001) == 10.002
+    
+    pd.testing.assert_series_equal(bw.scale_air_temperature_to_height(
+        ref_air_temperature=DATA.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        ref_height_m=2, 
+        target_height_m=20,
+        lapse_rate_deg_m=-0.001),
+        pd.Series(data=[0.936, 0.845, 0.713, 0.834, 0.753, 0.895], 
+        index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
+                                '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
+                                check_names=False)
+    
+    pd.testing.assert_series_equal(bw.scale_air_temperature_to_height(
+        ref_air_temperature=DATA.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        ref_height_m=2, 
+        target_height_m=20),
+        pd.Series(data=[0.837, 0.746, 0.614, 0.735, 0.654, 0.796], 
+        index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
+                                '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
+                                check_names=False)

@@ -7,11 +7,11 @@ from brightwind.analyse import plot as bw_plt
 from brightwind.utils.utils import _convert_df_to_series
 from brightwind.utils.utils import validate_coverage_threshold
 from brightwind.export.export import _calc_mean_speed_of_freq_tab
-from brightwind.transform.transform import scale_wind_speed
 import matplotlib.pyplot as plt
 import warnings
 import textwrap
 from matplotlib.ticker import PercentFormatter
+from typing import Union
 
 __all__ = ['monthly_means',
            'momm',
@@ -28,8 +28,22 @@ __all__ = ['monthly_means',
            'basic_stats',
            'TI',
            'sector_ratio',
-           'calc_air_density']
+           'calc_air_density',
+           'scale_air_pressure_to_height',
+           'scale_air_density_to_height',
+           'scale_air_temperature_to_height']
 
+# Acceleration due to gravity (m/s^2) from ISO:2533-1975 Standard Atmosphere
+ACCEL_DUE_TO_GRAVITY = 9.80665
+
+# Temperature lapse rate (K/m or degC/m) from ISO:2533-1975 Standard Atmosphere
+TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE = -0.0065 
+
+#  Specific gas constant for dry air (J/K/kg or m2/K/s2) from ISO:2533-1975 Standard Atmosphere
+GAS_CONST_DRY_AIR = 287.05 
+
+# Air density lapse rate (kg/m3/km) from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014)
+AIR_DENSITY_LAPSE_RATE = -0.113
 
 def dist_matrix(var_series, x_series, y_series,
                 num_bins_x=None, num_bins_y=None,
@@ -741,7 +755,7 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
 
     graph = plt.figure(figsize=(15, 8))
     ax = graph.add_axes([0.1, 0.1, 0.8, 0.8])
-    bw_plt._bar_subplot(distributions.replace([np.inf, -np.inf], np.NAN), x_label=x_label, y_label=aggregation_method,
+    bw_plt._bar_subplot(distributions.replace([np.inf, -np.inf], np.nan), x_label=x_label, y_label=aggregation_method,
                         max_bar_axis_limit=max_y_value, bin_tick_labels=bin_labels,
                         bar_tick_label_format=bar_tick_label_format, legend=legend, total_width=0.8, ax=ax)
     plt.close()
@@ -1290,7 +1304,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     # This scale factor is used to correct `var_series` when concurrent with `direction_series`.
     if target_freq_table_mean is not None:
         scale_factor = target_freq_table_mean / data_concurrent[var_series.name].mean()
-        var_series_scaled = scale_wind_speed(data_concurrent[var_series.name], scale_factor)
+        var_series_scaled = tf.scale_wind_speed(data_concurrent[var_series.name], scale_factor)
     else:
         var_series_scaled = var_series
 
@@ -1325,7 +1339,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         else:
             freq_tab_mean = _calc_mean_speed_of_freq_tab(result)
             scale_factor = target_freq_table_mean / freq_tab_mean
-            var_series_scaled = scale_wind_speed(var_series_scaled, scale_factor)
+            var_series_scaled = tf.scale_wind_speed(var_series_scaled, scale_factor)
 
             abs_percentage_diff = abs(100 * (target_freq_table_mean - freq_tab_mean) / freq_tab_mean)
             if abs_percentage_diff > 0.01:
@@ -2024,55 +2038,419 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     return fig
 
 
-def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=None, lapse_rate=-0.113,
-                     specific_gas_constant=286.9):
+def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
+                     pressure: Union[float, pd.Series, pd.DataFrame],
+                     elevation_ref: Union[float, int] = None,
+                     elevation_site: Union[float, int] = None,
+                     lapse_rate: float = AIR_DENSITY_LAPSE_RATE,
+                     specific_gas_constant: float = 286.9,
+                     rel_humidity_percent: Union[float, pd.Series, pd.DataFrame] = None
+                     ) -> Union[float, pd.Series]:
     """
-    Calculates air density for a given temperature and pressure and extrapolates that to the site if both reference
-    and site elevations are given.
+    Calculates air density for a given air temperature (temperature), air pressure (pressure) 
+    and relative humidity (rel_humidity_percent) using method outlined in IEC Standard (61400-12-1).
 
-    :param temperature: Temperature values in degree Celsius
-    :type temperature: float or pandas.Series or pandas.DataFrame
-    :param pressure: Pressure values in hectopascal, hPa, (1,013.25 hPa = 101,325 Pa = 101.325 kPa =
-                    1 atm = 1013.25 mbar)
-    :type pressure: float or pandas.Series or pandas.DataFrame
-    :param elevation_ref: Elevation, in meters, of the reference temperature and pressure location.
-    :type elevation_ref: Floating point value (decimal number)
-    :param elevation_site: Elevation, in meters, of the site location to calculate air density for.
-    :type elevation_site: Floating point values (decimal number)
-    :param lapse_rate: Air density lapse rate kg/m^3/km, default is -0.113
-    :type lapse_rate: Floating point value (decimal number)
-    :param specific_gas_constant: Specific gas constant, R, for humid air J/(kg.K), default is 286.9
-    :type specific_gas_constant:  Floating point value (decimal number)
-    :return: Air density in kg/m^3
-    :rtype: float or pandas.Series depending on the input
+    Note that the value of the specific_gas_constant argument is used only when rel_humidity_percent is None.
+    This specific_gas_constant argument and its default value of 286.9 are retained to maintain backwards
+    compatibility for when rel_humidity_percent is None.
+    However, if rel_humidity_percent is not None, the specific_gas_constant is ignored as the air density
+    calculation which incorporates humidity depends on the two specific gas constants for dry air
+    (287.05 J/kg*K) and water vapour (461.5 J/kg*K) and therefore the specific_gas_constant argument is redundant.
+
+    WARNING: The `specific_gas_constant` argument will be removed in a future 3.0 release of brightwind.
+
+    Function gives option to scale air density to the elevation of the site if both the reference elevation 
+    (elevation_ref) and site elevation (elevation_site) are provided. This scaling assumes that air density 
+    decreases with increasing altitude above the earth's surface - a default air density lapse rate of -0.113 kg/m3/km 
+    is adopted. Taken from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014)
+
+    WARNING: Option of scaling air density to height will be removed in a future 3.0 release of brightwind. Please call 
+    `scale_air_density_to_height()` separately instead.
+
+    :param temperature:             Air temperature values in degree Celsius
+    :type temperature:              float or pandas.Series or pandas.DataFrame
+    :param pressure:                Air pressure values in hectopascal, hPa or millibar, mbar (Note 1hPa = 1mbar) 
+                                    (1013.25 hPa = 101,325 Pa = 101.325 kPa = 1 atm = 1013.25 mbar)
+    :type pressure:                 float or pandas.Series or pandas.DataFrame
+    :param elevation_ref:           Elevation, in meters, of the reference air density location (and air temperature, 
+                                    air pressure, relative humidity measurements used for the calculation).
+    :type elevation_ref:            float or int
+    :param elevation_site:          Elevation, in meters, of the site location for which air density is calculated.
+                                    Scaled air density value(s) are calculated from elevation_ref to elevation_site 
+                                    if both are specified.
+    :type elevation_site:           float or int
+    :param lapse_rate:              Air density lapse rate kg/m^3/km. Default is -0.113 kg/m^3/km.
+    :type lapse_rate:               float
+    :param specific_gas_constant:   Specific gas constant R, for moist air, in J/(kg*K). Default is 286.9 J/(kg*K). 
+                                    If rel_humidity_percent is not None, this argument is ignored and the specific
+                                    gas constant for dry air of 287.05 J/(kg*K) is used instead. 
+                                    If rel_humidity_percent is None, then provided the user is unconcerned with
+                                    backwards compatibility, the user should set the specific_gas_constant to 287.05 or 
+                                    set rel_humidity_percent to 0 to use the specific gas constants for dry air.             
+    :type specific_gas_constant:    float
+    :param rel_humidity_percent:    Relative humidity values as a percentage. Default is None. If None, the air density 
+                                    calculation ignores humidity.
+    :type rel_humidity_percent:     float or pandas.Series or pandas.DataFrame
+    :return:                        Air density in kg/m^3. Output type depends on type(temperature), type(pressure),
+                                    type(rel_humidity_percent) provided. If all inputs are float, output is float. 
+                                    If any input is pandas.Series or pandas.DataFrame, output is pandas.Series.
+    :rtype:                         float or pandas.Series
 
         **Example usage**
     ::
-        import brightwind as bw
+    import brightwind as bw
 
-        #For a series of air densities
-        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
-        air_density = bw.calc_air_density(data.T2m, data.P2m)
+    data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
 
-        #For a single value
-        bw.calc_air_density(15, 1013)
+    # Calculate air density from input air temperature and air pressure series
+    # (rel_humidity_percent=None and specific_gas_constant=286.9 by default)
+    bw.calc_air_density(data.T2m, data.P2m).head(5)
+    # Timestamp
+    # 2016-01-09 15:30:00    1.190011
+    # 2016-01-09 15:40:00    1.190363
+    # 2016-01-09 17:00:00    1.186939
+    # 2016-01-09 17:10:00    1.187684
+    # 2016-01-09 17:20:00    1.188079
+    # dtype: float64
 
-        #For a single value with ref and site elevation
-        bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200)
+    # Calculate air density from input air temperature and air pressure series
+    # (rel_humidity_percent=None and specific_gas_constant=287.05 which is the constant for dry air)
+    bw.calc_air_density(data.T2m, data.P2m, specific_gas_constant=287.05).head(5)
+    # Timestamp
+    # 2016-01-09 15:30:00    1.189389
+    # 2016-01-09 15:40:00    1.189741
+    # 2016-01-09 17:00:00    1.186319
+    # 2016-01-09 17:10:00    1.187064
+    # 2016-01-09 17:20:00    1.187458
+    # dtype: float64
+
+    # Calculate air density from single float values of air temperature and air pressure
+    # (rel_humidity_percent=None and specific_gas_constant=286.9 by default)
+    bw.calc_air_density(15, 1013).round(5)
+    # 1.22535
+
+    # Calculate air density from single float value of air temperature and air pressure
+    # (rel_humidity_percent=None and specific_gas_constant=287.05 which is the constant for dry air)
+    bw.calc_air_density(15, 1013, specific_gas_constant=287.05).round(5)
+    # 1.22471
+
+    # Calculate air density from input air temperature, air pressure and relative humidity series
+    # As rel_humidity_percent is not None, gas constant for dry air of 287.05 is used
+    bw.calc_air_density(data.T2m, data.P2m, rel_humidity_percent=data.RH2m).head(5)
+    # Timestamp
+    # 2016-01-09 15:30:00    1.186163
+    # 2016-01-09 15:40:00    1.186530
+    # 2016-01-09 17:00:00    1.183012
+    # 2016-01-09 17:10:00    1.183790
+    # 2016-01-09 17:20:00    1.184202
+    # dtype: float64
+
+    # Calculate air density from single float value of air temperature, air pressure, relative humidity
+    # As rel_humidity_percent is not None, gas constant for dry air of 287.05 is used
+    bw.calc_air_density(15, 1013, rel_humidity_percent=50).round(5)
+    # 1.22093
+
+    # Calculate air density from a single float value of air temperature, air pressure, relative humidity
+    # and scale result from reference elevation to site elevation.
+    bw.calc_air_density(15, 1013, rel_humidity_percent=50, elevation_ref=0, elevation_site=200)
+    # 1.198
+
+    """
+    # Convert DataFrame inputs to Series
+    if isinstance(temperature, pd.DataFrame):
+        temperature = _convert_df_to_series(temperature).copy()
+    if isinstance(pressure, pd.DataFrame):
+        pressure = _convert_df_to_series(pressure).copy()
+    if isinstance(rel_humidity_percent, pd.DataFrame):
+        rel_humidity_percent = _convert_df_to_series(rel_humidity_percent).copy()
+
+    # Check dimensions of temperature, pressure and rel_humidity_percent if not float or int
+    if isinstance(temperature, pd.Series) and (isinstance(pressure, pd.Series)):
+        if len(temperature) != len(pressure):
+            raise ValueError("temperature and pressure must have the same dimensions.") 
+        if isinstance(rel_humidity_percent, pd.Series):
+            if len(temperature) != len(rel_humidity_percent):
+                raise ValueError("temperature, pressure and rel_humidity_percent must have the same dimensions.")
+
+    lapse_rate_per_m = lapse_rate * 0.001 # convert lapse rate from kg/m3/km to kg/m3/m
+    temp_K = temperature + 273.15 # to convert deg C to Kelvin.
+    press_Pa = pressure * 100  # to convert hPa to Pa
+    vapour_press = 0.0000205 * np.exp(0.0631846 * temp_K)
+    specific_gas_constant_water = 461.5
+    specific_gas_constant_dry_air = GAS_CONST_DRY_AIR
+
+    if rel_humidity_percent is None:
+        # If relative humidity is None, the old method ignoring relative humidity is used.
+        # To avoid a breaking change, the value of the specific_gas_constant argument is used.
+        # (Default specific_gas_constant is 286.9 which is for moist air)
+        # If a user is not concerned with backwards compatibility, the value of this argument should be updated to match
+        # the specific gas constant for dry air (287.05) which makes more physical sense given relative humidity is
+        # taken as zero in the calculation below.
+        gas_constant_air = specific_gas_constant
+        rel_hum_decimal = 0.0
+        # Deprecation warning
+        warnings.warn(
+            (
+                "\nThe `specific_gas_constant` argument of `calc_air_density()` will be removed in a future 3.0 "
+                "release of brightwind.\nNote that this value is used only when `rel_humidity_percent` is None."
+                "\nPlease set `rel_humidity_percent` to 0 instead if you want to use the specific gas constant "
+                "for dry air (287.05 J/kg*K)."
+                ),
+            DeprecationWarning,
+            stacklevel=2
+        )
+
+    else:
+        # Otherwise, if the rel_humidity_percent is not None (including = 0), the new method including relative humidity
+        # is used. The specific_gas_constant_dry_air of 287.05 is used as the air density calculation incorporating 
+        # relative humidity is clearly split into a dry component and a moist component. Therefore it makes physical 
+        # sense to use the specific gas constant for dry air in this context.
+        gas_constant_air = specific_gas_constant_dry_air
+        rel_hum_decimal = rel_humidity_percent * 0.01
+
+    # Contribution from dry air
+    dry_air_term = press_Pa / gas_constant_air
+
+    # Contribution from water vapour
+    water_vapour_term = rel_hum_decimal * vapour_press * (
+                            (1 / gas_constant_air) - (1 / specific_gas_constant_water))
+    
+    # Combine to get air density
+    air_density = (1 / temp_K) * (dry_air_term - water_vapour_term)
+    
+    if elevation_ref is not None and elevation_site is not None:
+        # Deprecation warning
+        warnings.warn(
+            (
+                "\nScaling air density to height within `calc_air_density()` is deprecated and will be removed in a "
+                "future 3.0 release of brightwind.\nPlease call `scale_air_density_to_height()` separately instead. \n"
+                ),
+            DeprecationWarning,
+            stacklevel=2
+        )
+        # Perform extrapolation
+        scaled_air_density = scale_air_density_to_height(air_density,
+                                                         elevation_ref,
+                                                         elevation_site,
+                                                         lapse_rate_per_m)
+        return round(scaled_air_density, 3)
+    
+    # Validate elevation arguments
+    if elevation_site is not None and elevation_ref is None:
+        raise TypeError("Specify value of elevation_ref (float or int) when elevation_site is provided.")
+    elif elevation_ref is not None and elevation_site is None:
+        raise TypeError("Specify value of elevation_site (float or int) when elevation_ref is provided.")
+    
+    return air_density
+
+
+def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
+                                 ref_air_temp_degC: Union[float, pd.Series],
+                                 ref_height_m: Union[float, int],
+                                 target_height_m: Union[float, int]
+                                 ) -> Union[float, int, pd.Series]:
+    """
+    Calculates air pressure at target height (target_height_m) using reference air pressure (ref_air_pressure_hPa)
+    and air temperature (ref_air_temp_degC) values at a reference height (ref_height_m).
+
+    Calculation based on ISO:2533-1975 Standard Atmosphere (https://www.iso.org/obp/ui/#iso:std:iso:2533:en)
+    as suggested by IEC 61400-12-1:
+
+    scaled_air_pressure = ref_air_pressure_hPa*((1 + (L/ref_air_temp_K)*(target_height_m - ref_height_m))**(-g/(L*R)))
+    where:
+    g = 9.80665 is acceleration due to gravity (m/s^2)
+    L = -0.0065 is the temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
+    R = 287.05 is the specific gas constant for dry air (J/K/kg or m2/K/s2)
+    
+    :param ref_air_pressure_hPa:    Reference air pressure value(s) in hPa (1mbar = 1hPa = 100Pa).
+    :type ref_air_pressure_hPa:     float or int or pandas.Series
+    :param ref_air_temp_degC:       Reference air temperature value(s) in degrees celsius.
+    :type ref_air_temp_degC:        float or int or pandas.Series
+    :param ref_height_m:            Height (in metres) of reference air temperature (ref_air_temp_degC)
+                                    and air pressure (ref_air_pressure_hPa).
+    :type ref_height_m:             float or int
+    :param target_height_m:         Height (in metres) which ref_air_pressure_hPa is scaled to.
+    :type target_height_m           float or int
+    :return:                        Air pressure at specified height of target_height_m in hPa (1mbar = 1hPa = 100Pa).
+                                    Type depends on type(ref_air_pressure_hPa) and type(ref_air_temp_degC) inputs.
+    :rtype:                         float or int or pandas.Series
+
+        **Example usage**
+    ::
+
+    import brightwind as bw
+
+    # scale float value of air pressure
+    round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12, ref_height_m=10, 
+                                    target_height_m=200), 2)
+    # 977.45
+
+    # scale air pressure based on input series of reference air pressure and air temperature
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+
+    bw.scale_air_pressure_to_height(ref_air_pressure_hPa=data['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+                                    ref_air_temp_degC=data['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+                                    ref_height_m=2, target_height_m=10).round(2)
+    # Timestamp
+    # 2016-01-09 17:10:00    933.07
+    # 2016-01-09 17:20:00    933.07
+    # 2016-01-09 17:30:00    933.07
+    # 2016-01-09 17:40:00    932.07
+    # 2016-01-09 17:50:00    932.07
+    # 2016-01-09 18:00:00    932.07
+    # dtype: float64
 
     """
 
-    temp = temperature
-    temp_kelvin = temp + 273.15     # to convert deg C to Kelvin.
-    pressure = pressure * 100       # to convert hPa to Pa
-    ref_air_density = pressure / (specific_gas_constant * temp_kelvin)
+    # check input types
+    for var, var_name in zip([ref_air_pressure_hPa, ref_air_temp_degC], ['ref_air_pressure_hPa', 'ref_air_temp_degC']):
+        if not (isinstance(var, float) or isinstance(var, int) or isinstance(var, pd.Series)):
+            raise TypeError(f"{var_name} must be a float or int or pandas.Series.")
+    for var, var_name in zip([ref_height_m, target_height_m], ['ref_height_m', 'target_height_m']):
+        if not (isinstance(var, float) or isinstance(var, int)):
+            raise TypeError(f"{var_name} must be a float or int.")
 
-    if elevation_ref is not None and elevation_site is not None:
-        site_air_density = round(ref_air_density + (((elevation_site - elevation_ref) / 1000) * lapse_rate), 3)
-        return site_air_density
-    elif elevation_site is None and elevation_ref is not None:
-        raise TypeError('elevation_site should be a number')
-    elif elevation_site is not None and elevation_ref is None:
-        raise TypeError('elevation_ref should be a number')
-    else:
-        return ref_air_density
+    # check dimensions of ref_air_pressure_hPa and ref_air_temp_degC if Series
+    if isinstance(ref_air_pressure_hPa, pd.Series) and (isinstance(ref_air_temp_degC, pd.Series)):
+        if len(ref_air_pressure_hPa) != len(ref_air_temp_degC):
+            raise ValueError("ref_air_pressure_hPa and ref_air_temp_degC must have the same dimensions.")
+
+    # Constants as outlined in ISO:2533
+    g = ACCEL_DUE_TO_GRAVITY  # Acceleration due to gravity (m/s^2)
+    L = TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE  # Temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
+    R = GAS_CONST_DRY_AIR  # Specific gas constant dry air
+    
+    ref_air_temp_K = ref_air_temp_degC + 273.15  # Convert temp units to K
+
+    scaled_air_pressure_hPa = ref_air_pressure_hPa * ((1 + (L / ref_air_temp_K) * (target_height_m - ref_height_m)
+                                                       ) ** (-g / (L * R)))
+    
+    return scaled_air_pressure_hPa
+
+
+def scale_air_density_to_height(ref_air_density_kg_m3: Union[float, pd.Series],
+                                ref_height_m: float,
+                                target_height_m: float,
+                                lapse_rate_kg_m3_m: float = (0.001 * AIR_DENSITY_LAPSE_RATE)
+                                ) -> Union[float, pd.Series]:
+    """
+    Linearly scales reference air density measurement (ref_air_density_kg_m3) from its measurement height
+    (ref_height_m) to the height specified as the target_height_m, by applying a constant lapse_rate_kg_m3_m.
+
+    :param ref_air_density_kg_m3:     Reference air density value(s) in kg/m3.
+    :type ref_air_density_kg_m3:      float or pandas.Series
+    :param ref_height_m:              Measurement height (in metres) of ref_air_density_kg_m3.
+    :type ref_height_m                float
+    :param target_height_m:           Height (in metres) that ref_air_density_kg_m3 is scaled to.
+    :type target_height_m:            float
+    :param lapse_rate_kg_m3_m:        Lapse rate describes how air density changes with increasing height above the
+                                      earth's surface in kg/m3/m.
+                                      Default value of -0.113 kg/m3 per km above earth's surface (-0.000113 kg/m3/m)
+                                      taken from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014).
+    :type lapse_rate_kg_m3_m:         float
+    :return:                          Air density at specified height of target_height_m in kg/m3. Type depends on
+                                      type(ref_air_density_kg_m3) input.
+    :rtype:                           float or pandas.Series
+
+        **Example usage**
+    ::
+    import brightwind as bw
+
+    # scale float value of air density using default lapse_rate_kg_m3_m
+    bw.scale_air_density_to_height(ref_air_density_kg_m3=1.224, ref_height_m=80, target_height_m=100)
+    # 1.22174
+
+    # scale float value of air density using non-default value for lapse_rate_kg_m3_m
+    bw.scale_air_density_to_height(ref_air_density_kg_m3=1.224, ref_height_m=80, target_height_m=100,
+                                    lapse_rate_kg_m3_m=-0.0002)
+    # 1.22
+
+    # derive air density and scale based on series input values for reference air density
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+    test_density = bw.calc_air_density(data.T2m, data.P2m)
+    bw.scale_air_density_to_height(ref_air_density_kg_m3=test_density.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+                                   ref_height_m=2, target_height_m=10)
+
+    Timestamp
+    2016-01-09 17:10:00    1.186780
+    2016-01-09 17:20:00    1.187175
+    2016-01-09 17:30:00    1.187747
+    2016-01-09 17:40:00    1.185950
+    2016-01-09 17:50:00    1.186301
+    2016-01-09 18:00:00    1.185686
+    dtype: float64
+    """
+
+    scaled_air_density = utils.linear_transform(x_target=target_height_m, x_ref=ref_height_m,
+                                                y_ref=ref_air_density_kg_m3, slope=lapse_rate_kg_m3_m)
+
+    return scaled_air_density
+
+
+def scale_air_temperature_to_height(ref_air_temperature: Union[float, pd.Series],
+                                    ref_height_m: float,
+                                    target_height_m: float,
+                                    lapse_rate_deg_m: float = TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE
+                                    ) -> Union[float, pd.Series]:
+    """
+    Linearly scales reference air temperature measurement (ref_air_temperature) from its measurement height
+    (ref_height_m) to the height specified as target_height_m, by applying the constant lapse_rate_deg_m.
+
+    :param ref_air_temperature:   Air temperature value(s) in degrees [for example in Celsius or Kelvin].
+    :type ref_air_temperature:    float or pandas.Series
+    :param ref_height_m:          Measurement height (in metres) of ref_air_temperature.
+    :type ref_height_m:           float
+    :param target_height_m:       Height (in metres) that ref_air_temperature is scaled to.
+    :type target_height_m:        float
+    :param lapse_rate_deg_m:      Lapse rate describes how air temperature changes with increasing height
+                                  above the earth's surface.
+                                  Units should be degrees of temperature per unit of height, e.g. °C/m or K/m.
+                                  Default value of -6.5 degrees Celsius per km above the earth's surface
+                                  (or -0.0065 °C/m) is commonly used as an approximation of the
+                                  atmospheric lapse rate.
+                                  In particular, the IEC standards rely on the ISO2533:1975 Standard Atmosphere
+                                  which states that a lapse rate of 6.5 K/km is valid for geopotential altitudes
+                                  of up to 11 km above earth's surface.
+                                  This value was also adopted in WASP 11:
+                                  Mortensen, N. G., Heathfield, D. N., Rathmann, O., & Nielsen, M. (2014).
+                                  Wind Atlas Analysis and Application Program: WAsP 11 Help Facility. Computer
+                                  programme, Department of Wind Energy, Technical University of Denmark
+                                  https://orbit.dtu.dk/en/publications/wind-atlas-analysis-and-application-program-wasp-11-help-facility
+    :type lapse_rate_deg_m:       float
+    :return:                      Air temperature at specified height of target_height_m in same unit as input
+                                  ref_air_temperature [for example in Celsius or Kelvin]. Output type depends on
+                                  type(ref_air_temperature) input.
+    :rtype:                       float or pandas.Series
+
+        **Example usage**
+    ::
+
+    import brightwind as bw
+
+    # scale air temperature based on float input value for reference air temperature
+    bw.scale_air_temperature_to_height(ref_air_temperature=10.0065, ref_height_m=10, target_height_m=11)
+    # 10.0
+
+    # scale air temperature based on float input value for reference air temperature with non-default lapse_rate_deg_m
+    bw.scale_air_temperature_to_height(ref_air_temperature=10, ref_height_m=12, target_height_m=10,
+                                        lapse_rate_deg_m=-0.001)
+    # 10.002
+
+    # scale air temperature based on series input values for reference air temperature
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+
+    bw.scale_air_temperature_to_height(ref_air_temperature=data.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+                                         ref_height_m=2, target_height_m=20)
+    # Timestamp
+    # 2016-01-09 17:10:00    0.837
+    # 2016-01-09 17:20:00    0.746
+    # 2016-01-09 17:30:00    0.614
+    # 2016-01-09 17:40:00    0.735
+    # 2016-01-09 17:50:00    0.654
+    # 2016-01-09 18:00:00    0.796
+    # Name: T2m, dtype: float64
+    """
+
+    scaled_air_temp = utils.linear_transform(x_target=target_height_m, x_ref=ref_height_m,
+                                             y_ref=ref_air_temperature, slope=lapse_rate_deg_m)
+    return scaled_air_temp

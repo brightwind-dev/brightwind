@@ -93,8 +93,8 @@ def test_plot_timeseries():
         for j, column in enumerate(columns_to_plot):
             if line.get_label() == column:
                 actual_colours[j] = line.get_color()
-    expected_colors = ['#3d636f', '#55717a', '#6d7f85', '#868d8f', '#9e9b9a', '#a59b92', '#a79784', '#a99376', '#aa8f67',
-                       '#978e65', '#6f906f', '#479279', '#1f9483', '#0a9885', '#2fa372', '#53ae5e', '#78ba4b', '#9cc537']
+    expected_colors = ['#2e3743', '#4a4f58', '#66676d', '#818083', '#9d9898', '#a28a89', '#a06f6e', '#9e5454', '#9c3939',
+                       '#a73d28', '#be601f', '#d68317', '#eda60e', '#f9c00b', '#e2c116', '#cbc321', '#b3c42c', '#9cc537']
     assert all(a == e for a, e in zip(actual_colours, expected_colors))
     
     assert True
@@ -184,7 +184,7 @@ def test_bar_subplot():
                                                            var_to_bin_against=DATA['Spd80mN'].to_frame(),
                                                            aggregation_method='%frequency')
     fig = plt.figure(figsize=(15, 8))
-    bw.analyse.plot._bar_subplot(distribution.replace([np.inf, -np.inf], np.NAN).dropna(), y_label='%frequency')
+    bw.analyse.plot._bar_subplot(distribution.replace([np.inf, -np.inf], np.nan).dropna(), y_label='%frequency')
 
     assert True
 
@@ -194,7 +194,7 @@ def test_plot_freq_distribution():
     distribution = bw.analyse.analyse._derive_distribution(DATA['Spd40mN'],
                                                            var_to_bin_against=DATA['Spd40mN'], bins=None,
                                                            aggregation_method='%frequency').rename('Spd40mN')
-    bw.analyse.plot.plot_freq_distribution(distribution.replace([np.inf, -np.inf], np.NAN).dropna(),
+    bw.analyse.plot.plot_freq_distribution(distribution.replace([np.inf, -np.inf], np.nan).dropna(),
                                            max_y_value=None, x_tick_labels=[], x_label=None,
                                            y_label='%frequency')
 

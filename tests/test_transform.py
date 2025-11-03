@@ -14,15 +14,15 @@ from brightwind.transform.transform import (
 
 
 wndspd = 8
-wndspd_df = pd.DataFrame([2, 13, np.NaN, 5, 8])
-wndspd_series = pd.Series([2, 13, np.NaN, 5, 8])
+wndspd_df = pd.DataFrame([2, 13, np.nan, 5, 8])
+wndspd_series = pd.Series([2, 13, np.nan, 5, 8])
 current_slope = 0.045
 current_offset = 0.235
 new_slope = 0.046
 new_offset = 0.236
 wndspd_adj = 8.173555555555556
-wndspd_adj_df = pd.DataFrame([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
-wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
+wndspd_adj_df = pd.DataFrame([2.0402222222222224, 13.284666666666668, np.nan, 5.106888888888888, 8.173555555555556])
+wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.nan, 5.106888888888888, 8.173555555555556])
 ref_date = pd.to_datetime('2000-01-01')
 
 DATA = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
@@ -50,13 +50,13 @@ def test_selective_avg():
     days = pd.date_range(date_today, date_today + datetime.timedelta(24), freq='D')
     data = pd.DataFrame({'DTM': days})
     data = data.set_index('DTM')
-    data['Spd1'] = [1, np.NaN, 1, 1, 1, 1, 1, 1, 1, np.NaN, 1, 1, 1, 1, np.NaN, 1, 1, np.NaN, 1, 1, 1, 1, np.NaN, 1, 1]
-    data['Spd2'] = [2, 2, np.NaN, 2, 2, 2, 2, 2, np.NaN, 2, 2, 2, 2, np.NaN, 2, 2, 2, np.NaN, 2, 2, 2, 2, 2, np.NaN, 2]
-    data['Dir'] = [0, 15, 30, 45, np.NaN, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240, 255, 270, 285, 300,
-                   315, np.NaN, 345, 360]
+    data['Spd1'] = [1, np.nan, 1, 1, 1, 1, 1, 1, 1, np.nan, 1, 1, 1, 1, np.nan, 1, 1, np.nan, 1, 1, 1, 1, np.nan, 1, 1]
+    data['Spd2'] = [2, 2, np.nan, 2, 2, 2, 2, 2, np.nan, 2, 2, 2, 2, np.nan, 2, 2, 2, np.nan, 2, 2, 2, 2, 2, np.nan, 2]
+    data['Dir'] = [0, 15, 30, 45, np.nan, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240, 255, 270, 285, 300,
+                   315, np.nan, 345, 360]
 
     # Test Case 1: Neither boom is near 0-360 crossover
-    result = np.array([1.5, 2, 1, 1.5, 1.5, 1.5, 1.5, 2, 1, 2, 2, 2, 1.5, 1, 2, 1.5, 1.5, np.NaN,
+    result = np.array([1.5, 2, 1, 1.5, 1.5, 1.5, 1.5, 2, 1, 2, 2, 2, 1.5, 1, 2, 1.5, 1.5, np.nan,
                        1.5, 1, 1, 1, 2, 1, 1.5])
     bw.selective_avg(data[['Spd1']], data[['Spd2']], data[['Dir']],
                      boom_dir_1=315, boom_dir_2=135, sector_width=60)
@@ -65,21 +65,21 @@ def test_selective_avg():
     assert np_array_equal(sel_avg, result)
 
     # Test Case 2: Boom 1 is near 0-360 crossover
-    result = np.array([1.0, 2.0, 1.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.0, 2.0, 1.5, 1.5, 2.0, 1.0, 2.0, 2.0, 1.5, np.NaN,
+    result = np.array([1.0, 2.0, 1.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.0, 2.0, 1.5, 1.5, 2.0, 1.0, 2.0, 2.0, 1.5, np.nan,
                        1.5, 1.5, 1.5, 1.5, 2.0, 1.0, 1.0])
     sel_avg = np.array(bw.selective_avg(data.Spd1, data.Spd2, data.Dir,
                                         boom_dir_1=20, boom_dir_2=200, sector_width=60))
     assert np_array_equal(sel_avg, result)
 
     # Test Case 3: Boom 2 is near 0-360 crossover
-    result = np.array([2.0, 2.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.5, 1.5, np.NaN,
+    result = np.array([2.0, 2.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.5, 1.5, np.nan,
                        1.5, 1.5, 1.5, 1.5, 2.0, 1.0, 2.0])
     sel_avg = np.array(bw.selective_avg(data.Spd1, data.Spd2, data.Dir,
                                         boom_dir_1=175, boom_dir_2=355, sector_width=60))
     assert np_array_equal(sel_avg, result)
 
     # Test Case 4: Booms at 90 deg to each other
-    result = np.array([1.0, 2.0, 1.0, 1.5, 1.5, 2.0, 2.0, 2.0, 1.0, 2.0, 1.5, 1.5, 1.5, 1.0, 2.0, 1.5, 1.5, np.NaN,
+    result = np.array([1.0, 2.0, 1.0, 1.5, 1.5, 2.0, 2.0, 2.0, 1.0, 2.0, 1.5, 1.5, 1.5, 1.0, 2.0, 1.5, 1.5, np.nan,
                        1.5, 1.5, 1.5, 1.5, 2.0, 1.0, 1.0])
     sel_avg = np.array(bw.selective_avg(data.Spd1, data.Spd2, data.Dir,
                                         boom_dir_1=270, boom_dir_2=180, sector_width=60))
@@ -161,13 +161,13 @@ def test_offset_wind_direction_float():
 
 
 def test_offset_wind_direction_df():
-    wdir_df_offset = pd.DataFrame([355, 15, np.NaN, 25, 335])
-    assert wdir_df_offset.equals(bw.offset_wind_direction(pd.DataFrame([10, 30, np.NaN, 40, 350]), 345))
+    wdir_df_offset = pd.DataFrame([355, 15, np.nan, 25, 335])
+    assert wdir_df_offset.equals(bw.offset_wind_direction(pd.DataFrame([10, 30, np.nan, 40, 350]), 345))
 
 
 def test_offset_wind_direction_series():
-    wdir_series_offset = pd.Series([355, 15, np.NaN, 25, 335])
-    assert wdir_series_offset.equals(bw.offset_wind_direction(pd.Series([10, 30, np.NaN, 40, 350]), 345))
+    wdir_series_offset = pd.Series([355, 15, np.nan, 25, 335])
+    assert wdir_series_offset.equals(bw.offset_wind_direction(pd.Series([10, 30, np.nan, 40, 350]), 345))
 
 
 def test_apply_wind_vane_dead_band_offset():
@@ -220,8 +220,11 @@ def test_apply_device_orientation_offset():
     # Create the top-level data model structure
     full_data_model = {
         'measurement_location': [modified_data_model],
-        'version': STATION_LIDAR.data_model.get('version', '1.0.0-2022.01')
-    }    
+        'version': STATION_LIDAR.data_model.get('version', '1.3.0-2024.03'),
+        'date': '2025-04-13',
+        'organisation': 'BrightWind',
+        'author': 'brightwind_library'
+    }
     new_station_lidar = bw.MeasurementStation(full_data_model)
 
     captured_output = io.StringIO()
@@ -233,7 +236,7 @@ def test_apply_device_orientation_offset():
     clean_output = re.sub(r'\x1b\[[0-9;]*m', '', output)
 
     assert "Dir_50m has an offset to be applied of 0 degrees from 2012-10-23T13:10:00 to 2012-11-15T13:50:00" in clean_output
-    assert "Dir_50m has device orientation as None from 2013-10-08T14:00:00 to end of dataframe." in clean_output
+    assert "Dir_50m has device orientation as None from 2013-10-08T14:00:00 to end of data." in clean_output
     assert "Dir_50m adjusted by 5.0 degrees from 2012-11-15T13:50:00 to 2012-11-23T12:10:00" in clean_output
     assert np.allclose(actual_dataframe_result['Dir_40m'].iloc[0] - DATA_LIDAR['Dir_40m'].iloc[0], 0)
     assert np.allclose(actual_dataframe_result['Dir_40m'].iloc[-1] - DATA_LIDAR['Dir_40m'].iloc[-1], 0)
@@ -247,37 +250,40 @@ def test_check_vertical_profiler_properties_not_overlap():
     original_data_model = copy.deepcopy(STATION_LIDAR.data_model)
     date_range = pd.date_range(start='2012-11-01', end='2012-12-01', freq='10min')
     test_df = pd.DataFrame(index=date_range)
-    
+
     vertical_profiler_properties = original_data_model.get('vertical_profiler_properties', [])
-    
+
     overlapping_property = copy.deepcopy(vertical_profiler_properties[0])
-    
+
     existing_from = pd.to_datetime(vertical_profiler_properties[0].get('date_from'))
     existing_to = pd.to_datetime(vertical_profiler_properties[0].get('date_to'))
-    
+
     # Create an overlap by setting dates that intersect with existing range
     overlap_from = existing_from + pd.Timedelta(days=3)
     overlap_to = existing_to + pd.Timedelta(days=3)
-    
+
     overlapping_property['date_from'] = overlap_from.strftime('%Y-%m-%dT%H:%M:%S')
     overlapping_property['date_to'] = overlap_to.strftime('%Y-%m-%dT%H:%M:%S')
     overlapping_property['device_orientation_deg'] = 45
-    
+
     vertical_profiler_properties.append(overlapping_property)
-    
+
     # Create a new data model with the modified properties
     modified_data_model = copy.deepcopy(original_data_model)
     modified_data_model['vertical_profiler_properties'] = vertical_profiler_properties
-    
+
     # Create the top-level data model structure
     full_data_model = {
         'measurement_location': [modified_data_model],
-        'version': STATION_LIDAR.data_model.get('version', '1.0.0-2022.01')
+        'version': STATION_LIDAR.data_model.get('version', '1.3.0-2024.03'),
+        'date': '2025-04-13',
+        'organisation': 'BrightWind',
+        'author': 'brightwind_library'
     }
-    
+
     # Create a new MeasurementStation with overlapping configurations
     overlapping_station = bw.MeasurementStation(full_data_model)
-    
+
     with pytest.raises(ValueError) as excinfo:
         check_vertical_profiler_properties_overlap(overlapping_station, test_df)
     assert "Overlapping periods detected on vertical_profiler_properties with at least one" in str(excinfo.value)
@@ -437,10 +443,10 @@ def test_average_wdirs():
     assert bw.average_wdirs(wdirs) == 0.0
 
     wdirs = np.array([0, 180])
-    assert bw.average_wdirs(wdirs) is np.NaN
+    assert bw.average_wdirs(wdirs) is np.nan
 
     wdirs = np.array([90, 270])
-    assert bw.average_wdirs(wdirs) is np.NaN
+    assert bw.average_wdirs(wdirs) is np.nan
 
     wdirs = np.array([45, 135])
     assert bw.average_wdirs(wdirs) == 90
@@ -449,7 +455,7 @@ def test_average_wdirs():
     assert bw.average_wdirs(wdirs) == 180
 
     wdirs = np.array([45, 315, 225, 135])
-    assert bw.average_wdirs(wdirs) is np.NaN
+    assert bw.average_wdirs(wdirs) is np.nan
 
     wdirs = np.array([225, 315])
     assert bw.average_wdirs(wdirs) == 270
@@ -467,7 +473,7 @@ def test_average_wdirs():
     assert round(bw.average_wdirs(wdirs_with_nan, wspds_with_nan), 3) == 15.0
 
     wspds_with_nan = [np.nan, np.nan, np.nan]
-    assert bw.average_wdirs(wdirs_with_nan, wspds_with_nan) is np.NaN
+    assert bw.average_wdirs(wdirs_with_nan, wspds_with_nan) is np.nan
 
     wspds_with_nan = [3, 4, np.nan]
     assert round(bw.average_wdirs(pd.Series(wdirs_with_nan), pd.Series(wspds_with_nan)), 3) == 15.0
@@ -793,3 +799,13 @@ def test_merge_datasets_by_period():
 
     assert round(mrgd_data['Spd80mN_Coverage'].values[0], 8) == 0.00179211
 
+
+def test_scale_wind_speed():
+
+    assert bw.scale_wind_speed(3, 0.5) == 1.5
+    assert (bw.scale_wind_speed(np.array([0, 1, 2]), 0.5) == [0, 0.5, 1]).all()
+    assert (bw.scale_wind_speed(DATA_CLND['Spd40mN'].tail(3), 0.5)==[4.015 , 3.4055, 2.9325]).all()
+    
+    df = pd.DataFrame({'Spd_100m':[0.5, 1.2], 'Spd_100m':[3, 4], 'c':['a', 'b']})
+    result_df = pd.DataFrame({'Spd_100m':[1.0, 2.4], 'Spd_100m':[6, 8], 'c':['a', 'b']})
+    assert result_df.equals(bw.scale_wind_speed(df, 2))

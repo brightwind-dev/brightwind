@@ -1,6 +1,8 @@
 import pytest
-import brightwind as bw
 import pandas as pd
+import numpy as np
+
+import brightwind as bw
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -25,3 +27,65 @@ def test_slice_data():
     data_sliced = bw.utils.utils.slice_data(DATA, date_to='2017-10-23')
     assert data_sliced.index[0] == DATA.index[0]
 
+
+def test_linear_transform():
+    # test with float and int inputs
+    assert bw.utils.utils.linear_transform(x_target=10, x_ref=5, y_ref=10, slope=-0.5) == 7.5
+    
+    # test with array input for y_ref
+    assert (bw.utils.utils.linear_transform(
+        x_target=20,
+        x_ref=2,
+        y_ref=DATA.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'].values,
+        slope=-0.0065) == np.array([0.837, 0.746, 0.614, 0.735, 0.654, 0.796])).all()
+
+    # test with pandas Series input for y_ref
+    pd.testing.assert_series_equal(bw.utils.utils.linear_transform(
+        x_target=DATA.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        x_ref=2,
+        y_ref=20,
+        slope=-0.0065).round(3),
+        pd.Series(data = [20.007, 20.007, 20.008, 20.007, 20.008, 20.007],
+                  index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
+                                          '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
+                  check_names=False)
+
+    # test error raising for invalid input types
+    with pytest.raises(TypeError):
+        bw.utils.utils.linear_transform(
+            x_target='invalid_type',
+            x_ref=2,
+            y_ref=20,
+            slope=-0.0065)
+    
+    #test error raising for invalid slope type
+    with pytest.raises(TypeError):
+        bw.utils.utils.linear_transform(
+            x_target=10,
+            x_ref=2,
+            y_ref=20,
+            slope='invalid_type')
+    
+    #test error raising for mismatched dimensions
+    with pytest.raises(ValueError):
+        bw.utils.utils.linear_transform(
+            x_target=np.array([1, 2, 3]),
+            x_ref=np.array([1, 2]),
+            y_ref=20,
+            slope=-0.5)
+    
+    #test error raising for mismatched dimensions with Series
+    with pytest.raises(ValueError):
+        bw.utils.utils.linear_transform(
+            x_target=pd.Series([1, 2, 3]),
+            x_ref=2,
+            y_ref=pd.Series([1, 2]),
+            slope=-0.5)
+
+def test_apply_scale_factor():
+    assert bw.utils.utils.apply_scale_factor(3, 0.5) == 1.5
+    assert (bw.utils.utils.apply_scale_factor(np.array([0, 1, 2]), 0.5) == [0, 0.5, 1]).all()
+    assert (bw.utils.utils.apply_scale_factor(pd.Series([10, 20, 30, 40]), -10) == [-100, -200, -300, -400]).all()
+    df = pd.DataFrame({'a':[0.5, 1.2], 'b':[3, 4], 'c':['a', 'b']})
+    result_df = pd.DataFrame({'a':[1.0, 2.4], 'b':[6, 8], 'c':['a', 'b']})
+    assert result_df.equals(bw.utils.utils.apply_scale_factor(df, 2))

@@ -30,11 +30,11 @@ setup(
               'brightwind.transform', 'brightwind.demo_datasets'],
     package_data={
         # If any package contains *.mplstyle or *.txt files, include them:
-        '': ['*.mplstyle', 'demo_datasets/*.csv', 'demo_datasets/*.txt', 'demo_datasets/*.json'],
+        '': ['*.mplstyle', 'demo_datasets/*.csv', 'demo_datasets/*.txt', 'demo_datasets/*.json', 'load/*.json'],
     },
     url='https://github.com/brightwind-dev/brightwind.git',
     # UPDATE VERSION NUMBER HERE:
-    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.2.1.tar.gz',
+    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.3.0.tar.gz',
     license='MIT',
     author='Stephen Holleran of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
@@ -44,8 +44,8 @@ setup(
     keywords=['BRIGHT', 'WIND', 'RESOURCE', 'DATA', 'ANALYSTS', 'PROCESSING', 'WASP', 'ROSE', 'WINDFARMER', 'OPENWIND',
               'WIND PRO', 'WINDOGRAPHER'],
     install_requires=[
-        'pandas>=0.24.0, <=2.0.1',
-        'numpy>=1.16.4, <2.0.0',
+        'pandas>=0.24.0, <3.0.0',
+        'numpy>=1.16.4',
         'scikit-learn>=0.19.1',
         'matplotlib>=3.0.3',
         'requests>=2.20.0',
@@ -67,6 +67,8 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "License :: OSI Approved :: MIT License",
     ],
 )
