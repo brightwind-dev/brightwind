@@ -4,6 +4,7 @@ from .analyse import correlation as Correl
 from .analyse.shear import *
 from .analyse.analyse import *
 from .analyse.plot import *
+from .analyse.heatmap import *
 from .transform.transform import *
 from .export.export import *
 from . import demo_datasets
