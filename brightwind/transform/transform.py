@@ -6,6 +6,7 @@ from typing import Union
 import numpy as np  
 import pandas as pd
 
+import brightwind.transform.scale
 from brightwind.utils import utils
 from brightwind.load.station import _Measurements
 from brightwind.load.station import DATE_INSTEAD_OF_NONE
@@ -1043,7 +1044,7 @@ def scale_wind_speed(spd: Union[pd.Series, pd.DataFrame, float, int],
     # 2017-11-23 10:40:00	14.318	13.336
     # 2017-11-23 10:50:00	12.808	11.498
     """
-    return utils.apply_scale_factor(spd, scale_factor)
+    return brightwind.transform.scale.apply_scale_factor(spd, scale_factor)
 
 
 def offset_wind_direction(wdir, offset: float):
