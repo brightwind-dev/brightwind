@@ -695,3 +695,38 @@ def test_dist_matrix_by_direction_sector():
     bw.dist_matrix_by_dir_sector(DATA.Spd40mN, DATA.T2m, DATA.Dir38mS,
                                  var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
+
+
+def test_calc_air_density_from_vapour_prs():
+    # test float input
+    assert abs(bw.calc_air_density_from_vapour_prs(12.3, 1013.25, 15) - 1.219391176982024) < 1e-4
+
+    # test series input
+    vapour_prs = bw.calc_vapour_pressure_from_relative_humidity(DATA.RH2m, DATA.T2m)
+    air_density = bw.calc_air_density_from_vapour_prs(vapour_prs, DATA.P2m, DATA.T2m)
+    assert abs(air_density.tail(5).values - pd.Series([1.195418, 1.196145, 1.196055, 1.195684, 1.197327]) < 1e-4).all()
+
+
+def test_calc_saturation_vapour_pressure_of_water_vapour():
+    # test float input
+    assert abs(bw.calc_saturation_vapour_pressure_of_water_vapour(20) - 23.37237477998109) < 1e-4
+
+    # test series input
+    assert abs(bw.calc_saturation_vapour_pressure_of_water_vapour(DATA.T2m.tail(3)).values - pd.Series([6.473225, 6.511171, 6.473225]) < 1e-4).all()
+
+
+def test_calc_vapour_pressure_from_relative_humidity():
+    # test float input
+    assert abs(bw.calc_vapour_pressure_from_relative_humidity(60.0, 20.0) - 14.023424867988654) < 1e-4
+
+    # test series input
+    assert abs(bw.calc_vapour_pressure_from_relative_humidity(DATA['RH2m'], DATA['T2m']).tail(5).values - pd.Series([6.519788, 6.377994, 6.473225, 6.511171, 6.473225]) < 1e-4).all()
+
+
+def test_calc_vapour_pressure_from_dewpoint():
+    # test float input
+    assert abs(bw.calc_vapour_pressure_from_dewpoint(10) - 12.272296498322417) < 1e-4
+
+    # test series input
+    dew_pt = pd.Series([10, 12, 9])
+    assert abs(bw.calc_vapour_pressure_from_dewpoint(dew_pt).values - pd.Series([12.272296, 14.017093, 11.473945]) < 1e-4).all()
