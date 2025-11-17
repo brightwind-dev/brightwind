@@ -1091,7 +1091,8 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_de
                                     adjusted direction data is created. To store this adjusted direction data, please 
                                     ensure it is assigned to a new variable.
     :type inplace:                  bool
-    :param return_deadband_offset:  Deadband offset for each directional sensor and the time period it is relevant for.
+    :param return_deadband_offset:  Optional key to return a dataframe containing deadband offset, logger offset and
+                                    applied offset for each directional sensor and the time period it is relevant for.
     :type return_deadband_offset:   pd.DataFrame
     :return:                        Data with adjusted wind direction by the deadband orientation, or where 
                                     return_deadband_offset is specified, a tuple of the data and a DataFrame of 
