@@ -1062,7 +1062,7 @@ def offset_wind_direction(wdir, offset: float):
         return wdir.add(offset).apply(utils._range_0_to_360)
 
 
-def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
+def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_deadband_offset=False):
     """
     Automatically apply deadband offsets of the wind vanes to the timeseries data. The deadband orientation
     information for each wind direction measurement and time period is contained in the measurements
@@ -1081,18 +1081,22 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
 
     This function accounts for this adjustment.
 
-    :param data:         Timeseries data.
-    :type data:          pd.DataFrame or pd.Series
-    :param measurements: Measurement information extracted from a WRA Data Model using bw.MeasurementStation
-    :type measurements:  list or dict or _Measurements
-    :param inplace:      If 'inplace' is True, the original direction data, contained in 'data', will be
-                         modified and replaced with the adjusted direction data. If 'inplace' is False, the
-                         original data will not be touched and instead a new DataFrame containing the adjusted
-                         direction data is created. To store this adjusted direction data, please ensure it is
-                         assigned to a new variable.
-    :type inplace:       bool
-    :return:             Data with adjusted wind direction by the deadband orientation.
-    :rtype:              pd.DataFrame or pd.Series
+    :param data:                    Timeseries data.
+    :type data:                     pd.DataFrame or pd.Series
+    :param measurements:            Measurement information extracted from a WRA Data Model using bw.MeasurementStation
+    :type measurements:             list or dict or _Measurements
+    :param inplace:                 If 'inplace' is True, the original direction data, contained in 'data', will be
+                                    modified and replaced with the adjusted direction data. If 'inplace' is False, the
+                                    original data will not be touched and instead a new DataFrame containing the 
+                                    adjusted direction data is created. To store this adjusted direction data, please 
+                                    ensure it is assigned to a new variable.
+    :type inplace:                  bool
+    :param return_deadband_offset:  Deadband offset for each directional sensor and the time period it is relevant for.
+    :type return_deadband_offset:   pd.DataFrame
+    :return:                        Data with adjusted wind direction by the deadband orientation, or where 
+                                    return_deadband_offset is specified, a tuple of the data and a DataFrame of 
+                                    deadband offsets.
+    :rtype:                         pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
 
     **Example usage**
     ::
@@ -1119,6 +1123,9 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
     Send a specific wind direction property and data column::
         bw.apply_wind_vane_deadband_offset(data['Dir78mS'], mm1.measurements['Dir78mS'], inplace=True)
         print('\nWind vane deadband offset adjustment is completed.')
+    Specifying that the deadband offsets should be returned::
+        mm1 = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
+        data = bw.load_csv(bw.demo_datasets.demo_data, return_deadband_offset=True)
 
     """
     # Depending on what is sent, get wdir properties into a list of properties
@@ -1132,6 +1139,7 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
     df = pd.DataFrame(data) if type(data) == pd.Series else data
 
     # Apply the offset
+    rows = []
     for wdir_prop in wdirs_properties:
         name = wdir_prop['name']
         if name in df.columns:
@@ -1166,6 +1174,14 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
             else:
                 print('{} has dead_band_orientation of None from {} to {}.\n'
                       .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt)))
+            rows.append({
+                                "name": name,
+                                "deadband_offset": deadband,
+                                "logger_offset": logger_offset,
+                                "offset_in_analysis": offset,
+                                "date_from": date_from,
+                                "date_to": date_to
+                            })
         else:
             print('{} is not found in data.\n'.format(utils.bold(name)))
 
@@ -1174,6 +1190,14 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
     # if a Series is sent, send back a Series
     if type(data) == pd.Series:
         df = df[df.columns[0]]
+    if return_deadband_offset:
+        deadband_offsets = pd.DataFrame(rows).sort_values(by=["name", "date_from"]).groupby(
+            ["name", "deadband_offset", "logger_offset", "offset_in_analysis"]
+            ).agg({
+                "date_from": "first",
+                "date_to": lambda x: None if any(d is None for d in x) else max(x)
+                }).reset_index(level=[1,2,3])
+        return df, deadband_offsets
     return df
 
 
