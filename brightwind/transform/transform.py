@@ -1177,14 +1177,14 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_de
                       .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt)))
             height = wdir_prop.get('height_m')
             rows.append({
-                                "name": name,
-                                "height": height,
-                                "deadband_offset": deadband,
-                                "logger_offset": logger_offset,
-                                "offset_in_analysis": offset,
-                                "date_from": date_from,
-                                "date_to": date_to
-                            })
+                "name": name,
+                "height": height,
+                "deadband_offset": deadband,
+                "logger_offset": logger_offset,
+                "offset_in_analysis": offset,
+                "date_from": date_from,
+                "date_to": date_to
+                })
         else:
             print('{} is not found in data.\n'.format(utils.bold(name)))
 
