@@ -1443,7 +1443,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
 
 def apply_device_orientation_offset(
-        data, measurement_station, wdir_cols=[], inplace=False, return_orientation_offset_table=False
+        data, measurement_station, wdir_cols=[], inplace=False, return_direction_offset_summary=False
         ):
     """
     Applies a device orientation offset to wind direction data from remote sensing devices
@@ -1484,10 +1484,10 @@ def apply_device_orientation_offset(
     :param inplace:                             If True, modifies `data` in place. If False, returns a new 
                                                 DataFrame/Series with adjusted values. Default is False.
     :type inplace:                              bool, optional
-    :param return_orientation_offset_table:     If True, returns a DataFrame containing the device orientation, 
+    :param return_direction_offset_summary:     If True, returns a DataFrame containing the device orientation, 
                                                 logger orientation and offset used in the analysis for each relevant 
                                                 time period.
-    :type return_orientation_offset_table:      bool, optional
+    :type return_direction_offset_summary:      bool, optional
     :return:                                    Data with wind direction adjusted by the orientation offset.
     :rtype:                                     pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
     
@@ -1510,7 +1510,7 @@ def apply_device_orientation_offset(
     ::
         # Adjust only specific wind direction columns:
         data_dev_orient_adj, orientation_offset_table = bw.apply_device_orientation_offset(
-            data, fl1, wdir_cols=['Dir_40m', 'Dir_50m'], return_orientation_offset_table=True
+            data, fl1, wdir_cols=['Dir_40m', 'Dir_50m'], return_direction_offset_summary=True
             )
     
     """
@@ -1642,7 +1642,7 @@ def apply_device_orientation_offset(
         df = df[df.columns[0]]
         data.update(df)
 
-    if return_orientation_offset_table:
+    if return_direction_offset_summary:
         device_orientation_offsets = pd.DataFrame(rows).sort_values(by=["date_from"]).groupby(
             ["device_orientation", "logger_offset", "offset_in_analysis"]
             ).agg({
