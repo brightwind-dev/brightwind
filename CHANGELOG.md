@@ -13,6 +13,8 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ## [2.4.0-dev]
 1. Fixed pandas<3.0.0 and numpy<2.3.1 dependencies, ([#458](https://github.com/brightwind-dev/brightwind/issues/458))
+1. Added the option to return a table of device orientation offsets (`device_orientation_offsets`) to `apply_device_orientation_offset`. This provides the offset in the logger and that applied in the analysis for each relevant time period ([#521](https://github.com/brightwind-dev/brightwind/issues/521)).
+
 
 ### Bug Fixes
 1. 
