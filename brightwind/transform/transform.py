@@ -1175,8 +1175,10 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_de
             else:
                 print('{} has dead_band_orientation of None from {} to {}.\n'
                       .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt)))
+            height = wdir_prop.get('height_m')
             rows.append({
                                 "name": name,
+                                "height": height,
                                 "deadband_offset": deadband,
                                 "logger_offset": logger_offset,
                                 "offset_in_analysis": offset,
@@ -1193,11 +1195,11 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_de
         df = df[df.columns[0]]
     if return_deadband_offset:
         deadband_offsets = pd.DataFrame(rows).sort_values(by=["name", "date_from"]).groupby(
-            ["name", "deadband_offset", "logger_offset", "offset_in_analysis"]
+            ["name", "height", "deadband_offset", "logger_offset", "offset_in_analysis"]
             ).agg({
                 "date_from": "first",
                 "date_to": lambda x: None if any(d is None for d in x) else max(x)
-                }).reset_index(level=[1,2,3])
+                }).reset_index(level=[1, 2, 3, 4])
         return df, deadband_offsets
     return df
 
