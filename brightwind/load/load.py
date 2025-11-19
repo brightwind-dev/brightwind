@@ -1074,7 +1074,14 @@ class _BrighthubAuth:
         :rtype: dict
         :return: An empty dictionary upon successful authentication.
         """
-        
+        if _BrighthubAuth.REFRESH_TOKEN:
+            try:
+                _BrighthubAuth._brighthub_refresh_token()
+                return {}
+            except Exception:
+                # If refresh fails, proceed to re-authenticate
+                pass
+
         # Preferred authentication flow: client credentials (API key)
         try:
             _BrighthubAuth.ID_TOKEN = _BrighthubAuth._authenticate_with_client_credentials()
@@ -1099,7 +1106,6 @@ class _BrighthubAuth:
         Function to generate a new token if the current id_token has expired. The new tokens are assigned to the global
         variables ID_TOKEN, REFRESH_TOKEN.
         In case of an error, a error message will be returned
-
         """
         warnings.warn(
             "Refresh token authentication will be depreciated in version 3.0.0. "
@@ -1149,17 +1155,17 @@ class LoadBrightHub:
     LoadBrightHub allows you to pull meta data and timeseries data of measurements from the BrightHub
     platform. This is a fast way to get access to the available open datasets on the platform.
 
-    To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
+    To use LoadBrightHub:
+      1. Create a BrightHub account at https://brighthub.io/auth/create-account.
+      2. Create a new API key at https://brighthub.io/account-settings/settings.
+        and note your Client ID and Client Secret.
+      3. Set the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET as environmental variables.
+        In Windows this can be done by opening the command prompt in Administrator mode and running:
+            > setx BRIGHTHUB_CLIENT_ID "your API key client id")
+            > setx BRIGHTHUB_CLIENT_SECRET "your API key client secret")
 
-    For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
-    BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
-    done by opening the command prompt in Administrator mode and running:
-
-    > setx BRIGHTHUB_EMAIL "your email")
-    > setx BRIGHTHUB_PASSWORD "your password")
-
-    If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
-    take effect.
+        If Anaconda or your Python environment is running you will need to restart it for
+        the environmental variables to take effect.
 
     You can start by pulling all the available measurement stations available to you by running:
 
@@ -1181,11 +1187,9 @@ class LoadBrightHub:
         :return response:   The requests response object returned by requests.get()
         :rtype:             requests.Response object
         """
-
+      
         if not _BrighthubAuth.ID_TOKEN:
-            login_response = _BrighthubAuth._get_id_token()
-            if "error" in login_response:
-                return ImportError(login_response)
+            _BrighthubAuth._get_id_token()
 
         url = "{}{}".format(LoadBrightHub.__BASE_URI, url_end)
         headers = {"authorization": _BrighthubAuth.ID_TOKEN}
@@ -1194,19 +1198,11 @@ class LoadBrightHub:
 
         # If there is an auth error due to expired token
         if response.status_code == 401 and response.json().get("message") == "The incoming token has expired":
-            # generate the token again
-            refresh_token_response = _BrighthubAuth._brighthub_refresh_token()
-
-            # if an error occurred
-            if refresh_token_response.get("error"):
-                return ImportError(refresh_token_response)
-            else:
-                # token refreshed successfully
-                headers = {"authorization": _BrighthubAuth.ID_TOKEN}
-
-                # make the request again
-                response = requests.get(url=url, headers=headers, params=params)
-                return response
+            # Authenticate again
+            _BrighthubAuth._get_id_token()
+            headers = {"authorization": _BrighthubAuth.ID_TOKEN}
+            # Make the request again
+            response = requests.get(url=url, headers=headers, params=params)
 
         return response
 
@@ -1222,17 +1218,17 @@ class LoadBrightHub:
         :return:           A table showing the available plants.
         :rtype:            pd.DataFrame
 
-        To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
+        To use LoadBrightHub:
+            1. Create a BrightHub account at https://brighthub.io/auth/create-account.
+            2. Create a new API key at https://brighthub.io/account-settings/settings.
+                and note your Client ID and Client Secret.
+            3. Set the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET as environmental variables.
+                In Windows this can be done by opening the command prompt in Administrator mode and running:
+                    > setx BRIGHTHUB_CLIENT_ID "your API key client id")
+                    > setx BRIGHTHUB_CLIENT_SECRET "your API key client secret")
 
-        For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
-        BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
-        done by opening the command prompt in Administrator mode and running:
-
-        > setx BRIGHTHUB_EMAIL "your email")
-        > setx BRIGHTHUB_PASSWORD "your password")
-
-        If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
-        take effect.
+                If Anaconda or your Python environment is running you will need to restart it for
+                the environmental variables to take effect.
 
         **Example usage**
         ::
@@ -1298,17 +1294,17 @@ class LoadBrightHub:
         :return:                         A table showing the available measurement stations.
         :rtype:                          pd.DataFrame | List[dict]
 
-        To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
+        To use LoadBrightHub:
+            1. Create a BrightHub account at https://brighthub.io/auth/create-account.
+            2. Create a new API key at https://brighthub.io/account-settings/settings.
+                and note your Client ID and Client Secret.
+            3. Set the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET as environmental variables.
+                In Windows this can be done by opening the command prompt in Administrator mode and running:
+                    > setx BRIGHTHUB_CLIENT_ID "your API key client id")
+                    > setx BRIGHTHUB_CLIENT_SECRET "your API key client secret")
 
-        For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
-        BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
-        done by opening the command prompt in Administrator mode and running:
-
-        > setx BRIGHTHUB_EMAIL "your email")
-        > setx BRIGHTHUB_PASSWORD "your password")
-
-        If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
-        take effect.
+                If Anaconda or your Python environment is running you will need to restart it for
+                the environmental variables to take effect.
 
         **Example usage**
         ::
