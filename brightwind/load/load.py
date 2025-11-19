@@ -1138,7 +1138,6 @@ class _BrighthubAuth:
         _BrighthubAuth.ID_TOKEN = id_token
         new_refresh_token = ""
 
-        # refresh token only expires after 30 days, it is not returned in the response if it is still valid
         if login_response['AuthenticationResult'].get('RefreshToken'):
             new_refresh_token = login_response['AuthenticationResult']['RefreshToken']
 
