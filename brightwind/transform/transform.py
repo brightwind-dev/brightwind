@@ -46,6 +46,7 @@ def _freq_str_to_dateoffset(period):
     :return:       A pd.DateOffset
     :rtype:        pd.DateOffset
     """
+    TO DO: MAP NEEDS BACKWARD COMPATIBILITY HANDLING
     global _warned_a
     global _warned_as
     global _warned_h
