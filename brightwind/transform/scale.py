@@ -89,9 +89,9 @@ def apply_scale_factor(data: Union[float, int, pd.DataFrame, pd.Series, np.array
     
 
 def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
-                    x_ref: Union[float, int, np.ndarray, pd.Series],
-                    y_ref: Union[float, int, np.ndarray, pd.Series],
-                    slope: Union[float, int]) -> Union[float, int, np.ndarray, pd.Series]:
+                     x_ref: Union[float, int, np.ndarray, pd.Series],
+                     y_ref: Union[float, int, np.ndarray, pd.Series],
+                     slope: Union[float, int]) -> Union[float, int, np.ndarray, pd.Series]:
     """
     Perform a linear transform of known (x_ref, y_ref) to calculate y_target,
     using a constant slope and known value(s) of x_target.
@@ -183,10 +183,10 @@ def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
 
 
 def scale_air_density_to_height(ref_air_density_kg_m3: Union[float, pd.Series],
-                            ref_height_m: float,
-                            target_height_m: float,
-                            lapse_rate_kg_m3_m: float = (0.001 * AIR_DENSITY_LAPSE_RATE)
-                            ) -> Union[float, pd.Series]:
+                                ref_height_m: float,
+                                target_height_m: float,
+                                lapse_rate_kg_m3_m: float = (0.001 * AIR_DENSITY_LAPSE_RATE)
+                                ) -> Union[float, pd.Series]:
     """
     Linearly scales reference air density measurement (ref_air_density_kg_m3) from its measurement height
     (ref_height_m) to the height specified as the target_height_m, by applying a constant lapse_rate_kg_m3_m.
@@ -236,7 +236,7 @@ def scale_air_density_to_height(ref_air_density_kg_m3: Union[float, pd.Series],
     """
 
     scaled_air_density = linear_transform(x_target=target_height_m, x_ref=ref_height_m,
-                                            y_ref=ref_air_density_kg_m3, slope=lapse_rate_kg_m3_m)
+                                          y_ref=ref_air_density_kg_m3, slope=lapse_rate_kg_m3_m)
 
     return scaled_air_density
 
@@ -306,7 +306,7 @@ def scale_air_temperature_to_height(ref_air_temperature: Union[float, pd.Series]
     """
 
     scaled_air_temp = linear_transform(x_target=target_height_m, x_ref=ref_height_m,
-                                             y_ref=ref_air_temperature, slope=lapse_rate_deg_m)
+                                       y_ref=ref_air_temperature, slope=lapse_rate_deg_m)
     return scaled_air_temp
 
 
