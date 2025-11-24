@@ -146,24 +146,33 @@ def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
     data = bw.load_csv(bw.demo_datasets.demo_data)
 
     # calculate y_target for x_target = 11 where (x_ref, y_ref) = (5, 10) is a point on the line and the slope is -0.5.
-    bw.utils.utils.linear_transform(x_target=11, x_ref=5, y_ref=10, slope=-0.5)
+    bw.linear_transform(x_target=11, x_ref=5, y_ref=10, slope=-0.5)
     # 7.0
 
     # calculate y_target for x_target as a pandas.Series and (x_ref, y_ref) = (2, 20) is a point on the line
     # and the slope is -0.0065.
-    bw.utils.utils.linear_transform(
+    bw.linear_transform(
         x_target=data.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'],
         x_ref=2,
         y_ref=20,
         slope=-0.0065)
+    # Timestamp
+    # 2016-01-09 17:10:00    20.006799
+    # 2016-01-09 17:20:00    20.007390
+    # 2016-01-09 17:30:00    20.008249
+    # 2016-01-09 17:40:00    20.007462
+    # 2016-01-09 17:50:00    20.007988
+    # 2016-01-09 18:00:00    20.007065
+    # Name: T2m, dtype: float64
 
     # calculate y_target for x_target and x_ref as a int and y_ref as a np.ndarray where (x_ref, y_ref) = (2, y_ref)
     # are points on the line and the slope is -0.0065.
-    bw.utils.utils.linear_transform(
+    bw.linear_transform(
         x_target=20,
         x_ref=2,
         y_ref=data.T2m.loc['2016-01-09 17:10':'2016-01-09 18:00'].values,
         slope=-0.0065)
+    # array([0.837, 0.746, 0.614, 0.735, 0.654, 0.796])
     """
     # check input types
     for var, var_name in zip([x_ref, y_ref, x_target], ['x_ref', 'y_ref', 'x_target']):
@@ -341,15 +350,15 @@ def apply_scale_factor(data: Union[float, int, pd.DataFrame, pd.Series, np.array
     import numpy as np
 
     # scale float by scale_factor of 0.5
-    bw.utils.utils.apply_scale_factor(3, 0.5)
+    bw.apply_scale_factor(3, 0.5)
     # 1.5
 
     # # scale np.array by scale_factor of 0.5
-    # bw.utils.utils.apply_scale_factor(np.array([0, 1, 2]), 0.5)
+    bw.apply_scale_factor(np.array([0, 1, 2]), 0.5)
     # array([0. , 0.5, 1. ])
 
     # scale pd.Series by scale_factor of -10
-    bw.utils.utils.apply_scale_factor(pd.Series([10, 20, 30, 40]), -10)
+    bw.apply_scale_factor(pd.Series([10, 20, 30, 40]), -10)
     # 0   -100
     # 1   -200
     # 2   -300
@@ -358,7 +367,7 @@ def apply_scale_factor(data: Union[float, int, pd.DataFrame, pd.Series, np.array
 
     # scale pd.DataFrame by scale factor of 2
     df = pd.DataFrame({'a':[0.5, 1.2], 'b':[3, 4], 'c':['a', 'b']})
-    bw.utils.utils.apply_scale_factor(df, 2)
+    bw.apply_scale_factor(df, 2)
     # 	a	b	c
     # 0	1.0	6	a
     # 1	2.4	8	b
