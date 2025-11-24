@@ -6,19 +6,20 @@ import numpy as np
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 
+
 def test_scale_air_pressure_to_height():
     assert round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
-                                       ref_height_m=10, target_height_m=200), 2)== 977.45
+                                                 ref_height_m=10, target_height_m=200), 2) == 977.45
     assert round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
-                                       ref_height_m=10, target_height_m=15), 2) == 999.4
+                                                 ref_height_m=10, target_height_m=15), 2) == 999.4
     pd.testing.assert_series_equal(bw.scale_air_pressure_to_height(
         ref_air_pressure_hPa=DATA['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
         ref_air_temp_degC=DATA['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
         ref_height_m=2, target_height_m=10),
-        pd.Series(data = [933.07, 933.07, 933.07, 932.07, 932.07, 932.07], 
-        index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
-                                '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
-                                check_names=False)
+        pd.Series(data=[933.07, 933.07, 933.07, 932.07, 932.07, 932.07],
+                  index=pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
+                                        '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
+        check_names=False)
     
     # test error raising for invalid input types
     with pytest.raises(TypeError):
@@ -44,6 +45,7 @@ def test_scale_air_pressure_to_height():
             ref_height_m=2,
             target_height_m=10)
 
+
 def test_scale_air_density_to_height():
     assert bw.scale_air_density_to_height(ref_air_density_kg_m3=1.224, ref_height_m=80, target_height_m=100) == 1.22174
 
@@ -56,11 +58,12 @@ def test_scale_air_density_to_height():
     pd.testing.assert_series_equal(bw.scale_air_density_to_height(
         ref_air_density_kg_m3=test_density.loc['2016-01-09 17:10':'2016-01-09 18:00'],
         ref_height_m=2, target_height_m=10), 
-        pd.Series(data = [1.186780, 1.187175, 1.187747, 1.185950, 1.186301 , 1.185686],
-        index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
-                                '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
-                                check_names=False)
-      
+        pd.Series(data=[1.186780, 1.187175, 1.187747, 1.185950, 1.186301, 1.185686],
+                  index=pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
+                                        '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
+        check_names=False)
+
+
 def test_scale_air_temperature_to_height():
     assert bw.scale_air_temperature_to_height(10.0065, 10, 11) == 10.0
 
@@ -87,10 +90,12 @@ def test_scale_air_temperature_to_height():
         index = pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
                                 '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
                                 check_names=False)
-    
+
+
 def test_linear_transform():
-# test with float and int inputs
-assert bw.linear_transform(x_target=10, x_ref=5, y_ref=10, slope=-0.5) == 7.5
+    # test with float and int inputs
+    assert bw.linear_transform(x_target=10, x_ref=5, y_ref=10, slope=-0.5) == 7.5
+
 
 # test with array input for y_ref
 assert (bw.linear_transform(
