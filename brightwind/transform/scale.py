@@ -1,7 +1,6 @@
+from typing import Union
 import numpy as np
 import pandas as pd
-
-from typing import Union
 
 __all__ = ['apply_scale_factor',
            'linear_transform',
@@ -13,10 +12,10 @@ __all__ = ['apply_scale_factor',
 ACCEL_DUE_TO_GRAVITY = 9.80665
 
 # Temperature lapse rate (K/m or degC/m) from ISO:2533-1975 Standard Atmosphere
-TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE = -0.0065 
+TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE = -0.0065
 
 #  Specific gas constant for dry air (J/K/kg or m2/K/s2) from ISO:2533-1975 Standard Atmosphere
-GAS_CONST_DRY_AIR = 287.05 
+GAS_CONST_DRY_AIR = 287.05
 
 # Air density lapse rate (kg/m3/km) from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014)
 AIR_DENSITY_LAPSE_RATE = -0.113
@@ -77,16 +76,14 @@ def apply_scale_factor(data: Union[float, int, pd.DataFrame, pd.Series, np.array
         numeric_df = scale_factor * (data.select_dtypes(include='number'))
         result = pd.concat([numeric_df, data.select_dtypes(exclude='number')], axis=1)
         return result
-    else:
-        if isinstance(data, pd.Series):
-            if not pd.api.types.is_numeric_dtype(data):
-                raise ValueError('data inputted as a pandas.Series must be numeric')
-        if isinstance(data, np.ndarray):
-            if not np.issubdtype(data.dtype, np.number):
-                raise ValueError('data inputted as a np.ndarray must be numeric')
+    if isinstance(data, pd.Series):
+        if not pd.api.types.is_numeric_dtype(data):
+            raise ValueError('data inputted as a pandas.Series must be numeric')
+    if isinstance(data, np.ndarray):
+        if not np.issubdtype(data.dtype, np.number):
+            raise ValueError('data inputted as a np.ndarray must be numeric')
+    return scale_factor * data
 
-        return scale_factor * data
-    
 
 def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
                      x_ref: Union[float, int, np.ndarray, pd.Series],
@@ -100,7 +97,7 @@ def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
         y_target = slope * (x_target - x_ref) + y_ref,
     where (x_ref, y_ref) is effectively considered a known point on a line with the inputted slope.
 
-    Note that if pd.Series or np.ndarray inputs are provided for x_target, x_ref and y_ref, 
+    Note that if pd.Series or np.ndarray inputs are provided for x_target, x_ref and y_ref,
     then the transform is performed on a point by point basis, as in, the n^{th} value of
     the resulting y_target would be:
         y_target[n] = slope * (x_target[n] - x_ref[n]) + y_ref[n],
@@ -158,22 +155,21 @@ def linear_transform(x_target: Union[float, int, np.ndarray, pd.Series],
     """
     # check input types
     for var, var_name in zip([x_ref, y_ref, x_target], ['x_ref', 'y_ref', 'x_target']):
-        if not (isinstance(var, float) or isinstance(var, int) or isinstance(var, pd.Series) or
-                isinstance(var, np.ndarray)):
+        if not isinstance(var, (float, int, pd.Series, np.ndarray)):
             raise TypeError(f"{var_name} must be a float or int or a numpy.ndarray or pandas.Series.")
 
-    if not (isinstance(slope, float) or isinstance(slope, int)):
+    if not isinstance(slope, (float, int)):
         raise TypeError("slope must be a float or int.")
 
     # check dimensions of x_ref and x_target if arrays or Series
-    if (isinstance(x_ref, np.ndarray) or isinstance(x_ref, pd.Series)) and (
-            isinstance(x_target, np.ndarray) or isinstance(x_target, pd.Series)):
+    if (isinstance(x_ref, (np.ndarray, pd.Series))) and (
+            isinstance(x_target, (np.ndarray, pd.Series))):
         if len(x_ref) != len(x_target):
             raise ValueError("x_ref and x_target must have the same dimensions.")
 
     # check dimensions of y_ref if arrays or Series
-    if isinstance(x_target - x_ref, np.ndarray) or isinstance(x_target - x_ref, pd.Series):
-        if isinstance(y_ref, np.ndarray) or isinstance(y_ref, pd.Series):
+    if isinstance(x_target - x_ref, (np.ndarray, pd.Series)):
+        if isinstance(y_ref, (np.ndarray, pd.Series)):
             if len(y_ref) != len(x_target - x_ref):
                 raise ValueError("y_ref must have the same dimensions as x_target or x_ref.")
 
@@ -347,7 +343,7 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
     import brightwind as bw
 
     # scale float value of air pressure
-    round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12, ref_height_m=10, 
+    round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12, ref_height_m=10,
                                     target_height_m=200), 2)
     # 977.45
 
@@ -370,10 +366,10 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
 
     # check input types
     for var, var_name in zip([ref_air_pressure_hPa, ref_air_temp_degC], ['ref_air_pressure_hPa', 'ref_air_temp_degC']):
-        if not (isinstance(var, float) or isinstance(var, int) or isinstance(var, pd.Series)):
+        if not isinstance(var, (float, int, pd.Series)):
             raise TypeError(f"{var_name} must be a float or int or pandas.Series.")
     for var, var_name in zip([ref_height_m, target_height_m], ['ref_height_m', 'target_height_m']):
-        if not (isinstance(var, float) or isinstance(var, int)):
+        if not isinstance(var, (float, int)):
             raise TypeError(f"{var_name} must be a float or int.")
 
     # check dimensions of ref_air_pressure_hPa and ref_air_temp_degC if Series
