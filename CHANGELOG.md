@@ -18,11 +18,15 @@ Additional labels for pre-release and build metadata are available as extensions
 1. 
 
 ### New Features and Enhancements
-1. Added `scale_air_pressure_to_height` to output an air pressure value for any height based on reference air temperature and air pressure values at a different measurement height ([#531](https://github.com/brightwind-dev/brightwind/issues/531))
-2. Added `scale_air_density_to_height` to output an air density value for any height by applying a constant lapse rate to a known reference air density value at a reference measurement height ([#534](https://github.com/brightwind-dev/brightwind/issues/534)) 
-3. Added `scale_air_temperature_to_height` to output an air temperature value for any height by applying a constant lapse rate to a known reference air temperature value at a reference measurement height ([#530](https://github.com/brightwind-dev/brightwind/issues/530))
-4. Updated `calc_air_density` to include relative humidity as suggested in IEC 61400-12-1 ([#535](https://github.com/brightwind-dev/brightwind/issues/535))
-5. Added `apply_scale_factor` to scale data by the scale_factor ([#541](https://github.com/brightwind-dev/brightwind/issues/541))
+1. Added `scale_air_pressure_to_height()` to output an air pressure value for any height based on reference air temperature and air pressure values at a different measurement height. ([#531](https://github.com/brightwind-dev/brightwind/issues/531))
+2. Added `scale_air_density_to_height()` to output an air density value for any height by applying a constant lapse rate to a known reference air density value at a reference measurement height. ([#534](https://github.com/brightwind-dev/brightwind/issues/534)) 
+3. Added `scale_air_temperature_to_height()` to output an air temperature value for any height by applying a constant lapse rate to a known reference air temperature value at a reference measurement height. ([#530](https://github.com/brightwind-dev/brightwind/issues/530))
+4. Updated `calc_air_density()` to include relative humidity as suggested in IEC 61400-12-1. ([#535](https://github.com/brightwind-dev/brightwind/issues/535))
+   1. Added deprecation warning the `specific_gas_constant` argument of `calc_air_density()` will be removed in v3.0.
+   1. Added deprecation warning the scaling of air density to height within `calc_air_density()` will be removed in v3.0. Users should use `scale_air_density_to_height()` separately instead.
+5. Added `apply_scale_factor()` to scale data by the scale_factor. ([#541](https://github.com/brightwind-dev/brightwind/issues/541))
+6. Updated `LoadBrightHub()` to use BrightHub API Keys. ([#550](https://github.com/brightwind-dev/brightwind/issues/550))
+   1. Added deprecation warning the username and password method of authenticating in BrightHub will be removed in a future version.
 
 
 ## [2.3.0]
