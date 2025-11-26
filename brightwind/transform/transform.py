@@ -34,6 +34,28 @@ def _compute_wind_vector(wspd, wdir):
     return wspd*np.cos(wdir), wspd*np.sin(wdir)
 
 
+def dataframe_map(df, func, **kwargs):
+    """
+    Apply a function element-wise to a DataFrame.
+    
+    Compatibility wrapper for DataFrame.map() (pandas >=2.1) and 
+    DataFrame.applymap() (pandas <2.1).
+
+    :param df:              DataFrame to apply function to
+    :type df:               pd.DataFrame
+    :param func:            Function to apply element-wise
+    :type func:             Callable
+    :return:                Transformed DataFrame
+    :rtype:                 pd.DataFrame
+    """
+    if hasattr(df, 'map'):
+        # pandas >= 2.1
+        return df.map(func, **kwargs)
+    else:
+        # pandas < 2.1
+        return df.applymap(func, **kwargs)
+    
+
 def _freq_str_to_dateoffset(period):
     """
     Convert a pandas frequency string to a pd.DateOffset.
@@ -46,7 +68,6 @@ def _freq_str_to_dateoffset(period):
     :return:       A pd.DateOffset
     :rtype:        pd.DateOffset
     """
-    TO DO: MAP NEEDS BACKWARD COMPATIBILITY HANDLING
     global _warned_a
     global _warned_as
     global _warned_h
@@ -126,6 +147,8 @@ def _freq_str_to_dateoffset(period):
     else:
         raise ValueError('"{}" period not recognized. Only units "M", "MS", "YS", "W", "D", "h", "min", "s" '
                          'are recognized'.format(period))
+
+
     return as_dateoffset
 
 
@@ -252,7 +275,7 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
                                                                 day=timestamp.day, hour=timestamp.hour,
                                                                 minute=_round_down_to_multiple(timestamp.minute,
                                                                                                int(period[:-3])))
-    elif period[-1] == 'h':
+    elif period[-1] == 'h' or period[-1] == 'H':
         return '{year}-{month}-{day} {hour}:00:00'.format(year=timestamp.year, month=timestamp.month, day=timestamp.day,
                                                           hour=_round_down_to_multiple(timestamp.hour,
                                                                                        int(period[:-1])))
@@ -261,7 +284,7 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
                                              hour=timestamp.hour)
     elif period[-1] == 'M' or period[-2:] == 'MS':
         return '{year}-{month}'.format(year=timestamp.year, month=timestamp.month)
-    elif period[-2:] == 'YS' or period[-1:] == 'A':
+    elif period[-2:] == 'YS' or period[-1:] == 'A' or period[-2:] == 'AS':
         return '{year}'.format(year=timestamp.year)
     else:
         print("Warning: Averaging period not identified returning default timestamps")
@@ -1080,7 +1103,7 @@ def offset_wind_direction(wdir, offset: float):
     if isinstance(wdir, float) or isinstance(wdir, int):
         return utils._range_0_to_360(wdir + offset)
     elif isinstance(wdir, pd.DataFrame):
-        return wdir.add(offset).map(utils._range_0_to_360)
+        return dataframe_map(wdir.add(offset), utils._range_0_to_360)
     elif isinstance(wdir, pd.Series):
         return wdir.add(offset).apply(utils._range_0_to_360)
 

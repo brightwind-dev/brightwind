@@ -7,6 +7,7 @@ import copy
 import io
 import sys
 import re
+import warnings
 
 from brightwind.transform.transform import (
     _check_vertical_profiler_properties_overlap as check_vertical_profiler_properties_overlap
@@ -308,7 +309,44 @@ def test_freq_str_to_dateoffset():
                     ).total_seconds() == results[idx]
 
         # Check that data frequency is returned as a DateOffset.
-        assert type(bw.transform.transform._freq_str_to_dateoffset(period)) == pd.DateOffset
+        assert isinstance(bw.transform.transform._freq_str_to_dateoffset(period), pd.DateOffset)
+
+
+def test_freq_str_to_dateoffset_deprecation_warning():
+    """Test frequency string conversion and check deprecation warnings for old formats."""
+    ref_date = pd.Timestamp('2020-01-01')
+    
+    periods = [
+        '1H', '3H', '6H','1T', '30T', '1S', '1AS', '1A', '3A'
+    ]
+    results = [
+        3600.0, 10800.0, 21600.0, 60.0, 1800.0, 1.0, 31622400.0, 31622400.0, 94694400.0
+    ]
+    
+    # Reset warning flags to test them
+    bw.transform.transform._warned_h = False
+    bw.transform.transform._warned_t = False
+    bw.transform.transform._warned_s = False
+    bw.transform.transform._warned_a = False
+    bw.transform.transform._warned_as = False
+    
+    for idx, period in enumerate(periods):
+        # All these deprecated formats should raise DeprecationWarning
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = bw.transform.transform._freq_str_to_dateoffset(period)
+            
+            # Check warning was raised on first use of each suffix
+            if period in ['1H', '1T', '1S', '1AS', '1A']:
+                assert len(w) == 1, f"Expected warning for deprecated format '{period}'"
+                assert issubclass(w[0].category, DeprecationWarning)
+        
+        # Check that data frequency is returned as a DateOffset
+        assert isinstance(result, pd.DateOffset)
+        
+        # Verify the time delta
+        if type(result) == pd.DateOffset:
+            assert (ref_date + result - ref_date).total_seconds() == results[idx]
 
 
 def test_round_timestamp_down_to_averaging_prd():
@@ -317,6 +355,13 @@ def test_round_timestamp_down_to_averaging_prd():
     avg_period_start_timestamps = ['2016-1-9 11:20:00', '2016-1-9 11:15:00', '2016-1-9 11:00:00',
                                    '2016-1-9 9:00:00', '2016-1-9 6:00:00', '2016-1-9', '2016-1-9',  '2016-1-9',
                                    '2016-1', '2016']
+    for idx, avg_period in enumerate(avg_periods):
+        assert avg_period_start_timestamps[idx] == \
+               bw.transform.transform._round_timestamp_down_to_averaging_prd(timestamp, avg_period)
+    avg_periods = ['1H', '3H', '6H', '1AS']
+    avg_period_start_timestamps = [
+        '2016-1-9 11:00:00', '2016-1-9 9:00:00', '2016-1-9 6:00:00', '2016'
+        ]
     for idx, avg_period in enumerate(avg_periods):
         assert avg_period_start_timestamps[idx] == \
                bw.transform.transform._round_timestamp_down_to_averaging_prd(timestamp, avg_period)
@@ -343,9 +388,19 @@ def test_get_data_resolution():
     series1 = bw.average_data_by_period(DATA['Spd80mN'], period='1YS', coverage_threshold=0, return_coverage=False)
     assert bw.transform.transform._get_data_resolution(series1.index).kwds == {'years': 1}
 
+    series1 = bw.average_data_by_period(DATA['Spd80mN'], period='1AS', coverage_threshold=0, return_coverage=False)
+    assert bw.transform.transform._get_data_resolution(series1.index).kwds == {'years': 1}
+
     # hourly series with one instance where difference between adjacent timestamps is 10 min
     series3 = pd.date_range('2010-04-15', '2010-05-01', freq='h').union(pd.date_range('2010-05-01 00:10:00', periods=20,
                                                                                       freq='h'))
+    with warnings.catch_warnings(record=True) as w:
+        assert bw.transform.transform._get_data_resolution(series3).kwds == {'hours': 1}
+        assert len(w) == 1
+
+    # hourly series with one instance where difference between adjacent timestamps is 10 min
+    series3 = pd.date_range('2010-04-15', '2010-05-01', freq='H').union(pd.date_range('2010-05-01 00:10:00', periods=20,
+                                                                                      freq='H'))
     with warnings.catch_warnings(record=True) as w:
         assert bw.transform.transform._get_data_resolution(series3).kwds == {'hours': 1}
         assert len(w) == 1
@@ -434,7 +489,12 @@ def test_offset_timestamps():
     assert bw.offset_timestamps(DATA.index[0], offset='4h') == pd.Timestamp('2016-01-09 19:30:00')
     assert bw.offset_timestamps(datetime.datetime(2016, 2, 1, 0, 20), offset='3.5h'
                                 ) == datetime.datetime(2016, 2, 1, 3, 50)
+
+    assert bw.offset_timestamps(DATA.index[0], offset='4H') == pd.Timestamp('2016-01-09 19:30:00')
+    assert bw.offset_timestamps(datetime.datetime(2016, 2, 1, 0, 20), offset='3.5H'
+                                ) == datetime.datetime(2016, 2, 1, 3, 50)
     assert bw.offset_timestamps(datetime.date(2016, 2, 1), offset='-5h') == datetime.datetime(2016, 1, 31, 19, 0)
+    assert bw.offset_timestamps(datetime.date(2016, 2, 1), offset='-5H') == datetime.datetime(2016, 1, 31, 19, 0)
     assert bw.offset_timestamps(datetime.time(0, 20), offset='30min') == datetime.time(0, 50)
 
 
@@ -523,47 +583,49 @@ def test_average_wdirs():
     for i, j in zip(avg_wdirs, expected_result):
         assert i == j
 
-
-def dummy_data_frame(start_date='2016-01-01T00:00:00', end_date='2016-12-31T11:59:59'):
+@pytest.fixture
+def dummy_data():
     """
-    Returns a DataFrame with wind speed equal to the month of the year, i.e. In January, wind speed = 1 m/s.
-    For use in testing.
-
-    :param start_date: Start date Timestamp, i.e. first index in the DataFrame
-    :type start_date:  Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
-    :param end_date: End date Timestamp, i.e. last index in the DataFrame
-    :type end_date: Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
-    :return: pandas.DataFrame
+    Fixture that returns a DataFrame with wind speed equal to the month of the year.
+    Wind speed in January = 1 m/s, February = 2 m/s, etc.
     """
-
-    date_times = {'Timestamp': pd.date_range(start_date, end_date, freq='10min')}
-
-    dummy_wind_speeds = []
-    dummy_wdirs = []
-
-    for i, vals in enumerate(date_times['Timestamp']):
-        # get list of each month for each date entry as dummy windspeeds
-        dummy_wind_speeds.append(vals.month)
-        dummy_wdirs.append((vals.month - 1) * 30)
-
-    dummy_wind_speeds_df = pd.DataFrame({'wspd': dummy_wind_speeds, 'wdir': dummy_wdirs}, index=date_times['Timestamp'])
+    start_date = '2016-01-01T00:00:00'
+    end_date = '2016-12-31T11:59:59'
+    
+    date_times = pd.date_range(start_date, end_date, freq='10min')
+    
+    # Vectorized approach - compatible with all pandas versions
+    dummy_wind_speeds = date_times.month.values
+    dummy_wdirs = (date_times.month.values - 1) * 30
+    
+    dummy_wind_speeds_df = pd.DataFrame(
+        {'wspd': dummy_wind_speeds, 'wdir': dummy_wdirs},
+        index=date_times
+    )
     dummy_wind_speeds_df.index.name = 'Timestamp'
-
+    
     return dummy_wind_speeds_df
 
 
-def test_average_data_by_period():
+def test_average_data_by_period(dummy_data):
     bw.average_data_by_period(DATA[['Spd80mN']], period='1h')
+    bw.average_data_by_period(DATA[['Spd80mN']], period='1H')
     # hourly averages
     bw.average_data_by_period(DATA.Spd80mN, period='1h')
+    bw.average_data_by_period(DATA.Spd80mN, period='1H')
     # hourly average with coverage filtering
     bw.average_data_by_period(DATA.Spd80mN, period='1h', coverage_threshold=0.9)
     bw.average_data_by_period(DATA.Spd80mN, period='1h', coverage_threshold=1)
+    bw.average_data_by_period(DATA.Spd80mN, period='1H', coverage_threshold=0.9)
+    bw.average_data_by_period(DATA.Spd80mN, period='1H', coverage_threshold=1)
     # return coverage with filtering
     bw.average_data_by_period(DATA.Spd80mN, period='1h', coverage_threshold=0.9,
                               return_coverage=True)
+    bw.average_data_by_period(DATA.Spd80mN, period='1H', coverage_threshold=0.9,
+                              return_coverage=True)
     # return coverage without filtering
     bw.average_data_by_period(DATA.Spd80mN, period='1h', return_coverage=True)
+    bw.average_data_by_period(DATA.Spd80mN, period='1H', return_coverage=True)
 
     # monthly averages
     bw.average_data_by_period(DATA.Spd80mN, period='1M')
@@ -590,7 +652,6 @@ def test_average_data_by_period():
     assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
                                      "For example, hourly data should not be averaged to 10 minute data."
 
-    dummy_data = dummy_data_frame()
     average_monthly_speed = bw.average_data_by_period(dummy_data.wspd, period='1M')
     # test average wind speed for each month
     for i in range(0, 11):
@@ -624,6 +685,8 @@ def test_average_data_by_period():
 
     # test average annual wind speed
     average_annual_speed = bw.average_data_by_period(dummy_data.wspd, period='1YS')
+    assert round(average_annual_speed.iloc[0].item(), 3) == 6.506
+    average_annual_speed = bw.average_data_by_period(dummy_data.wspd, period='1AS')
     assert round(average_annual_speed.iloc[0].item(), 3) == 6.506
     # average DATA to monthly
     data_monthly = bw.average_data_by_period(DATA_CLND[WSPD_COLS + WDIR_COLS], period='1MS',
@@ -669,6 +732,12 @@ def test_average_data_by_period():
                                                                return_coverage=True,
                                                                data_resolution=pd.DateOffset(minutes=10))
     table_count = data_test.resample('1MS', closed='left', label='left').count()
+    assert (table_count['Dir78mS']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Dir78mS_Coverage']['2016-01-01']
+            ) < 1e-5
+    assert (table_count['Spd80mN']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Spd80mN_Coverage']['2016-01-01']
+            ) < 1e-5
+    table_count = data_test.resample('1MS', axis=0, closed='left', label='left',
+                                     convention='start', kind='timestamp').count()
     assert (table_count['Dir78mS']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Dir78mS_Coverage']['2016-01-01']
             ) < 1e-5
     assert (table_count['Spd80mN']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Spd80mN_Coverage']['2016-01-01']

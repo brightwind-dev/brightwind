@@ -1263,7 +1263,7 @@ class LoadBrightHub:
                     )
 
         if return_df:
-            meas_loc_df = pd.read_json(json.dumps(meas_loc_json))
+            meas_loc_df = pd.read_json(StringIO(json.dumps(meas_loc_json)))
             required_cols = ['name', 'measurement_station_type_id',
                              'latitude_ddeg', 'longitude_ddeg', 'plant_uuid', 'uuid', 'notes']
             meas_loc_df = meas_loc_df[required_cols]
