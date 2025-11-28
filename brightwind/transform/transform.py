@@ -1616,7 +1616,7 @@ def apply_device_orientation_offset(
                         target_orientation_name='device orientation')            
                     
                     rows.append({
-                                "Measurement point": name,
+                                "Name": name,
                                 "Device Orientation [deg]": device_orientation_deg,
                                 "Logger Offset": logger_offset,
                                 "Offset applied [deg]": offset_wind_direction(device_orientation_deg, - logger_offset),
@@ -1646,8 +1646,8 @@ def apply_device_orientation_offset(
 
     if return_results_table:
         results_table = pd.DataFrame(rows).sort_values(
-            by=["Measurement point", "Date From"]
-            ).set_index("Measurement point")
+            by=["Name", "Date From"]
+            ).set_index("Name")
         return df, results_table
     return df
 
