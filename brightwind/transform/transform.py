@@ -1492,7 +1492,9 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             return df_copy.sort_index()
 
 
-def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inplace=False):
+def apply_device_orientation_offset(
+        data, measurement_station, wdir_cols=[], inplace=False, return_results_table=False
+        ):
     """
     Applies a device orientation offset to wind direction data from remote sensing devices
     (lidar, sodar, or floating lidar) to align measurements with north.
@@ -1522,18 +1524,21 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
     Overlapping periods with non-zero `device_orientation_deg` values in `vertical_profiler_properties`
     are not supported and will raise an error.
 
-    :param data:                        Timeseries data.
-    :type data:                         pd.DataFrame or pd.Series
-    :param measurement_station:         A simplified object to represent the IEA Wind Task 43 WRA Data Model.
-    :type measurement_station:          bw.MeasurementStation
-    :param wdir_cols:                   Wind direction column names to apply the offset to. If empty, all wind direction 
-                                        columns in the data are used. Default is an empty list.
-    :type wdir_cols:                    list
-    :param inplace:                     If True, modifies `data` in place. If False, returns a new DataFrame/Series
-                                        with adjusted values. Default is False.
-    :type inplace:                      bool, optional
-    :return:                            Data with wind direction adjusted by the orientation offset.
-    :rtype:                             pd.DataFrame or pd.Series
+    :param data:                                Timeseries data.
+    :type data:                                 pd.DataFrame or pd.Series
+    :param measurement_station:                 A simplified object to represent the IEA Wind Task 43 WRA Data Model.
+    :type measurement_station:                  bw.MeasurementStation
+    :param wdir_cols:                           Wind direction column names to apply the offset to. If empty, all wind 
+                                                direction columns in the data are used. Default is an empty list.
+    :type wdir_cols:                            list
+    :param inplace:                             If True, modifies `data` in place. If False, returns a new 
+                                                DataFrame/Series with adjusted values. Default is False.
+    :type inplace:                              bool, optional
+    :param return_results_table:                If True, returns a DataFrame containing the device orientation, 
+                                                logger orientation and offset applied for each relevant time period.
+    :type return_results_table:                 bool, optional
+    :return:                                    Data with wind direction adjusted by the orientation offset.
+    :rtype:                                     pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
     
     **Example usage**
     ::
@@ -1549,6 +1554,14 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
     ::
         bw.apply_device_orientation_offset(data, fl1, inplace=True)
         print('Wind direction device orientation offset adjustment is completed.')
+
+    Return the orientation offset results table along with adjusted timeseries data::
+    ::
+        # Adjust only specific wind direction columns:
+        data_dev_orient_adj, results_table = bw.apply_device_orientation_offset(
+            data, fl1, wdir_cols=['Dir_40m', 'Dir_50m'], return_results_table=True
+            )
+        results_table
     
     """
     
@@ -1580,6 +1593,7 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
 
     _check_vertical_profiler_properties_overlap(measurement_station, df)
 
+    rows = []
     # Apply the offset
     for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
@@ -1649,6 +1663,17 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
                     df[name] = _apply_dir_offset_target_orientation(
                         df[name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
                         target_orientation_name='device orientation')
+                             
+                    height = wdir_prop.get('height_m')
+                    rows.append({
+                        "Name": name,
+                        "Height [m]": height,
+                        "Device Orientation [deg]": device_orientation_deg,
+                        "Logger Offset": logger_offset,
+                        "Offset Applied [deg]": offset_wind_direction(device_orientation_deg, - logger_offset),
+                        "Date From": apply_offset_from,
+                        "Date To": apply_offset_to
+                        })
         else:
             wdir_not_in_dataset = True
             col_not_in_data.append(name)
@@ -1669,6 +1694,34 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
     if isinstance(data, pd.Series):
         df = df[df.columns[0]]
         data.update(df)
+
+    if return_results_table:
+        results_df = pd.DataFrame(rows).sort_values(
+            by=["Height [m]", "Date From"], ascending=[False, True]
+            )
+        results_df['consecutive_group'] = (
+            (results_df['Name'] != results_df['Name'].shift()) |
+            (results_df['Height [m]'] != results_df['Height [m]'].shift()) |
+            (results_df['Device Orientation [deg]'] != results_df['Device Orientation [deg]'].shift()) |
+            (results_df['Logger Offset'] != results_df['Logger Offset'].shift()) |
+            (results_df['Offset Applied [deg]'] != results_df['Offset Applied [deg]'].shift())
+            ).cumsum()
+        
+        # Group and aggregate consecutive periods with the same device orientation, logger offset and applied offset.
+        results_table = results_df.groupby([
+            'Name',
+            'consecutive_group',
+            'Height [m]',
+            'Device Orientation [deg]',
+            'Logger Offset',
+            'Offset Applied [deg]'
+            ]).agg({
+                'Date From': 'first',
+                'Date To': lambda x: None if any(d is None for d in x) else max(x)
+                }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
+                    by=["Height [m]", "Date From"], ascending=[False, True]
+                    )
+        return df, results_table
     return df
 
 

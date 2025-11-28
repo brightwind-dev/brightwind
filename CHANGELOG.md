@@ -14,6 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 ## [2.4.0-dev]
 1. Fixed pandas<3.0.0 and numpy<2.3.1 dependencies, ([#458](https://github.com/brightwind-dev/brightwind/issues/458))
 
+
 ### Bug Fixes
 1. 
 
@@ -23,7 +24,8 @@ Additional labels for pre-release and build metadata are available as extensions
 3. Added `scale_air_temperature_to_height` to output an air temperature value for any height by applying a constant lapse rate to a known reference air temperature value at a reference measurement height ([#530](https://github.com/brightwind-dev/brightwind/issues/530))
 4. Updated `calc_air_density` to include relative humidity as suggested in IEC 61400-12-1 ([#535](https://github.com/brightwind-dev/brightwind/issues/535))
 5. Added `apply_scale_factor` to scale data by the scale_factor ([#541](https://github.com/brightwind-dev/brightwind/issues/541))
-1. Added optional output to `apply_wind_vane_deadband_offset()`, which provides a table of deadband offset, logger offset and applied offset. ([#520](https://github.com/brightwind-dev/brightwind/issues/520))
+1. Added optional output to `apply_wind_vane_deadband_offset()` which provides a results table showing the applied offset. ([#520](https://github.com/brightwind-dev/brightwind/issues/520))
+1. Added optional output to `apply_device_orientation_offset()` which provides a results table showing the applied offset. ([#521](https://github.com/brightwind-dev/brightwind/issues/521)).
 
 
 ## [2.3.0]
