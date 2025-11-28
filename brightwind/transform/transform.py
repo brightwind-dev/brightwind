@@ -1617,9 +1617,9 @@ def apply_device_orientation_offset(
                     
                     rows.append({
                                 "Measurement point": name,
-                                "Device Orientation [°]": device_orientation_deg,
-                                "Offset applied in data logger [°]": logger_offset,
-                                "Offset applied in analysis [°]": offset_wind_direction(device_orientation_deg, - logger_offset),
+                                "Device Orientation [deg]": device_orientation_deg,
+                                "Logger Offset": logger_offset,
+                                "Offset applied [deg]": offset_wind_direction(device_orientation_deg, - logger_offset),
                                 "Date From": apply_offset_from,
                                 "Date To": apply_offset_to
                             })
