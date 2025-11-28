@@ -1198,12 +1198,7 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     if type(data) == pd.Series:
         df = df[df.columns[0]]
     if return_results_table:
-        results_table = pd.DataFrame(rows).sort_values(by=["Name", "Date From"]).groupby(
-            ["Name", "Height [m]", "Vane Dead Band Orientation [deg]", "Logger Offset", "Offset applied [deg]"]
-            ).agg({
-                "Date From": "first",
-                "Date To": lambda x: None if any(d is None for d in x) else max(x)
-                }).reset_index(level=[1, 2, 3, 4])
+        results_table = pd.DataFrame(rows).sort_values(by=["Name", "Date From"]).set_index("Name")
         return df, results_table
     return df
 
