@@ -1181,13 +1181,13 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
                       .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt)))
             height = wdir_prop.get('height_m')
             rows.append({
-                "name": name,
-                "height": height,
-                "deadband_offset": deadband,
-                "logger_offset": logger_offset,
-                "offset_applied": offset,
-                "date_from": date_from,
-                "date_to": date_to
+                "Name": name,
+                "Height [m]": height,
+                "Vane Dead Band Orientation [deg]": deadband,
+                "Logger Offset": logger_offset,
+                "Offset Applied [deg]": offset,
+                "Date From": date_from,
+                "Date To": date_to
                 })
         else:
             print('{} is not found in data.\n'.format(utils.bold(name)))
@@ -1198,12 +1198,31 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     if type(data) == pd.Series:
         df = df[df.columns[0]]
     if return_results_table:
-        results_table = pd.DataFrame(rows).sort_values(by=["name", "date_from"]).groupby(
-            ["name", "height", "deadband_offset", "logger_offset", "offset_applied"]
-            ).agg({
-                "date_from": "first",
-                "date_to": lambda x: None if any(d is None for d in x) else max(x)
-                }).reset_index(level=[1, 2, 3, 4])
+        results_df = pd.DataFrame(rows).sort_values(
+            by=["Height [m]", "Date From"], ascending=[False, True]
+        )
+        results_df['consecutive_group'] = (
+            (results_df['Name'] != results_df['Name'].shift()) |
+            (results_df['Height [m]'] != results_df['Height [m]'].shift()) |
+            (results_df['Vane Dead Band Orientation [deg]'] != results_df['Vane Dead Band Orientation [deg]'].shift()) |
+            (results_df['Logger Offset'] != results_df['Logger Offset'].shift()) |
+            (results_df['Offset Applied [deg]'] != results_df['Offset Applied [deg]'].shift())
+        ).cumsum()
+        
+        # Group and aggregate consecutive periods
+        results_table = results_df.groupby([
+            'Name',
+            'consecutive_group',
+            'Height [m]',
+            'Vane Dead Band Orientation [deg]',
+            'Logger Offset',
+            'Offset Applied [deg]'
+        ]).agg({
+            'Date From': 'first',
+            'Date To': lambda x: None if any(d is None for d in x) else max(x)
+        }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
+            by=["Height [m]", "Date From"], ascending=[False, True]
+            )
         return df, results_table
     return df
 
