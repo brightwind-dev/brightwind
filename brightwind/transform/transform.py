@@ -1124,12 +1124,12 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     Send a specific wind direction property and data column::
         bw.apply_wind_vane_deadband_offset(data['Dir78mS'], mm1.measurements['Dir78mS'], inplace=True)
         print('\nWind vane deadband offset adjustment is completed.')
-        
+
     Specifying that the deadband offsets should be returned::
-        bw.apply_wind_vane_deadband_offset(
+        data_adj, results_table = bw.apply_wind_vane_deadband_offset(
             data['Dir78mS'], mm1.measurements['Dir78mS'], inplace=True, return_results_table=True
             )
-        print('\nWind vane deadband offset adjustment is completed.')
+        results_table
 
     """
     # Depending on what is sent, get wdir properties into a list of properties
@@ -1197,13 +1197,13 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     if type(data) == pd.Series:
         df = df[df.columns[0]]
     if return_results_table:
-        deadband_offsets = pd.DataFrame(rows).sort_values(by=["name", "date_from"]).groupby(
+        results_table = pd.DataFrame(rows).sort_values(by=["name", "date_from"]).groupby(
             ["name", "height", "deadband_offset", "logger_offset", "offset_applied"]
             ).agg({
                 "date_from": "first",
                 "date_to": lambda x: None if any(d is None for d in x) else max(x)
                 }).reset_index(level=[1, 2, 3, 4])
-        return df, deadband_offsets
+        return df, results_table
     return df
 
 
