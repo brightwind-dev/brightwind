@@ -1198,9 +1198,29 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     if type(data) == pd.Series:
         df = df[df.columns[0]]
     if return_results_table:
-        results_table = pd.DataFrame(rows).sort_values(
+        results_df = pd.DataFrame(rows).sort_values(
             by=["Height [m]", "Date From"], ascending=[False, True]
-            ).set_index("Name")
+        )
+        results_df['consecutive_group'] = (
+            (results_df['Name'] != results_df['Name'].shift()) |
+            (results_df['Height [m]'] != results_df['Height [m]'].shift()) |
+            (results_df['Vane Dead Band Orientation [deg]'] != results_df['Vane Dead Band Orientation [deg]'].shift()) |
+            (results_df['Logger Offset'] != results_df['Logger Offset'].shift()) |
+            (results_df['Offset applied [deg]'] != results_df['Offset applied [deg]'].shift())
+        ).cumsum()
+        
+        # Group and aggregate consecutive periods
+        results_table = results_df.groupby([
+            'Name',
+            'consecutive_group',
+            'Height [m]',
+            'Vane Dead Band Orientation [deg]',
+            'Logger Offset',
+            'Offset applied [deg]'
+        ]).agg({
+            'Date From': 'first',
+            'Date To': lambda x: None if any(d is None for d in x) else max(x)
+        }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name")
         return df, results_table
     return df
 
