@@ -26,7 +26,9 @@ Additional labels for pre-release and build metadata are available as extensions
    1. Added deprecation warning the `specific_gas_constant` argument of `calc_air_density()` will be removed in v3.0.
    1. Added deprecation warning the scaling of air density to height within `calc_air_density()` will be removed in v3.0. Users should use `scale_air_density_to_height()` separately instead.
 5. Added `apply_scale_factor()` to scale data by the scale_factor. ([#541](https://github.com/brightwind-dev/brightwind/issues/541))
-6. Updated `LoadBrightHub()` to use BrightHub API Keys. ([#550](https://github.com/brightwind-dev/brightwind/issues/550))
+6. Added optional output to `apply_wind_vane_deadband_offset()` which provides a results table showing the applied offset. ([#520](https://github.com/brightwind-dev/brightwind/issues/520))
+7. Added optional output to `apply_device_orientation_offset()` which provides a results table showing the applied offset. ([#521](https://github.com/brightwind-dev/brightwind/issues/521)).
+8. Updated `LoadBrightHub()` to use BrightHub API Keys. ([#550](https://github.com/brightwind-dev/brightwind/issues/550))
    1. Added deprecation warning the username and password method of authenticating in BrightHub will be removed in a future version.
 
 
