@@ -1688,7 +1688,7 @@ def apply_device_orientation_offset(
             (results_df['Offset Applied [deg]'] != results_df['Offset Applied [deg]'].shift())
             ).cumsum()
         
-        # Group and aggregate consecutive periods
+        # Group and aggregate consecutive periods with the same device orientation, logger offset and applied offset.
         results_table = results_df.groupby([
             'Name',
             'consecutive_group',
@@ -1697,11 +1697,11 @@ def apply_device_orientation_offset(
             'Logger Offset',
             'Offset Applied [deg]'
             ]).agg({
-            'Date From': 'first',
-            'Date To': lambda x: None if any(d is None for d in x) else max(x)
-            }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
-                by=["Height [m]", "Date From"], ascending=[False, True]
-                )
+                'Date From': 'first',
+                'Date To': lambda x: None if any(d is None for d in x) else max(x)
+                }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
+                    by=["Height [m]", "Date From"], ascending=[False, True]
+                    )
         return df, results_table
     return df
 
