@@ -1645,14 +1645,9 @@ def apply_device_orientation_offset(
         data.update(df)
 
     if return_results_table:
-        results_table = pd.DataFrame(rows).sort_values(by=["Date From", "Measurement point"]).groupby(
-            [
-                "Measurement point", "Device Orientation [°]", "Offset applied in data logger [°]", 
-                "Offset applied in analysis [°]"]
-            ).agg({
-                "Date From": "first",
-                "Date To": lambda x: None if any(d is None for d in x) else max(x)
-                }).reset_index(level=[1, 2, 3])
+        results_table = pd.DataFrame(rows).sort_values(
+            by=["Measurement point", "Date From"]
+            ).set_index("Measurement point")
         return df, results_table
     return df
 
