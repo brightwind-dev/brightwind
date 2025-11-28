@@ -992,7 +992,7 @@ class _BrighthubAuth:
         :return: A tuple containing the JWT ID token and refresh token for authenticated requests.
         """
         warnings.warn(
-            "Authentication using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD' is deprecated in v2.40 and "
+            "Authentication using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD' is deprecated in v2.4.0 and "
             "will be removed in v3.0.0. \nPlease migrate to API key authentication. "
             "Create and manage API keys at: https://brighthub.io/account-settings/settings. "
             "After generating a key, set the environment variables 'BRIGHTHUB_CLIENT_ID' and "
