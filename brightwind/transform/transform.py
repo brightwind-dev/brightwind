@@ -1516,8 +1516,7 @@ def apply_device_orientation_offset(
                                                 DataFrame/Series with adjusted values. Default is False.
     :type inplace:                              bool, optional
     :param return_results_table:                If True, returns a DataFrame containing the device orientation, 
-                                                logger orientation and offset used in the analysis for each relevant 
-                                                time period.
+                                                logger orientation and offset applied for each relevant time period.
     :type return_results_table:                 bool, optional
     :return:                                    Data with wind direction adjusted by the orientation offset.
     :rtype:                                     pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
@@ -1537,7 +1536,7 @@ def apply_device_orientation_offset(
         bw.apply_device_orientation_offset(data, fl1, inplace=True)
         print('Wind direction device orientation offset adjustment is completed.')
 
-    Return the orientation offset table along with adjusted data::
+    Return the orientation offset results table along with adjusted timeseries data::
     ::
         # Adjust only specific wind direction columns:
         data_dev_orient_adj, results_table = bw.apply_device_orientation_offset(
@@ -1647,15 +1646,15 @@ def apply_device_orientation_offset(
                         target_orientation_name='device orientation')
                              
                     height = wdir_prop.get('height_m')
-                    rows.append({     
-                                "Name": name,
-                                "Height [m]": height,
-                                "Device Orientation [deg]": device_orientation_deg,
-                                "Logger Offset": logger_offset,
-                                "Offset applied [deg]": offset_wind_direction(device_orientation_deg, - logger_offset),
-                                "Date From": apply_offset_from,
-                                "Date To": apply_offset_to
-                            })
+                    rows.append({
+                        "Name": name,
+                        "Height [m]": height,
+                        "Device Orientation [deg]": device_orientation_deg,
+                        "Logger Offset": logger_offset,
+                        "Offset applied [deg]": offset_wind_direction(device_orientation_deg, - logger_offset),
+                        "Date From": apply_offset_from,
+                        "Date To": apply_offset_to
+                        })
         else:
             wdir_not_in_dataset = True
             col_not_in_data.append(name)
