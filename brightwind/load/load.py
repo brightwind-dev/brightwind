@@ -1091,7 +1091,7 @@ class _BrighthubAuth:
                 f'BRIGHTHUB_CLIENT_SECRET environmental variable is not set.'
             ]:
                 # Fallback to basic auth if client credentials are not provided
-                # This method is depreciated in v2.3.0 and will be removed in v3.0.0
+                # This method is depreciated in v2.4.0 and will be removed in v3.0.0
                 _BrighthubAuth.ID_TOKEN, _BrighthubAuth.REFRESH_TOKEN = _BrighthubAuth._authenticate_with_basic_auth()
             else:
                 raise e
@@ -1106,7 +1106,7 @@ class _BrighthubAuth:
         In case of an error, an error message will be returned.
         """
         warnings.warn(
-            "Refresh token authentication is depreciated in v2.3.0 and will be removed in v3.0.0. "
+            "Refresh token authentication is depreciated in v2.4.0 and will be removed in v3.0.0. "
             "Please migrate to API key authentication.",
             FutureWarning
         )
