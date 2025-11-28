@@ -992,13 +992,12 @@ class _BrighthubAuth:
         :return: A tuple containing the JWT ID token and refresh token for authenticated requests.
         """
         warnings.warn(
-            "Authentication using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD' is deprecated and "
-            "will be removed in version 3.0.0. \nPlease migrate to API key authentication. "
+            "Authentication using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD' is deprecated in v2.40 and "
+            "will be removed in v3.0.0. \nPlease migrate to API key authentication. "
             "Create and manage API keys at: https://brighthub.io/account-settings/settings. "
             "After generating a key, set the environment variables 'BRIGHTHUB_CLIENT_ID' and "
             "'BRIGHTHUB_CLIENT_SECRET'.",
-            DeprecationWarning,
-            stacklevel=3
+            FutureWarning
         )
         if not _BrighthubAuth.USERNAME:
             _BrighthubAuth.USERNAME = utils.get_environment_variable('BRIGHTHUB_EMAIL')
@@ -1062,8 +1061,8 @@ class _BrighthubAuth:
         are not provided, it falls back to username/password authentication using
         `BRIGHTHUB_EMAIL` and `BRIGHTHUB_PASSWORD`.
 
-        Username/password authentication is deprecated and will be removed in
-        version 3.0.0. Users should migrate to API key–based authentication.
+        Username/password authentication is deprecated in v2.4.0 and will be removed in
+        v3.0.0. Users should migrate to API key–based authentication.
 
         Upon success, this method stores the resulting ID token (and refresh token,
         when applicable) in the class-level attributes `ID_TOKEN` and
@@ -1092,7 +1091,7 @@ class _BrighthubAuth:
                 f'BRIGHTHUB_CLIENT_SECRET environmental variable is not set.'
             ]:
                 # Fallback to basic auth if client credentials are not provided
-                # This method is to be depreciated in version 3.0.0
+                # This method is depreciated in v2.3.0 and will be removed in v3.0.0
                 _BrighthubAuth.ID_TOKEN, _BrighthubAuth.REFRESH_TOKEN = _BrighthubAuth._authenticate_with_basic_auth()
             else:
                 raise e
@@ -1107,10 +1106,9 @@ class _BrighthubAuth:
         In case of an error, an error message will be returned.
         """
         warnings.warn(
-            "Refresh token authentication will be depreciated in version 3.0.0. "
+            "Refresh token authentication is depreciated in v2.3.0 and will be removed in v3.0.0. "
             "Please migrate to API key authentication.",
-            DeprecationWarning,
-            stacklevel=3,
+            FutureWarning
         )
         url, headers, cognito_client_id = _BrighthubAuth._get_cognito_request()
 
