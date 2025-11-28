@@ -1651,7 +1651,7 @@ def apply_device_orientation_offset(
                         "Height [m]": height,
                         "Device Orientation [deg]": device_orientation_deg,
                         "Logger Offset": logger_offset,
-                        "Offset applied [deg]": offset_wind_direction(device_orientation_deg, - logger_offset),
+                        "Offset Applied [deg]": offset_wind_direction(device_orientation_deg, - logger_offset),
                         "Date From": apply_offset_from,
                         "Date To": apply_offset_to
                         })
@@ -1685,7 +1685,7 @@ def apply_device_orientation_offset(
             (results_df['Height [m]'] != results_df['Height [m]'].shift()) |
             (results_df['Device Orientation [deg]'] != results_df['Device Orientation [deg]'].shift()) |
             (results_df['Logger Offset'] != results_df['Logger Offset'].shift()) |
-            (results_df['Offset applied [deg]'] != results_df['Offset applied [deg]'].shift())
+            (results_df['Offset Applied [deg]'] != results_df['Offset Applied [deg]'].shift())
             ).cumsum()
         
         # Group and aggregate consecutive periods
@@ -1695,7 +1695,7 @@ def apply_device_orientation_offset(
             'Height [m]',
             'Device Orientation [deg]',
             'Logger Offset',
-            'Offset applied [deg]'
+            'Offset Applied [deg]'
             ]).agg({
             'Date From': 'first',
             'Date To': lambda x: None if any(d is None for d in x) else max(x)
