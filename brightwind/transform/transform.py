@@ -1443,7 +1443,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
 
 def apply_device_orientation_offset(
-        data, measurement_station, wdir_cols=[], inplace=False, return_direction_offset_summary=False
+        data, measurement_station, wdir_cols=[], inplace=False, return_results_table=False
         ):
     """
     Applies a device orientation offset to wind direction data from remote sensing devices
@@ -1484,10 +1484,10 @@ def apply_device_orientation_offset(
     :param inplace:                             If True, modifies `data` in place. If False, returns a new 
                                                 DataFrame/Series with adjusted values. Default is False.
     :type inplace:                              bool, optional
-    :param return_direction_offset_summary:     If True, returns a DataFrame containing the device orientation, 
+    :param return_results_table:                If True, returns a DataFrame containing the device orientation, 
                                                 logger orientation and offset used in the analysis for each relevant 
                                                 time period.
-    :type return_direction_offset_summary:      bool, optional
+    :type return_results_table:                 bool, optional
     :return:                                    Data with wind direction adjusted by the orientation offset.
     :rtype:                                     pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
     
@@ -1509,9 +1509,10 @@ def apply_device_orientation_offset(
     Return the orientation offset table along with adjusted data::
     ::
         # Adjust only specific wind direction columns:
-        data_dev_orient_adj, orientation_offset_table = bw.apply_device_orientation_offset(
-            data, fl1, wdir_cols=['Dir_40m', 'Dir_50m'], return_direction_offset_summary=True
+        data_dev_orient_adj, results_table = bw.apply_device_orientation_offset(
+            data, fl1, wdir_cols=['Dir_40m', 'Dir_50m'], return_results_table=True
             )
+        results_table
     
     """
     
@@ -1615,11 +1616,12 @@ def apply_device_orientation_offset(
                         target_orientation_name='device orientation')            
                     
                     rows.append({
-                                "device_orientation": device_orientation_deg,
-                                "logger_offset": logger_offset,
-                                "offset_in_analysis": device_orientation_deg - logger_offset,
-                                "date_from": apply_offset_from,
-                                "date_to": apply_offset_to
+                                "Measurement point": name,
+                                "Device Orientation [°]": device_orientation_deg,
+                                "Offset applied in data logger [°]": logger_offset,
+                                "Offset applied in analysis [°]": offset_wind_direction(device_orientation_deg, - logger_offset),
+                                "Date From": apply_offset_from,
+                                "Date To": apply_offset_to
                             })
         else:
             wdir_not_in_dataset = True
@@ -1642,14 +1644,16 @@ def apply_device_orientation_offset(
         df = df[df.columns[0]]
         data.update(df)
 
-    if return_direction_offset_summary:
-        device_orientation_offsets = pd.DataFrame(rows).sort_values(by=["date_from"]).groupby(
-            ["device_orientation", "logger_offset", "offset_in_analysis"]
+    if return_results_table:
+        results_table = pd.DataFrame(rows).sort_values(by=["Date From", "Measurement point"]).groupby(
+            [
+                "Measurement point", "Device Orientation [°]", "Offset applied in data logger [°]", 
+                "Offset applied in analysis [°]"]
             ).agg({
-                "date_from": "first",
-                "date_to": lambda x: None if any(d is None for d in x) else max(x)
-                }).reset_index()
-        return df, device_orientation_offsets
+                "Date From": "first",
+                "Date To": lambda x: None if any(d is None for d in x) else max(x)
+                }).reset_index(level=[1, 2, 3])
+        return df, results_table
     return df
 
 
