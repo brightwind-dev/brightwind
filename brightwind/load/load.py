@@ -1108,7 +1108,8 @@ class _BrighthubAuth:
         warnings.warn(
             "Refresh token authentication is depreciated in v2.4.0 and will be removed in v3.0.0. "
             "Please migrate to API key authentication.",
-            FutureWarning
+            DeprecationWarning,
+            stacklevel=3
         )
         url, headers, cognito_client_id = _BrighthubAuth._get_cognito_request()
 
