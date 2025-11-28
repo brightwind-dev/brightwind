@@ -1185,7 +1185,7 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
                 "Height [m]": height,
                 "Vane Dead Band Orientation [deg]": deadband,
                 "Logger Offset": logger_offset,
-                "Offset applied [deg]": offset,
+                "Offset Applied [deg]": offset,
                 "Date From": date_from,
                 "Date To": date_to
                 })
@@ -1206,7 +1206,7 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
             (results_df['Height [m]'] != results_df['Height [m]'].shift()) |
             (results_df['Vane Dead Band Orientation [deg]'] != results_df['Vane Dead Band Orientation [deg]'].shift()) |
             (results_df['Logger Offset'] != results_df['Logger Offset'].shift()) |
-            (results_df['Offset applied [deg]'] != results_df['Offset applied [deg]'].shift())
+            (results_df['Offset Applied [deg]'] != results_df['Offset Applied [deg]'].shift())
         ).cumsum()
         
         # Group and aggregate consecutive periods
@@ -1216,11 +1216,13 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
             'Height [m]',
             'Vane Dead Band Orientation [deg]',
             'Logger Offset',
-            'Offset applied [deg]'
+            'Offset Applied [deg]'
         ]).agg({
             'Date From': 'first',
             'Date To': lambda x: None if any(d is None for d in x) else max(x)
-        }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name")
+        }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
+            by=["Height [m]", "Date From"], ascending=[False, True]
+            )
         return df, results_table
     return df
 
