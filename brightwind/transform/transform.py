@@ -1644,10 +1644,12 @@ def apply_device_orientation_offset(
                         apply_offset_to = min(date_to_tmp, meas_station_data_model_to)
                     df[name] = _apply_dir_offset_target_orientation(
                         df[name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
-                        target_orientation_name='device orientation')            
-                    
-                    rows.append({
+                        target_orientation_name='device orientation')
+                             
+                    height = wdir_prop.get('height_m')
+                    rows.append({     
                                 "Name": name,
+                                "Height [m]": height,
                                 "Device Orientation [deg]": device_orientation_deg,
                                 "Logger Offset": logger_offset,
                                 "Offset applied [deg]": offset_wind_direction(device_orientation_deg, - logger_offset),
@@ -1677,7 +1679,7 @@ def apply_device_orientation_offset(
 
     if return_results_table:
         results_table = pd.DataFrame(rows).sort_values(
-            by=["Name", "Date From"]
+            by=["Height [m]", "Date From"], ascending=[False, True]
             ).set_index("Name")
         return df, results_table
     return df
