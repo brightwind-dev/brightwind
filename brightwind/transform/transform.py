@@ -1198,7 +1198,9 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     if type(data) == pd.Series:
         df = df[df.columns[0]]
     if return_results_table:
-        results_table = pd.DataFrame(rows).sort_values(by=["Name", "Date From"]).set_index("Name")
+        results_table = pd.DataFrame(rows).sort_values(
+            by=["Height [m]", "Date From"], ascending=[False, True]
+            ).set_index("Name")
         return df, results_table
     return df
 
