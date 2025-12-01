@@ -1378,7 +1378,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         return graph
 
 
-def time_continuity_gaps(data: pd.DataFrame, minimum_gap_length: Optional[pd.Timedelta]=None):
+def time_continuity_gaps(data: pd.DataFrame, minimum_gap_length: Optional[pd.Timedelta] = None):
     """
     Returns a table listing all the time gaps in the data that are not equal to the derived temporal resolution.
 
