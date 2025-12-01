@@ -1405,8 +1405,8 @@ def time_continuity_gaps(data: pd.DataFrame, minimum_gap_length: Optional[pd.Tim
 
     :param data:                            Data for checking continuity, timestamp must be the index
     :type data:                             pd.Series or pd.DataFrame
-    :param minimum_gap_length:              The minimum data gap length to report. Shorter gaps will be filtered out
-                                            of the returned DataFrame
+    :param minimum_gap_length:              The minimum length time gap to report. Shorter time gaps will be filtered
+                                            out of the returned DataFrame
     :type minimum_gap_length:               Optional[pd.Timedelta]
     :return:                                A table listing all the time gaps in the data that are not equal to the 
                                             derived temporal resolution.
