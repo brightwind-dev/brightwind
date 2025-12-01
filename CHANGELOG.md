@@ -13,7 +13,6 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ## [2.4.0-dev]
 1. Fixed pandas<3.0.0 and numpy<2.3.1 dependencies, ([#458](https://github.com/brightwind-dev/brightwind/issues/458)).
-2. Updated `time_continuity_gaps` in order to take an argument minimum_gap_length which allows the user to filter the gaps returned. (Issue [#545](https://github.com/brightwind-dev/brightwind/issues/545)).
 
 ### Bug Fixes
 1. 
@@ -23,7 +22,8 @@ Additional labels for pre-release and build metadata are available as extensions
 2. Added `scale_air_density_to_height` to output an air density value for any height by applying a constant lapse rate to a known reference air density value at a reference measurement height ([#534](https://github.com/brightwind-dev/brightwind/issues/534)) 
 3. Added `scale_air_temperature_to_height` to output an air temperature value for any height by applying a constant lapse rate to a known reference air temperature value at a reference measurement height ([#530](https://github.com/brightwind-dev/brightwind/issues/530))
 4. Updated `calc_air_density` to include relative humidity as suggested in IEC 61400-12-1 ([#535](https://github.com/brightwind-dev/brightwind/issues/535))
-5. Added `apply_scale_factor` to scale data by the scale_factor ([#541](https://github.com/brightwind-dev/brightwind/issues/541))
+5. Added `apply_scale_factor` to scale data by the scale_factor ([#541](https://github.com/brightwind-dev/brightwind/issues/541)).
+6. Updated `time_continuity_gaps` in order to take an argument minimum_gap_length which allows the user to filter the gaps returned. (Issue [#545](https://github.com/brightwind-dev/brightwind/issues/545)).
 
 
 ## [2.3.0]
