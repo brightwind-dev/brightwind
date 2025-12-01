@@ -1414,13 +1414,22 @@ def time_continuity_gaps(data: pd.DataFrame, minimum_gap_length: Optional[pd.Tim
 
     **Example usage**
     ::
+        import pandas as pd
         import brightwind as bw
+
         data = bw.load_csv(bw.demo_datasets.demo_data)
         bw.time_continuity_gaps(data)
 
         bw.time_continuity_gaps(data['Spd80mN'])
 
+        # Removing all gaps shorter than 4hrs 30mins
         bw.time_continuity_gaps(data['Spd80mN'], pd.Timedelta("4h 30min"))
+
+        # Removing all gaps shorter than 20mins, expressed using alternative pandas notation
+        bw.time_continuity_gaps(data['Spd80mN'], pd.Timedelta(minutes=20))
+
+        # Removing all gaps shorter than 1day
+        bw.time_continuity_gaps(data['Spd80mN'], pd.Timedelta(days=1))
 
     """
     indexes = data.dropna(how='all').index
@@ -1431,12 +1440,12 @@ def time_continuity_gaps(data: pd.DataFrame, minimum_gap_length: Optional[pd.Tim
 
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1],
                                'Date To': indexes.values.flatten()[1:]})
-    continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From'])
+    continuity['Time gap'] = (continuity['Date To'] - continuity['Date From'])
 
     if minimum_gap_length:
-        continuity = continuity[continuity['Days Lost'] >= minimum_gap_length]
+        continuity = continuity[continuity['Time gap'] >= minimum_gap_length]
 
-    continuity['Days Lost'] /= pd.Timedelta('1 days')
+    continuity['Days Lost'] = continuity['Time gap'] / pd.Timedelta('1 days')
 
     # Remove indexes where no days are lost before returning
     
