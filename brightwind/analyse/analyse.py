@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from typing import Optional
 from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as bw_plt
@@ -1369,7 +1370,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         return graph
 
 
-def time_continuity_gaps(data):
+def time_continuity_gaps(data: pd.DataFrame, minimum_gap_length: Optional[pd.Timedelta] = None):
     """
     Returns a table listing all the time gaps in the data that are not equal to the derived temporal resolution.
 
@@ -1394,19 +1395,33 @@ def time_continuity_gaps(data):
     in the two available timestamps. It gives the actual amount of data missing e.g. if the two timestamps were 
     2020-01-01 01:10 and 2020-01-01 01:50 the days lost will equate to a 30 min of missing data and not 40 min.
 
-    :param data: Data for checking continuity, timestamp must be the index
-    :type data:  pd.Series or pd.DataFrame
-    :return:     A table listing all the time gaps in the data that are not equal to the derived
-                 temporal resolution.
-    :rtype:      pd.DataFrame
+    :param data:                            Data for checking continuity, timestamp must be the index
+    :type data:                             pd.Series or pd.DataFrame
+    :param minimum_gap_length:              The minimum length time gap to report. Shorter time gaps will be filtered
+                                            out of the returned DataFrame
+    :type minimum_gap_length:               Optional[pd.Timedelta]
+    :return:                                A table listing all the time gaps in the data that are not equal to the 
+                                            derived temporal resolution.
+    :rtype:                                 pd.DataFrame
 
     **Example usage**
     ::
+        import pandas as pd
         import brightwind as bw
+
         data = bw.load_csv(bw.demo_datasets.demo_data)
         bw.time_continuity_gaps(data)
 
         bw.time_continuity_gaps(data['Spd80mN'])
+
+        # Removing all gaps shorter than 4hrs 30mins
+        bw.time_continuity_gaps(data['Spd80mN'], pd.Timedelta("4h 30min"))
+
+        # Removing all gaps shorter than 20mins, expressed using alternative pandas notation
+        bw.time_continuity_gaps(data['Spd80mN'], pd.Timedelta(minutes=20))
+
+        # Removing all gaps shorter than 1day
+        bw.time_continuity_gaps(data['Spd80mN'], pd.Timedelta(days=1))
 
     """
     indexes = data.dropna(how='all').index
@@ -1417,7 +1432,12 @@ def time_continuity_gaps(data):
 
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1],
                                'Date To': indexes.values.flatten()[1:]})
-    continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
+    continuity['Time gap'] = (continuity['Date To'] - continuity['Date From'])
+
+    if minimum_gap_length:
+        continuity = continuity[continuity['Time gap'] >= minimum_gap_length]
+
+    continuity['Days Lost'] = continuity['Time gap'] / pd.Timedelta('1 days')
 
     # Remove indexes where no days are lost before returning
     

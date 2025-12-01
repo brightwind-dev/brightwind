@@ -152,6 +152,12 @@ def test_time_continuity_gaps():
     assert gaps.iloc[1, 1] == pd.Timestamp('2016-03-30 07:10:00')
     assert abs(gaps.iloc[0, 2] - 0.173611) < 1e-5
     assert abs(gaps.iloc[1, 2] - 0.305556) < 1e-5
+    
+    gaps = bw.time_continuity_gaps(DATA['Spd80mN'], pd.Timedelta("4h 30min"))
+    assert gaps.iloc[0, 0] == pd.Timestamp('2016-03-29 23:40:00')
+    assert gaps.iloc[0, 1] == pd.Timestamp('2016-03-30 07:10:00')
+    assert gaps.iloc[1, 0] == pd.Timestamp('2016-05-11 23:00:00')
+    assert gaps.iloc[1, 1] == pd.Timestamp('2016-05-31 15:20:00')
 
     # test for when timesteps are irregular
     # THIS WILL RAISE 3 WARNINGS.
