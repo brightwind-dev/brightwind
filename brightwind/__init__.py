@@ -5,6 +5,7 @@ from .analyse.shear import *
 from .analyse.analyse import *
 from .analyse.plot import *
 from .transform.transform import *
+from .transform.scale import *
 from .export.export import *
 from . import demo_datasets
 from .utils.gis import *
