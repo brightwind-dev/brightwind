@@ -1,12 +1,16 @@
-import datetime
-import numpy as np
+import copy  
+import datetime  
+import warnings  
+from typing import Union  
+
+import numpy as np  
 import pandas as pd
+
+import brightwind.transform.scale
 from brightwind.utils import utils
 from brightwind.load.station import _Measurements
 from brightwind.load.station import DATE_INSTEAD_OF_NONE
 from brightwind.utils.utils import validate_coverage_threshold
-import copy
-import warnings
 
 __all__ = ['average_data_by_period',
            'merge_datasets_by_period',
@@ -994,17 +998,53 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
     return df
 
 
-def scale_wind_speed(spd, scale_factor: float):
+def scale_wind_speed(spd: Union[pd.Series, pd.DataFrame, float, int],
+                     scale_factor: Union[int, float]
+                     ) -> Union[pd.Series, pd.DataFrame, float, int]:
     """
     Scales wind speed by the scale_factor
 
-    :param spd: Series or data frame or a single value of wind speed to scale
-    :param scale_factor: Scaling factor in decimal, if scaling factor is 0.8 output would be (1+0.8) times wind speed,
-    if it is -0.8 the output would be (1-0.8) times the wind speed
-    :return: Series or data frame with scaled wind speeds
+    :param spd:             Wind speed value(s) to scale.
+    :type spd:              pandas.Series or pandas.DataFrame or float or int
+    :param scale_factor:    Scaling factor to use for scaling wind speed.
+                            If scaling factor is 0.8, output would be 0.8 times wind speed.
+    :type scale_factor:     int or float
+    :return:                Value(s) of scaled wind speed. Output type depends on type(spd).
+    :rtype:                 pandas.Series or pandas.DataFrame or float or int
 
+        **Example usage**
+    ::
+    import brightwind as bw
+    import pandas as pd
+    import numpy as np
+
+    data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+
+    # scale float by scale_factor of 0.5
+    bw.scale_wind_speed(3, 0.5)
+    # 1.5
+
+    # scale np.array by scale_factor of 0.5
+    bw.scale_wind_speed(np.array([0, 1, 2]), 0.5)
+    # array([0. , 0.5, 1. ])
+
+    # scale pd.Series by scale_factor of 0.5
+    bw.scale_wind_speed(data['Spd40mN'].tail(3), 0.5)
+    # Timestamp
+    # 2017-11-23 10:30:00    4.0150
+    # 2017-11-23 10:40:00    3.4055
+    # 2017-11-23 10:50:00    2.9325
+    # Name: Spd40mN, dtype: float64
+
+    # scale pd.DataFrame by scale factor of 2
+    bw.scale_wind_speed(data.tail(3)[['Spd60mS', 'Spd40mS']], 2)
+    # 	          Spd60mS	    Spd40mS
+    # Timestamp		
+    # 2017-11-23 10:30:00	16.900	15.750
+    # 2017-11-23 10:40:00	14.318	13.336
+    # 2017-11-23 10:50:00	12.808	11.498
     """
-    return spd * scale_factor
+    return brightwind.transform.scale.apply_scale_factor(spd, scale_factor)
 
 
 def offset_wind_direction(wdir, offset: float):
@@ -1023,7 +1063,7 @@ def offset_wind_direction(wdir, offset: float):
         return wdir.add(offset).apply(utils._range_0_to_360)
 
 
-def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
+def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_results_table=False):
     """
     Automatically apply deadband offsets of the wind vanes to the timeseries data. The deadband orientation
     information for each wind direction measurement and time period is contained in the measurements
@@ -1042,18 +1082,23 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
 
     This function accounts for this adjustment.
 
-    :param data:         Timeseries data.
-    :type data:          pd.DataFrame or pd.Series
-    :param measurements: Measurement information extracted from a WRA Data Model using bw.MeasurementStation
-    :type measurements:  list or dict or _Measurements
-    :param inplace:      If 'inplace' is True, the original direction data, contained in 'data', will be
-                         modified and replaced with the adjusted direction data. If 'inplace' is False, the
-                         original data will not be touched and instead a new DataFrame containing the adjusted
-                         direction data is created. To store this adjusted direction data, please ensure it is
-                         assigned to a new variable.
-    :type inplace:       bool
-    :return:             Data with adjusted wind direction by the deadband orientation.
-    :rtype:              pd.DataFrame or pd.Series
+    :param data:                    Timeseries data.
+    :type data:                     pd.DataFrame or pd.Series
+    :param measurements:            Measurement information extracted from a WRA Data Model using bw.MeasurementStation
+    :type measurements:             list or dict or _Measurements
+    :param inplace:                 If 'inplace' is True, the original direction data, contained in 'data', will be
+                                    modified and replaced with the adjusted direction data. If 'inplace' is False, the
+                                    original data will not be touched and instead a new DataFrame containing the 
+                                    adjusted direction data is created. To store this adjusted direction data, please 
+                                    ensure it is assigned to a new variable.
+    :type inplace:                  bool
+    :param return_results_table:    Optional key to return a dataframe containing deadband offset, logger offset and
+                                    applied offset for each directional sensor and the time period it is relevant for.
+    :type return_results_table:     pd.DataFrame
+    :return:                        Data with adjusted wind direction by the deadband orientation, or where 
+                                    return_results_table is specified, a tuple of the data and a DataFrame of 
+                                    deadband offsets.
+    :rtype:                         pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
 
     **Example usage**
     ::
@@ -1081,6 +1126,12 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
         bw.apply_wind_vane_deadband_offset(data['Dir78mS'], mm1.measurements['Dir78mS'], inplace=True)
         print('\nWind vane deadband offset adjustment is completed.')
 
+    Specifying that the deadband offsets should be returned::
+        data_adj, results_table = bw.apply_wind_vane_deadband_offset(
+            data['Dir78mS'], mm1.measurements['Dir78mS'], inplace=True, return_results_table=True
+            )
+        results_table
+
     """
     # Depending on what is sent, get wdir properties into a list of properties
     wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
@@ -1093,6 +1144,7 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
     df = pd.DataFrame(data) if type(data) == pd.Series else data
 
     # Apply the offset
+    rows = []
     for wdir_prop in wdirs_properties:
         name = wdir_prop['name']
         if name in df.columns:
@@ -1127,6 +1179,16 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
             else:
                 print('{} has dead_band_orientation of None from {} to {}.\n'
                       .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt)))
+            height = wdir_prop.get('height_m')
+            rows.append({
+                "Name": name,
+                "Height [m]": height,
+                "Vane Dead Band Orientation [deg]": deadband,
+                "Logger Offset": logger_offset,
+                "Offset Applied [deg]": offset,
+                "Date From": date_from,
+                "Date To": date_to
+                })
         else:
             print('{} is not found in data.\n'.format(utils.bold(name)))
 
@@ -1135,6 +1197,33 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
     # if a Series is sent, send back a Series
     if type(data) == pd.Series:
         df = df[df.columns[0]]
+    if return_results_table:
+        results_df = pd.DataFrame(rows).sort_values(
+            by=["Height [m]", "Date From"], ascending=[False, True]
+        )
+        results_df['consecutive_group'] = (
+            (results_df['Name'] != results_df['Name'].shift()) |
+            (results_df['Height [m]'] != results_df['Height [m]'].shift()) |
+            (results_df['Vane Dead Band Orientation [deg]'] != results_df['Vane Dead Band Orientation [deg]'].shift()) |
+            (results_df['Logger Offset'] != results_df['Logger Offset'].shift()) |
+            (results_df['Offset Applied [deg]'] != results_df['Offset Applied [deg]'].shift())
+        ).cumsum()
+        
+        # Group and aggregate consecutive periods
+        results_table = results_df.groupby([
+            'Name',
+            'consecutive_group',
+            'Height [m]',
+            'Vane Dead Band Orientation [deg]',
+            'Logger Offset',
+            'Offset Applied [deg]'
+        ]).agg({
+            'Date From': 'first',
+            'Date To': lambda x: None if any(d is None for d in x) else max(x)
+        }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
+            by=["Height [m]", "Date From"], ascending=[False, True]
+            )
+        return df, results_table
     return df
 
 
@@ -1403,7 +1492,9 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
             return df_copy.sort_index()
 
 
-def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inplace=False):
+def apply_device_orientation_offset(
+        data, measurement_station, wdir_cols=[], inplace=False, return_results_table=False
+        ):
     """
     Applies a device orientation offset to wind direction data from remote sensing devices
     (lidar, sodar, or floating lidar) to align measurements with north.
@@ -1433,18 +1524,21 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
     Overlapping periods with non-zero `device_orientation_deg` values in `vertical_profiler_properties`
     are not supported and will raise an error.
 
-    :param data:                        Timeseries data.
-    :type data:                         pd.DataFrame or pd.Series
-    :param measurement_station:         A simplified object to represent the IEA Wind Task 43 WRA Data Model.
-    :type measurement_station:          bw.MeasurementStation
-    :param wdir_cols:                   Wind direction column names to apply the offset to. If empty, all wind direction 
-                                        columns in the data are used. Default is an empty list.
-    :type wdir_cols:                    list
-    :param inplace:                     If True, modifies `data` in place. If False, returns a new DataFrame/Series
-                                        with adjusted values. Default is False.
-    :type inplace:                      bool, optional
-    :return:                            Data with wind direction adjusted by the orientation offset.
-    :rtype:                             pd.DataFrame or pd.Series
+    :param data:                                Timeseries data.
+    :type data:                                 pd.DataFrame or pd.Series
+    :param measurement_station:                 A simplified object to represent the IEA Wind Task 43 WRA Data Model.
+    :type measurement_station:                  bw.MeasurementStation
+    :param wdir_cols:                           Wind direction column names to apply the offset to. If empty, all wind 
+                                                direction columns in the data are used. Default is an empty list.
+    :type wdir_cols:                            list
+    :param inplace:                             If True, modifies `data` in place. If False, returns a new 
+                                                DataFrame/Series with adjusted values. Default is False.
+    :type inplace:                              bool, optional
+    :param return_results_table:                If True, returns a DataFrame containing the device orientation, 
+                                                logger orientation and offset applied for each relevant time period.
+    :type return_results_table:                 bool, optional
+    :return:                                    Data with wind direction adjusted by the orientation offset.
+    :rtype:                                     pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
     
     **Example usage**
     ::
@@ -1460,6 +1554,14 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
     ::
         bw.apply_device_orientation_offset(data, fl1, inplace=True)
         print('Wind direction device orientation offset adjustment is completed.')
+
+    Return the orientation offset results table along with adjusted timeseries data::
+    ::
+        # Adjust only specific wind direction columns:
+        data_dev_orient_adj, results_table = bw.apply_device_orientation_offset(
+            data, fl1, wdir_cols=['Dir_40m', 'Dir_50m'], return_results_table=True
+            )
+        results_table
     
     """
     
@@ -1491,6 +1593,7 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
 
     _check_vertical_profiler_properties_overlap(measurement_station, df)
 
+    rows = []
     # Apply the offset
     for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
@@ -1560,6 +1663,17 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
                     df[name] = _apply_dir_offset_target_orientation(
                         df[name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
                         target_orientation_name='device orientation')
+                             
+                    height = wdir_prop.get('height_m')
+                    rows.append({
+                        "Name": name,
+                        "Height [m]": height,
+                        "Device Orientation [deg]": device_orientation_deg,
+                        "Logger Offset": logger_offset,
+                        "Offset Applied [deg]": offset_wind_direction(device_orientation_deg, - logger_offset),
+                        "Date From": apply_offset_from,
+                        "Date To": apply_offset_to
+                        })
         else:
             wdir_not_in_dataset = True
             col_not_in_data.append(name)
@@ -1580,6 +1694,34 @@ def apply_device_orientation_offset(data, measurement_station, wdir_cols=[], inp
     if isinstance(data, pd.Series):
         df = df[df.columns[0]]
         data.update(df)
+
+    if return_results_table:
+        results_df = pd.DataFrame(rows).sort_values(
+            by=["Height [m]", "Date From"], ascending=[False, True]
+            )
+        results_df['consecutive_group'] = (
+            (results_df['Name'] != results_df['Name'].shift()) |
+            (results_df['Height [m]'] != results_df['Height [m]'].shift()) |
+            (results_df['Device Orientation [deg]'] != results_df['Device Orientation [deg]'].shift()) |
+            (results_df['Logger Offset'] != results_df['Logger Offset'].shift()) |
+            (results_df['Offset Applied [deg]'] != results_df['Offset Applied [deg]'].shift())
+            ).cumsum()
+        
+        # Group and aggregate consecutive periods with the same device orientation, logger offset and applied offset.
+        results_table = results_df.groupby([
+            'Name',
+            'consecutive_group',
+            'Height [m]',
+            'Device Orientation [deg]',
+            'Logger Offset',
+            'Offset Applied [deg]'
+            ]).agg({
+                'Date From': 'first',
+                'Date To': lambda x: None if any(d is None for d in x) else max(x)
+                }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
+                    by=["Height [m]", "Date From"], ascending=[False, True]
+                    )
+        return df, results_table
     return df
 
 

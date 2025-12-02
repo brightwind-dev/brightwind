@@ -3,12 +3,14 @@ import pandas as pd
 import os
 import json
 from jsonschema import Draft7Validator
+from typing import Union
 
 __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
            'is_file_extension',
-           'validate_json']
+           'validate_json'
+           ]
 
 
 def _range_0_to_360(direction):
@@ -252,3 +254,7 @@ def validate_json(json_to_check, schema):
             print(f"Failed schema part: {error.get('schema_path')}\n")
     
     return data_is_valid
+
+
+
+

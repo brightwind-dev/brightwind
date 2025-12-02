@@ -903,7 +903,6 @@ class _BrighthubAuth:
     This class is used to define general functions that are then called by LoadBrightHub. Functions in this
     class are outside of LoadBrightHub and will be called only once during the analysis and this will avoid making
     multiple login to the Brighthub user pool.
-
     """
 
     # List possible errors encountered on Login
@@ -914,12 +913,61 @@ class _BrighthubAuth:
         "new_password_required": "Your password has expired or needs to be reset. "
                                  "Kindly reset your Brighthub password and try again.",
         "password_not_verified": "Could not verify your password. "
-                                 "Please ensure you have confirmed your email and the password is correct."
+                                 "Please ensure you have confirmed your email and the password is correct.",
+        "ms_sso_user": "Microsoft SSO users cannot authenticate using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD'. "
+                       "Please migrate to API key authentication."
     }
     ID_TOKEN = ''
     REFRESH_TOKEN = ''
     USERNAME = ''
     PASSWORD = ''
+    CLIENT_ID = ''
+    CLIENT_SECRET = ''
+
+    class BrighthubAuthError(Exception):
+        """Custom exception for Brighthub authentication failures."""
+        pass
+
+    @staticmethod
+    def _authenticate_with_client_credentials():
+        """
+        Authenticate a Brighthub user using the OAuth2 client credentials flow.
+
+        This method retrieves the Brighthub client ID and client secret from environmental
+        variables if not already assigned in the _BrighthubAuth class.
+
+        :rtype: str
+        :return: The JWT ID token for authenticated requests.
+        """
+
+        if not _BrighthubAuth.CLIENT_ID:
+            _BrighthubAuth.CLIENT_ID = utils.get_environment_variable('BRIGHTHUB_CLIENT_ID')
+
+        if not _BrighthubAuth.CLIENT_SECRET:
+            _BrighthubAuth.CLIENT_SECRET = utils.get_environment_variable('BRIGHTHUB_CLIENT_SECRET')
+
+        base_uri = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
+        auth_url = f"{base_uri}/auth/token"
+        try:
+            response = requests.post(
+                url=auth_url,
+                auth=requests.auth.HTTPBasicAuth(_BrighthubAuth.CLIENT_ID, _BrighthubAuth.CLIENT_SECRET),
+                data={"grant_type": "client_credentials"},
+                timeout=10
+            )
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            raise _BrighthubAuth.BrighthubAuthError(f"Network or connection error during authentication: {e}")
+
+        try:
+            token_data = response.json()
+        except ValueError:
+            raise _BrighthubAuth.BrighthubAuthError(f"Invalid JSON response from Brighthub: {response.text}")
+
+        if 'id_token' not in token_data:
+            raise _BrighthubAuth.BrighthubAuthError(f"Authentication failed, no id_token returned: {token_data}")
+
+        return token_data['id_token']
 
     @staticmethod
     def _get_cognito_request():
@@ -932,26 +980,32 @@ class _BrighthubAuth:
             'Content-Type': 'application/x-amz-json-1.1'
         }
         client_id = os.getenv("BRIGHTHUB_USER_POOL_CLIENT_ID", "3qkkpikve578cbok46p136au3g")
-        # client_id = utils.get_environment_variable('BRIGHTHUB_USER_POOL_CLIENT_ID')
 
         return url, headers, client_id
-
+    
     @staticmethod
-    def _get_id_token():
-        """
-        Function to login to the Brighthub user pool.
-        Assign a id_token and a refresh_token to the global variables ID_TOKEN, REFRESH_TOKEN which can be used to
-        make requests to the APIs.
-        In case of an error, a error message will be returned
+    def _authenticate_with_basic_auth():
+        """Authenticate a Brighthub user using username and password (USER_PASSWORD_AUTH flow) 
+        via Cognito and return the ID token and refresh token.
 
+        :rtype: tuple
+        :return: A tuple containing the JWT ID token and refresh token for authenticated requests.
         """
-        url, headers, client_id = _BrighthubAuth._get_cognito_request()
-
+        warnings.warn(
+            "Authentication using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD' is deprecated in v2.4.0 and "
+            "will be removed in v3.0.0. \nPlease migrate to API key authentication. "
+            "Create and manage API keys at: https://brighthub.io/account-settings/settings. "
+            "After generating a key, set the environment variables 'BRIGHTHUB_CLIENT_ID' and "
+            "'BRIGHTHUB_CLIENT_SECRET'.",
+            FutureWarning
+        )
         if not _BrighthubAuth.USERNAME:
             _BrighthubAuth.USERNAME = utils.get_environment_variable('BRIGHTHUB_EMAIL')
 
         if not _BrighthubAuth.PASSWORD:
             _BrighthubAuth.PASSWORD = utils.get_environment_variable('BRIGHTHUB_PASSWORD')
+
+        url, headers, client_id = _BrighthubAuth._get_cognito_request()
 
         body = {
             "AuthParameters": {
@@ -961,34 +1015,86 @@ class _BrighthubAuth:
             "AuthFlow": "USER_PASSWORD_AUTH",
             "ClientId": client_id
         }
-
         response = requests.post(url, headers=headers, json=body)
         login_response = response.json()
+        login_response_type = login_response.get("__type")
 
         # a login error occurred
-        if login_response.get("__type"):
-            if login_response["__type"] == "NotAuthorizedException":
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
-            elif login_response["__type"] == "UserNotConfirmedException":
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+        if login_response_type:
+            if login_response_type == "NotAuthorizedException":
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
+            elif login_response_type == "UserNotConfirmedException":
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+            elif 'This account is linked to Microsoft SSO' in login_response.get("message", ""):
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["ms_sso_user"])
             else:
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
 
         # challenge returned
         if login_response.get("ChallengeName"):
             if login_response["ChallengeName"] == "NEW_PASSWORD_REQUIRED":
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["new_password_required"])
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["new_password_required"])
             elif login_response["ChallengeName"] == "PASSWORD_VERIFIER":
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["password_verifier"])
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["password_verifier"])
             else:
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
 
         # login successful
         id_token = login_response['AuthenticationResult']['IdToken']
         refresh_token = login_response['AuthenticationResult']['RefreshToken']
+        return id_token, refresh_token
 
-        _BrighthubAuth.ID_TOKEN = id_token
-        _BrighthubAuth.REFRESH_TOKEN = refresh_token
+    @staticmethod
+    def _get_id_token():
+        """
+        Retrieve an ID token for authenticating BrightHub API requests.
+
+        This method attempts to authenticate using API client credentials if
+        `BRIGHTHUB_CLIENT_ID` and `BRIGHTHUB_CLIENT_SECRET` are available. If they
+        are not provided, it falls back to username/password authentication using
+        `BRIGHTHUB_EMAIL` and `BRIGHTHUB_PASSWORD`.
+
+        Username/password authentication is deprecated in v2.4.0 and will be removed in
+        v3.0.0. Users should migrate to API key–based authentication.
+
+        Upon success, this method stores the resulting ID token (and refresh token,
+        when applicable) in the class-level attributes `ID_TOKEN` and
+        `REFRESH_TOKEN`. In case of authentication failure, an appropriate
+        exception is raised by the underlying authentication method.
+
+        :rtype: dict
+        :return: An empty dictionary upon successful authentication.
+        """
+        if _BrighthubAuth.REFRESH_TOKEN:
+            try:
+                _BrighthubAuth._brighthub_refresh_token()
+                return {}
+            except Exception:
+                # If refresh fails, proceed to re-authenticate
+                pass
+
+        # Preferred authentication flow: client credentials (API key)
+        try:
+            _BrighthubAuth.ID_TOKEN = _BrighthubAuth._authenticate_with_client_credentials()
+            return {}
+        
+        except Exception as e:
+            if str(e) in [
+                f'BRIGHTHUB_CLIENT_ID environmental variable is not set.',
+                f'BRIGHTHUB_CLIENT_SECRET environmental variable is not set.'
+            ]:
+                # Fallback to basic auth if client credentials are not provided
+                # This method is depreciated in v2.4.0 and will be removed in v3.0.0
+                _BrighthubAuth.ID_TOKEN, _BrighthubAuth.REFRESH_TOKEN = _BrighthubAuth._authenticate_with_basic_auth()
+            else:
+                raise e
 
         return {}
 
@@ -997,17 +1103,22 @@ class _BrighthubAuth:
         """
         Function to generate a new token if the current id_token has expired. The new tokens are assigned to the global
         variables ID_TOKEN, REFRESH_TOKEN.
-        In case of an error, a error message will be returned
-
+        In case of an error, an error message will be returned.
         """
-        url, headers, client_id = _BrighthubAuth._get_cognito_request()
+        warnings.warn(
+            "Refresh token authentication is depreciated in v2.4.0 and will be removed in v3.0.0. "
+            "Please migrate to API key authentication.",
+            DeprecationWarning,
+            stacklevel=3
+        )
+        url, headers, cognito_client_id = _BrighthubAuth._get_cognito_request()
 
         body = {
             "AuthParameters": {
                 "REFRESH_TOKEN": _BrighthubAuth.REFRESH_TOKEN
             },
             "AuthFlow": "REFRESH_TOKEN_AUTH",
-            "ClientId": client_id
+            "ClientId": cognito_client_id
         }
         response = requests.post(url, headers=headers, json=body)
         login_response = response.json()
@@ -1015,17 +1126,16 @@ class _BrighthubAuth:
         # a login error occurred
         if login_response.get("__type"):
             if login_response["__type"] == "NotAuthorizedException":
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
+                raise ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
             elif login_response["__type"] == "UserNotConfirmedException":
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+                raise ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
             else:
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+                raise ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
 
         id_token = login_response['AuthenticationResult']['IdToken']
         _BrighthubAuth.ID_TOKEN = id_token
         new_refresh_token = ""
 
-        # refresh token only expires after 30 days, it is not returned in the response if it is still valid
         if login_response['AuthenticationResult'].get('RefreshToken'):
             new_refresh_token = login_response['AuthenticationResult']['RefreshToken']
 
@@ -1039,20 +1149,20 @@ class _BrighthubAuth:
 
 class LoadBrightHub:
     """
-    LoadBrightHub allows you to pull meta data and timeseries data of measurements from the BrightHub
+    LoadBrightHub allows you to pull metadata and timeseries data of measurements from the BrightHub
     platform. This is a fast way to get access to the available open datasets on the platform.
 
-    To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
+    To use LoadBrightHub:
+       1. Create a BrightHub account at https://brighthub.io/auth/create-account.
+       2. Create a new API key at https://brighthub.io/account-settings/settings.
+          and note your Client ID and Client Secret.
+       3. Set the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET as environmental variables.
+          In Windows this can be done by opening the command prompt in Administrator mode and running:
+             > setx BRIGHTHUB_CLIENT_ID "your API key client id")
+             > setx BRIGHTHUB_CLIENT_SECRET "your API key client secret")
 
-    For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
-    BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
-    done by opening the command prompt in Administrator mode and running:
-
-    > setx BRIGHTHUB_EMAIL "your email")
-    > setx BRIGHTHUB_PASSWORD "your password")
-
-    If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
-    take effect.
+          If Anaconda or your Python environment is running you will need to restart it for
+          the environmental variables to take effect.
 
     You can start by pulling all the available measurement stations available to you by running:
 
@@ -1061,7 +1171,6 @@ class LoadBrightHub:
     """
 
     __BASE_URI = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
-    # __BASE_URI = utils.get_environment_variable('BRIGHTHUB_BASE_URI')
 
     @staticmethod
     def _brighthub_request(url_end, params=None):
@@ -1075,11 +1184,9 @@ class LoadBrightHub:
         :return response:   The requests response object returned by requests.get()
         :rtype:             requests.Response object
         """
-
+      
         if not _BrighthubAuth.ID_TOKEN:
-            login_response = _BrighthubAuth._get_id_token()
-            if "error" in login_response:
-                return ImportError(login_response)
+            _BrighthubAuth._get_id_token()
 
         url = "{}{}".format(LoadBrightHub.__BASE_URI, url_end)
         headers = {"authorization": _BrighthubAuth.ID_TOKEN}
@@ -1088,19 +1195,11 @@ class LoadBrightHub:
 
         # If there is an auth error due to expired token
         if response.status_code == 401 and response.json().get("message") == "The incoming token has expired":
-            # generate the token again
-            refresh_token_response = _BrighthubAuth._brighthub_refresh_token()
-
-            # if an error occurred
-            if refresh_token_response.get("error"):
-                return ImportError(refresh_token_response)
-            else:
-                # token refreshed successfully
-                headers = {"authorization": _BrighthubAuth.ID_TOKEN}
-
-                # make the request again
-                response = requests.get(url=url, headers=headers, params=params)
-                return response
+            # Authenticate again
+            _BrighthubAuth._get_id_token()
+            headers = {"authorization": _BrighthubAuth.ID_TOKEN}
+            # Make the request again
+            response = requests.get(url=url, headers=headers, params=params)
 
         return response
 
@@ -1116,17 +1215,17 @@ class LoadBrightHub:
         :return:           A table showing the available plants.
         :rtype:            pd.DataFrame
 
-        To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
+        To use LoadBrightHub:
+           1. Create a BrightHub account at https://brighthub.io/auth/create-account.
+           2. Create a new API key at https://brighthub.io/account-settings/settings.
+              and note your Client ID and Client Secret.
+           3. Set the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET as environmental variables.
+              In Windows this can be done by opening the command prompt in Administrator mode and running:
+                 > setx BRIGHTHUB_CLIENT_ID "your API key client id")
+                 > setx BRIGHTHUB_CLIENT_SECRET "your API key client secret")
 
-        For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
-        BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
-        done by opening the command prompt in Administrator mode and running:
-
-        > setx BRIGHTHUB_EMAIL "your email")
-        > setx BRIGHTHUB_PASSWORD "your password")
-
-        If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
-        take effect.
+              If Anaconda or your Python environment is running you will need to restart it for
+              the environmental variables to take effect.
 
         **Example usage**
         ::
@@ -1192,17 +1291,17 @@ class LoadBrightHub:
         :return:                         A table showing the available measurement stations.
         :rtype:                          pd.DataFrame | List[dict]
 
-        To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
+        To use LoadBrightHub:
+           1. Create a BrightHub account at https://brighthub.io/auth/create-account.
+           2. Create a new API key at https://brighthub.io/account-settings/settings.
+              and note your Client ID and Client Secret.
+           3. Set the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET as environmental variables.
+              In Windows this can be done by opening the command prompt in Administrator mode and running:
+                 > setx BRIGHTHUB_CLIENT_ID "your API key client id")
+                 > setx BRIGHTHUB_CLIENT_SECRET "your API key client secret")
 
-        For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
-        BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
-        done by opening the command prompt in Administrator mode and running:
-
-        > setx BRIGHTHUB_EMAIL "your email")
-        > setx BRIGHTHUB_PASSWORD "your password")
-
-        If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
-        take effect.
+              If Anaconda or your Python environment is running you will need to restart it for
+              the environmental variables to take effect.
 
         **Example usage**
         ::
