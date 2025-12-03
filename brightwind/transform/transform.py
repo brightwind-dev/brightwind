@@ -1441,9 +1441,9 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
     if pd.isnull(date_to):
         if isinstance(data, pd.DatetimeIndex):
-            date_to = data[-1] + pd.DateOffset(minutes=10)
+            date_to = data[-1] + pd.DateOffset(seconds=1)
         elif isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
-            date_to = data.index[-1] + pd.DateOffset(minutes=10)
+            date_to = data.index[-1] + pd.DateOffset(seconds=1)
     else:
         date_to = pd.to_datetime(date_to)
 
