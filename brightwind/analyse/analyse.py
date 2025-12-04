@@ -2263,14 +2263,14 @@ def calc_air_density_from_vapour_prs(vapour_pressure_hPa,
     The calculation incorporates the partial pressures of dry air and water vapour
     to account for humidity effects on air density.
 
-    :param vapour_pressure_hPa:     Vapour pressure in hectopascals (hPa). This represents 
+    :param vapour_pressure_hPa:     Vapour pressure in hectopascals (1hPa == 100Pa == 1 mbar). This represents 
                                     the partial pressure of water vapour in the air.
     :type vapour_pressure_hPa:      float or pandas.Series
-    :param air_pressure_hPa:        Total air pressure in hectopascals (hPa) or millibars (mbar)
-                                    (Note: 1 hPa = 1 mbar, 1013.25 hPa = 101,325 Pa = 1 atm)
+    :param air_pressure_hPa:        Total air pressure in hectopascals (hPa).
+                                    Note: 1 hPa = 1 mbar, 1013.25 hPa = 101,325 Pa = 1 atm.
     :type air_pressure_hPa:         float or pandas.Series
-    :param air_temperature_degC:        Air temperature in degrees Celsius.
-    :type air_temperature_degC:         float or pandas.Series
+    :param air_temperature_degC:    Air temperature in degrees Celsius.
+    :type air_temperature_degC:     float or pandas.Series
     :return:                        Air density in kilograms per cubic meter (kg/m^3).
                                     Output type depends on input type. If all inputs are float,
                                     output is float. If any input is pandas.Series,
@@ -2284,10 +2284,10 @@ def calc_air_density_from_vapour_prs(vapour_pressure_hPa,
             air_density = (P_d / (R_d * T)) + (P_v / (R_v * T))
 
         where:
-            P_d = dry air partial pressure (Pa) = total pressure - vapour pressure  
-            P_v = vapour pressure (Pa)  
+            P_d = partial pressure of dry air [Pa] = total pressure - water vapour pressure  
+            P_v = water vapour partial pressure [Pa]  
             R_d = specific gas constant for dry air (287.05 J/kg*K)  
-            R_v = specific gas constant for water vapour (461.5 J/kg*K)  
+            R_v = specific gas constant for water vapour (461.495 J/kg*K)  
             T   = air temperature in Kelvin (°C + 273.15)
 
     **Example usage**
