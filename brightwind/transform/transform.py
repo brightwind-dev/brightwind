@@ -78,7 +78,7 @@ def _normalize_freq_string(period):
                 stacklevel=3
             )
             _warned_a = True
-        return period[:-1] + 'YS'  # or 'YS' depending on your needs
+        return period[:-1] + 'YS'
     
     # Handle deprecated 'AS' -> 'YS'
     if period.endswith('AS'):
