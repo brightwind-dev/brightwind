@@ -63,8 +63,15 @@ def dataframe_map(df, func, **kwargs):
 
 def _normalize_freq_string(period):
     """
-    Normalize frequency strings for pandas v2.2.0+ compatibility.
-    Converts deprecated frequency strings to their modern equivalents.
+    Convert a deprecated pandas frequency string to its modern equivalent.
+
+    Pandas frequency strings are available here:
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
+
+    :param period: Frequency string that may or may not be deprecated
+    :type period:  str
+    :return:       Frequency string in it's modern equivalent form where necessary.
+    :rtype:        str
     """
     global _warned_a, _warned_as, _warned_h, _warned_t, _warned_s
     
