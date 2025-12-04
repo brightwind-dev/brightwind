@@ -357,6 +357,24 @@ def test_offset_timestamps():
     # sending index with no start end
     bw.offset_timestamps(series1.index, offset='90min')
 
+    series2 = DATA['2016-01-10 00:00:00':'2017-01-10 00:00:00']
+    op = bw.offset_timestamps(series2.index, offset='90min')
+    assert len(op) == len(series2)
+    assert op[0] == pd.to_datetime('2016-01-10 01:30:00')
+    assert op[-1] == pd.to_datetime('2017-01-10 01:30:00')
+
+    op = bw.offset_timestamps(series2.index, offset='-2H')
+    assert len(op) == len(series2)
+    assert op[0] == pd.to_datetime('2016-01-09 22:00:00')
+    assert op[-1] == pd.to_datetime('2017-01-09 22:00:00')
+
+    # sending DataFrame with datetime index with no start end
+    op = bw.offset_timestamps(series2, offset='-10min')
+    assert (op.iloc[0] == series2.iloc[0]).all()
+    assert (op.iloc[-1] == series2.iloc[-1]).all()
+    assert len(op) == len(series2)
+    assert (op.loc['2017-01-09 23:50:00'] == series2.loc['2017-01-10 00:00:00']).all()
+
     # sending index with start end
     op = bw.offset_timestamps(series1.index, offset='2min', date_from='2016-01-10 00:10:00')
     assert op[0] == pd.to_datetime('2016-01-10 00:00:00')
