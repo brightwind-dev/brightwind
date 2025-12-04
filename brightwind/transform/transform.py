@@ -53,6 +53,11 @@ def dataframe_map(df, func, **kwargs):
         return df.map(func, **kwargs)
     else:
         # pandas < 2.1
+        warnings.warn(
+            "Support for pandas versions <2.1 is ending in a future brightwind version.",
+            DeprecationWarning,
+            stacklevel=3
+        )
         return df.applymap(func, **kwargs)
     
 
