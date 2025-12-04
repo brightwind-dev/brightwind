@@ -1459,11 +1459,11 @@ def coverage(data, period='1M', aggregation_method='mean', data_resolution=None)
     :param period: Groups data by the period specified here. The following formats are supported
 
             - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
-            - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+            - Set period to 1h for hourly average, 3h for three hourly average and so on for 5h, 6h etc.
             - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
             - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
             - Set period to 1M for monthly average
-            - Set period to 1AS fo annual average
+            - Set period to 1YS fo annual average
             - Can be a DateOffset object too
 
     :type period: str or pandas.DateOffset

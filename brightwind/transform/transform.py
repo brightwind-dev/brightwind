@@ -59,7 +59,81 @@ def dataframe_map(df, func, **kwargs):
             stacklevel=2
         )
         return df.applymap(func, **kwargs)
+
+
+def _normalize_freq_string(period):
+    """
+    Normalize frequency strings for pandas v2.2.0+ compatibility.
+    Converts deprecated frequency strings to their modern equivalents.
+    """
+    global _warned_a, _warned_as, _warned_h, _warned_t, _warned_s
     
+    # Handle deprecated 'A' -> 'Y' (but 'YS' is preferred for year-start)
+    if period.endswith('A') and not period.endswith('BA'):
+        if not _warned_a:
+            warnings.warn(
+                "'A' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_a = True
+        return period[:-1] + 'YS'  # or 'YS' depending on your needs
+    
+    # Handle deprecated 'AS' -> 'YS'
+    if period.endswith('AS'):
+        if not _warned_as:
+            warnings.warn(
+                "'AS' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'YS' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_as = True
+        return period[:-2] + 'YS'
+    
+    # Handle deprecated 'H' -> 'h'
+    if period.endswith('H'):
+        if not _warned_h:
+            warnings.warn(
+                "'H' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'h' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_h = True
+        return period[:-1] + 'h'
+    
+    # Handle deprecated 'T' -> 'min'
+    if period.endswith('T'):
+        if not _warned_t:
+            warnings.warn(
+                "'T' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'min' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_t = True
+        return period[:-1] + 'min'
+    
+    # Handle deprecated 'S' -> 's' (but not 'MS', 'YS', 'AS', etc.)
+    if period.endswith('S') and not any(period.endswith(x) for x in ['MS', 'YS', 'AS', 'NS']):
+        if not _warned_s:
+            warnings.warn(
+                "'S' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 's' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_s = True
+        return period[:-1] + 's'
+    
+    return period
+
 
 def _freq_str_to_dateoffset(period):
     """
@@ -275,6 +349,7 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
     if 1M, 1MS it should go to start of month
     if 1A, 1AS it should go to start of year
     """
+    period = _normalize_freq_string(period)
     if period[-3:] == 'min':
         return '{year}-{month}-{day} {hour}:{minute}:00'.format(year=timestamp.year, month=timestamp.month,
                                                                 day=timestamp.day, hour=timestamp.hour,
@@ -484,6 +559,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
 
     """
     coverage_threshold = validate_coverage_threshold(coverage_threshold)
+    period = _normalize_freq_string(period)
 
     if isinstance(period, str):
         if period[-1] == 'D':

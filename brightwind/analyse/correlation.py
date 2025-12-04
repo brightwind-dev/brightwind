@@ -223,6 +223,7 @@ class CorrelBase:
         none_even_freq = ['5h', '7h', '9h', '10h', '11h', '13h', '14h', '15h', '16h', '17h', '18h', '19h',
                           '20h', '21h', '22h', '23h', 'D', 'W']
         if any(freq in self.averaging_prd for freq in none_even_freq):
+            self.averaging_prd = tf._normalize_freq_string(self.averaging_prd)
             ref_time_array = pd.date_range(start=self.data.index[0], freq='-' + self.averaging_prd,
                                            end=self.ref_spd.index[0])
             if ref_time_array.empty:
@@ -327,7 +328,7 @@ class OrdinaryLeastSquares(CorrelBase):
             - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
-            - Set period to '1A' for annual average with the timestamp at the start of the year.
+            - Set period to '1YS' for annual average with the timestamp at the start of the year.
 
     :type averaging_prd:              str
     :param coverage_threshold:        Minimum coverage required when aggregating the data to the averaging_prd.
@@ -518,7 +519,7 @@ class OrthogonalLeastSquares(CorrelBase):
             - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
-            - Set period to '1A' for annual average with the timestamp at the start of the year.
+            - Set period to '1YS' for annual average with the timestamp at the start of the year.
 
     :type averaging_prd:              str
     :param coverage_threshold:        Minimum coverage required when aggregating the data to the averaging_prd.
@@ -642,7 +643,7 @@ class MultipleLinearRegression(CorrelBase):
             - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
-            - Set period to '1A' for annual average with the timestamp at the start of the year.
+            - Set period to '1YS' for annual average with the timestamp at the start of the year.
 
     :type averaging_prd:              str
     :param coverage_threshold:        Minimum coverage required when aggregating the data to the averaging_prd.
@@ -909,7 +910,7 @@ class SpeedSort(CorrelBase):
                 - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
                 - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
                 - Set period to '1M' for monthly average with the timestamp at the start of the month.
-                - Set period to '1A' for annual average with the timestamp at the start of the year.
+                - Set period to '1YS' for annual average with the timestamp at the start of the year.
 
         :type averaging_prd:        str
         :param coverage_threshold:  Minimum coverage required when aggregating the data to the averaging_prd.
