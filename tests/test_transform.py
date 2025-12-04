@@ -736,12 +736,6 @@ def test_average_data_by_period(dummy_data):
             ) < 1e-5
     assert (table_count['Spd80mN']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Spd80mN_Coverage']['2016-01-01']
             ) < 1e-5
-    table_count = data_test.resample('1MS', axis=0, closed='left', label='left',
-                                     convention='start', kind='timestamp').count()
-    assert (table_count['Dir78mS']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Dir78mS_Coverage']['2016-01-01']
-            ) < 1e-5
-    assert (table_count['Spd80mN']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Spd80mN_Coverage']['2016-01-01']
-            ) < 1e-5
     # input data_resolution
     data1 = DATA[:'2016-01-10'].copy()
     data1.reset_index(inplace=True)
