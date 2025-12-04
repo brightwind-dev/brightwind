@@ -56,7 +56,7 @@ def dataframe_map(df, func, **kwargs):
         warnings.warn(
             "Support for pandas versions <2.1 is ending in a future brightwind version.",
             DeprecationWarning,
-            stacklevel=3
+            stacklevel=2
         )
         return df.applymap(func, **kwargs)
     
