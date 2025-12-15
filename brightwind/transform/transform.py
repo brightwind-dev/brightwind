@@ -74,6 +74,7 @@ def _normalize_freq_string(period):
     :rtype:        str
     """
     global _warned_a, _warned_as, _warned_h, _warned_t, _warned_s
+    pandas_version = tuple(map(int, pd.__version__.split('.')[:2]))
     
     # Handle deprecated 'A' -> 'Y' (but 'YS' is preferred for year-start)
     if period.endswith('A') and not period.endswith('BA'):
@@ -85,7 +86,8 @@ def _normalize_freq_string(period):
                 stacklevel=3
             )
             _warned_a = True
-        return period[:-1] + 'YS'
+        if pandas_version < (2, 2):
+            return period[:-1] + 'YS'
     
     # Handle deprecated 'AS' -> 'YS'
     if period.endswith('AS'):
@@ -98,7 +100,8 @@ def _normalize_freq_string(period):
                 stacklevel=3
             )
             _warned_as = True
-        return period[:-2] + 'YS'
+        if pandas_version < (2, 2):
+            return period[:-2] + 'YS'
     
     # Handle deprecated 'H' -> 'h'
     if period.endswith('H'):
@@ -111,7 +114,8 @@ def _normalize_freq_string(period):
                 stacklevel=3
             )
             _warned_h = True
-        return period[:-1] + 'h'
+        if pandas_version < (2, 2):
+            return period[:-1] + 'h'
     
     # Handle deprecated 'T' -> 'min'
     if period.endswith('T'):
@@ -124,7 +128,8 @@ def _normalize_freq_string(period):
                 stacklevel=3
             )
             _warned_t = True
-        return period[:-1] + 'min'
+        if pandas_version < (2, 2):
+            return period[:-1] + 'min'
     
     # Handle deprecated 'S' -> 's' (but not 'MS', 'YS', 'AS', etc.)
     if period.endswith('S') and not any(period.endswith(x) for x in ['MS', 'YS', 'AS', 'NS']):
@@ -137,7 +142,8 @@ def _normalize_freq_string(period):
                 stacklevel=3
             )
             _warned_s = True
-        return period[:-1] + 's'
+        if pandas_version < (2, 2):
+            return period[:-1] + 's'
     
     return period
 
