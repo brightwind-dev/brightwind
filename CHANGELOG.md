@@ -13,7 +13,8 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ## [2.4.0-dev]
 1. Fixed pandas<3.0.0 and numpy<2.3.1 dependencies, ([#458](https://github.com/brightwind-dev/brightwind/issues/458))
-NEW ISSUE
+1. Fixed pandas deprecating warnings that were linked to frequency strings, .groupby() and .map(). ([#407](https://github.com/brightwind-dev/brightwind/issues/407), [#415](https://github.com/brightwind-dev/brightwind/issues/415) and [#445](https://github.com/brightwind-dev/brightwind/issues/445))
+
 
 ## [2.3.0]
 This update brings a comprehensive set of **bug fixes** and **enhancements** across the Brightwind library. 
