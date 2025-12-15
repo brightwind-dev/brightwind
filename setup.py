@@ -58,7 +58,8 @@ setup(
         'gmaps>=0.9.0',
         'colormap>=1.0.1',
         'easydev>=0.10.0',
-        'jsonschema>=4.17.3'
+        'jsonschema>=4.17.3',
+        'jinja2>= 3.0.0'
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",

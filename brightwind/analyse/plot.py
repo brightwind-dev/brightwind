@@ -1971,7 +1971,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
     if calc_method == 'log_law':
         label = 'Mean_Roughness_Coefficient'
 
-    scale_variable_y = np.append(scale_variable, scale_variable[0])
+    scale_variable_y = np.append(scale_variable, scale_variable.iloc[0])
     plot_x = np.append(radians, radians[0])
     scale_to_fit = max(scale_variable[np.isfinite(scale_variable)]) / max(result / 100)
     wind_rose_r = (result / 100) * scale_to_fit
@@ -2352,7 +2352,7 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         ax.set_ylabel(label)
 
         # create x values for plot
-        idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H').hour
+        idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1h').hour
 
         if plot_type == 'step':
             df = df.shift(+1, axis=0)

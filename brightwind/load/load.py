@@ -1362,7 +1362,7 @@ class LoadBrightHub:
                     )
 
         if return_df:
-            meas_loc_df = pd.read_json(json.dumps(meas_loc_json))
+            meas_loc_df = pd.read_json(StringIO(json.dumps(meas_loc_json)))
             required_cols = ['name', 'measurement_station_type_id',
                              'latitude_ddeg', 'longitude_ddeg', 'plant_uuid', 'uuid', 'notes']
             meas_loc_df = meas_loc_df[required_cols]
@@ -2422,7 +2422,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
         else:
             for col in data.columns:
                 if col.find(cleaning_df[sensor_col_name][k]) == 0:
-                    data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
+                    data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
     return data
@@ -2651,7 +2651,7 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
         for col in data.columns:
             if col.find(cleaning_df[sensor_col_name][k]) == 0:
                 if cleaning_df[flag_col_name][k] not in flags_to_exclude:
-                    data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
+                    data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
     return data

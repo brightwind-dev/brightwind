@@ -24,12 +24,132 @@ __all__ = ['average_data_by_period',
            'apply_wspd_slope_offset_adj',
            'apply_device_orientation_offset']
 
+_warned_a = False  # warning for pandas 'A' frequency string so only shows once
+_warned_as = False  # warning for pandas 'AS' frequency string so only shows once
+_warned_h = False  # warning for pandas 'H' frequency string so only shows once
+_warned_t = False  # warning for pandas 'T' frequency string so only shows once
+_warned_s = False  # warning for pandas 'S' frequency string so only shows once
+
 
 def _compute_wind_vector(wspd, wdir):
     """
     Returns north and east component of wind-vector
     """
     return wspd*np.cos(wdir), wspd*np.sin(wdir)
+
+
+def dataframe_map(df, func, **kwargs):
+    """
+    Apply a function element-wise to a DataFrame.
+    
+    Compatibility wrapper for DataFrame.map() (pandas >=2.1) and 
+    DataFrame.applymap() (pandas <2.1).
+
+    :param df:              DataFrame to apply function to
+    :type df:               pd.DataFrame
+    :param func:            Function to apply element-wise
+    :type func:             Callable
+    :return:                Transformed DataFrame
+    :rtype:                 pd.DataFrame
+    """
+    if hasattr(df, 'map'):
+        # pandas >= 2.1
+        return df.map(func, **kwargs)
+    else:
+        # pandas < 2.1
+        warnings.warn(
+            "Support for pandas versions <2.1 is ending in a future brightwind version.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return df.applymap(func, **kwargs)
+
+
+def _normalize_freq_string(period):
+    """
+    Convert a deprecated pandas frequency string to its modern equivalent.
+
+    Pandas frequency strings are available here:
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
+
+    :param period: Frequency string that may or may not be deprecated
+    :type period:  str
+    :return:       Frequency string in it's modern equivalent form where necessary.
+    :rtype:        str
+    """
+    global _warned_a, _warned_as, _warned_h, _warned_t, _warned_s
+    pandas_version = tuple(map(int, pd.__version__.split('.')[:2]))
+    
+    # Handle deprecated 'A' -> 'Y' (but 'YS' is preferred for year-start)
+    if period.endswith('A') and not period.endswith('BA'):
+        if not _warned_a:
+            warnings.warn(
+                "'A' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_a = True
+        if pandas_version < (2, 2):
+            return period[:-1] + 'YS'
+    
+    # Handle deprecated 'AS' -> 'YS'
+    if period.endswith('AS'):
+        if not _warned_as:
+            warnings.warn(
+                "'AS' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'YS' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_as = True
+        if pandas_version < (2, 2):
+            return period[:-2] + 'YS'
+    
+    # Handle deprecated 'H' -> 'h'
+    if period.endswith('H'):
+        if not _warned_h:
+            warnings.warn(
+                "'H' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'h' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_h = True
+        if pandas_version < (2, 2):
+            return period[:-1] + 'h'
+    
+    # Handle deprecated 'T' -> 'min'
+    if period.endswith('T'):
+        if not _warned_t:
+            warnings.warn(
+                "'T' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'min' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_t = True
+        if pandas_version < (2, 2):
+            return period[:-1] + 'min'
+    
+    # Handle deprecated 'S' -> 's' (but not 'MS', 'YS', 'AS', etc.)
+    if period.endswith('S') and not any(period.endswith(x) for x in ['MS', 'YS', 'AS', 'NS']):
+        if not _warned_s:
+            warnings.warn(
+                "'S' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 's' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_s = True
+        if pandas_version < (2, 2):
+            return period[:-1] + 's'
+    
+    return period
 
 
 def _freq_str_to_dateoffset(period):
@@ -44,38 +164,96 @@ def _freq_str_to_dateoffset(period):
     :return:       A pd.DateOffset
     :rtype:        pd.DateOffset
     """
+    global _warned_a
+    global _warned_as
+    global _warned_h
+    global _warned_t
+    global _warned_s
+
     if period[-1] == 'M':
         as_dateoffset = pd.DateOffset(months=int(period[:-1]))
     elif period[-2:] == 'MS':
         as_dateoffset = pd.DateOffset(months=int(period[:-2]))
     elif period[-1] == 'A':
+        if not _warned_a:
+            warnings.warn(
+                "'A' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_a = True
         as_dateoffset = pd.DateOffset(years=float(period[:-1]))
     elif period[-2:] == 'AS':
+        if not _warned_as:
+            warnings.warn(
+                "'AS' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'YS' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_as = True
+        as_dateoffset = pd.DateOffset(years=float(period[:-2]))
+    elif period[-2:] == 'YS':
         as_dateoffset = pd.DateOffset(years=float(period[:-2]))
     elif period[-1:] == 'W':
         as_dateoffset = pd.DateOffset(weeks=float(period[:-1]))
     elif period[-1:] == 'D':
         as_dateoffset = pd.DateOffset(days=float(period[:-1]))
     elif period[-1:] == 'H':
+        if not _warned_h:
+            warnings.warn(
+                "'H' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'h' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_h = True
+        as_dateoffset = pd.DateOffset(hours=float(period[:-1]))
+    elif period[-1:] == 'h':
         as_dateoffset = pd.DateOffset(hours=float(period[:-1]))
     elif period[-1:] == 'T':
+        if not _warned_t:
+            warnings.warn(
+                "'T' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'min' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_t = True
         as_dateoffset = pd.DateOffset(minutes=float(period[:-1]))
     elif period[-3:] == 'min':
         as_dateoffset = pd.DateOffset(minutes=float(period[:-3]))
     elif period[-1:] == 'S':
+        if not _warned_s:
+            warnings.warn(
+                "'S' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 's' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_s = True
+        as_dateoffset = pd.DateOffset(seconds=float(period[:-1]))
+    elif period[-1:] == 's':
         as_dateoffset = pd.DateOffset(seconds=float(period[:-1]))
     else:
-        raise ValueError('"{}" period not recognized. Only units "M", "MS", "A", "AS", "W", "D", "H", "T", "min", "S" '
+        raise ValueError('"{}" period not recognized. Only units "M", "MS", "YS", "W", "D", "h", "min", "s" '
                          'are recognized'.format(period))
+
+
     return as_dateoffset
 
 
 def _convert_days_to_hours(prd):
-    return str(int(prd[:-1])*24)+'H'
+    return str(int(prd[:-1])*24)+'h'
 
 
 def _convert_weeks_to_hours(prd):
-    return str(int(prd[:-1])*24*7)+'H'
+    return str(int(prd[:-1])*24*7)+'h'
 
 
 def _get_min_overlap_timestamp(df1_timestamps, df2_timestamps):
@@ -174,7 +352,7 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
 
     :param timestamp: Timestamp to round down from.
     :type timestamp:  pd.Timestamp
-    :param period:    Averaging period e.g. '10min', '1H', '3H', '6H', '1D', '7D', '1W', '1MS', '1AS'
+    :param period:    Averaging period e.g. '10min', '1h', '3h', '6h', '1D', '7D', '1W', '1MS', '1YS'
     :type period:     str
     :return:          Timestamp to represent the start of an averaging period which covers the timestamp.
     :rtype:           str
@@ -188,12 +366,13 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
     if 1M, 1MS it should go to start of month
     if 1A, 1AS it should go to start of year
     """
+    period = _normalize_freq_string(period)
     if period[-3:] == 'min':
         return '{year}-{month}-{day} {hour}:{minute}:00'.format(year=timestamp.year, month=timestamp.month,
                                                                 day=timestamp.day, hour=timestamp.hour,
                                                                 minute=_round_down_to_multiple(timestamp.minute,
                                                                                                int(period[:-3])))
-    elif period[-1] == 'H':
+    elif period[-1] == 'h' or period[-1] == 'H':
         return '{year}-{month}-{day} {hour}:00:00'.format(year=timestamp.year, month=timestamp.month, day=timestamp.day,
                                                           hour=_round_down_to_multiple(timestamp.hour,
                                                                                        int(period[:-1])))
@@ -202,7 +381,7 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
                                              hour=timestamp.hour)
     elif period[-1] == 'M' or period[-2:] == 'MS':
         return '{year}-{month}'.format(year=timestamp.year, month=timestamp.month)
-    elif period[-2:] == 'AS' or period[-1:] == 'A':
+    elif period[-2:] == 'YS' or period[-1:] == 'A' or period[-2:] == 'AS':
         return '{year}'.format(year=timestamp.year)
     else:
         print("Warning: Averaging period not identified returning default timestamps")
@@ -337,11 +516,11 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     :param period:             Groups data by the period specified here. The following formats are supported
 
             - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
-            - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
+            - Set period to '1h' for hourly average, '3h' for three hourly average and so on for '4h', '6h' etc.
             - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
-            - Set period to '1A' for annual average with the timestamp at the start of the year.
+            - Set period to '1YS' for annual average with the timestamp at the start of the year.
 
     :type period:              str
     :param wdir_column_names:  List of wind direction column names. These columns, if the aggregation_method is mean,
@@ -376,7 +555,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
         data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # To find hourly averages
-        data_hourly = bw.average_data_by_period(data.Spd80mN, period='1H')
+        data_hourly = bw.average_data_by_period(data.Spd80mN, period='1h')
 
         # To find monthly averages
         data_monthly = bw.average_data_by_period(data.Spd80mN, period='1M')
@@ -397,6 +576,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
 
     """
     coverage_threshold = validate_coverage_threshold(coverage_threshold)
+    period = _normalize_freq_string(period)
 
     if isinstance(period, str):
         if period[-1] == 'D':
@@ -408,7 +588,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
         if period[-1] == 'A':
             period = period+'S'
         if period[-1] == 'Y':
-            raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
+            raise TypeError("Please use '1YS' for annual frequency at the start of the year.")
     
     # Check that the data resolution is not less than the period specified
     if data_resolution is None:
@@ -416,8 +596,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
             raise ValueError("The time period specified is less than the temporal resolution of the data. "
                              "For example, hourly data should not be averaged to 10 minute data.")
     data = data.sort_index()
-    grouper_obj = data.resample(period, axis=0, closed='left', label='left',
-                                convention='start', kind='timestamp')
+    grouper_obj = data.resample(period, closed='left', label='left')
 
     # if period is equal to data resolution then no need to vector average wind direction
     is_period_not_equal_to_resolution = (_freq_str_to_dateoffset(period) != _get_data_resolution(data.index))
@@ -542,7 +721,7 @@ def _vector_avg_of_wdirs_dataframe(wdirs, wspds=None):
     # means there is no wind direction => return NaN
     nan_mask = (avg_dir_df['sine'] == 0) & (avg_dir_df['cosine'] == 0)
     avg_dir_df['avg_dir'] = np.rad2deg(np.arctan2(sine, cosine)) % 360
-    avg_dir_df['avg_dir'][nan_mask] = np.nan
+    avg_dir_df.loc[nan_mask,'avg_dir'] = np.nan
     return avg_dir_df['avg_dir']
 
 
@@ -705,11 +884,11 @@ def merge_datasets_by_period(data_1, data_2, period,
     :param period: Groups data by the time period specified here. The following formats are supported
 
             - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
-            - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
+            - Set period to '1h' for hourly average, '3h' for three hourly average and so on for '4h', '6h' etc.
             - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
-            - Set period to '1A' for annual average with the timestamp at the start of the year.
+            - Set period to '1YS' for annual average with the timestamp at the start of the year.
 
     :type period:                str
     :param wdir_column_names_1:  List of wind direction column names. These columns, if the aggregation_method is mean,
@@ -1058,7 +1237,7 @@ def offset_wind_direction(wdir, offset: float):
     if isinstance(wdir, float) or isinstance(wdir, int):
         return utils._range_0_to_360(wdir + offset)
     elif isinstance(wdir, pd.DataFrame):
-        return wdir.add(offset).applymap(utils._range_0_to_360)
+        return dataframe_map(wdir.add(offset), utils._range_0_to_360)
     elif isinstance(wdir, pd.Series):
         return wdir.add(offset).apply(utils._range_0_to_360)
 
@@ -1367,14 +1546,14 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
                         - Set offset to 10min to add 10 minutes to each timestamp, -10min to subtract 10 minutes and so
                           on for 4min, 20min, etc.
-                        - Set offset to 1H to add 1 hour to each timestamp and -1H to subtract and so on for 5H, 6H,
+                        - Set offset to 1h to add 1 hour to each timestamp and -1h to subtract and so on for 5h, 6h,
                           etc.
                         - Set offset to 1D to add a day and -1D to subtract and so on for 5D, 7D, 15D, etc.
                         - Set offset to 1W to add a week and -1W to subtract from each timestamp and so on for 2W,
                           4W, etc.
                         - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on
                           for 2M, 3M, etc.
-                        - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on
+                        - Set offset to 1Y to add an year and -1Y to subtract a year from each timestamp and so on
                           for 2Y, 3Y, etc.
 
     :type offset:       str
@@ -1402,7 +1581,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
         data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # To decrease 10 minutes within a given date range and overwrite the original data
-        op1 = bw.offset_timestamps(data, offset='1H', date_from='2016-02-01 00:20:00',
+        op1 = bw.offset_timestamps(data, offset='1h', date_from='2016-02-01 00:20:00',
             date_to='2016-02-01 01:40:00', overwrite=True)
 
         # To decrease 10 minutes within a given date range not overwriting the original data
@@ -1419,14 +1598,14 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
         op4 = bw.offset_timestamps(data.index, offset='-10min', date_from='2016-02-01 00:20:00',
             date_to='2016-02-01 01:40:00')
 
-        # Can also except decimal values for offset, like 3.5H for 3 hours and 30 minutes
-        op5 = bw.offset_timestamps(data.index, offset='3.5H', date_from='2016-02-01 00:20:00',
+        # Can also except decimal values for offset, like 3.5h for 3 hours and 30 minutes
+        op5 = bw.offset_timestamps(data.index, offset='3.5h', date_from='2016-02-01 00:20:00',
             date_to='2016-02-01 01:40:00')
 
         # Can accept also Timestamp and datetime objects
-        bw.offset_timestamps(data.index[0], offset='4H')
-        bw.offset_timestamps(datetime.datetime(2016, 2, 1, 0, 20), offset='3.5H')
-        bw.offset_timestamps(datetime.date(2016, 2, 1), offset='-5H')
+        bw.offset_timestamps(data.index[0], offset='4h')
+        bw.offset_timestamps(datetime.datetime(2016, 2, 1, 0, 20), offset='3.5h')
+        bw.offset_timestamps(datetime.date(2016, 2, 1), offset='-5h')
         bw.offset_timestamps(datetime.time(0, 20), offset='30min')
 
     """
