@@ -221,18 +221,21 @@ def scale_air_density_to_height(ref_air_density_kg_m3: Union[float, pd.Series],
     bw.scale_air_density_to_height(ref_air_density_kg_m3=test_density.loc['2016-01-09 17:10':'2016-01-09 18:00'],
                                     ref_height_m=2, target_height_m=10)
 
-    Timestamp
-    2016-01-09 17:10:00    1.186780
-    2016-01-09 17:20:00    1.187175
-    2016-01-09 17:30:00    1.187747
-    2016-01-09 17:40:00    1.185950
-    2016-01-09 17:50:00    1.186301
-    2016-01-09 18:00:00    1.185686
-    dtype: float64
+    # Timestamp
+    # 2016-01-09 17:10:00    1.186780
+    # 2016-01-09 17:20:00    1.187175
+    # 2016-01-09 17:30:00    1.187747
+    # 2016-01-09 17:40:00    1.185950
+    # 2016-01-09 17:50:00    1.186301
+    # 2016-01-09 18:00:00    1.185686
+    # Name: air_density_scaled, dtype: float64
     """
 
     scaled_air_density = linear_transform(x_target=target_height_m, x_ref=ref_height_m,
                                           y_ref=ref_air_density_kg_m3, slope=lapse_rate_kg_m3_m)
+    if isinstance(scaled_air_density, pd.Series):
+        air_density_series_name = ref_air_density_kg_m3.name if ref_air_density_kg_m3.name else "air_density"
+        scaled_air_density.name = f"{air_density_series_name}_scaled"
 
     return scaled_air_density
 
@@ -298,11 +301,14 @@ def scale_air_temperature_to_height(ref_air_temperature: Union[float, pd.Series]
     # 2016-01-09 17:40:00    0.735
     # 2016-01-09 17:50:00    0.654
     # 2016-01-09 18:00:00    0.796
-    # Name: T2m, dtype: float64
+    # Name: T2m_scaled, dtype: float64
     """
 
     scaled_air_temp = linear_transform(x_target=target_height_m, x_ref=ref_height_m,
                                        y_ref=ref_air_temperature, slope=lapse_rate_deg_m)
+    if isinstance(scaled_air_temp, pd.Series):
+        air_temp_series_name = ref_air_temperature.name if ref_air_temperature.name else "air_temperature"
+        scaled_air_temp.name = f"{air_temp_series_name}_scaled"
     return scaled_air_temp
 
 
@@ -360,7 +366,7 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
     # 2016-01-09 17:40:00    932.07
     # 2016-01-09 17:50:00    932.07
     # 2016-01-09 18:00:00    932.07
-    # dtype: float64
+    # Name: P2m_scaled, dtype: float64
 
     """
 
@@ -386,5 +392,7 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
 
     scaled_air_pressure_hPa = ref_air_pressure_hPa * ((1 + (L / ref_air_temp_K) * (target_height_m - ref_height_m)
                                                        ) ** (-g / (L * R)))
-
+    if isinstance(scaled_air_pressure_hPa, pd.Series):
+        air_pressure_series_name = ref_air_pressure_hPa.name if ref_air_pressure_hPa.name else "air_pressure"
+        scaled_air_pressure_hPa.name = f"{air_pressure_series_name}_scaled"
     return scaled_air_pressure_hPa
