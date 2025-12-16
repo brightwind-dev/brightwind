@@ -24,7 +24,7 @@ def get_version(rel_path):
 
 setup(
     name='brightwind',
-    # Update version number here, below and in _init_.py:
+    # Update version number below and in _init_.py:
     version=get_version("brightwind/__init__.py"),
     packages=['brightwind', 'brightwind.load', 'brightwind.utils', 'brightwind.export', 'brightwind.analyse',
               'brightwind.transform', 'brightwind.demo_datasets'],
@@ -34,7 +34,7 @@ setup(
     },
     url='https://github.com/brightwind-dev/brightwind.git',
     # UPDATE VERSION NUMBER HERE:
-    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.3.0.tar.gz',
+    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.4.0.tar.gz',
     license='MIT',
     author='Stephen Holleran of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
