@@ -2042,13 +2042,13 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     return fig
 
 
-def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
-                     pressure: Union[float, pd.Series, pd.DataFrame],
+def calc_air_density(temperature: Union[float, pd.Series],
+                     pressure: Union[float, pd.Series],
                      elevation_ref: Union[float, int] = None,
                      elevation_site: Union[float, int] = None,
                      lapse_rate: float = AIR_DENSITY_LAPSE_RATE,
                      specific_gas_constant: float = 286.9,
-                     rel_humidity_percent: Union[float, pd.Series, pd.DataFrame] = None
+                     rel_humidity_percent: Union[float, pd.Series] = None
                      ) -> Union[float, pd.Series]:
     """
     Calculates air density for a given air temperature (temperature), air pressure (pressure) 
@@ -2072,10 +2072,10 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
     `scale_air_density_to_height()` separately instead.
 
     :param temperature:             Air temperature values in degree Celsius
-    :type temperature:              float or pandas.Series or pandas.DataFrame
+    :type temperature:              float or pandas.Series
     :param pressure:                Air pressure values in hectopascal, hPa or millibar, mbar (Note 1hPa = 1mbar) 
                                     (1013.25 hPa = 101,325 Pa = 101.325 kPa = 1 atm = 1013.25 mbar)
-    :type pressure:                 float or pandas.Series or pandas.DataFrame
+    :type pressure:                 float or pandas.Series
     :param elevation_ref:           Elevation, in meters, of the reference air density location (and air temperature, 
                                     air pressure, relative humidity measurements used for the calculation).
     :type elevation_ref:            float or int
@@ -2094,10 +2094,10 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
     :type specific_gas_constant:    float
     :param rel_humidity_percent:    Relative humidity values as a percentage. Default is None. If None, the air density 
                                     calculation ignores humidity.
-    :type rel_humidity_percent:     float or pandas.Series or pandas.DataFrame
+    :type rel_humidity_percent:     float or pandas.Series
     :return:                        Air density in kg/m^3. Output type depends on type(temperature), type(pressure),
                                     type(rel_humidity_percent) provided. If all inputs are float, output is float. 
-                                    If any input is pandas.Series or pandas.DataFrame, output is pandas.Series.
+                                    If any input is pandas.Series, output is pandas.Series.
     :rtype:                         float or pandas.Series
 
         **Example usage**
@@ -2160,24 +2160,18 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
     # 1.198
 
     """
-    # Convert DataFrame inputs to Series
+    # Raise errors if any inputs are DataFrames
     if isinstance(temperature, pd.DataFrame):
-        if len(temperature.columns) > 1:
-            raise ValueError("If temperature is provided as a DataFrame, it must have only one column.")
-        temperature = _convert_df_to_series(temperature).copy()
+        raise ValueError("temperature cannot be provided as a DataFrame. Provide as float or pandas Series.")
     if isinstance(pressure, pd.DataFrame):
-        if len(pressure.columns) > 1:
-            raise ValueError("If pressure is provided as a DataFrame, it must have only one column.")
-        pressure = _convert_df_to_series(pressure).copy()
+        raise ValueError("pressure cannot be provided as a DataFrame. Provide as float or pandas Series.")
     if isinstance(rel_humidity_percent, pd.DataFrame):
-        if len(rel_humidity_percent.columns) > 1:
-            raise ValueError("If rel_humidity_percent is provided as a DataFrame, it must have only one column.")
-        rel_humidity_percent = _convert_df_to_series(rel_humidity_percent).copy()
-
+        raise ValueError("rel_humidity_percent cannot be provided as a DataFrame. Provide as float or pandas Series.")
+    
     # Check dimensions of temperature, pressure and rel_humidity_percent if not float or int
     if isinstance(temperature, pd.Series) and (isinstance(pressure, pd.Series)):
         if len(temperature) != len(pressure):
-            raise ValueError("temperature and pressure must have the same dimensions.") 
+            raise ValueError("temperature and pressure must have the same dimensions.")
         if isinstance(rel_humidity_percent, pd.Series):
             if len(temperature) != len(rel_humidity_percent):
                 raise ValueError("temperature, pressure and rel_humidity_percent must have the same dimensions.")
