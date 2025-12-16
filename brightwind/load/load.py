@@ -447,7 +447,11 @@ def _append_files_together(source_folder, assembled_file_name, file_type, append
 
 class LoadBrightdata:
     """
-    ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS CLASS WILL BE REMOVED IN V3.0. **
+    ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
+    REMOVED IN V3.0.
+
+    SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
+    CONTINUE ACCESSING REANALYSIS DATA. **
 
     LoadBrightdata allows you to pull meta data and timeseries data of reanalysis datasets from brightdata. This
     is a fast way to get access to the available reanalysis datasets.
@@ -468,7 +472,6 @@ class LoadBrightdata:
 
     _BASE_URI = 'http://api.brightwindanalysis.com/brightdata/'
     # _BASE_URI = 'http://localhost:5000/'
-    _SHOW_DEPRECATION_WARNING = True
 
     class Node:
         """
@@ -560,7 +563,7 @@ class LoadBrightdata:
     @staticmethod
     def timeseries(dataset, lat, long, nearest=None, from_date=None, to_date=None, variables=None):
         """
-            ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION IS DEPRECIATED IN V2.4.0 AND WILL BE
+            ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
             REMOVED IN V3.0.
 
             SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
@@ -650,7 +653,7 @@ class LoadBrightdata:
     @staticmethod
     def monthly_means(dataset, lat, long, nearest=None, from_date=None, to_date=None, variables=None):
         """
-            ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION IS DEPRECIATED IN V2.4.0 AND WILL BE
+            ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
             REMOVED IN V3.0.
 
             SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
@@ -737,7 +740,7 @@ class LoadBrightdata:
     @staticmethod
     def momm(dataset, lat, long, nearest=None, from_date=None, to_date=None, variables=None):
         """
-            ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION IS DEPRECIATED IN V2.4.0 AND WILL BE
+            ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
             REMOVED IN V3.0.
 
             SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
@@ -826,7 +829,7 @@ class LoadBrightdata:
     def monthly_norms(dataset, lat, long, nearest=None, from_date=None, to_date=None, ref_from_date=None,
                       ref_to_date=None, ref_no_years=None, variables=None):
         """
-        ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION IS DEPRECIATED IN V2.4.0 AND WILL BE
+        ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
         REMOVED IN V3.0.
 
         SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
