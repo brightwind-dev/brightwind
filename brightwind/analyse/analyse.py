@@ -2162,10 +2162,16 @@ def calc_air_density(temperature: Union[float, pd.Series, pd.DataFrame],
     """
     # Convert DataFrame inputs to Series
     if isinstance(temperature, pd.DataFrame):
+        if len(temperature.columns) > 1:
+            raise ValueError("If temperature is provided as a DataFrame, it must have only one column.")
         temperature = _convert_df_to_series(temperature).copy()
     if isinstance(pressure, pd.DataFrame):
+        if len(pressure.columns) > 1:
+            raise ValueError("If pressure is provided as a DataFrame, it must have only one column.")
         pressure = _convert_df_to_series(pressure).copy()
     if isinstance(rel_humidity_percent, pd.DataFrame):
+        if len(rel_humidity_percent.columns) > 1:
+            raise ValueError("If rel_humidity_percent is provided as a DataFrame, it must have only one column.")
         rel_humidity_percent = _convert_df_to_series(rel_humidity_percent).copy()
 
     # Check dimensions of temperature, pressure and rel_humidity_percent if not float or int
