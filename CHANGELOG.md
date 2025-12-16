@@ -34,8 +34,10 @@ Additional labels for pre-release and build metadata are available as extensions
 1. Updated `offset_timestamps()`to include last timestamp when date_to is unspecified, so that offset is applied to the entire record if date_to not specified. ([#504](https://github.com/brightwind-dev/brightwind/issues/504))
 
 ### Deprecated
-1. `LoadBrightdata()` is deprecated and will be removed in version 3.0. Use `LoadBrightHub()` instead to continue accessing reanalysis data.
-
+1. `LoadBrightdata()` is deprecated and will be removed in version 3.0. Please use `LoadBrightHub()` instead to continue accessing reanalysis data.
+2. `LoadBrightHub()` authentication using email and password is deprecated and will be removed in v3.0. Please migrate to API key authentication. Create and manage API keys at: https://brighthub.io/account-settings/settings.
+3. `specific_gas_constant` argument of `calc_air_density()` is deprecated and will be removed in v3.0 because the updated method depends on the gas constants for dry air and water vapour, making this argument redundant.
+4. The scaling of air density to height within `calc_air_density()` is deprecated and will be removed in v3.0. Users should use `scale_air_density_to_height()` separately instead.
 
 ## [2.3.0]
 This update brings a comprehensive set of **bug fixes** and **enhancements** across the Brightwind library. 
