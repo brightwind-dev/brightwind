@@ -1,16 +1,18 @@
 import pandas as pd
 import numpy as np
+from typing import Optional
 from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as bw_plt
+from brightwind.transform.scale import scale_air_density_to_height
 from brightwind.utils.utils import _convert_df_to_series
 from brightwind.utils.utils import validate_coverage_threshold
 from brightwind.export.export import _calc_mean_speed_of_freq_tab
-from brightwind.transform.transform import scale_wind_speed
 import matplotlib.pyplot as plt
 import warnings
 import textwrap
 from matplotlib.ticker import PercentFormatter
+from typing import Union
 
 __all__ = ['monthly_means',
            'momm',
@@ -29,6 +31,11 @@ __all__ = ['monthly_means',
            'sector_ratio',
            'calc_air_density']
 
+#  Specific gas constant for dry air (J/K/kg or m2/K/s2) from ISO:2533-1975 Standard Atmosphere
+GAS_CONST_DRY_AIR = 287.05 
+
+# Air density lapse rate (kg/m3/km) from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014)
+AIR_DENSITY_LAPSE_RATE = -0.113
 
 def dist_matrix(var_series, x_series, y_series,
                 num_bins_x=None, num_bins_y=None,
@@ -147,10 +154,11 @@ def dist_matrix(var_series, x_series, y_series,
                      axis=1).dropna()
 
     if aggregation_method == '%frequency':
-        counts = data.groupby([y_series.name, x_series.name]).count().unstack(level=-1)
+        counts = data.groupby([y_series.name, x_series.name], observed=False).count().unstack(level=-1)
         distribution = counts / (counts.sum().sum()) * 100.0
     else:
-        distribution = data.groupby([y_series.name, x_series.name]).agg(aggregation_method).unstack(level=-1)
+        distribution = data.groupby([y_series.name, x_series.name],
+                                    observed=False).agg(aggregation_method).unstack(level=-1)
 
     if y_bin_labels is not None:
         distribution.index = y_bin_labels
@@ -383,7 +391,7 @@ def _mean_of_monthly_means_basic_method(df: pd.Series) -> pd.Series:
     Return a Series of mean of monthly mean with timestamp as the index.
     Calculate the monthly mean for each calendar month and then average the resulting 12 months.
     """
-    mean_monthly_mean: pd.Series = df.groupby(df.index.month).mean().mean()
+    mean_monthly_mean: pd.Series = df.groupby(df.index.month, observed=False).mean().mean()
     return mean_monthly_mean
 
 
@@ -611,9 +619,10 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
     data = pd.concat([var_to_bin.rename('data'), var_binned_series], join='inner', axis=1)
 
     if aggregation_method == '%frequency':
-        distribution = data.groupby(['variable_bin'])['data'].count().rename('%frequency') / len(data) * 100.0
+        distribution = data.groupby(['variable_bin'],
+                                    observed=False)['data'].count().rename('%frequency') / len(data) * 100.0
     else:
-        distribution = data.groupby(['variable_bin'])['data'].agg(aggregation_method)
+        distribution = data.groupby(['variable_bin'], observed=False)['data'].agg(aggregation_method)
 
     return distribution
 
@@ -740,7 +749,7 @@ def dist(var_to_bin, var_to_bin_against=None, bins=None, bin_labels=None, x_labe
 
     graph = plt.figure(figsize=(15, 8))
     ax = graph.add_axes([0.1, 0.1, 0.8, 0.8])
-    bw_plt._bar_subplot(distributions.replace([np.inf, -np.inf], np.NAN), x_label=x_label, y_label=aggregation_method,
+    bw_plt._bar_subplot(distributions.replace([np.inf, -np.inf], np.nan), x_label=x_label, y_label=aggregation_method,
                         max_bar_axis_limit=max_y_value, bin_tick_labels=bin_labels,
                         bar_tick_label_format=bar_tick_label_format, legend=legend, total_width=0.8, ax=ax)
     plt.close()
@@ -876,9 +885,9 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
         _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
     data = pd.concat([var_series.rename('data'), direction_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
-        result = data.groupby(['direction_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
+        result = data.groupby(['direction_bin'], observed=False)['data'].count().rename('%frequency')/len(data) * 100.0
     else:
-        result = data.groupby(['direction_bin'])['data'].agg(aggregation_method)
+        result = data.groupby(['direction_bin'], observed=False)['data'].agg(aggregation_method)
 
     for i in range(1, sectors+1):
         if not (i in result.index):
@@ -916,10 +925,11 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
     data = pd.concat([var_series.rename('var_data'), var_binned_series, direction_binned_series], axis=1).dropna()
 
     if aggregation_method == '%frequency':
-        counts = data.groupby([var_to_bin_series.name, 'direction_bin']).count().unstack(level=-1)
+        counts = data.groupby([var_to_bin_series.name, 'direction_bin'], observed=False).count().unstack(level=-1)
         distribution = counts/(counts.sum().sum()) * 100.0
     else:
-        distribution = data.groupby([var_to_bin_series.name, 'direction_bin']).agg(aggregation_method).unstack(level=-1)
+        distribution = data.groupby([var_to_bin_series.name, 'direction_bin'],
+                                    observed=False).agg(aggregation_method).unstack(level=-1)
     distribution.columns = distribution.columns.droplevel(0)
     for i in range(1, sectors + 1):
         if not (i in distribution.columns):
@@ -1289,7 +1299,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     # This scale factor is used to correct `var_series` when concurrent with `direction_series`.
     if target_freq_table_mean is not None:
         scale_factor = target_freq_table_mean / data_concurrent[var_series.name].mean()
-        var_series_scaled = scale_wind_speed(data_concurrent[var_series.name], scale_factor)
+        var_series_scaled = tf.scale_wind_speed(data_concurrent[var_series.name], scale_factor)
     else:
         var_series_scaled = var_series
 
@@ -1324,7 +1334,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         else:
             freq_tab_mean = _calc_mean_speed_of_freq_tab(result)
             scale_factor = target_freq_table_mean / freq_tab_mean
-            var_series_scaled = scale_wind_speed(var_series_scaled, scale_factor)
+            var_series_scaled = tf.scale_wind_speed(var_series_scaled, scale_factor)
 
             abs_percentage_diff = abs(100 * (target_freq_table_mean - freq_tab_mean) / freq_tab_mean)
             if abs_percentage_diff > 0.01:
@@ -1363,7 +1373,7 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
         return graph
 
 
-def time_continuity_gaps(data):
+def time_continuity_gaps(data: pd.DataFrame, minimum_gap_length: Optional[pd.Timedelta] = None):
     """
     Returns a table listing all the time gaps in the data that are not equal to the derived temporal resolution.
 
@@ -1388,19 +1398,33 @@ def time_continuity_gaps(data):
     in the two available timestamps. It gives the actual amount of data missing e.g. if the two timestamps were 
     2020-01-01 01:10 and 2020-01-01 01:50 the days lost will equate to a 30 min of missing data and not 40 min.
 
-    :param data: Data for checking continuity, timestamp must be the index
-    :type data:  pd.Series or pd.DataFrame
-    :return:     A table listing all the time gaps in the data that are not equal to the derived
-                 temporal resolution.
-    :rtype:      pd.DataFrame
+    :param data:                            Data for checking continuity, timestamp must be the index
+    :type data:                             pd.Series or pd.DataFrame
+    :param minimum_gap_length:              The minimum length time gap to report. Shorter time gaps will be filtered
+                                            out of the returned DataFrame
+    :type minimum_gap_length:               Optional[pd.Timedelta]
+    :return:                                A table listing all the time gaps in the data that are not equal to the 
+                                            derived temporal resolution.
+    :rtype:                                 pd.DataFrame
 
     **Example usage**
     ::
+        import pandas as pd
         import brightwind as bw
+
         data = bw.load_csv(bw.demo_datasets.demo_data)
         bw.time_continuity_gaps(data)
 
         bw.time_continuity_gaps(data['Spd80mN'])
+
+        # Removing all gaps shorter than 4hrs 30mins
+        bw.time_continuity_gaps(data['Spd80mN'], pd.Timedelta("4h 30min"))
+
+        # Removing all gaps shorter than 20mins, expressed using alternative pandas notation
+        bw.time_continuity_gaps(data['Spd80mN'], pd.Timedelta(minutes=20))
+
+        # Removing all gaps shorter than 1day
+        bw.time_continuity_gaps(data['Spd80mN'], pd.Timedelta(days=1))
 
     """
     indexes = data.dropna(how='all').index
@@ -1411,7 +1435,12 @@ def time_continuity_gaps(data):
 
     continuity = pd.DataFrame({'Date From': indexes.values.flatten()[:-1],
                                'Date To': indexes.values.flatten()[1:]})
-    continuity['Days Lost'] = (continuity['Date To'] - continuity['Date From']) / pd.Timedelta('1 days')
+    continuity['Time gap'] = (continuity['Date To'] - continuity['Date From'])
+
+    if minimum_gap_length:
+        continuity = continuity[continuity['Time gap'] >= minimum_gap_length]
+
+    continuity['Days Lost'] = continuity['Time gap'] / pd.Timedelta('1 days')
 
     # Remove indexes where no days are lost before returning
     
@@ -1456,11 +1485,11 @@ def coverage(data, period='1M', aggregation_method='mean', data_resolution=None)
     :param period: Groups data by the period specified here. The following formats are supported
 
             - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
-            - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+            - Set period to 1h for hourly average, 3h for three hourly average and so on for 5h, 6h etc.
             - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
             - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
             - Set period to 1M for monthly average
-            - Set period to 1AS fo annual average
+            - Set period to 1YS fo annual average
             - Can be a DateOffset object too
 
     :type period: str or pandas.DateOffset
@@ -1480,10 +1509,10 @@ def coverage(data, period='1M', aggregation_method='mean', data_resolution=None)
         data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
 
         #To find hourly coverage
-        data_hourly = bw.coverage(data.Spd80mN, period='1H')
+        data_hourly = bw.coverage(data.Spd80mN, period='1h')
 
         #To find hourly coverage for multiple columns
-        data_hourly_multiple = bw.coverage(data[['Spd80mS','Spd60mN']], period='1H')
+        data_hourly_multiple = bw.coverage(data[['Spd80mS','Spd60mN']], period='1h')
 
         #To find monthly_coverage
         data_monthly = bw.coverage(data.Spd80mN, period='1M')
@@ -2013,55 +2042,209 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
     return fig
 
 
-def calc_air_density(temperature, pressure, elevation_ref=None, elevation_site=None, lapse_rate=-0.113,
-                     specific_gas_constant=286.9):
+def calc_air_density(temperature: Union[float, pd.Series],
+                     pressure: Union[float, pd.Series],
+                     elevation_ref: Union[float, int] = None,
+                     elevation_site: Union[float, int] = None,
+                     lapse_rate: float = AIR_DENSITY_LAPSE_RATE,
+                     specific_gas_constant: float = 286.9,
+                     rel_humidity_percent: Union[float, pd.Series] = None
+                     ) -> Union[float, pd.Series]:
     """
-    Calculates air density for a given temperature and pressure and extrapolates that to the site if both reference
-    and site elevations are given.
+    Calculates air density for a given air temperature (temperature), air pressure (pressure) 
+    and relative humidity (rel_humidity_percent) using method outlined in IEC Standard (61400-12-1).
 
-    :param temperature: Temperature values in degree Celsius
-    :type temperature: float or pandas.Series or pandas.DataFrame
-    :param pressure: Pressure values in hectopascal, hPa, (1,013.25 hPa = 101,325 Pa = 101.325 kPa =
-                    1 atm = 1013.25 mbar)
-    :type pressure: float or pandas.Series or pandas.DataFrame
-    :param elevation_ref: Elevation, in meters, of the reference temperature and pressure location.
-    :type elevation_ref: Floating point value (decimal number)
-    :param elevation_site: Elevation, in meters, of the site location to calculate air density for.
-    :type elevation_site: Floating point values (decimal number)
-    :param lapse_rate: Air density lapse rate kg/m^3/km, default is -0.113
-    :type lapse_rate: Floating point value (decimal number)
-    :param specific_gas_constant: Specific gas constant, R, for humid air J/(kg.K), default is 286.9
-    :type specific_gas_constant:  Floating point value (decimal number)
-    :return: Air density in kg/m^3
-    :rtype: float or pandas.Series depending on the input
+    Note that the value of the specific_gas_constant argument is used only when rel_humidity_percent is None.
+    This specific_gas_constant argument and its default value of 286.9 are retained to maintain backwards
+    compatibility for when rel_humidity_percent is None.
+    However, if rel_humidity_percent is not None, the specific_gas_constant is ignored as the air density
+    calculation which incorporates humidity depends on the two specific gas constants for dry air
+    (287.05 J/kg*K) and water vapour (461.5 J/kg*K) and therefore the specific_gas_constant argument is redundant.
+
+    WARNING: The `specific_gas_constant` argument will be removed in a future 3.0 release of brightwind.
+
+    Function gives option to scale air density to the elevation of the site if both the reference elevation 
+    (elevation_ref) and site elevation (elevation_site) are provided. This scaling assumes that air density 
+    decreases with increasing altitude above the earth's surface - a default air density lapse rate of -0.113 kg/m3/km 
+    is adopted. Taken from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014)
+
+    WARNING: Option of scaling air density to height will be removed in a future 3.0 release of brightwind. Please call 
+    `scale_air_density_to_height()` separately instead.
+
+    :param temperature:             Air temperature values in degree Celsius
+    :type temperature:              float or pandas.Series
+    :param pressure:                Air pressure values in hectopascal, hPa or millibar, mbar (Note 1hPa = 1mbar) 
+                                    (1013.25 hPa = 101,325 Pa = 101.325 kPa = 1 atm = 1013.25 mbar)
+    :type pressure:                 float or pandas.Series
+    :param elevation_ref:           Elevation, in meters, of the reference air density location (and air temperature, 
+                                    air pressure, relative humidity measurements used for the calculation).
+    :type elevation_ref:            float or int
+    :param elevation_site:          Elevation, in meters, of the site location for which air density is calculated.
+                                    Scaled air density value(s) are calculated from elevation_ref to elevation_site 
+                                    if both are specified.
+    :type elevation_site:           float or int
+    :param lapse_rate:              Air density lapse rate kg/m^3/km. Default is -0.113 kg/m^3/km.
+    :type lapse_rate:               float
+    :param specific_gas_constant:   Specific gas constant R, for moist air, in J/(kg*K). Default is 286.9 J/(kg*K). 
+                                    If rel_humidity_percent is not None, this argument is ignored and the specific
+                                    gas constant for dry air of 287.05 J/(kg*K) is used instead. 
+                                    If rel_humidity_percent is None, then provided the user is unconcerned with
+                                    backwards compatibility, the user should set the specific_gas_constant to 287.05 or 
+                                    set rel_humidity_percent to 0 to use the specific gas constants for dry air.             
+    :type specific_gas_constant:    float
+    :param rel_humidity_percent:    Relative humidity values as a percentage. Default is None. If None, the air density 
+                                    calculation ignores humidity.
+    :type rel_humidity_percent:     float or pandas.Series
+    :return:                        Air density in kg/m^3. Output type depends on type(temperature), type(pressure),
+                                    type(rel_humidity_percent) provided. If all inputs are float, output is float. 
+                                    If any input is pandas.Series, output is pandas.Series.
+    :rtype:                         float or pandas.Series
 
         **Example usage**
     ::
-        import brightwind as bw
+    import brightwind as bw
 
-        #For a series of air densities
-        data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
-        air_density = bw.calc_air_density(data.T2m, data.P2m)
+    data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
 
-        #For a single value
-        bw.calc_air_density(15, 1013)
+    # Calculate air density from input air temperature and air pressure series
+    # (rel_humidity_percent=None and specific_gas_constant=286.9 by default)
+    bw.calc_air_density(data.T2m, data.P2m).head(5)
+    # Timestamp
+    # 2016-01-09 15:30:00    1.190011
+    # 2016-01-09 15:40:00    1.190363
+    # 2016-01-09 17:00:00    1.186939
+    # 2016-01-09 17:10:00    1.187684
+    # 2016-01-09 17:20:00    1.188079
+    # dtype: float64
 
-        #For a single value with ref and site elevation
-        bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200)
+    # Calculate air density from input air temperature and air pressure series
+    # (rel_humidity_percent=None and specific_gas_constant=287.05 which is the constant for dry air)
+    bw.calc_air_density(data.T2m, data.P2m, specific_gas_constant=287.05).head(5)
+    # Timestamp
+    # 2016-01-09 15:30:00    1.189389
+    # 2016-01-09 15:40:00    1.189741
+    # 2016-01-09 17:00:00    1.186319
+    # 2016-01-09 17:10:00    1.187064
+    # 2016-01-09 17:20:00    1.187458
+    # dtype: float64
+
+    # Calculate air density from single float values of air temperature and air pressure
+    # (rel_humidity_percent=None and specific_gas_constant=286.9 by default)
+    bw.calc_air_density(15, 1013).round(5)
+    # 1.22535
+
+    # Calculate air density from single float value of air temperature and air pressure
+    # (rel_humidity_percent=None and specific_gas_constant=287.05 which is the constant for dry air)
+    bw.calc_air_density(15, 1013, specific_gas_constant=287.05).round(5)
+    # 1.22471
+
+    # Calculate air density from input air temperature, air pressure and relative humidity series
+    # As rel_humidity_percent is not None, gas constant for dry air of 287.05 is used
+    bw.calc_air_density(data.T2m, data.P2m, rel_humidity_percent=data.RH2m).head(5)
+    # Timestamp
+    # 2016-01-09 15:30:00    1.186163
+    # 2016-01-09 15:40:00    1.186530
+    # 2016-01-09 17:00:00    1.183012
+    # 2016-01-09 17:10:00    1.183790
+    # 2016-01-09 17:20:00    1.184202
+    # dtype: float64
+
+    # Calculate air density from single float value of air temperature, air pressure, relative humidity
+    # As rel_humidity_percent is not None, gas constant for dry air of 287.05 is used
+    bw.calc_air_density(15, 1013, rel_humidity_percent=50).round(5)
+    # 1.22093
+
+    # Calculate air density from a single float value of air temperature, air pressure, relative humidity
+    # and scale result from reference elevation to site elevation.
+    bw.calc_air_density(15, 1013, rel_humidity_percent=50, elevation_ref=0, elevation_site=200)
+    # 1.198
 
     """
+    # Raise errors if any inputs are DataFrames
+    if isinstance(temperature, pd.DataFrame):
+        raise ValueError("temperature cannot be provided as a DataFrame. Provide as float or pandas Series.")
+    if isinstance(pressure, pd.DataFrame):
+        raise ValueError("pressure cannot be provided as a DataFrame. Provide as float or pandas Series.")
+    if isinstance(rel_humidity_percent, pd.DataFrame):
+        raise ValueError("rel_humidity_percent cannot be provided as a DataFrame. Provide as float or pandas Series.")
+    
+    # Check dimensions of temperature, pressure and rel_humidity_percent if not float or int
+    if isinstance(temperature, pd.Series) and (isinstance(pressure, pd.Series)):
+        if len(temperature) != len(pressure):
+            raise ValueError("temperature and pressure must have the same dimensions.")
+        if isinstance(rel_humidity_percent, pd.Series):
+            if len(temperature) != len(rel_humidity_percent):
+                raise ValueError("temperature, pressure and rel_humidity_percent must have the same dimensions.")
 
-    temp = temperature
-    temp_kelvin = temp + 273.15     # to convert deg C to Kelvin.
-    pressure = pressure * 100       # to convert hPa to Pa
-    ref_air_density = pressure / (specific_gas_constant * temp_kelvin)
+    lapse_rate_per_m = lapse_rate * 0.001 # convert lapse rate from kg/m3/km to kg/m3/m
+    temp_K = temperature + 273.15 # to convert deg C to Kelvin.
+    press_Pa = pressure * 100  # to convert hPa to Pa
+    vapour_press = 0.0000205 * np.exp(0.0631846 * temp_K)
+    specific_gas_constant_water = 461.5
+    specific_gas_constant_dry_air = GAS_CONST_DRY_AIR
 
-    if elevation_ref is not None and elevation_site is not None:
-        site_air_density = round(ref_air_density + (((elevation_site - elevation_ref) / 1000) * lapse_rate), 3)
-        return site_air_density
-    elif elevation_site is None and elevation_ref is not None:
-        raise TypeError('elevation_site should be a number')
-    elif elevation_site is not None and elevation_ref is None:
-        raise TypeError('elevation_ref should be a number')
+    if rel_humidity_percent is None:
+        # If relative humidity is None, the old method ignoring relative humidity is used.
+        # To avoid a breaking change, the value of the specific_gas_constant argument is used.
+        # (Default specific_gas_constant is 286.9 which is for moist air)
+        # If a user is not concerned with backwards compatibility, the value of this argument should be updated to match
+        # the specific gas constant for dry air (287.05) which makes more physical sense given relative humidity is
+        # taken as zero in the calculation below.
+        gas_constant_air = specific_gas_constant
+        rel_hum_decimal = 0.0
+        # Deprecation warning
+        warnings.warn(
+            (
+                "\nThe `specific_gas_constant` argument of `calc_air_density()` will be removed in a future 3.0 "
+                "release of brightwind.\nNote that this value is used only when `rel_humidity_percent` is None."
+                "\nPlease set `rel_humidity_percent` to 0 instead if you want to use the specific gas constant "
+                "for dry air (287.05 J/kg*K)."
+                ),
+            DeprecationWarning,
+            stacklevel=2
+        )
+
     else:
-        return ref_air_density
+        # Otherwise, if the rel_humidity_percent is not None (including = 0), the new method including relative humidity
+        # is used. The specific_gas_constant_dry_air of 287.05 is used as the air density calculation incorporating 
+        # relative humidity is clearly split into a dry component and a moist component. Therefore it makes physical 
+        # sense to use the specific gas constant for dry air in this context.
+        gas_constant_air = specific_gas_constant_dry_air
+        rel_hum_decimal = rel_humidity_percent * 0.01
+
+    # Contribution from dry air
+    dry_air_term = press_Pa / gas_constant_air
+
+    # Contribution from water vapour
+    water_vapour_term = rel_hum_decimal * vapour_press * (
+                            (1 / gas_constant_air) - (1 / specific_gas_constant_water))
+    
+    # Combine to get air density
+    air_density = (1 / temp_K) * (dry_air_term - water_vapour_term)
+    
+    if elevation_ref is not None and elevation_site is not None:
+        # Deprecation warning
+        warnings.warn(
+            (
+                "\nScaling air density to height within `calc_air_density()` is deprecated and will be removed in a "
+                "future 3.0 release of brightwind.\nPlease call `scale_air_density_to_height()` separately instead. \n"
+                ),
+            DeprecationWarning,
+            stacklevel=2
+        )
+        # Perform extrapolation
+        scaled_air_density = scale_air_density_to_height(air_density,
+                                                            elevation_ref,
+                                                            elevation_site,
+                                                            lapse_rate_per_m)
+        return round(scaled_air_density, 3)
+    
+    # Validate elevation arguments
+    if elevation_site is not None and elevation_ref is None:
+        raise TypeError("Specify value of elevation_ref (float or int) when elevation_site is provided.")
+    elif elevation_ref is not None and elevation_site is None:
+        raise TypeError("Specify value of elevation_site (float or int) when elevation_ref is provided.")
+    
+    return air_density
+
+

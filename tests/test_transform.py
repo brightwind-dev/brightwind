@@ -7,6 +7,7 @@ import copy
 import io
 import sys
 import re
+import warnings
 
 from brightwind.transform.transform import (
     _check_vertical_profiler_properties_overlap as check_vertical_profiler_properties_overlap
@@ -14,15 +15,15 @@ from brightwind.transform.transform import (
 
 
 wndspd = 8
-wndspd_df = pd.DataFrame([2, 13, np.NaN, 5, 8])
-wndspd_series = pd.Series([2, 13, np.NaN, 5, 8])
+wndspd_df = pd.DataFrame([2, 13, np.nan, 5, 8])
+wndspd_series = pd.Series([2, 13, np.nan, 5, 8])
 current_slope = 0.045
 current_offset = 0.235
 new_slope = 0.046
 new_offset = 0.236
 wndspd_adj = 8.173555555555556
-wndspd_adj_df = pd.DataFrame([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
-wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
+wndspd_adj_df = pd.DataFrame([2.0402222222222224, 13.284666666666668, np.nan, 5.106888888888888, 8.173555555555556])
+wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.nan, 5.106888888888888, 8.173555555555556])
 ref_date = pd.to_datetime('2000-01-01')
 
 DATA = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
@@ -50,13 +51,13 @@ def test_selective_avg():
     days = pd.date_range(date_today, date_today + datetime.timedelta(24), freq='D')
     data = pd.DataFrame({'DTM': days})
     data = data.set_index('DTM')
-    data['Spd1'] = [1, np.NaN, 1, 1, 1, 1, 1, 1, 1, np.NaN, 1, 1, 1, 1, np.NaN, 1, 1, np.NaN, 1, 1, 1, 1, np.NaN, 1, 1]
-    data['Spd2'] = [2, 2, np.NaN, 2, 2, 2, 2, 2, np.NaN, 2, 2, 2, 2, np.NaN, 2, 2, 2, np.NaN, 2, 2, 2, 2, 2, np.NaN, 2]
-    data['Dir'] = [0, 15, 30, 45, np.NaN, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240, 255, 270, 285, 300,
-                   315, np.NaN, 345, 360]
+    data['Spd1'] = [1, np.nan, 1, 1, 1, 1, 1, 1, 1, np.nan, 1, 1, 1, 1, np.nan, 1, 1, np.nan, 1, 1, 1, 1, np.nan, 1, 1]
+    data['Spd2'] = [2, 2, np.nan, 2, 2, 2, 2, 2, np.nan, 2, 2, 2, 2, np.nan, 2, 2, 2, np.nan, 2, 2, 2, 2, 2, np.nan, 2]
+    data['Dir'] = [0, 15, 30, 45, np.nan, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240, 255, 270, 285, 300,
+                   315, np.nan, 345, 360]
 
     # Test Case 1: Neither boom is near 0-360 crossover
-    result = np.array([1.5, 2, 1, 1.5, 1.5, 1.5, 1.5, 2, 1, 2, 2, 2, 1.5, 1, 2, 1.5, 1.5, np.NaN,
+    result = np.array([1.5, 2, 1, 1.5, 1.5, 1.5, 1.5, 2, 1, 2, 2, 2, 1.5, 1, 2, 1.5, 1.5, np.nan,
                        1.5, 1, 1, 1, 2, 1, 1.5])
     bw.selective_avg(data[['Spd1']], data[['Spd2']], data[['Dir']],
                      boom_dir_1=315, boom_dir_2=135, sector_width=60)
@@ -65,21 +66,21 @@ def test_selective_avg():
     assert np_array_equal(sel_avg, result)
 
     # Test Case 2: Boom 1 is near 0-360 crossover
-    result = np.array([1.0, 2.0, 1.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.0, 2.0, 1.5, 1.5, 2.0, 1.0, 2.0, 2.0, 1.5, np.NaN,
+    result = np.array([1.0, 2.0, 1.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.0, 2.0, 1.5, 1.5, 2.0, 1.0, 2.0, 2.0, 1.5, np.nan,
                        1.5, 1.5, 1.5, 1.5, 2.0, 1.0, 1.0])
     sel_avg = np.array(bw.selective_avg(data.Spd1, data.Spd2, data.Dir,
                                         boom_dir_1=20, boom_dir_2=200, sector_width=60))
     assert np_array_equal(sel_avg, result)
 
     # Test Case 3: Boom 2 is near 0-360 crossover
-    result = np.array([2.0, 2.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.5, 1.5, np.NaN,
+    result = np.array([2.0, 2.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.5, 1.5, np.nan,
                        1.5, 1.5, 1.5, 1.5, 2.0, 1.0, 2.0])
     sel_avg = np.array(bw.selective_avg(data.Spd1, data.Spd2, data.Dir,
                                         boom_dir_1=175, boom_dir_2=355, sector_width=60))
     assert np_array_equal(sel_avg, result)
 
     # Test Case 4: Booms at 90 deg to each other
-    result = np.array([1.0, 2.0, 1.0, 1.5, 1.5, 2.0, 2.0, 2.0, 1.0, 2.0, 1.5, 1.5, 1.5, 1.0, 2.0, 1.5, 1.5, np.NaN,
+    result = np.array([1.0, 2.0, 1.0, 1.5, 1.5, 2.0, 2.0, 2.0, 1.0, 2.0, 1.5, 1.5, 1.5, 1.0, 2.0, 1.5, 1.5, np.nan,
                        1.5, 1.5, 1.5, 1.5, 2.0, 1.0, 1.0])
     sel_avg = np.array(bw.selective_avg(data.Spd1, data.Spd2, data.Dir,
                                         boom_dir_1=270, boom_dir_2=180, sector_width=60))
@@ -161,13 +162,13 @@ def test_offset_wind_direction_float():
 
 
 def test_offset_wind_direction_df():
-    wdir_df_offset = pd.DataFrame([355, 15, np.NaN, 25, 335])
-    assert wdir_df_offset.equals(bw.offset_wind_direction(pd.DataFrame([10, 30, np.NaN, 40, 350]), 345))
+    wdir_df_offset = pd.DataFrame([355, 15, np.nan, 25, 335])
+    assert wdir_df_offset.equals(bw.offset_wind_direction(pd.DataFrame([10, 30, np.nan, 40, 350]), 345))
 
 
 def test_offset_wind_direction_series():
-    wdir_series_offset = pd.Series([355, 15, np.NaN, 25, 335])
-    assert wdir_series_offset.equals(bw.offset_wind_direction(pd.Series([10, 30, np.NaN, 40, 350]), 345))
+    wdir_series_offset = pd.Series([355, 15, np.nan, 25, 335])
+    assert wdir_series_offset.equals(bw.offset_wind_direction(pd.Series([10, 30, np.nan, 40, 350]), 345))
 
 
 def test_apply_wind_vane_dead_band_offset():
@@ -292,13 +293,13 @@ def test_check_vertical_profiler_properties_not_overlap():
 def test_freq_str_to_dateoffset():
     # Excluding monthly periods and above as it will depend on which month or year
     periods = ['1S', '1min', '5min', '10min', '15min',
-               '1H', '3H', '6H', '1D', '7D',
+               '1h', '3h', '6h', '1D', '7D',
                '1W', '2W', '1MS', '1M', '3M', '6MS',
-               '1AS', '1A', '3A']
+               '1YS']
     results = [1.0, 60.0, 300.0, 600.0, 900.0,
                3600.0, 10800.0, 21600.0, 86400.0, 604800.0,
                604800.0, 1209600.0, 2678400.0, 2678400.0, 7862400.0, 15724800.0,
-               31622400.0, 31622400.0, 94694400.0]
+               31622400.0]
 
     for idx, period in enumerate(periods):
         if type(bw.transform.transform._freq_str_to_dateoffset(period)) == pd.DateOffset:
@@ -308,15 +309,59 @@ def test_freq_str_to_dateoffset():
                     ).total_seconds() == results[idx]
 
         # Check that data frequency is returned as a DateOffset.
-        assert type(bw.transform.transform._freq_str_to_dateoffset(period)) == pd.DateOffset
+        assert isinstance(bw.transform.transform._freq_str_to_dateoffset(period), pd.DateOffset)
+
+
+def test_freq_str_to_dateoffset_deprecation_warning():
+    """Test frequency string conversion and check deprecation warnings for old formats."""
+    ref_date = pd.Timestamp('2020-01-01')
+    
+    periods = [
+        '1H', '3H', '6H','1T', '30T', '1S', '1AS', '1A', '3A'
+    ]
+    results = [
+        3600.0, 10800.0, 21600.0, 60.0, 1800.0, 1.0, 31622400.0, 31622400.0, 94694400.0
+    ]
+    
+    # Reset warning flags to test them
+    bw.transform.transform._warned_h = False
+    bw.transform.transform._warned_t = False
+    bw.transform.transform._warned_s = False
+    bw.transform.transform._warned_a = False
+    bw.transform.transform._warned_as = False
+    
+    for idx, period in enumerate(periods):
+        # All these deprecated formats should raise DeprecationWarning
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = bw.transform.transform._freq_str_to_dateoffset(period)
+            
+            # Check warning was raised on first use of each suffix
+            if period in ['1H', '1T', '1S', '1AS', '1A']:
+                assert len(w) == 1, f"Expected warning for deprecated format '{period}'"
+                assert issubclass(w[0].category, DeprecationWarning)
+        
+        # Check that data frequency is returned as a DateOffset
+        assert isinstance(result, pd.DateOffset)
+        
+        # Verify the time delta
+        if type(result) == pd.DateOffset:
+            assert (ref_date + result - ref_date).total_seconds() == results[idx]
 
 
 def test_round_timestamp_down_to_averaging_prd():
     timestamp = pd.Timestamp('2016-01-09 11:21:11')
-    avg_periods = ['10min', '15min', '1H', '3H', '6H', '1D', '7D', '1W', '1MS', '1AS']
+    avg_periods = ['10min', '15min', '1h', '3h', '6h', '1D', '7D', '1W', '1MS', '1YS']
     avg_period_start_timestamps = ['2016-1-9 11:20:00', '2016-1-9 11:15:00', '2016-1-9 11:00:00',
                                    '2016-1-9 9:00:00', '2016-1-9 6:00:00', '2016-1-9', '2016-1-9',  '2016-1-9',
                                    '2016-1', '2016']
+    for idx, avg_period in enumerate(avg_periods):
+        assert avg_period_start_timestamps[idx] == \
+               bw.transform.transform._round_timestamp_down_to_averaging_prd(timestamp, avg_period)
+    avg_periods = ['1H', '3H', '6H', '1AS']
+    avg_period_start_timestamps = [
+        '2016-1-9 11:00:00', '2016-1-9 9:00:00', '2016-1-9 6:00:00', '2016'
+        ]
     for idx, avg_period in enumerate(avg_periods):
         assert avg_period_start_timestamps[idx] == \
                bw.transform.transform._round_timestamp_down_to_averaging_prd(timestamp, avg_period)
@@ -328,7 +373,7 @@ def test_get_data_resolution():
     series1 = DATA['Spd80mS'].index
     assert bw.transform.transform._get_data_resolution(series1).kwds == {'minutes': 10}
 
-    series2 = pd.date_range('2010-01-01', periods=150, freq='H')
+    series2 = pd.date_range('2010-01-01', periods=150, freq='h')
     assert bw.transform.transform._get_data_resolution(series2).kwds == {'hours': 1}
 
     series2 = pd.date_range('2010-01-01', periods=150, freq='D')
@@ -340,8 +385,18 @@ def test_get_data_resolution():
     series1 = bw.average_data_by_period(DATA['Spd80mN'], period='1M', coverage_threshold=0, return_coverage=False)
     assert bw.transform.transform._get_data_resolution(series1.index).kwds == {'months': 1}
 
+    series1 = bw.average_data_by_period(DATA['Spd80mN'], period='1YS', coverage_threshold=0, return_coverage=False)
+    assert bw.transform.transform._get_data_resolution(series1.index).kwds == {'years': 1}
+
     series1 = bw.average_data_by_period(DATA['Spd80mN'], period='1AS', coverage_threshold=0, return_coverage=False)
     assert bw.transform.transform._get_data_resolution(series1.index).kwds == {'years': 1}
+
+    # hourly series with one instance where difference between adjacent timestamps is 10 min
+    series3 = pd.date_range('2010-04-15', '2010-05-01', freq='h').union(pd.date_range('2010-05-01 00:10:00', periods=20,
+                                                                                      freq='h'))
+    with warnings.catch_warnings(record=True) as w:
+        assert bw.transform.transform._get_data_resolution(series3).kwds == {'hours': 1}
+        assert len(w) == 1
 
     # hourly series with one instance where difference between adjacent timestamps is 10 min
     series3 = pd.date_range('2010-04-15', '2010-05-01', freq='H').union(pd.date_range('2010-05-01 00:10:00', periods=20,
@@ -356,6 +411,24 @@ def test_offset_timestamps():
 
     # sending index with no start end
     bw.offset_timestamps(series1.index, offset='90min')
+
+    series2 = DATA['2016-01-10 00:00:00':'2017-01-10 00:00:00']
+    op = bw.offset_timestamps(series2.index, offset='90min')
+    assert len(op) == len(series2)
+    assert op[0] == pd.to_datetime('2016-01-10 01:30:00')
+    assert op[-1] == pd.to_datetime('2017-01-10 01:30:00')
+
+    op = bw.offset_timestamps(series2.index, offset='-2H')
+    assert len(op) == len(series2)
+    assert op[0] == pd.to_datetime('2016-01-09 22:00:00')
+    assert op[-1] == pd.to_datetime('2017-01-09 22:00:00')
+
+    # sending DataFrame with datetime index with no start end
+    op = bw.offset_timestamps(series2, offset='-10min')
+    assert (op.iloc[0] == series2.iloc[0]).all()
+    assert (op.iloc[-1] == series2.iloc[-1]).all()
+    assert len(op) == len(series2)
+    assert (op.loc['2017-01-09 23:50:00'] == series2.loc['2017-01-10 00:00:00']).all()
 
     # sending index with start end
     op = bw.offset_timestamps(series1.index, offset='2min', date_from='2016-01-10 00:10:00')
@@ -431,9 +504,14 @@ def test_offset_timestamps():
     assert (op.loc['2016-01-12 00:00:00'] == series1.Spd60mN.loc['2016-01-11 23:30:00']).all()
     assert (op.loc['2016-01-12 00:30:00'] == series1.Spd60mN.loc['2016-01-12 00:30:00']).all()
 
+    assert bw.offset_timestamps(DATA.index[0], offset='4h') == pd.Timestamp('2016-01-09 19:30:00')
+    assert bw.offset_timestamps(datetime.datetime(2016, 2, 1, 0, 20), offset='3.5h'
+                                ) == datetime.datetime(2016, 2, 1, 3, 50)
+
     assert bw.offset_timestamps(DATA.index[0], offset='4H') == pd.Timestamp('2016-01-09 19:30:00')
     assert bw.offset_timestamps(datetime.datetime(2016, 2, 1, 0, 20), offset='3.5H'
                                 ) == datetime.datetime(2016, 2, 1, 3, 50)
+    assert bw.offset_timestamps(datetime.date(2016, 2, 1), offset='-5h') == datetime.datetime(2016, 1, 31, 19, 0)
     assert bw.offset_timestamps(datetime.date(2016, 2, 1), offset='-5H') == datetime.datetime(2016, 1, 31, 19, 0)
     assert bw.offset_timestamps(datetime.time(0, 20), offset='30min') == datetime.time(0, 50)
 
@@ -443,10 +521,10 @@ def test_average_wdirs():
     assert bw.average_wdirs(wdirs) == 0.0
 
     wdirs = np.array([0, 180])
-    assert bw.average_wdirs(wdirs) is np.NaN
+    assert bw.average_wdirs(wdirs) is np.nan
 
     wdirs = np.array([90, 270])
-    assert bw.average_wdirs(wdirs) is np.NaN
+    assert bw.average_wdirs(wdirs) is np.nan
 
     wdirs = np.array([45, 135])
     assert bw.average_wdirs(wdirs) == 90
@@ -455,7 +533,7 @@ def test_average_wdirs():
     assert bw.average_wdirs(wdirs) == 180
 
     wdirs = np.array([45, 315, 225, 135])
-    assert bw.average_wdirs(wdirs) is np.NaN
+    assert bw.average_wdirs(wdirs) is np.nan
 
     wdirs = np.array([225, 315])
     assert bw.average_wdirs(wdirs) == 270
@@ -473,7 +551,7 @@ def test_average_wdirs():
     assert round(bw.average_wdirs(wdirs_with_nan, wspds_with_nan), 3) == 15.0
 
     wspds_with_nan = [np.nan, np.nan, np.nan]
-    assert bw.average_wdirs(wdirs_with_nan, wspds_with_nan) is np.NaN
+    assert bw.average_wdirs(wdirs_with_nan, wspds_with_nan) is np.nan
 
     wspds_with_nan = [3, 4, np.nan]
     assert round(bw.average_wdirs(pd.Series(wdirs_with_nan), pd.Series(wspds_with_nan)), 3) == 15.0
@@ -523,46 +601,48 @@ def test_average_wdirs():
     for i, j in zip(avg_wdirs, expected_result):
         assert i == j
 
-
-def dummy_data_frame(start_date='2016-01-01T00:00:00', end_date='2016-12-31T11:59:59'):
+@pytest.fixture
+def dummy_data():
     """
-    Returns a DataFrame with wind speed equal to the month of the year, i.e. In January, wind speed = 1 m/s.
-    For use in testing.
-
-    :param start_date: Start date Timestamp, i.e. first index in the DataFrame
-    :type start_date:  Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
-    :param end_date: End date Timestamp, i.e. last index in the DataFrame
-    :type end_date: Timestamp as a string in the form YYYY-MM-DDTHH:MM:SS'
-    :return: pandas.DataFrame
+    Fixture that returns a DataFrame with wind speed equal to the month of the year.
+    Wind speed in January = 1 m/s, February = 2 m/s, etc.
     """
-
-    date_times = {'Timestamp': pd.date_range(start_date, end_date, freq='10T')}
-
-    dummy_wind_speeds = []
-    dummy_wdirs = []
-
-    for i, vals in enumerate(date_times['Timestamp']):
-        # get list of each month for each date entry as dummy windspeeds
-        dummy_wind_speeds.append(vals.month)
-        dummy_wdirs.append((vals.month - 1) * 30)
-
-    dummy_wind_speeds_df = pd.DataFrame({'wspd': dummy_wind_speeds, 'wdir': dummy_wdirs}, index=date_times['Timestamp'])
+    start_date = '2016-01-01T00:00:00'
+    end_date = '2016-12-31T11:59:59'
+    
+    date_times = pd.date_range(start_date, end_date, freq='10min')
+    
+    # Vectorized approach - compatible with all pandas versions
+    dummy_wind_speeds = date_times.month.values
+    dummy_wdirs = (date_times.month.values - 1) * 30
+    
+    dummy_wind_speeds_df = pd.DataFrame(
+        {'wspd': dummy_wind_speeds, 'wdir': dummy_wdirs},
+        index=date_times
+    )
     dummy_wind_speeds_df.index.name = 'Timestamp'
-
+    
     return dummy_wind_speeds_df
 
 
-def test_average_data_by_period():
+def test_average_data_by_period(dummy_data):
+    bw.average_data_by_period(DATA[['Spd80mN']], period='1h')
     bw.average_data_by_period(DATA[['Spd80mN']], period='1H')
     # hourly averages
+    bw.average_data_by_period(DATA.Spd80mN, period='1h')
     bw.average_data_by_period(DATA.Spd80mN, period='1H')
     # hourly average with coverage filtering
+    bw.average_data_by_period(DATA.Spd80mN, period='1h', coverage_threshold=0.9)
+    bw.average_data_by_period(DATA.Spd80mN, period='1h', coverage_threshold=1)
     bw.average_data_by_period(DATA.Spd80mN, period='1H', coverage_threshold=0.9)
     bw.average_data_by_period(DATA.Spd80mN, period='1H', coverage_threshold=1)
     # return coverage with filtering
+    bw.average_data_by_period(DATA.Spd80mN, period='1h', coverage_threshold=0.9,
+                              return_coverage=True)
     bw.average_data_by_period(DATA.Spd80mN, period='1H', coverage_threshold=0.9,
                               return_coverage=True)
     # return coverage without filtering
+    bw.average_data_by_period(DATA.Spd80mN, period='1h', return_coverage=True)
     bw.average_data_by_period(DATA.Spd80mN, period='1H', return_coverage=True)
 
     # monthly averages
@@ -590,7 +670,6 @@ def test_average_data_by_period():
     assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
                                      "For example, hourly data should not be averaged to 10 minute data."
 
-    dummy_data = dummy_data_frame()
     average_monthly_speed = bw.average_data_by_period(dummy_data.wspd, period='1M')
     # test average wind speed for each month
     for i in range(0, 11):
@@ -623,6 +702,8 @@ def test_average_data_by_period():
     assert average_monthly_speed[1].count().wspd_Coverage == 12  # the returned coverage has 12 months
 
     # test average annual wind speed
+    average_annual_speed = bw.average_data_by_period(dummy_data.wspd, period='1YS')
+    assert round(average_annual_speed.iloc[0].item(), 3) == 6.506
     average_annual_speed = bw.average_data_by_period(dummy_data.wspd, period='1AS')
     assert round(average_annual_speed.iloc[0].item(), 3) == 6.506
     # average DATA to monthly
@@ -668,8 +749,7 @@ def test_average_data_by_period():
     data_monthly, coverage_monthly = bw.average_data_by_period(data_test, period='1M', wdir_column_names='Dir78mS',
                                                                return_coverage=True,
                                                                data_resolution=pd.DateOffset(minutes=10))
-    table_count = data_test.resample('1MS', axis=0, closed='left', label='left',
-                                     convention='start', kind='timestamp').count()
+    table_count = data_test.resample('1MS', closed='left', label='left').count()
     assert (table_count['Dir78mS']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Dir78mS_Coverage']['2016-01-01']
             ) < 1e-5
     assert (table_count['Spd80mN']['2016-01-01'] / (31 * 24 * 6) - coverage_monthly['Spd80mN_Coverage']['2016-01-01']
@@ -799,3 +879,13 @@ def test_merge_datasets_by_period():
 
     assert round(mrgd_data['Spd80mN_Coverage'].values[0], 8) == 0.00179211
 
+
+def test_scale_wind_speed():
+
+    assert bw.scale_wind_speed(3, 0.5) == 1.5
+    assert (bw.scale_wind_speed(np.array([0, 1, 2]), 0.5) == [0, 0.5, 1]).all()
+    assert (bw.scale_wind_speed(DATA_CLND['Spd40mN'].tail(3), 0.5) == [4.015, 3.4055, 2.9325]).all()
+
+    df = pd.DataFrame({'Spd_100m': [0.5, 1.2], 'Spd_101m': [3, 4], 'c': ['a', 'b']})
+    result_df = pd.DataFrame({'Spd_100m': [1.0, 2.4], 'Spd_101m': [6, 8], 'c': ['a', 'b']})
+    assert result_df.equals(bw.scale_wind_speed(df, 2))

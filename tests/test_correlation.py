@@ -5,15 +5,15 @@ import numpy as np
 import warnings
 
 wndspd = 8
-wndspd_df = pd.DataFrame([2, 13, np.NaN, 5, 8])
-wndspd_series = pd.Series([2, 13, np.NaN, 5, 8])
+wndspd_df = pd.DataFrame([2, 13, np.nan, 5, 8])
+wndspd_series = pd.Series([2, 13, np.nan, 5, 8])
 current_slope = 0.045
 current_offset = 0.235
 new_slope = 0.046
 new_offset = 0.236
 wndspd_adj = 8.173555555555556
-wndspd_adj_df = pd.DataFrame([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
-wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.NaN, 5.106888888888888, 8.173555555555556])
+wndspd_adj_df = pd.DataFrame([2.0402222222222224, 13.284666666666668, np.nan, 5.106888888888888, 8.173555555555556])
+wndspd_adj_series = pd.Series([2.0402222222222224, 13.284666666666668, np.nan, 5.106888888888888, 8.173555555555556])
 
 DATA = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
 DATA_CLND = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -102,7 +102,7 @@ def test_ordinary_least_squares():
     assert round(correl.params['num_data_points'], 5) == correl_monthly_results_90_intercept['num_data_points']
 
     # check hourly, checked against Excel
-    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1H',
+    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1h',
                                             coverage_threshold=1)
     correl.run()
     assert round(correl.params['slope'], 5) == correl_hourly_results['slope']
@@ -113,7 +113,7 @@ def test_ordinary_least_squares():
     # check aggregation method
     correl_aggregation_results = {'slope': 5.98789, 'offset': -9.32585, 'r2': 0.9304, 'num_data_points': 12445}
     correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['T2M_degC'], DATA_CLND['T2m'],
-                                            averaging_prd='1H', coverage_threshold=1,
+                                            averaging_prd='1h', coverage_threshold=1,
                                             ref_aggregation_method='sum', target_aggregation_method='sum')
     correl.run()
     correl.plot()
@@ -209,62 +209,62 @@ def test_synthesize():
                                                  '2017-06-05 00:00:00': 9.88184374999999,
                                                  '2017-06-15 00:00:00': 7.639711111111101,
                                                  '2017-06-25 00:00:00': 9.144633101851865,
-                                                 '2017-07-05 00:00:00': np.NaN,
-                                                 '2017-07-15 00:00:00': np.NaN,
+                                                 '2017-07-05 00:00:00': np.nan,
+                                                 '2017-07-15 00:00:00': np.nan,
                                                  '2017-07-25 00:00:00': 7.127115740740741,
                                                  '2017-08-04 00:00:00': 6.4158555555555505,
                                                  '2017-08-14 00:00:00': 7.510521527777763,
                                                  '2017-08-24 00:00:00': 5.943415798611104,
-                                                 '2017-09-03 00:00:00': np.NaN,
-                                                 '2017-09-13 00:00:00': np.NaN,
+                                                 '2017-09-03 00:00:00': np.nan,
+                                                 '2017-09-13 00:00:00': np.nan,
                                                  '2017-09-23 00:00:00': 12.601222222222226,
                                                  '2017-10-03 00:00:00': 9.425352777777784,
                                                  '2017-10-13 00:00:00': 9.466307638888878,
                                                  '2017-10-23 00:00:00': 8.84323971518988}}
-    result_ord_lst_sq_dir = {'Spd80mN_Synthesized': {'2016-03-01': np.NaN,
+    result_ord_lst_sq_dir = {'Spd80mN_Synthesized': {'2016-03-01': np.nan,
                                                      '2016-04-01': 6.598875,
-                                                     '2016-05-01': np.NaN,
+                                                     '2016-05-01': np.nan,
                                                      '2016-06-01': 5.108156,
                                                      '2016-07-01': 6.319782,
                                                      '2016-08-01': 7.093956,
-                                                     '2016-09-01': np.NaN,
+                                                     '2016-09-01': np.nan,
                                                      '2016-10-01': 6.669446,
-                                                     '2016-11-01': np.NaN,
+                                                     '2016-11-01': np.nan,
                                                      '2016-12-01': 8.900778,
                                                      '2017-01-01': 9.501281,
                                                      '2017-02-01': 9.134509,
-                                                     '2017-03-01': np.NaN,
+                                                     '2017-03-01': np.nan,
                                                      '2017-04-01': 7.783390,
-                                                     '2017-05-01': np.NaN,
+                                                     '2017-05-01': np.nan,
                                                      '2017-06-01': 8.525249,
                                                      '2017-08-01': 6.715885,
                                                      '2017-10-01': 9.479016}}
-    result_speed_sort = {'Spd80mN_Synthesized': {'2016-03-01': np.NaN,
+    result_speed_sort = {'Spd80mN_Synthesized': {'2016-03-01': np.nan,
                                                  '2016-04-01': 6.598875,
-                                                 '2016-05-01': np.NaN,
+                                                 '2016-05-01': np.nan,
                                                  '2016-06-01': 5.108156,
-                                                 '2016-07-01': np.NaN,
+                                                 '2016-07-01': np.nan,
                                                  '2016-08-01': 7.093956,
-                                                 '2016-09-01': np.NaN,
+                                                 '2016-09-01': np.nan,
                                                  '2016-10-01': 6.669446,
-                                                 '2016-11-01': np.NaN,
+                                                 '2016-11-01': np.nan,
                                                  '2016-12-01': 8.900778,
-                                                 '2017-01-01': np.NaN,
+                                                 '2017-01-01': np.nan,
                                                  '2017-02-01': 9.134509,
-                                                 '2017-03-01': np.NaN},
-                         'Dir78mS_Synthesized': {'2016-03-01': np.NaN,
+                                                 '2017-03-01': np.nan},
+                         'Dir78mS_Synthesized': {'2016-03-01': np.nan,
                                                  '2016-04-01': 318.639591,
-                                                 '2016-05-01': np.NaN,
+                                                 '2016-05-01': np.nan,
                                                  '2016-06-01': 129.720897,
-                                                 '2016-07-01': np.NaN,
+                                                 '2016-07-01': np.nan,
                                                  '2016-08-01': 235.377543,
                                                  '2016-09-01': 223.965222,
                                                  '2016-10-01': 114.451746,
-                                                 '2016-11-01': np.NaN,
+                                                 '2016-11-01': np.nan,
                                                  '2016-12-01': 219.815444,
                                                  '2017-01-01': 237.667123,
                                                  '2017-02-01': 197.538174,
-                                                 '2017-03-01': np.NaN}}
+                                                 '2017-03-01': np.nan}}
 
     data_spd80mn_even_months = DATA_CLND['Spd80mN'][DATA_CLND.index.month.isin([2, 4, 6, 8, 10, 12])]
     # Test the synthesise for when the target data starts before the reference data.
@@ -277,7 +277,7 @@ def test_synthesize():
 
     for idx, row in pd.DataFrame(result_ord_lst_sq).iterrows():
         # Comparing the first 6 digits to avoid issuing with floating point precision
-        assert str(row[0])[0:6] == str(synth.loc[idx][0])[0:6]
+        assert str(row.iloc[0])[0:6] == str(synth.loc[idx].iloc[0])[0:6]
 
     # Test the synthesise for when the ref_dir is given as input.
     correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s']['2016-03-02 00:00:00':],
@@ -288,7 +288,7 @@ def test_synthesize():
     synth = correl.synthesize()
 
     for idx, row in pd.DataFrame(result_ord_lst_sq_dir).iterrows():
-        assert str(row[0]) == str(round(synth.loc[idx][0], 6))
+        assert str(row.iloc[0]) == str(round(synth.loc[idx].iloc[0], 6))
 
     # Test the synthesise when SpeedSort correlation is used.
     correl = bw.Correl.SpeedSort(MERRA2_NE['WS50m_m/s']['2016-03-02 00:00:00':'2017-03-02 00:00:00'],
@@ -301,14 +301,15 @@ def test_synthesize():
 
     for idx, row in pd.DataFrame(result_speed_sort).iterrows():
         print(idx)
-        assert str(row[0]) == str(round(synth.loc[idx][0], 6))
+        assert str(row.iloc[0]) == str(round(synth.loc[idx].iloc[0], 6))
 
     # Test the synthesise when SpeedSort correlation is used using 10 min averaging period.
     data_test = DATA_CLND[['Spd80mN', 'Spd60mN', 'Dir78mS', 'Dir58mS']].copy()
-    data_test['Dir78mS']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.NaN
-    data_test['Spd80mN']['2016-01-09 17:10:00':'2016-01-09 17:50:00'] = np.NaN
-    data_test['Dir58mS']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.NaN
-    data_test['Spd60mN']['2016-01-09 17:50:00':'2016-01-10 19:10:00'] = np.NaN
+    data_test.loc['2016-01-09 17:10:00':'2016-01-09 17:50:00', 'Dir78mS'] = np.nan
+    data_test.loc['2016-01-09 17:10:00':'2016-01-09 17:50:00', 'Spd80mN'] = np.nan
+    data_test.loc['2016-01-09 17:50:00':'2016-01-10 19:10:00', 'Dir58mS'] = np.nan
+    data_test.loc['2016-01-09 17:50:00':'2016-01-10 19:10:00', 'Spd60mN'] = np.nan
+
     ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir58mS'],
                                  averaging_prd='10min')
     ss_cor.run()
@@ -370,7 +371,7 @@ def test_orthogonal_least_squares():
     assert round(correl.params['num_data_points'], 5) == correl_monthly_results['num_data_points']
 
     # check hourly
-    correl = bw.Correl.OrthogonalLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1H',
+    correl = bw.Correl.OrthogonalLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1h',
                                               coverage_threshold=1)
     correl.run()
     assert round(correl.params['slope'], 5) == correl_hourly_results['slope']
@@ -381,7 +382,7 @@ def test_orthogonal_least_squares():
     # check aggregation method
     correl_aggregation_results = {'slope': 6.42434, 'offset': -12.8301, 'r2': 0.9255, 'num_data_points': 12445}
     correl = bw.Correl.OrthogonalLeastSquares(MERRA2_NE['T2M_degC'], DATA_CLND['T2m'],
-                                              averaging_prd='1H', coverage_threshold=1,
+                                              averaging_prd='1h', coverage_threshold=1,
                                               ref_aggregation_method='sum', target_aggregation_method='sum')
     correl.run()
     assert round(correl.params['slope'], 5) == correl_aggregation_results['slope']
@@ -403,7 +404,7 @@ def test_multiple_linear_regression():
     # check aggregation method
     correl_aggregation_results = {'slope': [5.51666, 0.54769], 'offset': -10.44818, 'num_data_pts': 12445}
     correl = bw.Correl.MultipleLinearRegression([MERRA2_NE['T2M_degC'], MERRA2_NW['T2M_degC']], DATA_CLND['T2m'],
-                                                averaging_prd='1H', coverage_threshold=1,
+                                                averaging_prd='1h', coverage_threshold=1,
                                                 ref_aggregation_method='sum', target_aggregation_method='sum')
     correl.run()
     for idx, slope in enumerate(correl.params['slope']):
@@ -570,7 +571,7 @@ def test_speed_sort():
     }
     ss_cor = bw.Correl.SpeedSort(MERRA2_NE['WS50m_m/s'], MERRA2_NE['WD50m_deg'],
                                  DATA_CLND['Spd80mN'], DATA_CLND['Dir78mS'],
-                                 averaging_prd='1H')
+                                 averaging_prd='1h')
     ss_cor.run()
 
     assert ss_cor.params['overall_average_veer'] == result['overall_average_veer']

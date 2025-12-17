@@ -1455,7 +1455,7 @@ def _bar_subplot(data, x_label=None, y_label=None, min_bar_axis_limit=None, max_
                                                                var_to_bin_against=data['Spd80mN'].to_frame(),
                                                                aggregation_method = '%frequency')
         fig = plt.figure(figsize=(15, 8))
-        bw.analyse.plot._bar_subplot(distribution.replace([np.inf, -np.inf], np.NAN).dropna(), y_label='%frequency')
+        bw.analyse.plot._bar_subplot(distribution.replace([np.inf, -np.inf], np.nan).dropna(), y_label='%frequency')
 
     """
     
@@ -1638,7 +1638,7 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
         distribution = bw.analyse.analyse._derive_distribution(data['Spd40mN'],
                                                                var_to_bin_against=data['Spd40mN'], bins=None,
                                                                aggregation_method = '%frequency').rename('Spd40mN')
-        bw.analyse.plot.plot_freq_distribution(distribution.replace([np.inf, -np.inf], np.NAN).dropna(),
+        bw.analyse.plot.plot_freq_distribution(distribution.replace([np.inf, -np.inf], np.nan).dropna(),
                                                max_y_value=None,x_tick_labels=[], x_label=None,
                                                y_label='%frequency')
 
@@ -1651,7 +1651,7 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
                                                                 aggregation_method='count').rename('Spd80mN')
 
         bw.analyse.plot.plot_freq_distribution(pd.concat([distribution1, distribution2], axis=1
-                                                        ).replace([np.inf, -np.inf], np.NAN).dropna(),
+                                                        ).replace([np.inf, -np.inf], np.nan).dropna(),
                                                max_y_value=None, x_tick_labels=None, x_label=None,
                                                y_label='count', total_width=1, legend=True)
 
@@ -1667,7 +1667,7 @@ def plot_freq_distribution(data, max_y_value=None, x_tick_labels=None, x_label=N
 
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-    _bar_subplot(data.replace([np.inf, -np.inf], np.NAN), x_label=x_label,
+    _bar_subplot(data.replace([np.inf, -np.inf], np.nan), x_label=x_label,
                  y_label=y_label, max_bar_axis_limit=max_y_value,
                  bin_tick_labels=x_tick_labels, bar_tick_label_format=bar_tick_label_format,
                  legend=legend, total_width=total_width, ax=ax)
@@ -1971,7 +1971,7 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
     if calc_method == 'log_law':
         label = 'Mean_Roughness_Coefficient'
 
-    scale_variable_y = np.append(scale_variable, scale_variable[0])
+    scale_variable_y = np.append(scale_variable, scale_variable.iloc[0])
     plot_x = np.append(radians, radians[0])
     scale_to_fit = max(scale_variable[np.isfinite(scale_variable)]) / max(result / 100)
     wind_rose_r = (result / 100) * scale_to_fit
@@ -2352,7 +2352,7 @@ def plot_shear_time_of_day(df, calc_method, plot_type='step'):
         ax.set_ylabel(label)
 
         # create x values for plot
-        idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H').hour
+        idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1h').hour
 
         if plot_type == 'step':
             df = df.shift(+1, axis=0)
