@@ -1844,12 +1844,20 @@ def apply_device_orientation_offset(
                         target_orientation_name='device orientation')
                              
                     height = wdir_prop.get('height_m')
+                    if device_orientation_deg is None:
+                        applied_offset = 0
+                    elif logger_offset is None:
+                        applied_offset = device_orientation_deg
+                    else:
+                        applied_offset = offset_wind_direction(
+                            device_orientation_deg, - logger_offset
+                            )
                     rows.append({
                         "Name": name,
                         "Height [m]": height,
                         "Device Orientation [deg]": device_orientation_deg,
                         "Logger Offset": logger_offset,
-                        "Offset Applied [deg]": offset_wind_direction(device_orientation_deg, - logger_offset),
+                        "Offset Applied [deg]": applied_offset,
                         "Date From": apply_offset_from,
                         "Date To": apply_offset_to
                         })
@@ -1894,12 +1902,13 @@ def apply_device_orientation_offset(
             'Device Orientation [deg]',
             'Logger Offset',
             'Offset Applied [deg]'
-            ]).agg({
+            ], dropna=False).agg({
                 'Date From': 'first',
                 'Date To': lambda x: None if any(d is None for d in x) else max(x)
                 }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
                     by=["Height [m]", "Date From"], ascending=[False, True]
                     )
+        results_table = results_table.fillna({'Offset Applied [deg]': 0})
         return df, results_table
     return df
 
