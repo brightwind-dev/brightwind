@@ -1396,12 +1396,13 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
             'Vane Dead Band Orientation [deg]',
             'Logger Offset',
             'Offset Applied [deg]'
-        ]).agg({
+        ], dropna=False).agg({
             'Date From': 'first',
             'Date To': lambda x: None if any(d is None for d in x) else max(x)
         }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
             by=["Height [m]", "Date From"], ascending=[False, True]
             )
+        results_table = results_table.fillna({'Offset Applied [deg]': 0})
         return df, results_table
     return df
 
