@@ -11,12 +11,7 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ---
 
-## [2.4.0-dev]
-1. Fixed pandas<3.0.0 and numpy<2.3.1 dependencies, ([#458](https://github.com/brightwind-dev/brightwind/issues/458))
-1. Fixed pandas deprecating warnings that were linked to frequency strings, .groupby() and .map(). ([#407](https://github.com/brightwind-dev/brightwind/issues/407), [#415](https://github.com/brightwind-dev/brightwind/issues/415) and [#445](https://github.com/brightwind-dev/brightwind/issues/445))
-
-### Bug Fixes
-1. 
+## [2.4.0]
 
 ### New Features and Enhancements
 1. Added `scale_air_pressure_to_height()` to output an air pressure value for any height based on reference air temperature and air pressure values at a different measurement height. ([#531](https://github.com/brightwind-dev/brightwind/issues/531))
@@ -39,6 +34,13 @@ Additional labels for pre-release and build metadata are available as extensions
 2. `LoadBrightHub()` authentication using email and password is deprecated and will be removed in v3.0. Please migrate to API key authentication. Create and manage API keys at: https://brighthub.io/account-settings/settings.
 3. `specific_gas_constant` argument of `calc_air_density()` is deprecated and will be removed in v3.0 because the updated method depends on the gas constants for dry air and water vapour, making this argument redundant.
 4. The scaling of air density to height within `calc_air_density()` is deprecated and will be removed in v3.0. Users should use `scale_air_density_to_height()` separately instead.
+5. Support for **Python ≤ 3.10** is deprecated and will be dropped in v3.0.0. Users should upgrade to Python 3.11 or newer. 
+6. Support for **Pandas ≤ 2.2** is deprecated and will be dropped in v3.0.0. Users should upgrade to Pandas 2.3 or newer.
+
+### Bug Fixes
+1. Fixed pandas<3.0.0 and numpy<2.3.1 dependencies, ([#458](https://github.com/brightwind-dev/brightwind/issues/458))
+1. Fixed pandas deprecating warnings that were linked to frequency strings, .groupby() and .map(). ([#407](https://github.com/brightwind-dev/brightwind/issues/407), [#415](https://github.com/brightwind-dev/brightwind/issues/415) and [#445](https://github.com/brightwind-dev/brightwind/issues/445))
+
 
 ## [2.3.0]
 This update brings a comprehensive set of **bug fixes** and **enhancements** across the Brightwind library. 
