@@ -136,8 +136,8 @@ def test_time_of_day():
     
 
     # Test attributes
-    assert round(shear_by_tod_power_law2.alpha.mean()[0], 4) == 0.1473
-    assert round(shear_by_tod_log_law2.roughness.mean()[0], 4) == 0.1450
+    assert round(shear_by_tod_power_law2.alpha.mean().iloc[0], 4) == 0.1473
+    assert round(shear_by_tod_log_law2.roughness.mean().iloc[0], 4) == 0.1450
 
     # Test apply
     assert (round(DATA['Spd80mN']['2017-11-23 10:10:00':'2017-11-23 10:40:00'] * (
@@ -221,12 +221,12 @@ def test_time_series():
     shear_by_ts_power_law.apply(DATA['Spd80mN'], 40, 60)
     shear_by_ts_log_law.apply(DATA['Spd80mN'], 40, 60)
 
-    DATA['Spd80mN'].iloc[0] = 2
+    DATA.loc[DATA.index[0], 'Spd80mN'] = 2
     shear_ts = bw.Shear.TimeSeries(anemometers, heights)
     alpha = shear_ts.alpha
     assert pd.isna(alpha.iloc[0])
 
-    DATA['Spd80mN'].iloc[0] = np.nan
+    DATA.loc[DATA.index[0], 'Spd80mN'] = np.nan
     shear_ts = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law')
     roughness = shear_ts.roughness
     assert pd.isna(roughness.iloc[0])

@@ -161,10 +161,11 @@ def dist_matrix(var_series, x_series, y_series,
                      axis=1).dropna()
 
     if aggregation_method == '%frequency':
-        counts = data.groupby([y_series.name, x_series.name]).count().unstack(level=-1)
+        counts = data.groupby([y_series.name, x_series.name], observed=False).count().unstack(level=-1)
         distribution = counts / (counts.sum().sum()) * 100.0
     else:
-        distribution = data.groupby([y_series.name, x_series.name]).agg(aggregation_method).unstack(level=-1)
+        distribution = data.groupby([y_series.name, x_series.name],
+                                    observed=False).agg(aggregation_method).unstack(level=-1)
 
     if y_bin_labels is not None:
         distribution.index = y_bin_labels
@@ -397,7 +398,7 @@ def _mean_of_monthly_means_basic_method(df: pd.Series) -> pd.Series:
     Return a Series of mean of monthly mean with timestamp as the index.
     Calculate the monthly mean for each calendar month and then average the resulting 12 months.
     """
-    mean_monthly_mean: pd.Series = df.groupby(df.index.month).mean().mean()
+    mean_monthly_mean: pd.Series = df.groupby(df.index.month, observed=False).mean().mean()
     return mean_monthly_mean
 
 
@@ -625,9 +626,10 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
     data = pd.concat([var_to_bin.rename('data'), var_binned_series], join='inner', axis=1)
 
     if aggregation_method == '%frequency':
-        distribution = data.groupby(['variable_bin'])['data'].count().rename('%frequency') / len(data) * 100.0
+        distribution = data.groupby(['variable_bin'],
+                                    observed=False)['data'].count().rename('%frequency') / len(data) * 100.0
     else:
-        distribution = data.groupby(['variable_bin'])['data'].agg(aggregation_method)
+        distribution = data.groupby(['variable_bin'], observed=False)['data'].agg(aggregation_method)
 
     return distribution
 
@@ -890,9 +892,9 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
         _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
     data = pd.concat([var_series.rename('data'), direction_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
-        result = data.groupby(['direction_bin'])['data'].count().rename('%frequency')/len(data) * 100.0
+        result = data.groupby(['direction_bin'], observed=False)['data'].count().rename('%frequency')/len(data) * 100.0
     else:
-        result = data.groupby(['direction_bin'])['data'].agg(aggregation_method)
+        result = data.groupby(['direction_bin'], observed=False)['data'].agg(aggregation_method)
 
     for i in range(1, sectors+1):
         if not (i in result.index):
@@ -930,10 +932,11 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
     data = pd.concat([var_series.rename('var_data'), var_binned_series, direction_binned_series], axis=1).dropna()
 
     if aggregation_method == '%frequency':
-        counts = data.groupby([var_to_bin_series.name, 'direction_bin']).count().unstack(level=-1)
+        counts = data.groupby([var_to_bin_series.name, 'direction_bin'], observed=False).count().unstack(level=-1)
         distribution = counts/(counts.sum().sum()) * 100.0
     else:
-        distribution = data.groupby([var_to_bin_series.name, 'direction_bin']).agg(aggregation_method).unstack(level=-1)
+        distribution = data.groupby([var_to_bin_series.name, 'direction_bin'],
+                                    observed=False).agg(aggregation_method).unstack(level=-1)
     distribution.columns = distribution.columns.droplevel(0)
     for i in range(1, sectors + 1):
         if not (i in distribution.columns):
@@ -1489,11 +1492,11 @@ def coverage(data, period='1M', aggregation_method='mean', data_resolution=None)
     :param period: Groups data by the period specified here. The following formats are supported
 
             - Set period to 10min for 10 minute average, 20min for 20 minute average and so on for 4min, 15min, etc.
-            - Set period to 1H for hourly average, 3H for three hourly average and so on for 5H, 6H etc.
+            - Set period to 1h for hourly average, 3h for three hourly average and so on for 5h, 6h etc.
             - Set period to 1D for a daily average, 3D for three day average, similarly 5D, 7D, 15D etc.
             - Set period to 1W for a weekly average, 3W for three week average, similarly 2W, 4W etc.
             - Set period to 1M for monthly average
-            - Set period to 1AS fo annual average
+            - Set period to 1YS fo annual average
             - Can be a DateOffset object too
 
     :type period: str or pandas.DateOffset
@@ -1513,10 +1516,10 @@ def coverage(data, period='1M', aggregation_method='mean', data_resolution=None)
         data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_site_data)
 
         #To find hourly coverage
-        data_hourly = bw.coverage(data.Spd80mN, period='1H')
+        data_hourly = bw.coverage(data.Spd80mN, period='1h')
 
         #To find hourly coverage for multiple columns
-        data_hourly_multiple = bw.coverage(data[['Spd80mS','Spd60mN']], period='1H')
+        data_hourly_multiple = bw.coverage(data[['Spd80mS','Spd60mN']], period='1h')
 
         #To find monthly_coverage
         data_monthly = bw.coverage(data.Spd80mN, period='1M')

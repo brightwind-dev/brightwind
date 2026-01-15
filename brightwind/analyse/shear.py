@@ -1044,13 +1044,13 @@ class Shear:
                 if self.calc_method == 'power_law':
                     scaled_wspds[i] = Shear._scale(wspds=by_sector[i]['Unscaled_Wind_Speeds'], height=height,
                                                    shear_to=shear_to,
-                                                   calc_method=self.calc_method, alpha=self.alpha[i])
+                                                   calc_method=self.calc_method, alpha=self.alpha.iloc[i])
 
                 elif self.calc_method == 'log_law':
                     scaled_wspds[i] = Shear._scale(wspds=by_sector[i]['Unscaled_Wind_Speeds'], height=height,
                                                    shear_to=shear_to,
                                                    calc_method=self.calc_method,
-                                                   roughness=self._roughness[i])
+                                                   roughness=self._roughness.iloc[i])
 
                 if i == 0:
                     result = scaled_wspds[i]
@@ -1093,7 +1093,7 @@ class Shear:
         df_copy = data.copy()
         interval = int(24 / len(data))
         # set index for new data frame to deal with less than 24 sectors
-        idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1H')
+        idx = pd.date_range('2017-01-01 00:00', '2017-01-01 23:00', freq='1h')
 
         # create new dataframe with 24 rows only interval number of unique values
         df = pd.DataFrame({cols: [np.nan] for cols in df_copy.columns}, index=pd.DatetimeIndex(idx).time)
@@ -1130,13 +1130,13 @@ class Shear:
         Shear._valid_wsp_data_error_msg(wspds, min_speed)
         if isinstance(wspds.index, pd.DatetimeIndex):
             if maximise_data is False:
-                cvg = coverage(wspds[wspds > min_speed].dropna(), period='1AS').sum()[1]
+                cvg = coverage(wspds[wspds > min_speed].dropna(), period='1YS').sum().iloc[1]
             else:
                 _wspds = wspds[wspds > min_speed]
                 count = _wspds.count(axis=1)
                 count = count[count >= 2]
                 count.rename('count', inplace=True)
-                cvg = coverage(count, period='1AS').sum()
+                cvg = coverage(count, period='1YS').sum()
         if not return_raw_wspds:
             wspds = wspds[wspds > min_speed].dropna()
         return wspds, cvg

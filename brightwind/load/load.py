@@ -447,6 +447,12 @@ def _append_files_together(source_folder, assembled_file_name, file_type, append
 
 class LoadBrightdata:
     """
+    ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
+    REMOVED IN V3.0.
+
+    SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
+    CONTINUE ACCESSING REANALYSIS DATA. **
+
     LoadBrightdata allows you to pull meta data and timeseries data of reanalysis datasets from brightdata. This
     is a fast way to get access to the available reanalysis datasets.
 
@@ -497,6 +503,15 @@ class LoadBrightdata:
         :param query_params: dictionary of the query parameters to be sent
         :return: List(Node)
         """
+
+        warnings.warn(
+            "BrightDATA was deprecated in v2.4.0 and will be removed in v3.0.0. "
+            "Support for reanalysis data has moved to BrightHub. "
+            "Please use LoadBrightHub instead of LoadBrightdata to continue accessing reanalysis data.",
+            DeprecationWarning,
+            stacklevel=3
+        )
+
         username = utils.get_environment_variable('BRIGHTDATA_USERNAME')
         password = utils.get_environment_variable('BRIGHTDATA_PASSWORD')
 
@@ -548,6 +563,12 @@ class LoadBrightdata:
     @staticmethod
     def timeseries(dataset, lat, long, nearest=None, from_date=None, to_date=None, variables=None):
         """
+            ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
+            REMOVED IN V3.0.
+
+            SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
+            CONTINUE ACCESSING REANALYSIS DATA. **
+
             Retrieve timeseries datasets available from brightdata. Returns a list of Node objects in order
             of closest distance to the requested lat, long.
 
@@ -632,6 +653,12 @@ class LoadBrightdata:
     @staticmethod
     def monthly_means(dataset, lat, long, nearest=None, from_date=None, to_date=None, variables=None):
         """
+            ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
+            REMOVED IN V3.0.
+
+            SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
+            CONTINUE ACCESSING REANALYSIS DATA. **
+
             Retrieve monthly means from brightdata datasets such as merra2 and era5. Returns a list of Node objects
             in order of closest distance to the requested lat, long. Monthly coverage is also returned in the data.
 
@@ -713,6 +740,12 @@ class LoadBrightdata:
     @staticmethod
     def momm(dataset, lat, long, nearest=None, from_date=None, to_date=None, variables=None):
         """
+            ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
+            REMOVED IN V3.0.
+
+            SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
+            CONTINUE ACCESSING REANALYSIS DATA. **
+
             Retrieve the mean of monthly means from brightdata datasets such as merra2 and era5. Returns a list of
             Node objects in order of closest distance to the requested lat, long.
 
@@ -796,6 +829,12 @@ class LoadBrightdata:
     def monthly_norms(dataset, lat, long, nearest=None, from_date=None, to_date=None, ref_from_date=None,
                       ref_to_date=None, ref_no_years=None, variables=None):
         """
+        ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
+        REMOVED IN V3.0.
+
+        SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
+        CONTINUE ACCESSING REANALYSIS DATA. **
+
         Return the monthly mean wind speeds normalised to a specific reference period. The reference period can be
         between two specific dates or it could be a number of rolling years preceding each month of interest.
 
@@ -1362,7 +1401,7 @@ class LoadBrightHub:
                     )
 
         if return_df:
-            meas_loc_df = pd.read_json(json.dumps(meas_loc_json))
+            meas_loc_df = pd.read_json(StringIO(json.dumps(meas_loc_json)))
             required_cols = ['name', 'measurement_station_type_id',
                              'latitude_ddeg', 'longitude_ddeg', 'plant_uuid', 'uuid', 'notes']
             meas_loc_df = meas_loc_df[required_cols]
@@ -2422,7 +2461,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
         else:
             for col in data.columns:
                 if col.find(cleaning_df[sensor_col_name][k]) == 0:
-                    data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
+                    data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
     return data
@@ -2651,7 +2690,7 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
         for col in data.columns:
             if col.find(cleaning_df[sensor_col_name][k]) == 0:
                 if cleaning_df[flag_col_name][k] not in flags_to_exclude:
-                    data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
+                    data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
     return data
