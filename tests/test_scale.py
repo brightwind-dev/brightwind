@@ -45,6 +45,7 @@ def test_scale_air_pressure_to_height():
             ref_height_m=2,
             target_height_m=10)
 
+
 def test_scale_air_density_to_height():
     assert bw.scale_air_density_to_height(ref_air_density_kg_m3=1.224, ref_height_m=80, target_height_m=100) == 1.22174
 
@@ -148,6 +149,7 @@ with pytest.raises(ValueError):
         x_ref=2,
         y_ref=pd.Series([1, 2]),
         slope=-0.5)
+
 
 def test_apply_scale_factor():
     assert bw.apply_scale_factor(3, 0.5) == 1.5
