@@ -2126,7 +2126,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
                                         for dry air. For other calc_method options, this argument is ignored.
     :type specific_gas_constant:        float
     :param rel_humidity_percent:        Relative humidity values as a percentage. Default is None.
-                                        If None and calc_method depends on relative humidity,
+                                        If None and calc_method is 'IEC',
                                         the air density calculation assumes a relative humidity of 0% (dry air).
     :type rel_humidity_percent:         float or pandas.Series
     :param dew_point_temperature_degC:  Dew point temperature values in degrees Celsius. Default is None.
@@ -2152,6 +2152,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
 
     data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
 
+    IEC Method Examples (Default):
     # Calculate air density from input air temperature and air pressure series
     # (rel_humidity_percent=None and specific_gas_constant=286.9 by default)
     bw.calc_air_density(data.T2m, data.P2m).head(5)
@@ -2205,6 +2206,33 @@ def calc_air_density(temperature: Union[float, pd.Series],
     bw.calc_air_density(15, 1013, rel_humidity_percent=50, elevation_ref=0, elevation_site=200)
     # 1.198
 
+    # HermanWobus_from_rel_humidity Method Example:
+    # Calculate air density from input air temperature and air pressure series
+    # (rel_humidity_percent=None and specific_gas_constant=286.9 by default)
+    bw.calc_air_density(data.T2m, data.P2m, rel_humidity_percent=data.RH2m,
+                        calc_method='HermanWobus_from_rel_humidity').head(5)
+    # Timestamp
+    # 2016-01-09 15:30:00    1.186297
+    # 2016-01-09 15:40:00    1.186666
+    # 2016-01-09 17:00:00    1.183138
+    # 2016-01-09 17:10:00    1.183919
+    # 2016-01-09 17:20:00    1.184333
+    # dtype: float64
+
+    # HermanWobus_from_dew_point Method Example:
+    # Calculate air density from input air temperature, air pressure and dew point temperature series
+
+    dew_point_temp = data.T2m - 2  # Example dew point temperature series
+    bw.calc_air_density(data.T2m, data.P2m,
+                        dew_point_temperature_degC=dew_point_temp,
+                        calc_method='HermanWobus_from_dew_point').head(5)
+    # Timestamp
+    # 2016-01-09 15:30:00    1.186716
+    # 2016-01-09 15:40:00    1.187083
+    # 2016-01-09 17:00:00    1.183568
+    # 2016-01-09 17:10:00    1.184345
+    # 2016-01-09 17:20:00    1.184756
+    # dtype: float64
     """
     # Raise errors if any inputs are DataFrames
     if isinstance(temperature, pd.DataFrame):
@@ -2277,7 +2305,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
     vapour_press_Pa = _calc_water_vapour_pressure_Pa(air_temperature_degC=temperature,
                                                      rel_humidity_percent=rel_humidity_percent,
                                                      dew_point_temperature_degC=dew_point_temperature_degC,
-                                                     method=calc_method)
+                                                     calc_method=calc_method)
     # Calculate partial pressure of dry air
     dry_air_press_Pa = press_Pa - vapour_press_Pa
 
@@ -2398,7 +2426,7 @@ def _calc_water_saturation_vapour_pressure_Pa(temperature_degC: Union[float, pd.
 def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, pd.Series]] = None,
                                    rel_humidity_percent: Optional[Union[float, pd.Series]] = None,
                                    dew_point_temperature_degC: Optional[Union[float, pd.Series]] = None,
-                                   method: Optional[str] = 'IEC'
+                                   calc_method: Optional[str] = 'IEC'
                                    ) -> Union[float, pd.Series]:
     """
     Calculate the water vapour pressure in Pascals (Pa) using one of the following methods:
@@ -2449,11 +2477,11 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
     :type rel_humidity_percent:         float, pd.Series
     :param dew_point_temperature_degC:  Dew point temperature in degrees Celsius.
     :type dew_point_temperature_degC:   float, pd.Series
-    :param method:                      Method to use for calculation. Options are:
+    :param calc_method:                      Method to use for calculation. Options are:
                                         - 'IEC' (default): Uses air temperature and relative humidity.
                                         - 'HermanWobus_from_rel_humidity': Uses air temperature and relative humidity.
                                         - 'HermanWobus_from_dew_point': Uses dew point temperature.
-    :type method:                       str
+    :type calc_method:                       str
     :return:                            Vapour pressure in Pascals (Pa).
                                         Output type depends on input type.
                                         If input all inputs are float, output is float.
@@ -2489,13 +2517,13 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         # Calculate vapour pressure for 60% relative humidity at 20°C using HermanWobus method
         bw.analyse.analyse._calc_water_vapour_pressure_Pa(air_temperature_degC=20.0,
                                                         rel_humidity_percent=60.0,
-                                                        method='HermanWobus_from_rel_humidity')
+                                                        calc_method='HermanWobus_from_rel_humidity')
         # 1402.3424867988654
 
         # Apply to a pandas Series of temperature and relative humidity data
         bw.analyse.analyse._calc_water_vapour_pressure_Pa(air_temperature_degC=DATA['T2m'].tail(5),
                                                         rel_humidity_percent=DATA['RH2m'].tail(5),
-                                                        method='HermanWobus_from_rel_humidity')
+                                                        calc_method='HermanWobus_from_rel_humidity')
 
         # Timestamp
         # 2017-11-23 10:10:00    651.978790
@@ -2508,7 +2536,7 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
     # Examples Method 3: HermanWobus_from_dew_point
         # Calculate vapour pressure for a dew point temperature of 10°C
         bw.analyse.analyse._calc_water_vapour_pressure_Pa(dew_point_temperature_degC=10,
-                                                          method = 'HermanWobus_from_dew_point')
+                                                          calc_method = 'HermanWobus_from_dew_point')
         # 1227.2296498322416
             
         # Apply to a pandas Series of dew point temperatures
@@ -2516,22 +2544,22 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
 
         dew_pt = pd.Series([10, 12, 9])
         bw.analyse.analyse._calc_water_vapour_pressure_Pa(dew_point_temperature_degC=dew_pt,
-                                                          method = 'HermanWobus_from_dew_point')
+                                                          calc_method = 'HermanWobus_from_dew_point')
 
         # 0    1227.229650
         # 1    1401.709287
         # 2    1147.394524
         # dtype: float64
     """
-    if method not in ['IEC', 'HermanWobus_from_rel_humidity', 'HermanWobus_from_dew_point']:
-        raise ValueError("Invalid method. Choose from 'IEC', 'HermanWobus_from_rel_humidity',"
+    if calc_method not in ['IEC', 'HermanWobus_from_rel_humidity', 'HermanWobus_from_dew_point']:
+        raise ValueError("Invalid calc_method. Choose from 'IEC', 'HermanWobus_from_rel_humidity',"
                          "'HermanWobus_from_dew_point'.")
 
-    if method == 'IEC':
+    if calc_method == 'IEC':
 
         # Validate required inputs
         if air_temperature_degC is None or rel_humidity_percent is None:
-            raise ValueError("For 'IEC' method, both air_temperature_degC and rel_humidity_percent must be provided.")
+            raise ValueError("For 'IEC' calc_method, both air_temperature_degC and rel_humidity_percent must be provided.")
         assert_function_input_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
         assert_function_input_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
         # If both inputs are Series, check they have same length
@@ -2540,7 +2568,8 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
                 raise ValueError("air_temperature_degC and rel_humidity_percent must have the same dimensions.")
             
         if dew_point_temperature_degC is not None:
-            warnings.warn("dew_point_temperature_degC input will be ignored when method is 'IEC'.",
+            warnings.warn("dew_point_temperature_degC input not required in water vapour pressure calculation"
+                          " as calc_method is 'IEC'.",
                           UserWarning, stacklevel=2)
 
         rel_humidity_decimal = 0.01*rel_humidity_percent  # convert percent to decimal.
@@ -2549,12 +2578,12 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         # Calculate vapour pressure using IEC formula
         vapour_press_Pa = rel_humidity_decimal * 0.0000205 * np.exp(0.0631846 * air_temperature_K)
 
-    if method == 'HermanWobus_from_rel_humidity':
+    if calc_method == 'HermanWobus_from_rel_humidity':
 
         # Validate required inputs
         if air_temperature_degC is None or rel_humidity_percent is None:
-            raise ValueError("For 'HermanWobus_from_rel_humidity' method, both air_temperature_degC"
-                             "and rel_humidity_percent must be provided.")
+            raise ValueError("For 'HermanWobus_from_rel_humidity' calc_method, both air_temperature_degC"
+                             " and rel_humidity_percent must be provided.")
         assert_function_input_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
         assert_function_input_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
         # If both inputs are Series, check they have same length
@@ -2563,8 +2592,8 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
                 raise ValueError("air_temperature_degC and rel_humidity_percent must have the same dimensions.")
             
         if dew_point_temperature_degC is not None:
-            warnings.warn("dew_point_temperature_degC input will be ignored when method is"
-                          "'HermanWobus_from_rel_humidity'.",
+            warnings.warn("dew_point_temperature_degC input not required in water vapour pressure calculation"
+                          " as calc_method is 'HermanWobus_from_rel_humidity'.",
                           UserWarning, stacklevel=2)
             
         rel_humidity_decimal = 0.01*rel_humidity_percent  # convert percent to decimal.
@@ -2573,16 +2602,17 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         vapour_press_Pa = (rel_humidity_decimal *
                            _calc_water_saturation_vapour_pressure_Pa(air_temperature_degC))
 
-    if method == 'HermanWobus_from_dew_point':
+    if calc_method == 'HermanWobus_from_dew_point':
 
         # Validate required inputs
         if dew_point_temperature_degC is None:
-            raise ValueError("For 'HermanWobus_from_dew_point' method, dew_point_temperature_degC must be provided.")
+            raise ValueError("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be provided.")
         assert_function_input_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
 
         if air_temperature_degC is not None or rel_humidity_percent is not None:
-            warnings.warn("dew_point_temperature_degC input will be ignored when method is"
-                          "'HermanWobus_from_dew_point'.",
+            warnings.warn("Vapour pressure calculated based on dew_point_temperature_degC as calc_method is"
+                          " 'HermanWobus_from_dew_point'.\n Air temperature and relative humidity inputs "
+                           " not required in water vapour pressure calculation.",
                           UserWarning, stacklevel=2)
 
         # Calculate vapour pressure from dew point temperature using Herman Wobus approximation
