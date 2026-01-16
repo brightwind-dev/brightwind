@@ -1326,84 +1326,84 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     rows = []
     for wdir_prop in wdirs_properties:
         name = wdir_prop['name']
+        date_to = wdir_prop.get('date_to')
+        deadband = wdir_prop.get('vane_dead_band_orientation_deg')
+        date_from = wdir_prop['date_from']
+        logger_offset = wdir_prop.get('logger_measurement_config.offset')
+        height = wdir_prop.get('height_m')
+
+        names = []
         if name in df.columns:
             wdir_in_dataset = True
-            date_to = wdir_prop.get('date_to')
-            if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
-                date_to_txt = 'the end of dataset'
-            else:
-                date_to_txt = date_to
-
-            deadband = wdir_prop.get('vane_dead_band_orientation_deg')
-            date_from = wdir_prop['date_from']
-            # Account for a logger offset
-            logger_offset = wdir_prop.get('logger_measurement_config.offset')
-            offset = deadband
-            additional_comment_txt = 'to account for deadband'
-            if logger_offset is not None and logger_offset != 0 and deadband is not None:
-                offset = offset_wind_direction(float(deadband), offset=-float(logger_offset))
-                additional_comment_txt = additional_comment_txt + ' and logger offset'
-
-            if offset:
-                df[name][date_from:date_to] = \
-                    offset_wind_direction(df[name][date_from:date_to],
-                                          float(offset))
-                print('{0} adjusted by {1} degrees from {2} to {3} {4}.\n'
-                      .format(utils.bold(name), utils.bold(str(offset)),
-                              utils.bold(date_from), utils.bold(date_to_txt), additional_comment_txt))
-            elif offset == 0:
-                print('{} has an offset to be applied of 0 from {} to {} {}.\n'
-                      .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt),
-                              additional_comment_txt))
-            else:
-                print('{} has dead_band_orientation of None from {} to {}.\n'
-                      .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt)))
-            height = wdir_prop.get('height_m')
-            rows.append({
-                "Name": name,
-                "Height [m]": height,
-                "Vane Dead Band Orientation [deg]": deadband,
-                "Logger Offset": logger_offset,
-                "Offset Applied [deg]": offset,
-                "Date From": date_from,
-                "Date To": date_to
-                })
+            names.append(name)
         else:
             print('{} is not found in data.\n'.format(utils.bold(name)))
+
+        df[names], applied_results = _apply_dir_offset_target_orientation(
+            df[names], 
+            logger_offset, 
+            deadband, 
+            date_from, 
+            date_to, 
+            target_orientation_name='device dead_band_orientation', 
+            heights=height, 
+            target_orientation_table_name="Vane Dead Band Orientation [deg]"
+            )
+        rows.append(applied_results)
 
     if wdir_in_dataset is False:
         print('No wind direction measurement type found in the data.\n')
     # if a Series is sent, send back a Series
-    if type(data) == pd.Series:
+    if isinstance(data, pd.Series):
         df = df[df.columns[0]]
     if return_results_table:
-        results_df = pd.DataFrame(rows).sort_values(
-            by=["Height [m]", "Date From"], ascending=[False, True]
-        )
-        results_df['consecutive_group'] = (
-            (results_df['Name'] != results_df['Name'].shift()) |
-            (results_df['Height [m]'] != results_df['Height [m]'].shift()) |
-            (results_df['Vane Dead Band Orientation [deg]'] != results_df['Vane Dead Band Orientation [deg]'].shift()) |
-            (results_df['Logger Offset'] != results_df['Logger Offset'].shift()) |
-            (results_df['Offset Applied [deg]'] != results_df['Offset Applied [deg]'].shift())
-        ).cumsum()
-        
-        # Group and aggregate consecutive periods
-        results_table = results_df.groupby([
-            'Name',
-            'consecutive_group',
-            'Height [m]',
-            'Vane Dead Band Orientation [deg]',
-            'Logger Offset',
-            'Offset Applied [deg]'
-        ]).agg({
-            'Date From': 'first',
-            'Date To': lambda x: None if any(d is None for d in x) else max(x)
-        }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
-            by=["Height [m]", "Date From"], ascending=[False, True]
+        return df, _aggregate_consecutive_periods(
+            rows, target_orientation_table_name="Vane Dead Band Orientation [deg]"
             )
-        return df, results_table
     return df
+
+
+def _aggregate_consecutive_periods(offset_applied_tables, target_orientation_table_name):
+    """
+    Aggregates rows of the table made from concatonating all tables with offset applied data. Rows are aggregated
+    when neighbouring rows contain the same information for the following columns: "Name", "Height [m], "Logger Offset",
+    "Offset Applied [deg]" and target_orientation_table_name.
+
+    :param offset_applied_tables:           List of tables containing offset applied data.
+    :type offset_applied_tables:            List[pd.DataFrame]
+    :param target_orientation_table_name:   Name of the column for the type of offset applied.
+    :type target_orientation_table_name:    str
+    :return:                                DataFrame of offset applied data with consectivive periods merged when 
+                                            appropriate.
+    :rtype:                                 pd.DataFrame
+    """
+    results_df = pd.concat(offset_applied_tables).sort_values(
+        by=["Height [m]", "Date From"], ascending=[False, True]
+    )
+    results_df['consecutive_group'] = (
+        (results_df['Name'] != results_df['Name'].shift()) |
+        (results_df['Height [m]'] != results_df['Height [m]'].shift()) |
+        (results_df[target_orientation_table_name] != results_df[target_orientation_table_name].shift()) |
+        (results_df['Logger Offset'] != results_df['Logger Offset'].shift()) |
+        (results_df['Offset Applied [deg]'] != results_df['Offset Applied [deg]'].shift())
+    ).cumsum()
+    
+    # Group and aggregate consecutive periods
+    results_table = results_df.groupby([
+        'Name',
+        'consecutive_group',
+        'Height [m]',
+        target_orientation_table_name,
+        'Logger Offset',
+        'Offset Applied [deg]'
+    ], dropna=False).agg({
+        'Date From': 'first',
+        'Date To': lambda x: None if any(d is None for d in x) else max(x)
+    }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
+        by=["Height [m]", "Date From"], ascending=[False, True]
+        )
+    results_table = results_table.fillna({'Offset Applied [deg]': 0})
+    return results_table
 
 
 def _selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2,
@@ -1776,24 +1776,25 @@ def apply_device_orientation_offset(
     # Apply the offset
     for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
+        date_to = wdir_prop.get('date_to')
+        # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
+        # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
+        if date_to is not None:
+            if pd.to_datetime(date_to) >= df.index[-1]:
+                date_to = None
+        # If [date_from, date_to) convention has not been used, we force this convention by setting 
+        # date_to to the date_from of the next logger property
+        if i < len(wdirs_properties) - 1:
+            if wdirs_properties[i+1].get('name') == name:
+                next_date_from = wdirs_properties[i+1].get('date_from')
+                if next_date_from != date_to:
+                    date_to = next_date_from
+        date_from = wdir_prop.get('date_from')
+        date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
+                        if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
+        logger_offset = wdir_prop.get('logger_measurement_config.offset')
+
         if name in df.columns:
-            date_to = wdir_prop.get('date_to')
-            # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
-            # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
-            if date_to is not None:
-                if pd.to_datetime(date_to) >= df.index[-1]:
-                    date_to = None
-            # If [date_from, date_to) convention has not been used, we force this convention by setting 
-            # date_to to the date_from of the next logger property
-            if i < len(wdirs_properties) - 1:
-                if wdirs_properties[i+1].get('name') == name:
-                    next_date_from = wdirs_properties[i+1].get('date_from')
-                    if next_date_from != date_to:
-                        date_to = next_date_from
-            date_from = wdir_prop.get('date_from')
-            date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
-                         if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
-            logger_offset = wdir_prop.get('logger_measurement_config.offset')
             for j, device_properties in enumerate(measurement_station):
                 meas_station_data_model_from = device_properties.get('date_from')
                 meas_station_data_model_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') if
@@ -1839,20 +1840,15 @@ def apply_device_orientation_offset(
                         apply_offset_to = date_to_tmp if date_to_tmp is not None else meas_station_data_model_to
                     else:
                         apply_offset_to = min(date_to_tmp, meas_station_data_model_to)
-                    df[name] = _apply_dir_offset_target_orientation(
-                        df[name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
-                        target_orientation_name='device orientation')
-                             
                     height = wdir_prop.get('height_m')
-                    rows.append({
-                        "Name": name,
-                        "Height [m]": height,
-                        "Device Orientation [deg]": device_orientation_deg,
-                        "Logger Offset": logger_offset,
-                        "Offset Applied [deg]": offset_wind_direction(device_orientation_deg, - logger_offset),
-                        "Date From": apply_offset_from,
-                        "Date To": apply_offset_to
-                        })
+
+                    df[name], applied_results = _apply_dir_offset_target_orientation(
+                        df[name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
+                        target_orientation_name='device orientation', heights=height, 
+                        target_orientation_table_name="Device Orientation [deg]"
+                        )
+                             
+                    rows.append(applied_results)
         else:
             wdir_not_in_dataset = True
             col_not_in_data.append(name)
@@ -1875,32 +1871,7 @@ def apply_device_orientation_offset(
         data.update(df)
 
     if return_results_table:
-        results_df = pd.DataFrame(rows).sort_values(
-            by=["Height [m]", "Date From"], ascending=[False, True]
-            )
-        results_df['consecutive_group'] = (
-            (results_df['Name'] != results_df['Name'].shift()) |
-            (results_df['Height [m]'] != results_df['Height [m]'].shift()) |
-            (results_df['Device Orientation [deg]'] != results_df['Device Orientation [deg]'].shift()) |
-            (results_df['Logger Offset'] != results_df['Logger Offset'].shift()) |
-            (results_df['Offset Applied [deg]'] != results_df['Offset Applied [deg]'].shift())
-            ).cumsum()
-        
-        # Group and aggregate consecutive periods with the same device orientation, logger offset and applied offset.
-        results_table = results_df.groupby([
-            'Name',
-            'consecutive_group',
-            'Height [m]',
-            'Device Orientation [deg]',
-            'Logger Offset',
-            'Offset Applied [deg]'
-            ]).agg({
-                'Date From': 'first',
-                'Date To': lambda x: None if any(d is None for d in x) else max(x)
-                }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
-                    by=["Height [m]", "Date From"], ascending=[False, True]
-                    )
-        return df, results_table
+        return df, _aggregate_consecutive_periods(rows, target_orientation_table_name="Device Orientation [deg]")
     return df
 
 
@@ -1958,8 +1929,10 @@ def _check_vertical_profiler_properties_overlap(measurement_station, df):
     return False
 
 
-def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orientation, apply_offset_from,
-                                         apply_offset_to, target_orientation_name):
+def _apply_dir_offset_target_orientation(
+        wdir_data, logger_offset, target_orientation, apply_offset_from, apply_offset_to, target_orientation_name,
+        heights, target_orientation_table_name
+        ):
     """
     Function to apply the required offset to the wind direction data based on the logger offset and a target
     orientation.
@@ -1979,26 +1952,35 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
 
     Date ranges are considered as [from, to) where 'from' is inclusive and 'to' is exclusive.
 
-    :param wdir_data:               The wind direction data time series.
-    :type wdir_data:                pd.Series or pd.DataFrame
-    :param logger_offset:           The logger offset value in degrees for the input wind direction data.
-    :type logger_offset:            float
-    :param target_orientation:      The target orientation value in degrees.
-    :type target_orientation:       float
-    :param apply_offset_from:       The date to apply the offset from.
-    :type apply_offset_from:        str | datetime.datetime | pd.Timestamp
-    :param apply_offset_to:         The date to apply the offset to, treated in and exclusive manner.
-    :type apply_offset_to:          str | datetime.datetime | pd.Timestamp
-    :param target_orientation_name: The target orientation name to use for the print statements. 
-                                    e.g 'device orientation' or 'deadband orientation'
-    :type target_orientation_name:  str
+    :param wdir_data:                       The wind direction data time series.
+    :type wdir_data:                        pd.Series or pd.DataFrame
+    :param logger_offset:                   The logger offset value in degrees for the input wind direction data.
+    :type logger_offset:                    float
+    :param target_orientation:              The target orientation value in degrees.
+    :type target_orientation:               float
+    :param apply_offset_from:               The date to apply the offset from.
+    :type apply_offset_from:                str | datetime.datetime | pd.Timestamp
+    :param apply_offset_to:                 The date to apply the offset to, treated in and exclusive manner.
+    :type apply_offset_to:                  str | datetime.datetime | pd.Timestamp
+    :param target_orientation_name:         The target orientation name to use for the print statements. 
+                                            e.g 'device orientation' or 'deadband orientation'
+    :type target_orientation_name:          str
+    :param heights:                         The height(s) corresponding to the measurement(s) of the columns in 
+                                            wdir_data .
+    :type heights:                          list | float
+    :param target_orientation_table_name:   The target orientation name to use for the column of the returned results
+                                            DataFrame.      
+    :type target_orientation_table_name:    str 
+    :return:                                A tuple of the data and a DataFrame with the appropriate offset applied
+                                            in addition to a table of the offset information.
+    :rtype:                                 Tuple[pd.DataFrame, pd.DataFrame]    
     """
 
     offset = target_orientation
     wdir_names = list(wdir_data.columns) if isinstance(wdir_data, pd.DataFrame) else wdir_data.name
     additional_comment_txt = 'to account for {}'.format(target_orientation_name)
 
-    if apply_offset_to is None:
+    if apply_offset_to is None or apply_offset_to == DATE_INSTEAD_OF_NONE:
         to_text = "end of data"
         mask = (wdir_data.index >= pd.Timestamp(apply_offset_from))
     else:
@@ -2033,5 +2015,20 @@ def _apply_dir_offset_target_orientation(wdir_data, logger_offset, target_orient
         print('{0} has {1} as None from {2} to {3}.\n'
               .format(utils.bold(str(wdir_names)), target_orientation_name,
                       utils.bold(str(apply_offset_from)), utils.bold(to_text)))
-    
-    return wdir_data
+        
+    rows = []
+    if not isinstance(wdir_names, (list, tuple, np.ndarray)):
+        wdir_names = [wdir_names]
+    if not isinstance(heights, (list, tuple, np.ndarray)):
+        heights = [heights] * len(wdir_names)
+    for (wdir_name, height) in zip(wdir_names, heights):
+        rows.append({
+            "Name": wdir_name,
+            "Height [m]": height,
+            target_orientation_table_name: target_orientation,
+            "Logger Offset": logger_offset,
+            "Offset Applied [deg]": offset,
+            "Date From": apply_offset_from,
+            "Date To": apply_offset_to
+            })
+    return wdir_data, pd.DataFrame(rows)

@@ -182,6 +182,171 @@ def test_apply_wind_vane_dead_band_offset():
             data['Dir78mS'].fillna(0).round(10)).all()
 
 
+def test_apply_wind_vane_dead_band_offset_table_returned():
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+    data['Dir78_test'] = data['Dir78mS'].copy()
+    data['Dir58_test'] = data['Dir58mS'].copy()
+
+    test_meas_config_dict = {
+        'Dir78mS': [{'name': 'Dir78mS',
+                     'measurement_type_id': 'wind_direction', 'height_m': 78.0,
+                    'logger_measurement_config.slope': 0.07263,
+                    'logger_measurement_config.offset': 130.87,
+                    'date_from': '2025-02-20T00:10:00',
+                    'date_to': None,
+                    'vane_dead_band_orientation_deg': None}],
+        'Dir78_test': [{'name': 'Dir78_test',
+                'measurement_type_id': 'wind_direction',
+                'height_m': 78.0,
+                'logger_measurement_config.slope': 0.07263,
+                'logger_measurement_config.offset': None,
+                'date_from': '2025-02-20T00:10:00',
+                'date_to': None,
+                'vane_dead_band_orientation_deg': None}],
+        'Dir58mS': [{'name': 'Dir58mS',
+            'measurement_type_id': 'wind_direction',
+            'height_m': 58.0,
+            'logger_measurement_config.slope': 0.07262,
+            'logger_measurement_config.offset': 127.75,
+            'date_from': '2025-02-20T00:10:00',
+            'date_to': None,
+            'vane_dead_band_orientation_deg': 127.75}],
+        'Dir58_test': [{'name': 'Dir58_test',
+            'measurement_type_id': 'wind_direction',
+            'height_m': 58.0,
+            'logger_measurement_config.slope': 0.07262,
+            'logger_measurement_config.offset': None,
+            'date_from': '2025-02-20T00:10:00',
+            'date_to': None,
+            'vane_dead_band_orientation_deg': 127.75}],
+        'Dir38mS': [{'name': 'Dir38mS',
+            'measurement_type_id': 'wind_direction',
+            'height_m': 38.0,
+            'logger_measurement_config.slope': 22.5,
+            'logger_measurement_config.offset': 36.72,
+            'date_from': '2025-02-20T00:10:00',
+            'date_to': None,
+            'vane_dead_band_orientation_deg': 2}]
+            }
+    expected_table = pd.DataFrame([{'Name': 'Dir78_test',
+        'Height [m]': 78.0,
+        'Vane Dead Band Orientation [deg]': np.nan,
+        'Logger Offset': np.nan,
+        'Offset Applied [deg]': 0.0,
+        'Date From': '2025-02-20T00:10:00',
+        'Date To': None},
+        {'Name': 'Dir78mS',
+        'Height [m]': 78.0,
+        'Vane Dead Band Orientation [deg]': np.nan,
+        'Logger Offset': 130.87,
+        'Offset Applied [deg]': 0.0,
+        'Date From': '2025-02-20T00:10:00',
+        'Date To': None},
+        {'Name': 'Dir58_test',
+        'Height [m]': 58.0,
+        'Vane Dead Band Orientation [deg]': 127.75,
+        'Logger Offset': np.nan,
+        'Offset Applied [deg]': 127.75,
+        'Date From': '2025-02-20T00:10:00',
+        'Date To': None},
+        {'Name': 'Dir58mS',
+        'Height [m]': 58.0,
+        'Vane Dead Band Orientation [deg]': 127.75,
+        'Logger Offset': 127.75,
+        'Offset Applied [deg]': 0.0,
+        'Date From': '2025-02-20T00:10:00',
+        'Date To': None},
+        {'Name': 'Dir38mS',
+        'Height [m]': 38.0,
+        'Vane Dead Band Orientation [deg]': 2.0,
+        'Logger Offset': 36.72,
+        'Offset Applied [deg]': 325.28,
+        'Date From': '2025-02-20T00:10:00',
+        'Date To': None}]
+        ).set_index('Name')
+
+    pd.DataFrame([test_meas_config_dict[x][0] for x in test_meas_config_dict.keys()])
+
+    data, table = bw.apply_wind_vane_deadband_offset(data, test_meas_config_dict, return_results_table=True)
+
+    pd.testing.assert_frame_equal(table, expected_table)
+
+def test_apply_device_orientation_offset_table_returned():
+    fl1 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_demo_iea43_wra_data_model_v1_3)
+    data_model = fl1.data_model
+    data_model['measurement_point'][20]['logger_measurement_config'][0]['offset'] = None
+    data_model['measurement_point'][20]['logger_measurement_config'][1]['offset'] = None
+    data_model['measurement_point'][20]['logger_measurement_config'][2]['offset'] = None
+    data_model = {
+    "author": "Brighthub",
+    "organisation": "Brightwind",
+    "date": "2025-03-26",
+    "version": "1.3.0-2024.03",
+    "measurement_location": [data_model]
+    }
+    data = bw.load_csv(bw.demo_datasets.demo_floating_lidar_data)
+    fll_test = bw.MeasurementStation(data_model)
+    fll_test[0]['device_orientation_deg'] = None
+    _, table = bw.apply_device_orientation_offset(data, fll_test, return_results_table=True)
+    expected_table = pd.DataFrame([{'Name': 'Dir_50m',
+        'Height [m]': 50,
+        'Device Orientation [deg]': np.nan,
+        'Logger Offset': np.nan,
+        'Offset Applied [deg]': 0.0,
+        'Date From': '2012-10-23T13:10:00',
+        'Date To': '2012-11-15T13:50:00'},
+        {'Name': 'Dir_50m',
+        'Height [m]': 50,
+        'Device Orientation [deg]': np.nan,
+        'Logger Offset': np.nan,
+        'Offset Applied [deg]': 0.0,
+        'Date From': '2012-11-15T13:50:00',
+        'Date To': '2012-11-23T12:10:00'},
+        {'Name': 'Dir_50m',
+        'Height [m]': 50,
+        'Device Orientation [deg]': 265.0,
+        'Logger Offset': np.nan,
+        'Offset Applied [deg]': 265.0,
+        'Date From': '2012-11-23T12:10:00',
+        'Date To': '2013-10-08T14:00:00'},
+        {'Name': 'Dir_50m',
+        'Height [m]': 50,
+        'Device Orientation [deg]': 265.0,
+        'Logger Offset': np.nan,
+        'Offset Applied [deg]': 265.0,
+        'Date From': '2013-10-08T14:00:00',
+        'Date To': None},
+        {'Name': 'Dir_40m',
+        'Height [m]': 40,
+        'Device Orientation [deg]': np.nan,
+        'Logger Offset': 170.0,
+        'Offset Applied [deg]': 0.0,
+        'Date From': '2012-10-23T13:10:00',
+        'Date To': '2012-11-15T13:50:00'},
+        {'Name': 'Dir_40m',
+        'Height [m]': 40,
+        'Device Orientation [deg]': np.nan,
+        'Logger Offset': 165.0,
+        'Offset Applied [deg]': 0.0,
+        'Date From': '2012-11-15T13:50:00',
+        'Date To': '2012-11-23T12:10:00'},
+        {'Name': 'Dir_40m',
+        'Height [m]': 40,
+        'Device Orientation [deg]': 265.0,
+        'Logger Offset': 165.0,
+        'Offset Applied [deg]': 100.0,
+        'Date From': '2012-11-23T12:10:00',
+        'Date To': '2013-10-08T14:00:00'},
+        {'Name': 'Dir_40m',
+        'Height [m]': 40,
+        'Device Orientation [deg]': 265.0,
+        'Logger Offset': 262.0,
+        'Offset Applied [deg]': 3.0,
+        'Date From': '2013-10-08T14:00:00',
+        'Date To': None}]).set_index('Name')
+    
+    pd.testing.assert_frame_equal(table, expected_table)
+
 def test_apply_device_orientation_offset():
 
     actual_series_result = bw.apply_device_orientation_offset(
