@@ -396,7 +396,7 @@ class MeasurementStation:
         self.__logger_main_configs = _LoggerMainConfigs(meas_loc_dm=self.__meas_loc_data_model,
                                                         schema=self.__schema, station_type=self.type)
         self.__measurements = _Measurements(meas_loc_dm=self.__meas_loc_data_model, schema=self.__schema)
-        # self.__mast_section_geometry = _MastSectionGeometry()
+        self.__mast_section_geometry = _MastSectionGeometry(meas_loc_dm=self.__meas_loc_data_model)
 
     def __getitem__(self, item):
         return self.__meas_loc_properties[item]
@@ -564,8 +564,7 @@ class MeasurementStation:
 
     @property
     def mast_section_geometry(self):
-        return 'Not yet implemented.'
-        # return self.__mast_section_geometry
+        return self.__mast_section_geometry._mast_section_geometry
 
 
 class _Header:
@@ -1189,5 +1188,9 @@ class _Measurements:
 
 
 class _MastSectionGeometry:
-    def __init__(self):
-        raise NotImplementedError
+    def __init__(self, meas_loc_dm):
+        self._mast_section_geometry = meas_loc_dm.get('mast_properties', {}).get('mast_section_geometry', [])
+
+    @property
+    def data(self):
+        return self._mast_section_geometry
