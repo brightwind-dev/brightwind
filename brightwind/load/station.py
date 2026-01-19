@@ -213,7 +213,7 @@ def _filter_parent_level(dictionary):
     return parent
 
 
-def _flatten_dict(dictionary, property_to_bring_up):
+def _flatten_dict(dictionary, property_to_bring_up, remove_child_lists=True):
     """
     Bring a child level in a dictionary up to the parent level.
 
@@ -223,6 +223,8 @@ def _flatten_dict(dictionary, property_to_bring_up):
     :type dictionary:            dict
     :param property_to_bring_up: The child property name to raise up to the parent level.
     :type property_to_bring_up:  str
+    :param remove_child_lists:   Remove child lists from the flattened dictionary.
+    :type remove_child_lists:    bool
     :return:                     A list of merged dictionaries
     :rtype:                      list(dict)
     """
@@ -231,11 +233,15 @@ def _flatten_dict(dictionary, property_to_bring_up):
     for key, value in dictionary.items():
         if (type(value) == list) and (key == property_to_bring_up):
             for item in value:
-                child = _filter_parent_level(item)
+                child = item
+                if remove_child_lists:
+                    child = _filter_parent_level(item)
                 child = _add_prefix(child, property_section=property_to_bring_up)
                 result.append(_merge_two_dicts(parent, child))
         if (type(value) == dict) and (key == property_to_bring_up):
-            child = _filter_parent_level(value)
+            child = value
+            if remove_child_lists:
+                child = _filter_parent_level(value)
             child = _add_prefix(child, property_section=property_to_bring_up)
             # return a dictionary and not a list
             result = _merge_two_dicts(parent, child)
@@ -245,11 +251,12 @@ def _flatten_dict(dictionary, property_to_bring_up):
     return result
 
 
-def _raise_child(dictionary, child_to_raise):
+def _raise_child(dictionary, child_to_raise, remove_child_lists=True):
     """
 
     :param dictionary:
     :param child_to_raise:
+    :param remove_child_lists:
     :return:
     """
     # FUTURE DEV: ACCOUNT FOR 'DATE_OF_CALIBRATION' WHEN RAISING UP MULTIPLE CALIBRATIONS
@@ -259,12 +266,12 @@ def _raise_child(dictionary, child_to_raise):
     for key, value in dictionary.items():
         if (key == child_to_raise) and (value is not None):
             # Found the key to raise. Flattening dictionary.
-            return _flatten_dict(dictionary, child_to_raise)
+            return _flatten_dict(dictionary, child_to_raise, remove_child_lists=remove_child_lists)
     # didn't find the child to raise. search down through each nested dict or list
     for key, value in dictionary.items():
         if (type(value) == dict) and (value is not None):
             # 'key' is a dict, looping through it's own keys.
-            flattened_dicts = _raise_child(value, child_to_raise)
+            flattened_dicts = _raise_child(value, child_to_raise, remove_child_lists=remove_child_lists)
             if flattened_dicts:
                 new_dict[key] = flattened_dicts
                 return new_dict
@@ -272,7 +279,7 @@ def _raise_child(dictionary, child_to_raise):
             # 'key' is a list, looping through it's items.
             temp_list = []
             for idx, item in enumerate(value):
-                flattened_dicts = _raise_child(item, child_to_raise)
+                flattened_dicts = _raise_child(item, child_to_raise, remove_child_lists=remove_child_lists)
                 if flattened_dicts:
                     if isinstance(flattened_dicts, list):
                         for flat_dict in flattened_dicts:
@@ -291,7 +298,7 @@ PREFIX_DICT = {
     'mast_properties': {
         'prefix_separator': '.',
         'title_prefix': 'Mast ',
-        'keys_to_prefix': ['notes', 'update_at']
+        'keys_to_prefix': ['notes', 'update_at', 'mast_section_geometry']
     },
     'vertical_profiler_properties': {
         'prefix_separator': '.',
@@ -306,7 +313,9 @@ PREFIX_DICT = {
     'logger_measurement_config': {
         'prefix_separator': '.',
         'title_prefix': 'Logger ',
-        'keys_to_prefix': ['height_m', 'serial_number', 'slope', 'offset', 'sensitivity', 'notes', 'update_at']
+        'keys_to_prefix': [
+            'height_m', 'serial_number', 'slope', 'offset', 'sensitivity', 'notes', 'update_at', 'column_name'
+            ]
     },
     'column_name': {
         'prefix_separator': '.',
@@ -321,8 +330,10 @@ PREFIX_DICT = {
     'calibration': {
         'prefix_separator': '.',
         'title_prefix': 'Calibration ',
-        'keys_to_prefix': ['slope', 'offset', 'sensitivity', 'report_file_name', 'report_link',
-                           'uncertainty_k_factor', 'date_from', 'date_to', 'notes', 'update_at']
+        'keys_to_prefix': [
+            'slope', 'offset', 'sensitivity', 'report_file_name', 'report_link', 'uncertainty_k_factor', 
+            'date_from', 'date_to', 'notes', 'update_at', 'calibration_uncertainty'
+            ]
     },
     'calibration_uncertainty': {
         'prefix_separator': '.',
@@ -489,7 +500,7 @@ class MeasurementStation:
     def __get_properties(self):
         meas_loc_prop = []
         if self.type in ['mast', 'solar']:
-            meas_loc_prop = _flatten_dict(self.__meas_loc_data_model, property_to_bring_up='mast_properties')
+            meas_loc_prop = _flatten_dict(self.__meas_loc_data_model, property_to_bring_up='mast_properties', remove_child_lists=False)
         elif self.type in ['lidar', 'sodar', 'floating_lidar']:
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model,
                                           property_to_bring_up='vertical_profiler_properties')
@@ -823,14 +834,18 @@ class _Measurements:
     def __get_properties(self):
         meas_props = []
         for meas_point in self._meas_data_model:
-            logger_meas_configs = _raise_child(meas_point, child_to_raise='logger_measurement_config')
-            calib_raised = _raise_child(meas_point, child_to_raise='calibration')
+            logger_meas_configs = _raise_child(
+                meas_point, child_to_raise='logger_measurement_config', remove_child_lists=False
+                )
+            calib_raised = _raise_child(meas_point, child_to_raise='calibration', remove_child_lists=False)
             if calib_raised is None:
                 sensors = _raise_child(meas_point, child_to_raise='sensor')
             else:
                 sensors = _raise_child(calib_raised, child_to_raise='sensor')
                 sensors = [sensors_needed for sensors_needed in sensors if sensors_needed['measurement_type_id'] == meas_point['measurement_type_id']]
-            mounting_arrangements = _raise_child(meas_point, child_to_raise='mounting_arrangement')
+            mounting_arrangements = _raise_child(
+                meas_point, child_to_raise='mounting_arrangement', remove_child_lists=False
+                )
 
             if mounting_arrangements is None:
                 meas_point_merged = self.__meas_point_merge(logger_measurement_configs=logger_meas_configs,
