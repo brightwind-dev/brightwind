@@ -3,13 +3,14 @@ import pandas as pd
 import os
 import json
 from jsonschema import Draft7Validator
-from typing import Union
+from typing import Any
 
 __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
            'is_file_extension',
-           'validate_json'
+           'validate_json',
+           'assert_function_input_type'
            ]
 
 
@@ -256,5 +257,24 @@ def validate_json(json_to_check, schema):
     return data_is_valid
 
 
-
-
+def assert_function_input_type(object: Any, expected: tuple, name: str) -> None:
+    """
+    Check whether object has expected type. If not, raise an error.
+    :param object:         Object for which type will be checked.
+    :type object:          any
+    :param expected:       tuple of expected types e.g. (float, int)
+    :type expected:        tuple
+    :param name:           Name of the object to be used in the error message.
+    :type name:            str
+    :returns:              Raises an error if object type is not in expected types.
+    :rtype:                None
+    **Example usage**
+        ::
+    import brightwind as bw
+    a = [1, 2]
+    bw.utils.utils.assert_function_input_type(a, (float, int), 'number')
+    # TypeError: 'number' must be type: (<class 'float'>, <class 'int'>), received: list
+    """
+    if not isinstance(object, expected):
+        raise TypeError(f"'{name}' must be type: {expected}, received: {type(object).__name__}.")
+    
