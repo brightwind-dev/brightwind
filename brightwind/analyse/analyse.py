@@ -2070,7 +2070,6 @@ def calc_air_density(temperature: Union[float, pd.Series],
             R_d = specific gas constant for dry air (287.05 J/kg*K).
                   See Note on specific_gas_constant argument for 'IEC' method below.
             R_v = specific gas constant for water vapour (461.495 J/kg*K).
-                  See Note on specific_gas_constant argument for 'IEC' method below.
             T   = air temperature in Kelvin (°C + 273.15).
 
     Note on specific_gas_constant argument for 'IEC' method:
@@ -2079,9 +2078,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
     retained to maintain backwards compatibility for when rel_humidity_percent is None.
     However, if rel_humidity_percent is not None, the specific_gas_constant is ignored as the air density
     calculation which incorporates humidity depends on the two specific gas constants for dry air (287.05 J/kg*K)
-    and water vapour (461.5 J/kg*K) and therefore the specific_gas_constant argument is redundant.
-    Note that the IEC method uses a slightly different value of 461.5 J/kg*K for the
-    specific gas constant for water vapour.
+    and water vapour (461.495 J/kg*K) and therefore the specific_gas_constant argument is redundant.
 
     WARNING: The `specific_gas_constant` argument will be removed in a future 3.0 release of brightwind.
 
@@ -2144,7 +2141,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
 
     data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
 
-    IEC Method Examples (Default):
+    # IEC Method Examples (Default):
     # Calculate air density from input air temperature and air pressure series
     # (rel_humidity_percent=None and specific_gas_constant=286.9 by default)
     bw.calc_air_density(data.T2m, data.P2m).head(5)
@@ -2246,6 +2243,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
     temp_K = temperature + 273.15  # to convert deg C to Kelvin.
     press_Pa = pressure * 100  # to convert hPa to Pa
     specific_gas_constant_dry_air = GAS_CONST_DRY_AIR
+    specific_gas_constant_water = GAS_CONST_WATER
 
     if rel_humidity_percent is None and calc_method == 'IEC':
         # If relative humidity is None, the old method ignoring relative humidity is used.
@@ -2275,11 +2273,6 @@ def calc_air_density(temperature: Union[float, pd.Series],
         # sense to use the specific gas constant for dry air in this context.
         gas_constant_air = specific_gas_constant_dry_air
 
-    # IEC uses a slightly different value for specific gas constant of water vapour (461.495 vs 461.5) - handle:
-    if calc_method == 'IEC':
-        specific_gas_constant_water = 461.5
-    else:
-        specific_gas_constant_water = GAS_CONST_WATER
 
     # If calc_method requires dew point temperature, ensure it is always <= temperature:
     if calc_method == 'HermanWobus_from_dew_point':
