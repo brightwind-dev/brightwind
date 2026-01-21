@@ -2277,7 +2277,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
 
     # IEC uses a slightly different value for specific gas constant of water vapour (461.495 vs 461.5) - handle:
     if calc_method == 'IEC':
-        specific_gas_constant_water = 461.495
+        specific_gas_constant_water = 461.5
     else:
         specific_gas_constant_water = GAS_CONST_WATER
 
