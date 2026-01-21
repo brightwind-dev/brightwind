@@ -2285,12 +2285,13 @@ def calc_air_density(temperature: Union[float, pd.Series],
         if dew_point_temperature_degC is None:
             raise ValueError("dew_point_temperature_degC must be provided when calc_method is "
                              "'HermanWobus_from_dew_point'.")
-        if isinstance(dew_point_temperature_degC, (float, int)):
-            if dew_point_temperature_degC > temperature:
+        # Raise error if dew point temperature is greater than air temperature
+        comparison = dew_point_temperature_degC > temperature
+        if isinstance(comparison, pd.Series):
+            if comparison.any():
                 raise ValueError("dew_point_temperature_degC cannot be greater than temperature.")
-        elif isinstance(dew_point_temperature_degC, pd.Series):
-            if (dew_point_temperature_degC.values > temperature.values).any():
-                print((dew_point_temperature_degC.values > temperature.values).any())
+        else:
+            if comparison:
                 raise ValueError("dew_point_temperature_degC cannot be greater than temperature.")
 
     # Calculate partial pressure of water vapour
