@@ -695,3 +695,36 @@ def test_dist_matrix_by_direction_sector():
     bw.dist_matrix_by_dir_sector(DATA.Spd40mN, DATA.T2m, DATA.Dir38mS,
                                  var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
+
+
+def test_calc_rel_humidity_from_dew_point():
+    # test error for dew point greater than temperature
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_rel_humidity_from_dew_point(11, 10)
+    assert str(except_info.value) == "dew_point_temperature_degC cannot be greater than temperature."
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_rel_humidity_from_dew_point(dew_point_temperature_degC=DATA.T2m.tail(3)+[-1, 0, 1],
+                                            air_temperature_degC=DATA.T2m.tail(3))
+    assert str(except_info.value) == "dew_point_temperature_degC cannot be greater than temperature."
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_rel_humidity_from_dew_point(dew_point_temperature_degC=20,
+                                            air_temperature_degC=DATA.T2m.tail(3))
+    assert str(except_info.value) == "dew_point_temperature_degC cannot be greater than temperature."
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_rel_humidity_from_dew_point(dew_point_temperature_degC=DATA.T2m.tail(3),
+                                            air_temperature_degC=0)
+    assert str(except_info.value) == "dew_point_temperature_degC cannot be greater than temperature."
+    # test error for Series inputs with different lengths
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_rel_humidity_from_dew_point(DATA.T2m.tail(5), DATA.T2m.tail(3))
+    assert str(except_info.value) == "air_temperature_degC and dew_point_temperature_degC must have the same dimensions."
+    # test float/int inputs
+    assert bw.calc_rel_humidity_from_dew_point(10, 11) - 93.54469072330612 < 1e-3
+    assert bw.calc_rel_humidity_from_dew_point(12.1, 12.1) == 100
+    # test Series inputs
+    merra2_node = bw.LoadBrightHub.get_reanalysis('MERRA-2', 53.5, -10.8, '2025-01-01', '2025-02-01',
+                                                  nearest_nodes=1, variables=['Tmp_2m_degC', 'DPTmp_2m_degC'],
+                                                  print_status=True)
+    assert (abs(bw.calc_rel_humidity_from_dew_point(merra2_node[1]['DPTmp_2m_degC'],
+                                                    merra2_node[1]['Tmp_2m_degC']).head(5).values -
+                pd.Series([71.97026223, 72.4558096, 72.94502496, 73.9525735, 74.45269691])) < 1e-3).all()
