@@ -5,7 +5,7 @@ from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as bw_plt
 from brightwind.transform.scale import scale_air_density_to_height
-from brightwind.utils.utils import _convert_df_to_series
+from brightwind.utils.utils import _convert_df_to_series, assert_function_input_type
 from brightwind.utils.utils import validate_coverage_threshold
 from brightwind.export.export import _calc_mean_speed_of_freq_tab
 import matplotlib.pyplot as plt
@@ -29,7 +29,8 @@ __all__ = ['monthly_means',
            'basic_stats',
            'TI',
            'sector_ratio',
-           'calc_air_density']
+           'calc_air_density',
+           'calc_rel_humidity_from_dew_point']
 
 #  Specific gas constant for dry air (J/K/kg or m2/K/s2) from ISO:2533-1975 Standard Atmosphere
 GAS_CONST_DRY_AIR = 287.05 
@@ -2248,3 +2249,131 @@ def calc_air_density(temperature: Union[float, pd.Series],
     return air_density
 
 
+def _calc_water_saturation_vapour_pressure_Pa(temperature_degC: Union[float, pd.Series]
+                                              ) -> Union[float, pd.Series]:
+    """
+    Calculate the saturation vapour pressure of water vapour for a given air temperature using
+    Herman Wobus polynomial approximation.
+
+    The saturation vapour pressure represents the maximum partial pressure of water vapour
+    that can exist in the air at a specified temperature before the air becomes saturated
+    and condensation occurs.
+
+    For more detailed references see the following:
+    https://wahiduddin.net/calc/density_altitude.htm
+    https://help.emd.dk/knowledgebase/content/ReferenceManual/DensityOfAir.pdf
+
+    **Calculation method:**
+        The function applies a polynomial approximation to compute the saturation vapour pressure
+        of water vapour over liquid water based on temperature (T), following:
+            E_s(T) = e_s0 / (p(T))^8
+        where:
+            e_s0 = 6.1078 hPa
+            p(T) = c₀ + T(c₁ + T(c₂ + T(c₃ + T(c₄ + T(c₅ + T(c₆ + T(c₇ + T(c₈ + T·c₉))))))))
+        and coefficients:
+            c₀ = 0.99999683
+            c₁ = -0.90826951x10⁻²
+            c₂ = 0.78736169x10⁻⁴
+            c₃ = -0.61117958x10⁻⁶
+            c₄ = 0.43884187x10⁻⁸
+            c₅ = -0.29883885x10⁻¹⁰
+            c₆ = 0.21874425x10⁻¹²
+            c₇ = -0.17892321x10⁻¹⁴
+            c₈ = 0.11112018x10⁻¹⁶
+            c₉ = -0.30994571x10⁻¹⁹
+        The output saturation vapour pressure is converted from hPa to Pa by multiplying by 100.
+
+    :param temperature_degC:         Air temperature in degrees Celsius.
+    :type temperature_degC:          float or pandas.Series
+    :return:                         Saturation vapour pressure in pascals (Pa).
+                                     Output type depends on input type. If input is float,
+                                     output is float. If input is pandas.Series,
+                                     output is pandas.Series.
+    :rtype:                          float or pandas.Series
+
+    import brightwind as bw
+
+    # Calculate saturation vapour pressure for 20°C air temperature
+    bw.analyse.analyse._calc_water_saturation_vapour_pressure_Pa(20.0)
+    # 2337.237477998109 Pa
+
+    # Calculation saturation vapour pressure for a series of air temperature values
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+    data = bw.apply_cleaning(data, bw.demo_datasets.demo_cleaning_file)
+    bw.analyse.analyse._calc_water_saturation_vapour_pressure_Pa(data.T2m.tail(3))
+    # Timestamp
+    # 2017-11-23 10:30:00    647.322512
+    # 2017-11-23 10:40:00    651.117108
+    # 2017-11-23 10:50:00    647.322512
+    # Name: T2m, dtype: float64
+    """
+    e_s0 = 6.1078
+    c0 = 0.99999683
+    c1 = -0.90826951e-2
+    c2 = 0.78736169e-4
+    c3 = -0.61117958e-6
+    c4 = 0.43884187e-8
+    c5 = -0.29883885e-10
+    c6 = 0.21874425e-12
+    c7 = -0.17892321e-14
+    c8 = 0.11112018e-16
+    c9 = -0.30994571e-19
+    p = (c0 + temperature_degC *
+         (c1 + temperature_degC *
+          (c2 + temperature_degC *
+           (c3 + temperature_degC *
+            (c4 + temperature_degC *
+             (c5 + temperature_degC *
+              (c6 + temperature_degC *
+               (c7 + temperature_degC *
+                (c8 + temperature_degC * c9)))))))))
+    E_s_hPa = e_s0/(p ** 8)
+    # Convert from hPa to Pa
+    E_s_Pa = E_s_hPa * 100
+    return E_s_Pa
+
+
+def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd.Series],
+                                     air_temperature_degC: Union[float, pd.Series]
+                                     ) -> Union[float, pd.Series]:
+    """
+    Calculate relative humidity (%) from dew point temperature (degrees Celsius) and air temperature (degrees Celsius).
+    Note that dew point temperature must be less than or equal to air temperature, otherwise a warning is raised.
+
+        **Calculation method:**
+            RH = 100 * (E_s(Td) / E_s(T))
+        where:
+            RH      = relative humidity (%)
+            E_s(Td) = saturation vapour pressure at dew point temperature (Td)
+            E_s(T)  = saturation vapour pressure at air temperature (T)
+        E_s is calculated using the Herman Wobus polynomial approximation as implemented in
+        `_calc_water_saturation_vapour_pressure_Pa()`.
+
+    :param dew_point_temperature_degC:  Dew point temperature in degrees Celsius.
+    :type dew_point_temperature_degC:   float or pandas.Series
+    :param air_temperature_degC:        Air temperature in degrees Celsius.
+    :type air_temperature_degC:         float or pandas.Series
+    :return:                            Relative humidity as a percentage.
+    :rtype:                             float or pandas.Series
+    """
+    # Validate input types
+    assert_function_input_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
+    assert_function_input_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
+    # Check dimensions if inputs are pd.Series
+    if isinstance(air_temperature_degC, pd.Series) and (isinstance(dew_point_temperature_degC, pd.Series)):
+        if len(air_temperature_degC) != len(dew_point_temperature_degC):
+            raise ValueError("air_temperature_degC and dew_point_temperature_degC must have the same dimensions.")
+
+    # Raise error if dew point temperature is greater than air temperature
+    if isinstance(dew_point_temperature_degC, (float, int)):
+        if dew_point_temperature_degC > air_temperature_degC:
+            raise ValueError("dew_point_temperature_degC cannot be greater than temperature.")
+        elif isinstance(dew_point_temperature_degC, pd.Series):
+            if (dew_point_temperature_degC.values > air_temperature_degC.values).any():
+                print((dew_point_temperature_degC.values > air_temperature_degC.values).any())
+                raise ValueError("dew_point_temperature_degC cannot be greater than temperature.")
+
+    # Calculate relative humidity
+    rel_humidity_percent = 100*(_calc_water_saturation_vapour_pressure_Pa(dew_point_temperature_degC) /
+                                _calc_water_saturation_vapour_pressure_Pa(air_temperature_degC))
+    return rel_humidity_percent
