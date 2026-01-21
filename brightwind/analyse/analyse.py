@@ -2072,6 +2072,12 @@ def calc_air_density(temperature: Union[float, pd.Series],
             R_v = specific gas constant for water vapour (461.495 J/kg*K).
             T   = air temperature in Kelvin (°C + 273.15).
 
+    For more detailed explanation of the calculation methods, see:
+    - IEC 61400-12-1 (2017) Wind power generation systems - Part 12-1: Power performance
+    measurement of electricity producing wind turbines (p. 41)
+    - https://wahiduddin.net/calc/density_altitude.htm
+    - https://help.emd.dk/knowledgebase/content/ReferenceManual/DensityOfAir.pdf
+
     Note on specific_gas_constant argument for 'IEC' method:
     Note that the value of the specific_gas_constant argument is used only when rel_humidity_percent is None.
     This specific_gas_constant argument and its default value of 286.9 are
