@@ -6,7 +6,12 @@ from brightwind.utils import utils
 from brightwind.analyse import plot as bw_plt
 from brightwind.transform.scale import scale_air_density_to_height
 from brightwind.utils.utils import _convert_df_to_series, assert_function_variable_type, validate_coverage_threshold
-from brightwind.utils.constants import GAS_CONST_DRY_AIR, GAS_CONST_WATER, AIR_DENSITY_LAPSE_RATE
+from brightwind.utils.constants import (
+    GAS_CONST_DRY_AIR, 
+    GAS_CONST_WATER, 
+    AIR_DENSITY_LAPSE_RATE, 
+    DEGREES_CELSIUS_TO_KELVIN,
+)
 from brightwind.export.export import _calc_mean_speed_of_freq_tab
 import matplotlib.pyplot as plt
 import warnings
@@ -2058,7 +2063,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
             air_density = (P_d / (R_d * T)) + (P_v / (R_v * T))
 
         where:
-            P_v = water vapour partial pressure [Pa].
+            P_v = water vapour pressure [Pa].
                   There are several methods to calculate water vapour pressure - use the calc_method argument to select
                   one of the following methods from bw.analyse.analyse._calc_water_vapour_pressure():
                   - 'IEC' (default): Requires air temperature and relative humidity.
@@ -2066,7 +2071,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
                   - 'HermanWobus_from_dew_point': Requires dew point temperature.
                   Note that regardless of the calc_method for water vapour pressure,
                   air temperature and air pressure are required inputs to calculate air density.
-            P_d = partial pressure of dry air [Pa] = total pressure - water vapour pressure
+            P_d = pressure of dry air [Pa] = total air pressure - water vapour pressure (P_v).
             R_d = specific gas constant for dry air (287.05 J/kg*K).
                   See Note on specific_gas_constant argument for 'IEC' method below.
             R_v = specific gas constant for water vapour (461.495 J/kg*K).
@@ -2083,8 +2088,8 @@ def calc_air_density(temperature: Union[float, pd.Series],
     This specific_gas_constant argument and its default value of 286.9 are
     retained to maintain backwards compatibility for when rel_humidity_percent is None.
     However, if rel_humidity_percent is not None, the specific_gas_constant is ignored as the air density
-    calculation which incorporates humidity depends on the two specific gas constants for dry air (287.05 J/kg*K)
-    and water vapour (461.495 J/kg*K) and therefore the specific_gas_constant argument is redundant.
+    calculation which incorporates relative humidity depends on the two specific gas constants for dry air 
+    (287.05 J/kg*K) and water vapour (461.495 J/kg*K) and therefore the specific_gas_constant argument is redundant.
 
     WARNING: The `specific_gas_constant` argument will be removed in a future 3.0 release of brightwind.
 
@@ -2137,7 +2142,8 @@ def calc_air_density(temperature: Union[float, pd.Series],
                                         Requires dew point temperature (dew_point_temperature_degC).
     :type calc_method:                  str
     :return:                            Air density in kg/m^3. Output type depends on type(temperature), type(pressure),
-                                        type(rel_humidity_percent) provided. If all inputs are float, output is float.
+                                        type(rel_humidity_percent) or type(dew_point_temperature_degC) provided. 
+                                        If all inputs are float, output is float.
                                         If any input is pandas.Series, output is pandas.Series.
     :rtype:                             float or pandas.Series
 
@@ -2244,9 +2250,12 @@ def calc_air_density(temperature: Union[float, pd.Series],
         if isinstance(rel_humidity_percent, pd.Series):
             if len(temperature) != len(rel_humidity_percent):
                 raise ValueError("temperature, pressure and rel_humidity_percent must have the same dimensions.")
+        if isinstance(dew_point_temperature_degC, pd.Series):
+            if len(temperature) != len(dew_point_temperature_degC):
+                raise ValueError("temperature, pressure and dew_point_temperature_degC must have the same dimensions.")
 
     lapse_rate_per_m = lapse_rate * 0.001  # convert lapse rate from kg/m3/km to kg/m3/m
-    temp_K = temperature + 273.15  # to convert deg C to Kelvin.
+    temp_K = temperature + DEGREES_CELSIUS_TO_KELVIN  # to convert deg C to Kelvin.
     press_Pa = pressure * 100  # to convert hPa to Pa
     specific_gas_constant_dry_air = GAS_CONST_DRY_AIR
     specific_gas_constant_water = GAS_CONST_WATER
@@ -2279,7 +2288,6 @@ def calc_air_density(temperature: Union[float, pd.Series],
         # sense to use the specific gas constant for dry air in this context.
         gas_constant_air = specific_gas_constant_dry_air
 
-
     # If calc_method requires dew point temperature, ensure it is always <= temperature:
     if calc_method == 'HermanWobus_from_dew_point':
         if dew_point_temperature_degC is None:
@@ -2287,23 +2295,27 @@ def calc_air_density(temperature: Union[float, pd.Series],
                              "'HermanWobus_from_dew_point'.")
         # Raise error if dew point temperature is greater than air temperature
         comparison = dew_point_temperature_degC > temperature
+        msg = "dew_point_temperature_degC cannot be greater than temperature."
+        # For pandas Series, ignore NaNs when checking
         if isinstance(comparison, pd.Series):
-            if comparison.any():
-                raise ValueError("dew_point_temperature_degC cannot be greater than temperature.")
+            if comparison.fillna(False).any():
+                raise ValueError(msg)
+        # For scalar booleans
         else:
             if comparison:
-                raise ValueError("dew_point_temperature_degC cannot be greater than temperature.")
+                raise ValueError(msg)
 
     # Calculate partial pressure of water vapour
-    vapour_press_Pa = _calc_water_vapour_pressure_Pa(air_temperature_degC=temperature,
-                                                     rel_humidity_percent=rel_humidity_percent,
-                                                     dew_point_temperature_degC=dew_point_temperature_degC,
-                                                     calc_method=calc_method)
+    water_vapour_press_Pa = _calc_water_vapour_pressure_Pa(air_temperature_degC=temperature,
+                                                           rel_humidity_percent=rel_humidity_percent,
+                                                           dew_point_temperature_degC=dew_point_temperature_degC,
+                                                           calc_method=calc_method)
     # Calculate partial pressure of dry air
-    dry_air_press_Pa = press_Pa - vapour_press_Pa
+    dry_air_press_Pa = press_Pa - water_vapour_press_Pa
 
     # Calculate air density
-    air_density = dry_air_press_Pa/(gas_constant_air * temp_K) + vapour_press_Pa/(specific_gas_constant_water * temp_K)
+    air_density = dry_air_press_Pa / (gas_constant_air * temp_K) + water_vapour_press_Pa / (
+        specific_gas_constant_water * temp_K)
 
     # Scale air density to site elevation if both elevation_ref and elevation_site are provided
     if elevation_ref is not None and elevation_site is not None:
@@ -2332,7 +2344,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
     return air_density
 
 
-def _calc_water_saturation_vapour_pressure_Pa(temperature_degC: Union[float, pd.Series]
+def _calc_water_saturation_vapour_pressure_Pa(air_temperature_degC: Union[float, pd.Series]
                                               ) -> Union[float, pd.Series]:
     """
     Calculate the saturation vapour pressure of water vapour for a given air temperature using
@@ -2366,8 +2378,8 @@ def _calc_water_saturation_vapour_pressure_Pa(temperature_degC: Union[float, pd.
             c₉ = -0.30994571x10⁻¹⁹
         The output saturation vapour pressure is converted from hPa to Pa by multiplying by 100.
 
-    :param temperature_degC:         Air temperature in degrees Celsius.
-    :type temperature_degC:          float or pandas.Series
+    :param air_temperature_degC:     Air temperature in degrees Celsius.
+    :type air_temperature_degC:      float or pandas.Series
     :return:                         Saturation vapour pressure in pascals (Pa).
                                      Output type depends on input type. If input is float,
                                      output is float. If input is pandas.Series,
@@ -2401,15 +2413,15 @@ def _calc_water_saturation_vapour_pressure_Pa(temperature_degC: Union[float, pd.
     c7 = -0.17892321e-14
     c8 = 0.11112018e-16
     c9 = -0.30994571e-19
-    p = (c0 + temperature_degC *
-         (c1 + temperature_degC *
-          (c2 + temperature_degC *
-           (c3 + temperature_degC *
-            (c4 + temperature_degC *
-             (c5 + temperature_degC *
-              (c6 + temperature_degC *
-               (c7 + temperature_degC *
-                (c8 + temperature_degC * c9)))))))))
+    p = (c0 + air_temperature_degC *
+         (c1 + air_temperature_degC *
+          (c2 + air_temperature_degC *
+           (c3 + air_temperature_degC *
+            (c4 + air_temperature_degC *
+             (c5 + air_temperature_degC *
+              (c6 + air_temperature_degC *
+               (c7 + air_temperature_degC *
+                (c8 + air_temperature_degC * c9)))))))))
     E_s_hPa = e_s0/(p ** 8)
     # Convert from hPa to Pa
     E_s_Pa = E_s_hPa * 100
@@ -2430,7 +2442,7 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         The vapour pressure (P_v) is calculated using the formula provided in IEC Standard (61400-12-1):
             P_v = (RH / 100) x 0.0000205 x exp(0.0631846 x T_K)
         where:
-            P_v   = actual vapour pressure (Pa)
+            P_v   = actual water vapour pressure (Pa)
             RH    = relative humidity (%)
             T_K   = air temperature in Kelvin (K) = T(°C) + 273.15
 
@@ -2443,9 +2455,9 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         saturation vapour pressure at the given air temperature is multiplied by the relative humidity:
             P_v = (RH / 100) x E_s(T)
         where:
-            P_v   = actual vapour pressure (Pa).
+            P_v   = actual water vapour pressure (Pa).
             RH    = relative humidity (%).
-            E_s(T) = saturation vapour pressure (Pa) at temperature T (°C),
+            E_s(T) = saturation vapour pressure (Pa) at air temperature T (°C),
                      computed using the Herman Wobus Approximation - for details
                      see `_calc_water_saturation_vapour_pressure_Pa()`.
 
@@ -2458,7 +2470,7 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         actual temperature is equal to the saturation vapour pressure at the dew point temperature:
             P_v = E_s(T_d)
         where:
-            P_v      = actual vapour pressure (Pa).
+            P_v      = actual water vapour pressure (Pa).
             T_d      = dew point temperature (°C).
             E_s(T_d) = saturation vapour pressure (Pa) at the dew point temperature (°C)
                        computed using the Herman Wobus Approximation - for details
@@ -2470,12 +2482,12 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
     :type rel_humidity_percent:         float, pd.Series
     :param dew_point_temperature_degC:  Dew point temperature in degrees Celsius.
     :type dew_point_temperature_degC:   float, pd.Series
-    :param calc_method:                      Method to use for calculation. Options are:
-                                        - 'IEC' (default): Uses air temperature and relative humidity.
-                                        - 'HermanWobus_from_rel_humidity': Uses air temperature and relative humidity.
-                                        - 'HermanWobus_from_dew_point': Uses dew point temperature.
-    :type calc_method:                       str
-    :return:                            Vapour pressure in Pascals (Pa).
+    :param calc_method:                 Method to use for calculation. Options are:
+                                         - 'IEC' (default): Uses air temperature and relative humidity.
+                                         - 'HermanWobus_from_rel_humidity': Uses air temperature and relative humidity.
+                                         - 'HermanWobus_from_dew_point': Uses dew point temperature.
+    :type calc_method:                  str
+    :return:                            Water vapour pressure in Pascals (Pa).
                                         Output type depends on input type.
                                         If input all inputs are float, output is float.
                                         If any input is pandas.Series, output is pandas.Series.
@@ -2489,12 +2501,12 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
     data = bw.apply_cleaning(data, bw.demo_datasets.demo_cleaning_file)
 
     # Examples Method 1: IEC (default)
-        # Calculate vapour pressure for 60% relative humidity at 20°C using HermanWobus method
+        # Calculate water vapour pressure for 60% relative humidity at 20°C using HermanWobus method
         bw.analyse.analyse._calc_water_vapour_pressure_Pa(air_temperature_degC=20.0,
                                                         rel_humidity_percent=60.0)
         # 1361.9246939756576
 
-        # Apply to a pandas Series of temperature and relative humidity data
+        # Calculate water vapour pressure from a pandas Series of air temperature and relative humidity data
         bw.analyse.analyse._calc_water_vapour_pressure_Pa(air_temperature_degC=data['T2m'].tail(5),
                                                         rel_humidity_percent=data['RH2m'].tail(5))
 
@@ -2513,10 +2525,10 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
                                                         calc_method='HermanWobus_from_rel_humidity')
         # 1402.3424867988654
 
-        # Apply to a pandas Series of temperature and relative humidity data
+        # Calculate water vapour pressure from a pandas Series of temperature and relative humidity data
         bw.analyse.analyse._calc_water_vapour_pressure_Pa(air_temperature_degC=data['T2m'].tail(5),
-                                                        rel_humidity_percent=data['RH2m'].tail(5),
-                                                        calc_method='HermanWobus_from_rel_humidity')
+                                                          rel_humidity_percent=data['RH2m'].tail(5),
+                                                          calc_method='HermanWobus_from_rel_humidity')
 
         # Timestamp
         # 2017-11-23 10:10:00    651.978790
@@ -2532,7 +2544,7 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
                                                           calc_method='HermanWobus_from_dew_point')
         # 1227.2296498322416
 
-        # Apply to a pandas Series of dew point temperatures
+        # Calculate water vapour pressure from a pandas Series of dew point temperatures
         import pandas as pd
 
         dew_pt = pd.Series([10, 12, 9])
@@ -2567,10 +2579,10 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
                           UserWarning, stacklevel=2)
 
         rel_humidity_decimal = 0.01 * rel_humidity_percent  # convert percent to decimal.
-        air_temperature_K = air_temperature_degC + 273.15  # convert deg C to Kelvin.
+        air_temperature_K = air_temperature_degC + DEGREES_CELSIUS_TO_KELVIN  # convert deg C to Kelvin.
 
-        # Calculate vapour pressure using IEC formula
-        vapour_press_Pa = rel_humidity_decimal * 0.0000205 * np.exp(0.0631846 * air_temperature_K)
+        # Calculate water vapour pressure using IEC formula
+        water_vapour_press_Pa = rel_humidity_decimal * 0.0000205 * np.exp(0.0631846 * air_temperature_K)
 
     if calc_method == 'HermanWobus_from_rel_humidity':
 
@@ -2592,9 +2604,9 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
 
         rel_humidity_decimal = 0.01 * rel_humidity_percent  # convert percent to decimal.
 
-        # Calculate vapour pressure from air temperature and relative humidity using Herman Wobus approximation
-        vapour_press_Pa = (rel_humidity_decimal *
-                           _calc_water_saturation_vapour_pressure_Pa(air_temperature_degC))
+        # Calculate water vapour pressure from air temperature and relative humidity using Herman Wobus approximation
+        water_vapour_press_Pa = (rel_humidity_decimal *
+                                 _calc_water_saturation_vapour_pressure_Pa(air_temperature_degC))
 
     if calc_method == 'HermanWobus_from_dew_point':
 
@@ -2605,12 +2617,12 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         assert_function_variable_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
 
         if air_temperature_degC is not None or rel_humidity_percent is not None:
-            warnings.warn("Vapour pressure calculated based on dew_point_temperature_degC as calc_method is"
+            warnings.warn("Water vapour pressure calculated based on dew_point_temperature_degC as calc_method is"
                           " 'HermanWobus_from_dew_point'.\n Air temperature and relative humidity inputs "
                           " not required in water vapour pressure calculation.",
                           UserWarning, stacklevel=2)
 
-        # Calculate vapour pressure from dew point temperature using Herman Wobus approximation
-        vapour_press_Pa = _calc_water_saturation_vapour_pressure_Pa(dew_point_temperature_degC)
+        # Calculate water vapour pressure from dew point temperature using Herman Wobus approximation
+        water_vapour_press_Pa = _calc_water_saturation_vapour_pressure_Pa(dew_point_temperature_degC)
 
-    return vapour_press_Pa
+    return water_vapour_press_Pa

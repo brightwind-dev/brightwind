@@ -16,3 +16,6 @@ ACCEL_DUE_TO_GRAVITY = 9.80665
 
 # Temperature lapse rate (K/m or degC/m) from ISO:2533-1975 Standard Atmosphere
 TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE = -0.0065
+
+# Offset to convert degrees Celsius to Kelvin
+DEGREES_CELSIUS_TO_KELVIN = 273.15
