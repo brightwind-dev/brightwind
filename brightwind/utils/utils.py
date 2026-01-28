@@ -3,14 +3,14 @@ import pandas as pd
 import os
 import json
 from jsonschema import Draft7Validator
-from typing import Any
+from typing import Any, Union
 
 __all__ = ['slice_data',
            'validate_coverage_threshold',
            'is_file',
            'is_file_extension',
            'validate_json',
-           'assert_function_input_type'
+           'assert_function_variable_type'
            ]
 
 
@@ -257,24 +257,28 @@ def validate_json(json_to_check, schema):
     return data_is_valid
 
 
-def assert_function_input_type(object: Any, expected: tuple, name: str) -> None:
+def assert_function_variable_type(variable: Any, expected_type: Union[type, tuple], variable_name: str) -> None:
     """
-    Check whether object has expected type. If not, raise an error.
+    Assert whether variable has expected type. If not, raise an error.
 
-    :param object:         Object for which type will be checked.
-    :type object:          any
-    :param expected:       tuple of expected types e.g. (float, int)
-    :type expected:        tuple
-    :param name:           Name of the object to be used in the error message.
-    :type name:            str
-    :returns:              Raises an error if object type is not in expected types.
-    :rtype:                None
+    :param variable:        Variable for which type is checked.
+    :type variable:         any
+    :param expected_type:   Expected type(s) e.g. float or (float, int)
+    :type expected_type:    type or tuple
+    :param variable_name:   Name of the variable to be used in the error message.
+    :type variable_name:    str
+    :returns:               Raises an error if variable type is not as expected.
+    :rtype:                 None
+
     **Example usage**
         ::
-    import brightwind as bw
-    a = [1, 2]
-    bw.utils.utils.assert_function_input_type(a, (float, int), 'number')
-    # TypeError: 'number' must be type: (<class 'float'>, <class 'int'>), received: list
+        import brightwind as bw
+        a = [1, 2]
+
+        bw.utils.utils.assert_function_variable_type(a, float, 'number')
+        # TypeError: 'number' must be type: <class 'float'>, received: list
+        bw.utils.utils.assert_function_variable_type(a, (float, int), 'number')
+        # TypeError: 'number' must be type: (<class 'float'>, <class 'int'>), received: list
     """
-    if not isinstance(object, expected):
-        raise TypeError(f"'{name}' must be type: {expected}, received: {type(object).__name__}.")
+    if not isinstance(variable, expected_type):
+        raise TypeError(f"'{variable_name}' must be type: {expected_type}, received: {type(variable).__name__}.")

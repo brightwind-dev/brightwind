@@ -5,7 +5,7 @@ from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as bw_plt
 from brightwind.transform.scale import scale_air_density_to_height
-from brightwind.utils.utils import _convert_df_to_series, assert_function_input_type, validate_coverage_threshold
+from brightwind.utils.utils import _convert_df_to_series, assert_function_variable_type, validate_coverage_threshold
 from brightwind.utils.constants import GAS_CONST_DRY_AIR, GAS_CONST_WATER, AIR_DENSITY_LAPSE_RATE
 from brightwind.export.export import _calc_mean_speed_of_freq_tab
 import matplotlib.pyplot as plt
@@ -2554,8 +2554,8 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         if air_temperature_degC is None or rel_humidity_percent is None:
             raise ValueError("For 'IEC' calc_method, both air_temperature_degC and rel_humidity_percent must be"
                              " provided.")
-        assert_function_input_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
-        assert_function_input_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
+        assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
+        assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
         # If both inputs are Series, check they have same length
         if isinstance(air_temperature_degC, pd.Series) and (isinstance(rel_humidity_percent, pd.Series)):
             if len(air_temperature_degC) != len(rel_humidity_percent):
@@ -2578,8 +2578,8 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         if air_temperature_degC is None or rel_humidity_percent is None:
             raise ValueError("For 'HermanWobus_from_rel_humidity' calc_method, both air_temperature_degC"
                              " and rel_humidity_percent must be provided.")
-        assert_function_input_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
-        assert_function_input_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
+        assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
+        assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
         # If both inputs are Series, check they have same length
         if isinstance(air_temperature_degC, pd.Series) and (isinstance(rel_humidity_percent, pd.Series)):
             if len(air_temperature_degC) != len(rel_humidity_percent):
@@ -2602,7 +2602,7 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         if dew_point_temperature_degC is None:
             raise ValueError("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
                              " provided.")
-        assert_function_input_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
+        assert_function_variable_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
 
         if air_temperature_degC is not None or rel_humidity_percent is not None:
             warnings.warn("Vapour pressure calculated based on dew_point_temperature_degC as calc_method is"
