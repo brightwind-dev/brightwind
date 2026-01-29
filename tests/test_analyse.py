@@ -638,39 +638,47 @@ def test_ti_by_sector():
 
 
 def test_calc_air_density():
-    
-    # test Series inputs
+
+    # Test error for invalid calc_method
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(DATA.T2m, DATA.P2m, calc_method='invalid_method')
+    assert str(except_info.value) == ("Invalid calc_method. Choose from 'IEC', 'HermanWobus_from_rel_humidity',"
+                                      "'HermanWobus_from_dew_point'.")
+
+    # Tests for default calc_method = 'IEC'
+
+    # Test Series inputs
     assert list(round(bw.calc_air_density(DATA.T2m, DATA.P2m).tail(5), 6).values
-                  ) == [1.199177, 1.199838, 1.199794, 1.199439, 1.201066]
+                ) == [1.199177, 1.199838, 1.199794, 1.199439, 1.201066]
     assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m).tail(5).values -
                 pd.Series([1.19918, 1.19984, 1.19979, 1.19944, 1.20107])) < 1e-3).all()
     assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m, rel_humidity_percent=DATA.RH2m).tail(5).values -
                 pd.Series([1.19529, 1.19601, 1.19592, 1.19555, 1.19719])) < 1e-3).all()
     assert list(bw.calc_air_density(DATA.T2m, DATA.P2m, specific_gas_constant=287.05).head(5).round(6).dropna()
                 ) == [1.187064, 1.187458]
-    
-    #t test Series inputs with elevation adjustment
+
+    # Test Series inputs with elevation adjustment
     assert list(bw.calc_air_density(DATA.T2m, DATA.P2m, elevation_ref=0, elevation_site=200).tail(5).values
                 ) == [1.177, 1.177, 1.177, 1.177, 1.178]
 
-    # test float/int inputs
+    # Test float/int inputs
     assert bw.calc_air_density(15, 1013) == 1.2253503331640465
-    assert (bw.calc_air_density(15, 1012, rel_humidity_percent=None, specific_gas_constant=287.05) == 
+    assert (bw.calc_air_density(15, 1012, rel_humidity_percent=None, specific_gas_constant=287.05) ==
             bw.calc_air_density(15, 1012, rel_humidity_percent=0))
     assert round(bw.calc_air_density(15, 1012, rel_humidity_percent=0), 5) == 1.2235
     assert round(bw.calc_air_density(15, 1012), 5) == 1.22414
     assert abs(bw.calc_air_density(15, 1013, specific_gas_constant=287.05) - 1.22471) < 1e-3
     assert abs(bw.calc_air_density(15, 1013, rel_humidity_percent=50) - 1.22093) < 1e-3
-    assert round(bw.calc_air_density(15, 1013, rel_humidity_percent=50, 
+    assert round(bw.calc_air_density(15, 1013, rel_humidity_percent=50,
                                      elevation_ref=0, elevation_site=200), 5) == 1.198
 
-    # test float/int inputs with elevation adjustment
+    # Test float/int inputs with elevation adjustment
     assert bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200) == 1.203
     assert bw.calc_air_density(15, 1013, rel_humidity_percent=50, elevation_ref=0, elevation_site=200
                                ) - bw.transform.scale.scale_air_density_to_height(
-                                   bw.calc_air_density(15, 1013, rel_humidity_percent=50), 0, 200) <1e-3
-    
-    # test errors
+                                   bw.calc_air_density(15, 1013, rel_humidity_percent=50), 0, 200) < 1e-3
+
+    # Test errors
     with pytest.raises(TypeError) as except_info:
         bw.calc_air_density(15, 1013, elevation_site=200)
     assert str(except_info.value) == "Specify value of elevation_ref (float or int) when elevation_site is provided."
@@ -678,11 +686,60 @@ def test_calc_air_density():
         bw.calc_air_density(15, 1013, elevation_ref=200)
     assert str(except_info.value) == "Specify value of elevation_site (float or int) when elevation_ref is provided."
     with pytest.raises(ValueError) as except_info:
-        bw.calc_air_density(DATA.T2m.tail(5), DATA['P2m'].tail(3), rel_humidity_percent=DATA.RH2m.tail(5)) 
+        bw.calc_air_density(DATA.T2m.tail(5), DATA['P2m'].tail(3), rel_humidity_percent=DATA.RH2m.tail(5))
     assert str(except_info.value) == "temperature and pressure must have the same dimensions."
     with pytest.raises(ValueError) as except_info:
-        bw.calc_air_density(DATA.T2m.tail(5), DATA['P2m'].tail(5), rel_humidity_percent=DATA.RH2m.tail(3)) 
+        bw.calc_air_density(DATA.T2m.tail(5), DATA['P2m'].tail(5), rel_humidity_percent=DATA.RH2m.tail(3))
     assert str(except_info.value) == "temperature, pressure and rel_humidity_percent must have the same dimensions."
+
+    # Tests for calc_method = 'HermanWobus_from_rel_humidity'
+
+    # Check error is raised when rel_humidity_percent is not provided
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(0.711, 935,
+                            calc_method='HermanWobus_from_rel_humidity')
+    assert str(except_info.value) == ("For 'HermanWobus_from_rel_humidity' calc_method, both air_temperature_degC"
+                                      " and rel_humidity_percent must be provided.")
+
+    # Test Series inputs
+    assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m, rel_humidity_percent=DATA.RH2m,
+                                    calc_method='HermanWobus_from_rel_humidity').tail(5).values -
+                pd.Series([1.19541777, 1.19614486, 1.19605542, 1.19568365, 1.19732707]) < 1e-3)).all()
+    # Test float inputs
+    assert bw.calc_air_density(0.711, 935, rel_humidity_percent=50,
+                               calc_method='HermanWobus_from_rel_humidity') - 1.1878427585014013 < 1e-6
+
+    # Tests for calc_method = 'HermanWobus_from_dew_point'
+
+    # Check error is raised when dew_point_temperature_degC is not provided
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(0.711, 935, rel_humidity_percent=85,
+                            calc_method='HermanWobus_from_dew_point')
+    assert str(except_info.value) == ("dew_point_temperature_degC must be provided when calc_method is "
+                                      "'HermanWobus_from_dew_point'.")
+
+    # Check error is raised when dew_point_temperature_degC > temperature
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(1, 935, dew_point_temperature_degC=5,
+                            calc_method='HermanWobus_from_dew_point')
+    assert str(except_info.value) == ("dew_point_temperature_degC cannot be greater than temperature.")
+
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(DATA.T2m.tail(3), DATA.P2m.tail(3),
+                            dew_point_temperature_degC=DATA.T2m.tail(3) + 5,
+                            calc_method='HermanWobus_from_dew_point')
+    assert str(except_info.value) == ("dew_point_temperature_degC cannot be greater than temperature.")
+
+    # Test Series inputs
+    dew_point_temp = DATA.T2m - 0.5
+    assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m,
+                                    dew_point_temperature_degC=dew_point_temp,
+                                    calc_method='HermanWobus_from_dew_point').tail(5).values -
+                pd.Series([1.19551981, 1.19621178, 1.19616594, 1.19579471, 1.19743759]) < 1e-3)).all()
+    # Test float inputs
+    assert bw.calc_air_density(0.711, 935,
+                               dew_point_temperature_degC=-1.299,
+                               calc_method='HermanWobus_from_dew_point') - 1.186717791022866 < 1e-6
 
 
 def test_dist_matrix_by_direction_sector():
@@ -728,3 +785,12 @@ def test_calc_rel_humidity_from_dew_point():
     assert (abs(bw.calc_rel_humidity_from_dew_point(merra2_node[1]['DPTmp_2m_degC'],
                                                     merra2_node[1]['Tmp_2m_degC']).head(5).values -
                 pd.Series([71.97026223, 72.4558096, 72.94502496, 73.9525735, 74.45269691])) < 1e-3).all()
+
+
+def test_calc_water_saturation_vapour_pressure_Pa():
+    # test float input
+    assert abs(bw.analyse.analyse._calc_water_saturation_vapour_pressure_Pa(20) - 2337.237477998109) < 1e-4
+
+    # test series input
+    assert abs(bw.analyse.analyse._calc_water_saturation_vapour_pressure_Pa(DATA.T2m.tail(3)).values -
+               pd.Series([647.3225, 651.1171, 647.3225]) < 1e-4).all()

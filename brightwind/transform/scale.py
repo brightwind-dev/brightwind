@@ -1,25 +1,14 @@
 from typing import Union
 import numpy as np
 import pandas as pd
+from brightwind.utils.constants import (ACCEL_DUE_TO_GRAVITY, TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE,
+                                        GAS_CONST_DRY_AIR, AIR_DENSITY_LAPSE_RATE)
 
 __all__ = ['apply_scale_factor',
            'linear_transform',
            'scale_air_density_to_height',
            'scale_air_temperature_to_height',
            'scale_air_pressure_to_height']
-
-# Acceleration due to gravity (m/s^2) from ISO:2533-1975 Standard Atmosphere
-ACCEL_DUE_TO_GRAVITY = 9.80665
-
-# Temperature lapse rate (K/m or degC/m) from ISO:2533-1975 Standard Atmosphere
-TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE = -0.0065
-
-#  Specific gas constant for dry air (J/K/kg or m2/K/s2) from ISO:2533-1975 Standard Atmosphere
-GAS_CONST_DRY_AIR = 287.05
-
-# Air density lapse rate (kg/m3/km) from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014)
-AIR_DENSITY_LAPSE_RATE = -0.113
-
 
 def apply_scale_factor(data: Union[float, int, pd.DataFrame, pd.Series, np.array],
                        scale_factor: Union[float, int]
