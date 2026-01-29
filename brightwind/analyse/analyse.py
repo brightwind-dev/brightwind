@@ -2475,8 +2475,8 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
     # dtype: float64
     """
     # Validate input types
-    assert_function_input_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
-    assert_function_input_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
+    assert_function_variable_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
+    assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
     # Check dimensions if inputs are pd.Series
     if isinstance(air_temperature_degC, pd.Series) and (isinstance(dew_point_temperature_degC, pd.Series)):
         if len(air_temperature_degC) != len(dew_point_temperature_degC):
@@ -2484,12 +2484,15 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
 
     # Raise error if dew point temperature is greater than air temperature
     comparison = dew_point_temperature_degC > air_temperature_degC
+    msg = "dew_point_temperature_degC cannot be greater than temperature."
+    # For pandas Series, ignore NaNs when checking
     if isinstance(comparison, pd.Series):
-        if comparison.any():
-            raise ValueError("dew_point_temperature_degC cannot be greater than temperature.")
+        if comparison.fillna(False).any():
+            raise ValueError(msg)
+    # For scalar booleans
     else:
         if comparison:
-            raise ValueError("dew_point_temperature_degC cannot be greater than temperature.")
+            raise ValueError(msg)
 
     # Calculate relative humidity
     rel_humidity_percent = 100*(_calc_water_saturation_vapour_pressure_Pa(dew_point_temperature_degC) /
