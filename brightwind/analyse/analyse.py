@@ -1,11 +1,11 @@
 import pandas as pd
 import numpy as np
-from typing import Optional
+from typing import Optional, Any
 from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as bw_plt
 from brightwind.transform.scale import scale_air_density_to_height
-from brightwind.utils.utils import _convert_df_to_series, assert_function_variable_type, validate_coverage_threshold
+from brightwind.utils.utils import _convert_df_to_series, validate_coverage_threshold
 from brightwind.utils.constants import (
     GAS_CONST_DRY_AIR, 
     GAS_CONST_WATER, 
@@ -2245,15 +2245,18 @@ def calc_air_density(temperature: Union[float, pd.Series],
         raise ValueError("rel_humidity_percent cannot be provided as a DataFrame. Provide as float or pandas Series.")
 
     # Check dimensions of temperature, pressure and rel_humidity_percent if not float or int
-    if isinstance(temperature, pd.Series) and (isinstance(pressure, pd.Series)):
-        if len(temperature) != len(pressure):
-            raise ValueError("temperature and pressure must have the same dimensions.")
-        if isinstance(rel_humidity_percent, pd.Series):
-            if len(temperature) != len(rel_humidity_percent):
-                raise ValueError("temperature, pressure and rel_humidity_percent must have the same dimensions.")
-        if isinstance(dew_point_temperature_degC, pd.Series):
-            if len(temperature) != len(dew_point_temperature_degC):
-                raise ValueError("temperature, pressure and dew_point_temperature_degC must have the same dimensions.")
+    _assert_series_index_match(temperature, pressure,
+                               'temperature', 'pressure')
+    if isinstance(rel_humidity_percent, pd.Series):
+        if len(temperature) != len(rel_humidity_percent):
+            raise ValueError("temperature, pressure and rel_humidity_percent must have the same dimensions.")
+        if not (temperature.index == rel_humidity_percent.index).all():
+            raise ValueError("temperature and rel_humidity_percent must have the same index.")
+    if isinstance(dew_point_temperature_degC, pd.Series):
+        if len(temperature) != len(dew_point_temperature_degC):
+            raise ValueError("temperature, pressure and dew_point_temperature_degC must have the same dimensions.")
+        if not (temperature.index == dew_point_temperature_degC.index).all():
+            raise ValueError("temperature and dew_point_temperature_degC must have the same index.")
 
     lapse_rate_per_m = lapse_rate * 0.001  # convert lapse rate from kg/m3/km to kg/m3/m
     temp_K = temperature + DEGREES_CELSIUS_TO_KELVIN  # to convert deg C to Kelvin.
@@ -2292,8 +2295,8 @@ def calc_air_density(temperature: Union[float, pd.Series],
     # If calc_method requires dew point temperature, ensure it is always <= temperature:
     if calc_method == 'HermanWobus_from_dew_point':
         if dew_point_temperature_degC is None:
-            raise ValueError("dew_point_temperature_degC must be provided when calc_method is "
-                             "'HermanWobus_from_dew_point'.")
+            raise ValueError("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
+                             " provided.")
         # Raise error if dew point temperature is greater than air temperature
         comparison = dew_point_temperature_degC > temperature
         msg = "dew_point_temperature_degC cannot be greater than temperature."
@@ -2638,12 +2641,11 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         if air_temperature_degC is None or rel_humidity_percent is None:
             raise ValueError("For 'IEC' calc_method, both air_temperature_degC and rel_humidity_percent must be"
                              " provided.")
-        assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
-        assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
-        # If both inputs are Series, check they have same length
-        if isinstance(air_temperature_degC, pd.Series) and (isinstance(rel_humidity_percent, pd.Series)):
-            if len(air_temperature_degC) != len(rel_humidity_percent):
-                raise ValueError("air_temperature_degC and rel_humidity_percent must have the same dimensions.")
+        _assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
+        _assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
+        # If inputs are Series, check they have same index
+        _assert_series_index_match(air_temperature_degC, rel_humidity_percent,
+                                   'air_temperature_degC', 'rel_humidity_percent')
 
         if dew_point_temperature_degC is not None:
             warnings.warn("dew_point_temperature_degC input not required in water vapour pressure calculation"
@@ -2662,12 +2664,11 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         if air_temperature_degC is None or rel_humidity_percent is None:
             raise ValueError("For 'HermanWobus_from_rel_humidity' calc_method, both air_temperature_degC"
                              " and rel_humidity_percent must be provided.")
-        assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
-        assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
-        # If both inputs are Series, check they have same length
-        if isinstance(air_temperature_degC, pd.Series) and (isinstance(rel_humidity_percent, pd.Series)):
-            if len(air_temperature_degC) != len(rel_humidity_percent):
-                raise ValueError("air_temperature_degC and rel_humidity_percent must have the same dimensions.")
+        _assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
+        _assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
+        # If inputs are Series, check they have same index
+        _assert_series_index_match(air_temperature_degC, rel_humidity_percent,
+                                   'air_temperature_degC', 'rel_humidity_percent')
 
         if dew_point_temperature_degC is not None:
             warnings.warn("dew_point_temperature_degC input not required in water vapour pressure calculation"
@@ -2686,7 +2687,7 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         if dew_point_temperature_degC is None:
             raise ValueError("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
                              " provided.")
-        assert_function_variable_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
+        _assert_function_variable_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
 
         if air_temperature_degC is not None or rel_humidity_percent is not None:
             warnings.warn("Water vapour pressure calculated based on dew_point_temperature_degC as calc_method is"
@@ -2698,3 +2699,59 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         water_vapour_press_Pa = _calc_water_saturation_vapour_pressure_Pa(dew_point_temperature_degC)
 
     return water_vapour_press_Pa
+
+
+def _assert_function_variable_type(variable: Any,
+                                   expected_type: Union[type, tuple],
+                                   variable_name: str) -> None:
+    """
+    Assert whether variable has expected type. If not, raise an error.
+
+    :param variable:        Variable for which type is checked.
+    :type variable:         any
+    :param expected_type:   Expected type(s) e.g. float or (float, int)
+    :type expected_type:    type or tuple
+    :param variable_name:   Name of the variable to be used in the error message.
+    :type variable_name:    str
+    :returns:               Raises an error if variable type is not as expected.
+    :rtype:                 None
+
+    **Example usage**
+        ::
+        import brightwind as bw
+        a = [1, 2]
+
+        bw.utils.utils.assert_function_variable_type(a, float, 'number')
+        # TypeError: 'number' must be type: <class 'float'>, received: list
+        bw.utils.utils.assert_function_variable_type(a, (float, int), 'number')
+        # TypeError: 'number' must be type: (<class 'float'>, <class 'int'>), received: list
+    """
+    if not isinstance(variable, expected_type):
+        raise TypeError(f"'{variable_name}' must be type: {expected_type}, received: {type(variable).__name__}.")
+
+
+def _assert_series_index_match(series1: pd.Series,
+                               series2: pd.Series,
+                               series1_name: str = None,
+                               series2_name: str = None):
+    """
+    Assert whether the index of series1 matches the index of series2.
+
+    :param series1:         first pandas series
+    :type series1:          pd.Series
+    :param series2:         second pandas series
+    :type series2:          pd.Series
+    :param series1_name:    second pandas series
+    :param series2_name:    pd.Series
+    :returns:               Raises an error if index of series1 does not match index of series2.
+    :rtype:                 None
+    """
+    if isinstance(series1, pd.Series) and isinstance(series2, pd.Series):
+        if series1_name is None:
+            series1_name = 'series1'
+        if series2_name is None:
+            series2_name = 'series2'
+        if len(series1) != len(series2):
+            raise ValueError(f"{series1_name} and {series2_name} must have the same dimensions.")
+        if not (series1.index == series2.index).all():
+            raise ValueError(f"{series1_name} and {series2_name} must have the same index.")

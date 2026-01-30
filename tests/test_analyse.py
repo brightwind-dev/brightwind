@@ -715,8 +715,8 @@ def test_calc_air_density():
     with pytest.raises(ValueError) as except_info:
         bw.calc_air_density(0.711, 935, rel_humidity_percent=85,
                             calc_method='HermanWobus_from_dew_point')
-    assert str(except_info.value) == ("dew_point_temperature_degC must be provided when calc_method is "
-                                      "'HermanWobus_from_dew_point'.")
+    assert str(except_info.value) == ("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
+                                      " provided.")
 
     # Check error is raised when dew_point_temperature_degC > temperature
     with pytest.raises(ValueError) as except_info:
