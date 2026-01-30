@@ -2573,7 +2573,7 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         _assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
         # If inputs are Series, check they have same index
         _assert_series_index_match(air_temperature_degC, rel_humidity_percent,
-                                       'air_temperature_degC', 'rel_humidity_percent')
+                                   'air_temperature_degC', 'rel_humidity_percent')
 
         if dew_point_temperature_degC is not None:
             warnings.warn("dew_point_temperature_degC input not required in water vapour pressure calculation"
@@ -2596,7 +2596,7 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         _assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
         # If inputs are Series, check they have same index
         _assert_series_index_match(air_temperature_degC, rel_humidity_percent,
-                                       'air_temperature_degC', 'rel_humidity_percent')
+                                   'air_temperature_degC', 'rel_humidity_percent')
 
         if dew_point_temperature_degC is not None:
             warnings.warn("dew_point_temperature_degC input not required in water vapour pressure calculation"
