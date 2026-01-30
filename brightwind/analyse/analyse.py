@@ -2627,6 +2627,7 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
 
     return water_vapour_press_Pa
 
+
 def _assert_function_variable_type(variable: Any,
                                    expected_type: Union[type, tuple],
                                    variable_name: str) -> None:
@@ -2654,3 +2655,29 @@ def _assert_function_variable_type(variable: Any,
     """
     if not isinstance(variable, expected_type):
         raise TypeError(f"'{variable_name}' must be type: {expected_type}, received: {type(variable).__name__}.")
+
+
+def _assert_series_index_match(series1: pd.Series,
+                               series2: pd.Series,
+                               series1_name: str = None,
+                               series2_name: str = None):
+    """
+    Assert whether the index of series1 matches the index of series2.
+    
+    :param series1:         first pandas series
+    :type series1:          pd.Series
+    :param series2:         second pandas series
+    :type series2:          pd.Series
+    :param series1_name:    second pandas series
+    :param series2_name:    pd.Series
+    :returns:               Raises an error if index of series1 does not match index of series2.
+    :rtype:                 None
+    """
+    if series1_name is None:
+        series1_name = 'series1'
+    if series2_name is None:
+        series2_name = 'series2'
+    if len(series1) != len(series2):
+        raise ValueError(f"{series1_name} and {series2_name} must have the same dimensions.")
+    if not (series1.index == series2.index).all():
+        raise ValueError(f"{series1_name} and {series2_name} must have the same index.")
