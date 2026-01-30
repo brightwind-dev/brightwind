@@ -2291,8 +2291,8 @@ def calc_air_density(temperature: Union[float, pd.Series],
     # If calc_method requires dew point temperature, ensure it is always <= temperature:
     if calc_method == 'HermanWobus_from_dew_point':
         if dew_point_temperature_degC is None:
-            raise ValueError("dew_point_temperature_degC must be provided when calc_method is "
-                             "'HermanWobus_from_dew_point'.")
+            raise ValueError("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
+                             " provided.")
         # Raise error if dew point temperature is greater than air temperature
         comparison = dew_point_temperature_degC > temperature
         msg = "dew_point_temperature_degC cannot be greater than temperature."
