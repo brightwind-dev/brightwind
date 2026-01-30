@@ -2478,12 +2478,11 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
     # dtype: float64
     """
     # Validate input types
-    assert_function_variable_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
-    assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
-    # Check dimensions if inputs are pd.Series
-    if isinstance(air_temperature_degC, pd.Series) and (isinstance(dew_point_temperature_degC, pd.Series)):
-        if len(air_temperature_degC) != len(dew_point_temperature_degC):
-            raise ValueError("air_temperature_degC and dew_point_temperature_degC must have the same dimensions.")
+    _assert_function_variable_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
+    _assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
+    # Check index is identical if inputs are pd.Series
+    _assert_series_index_match(air_temperature_degC, dew_point_temperature_degC,
+                               'air_temperature_degC', 'dew_point_temperature_degC')
 
     # Raise error if dew point temperature is greater than air temperature
     comparison = dew_point_temperature_degC > air_temperature_degC
