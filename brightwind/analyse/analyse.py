@@ -1,11 +1,11 @@
 import pandas as pd
 import numpy as np
-from typing import Optional
+from typing import Optional, Any
 from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as bw_plt
 from brightwind.transform.scale import scale_air_density_to_height
-from brightwind.utils.utils import _convert_df_to_series, assert_function_variable_type, validate_coverage_threshold
+from brightwind.utils.utils import _convert_df_to_series, validate_coverage_threshold
 from brightwind.utils.constants import (
     GAS_CONST_DRY_AIR, 
     GAS_CONST_WATER, 
@@ -2566,8 +2566,8 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         if air_temperature_degC is None or rel_humidity_percent is None:
             raise ValueError("For 'IEC' calc_method, both air_temperature_degC and rel_humidity_percent must be"
                              " provided.")
-        assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
-        assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
+        _assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
+        _assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
         # If both inputs are Series, check they have same length
         if isinstance(air_temperature_degC, pd.Series) and (isinstance(rel_humidity_percent, pd.Series)):
             if len(air_temperature_degC) != len(rel_humidity_percent):
@@ -2590,8 +2590,8 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         if air_temperature_degC is None or rel_humidity_percent is None:
             raise ValueError("For 'HermanWobus_from_rel_humidity' calc_method, both air_temperature_degC"
                              " and rel_humidity_percent must be provided.")
-        assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
-        assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
+        _assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
+        _assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
         # If both inputs are Series, check they have same length
         if isinstance(air_temperature_degC, pd.Series) and (isinstance(rel_humidity_percent, pd.Series)):
             if len(air_temperature_degC) != len(rel_humidity_percent):
@@ -2614,7 +2614,7 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         if dew_point_temperature_degC is None:
             raise ValueError("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
                              " provided.")
-        assert_function_variable_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
+        _assert_function_variable_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
 
         if air_temperature_degC is not None or rel_humidity_percent is not None:
             warnings.warn("Water vapour pressure calculated based on dew_point_temperature_degC as calc_method is"
@@ -2626,3 +2626,31 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         water_vapour_press_Pa = _calc_water_saturation_vapour_pressure_Pa(dew_point_temperature_degC)
 
     return water_vapour_press_Pa
+
+def _assert_function_variable_type(variable: Any,
+                                   expected_type: Union[type, tuple],
+                                   variable_name: str) -> None:
+    """
+    Assert whether variable has expected type. If not, raise an error.
+
+    :param variable:        Variable for which type is checked.
+    :type variable:         any
+    :param expected_type:   Expected type(s) e.g. float or (float, int)
+    :type expected_type:    type or tuple
+    :param variable_name:   Name of the variable to be used in the error message.
+    :type variable_name:    str
+    :returns:               Raises an error if variable type is not as expected.
+    :rtype:                 None
+
+    **Example usage**
+        ::
+        import brightwind as bw
+        a = [1, 2]
+
+        bw.utils.utils.assert_function_variable_type(a, float, 'number')
+        # TypeError: 'number' must be type: <class 'float'>, received: list
+        bw.utils.utils.assert_function_variable_type(a, (float, int), 'number')
+        # TypeError: 'number' must be type: (<class 'float'>, <class 'int'>), received: list
+    """
+    if not isinstance(variable, expected_type):
+        raise TypeError(f"'{variable_name}' must be type: {expected_type}, received: {type(variable).__name__}.")
