@@ -7,9 +7,9 @@ from brightwind.analyse import plot as bw_plt
 from brightwind.transform.scale import scale_air_density_to_height
 from brightwind.utils.utils import _convert_df_to_series, validate_coverage_threshold
 from brightwind.utils.constants import (
-    GAS_CONST_DRY_AIR, 
-    GAS_CONST_WATER, 
-    AIR_DENSITY_LAPSE_RATE, 
+    GAS_CONST_DRY_AIR,
+    GAS_CONST_WATER,
+    AIR_DENSITY_LAPSE_RATE,
     DEGREES_CELSIUS_TO_KELVIN,
 )
 from brightwind.export.export import _calc_mean_speed_of_freq_tab
@@ -129,9 +129,9 @@ def dist_matrix(var_series, x_series, y_series,
         var_label = aggregation_method.capitalize() + ' of ' + var_series.name
     var_series.name = var_label
     if x_series.name == var_series.name:
-        x_series.name = x_series.name+"_binned"
+        x_series.name = x_series.name + "_binned"
     if y_series.name == var_series.name:
-        y_series.name = y_series.name+"_binned"
+        y_series.name = y_series.name + "_binned"
 
     if num_bins_x is None and x_bins is None:
         x_bins = np.arange(int(np.floor(x_series.min())), int(np.ceil(x_series.max()) + 1 + (x_series.max() % 1 == 0)),
@@ -186,7 +186,7 @@ def calc_target_value_by_linear_model(ref_value: float, slope: float, offset: fl
     """
     :rtype: np.float64
     """
-    return (ref_value*slope) + offset
+    return (ref_value * slope) + offset
 
 
 def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind speed [m/s]', data_resolution=None,
@@ -270,15 +270,15 @@ def monthly_means(data, return_data=False, return_coverage=False, ylabel='Wind s
         return bw_plt.plot_monthly_means(
             df, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid,
             xtick_delta=xtick_delta
-            ), df
+        ), df
     if return_coverage:
         return bw_plt.plot_monthly_means(
             df, covrg, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid,
             xtick_delta=xtick_delta
-            ), pd.concat([df, covrg], axis=1)
+        ), pd.concat([df, covrg], axis=1)
     return bw_plt.plot_monthly_means(
         df, ylbl=ylabel, legend=legend, external_legend=external_legend, show_grid=show_grid, xtick_delta=xtick_delta
-        )
+    )
 
 
 def _filter_out_months_based_on_coverage_threshold(var_series, monthly_coverage, coverage_threshold, analysis_type,
@@ -549,9 +549,9 @@ def _get_direction_bin_labels(sectors, direction_bins, zero_centred=True):
     mapper = dict()
     for i, lower_bound in enumerate(direction_bins[:sectors]):
         if i == 0 and zero_centred:
-            mapper[i+1] = '{0}-{1}'.format(direction_bins[-2], direction_bins[1])
+            mapper[i + 1] = '{0}-{1}'.format(direction_bins[-2], direction_bins[1])
         else:
-            mapper[i+1] = '{0}-{1}'.format(lower_bound, direction_bins[i+1])
+            mapper[i + 1] = '{0}-{1}'.format(lower_bound, direction_bins[i + 1])
     return mapper.values()
 
 
@@ -562,7 +562,7 @@ def _map_direction_bin(wdir, bins, sectors):
     else:
         kwargs['right'] = False
     bin_num = np.digitize([wdir], bins, **kwargs)[0]
-    if bin_num == sectors+1:
+    if bin_num == sectors + 1:
         bin_num = 1
     return bin_num
 
@@ -608,7 +608,7 @@ def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_
     if var_to_bin_against.empty or var_to_bin_against.isnull().all() or (var_to_bin_against == np.inf).all():
         raise ValueError(('Cannot derive distribution with respect to {0} as this is either an empty pandas.Series ' +
                           'or contains only NaN or Inf values.').format(var_to_bin_against.name))
-    
+
     var_to_bin = var_to_bin.replace([np.inf, -np.inf], np.nan).dropna()
     var_to_bin_against = var_to_bin_against.replace([np.inf, -np.inf], np.nan).dropna()
 
@@ -785,7 +785,7 @@ def dist_of_wind_speed(wspd, max_speed=30, max_y_value=None, return_data=False):
         freq_dist_plot, freq_dist = bw.dist_of_wind_speed(data.Spd80mN, return_data=True)
 
     """
-    freq_dist = dist(wspd, var_to_bin_against=None, bins=np.arange(-0.5, max_speed+1, 1), bin_labels=None,
+    freq_dist = dist(wspd, var_to_bin_against=None, bins=np.arange(-0.5, max_speed + 1, 1), bin_labels=None,
                      x_label='Wind Speed [m/s]', max_y_value=max_y_value, aggregation_method='%frequency',
                      return_data=True)
     if return_data:
@@ -824,11 +824,11 @@ def _get_direction_binned_series(sectors, direction_series, direction_bin_array=
         direction_bin_array = utils.get_direction_bin_array(sectors)
         zero_centered = True
     else:
-        sectors = len(direction_bin_array)-1
+        sectors = len(direction_bin_array) - 1
         zero_centered = False
     if direction_bin_labels is None:
         direction_bin_labels = _get_direction_bin_labels(sectors, direction_bin_array, zero_centered)
-    direction_binned_series = _binned_direction_series(direction_series, sectors, direction_bin_array)\
+    direction_binned_series = _binned_direction_series(direction_series, sectors, direction_bin_array) \
         .rename('direction_bin')
     return direction_binned_series, direction_bin_labels, sectors, direction_bin_array, zero_centered
 
@@ -886,11 +886,12 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
         _get_direction_binned_series(sectors, direction_series, direction_bin_array, direction_bin_labels)
     data = pd.concat([var_series.rename('data'), direction_binned_series], join='inner', axis=1)
     if aggregation_method == '%frequency':
-        result = data.groupby(['direction_bin'], observed=False)['data'].count().rename('%frequency')/len(data) * 100.0
+        result = data.groupby(['direction_bin'], observed=False)['data'].count().rename('%frequency') / len(
+            data) * 100.0
     else:
         result = data.groupby(['direction_bin'], observed=False)['data'].agg(aggregation_method)
 
-    for i in range(1, sectors+1):
+    for i in range(1, sectors + 1):
         if not (i in result.index):
             result[i] = 0.0
     result = result.sort_index()
@@ -927,7 +928,7 @@ def _get_dist_matrix_by_dir_sector(var_series, var_to_bin_series, direction_seri
 
     if aggregation_method == '%frequency':
         counts = data.groupby([var_to_bin_series.name, 'direction_bin'], observed=False).count().unstack(level=-1)
-        distribution = counts/(counts.sum().sum()) * 100.0
+        distribution = counts / (counts.sum().sum()) * 100.0
     else:
         distribution = data.groupby([var_to_bin_series.name, 'direction_bin'],
                                     observed=False).agg(aggregation_method).unstack(level=-1)
@@ -1360,8 +1361,8 @@ def freq_table(var_series, direction_series, var_bin_array=np.arange(-0.5, 41, 1
     graph = bw_plt.plot_rose_with_gradient(result, plot_bins=plot_bins, plot_labels=plot_labels,
                                            percent_symbol=freq_as_percentage)
     if text_msg_out:
-        word_list = textwrap.TextWrapper(width=graph.get_size_inches()[0]*10).wrap(text=text_msg_out)
-        graph.text(.5, 10**-len(word_list), "\n ".join(map(str, word_list)), ha='center', fontsize=14)
+        word_list = textwrap.TextWrapper(width=graph.get_size_inches()[0] * 10).wrap(text=text_msg_out)
+        graph.text(.5, 10 ** -len(word_list), "\n ".join(map(str, word_list)), ha='center', fontsize=14)
 
     if direction_bin_labels is not None:
         result.columns = direction_bin_labels
@@ -1444,7 +1445,7 @@ def time_continuity_gaps(data: pd.DataFrame, minimum_gap_length: Optional[pd.Tim
     continuity['Days Lost'] = continuity['Time gap'] / pd.Timedelta('1 days')
 
     # Remove indexes where no days are lost before returning
-    
+
     if resolution.kwds == {'months': 1}:
         index_filter = ~continuity['Days Lost'].isin([28, 29, 30, 31])
     elif resolution.kwds == {'years': 1}:
@@ -1471,7 +1472,7 @@ def time_continuity_gaps(data: pd.DataFrame, minimum_gap_length: Optional[pd.Tim
 
     return filtered
 
- 
+
 def coverage(data, period='1M', aggregation_method='mean', data_resolution=None):
     """
     Get the data coverage over the period specified.
@@ -1608,7 +1609,7 @@ def dist_12x24(var_series, aggregation_method='mean', var_name_label=None, retur
     if not isinstance(aggregation_method, str):
         aggregation_method = aggregation_method.__name__
     if return_data:
-        return bw_plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method)),\
+        return bw_plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method)), \
                pvt_tbl
     return bw_plt.plot_12x24_contours(pvt_tbl, label=(var_name_label, aggregation_method))
 
@@ -1732,7 +1733,7 @@ class TI:
                  var_to_bin_against=ti['wspd'],
                  bins=speed_bin_array,
                  bin_labels=None,
-                 aggregation_method=lambda x: x.quantile(percentile/100),
+                 aggregation_method=lambda x: x.quantile(percentile / 100),
                  return_data=True)[-1].rename("Rep_TI"),
             dist(var_to_bin=ti['Turbulence_Intensity'],
                  var_to_bin_against=ti['wspd'],
@@ -1862,7 +1863,6 @@ class TI:
 
 
 def _calc_ratio(var_1, var_2, min_var=3, max_var=50):
-
     var_1_bounded = var_1[(var_1 >= min_var) & (var_1 < max_var)]
     var_2_bounded = var_2[(var_2 >= min_var) & (var_2 < max_var)]
     ratio = pd.concat([var_1_bounded.rename('var_1'), var_2_bounded.rename('var_2')], axis=1, join='inner')
@@ -2031,7 +2031,8 @@ def sector_ratio(wspd_1, wspd_2, wdir, sectors=72, min_wspd=3, direction_bin_arr
         sec_rat_dist = sec_rat_dist.rename('Mean_Sector_Ratio').to_frame()
         sec_rats_dists[sensor_pair] = sec_rat_dist
 
-    fig = bw_plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir_dict, sec_ratio_dist=sec_rats_dists, col_names=col_names,
+    fig = bw_plt.plot_sector_ratio(sec_ratio=sec_rats, wdir=wdir_dict, sec_ratio_dist=sec_rats_dists,
+                                   col_names=col_names,
                                    boom_dir_1=boom_dir_1, boom_dir_2=boom_dir_2, radial_limits=radial_limits,
                                    annotate=annotate, figure_size=figure_size)
 
@@ -2236,27 +2237,22 @@ def calc_air_density(temperature: Union[float, pd.Series],
     # 2016-01-09 17:20:00    1.184756
     # dtype: float64
     """
-    # Raise errors if any inputs are DataFrames
-    if isinstance(temperature, pd.DataFrame):
-        raise ValueError("temperature cannot be provided as a DataFrame. Provide as float or pandas Series.")
-    if isinstance(pressure, pd.DataFrame):
-        raise ValueError("pressure cannot be provided as a DataFrame. Provide as float or pandas Series.")
-    if isinstance(rel_humidity_percent, pd.DataFrame):
-        raise ValueError("rel_humidity_percent cannot be provided as a DataFrame. Provide as float or pandas Series.")
-
-    # Check dimensions of temperature, pressure and rel_humidity_percent if not float or int
-    _assert_series_index_match(temperature, pressure,
-                               'temperature', 'pressure')
-    if isinstance(rel_humidity_percent, pd.Series):
-        if len(temperature) != len(rel_humidity_percent):
-            raise ValueError("temperature, pressure and rel_humidity_percent must have the same dimensions.")
-        if not (temperature.index == rel_humidity_percent.index).all():
-            raise ValueError("temperature and rel_humidity_percent must have the same index.")
-    if isinstance(dew_point_temperature_degC, pd.Series):
-        if len(temperature) != len(dew_point_temperature_degC):
-            raise ValueError("temperature, pressure and dew_point_temperature_degC must have the same dimensions.")
-        if not (temperature.index == dew_point_temperature_degC.index).all():
-            raise ValueError("temperature and dew_point_temperature_degC must have the same index.")
+    # Validate required input types
+    _assert_function_variable_type(temperature, (float, int, pd.Series), 'temperature')
+    _assert_function_variable_type(pressure, (float, int, pd.Series), 'pressure')
+    _assert_series_index_match(temperature, pressure, 'temperature', 'pressure')
+    # Check type and dimensions if not float or int
+    if calc_method in ['IEC', 'HermanWobus_from_rel_humidity']:
+        if rel_humidity_percent is not None:
+            _assert_function_variable_type(rel_humidity_percent, (float, int, pd.Series), 'rel_humidity_percent')
+            _assert_series_index_match(temperature, rel_humidity_percent,
+                                       'temperature, pressure', 'rel_humidity_percent')
+    elif calc_method == 'HermanWobus_from_dew_point':
+        if dew_point_temperature_degC is not None:
+            _assert_function_variable_type(dew_point_temperature_degC, (float, int, pd.Series),
+                                           'dew_point_temperature_degC')
+            _assert_series_index_match(temperature, dew_point_temperature_degC,
+                                       'temperature, pressure', 'dew_point_temperature_degC')
 
     lapse_rate_per_m = lapse_rate * 0.001  # convert lapse rate from kg/m3/km to kg/m3/m
     temp_K = temperature + DEGREES_CELSIUS_TO_KELVIN  # to convert deg C to Kelvin.
@@ -2280,7 +2276,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
                 "release of brightwind.\nNote that this value is used only when `rel_humidity_percent` is None."
                 "\nPlease set `rel_humidity_percent` to 0 instead if you want to use the specific gas constant "
                 "for dry air (287.05 J/kg*K)."
-                ),
+            ),
             DeprecationWarning,
             stacklevel=2
         )
@@ -2319,7 +2315,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
 
     # Calculate air density
     air_density = dry_air_press_Pa / (gas_constant_air * temp_K) + water_vapour_press_Pa / (
-        specific_gas_constant_water * temp_K)
+            specific_gas_constant_water * temp_K)
 
     # Scale air density to site elevation if both elevation_ref and elevation_site are provided
     if elevation_ref is not None and elevation_site is not None:
@@ -2328,7 +2324,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
             (
                 "\nScaling air density to height within `calc_air_density()` is deprecated and will be removed in a "
                 "future 3.0 release of brightwind.\nPlease call `scale_air_density_to_height()` separately instead. \n"
-                ),
+            ),
             DeprecationWarning,
             stacklevel=2
         )
@@ -2426,7 +2422,7 @@ def _calc_water_saturation_vapour_pressure_Pa(air_temperature_degC: Union[float,
               (c6 + air_temperature_degC *
                (c7 + air_temperature_degC *
                 (c8 + air_temperature_degC * c9)))))))))
-    E_s_hPa = e_s0/(p ** 8)
+    E_s_hPa = e_s0 / (p ** 8)
     # Convert from hPa to Pa
     E_s_Pa = E_s_hPa * 100
     return E_s_Pa
@@ -2686,7 +2682,9 @@ def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, p
         if dew_point_temperature_degC is None:
             raise ValueError("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
                              " provided.")
-        _assert_function_variable_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
+        _assert_function_variable_type(
+            dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC'
+        )
 
         if air_temperature_degC is not None or rel_humidity_percent is not None:
             warnings.warn("Water vapour pressure calculated based on dew_point_temperature_degC as calc_method is"
@@ -2720,9 +2718,9 @@ def _assert_function_variable_type(variable: Any,
         import brightwind as bw
         a = [1, 2]
 
-        bw.utils.utils.assert_function_variable_type(a, float, 'number')
+        bw.analyse.analyse._assert_function_variable_type(a, float, 'number')
         # TypeError: 'number' must be type: <class 'float'>, received: list
-        bw.utils.utils.assert_function_variable_type(a, (float, int), 'number')
+        bw.analyse.analyse._assert_function_variable_type(a, (float, int), 'number')
         # TypeError: 'number' must be type: (<class 'float'>, <class 'int'>), received: list
     """
     if not isinstance(variable, expected_type):
@@ -2736,12 +2734,12 @@ def _assert_series_index_match(series1: pd.Series,
     """
     Assert whether the index of series1 matches the index of series2.
 
-    :param series1:         first pandas series
+    :param series1:         First pandas series.
     :type series1:          pd.Series
-    :param series2:         second pandas series
+    :param series2:         Second pandas series.
     :type series2:          pd.Series
-    :param series1_name:    second pandas series
-    :param series2_name:    pd.Series
+    :param series1_name:    Name of first pandas series.
+    :param series2_name:    Name of second pandas series.
     :returns:               Raises an error if index of series1 does not match index of series2.
     :rtype:                 None
     """
@@ -2752,5 +2750,7 @@ def _assert_series_index_match(series1: pd.Series,
             series2_name = 'series2'
         if len(series1) != len(series2):
             raise ValueError(f"{series1_name} and {series2_name} must have the same dimensions.")
-        if not (series1.index == series2.index).all():
+        elif not (series1.index == series2.index).all():
             raise ValueError(f"{series1_name} and {series2_name} must have the same index.")
+        else:
+            return True
