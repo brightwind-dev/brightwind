@@ -1326,30 +1326,28 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     rows = []
     for wdir_prop in wdirs_properties:
         name = wdir_prop['name']
-        date_to = wdir_prop.get('date_to')
-        deadband = wdir_prop.get('vane_dead_band_orientation_deg')
-        date_from = wdir_prop['date_from']
-        logger_offset = wdir_prop.get('logger_measurement_config.offset')
-        height = wdir_prop.get('height_m')
 
-        names = []
         if name in df.columns:
+            date_to = wdir_prop.get('date_to')
+            deadband = wdir_prop.get('vane_dead_band_orientation_deg')
+            date_from = wdir_prop['date_from']
+            logger_offset = wdir_prop.get('logger_measurement_config.offset')
+            height = wdir_prop.get('height_m')
             wdir_in_dataset = True
-            names.append(name)
+            df[name], applied_results = _apply_dir_offset_target_orientation(
+                df[name], 
+                logger_offset, 
+                deadband, 
+                date_from, 
+                date_to, 
+                target_orientation_name='dead band orientation', 
+                heights=height, 
+                target_orientation_table_name="Vane Dead Band Orientation [deg]"
+                )
+            rows.append(applied_results)
         else:
             print('{} is not found in data.\n'.format(utils.bold(name)))
 
-        df[names], applied_results = _apply_dir_offset_target_orientation(
-            df[names], 
-            logger_offset, 
-            deadband, 
-            date_from, 
-            date_to, 
-            target_orientation_name='device dead_band_orientation', 
-            heights=height, 
-            target_orientation_table_name="Vane Dead Band Orientation [deg]"
-            )
-        rows.append(applied_results)
 
     if wdir_in_dataset is False:
         print('No wind direction measurement type found in the data.\n')
@@ -1402,7 +1400,11 @@ def _aggregate_consecutive_periods(offset_applied_tables, target_orientation_tab
     }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
         by=["Height [m]", "Date From"], ascending=[False, True]
         )
-    results_table = results_table.fillna({'Offset Applied [deg]': 0})
+    results_table['Logger Offset'] = results_table['Logger Offset'].replace({np.nan: None})
+    results_table[target_orientation_table_name] = results_table[target_orientation_table_name].replace({np.nan: None})
+    results_table = results_table.fillna({
+        'Offset Applied [deg]': 0
+        })
     return results_table
 
 
@@ -1776,25 +1778,25 @@ def apply_device_orientation_offset(
     # Apply the offset
     for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
-        date_to = wdir_prop.get('date_to')
-        # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
-        # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
-        if date_to is not None:
-            if pd.to_datetime(date_to) >= df.index[-1]:
-                date_to = None
-        # If [date_from, date_to) convention has not been used, we force this convention by setting 
-        # date_to to the date_from of the next logger property
-        if i < len(wdirs_properties) - 1:
-            if wdirs_properties[i+1].get('name') == name:
-                next_date_from = wdirs_properties[i+1].get('date_from')
-                if next_date_from != date_to:
-                    date_to = next_date_from
-        date_from = wdir_prop.get('date_from')
-        date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
-                        if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
-        logger_offset = wdir_prop.get('logger_measurement_config.offset')
 
         if name in df.columns:
+            date_to = wdir_prop.get('date_to')
+            # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
+            # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
+            if date_to is not None:
+                if pd.to_datetime(date_to) >= df.index[-1]:
+                    date_to = None
+            # If [date_from, date_to) convention has not been used, we force this convention by setting 
+            # date_to to the date_from of the next logger property
+            if i < len(wdirs_properties) - 1:
+                if wdirs_properties[i+1].get('name') == name:
+                    next_date_from = wdirs_properties[i+1].get('date_from')
+                    if next_date_from != date_to:
+                        date_to = next_date_from
+            date_from = wdir_prop.get('date_from')
+            date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
+                            if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
+            logger_offset = wdir_prop.get('logger_measurement_config.offset')
             for j, device_properties in enumerate(measurement_station):
                 meas_station_data_model_from = device_properties.get('date_from')
                 meas_station_data_model_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') if
@@ -1977,7 +1979,7 @@ def _apply_dir_offset_target_orientation(
     """
 
     offset = target_orientation
-    wdir_names = list(wdir_data.columns) if isinstance(wdir_data, pd.DataFrame) else wdir_data.name
+    wdir_names = list(wdir_data.columns) if isinstance(wdir_data, pd.DataFrame) else [wdir_data.name]
     additional_comment_txt = 'to account for {}'.format(target_orientation_name)
 
     if apply_offset_to is None or apply_offset_to == DATE_INSTEAD_OF_NONE:
@@ -1998,27 +2000,35 @@ def _apply_dir_offset_target_orientation(
     if logger_offset is not None and logger_offset != 0 and target_orientation is not None:
         offset = offset_wind_direction(float(target_orientation), offset=-float(logger_offset))
         additional_comment_txt = additional_comment_txt + ' and logger offset'
-    if offset:            
+    if offset:    
         # Apply offset only to the masked data
         wdir_data.loc[mask] = offset_wind_direction(wdir_data.loc[mask], float(offset))
+        print_statement = '{0} adjusted by {1} degrees from {2} to {3} {4}.\n'
+        if logger_offset is None:       
+            print_statement = print_statement.strip("\n") + ' The logger offset value is set as None.\n'
+
+        print(print_statement.format(utils.bold(", ".join(wdir_names)), utils.bold(str(offset)),
+                        utils.bold(str(apply_offset_from)), utils.bold(to_text),
+                        additional_comment_txt))
+    elif offset == 0:  
+        print_statement = '{0} has an offset to be applied of 0 degrees from {1} to {2} {3}.\n'
+        if logger_offset is None:  
+            print_statement = print_statement.strip("\n") + ' The logger offset value is set as None.\n'     
+        print(print_statement.format(utils.bold(str(", ".join(wdir_names))), utils.bold(str(apply_offset_from)),
+                    utils.bold(to_text),
+                    additional_comment_txt))
         
-        print('{0} adjusted by {1} degrees from {2} to {3} {4}.\n'
-              .format(utils.bold(str(wdir_names)), utils.bold(str(offset)),
-                      utils.bold(str(apply_offset_from)), utils.bold(to_text),
-                      additional_comment_txt))
-    elif offset == 0:            
-        print('{0} has an offset to be applied of 0 degrees from {1} to {2} {3}.\n'
-              .format(utils.bold(str(wdir_names)), utils.bold(str(apply_offset_from)),
-                      utils.bold(to_text),
-                      additional_comment_txt))
-    else:            
-        print('{0} has {1} as None from {2} to {3}.\n'
-              .format(utils.bold(str(wdir_names)), target_orientation_name,
-                      utils.bold(str(apply_offset_from)), utils.bold(to_text)))
+    else:
+        if logger_offset is None:
+            print('{0} has {1} as None and logger offset as None from {2} to {3}. No adjustment applied.\n'
+                .format(utils.bold(str(", ".join(wdir_names))), target_orientation_name,
+                        utils.bold(str(apply_offset_from)), utils.bold(to_text)))
+        else:
+            print('{0} has {1} as None from {2} to {3}. No adjustment applied.\n'
+                .format(utils.bold(str(", ".join(wdir_names))), target_orientation_name,
+                        utils.bold(str(apply_offset_from)), utils.bold(to_text)))
         
     rows = []
-    if not isinstance(wdir_names, (list, tuple, np.ndarray)):
-        wdir_names = [wdir_names]
     if not isinstance(heights, (list, tuple, np.ndarray)):
         heights = [heights] * len(wdir_names)
     for (wdir_name, height) in zip(wdir_names, heights):
