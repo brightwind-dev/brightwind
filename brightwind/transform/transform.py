@@ -1365,16 +1365,20 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
 
 def _aggregate_consecutive_periods(offset_applied_tables, target_orientation_table_name):
     """
-    Aggregates rows of the table made from concatonating all tables with offset applied data. Rows are aggregated
-    when neighbouring rows contain the same information for the following columns: "Name", "Height [m], "Logger Offset",
-    "Offset Applied [deg]" and target_orientation_table_name.
+    Function creates a dataframe from list of tables containing offset applied for each measurement. For each table 
+    neighbouring rows are agreegated into one row if they are consecutive periods that contain the same information 
+    for the following columns: "Name", "Height [m], "Logger Offset", "Offset Applied [deg]" 
+    and target_orientation_table_name.
 
-    :param offset_applied_tables:           List of tables containing offset applied data.
+    The list of offset_applied_tables can be created using _apply_dir_offset_target_orientation function.
+
+    :param offset_applied_tables:           List of tables containing offset applied for each measurement.
     :type offset_applied_tables:            List[pd.DataFrame]
-    :param target_orientation_table_name:   Name of the column for the type of offset applied.
+    :param target_orientation_table_name:   Name of the column on tables representing the target orientation
+                                            e.g. "Vane Dead Band Orientation [deg]".
     :type target_orientation_table_name:    str
-    :return:                                DataFrame of offset applied data with consectivive periods merged when 
-                                            appropriate.
+    :return:                                DataFrame of offset applied for each measurement, with consecutive periods 
+                                            merged when appropriate.
     :rtype:                                 pd.DataFrame
     """
     results_df = pd.concat(offset_applied_tables).sort_values(
@@ -1938,6 +1942,9 @@ def _apply_dir_offset_target_orientation(
     orientation.
     Note that if `wdir_data` is a DataFrame, the adjustment derived from `logger_offset` and `target_orientation` 
     is applied to all columns.
+
+    Function returns also a DataFrame containing the target orientation, logger orientation and offset applied
+    for each relevant time period.
     
     This function uses the brightwind 'offset_wind_direction()' function to apply the actual adjustment to 
     the wind direction data.
@@ -1965,7 +1972,7 @@ def _apply_dir_offset_target_orientation(
     :param target_orientation_name:         The target orientation name to use for the print statements. 
                                             e.g 'device orientation' or 'deadband orientation'
     :type target_orientation_name:          str
-    :param heights:                         The height(s) corresponding to the measurement(s) of the columns in 
+    :param heights:                         The height(s) corresponding to the measurement(s) in
                                             wdir_data .
     :type heights:                          list | float
     :param target_orientation_table_name:   The target orientation name to use for the column of the returned results
