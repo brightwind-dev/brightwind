@@ -271,6 +271,7 @@ def test_apply_wind_vane_dead_band_offset_table_returned():
 
     pd.testing.assert_frame_equal(table, expected_table)
 
+
 def test_apply_device_orientation_offset_table_returned():
     fl1 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_demo_iea43_wra_data_model_v1_3)
     data_model = fl1.data_model
