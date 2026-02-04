@@ -154,6 +154,12 @@ def test_get_table():
     
 def test_properties():
 
+    assert "mast_properties.mast_section_geometry" in MM1.properties
+    assert "calibration.calibration_uncertainty" in MM1.measurements.properties[0]
+    
+    for measurement in FL1.properties:
+        assert "vertical_profiler_properties.update_at" in measurement
+
     # Check thermometer has correct properties assigned
     properties = MM1.measurements.properties
     for measurement in properties:
