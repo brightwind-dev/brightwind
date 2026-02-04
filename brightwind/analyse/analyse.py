@@ -2490,9 +2490,8 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
         if comparison.fillna(False).any():
             warnings.warn(msg)
     # For scalar booleans
-    else:
-        if comparison:
-            warnings.warn(msg)
+    elif comparison:
+        warnings.warn(msg)
 
     # Calculate relative humidity
     rel_humidity_percent = 100*(_calc_water_saturation_vapour_pressure_Pa(dew_point_temperature_degC) /
