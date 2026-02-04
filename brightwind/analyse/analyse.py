@@ -2299,15 +2299,15 @@ def calc_air_density(temperature: Union[float, pd.Series],
                              " provided.")
         # Raise error if dew point temperature is greater than air temperature
         comparison = dew_point_temperature_degC > temperature
-        msg = "dew_point_temperature_degC cannot be greater than temperature."
+        msg = ("Detected dew_point_temperature_degC values which are greater than temperature values.")
         # For pandas Series, ignore NaNs when checking
         if isinstance(comparison, pd.Series):
             if comparison.fillna(False).any():
-                raise ValueError(msg)
+                warnings.warn(msg)
         # For scalar booleans
         else:
             if comparison:
-                raise ValueError(msg)
+                warnings.warn(msg)
 
     # Calculate partial pressure of water vapour
     water_vapour_press_Pa = _calc_water_vapour_pressure_Pa(air_temperature_degC=temperature,
@@ -2486,19 +2486,21 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
 
     # Raise error if dew point temperature is greater than air temperature
     comparison = dew_point_temperature_degC > air_temperature_degC
-    msg = "dew_point_temperature_degC cannot be greater than temperature."
+    msg = ("Detected dew_point_temperature_degC values which are greater than temperature values at the same timestamp."
+           "This will result in a calculated relative humidity value greater than 100%.")
     # For pandas Series, ignore NaNs when checking
     if isinstance(comparison, pd.Series):
         if comparison.fillna(False).any():
-            raise ValueError(msg)
+            warnings.warn(msg)
     # For scalar booleans
     else:
         if comparison:
-            raise ValueError(msg)
+            warnings.warn(msg)
 
     # Calculate relative humidity
     rel_humidity_percent = 100*(_calc_water_saturation_vapour_pressure_Pa(dew_point_temperature_degC) /
                                 _calc_water_saturation_vapour_pressure_Pa(air_temperature_degC))
+    rel_humidity_percent.name = 'relative_humidity'
     return rel_humidity_percent
  
 
