@@ -159,7 +159,6 @@ def test_properties():
     assert "logger_measurement_config.column_name" in MM1.measurements.properties[0]
     
     for measurement in FL1.measurements.properties:
-        #assert "vertical_profiler_properties.update_at" in measurement
         assert "logger_measurement_config.column_name" in measurement
 
     # Check thermometer has correct properties assigned
