@@ -264,8 +264,6 @@ def test_apply_wind_vane_dead_band_offset_table_returned():
         'Date From': '2025-02-20T00:10:00',
         'Date To': None}]
         ).set_index('Name')
-    expected_table['Logger Offset'] = expected_table['Logger Offset'].replace({np.nan: None})
-    expected_table['Vane Dead Band Orientation [deg]'] = expected_table['Vane Dead Band Orientation [deg]'].replace({np.nan: None})
 
     pd.DataFrame([test_meas_config_dict[x][0] for x in test_meas_config_dict.keys()])
 
@@ -347,8 +345,6 @@ def test_apply_device_orientation_offset_table_returned():
         'Offset Applied [deg]': 3.0,
         'Date From': '2013-10-08T14:00:00',
         'Date To': None}]).set_index('Name')
-    expected_table['Logger Offset'] = expected_table['Logger Offset'].replace({np.nan: None})
-    expected_table['Device Orientation [deg]'] = expected_table['Device Orientation [deg]'].replace({np.nan: None})
     pd.testing.assert_frame_equal(table, expected_table)
 
 def test_apply_device_orientation_offset():

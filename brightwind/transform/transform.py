@@ -1355,9 +1355,12 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     if isinstance(data, pd.Series):
         df = df[df.columns[0]]
     if return_results_table:
-        return df, _aggregate_consecutive_periods(
-            rows, target_orientation_table_name="Vane Dead Band Orientation [deg]"
-            )
+        if rows:
+            return df, _aggregate_consecutive_periods(
+                rows, target_orientation_table_name="Vane Dead Band Orientation [deg]"
+                )
+        else:
+            return df, None
     return df
 
 
@@ -1404,8 +1407,6 @@ def _aggregate_consecutive_periods(offset_applied_tables, target_orientation_tab
     }).reset_index(drop=False).drop(columns=['consecutive_group']).set_index("Name").sort_values(
         by=["Height [m]", "Date From"], ascending=[False, True]
         )
-    results_table['Logger Offset'] = results_table['Logger Offset'].replace({np.nan: None})
-    results_table[target_orientation_table_name] = results_table[target_orientation_table_name].replace({np.nan: None})
     results_table = results_table.fillna({
         'Offset Applied [deg]': 0
         })
@@ -1877,7 +1878,10 @@ def apply_device_orientation_offset(
         data.update(df)
 
     if return_results_table:
-        return df, _aggregate_consecutive_periods(rows, target_orientation_table_name="Device Orientation [deg]")
+        if rows:
+            return df, _aggregate_consecutive_periods(rows, target_orientation_table_name="Device Orientation [deg]")
+        else:
+            return df, None
     return df
 
 
