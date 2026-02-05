@@ -2295,15 +2295,14 @@ def calc_air_density(temperature: Union[float, pd.Series],
                              " provided.")
         # Raise error if dew point temperature is greater than air temperature
         comparison = dew_point_temperature_degC > temperature
-        msg = ("Detected dew_point_temperature_degC values which are greater than temperature values for the same"
-               " timestamp.")
+        msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature values."
+               "\n This implies that the relative humidity would be greater than 100%.")
         # For pandas Series, ignore NaNs when checking
         if isinstance(comparison, pd.Series):
             if comparison.fillna(False).any():
                 warnings.warn(msg)
         # For scalar booleans
-        else:
-            if comparison:
+        elif comparison:
                 warnings.warn(msg)
 
     # Calculate partial pressure of water vapour
@@ -2483,7 +2482,7 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
 
     # Raise error if dew point temperature is greater than air temperature
     comparison = dew_point_temperature_degC > air_temperature_degC
-    msg = ("Detected dew_point_temperature_degC values which are greater than temperature values at the same timestamp."
+    msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature values."
            "\n This will result in a calculated relative humidity value greater than 100%.")
     # For pandas Series, ignore NaNs when checking
     if isinstance(comparison, pd.Series):
