@@ -1324,6 +1324,7 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
 
     # Apply the offset
     rows = []
+    col_not_in_data = []
     for wdir_prop in wdirs_properties:
         name = wdir_prop['name']
 
@@ -1347,10 +1348,16 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
             rows.append(applied_results)
         else:
             print('{} is not found in data.\n'.format(utils.bold(name)))
+            col_not_in_data.append(name)
 
 
     if wdir_in_dataset is False:
-        print('No wind direction measurement type found in the data.\n')
+        print('None of the wind direction measurements reported in "measurements" input is found in the data.\n')
+    if col_not_in_data:
+        print(
+            'Following wind direction measurement(s) not found in the data for the requested `wdir_cols`: '
+            f'{utils.bold(str(col_not_in_data))}.'
+            )
     # if a Series is sent, send back a Series
     if isinstance(data, pd.Series):
         df = df[df.columns[0]]
