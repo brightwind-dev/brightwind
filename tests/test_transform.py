@@ -230,14 +230,14 @@ def test_apply_wind_vane_dead_band_offset_table_returned():
             }
     expected_table = pd.DataFrame([{'Name': 'Dir78_test',
         'Height [m]': 78.0,
-        'Vane Dead Band Orientation [deg]': np.nan,
-        'Logger Offset': np.nan,
+        'Vane Dead Band Orientation [deg]': None,
+        'Logger Offset': None,
         'Offset Applied [deg]': 0.0,
         'Date From': '2025-02-20T00:10:00',
         'Date To': None},
         {'Name': 'Dir78mS',
         'Height [m]': 78.0,
-        'Vane Dead Band Orientation [deg]': np.nan,
+        'Vane Dead Band Orientation [deg]': None,
         'Logger Offset': 130.87,
         'Offset Applied [deg]': 0.0,
         'Date From': '2025-02-20T00:10:00',
@@ -245,7 +245,7 @@ def test_apply_wind_vane_dead_band_offset_table_returned():
         {'Name': 'Dir58_test',
         'Height [m]': 58.0,
         'Vane Dead Band Orientation [deg]': 127.75,
-        'Logger Offset': np.nan,
+        'Logger Offset': None,
         'Offset Applied [deg]': 127.75,
         'Date From': '2025-02-20T00:10:00',
         'Date To': None},
@@ -264,6 +264,8 @@ def test_apply_wind_vane_dead_band_offset_table_returned():
         'Date From': '2025-02-20T00:10:00',
         'Date To': None}]
         ).set_index('Name')
+    expected_table['Logger Offset'] = expected_table['Logger Offset'].replace({np.nan: None})
+    expected_table['Vane Dead Band Orientation [deg]'] = expected_table['Vane Dead Band Orientation [deg]'].replace({np.nan: None})
 
     pd.DataFrame([test_meas_config_dict[x][0] for x in test_meas_config_dict.keys()])
 
@@ -291,42 +293,42 @@ def test_apply_device_orientation_offset_table_returned():
     _, table = bw.apply_device_orientation_offset(data, fll_test, return_results_table=True)
     expected_table = pd.DataFrame([{'Name': 'Dir_50m',
         'Height [m]': 50,
-        'Device Orientation [deg]': np.nan,
-        'Logger Offset': np.nan,
+        'Device Orientation [deg]': None,
+        'Logger Offset': None,
         'Offset Applied [deg]': 0.0,
         'Date From': '2012-10-23T13:10:00',
         'Date To': '2012-11-15T13:50:00'},
         {'Name': 'Dir_50m',
         'Height [m]': 50,
-        'Device Orientation [deg]': np.nan,
-        'Logger Offset': np.nan,
+        'Device Orientation [deg]': None,
+        'Logger Offset': None,
         'Offset Applied [deg]': 0.0,
         'Date From': '2012-11-15T13:50:00',
         'Date To': '2012-11-23T12:10:00'},
         {'Name': 'Dir_50m',
         'Height [m]': 50,
         'Device Orientation [deg]': 265.0,
-        'Logger Offset': np.nan,
+        'Logger Offset': None,
         'Offset Applied [deg]': 265.0,
         'Date From': '2012-11-23T12:10:00',
         'Date To': '2013-10-08T14:00:00'},
         {'Name': 'Dir_50m',
         'Height [m]': 50,
         'Device Orientation [deg]': 265.0,
-        'Logger Offset': np.nan,
+        'Logger Offset': None,
         'Offset Applied [deg]': 265.0,
         'Date From': '2013-10-08T14:00:00',
         'Date To': None},
         {'Name': 'Dir_40m',
         'Height [m]': 40,
-        'Device Orientation [deg]': np.nan,
+        'Device Orientation [deg]': None,
         'Logger Offset': 170.0,
         'Offset Applied [deg]': 0.0,
         'Date From': '2012-10-23T13:10:00',
         'Date To': '2012-11-15T13:50:00'},
         {'Name': 'Dir_40m',
         'Height [m]': 40,
-        'Device Orientation [deg]': np.nan,
+        'Device Orientation [deg]': None,
         'Logger Offset': 165.0,
         'Offset Applied [deg]': 0.0,
         'Date From': '2012-11-15T13:50:00',
@@ -345,7 +347,8 @@ def test_apply_device_orientation_offset_table_returned():
         'Offset Applied [deg]': 3.0,
         'Date From': '2013-10-08T14:00:00',
         'Date To': None}]).set_index('Name')
-    
+    expected_table['Logger Offset'] = expected_table['Logger Offset'].replace({np.nan: None})
+    expected_table['Device Orientation [deg]'] = expected_table['Device Orientation [deg]'].replace({np.nan: None})
     pd.testing.assert_frame_equal(table, expected_table)
 
 def test_apply_device_orientation_offset():
