@@ -2013,7 +2013,7 @@ def _apply_dir_offset_target_orientation(
             apply_offset_to_inclusive = wdir_data.index[idx_pos - 1].strftime('%Y-%m-%dT%H:%M:%S')
         to_text = f"{apply_offset_to} (exclusive)"
         if apply_offset_from > apply_offset_to_inclusive:
-            return wdir_data   
+            return wdir_data, pd.DataFrame([])   
 
     if logger_offset is not None and logger_offset != 0 and target_orientation is not None:
         offset = offset_wind_direction(float(target_orientation), offset=-float(logger_offset))
