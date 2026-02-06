@@ -1325,13 +1325,27 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     # Apply the offset
     rows = []
     col_not_in_data = []
-    for wdir_prop in wdirs_properties:
+    for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
 
         if name in df.columns:
             date_to = wdir_prop.get('date_to')
+            # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
+            # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
+            if date_to is not None:
+                if pd.to_datetime(date_to) >= df.index[-1]:
+                    date_to = None
+            # If [date_from, date_to) convention has not been used, we force this convention by setting 
+            # date_to to the date_from of the next logger property
+            if i < len(wdirs_properties) - 1:
+                if wdirs_properties[i+1].get('name') == name:
+                    next_date_from = wdirs_properties[i+1].get('date_from')
+                    if next_date_from != date_to:
+                        date_to = next_date_from
+            date_from = wdir_prop.get('date_from')
+            date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
+                            if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
             deadband = wdir_prop.get('vane_dead_band_orientation_deg')
-            date_from = wdir_prop['date_from']
             logger_offset = wdir_prop.get('logger_measurement_config.offset')
             height = wdir_prop.get('height_m')
             wdir_in_dataset = True
