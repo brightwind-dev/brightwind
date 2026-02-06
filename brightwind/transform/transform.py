@@ -1329,22 +1329,7 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
         name = wdir_prop['name']
 
         if name in df.columns:
-            date_to = wdir_prop.get('date_to')
-            # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
-            # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
-            if date_to is not None:
-                if pd.to_datetime(date_to) >= df.index[-1]:
-                    date_to = None
-            # If [date_from, date_to) convention has not been used, we force this convention by setting 
-            # date_to to the date_from of the next logger property
-            if i < len(wdirs_properties) - 1:
-                if wdirs_properties[i+1].get('name') == name:
-                    next_date_from = wdirs_properties[i+1].get('date_from')
-                    if next_date_from != date_to:
-                        date_to = next_date_from
-            date_from = wdir_prop.get('date_from')
-            date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
-                            if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
+            date_from, date_to = _normalize_logger_period_boundaries(df, wdirs_properties, i, name)
             deadband = wdir_prop.get('vane_dead_band_orientation_deg')
             logger_offset = wdir_prop.get('logger_measurement_config.offset')
             height = wdir_prop.get('height_m')
@@ -1806,22 +1791,8 @@ def apply_device_orientation_offset(
         name = wdir_prop['name']
 
         if name in df.columns:
-            date_to = wdir_prop.get('date_to')
-            # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
-            # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
-            if date_to is not None:
-                if pd.to_datetime(date_to) >= df.index[-1]:
-                    date_to = None
-            # If [date_from, date_to) convention has not been used, we force this convention by setting 
-            # date_to to the date_from of the next logger property
-            if i < len(wdirs_properties) - 1:
-                if wdirs_properties[i+1].get('name') == name:
-                    next_date_from = wdirs_properties[i+1].get('date_from')
-                    if next_date_from != date_to:
-                        date_to = next_date_from
-            date_from = wdir_prop.get('date_from')
-            date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
-                            if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
+            date_from, date_to = _normalize_logger_period_boundaries(df, wdirs_properties, i, name)
+            
             logger_offset = wdir_prop.get('logger_measurement_config.offset')
             for j, device_properties in enumerate(measurement_station):
                 meas_station_data_model_from = device_properties.get('date_from')
@@ -1904,6 +1875,48 @@ def apply_device_orientation_offset(
         else:
             return df, None
     return df
+
+
+def _normalize_logger_period_boundaries(df, wdirs_properties, current_index, name):
+    """
+    Normalize logger period time boundaries to enforce [date_from, date_to) half-open interval logic.
+    
+    This ensures data points are not corrected twice by making the earlier logger property period
+    end exactly when the next entry starts.
+
+    :param df:                  Wind measurement dataframe with datetime index
+    :type df:                   pd.DataFrame
+    :param wdirs_properties:    Consistent list of properties for the wind_direction
+    :type wdirs_properties:     list
+    :param current_index:       Index of wind direction property currently being processed
+    :type current_index:        int
+    :param name:                Wind direction name
+    :type name:                 str
+    :return:                    Tuple of (date_from, date_to) as ISO format strings. date_to may be None to indicate
+                                the period extends to the end of the dataset. 
+    :rtype:                     Tuple[str, str]
+    """
+    date_to = wdirs_properties[current_index].get('date_to')
+
+    # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
+    # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
+    if date_to is not None:
+        if pd.to_datetime(date_to) >= df.index[-1]:
+            date_to = None
+
+    # If [date_from, date_to) convention has not been used, we force this convention by setting 
+    # date_to to the date_from of the next logger property
+    if current_index < len(wdirs_properties) - 1:
+        if wdirs_properties[current_index+1].get('name') == name:
+            next_date_from = wdirs_properties[current_index + 1].get('date_from')
+            if next_date_from != date_to:
+                date_to = next_date_from
+
+    date_from = wdirs_properties[current_index].get('date_from')
+    date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
+                    if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
+    
+    return date_from, date_to  
 
 
 def _check_vertical_profiler_properties_overlap(measurement_station, df):
