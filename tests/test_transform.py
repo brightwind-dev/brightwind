@@ -265,11 +265,27 @@ def test_apply_wind_vane_dead_band_offset_table_returned():
         'Date To': None}]
         ).set_index('Name')
 
-    pd.DataFrame([test_meas_config_dict[x][0] for x in test_meas_config_dict.keys()])
-
     data, table = bw.apply_wind_vane_deadband_offset(data, test_meas_config_dict, return_results_table=True)
 
     pd.testing.assert_frame_equal(table, expected_table)
+
+    # Test for correct behaviour in overlapping periods in measurement config
+    test_meas_config_dict['Dir78mS'].append(
+        {'name': 'Dir78mS',
+         'measurement_type_id': 'wind_direction', 'height_m': 78.0,
+         'logger_measurement_config.slope': 0.07263,
+         'logger_measurement_config.offset': 132.87,
+         'date_from': '2016-10-20T08:10:00',
+         'date_to': None,
+         'vane_dead_band_orientation_deg': 3}
+                    )
+    test_meas_config_dict['Dir78mS'][0]['date_from'] = '2016-10-20T00:10:00'
+    test_meas_config_dict['Dir78mS'][0]['date_to'] = '2016-10-20T08:10:00'
+    test_meas_config_dict['Dir78mS'][0]['vane_dead_band_orientation_deg'] = 1
+
+    data, table = bw.apply_wind_vane_deadband_offset(data, test_meas_config_dict, return_results_table=True)
+
+    assert np.allclose(data.loc['2016-10-20T08:00:00', "Dir78mS"], 255.11)
 
 
 def test_apply_device_orientation_offset_table_returned():
