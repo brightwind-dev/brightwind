@@ -1329,7 +1329,7 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
         name = wdir_prop['name']
 
         if name in df.columns:
-            date_from, date_to = _normalize_logger_period_boundaries(df, wdirs_properties, i, name)
+            date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
             deadband = wdir_prop.get('vane_dead_band_orientation_deg')
             logger_offset = wdir_prop.get('logger_measurement_config.offset')
             height = wdir_prop.get('height_m')
@@ -1791,7 +1791,7 @@ def apply_device_orientation_offset(
         name = wdir_prop['name']
 
         if name in df.columns:
-            date_from, date_to = _normalize_logger_period_boundaries(df, wdirs_properties, i, name)
+            date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
             
             logger_offset = wdir_prop.get('logger_measurement_config.offset')
             for j, device_properties in enumerate(measurement_station):
@@ -1877,7 +1877,7 @@ def apply_device_orientation_offset(
     return df
 
 
-def _normalize_logger_period_boundaries(df, wdirs_properties, current_index, name):
+def _resolve_period_boundaries(df, wdirs_properties, current_index, name):
     """
     Normalize logger period time boundaries to enforce [date_from, date_to) half-open interval logic.
     
