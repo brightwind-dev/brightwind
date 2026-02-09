@@ -10,6 +10,9 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
 ---
+## [2.5.0]
+
+1. Added `_MastSectionGeometry` class with `data` property for extracting mast_section_geometry information from the IEA WIND Task 43 WRA Data Model was added. ([#576](https://github.com/brightwind-dev/brightwind/issues/576))
 
 ## [2.4.0]
 
