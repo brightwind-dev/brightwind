@@ -12,7 +12,7 @@ Additional labels for pre-release and build metadata are available as extensions
 ---
 ## [2.5.0]
 ### New Features and Enhancements
-1. Updated `calc_air_density` to incorporate additional methods. The methods differ in their approach to deriving water vapour pressure using `_calc_water_vapour_pressure_Pa` and include the pre-existing 'IEC' method (default). The two new methods are based on the Herman Wobus approximation (`_calc_water_saturation_vapour_pressure_Pa`) and require either relative humidity or dew point temperature as inputs.([#539](https://github.com/brightwind-dev/brightwind/issues/539)).
+1. Updated `calc_air_density` to incorporate additional methods. The methods differ in their approach to deriving water vapour pressure using `_calc_water_vapour_pressure_Pa` and include the pre-existing 'IEC' method (default). The two new methods are based on the Herman Wobus approximation (`_calc_water_saturation_vapour_pressure_Pa`) and require either relative humidity or dew point temperature as inputs. ([#539](https://github.com/brightwind-dev/brightwind/issues/539)).
 
 
 ## [2.4.0]
