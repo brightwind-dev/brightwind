@@ -1315,7 +1315,9 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     # Depending on what is sent, get wdir properties into a list of properties
     wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
     if not wdirs_properties:
-        raise ValueError('No wind direction measurements found.')
+        print("No wind direction measurements found in the 'measurements' input. " \
+        "No deadband offset adjustments can be applied.")
+        return data if not return_results_table else (data, None)
 
     # copy the data if needed
     data = data.copy(deep=True) if inplace is False else data
@@ -1346,16 +1348,16 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
                 )
             rows.append(applied_results)
         else:
-            print('{} is not found in data.\n'.format(utils.bold(name)))
             col_not_in_data.append(name)
 
 
     if wdir_in_dataset is False:
-        print('None of the wind direction measurements reported in "measurements" input is found in the data.\n')
-    if col_not_in_data:
+        print('None of the wind direction measurements reported in the "measurements" input is found in the data. '
+              'No deadband offset adjustments can be applied.\n')
+    if col_not_in_data and wdir_in_dataset:
         print(
-            'Following wind direction measurement(s) not found in the data for the requested `wdir_cols`: '
-            f'{utils.bold(str(col_not_in_data))}.'
+            f"Following wind direction measurement(s) reported in the 'measurements' input not found in the data: "
+            f"{utils.bold(str(col_not_in_data))}."
             )
     # if a Series is sent, send back a Series
     if isinstance(data, pd.Series):
@@ -1762,6 +1764,11 @@ def apply_device_orientation_offset(
     
     measurements = measurement_station.measurements
     wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
+    if not wdirs_properties:
+        print("No wind direction measurements found in the 'measurement_station' input. " \
+        "No device orientation offset adjustments can be applied.")
+        return data if not return_results_table else (data, None)
+    
     measurement_station_items = list(measurement_station)
     # copy the data if needed
     data = data.copy(deep=True) if inplace is False else data
@@ -1855,14 +1862,15 @@ def apply_device_orientation_offset(
     if wdir_not_in_dataset:
         indexes = np.unique(col_not_in_data, return_index=True)[1]
         col_not_in_data = [col_not_in_data[index] for index in sorted(indexes)]
-        print_text = 'Following wind direction measurement(s) not found in the data'
+        print_text = "Following wind direction measurement(s) reported in the 'measurement_station' input " \
+        "not found in the data"
         if wdir_cols:
             print(print_text + ' for the requested `wdir_cols`: {}.'.format(utils.bold(str(col_not_in_data))))
         else:
             print(print_text + ': {}.'.format(utils.bold(str(col_not_in_data))))
     if col_not_in_datamodel:
-        print('No device orientation offset applied to following requested measurement(s) as no wind direction '
-              'measurement type found in `meas_station_data_models` for these: {}.'
+        print('No device orientation offset applied to following `wdir_cols` requested measurement(s) ' \
+        'as no wind direction measurement type found in `measurement_station` input for these: {}.'
               .format(utils.bold(str(col_not_in_datamodel))))
     # if a Series is sent, send back a Series
     if isinstance(data, pd.Series):
