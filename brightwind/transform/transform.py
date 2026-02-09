@@ -1315,9 +1315,8 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     # Depending on what is sent, get wdir properties into a list of properties
     wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
     if not wdirs_properties:
-        print("No wind direction measurements found in the 'measurements' input. " \
+        raise ValueError("No wind direction measurements found in the 'measurements' input. " \
         "No deadband offset adjustments can be applied.")
-        return data if not return_results_table else (data, None)
 
     # copy the data if needed
     data = data.copy(deep=True) if inplace is False else data
@@ -1765,9 +1764,8 @@ def apply_device_orientation_offset(
     measurements = measurement_station.measurements
     wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
     if not wdirs_properties:
-        print("No wind direction measurements found in the 'measurement_station' input. " \
+        raise ValueError("No wind direction measurements found in the 'measurement_station' input. " \
         "No device orientation offset adjustments can be applied.")
-        return data if not return_results_table else (data, None)
     
     measurement_station_items = list(measurement_station)
     # copy the data if needed
