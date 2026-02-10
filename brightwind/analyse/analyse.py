@@ -1405,7 +1405,7 @@ def time_continuity_gaps(data: pd.DataFrame, minimum_gap_length: Optional[pd.Tim
     :param minimum_gap_length:              The minimum length time gap to report. Shorter time gaps will be filtered
                                             out of the returned DataFrame
     :type minimum_gap_length:               Optional[pd.Timedelta]
-    :return:                                A table listing all the time gaps in the data that are not equal to the 
+    :return:                                A table listing all the time gaps in the data that are not equal to the
                                             derived temporal resolution.
     :rtype:                                 pd.DataFrame
 
@@ -2090,7 +2090,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
     This specific_gas_constant argument and its default value of 286.9 are
     retained to maintain backwards compatibility for when rel_humidity_percent is None.
     However, if rel_humidity_percent is not None, the specific_gas_constant is ignored as the air density
-    calculation which incorporates relative humidity depends on the two specific gas constants for dry air 
+    calculation which incorporates relative humidity depends on the two specific gas constants for dry air
     (287.05 J/kg*K) and water vapour (461.495 J/kg*K) and therefore the specific_gas_constant argument is redundant.
 
     WARNING: The `specific_gas_constant` argument will be removed in a future 3.0 release of brightwind.
@@ -2144,7 +2144,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
                                         Requires dew point temperature (dew_point_temperature_degC).
     :type calc_method:                  str
     :return:                            Air density in kg/m^3. Output type depends on type(temperature), type(pressure),
-                                        type(rel_humidity_percent) or type(dew_point_temperature_degC) provided. 
+                                        type(rel_humidity_percent) or type(dew_point_temperature_degC) provided.
                                         If all inputs are float, output is float.
                                         If any input is pandas.Series, output is pandas.Series.
     :rtype:                             float or pandas.Series
@@ -2303,7 +2303,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
                 warnings.warn(msg)
         # For scalar booleans
         elif comparison:
-                warnings.warn(msg)
+            warnings.warn(msg)
 
     # Calculate partial pressure of water vapour
     water_vapour_press_Pa = _calc_water_vapour_pressure_Pa(air_temperature_degC=temperature,
@@ -2443,6 +2443,9 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
             E_s(T)  = saturation vapour pressure at air temperature (T)
         E_s is calculated using the Herman Wobus polynomial approximation as implemented in
         `_calc_water_saturation_vapour_pressure_Pa()`.
+        For a detailed description of the Herman Wobus polynomial approximation see the
+        'Vapor Pressure' section at the following link:
+        https://wahiduddin.net/calc/density_altitude.htm
 
     :param dew_point_temperature_degC:  Dew point temperature in degrees Celsius.
     :type dew_point_temperature_degC:   float or pandas.Series
@@ -2497,7 +2500,7 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
                                 _calc_water_saturation_vapour_pressure_Pa(air_temperature_degC))
     rel_humidity_percent.name = 'relative_humidity'
     return rel_humidity_percent
- 
+
 
 def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, pd.Series]] = None,
                                    rel_humidity_percent: Optional[Union[float, pd.Series]] = None,
