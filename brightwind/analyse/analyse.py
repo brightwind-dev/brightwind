@@ -2079,11 +2079,14 @@ def calc_air_density(temperature: Union[float, pd.Series],
             R_v = specific gas constant for water vapour (461.495 J/kg*K).
             T   = air temperature in Kelvin (°C + 273.15).
 
-    For more detailed explanation of the calculation methods, see:
-    - IEC 61400-12-1 (2017) Wind power generation systems - Part 12-1: Power performance
+    For more detailed explanation of the calculation methods, see the following:
+    - 'IEC' Method Description:
+    IEC 61400-12-1 (2017) Wind power generation systems - Part 12-1: Power performance
     measurement of electricity producing wind turbines (p. 41)
-    - https://wahiduddin.net/calc/density_altitude.htm
-    - https://help.emd.dk/knowledgebase/content/ReferenceManual/DensityOfAir.pdf
+    - Herman Wobus approximation for water vapour pressure and relating
+      air temperature, dew point temperature and relative humidity:
+    https://wahiduddin.net/calc/density_altitude.htm
+    https://help.emd.dk/knowledgebase/content/ReferenceManual/DensityOfAir.pdf
 
     Note on specific_gas_constant argument for 'IEC' method:
     Note that the value of the specific_gas_constant argument is used only when rel_humidity_percent is None.
@@ -2133,15 +2136,21 @@ def calc_air_density(temperature: Union[float, pd.Series],
     :type rel_humidity_percent:         float or pandas.Series
     :param dew_point_temperature_degC:  Dew point temperature values in degrees Celsius. Default is None.
     :type dew_point_temperature_degC:   float or pandas.Series
-    :param calc_method:                 Method to calculate water vapour pressure. Options are:
+    :param calc_method:                 Method to calculate water vapour pressure using
+                                        bw.analyse.analyse._calc_water_vapour_pressure().
+                                        Options are:
                                         - 'IEC' (default):
-                                        Requires air temperature (temperature) and
+                                        Inputs are air temperature (temperature) and
                                         relative humidity (rel_humidity_percent).
+                                        If rel_humidity_percent input to bw.calc_air_density() is None,
+                                        a value of 0% is assumed for the water vapour pressure calculation.
                                         - 'HermanWobus_from_rel_humidity':
                                         Requires air temperature (temperature) and
                                         relative humidity (rel_humidity_percent).
                                         - 'HermanWobus_from_dew_point':
                                         Requires dew point temperature (dew_point_temperature_degC).
+                                        Note that regardless of the calc_method for water vapour pressure,
+                                        air temperature and air pressure are required inputs to calculate air density.
     :type calc_method:                  str
     :return:                            Air density in kg/m^3. Output type depends on type(temperature), type(pressure),
                                         type(rel_humidity_percent) or type(dew_point_temperature_degC) provided.
