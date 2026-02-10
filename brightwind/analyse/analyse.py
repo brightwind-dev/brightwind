@@ -34,7 +34,8 @@ __all__ = ['monthly_means',
            'basic_stats',
            'TI',
            'sector_ratio',
-           'calc_air_density']
+           'calc_air_density',
+           'calc_rel_humidity_from_dew_point']
 
 
 def dist_matrix(var_series, x_series, y_series,
@@ -1404,7 +1405,7 @@ def time_continuity_gaps(data: pd.DataFrame, minimum_gap_length: Optional[pd.Tim
     :param minimum_gap_length:              The minimum length time gap to report. Shorter time gaps will be filtered
                                             out of the returned DataFrame
     :type minimum_gap_length:               Optional[pd.Timedelta]
-    :return:                                A table listing all the time gaps in the data that are not equal to the 
+    :return:                                A table listing all the time gaps in the data that are not equal to the
                                             derived temporal resolution.
     :rtype:                                 pd.DataFrame
 
@@ -2303,15 +2304,15 @@ def calc_air_density(temperature: Union[float, pd.Series],
                              " provided.")
         # Raise error if dew point temperature is greater than air temperature
         comparison = dew_point_temperature_degC > temperature
-        msg = "dew_point_temperature_degC cannot be greater than temperature."
+        msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature values."
+               "\n This implies that the relative humidity would be greater than 100%.")
         # For pandas Series, ignore NaNs when checking
         if isinstance(comparison, pd.Series):
             if comparison.fillna(False).any():
-                raise ValueError(msg)
+                warnings.warn(msg)
         # For scalar booleans
-        else:
-            if comparison:
-                raise ValueError(msg)
+        elif comparison:
+            warnings.warn(msg)
 
     # Calculate partial pressure of water vapour
     water_vapour_press_Pa = _calc_water_vapour_pressure_Pa(air_temperature_degC=temperature,
@@ -2434,6 +2435,80 @@ def _calc_water_saturation_vapour_pressure_Pa(air_temperature_degC: Union[float,
     # Convert from hPa to Pa
     E_s_Pa = E_s_hPa * 100
     return E_s_Pa
+
+
+def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd.Series],
+                                     air_temperature_degC: Union[float, pd.Series]
+                                     ) -> Union[float, pd.Series]:
+    """
+    Calculate relative humidity (%) from dew point temperature (degrees Celsius) and air temperature (degrees Celsius).
+    Note that dew point temperature must be less than or equal to air temperature, otherwise a warning is raised.
+
+        **Calculation method:**
+            RH = 100 * (E_s(Td) / E_s(T))
+        where:
+            RH      = relative humidity (%)
+            E_s(Td) = saturation vapour pressure at dew point temperature (Td)
+            E_s(T)  = saturation vapour pressure at air temperature (T)
+        E_s is calculated using the Herman Wobus polynomial approximation as implemented in
+        `_calc_water_saturation_vapour_pressure_Pa()`.
+        For a detailed description of the Herman Wobus polynomial approximation see the
+        'Vapor Pressure' section at the following link:
+        https://wahiduddin.net/calc/density_altitude.htm
+
+    :param dew_point_temperature_degC:  Dew point temperature in degrees Celsius.
+    :type dew_point_temperature_degC:   float or pandas.Series
+    :param air_temperature_degC:        Air temperature in degrees Celsius.
+    :type air_temperature_degC:         float or pandas.Series
+    :return:                            Relative humidity as a percentage.
+    :rtype:                             float or pandas.Series
+
+    **Example usage**
+    ::
+
+    import brightwind as bw
+
+    # Calculate relative humidity from scalar values of dew point and air temperature
+    bw.calc_rel_humidity_from_dew_point(10, 11)
+    # 93.54469072330612
+
+    # Calculate relative humidity from series of dew point and air temperature (taken from MERRA-2 reanalysis data)
+    merra2_node = bw.LoadBrightHub.get_reanalysis('MERRA-2', 53.5, -10.8, '2025-01-01','2025-02-01', nearest_nodes=1,
+                                                  variables=['Tmp_2m_degC', 'DPTmp_2m_degC'], print_status=True)
+    rel_humidity = bw.calc_rel_humidity_from_dew_point(merra2_node[1]['DPTmp_2m_degC'], merra2_node[1]['Tmp_2m_degC'])
+    rel_humidity.head(5)
+    # Timestamp
+    # 2025-01-01 00:00:00    71.970262
+    # 2025-01-01 01:00:00    72.455810
+    # 2025-01-01 02:00:00    72.945025
+    # 2025-01-01 03:00:00    73.952574
+    # 2025-01-01 04:00:00    74.452697
+    # dtype: float64
+    """
+    # Validate input types
+    _assert_function_variable_type(dew_point_temperature_degC, (float, int, pd.Series), 'dew_point_temperature_degC')
+    _assert_function_variable_type(air_temperature_degC, (float, int, pd.Series), 'air_temperature_degC')
+    # Check index is identical if inputs are pd.Series
+    _assert_series_index_match(air_temperature_degC, dew_point_temperature_degC,
+                               'air_temperature_degC', 'dew_point_temperature_degC')
+
+    # Raise error if dew point temperature is greater than air temperature
+    comparison = dew_point_temperature_degC > air_temperature_degC
+    msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature values."
+           "\n This will result in a calculated relative humidity value greater than 100%.")
+    # For pandas Series, ignore NaNs when checking
+    if isinstance(comparison, pd.Series):
+        if comparison.fillna(False).any():
+            warnings.warn(msg)
+    # For scalar booleans
+    elif comparison:
+        warnings.warn(msg)
+
+    # Calculate relative humidity
+    rel_humidity_percent = 100*(_calc_water_saturation_vapour_pressure_Pa(dew_point_temperature_degC) /
+                                _calc_water_saturation_vapour_pressure_Pa(air_temperature_degC))
+    rel_humidity_percent.name = 'relative_humidity'
+    return rel_humidity_percent
 
 
 def _calc_water_vapour_pressure_Pa(air_temperature_degC: Optional[Union[float, pd.Series]] = None,
