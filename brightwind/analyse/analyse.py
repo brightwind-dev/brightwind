@@ -2135,10 +2135,14 @@ def calc_air_density(temperature: Union[float, pd.Series],
     :type rel_humidity_percent:         float or pandas.Series
     :param dew_point_temperature_degC:  Dew point temperature values in degrees Celsius. Default is None.
     :type dew_point_temperature_degC:   float or pandas.Series
-    :param calc_method:                 Method to calculate water vapour pressure. Options are:
+    :param calc_method:                 Method to calculate water vapour pressure using
+                                        bw.analyse.analyse._calc_water_vapour_pressure().
+                                        Options are:
                                         - 'IEC' (default):
-                                        Requires air temperature (temperature) and optional
+                                        Inputs are air temperature (temperature) and
                                         relative humidity (rel_humidity_percent).
+                                        If rel_humidity_percent input to bw.calc_air_density() is None,
+                                        a value of 0% is assumed for the water vapour pressure calculation.
                                         - 'HermanWobus_from_rel_humidity':
                                         Requires air temperature (temperature) and
                                         relative humidity (rel_humidity_percent).
