@@ -12,7 +12,7 @@ Additional labels for pre-release and build metadata are available as extensions
 ---
 ## [2.5.0]
 
-1. Added `_MastSectionGeometry` class with `data` property for extracting mast_section_geometry information from the IEA WIND Task 43 WRA Data Model was added. ([#576](https://github.com/brightwind-dev/brightwind/issues/576))
+1. Updated `MeasurementStation` function `__get_properties` in order to raise child properties when flattening the dictionary to include sub-lists and sub-dictionaries when raising the following parts of the data model 'mast_properties', 'logger_measurement_config', 'sensor' and 'mounting_arrangement'. This is called by a user with `MeasurementStation.properties` or `MeasurementStation.measurements.properties` ([#576](https://github.com/brightwind-dev/brightwind/issues/576))
 
 ## [2.4.0]
 
