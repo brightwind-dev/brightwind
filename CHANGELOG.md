@@ -12,7 +12,11 @@ Additional labels for pre-release and build metadata are available as extensions
 ---
 ## [2.5.0]
 
-1. Updated `MeasurementStation` function `__get_properties` in order to raise child properties when flattening the dictionary to include sub-lists and sub-dictionaries when raising the following parts of the data model 'mast_properties', 'logger_measurement_config', 'sensor' and 'mounting_arrangement'. This is called by a user with `MeasurementStation.properties` or `MeasurementStation.measurements.properties` ([#576](https://github.com/brightwind-dev/brightwind/issues/576))
+### New Features and Enhancements
+1. Updated `calc_air_density` to incorporate additional methods. The methods differ in their approach to deriving water vapour pressure using `_calc_water_vapour_pressure_Pa` and include the pre-existing 'IEC' method (default). The two new methods are based on the Herman Wobus approximation (`_calc_water_saturation_vapour_pressure_Pa`) and require either relative humidity or dew point temperature as inputs. ([#539](https://github.com/brightwind-dev/brightwind/issues/539)).
+2. Added `calc_rel_humidity_from_dew_point` to calculate relative humidity from air temperature and dew point temperature. ([#581](https://github.com/brightwind-dev/brightwind/issues/581)).
+3. Updated `MeasurementStation` function `__get_properties` in order to raise child properties when flattening the dictionary to include sub-lists and sub-dictionaries when raising the following parts of the data model 'mast_properties', 'logger_measurement_config', 'sensor' and 'mounting_arrangement'. This is called by a user with `MeasurementStation.properties` or `MeasurementStation.measurements.properties` ([#576](https://github.com/brightwind-dev/brightwind/issues/576))
+
 
 ## [2.4.0]
 
@@ -28,8 +32,8 @@ Additional labels for pre-release and build metadata are available as extensions
 7. Added optional output to `apply_device_orientation_offset()` which provides a results table showing the applied offset. ([#521](https://github.com/brightwind-dev/brightwind/issues/521)).
 8. Updated `LoadBrightHub()` to use BrightHub API Keys. ([#550](https://github.com/brightwind-dev/brightwind/issues/550))
    1. Added deprecation warning the username and password method of authenticating in BrightHub will be removed in a future version.
-1. Updated `time_continuity_gaps()` in order to take an argument `minimum_gap_length` which allows the user to filter the time gaps returned. (Issue [#545](https://github.com/brightwind-dev/brightwind/issues/545))
-1. Updated `offset_timestamps()`to include last timestamp when date_to is unspecified, so that offset is applied to the entire record if date_to not specified. ([#504](https://github.com/brightwind-dev/brightwind/issues/504))
+9. Updated `time_continuity_gaps()` in order to take an argument `minimum_gap_length` which allows the user to filter the time gaps returned. (Issue [#545](https://github.com/brightwind-dev/brightwind/issues/545))
+10. Updated `offset_timestamps()`to include last timestamp when date_to is unspecified, so that offset is applied to the entire record if date_to not specified. ([#504](https://github.com/brightwind-dev/brightwind/issues/504))
 
 ### Deprecated
 1. `LoadBrightdata()` is deprecated and will be removed in version 3.0. Please use `LoadBrightHub()` instead to continue accessing reanalysis data.
@@ -41,7 +45,7 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ### Bug Fixes
 1. Fixed pandas<3.0.0 and numpy<2.3.1 dependencies, ([#458](https://github.com/brightwind-dev/brightwind/issues/458))
-1. Fixed pandas deprecating warnings that were linked to frequency strings, .groupby() and .map(). ([#407](https://github.com/brightwind-dev/brightwind/issues/407), [#415](https://github.com/brightwind-dev/brightwind/issues/415) and [#445](https://github.com/brightwind-dev/brightwind/issues/445))
+2. Fixed pandas deprecating warnings that were linked to frequency strings, .groupby() and .map(). ([#407](https://github.com/brightwind-dev/brightwind/issues/407), [#415](https://github.com/brightwind-dev/brightwind/issues/415) and [#445](https://github.com/brightwind-dev/brightwind/issues/445))
 
 
 ## [2.3.0]
