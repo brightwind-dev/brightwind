@@ -154,6 +154,10 @@ def test_apply_wspd_slope_offset_adj():
     data1 = bw.apply_wspd_slope_offset_adj(DATA['Spd60mS'], STATION.measurements['Spd60mS'])
     assert (data1.fillna(0).round(10) ==
             DATA_ADJUSTED['Spd60mS'].fillna(0).round(10)).all()
+    
+    DATA['Spd80mS_max'] = DATA['Spd80mS'] + 10
+    data = bw.apply_wspd_slope_offset_adj(DATA, STATION.measurements)
+    assert not np.allclose(data['Spd80mS_max'], DATA['Spd80mS_max'], equal_nan=True)
 
 
 def test_offset_wind_direction_float():
