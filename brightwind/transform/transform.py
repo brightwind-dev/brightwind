@@ -1328,26 +1328,32 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     col_not_in_data = []
     for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
-
-        if name in df.columns:
-            date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
-            deadband = wdir_prop.get('vane_dead_band_orientation_deg')
-            logger_offset = wdir_prop.get('logger_measurement_config.offset')
-            height = wdir_prop.get('height_m')
-            wdir_in_dataset = True
-            df[name], applied_results = _apply_dir_offset_target_orientation(
-                df[name], 
-                logger_offset, 
-                deadband, 
-                date_from, 
-                date_to, 
-                target_orientation_name='dead band orientation', 
-                heights=height, 
-                target_orientation_table_name="Vane Dead Band Orientation [deg]"
-                )
-            rows.append(applied_results)
-        else:
-            col_not_in_data.append(name)
+        associated_variable_names = [
+            prop["column_name"] for prop in wdir_prop[
+                "logger_measurement_config.column_name"
+                ] if prop["statistic_type_id"] in [
+            "avg", "max", "min"]
+            ]
+        for var_name in associated_variable_names:
+            if var_name in df.columns:
+                date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
+                deadband = wdir_prop.get('vane_dead_band_orientation_deg')
+                logger_offset = wdir_prop.get('logger_measurement_config.offset')
+                height = wdir_prop.get('height_m')
+                wdir_in_dataset = True
+                df[var_name], applied_results = _apply_dir_offset_target_orientation(
+                    df[var_name], 
+                    logger_offset, 
+                    deadband, 
+                    date_from, 
+                    date_to, 
+                    target_orientation_name='dead band orientation', 
+                    heights=height, 
+                    target_orientation_table_name="Vane Dead Band Orientation [deg]"
+                    )
+                rows.append(applied_results)
+            else:
+                col_not_in_data.append(var_name)
 
 
     if wdir_in_dataset is False:
