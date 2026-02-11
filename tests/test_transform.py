@@ -180,6 +180,35 @@ def test_apply_wind_vane_dead_band_offset():
 
     assert (data1.fillna(0).round(10) ==
             data['Dir78mS'].fillna(0).round(10)).all()
+    
+    data_edited = copy.deepcopy(DATA)
+    data_edited['Dir78mS_max'] = data_edited['Dir78mS'] + 10
+
+    test_dict = STATION.measurements.wdirs
+    test_dict['Dir78mS'][0]['logger_measurement_config.offset'] = 300
+    test_dict['Dir78mS'][0]['logger_measurement_config.column_name'] = [{'column_name': 'Dir78mS',
+        'statistic_type_id': 'avg',
+        'is_ignored': False,
+        'notes': None,
+        'update_at': '2021-02-24T17:04:41'},
+        {'column_name': 'Dir78mSStd',
+        'statistic_type_id': 'sd',
+        'is_ignored': False,
+        'notes': None,
+        'update_at': '2021-02-24T17:04:41'},
+        {'column_name': 'Dir78mSMax',
+        'statistic_type_id': 'max',
+        'is_ignored': False,
+        'notes': None,
+        'update_at': '2021-02-24T17:04:41'},
+        {'column_name': 'Dir78mSMin',
+        'statistic_type_id': 'min',
+        'is_ignored': False,
+        'notes': None,
+        'update_at': '2021-02-24T17:04:41'}]
+    result_data = bw.apply_wind_vane_deadband_offset(data_edited, test_dict, inplace=False)
+
+    assert np.allclose(result_data['Dir78mS_max'].values[0], result_data['Dir78mS'].values[0] + 10 - 360)
 
 
 def test_apply_wind_vane_dead_band_offset_table_returned():
