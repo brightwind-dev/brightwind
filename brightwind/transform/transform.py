@@ -1328,13 +1328,13 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     col_not_in_data = []
     for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
-        associated_variable_names = [
-            prop["column_name"] for prop in wdir_prop[
-                "logger_measurement_config.column_name"
-                ] if prop["statistic_type_id"] in [
-            "avg", "max", "min"]
-            ]
-        for var_name in associated_variable_names:
+        associated_statistics = [
+            "" if prop["statistic_type_id"] == "avg" else prop["statistic_type_id"]
+            for prop in wdir_prop["logger_measurement_config.column_name"]
+            if prop["statistic_type_id"] in ["avg", "max", "min"]
+        ]
+        for stat in associated_statistics:
+            var_name = f"{name}_{stat}" if stat else name
             if var_name in df.columns:
                 date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
                 deadband = wdir_prop.get('vane_dead_band_orientation_deg')
@@ -1800,13 +1800,13 @@ def apply_device_orientation_offset(
     # Apply the offset
     for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
-        associated_variable_names = [
-            prop["column_name"] for prop in wdir_prop[
-                "logger_measurement_config.column_name"
-                ] if prop["statistic_type_id"] in [
-            "avg", "max", "min"]
-            ]
-        for var_name in associated_variable_names:
+        associated_statistics = [
+            "" if prop["statistic_type_id"] == "avg" else prop["statistic_type_id"]
+            for prop in wdir_prop["logger_measurement_config.column_name"]
+            if prop["statistic_type_id"] in ["avg", "max", "min"]
+        ]
+        for stat in associated_statistics:
+            var_name = f"{name}_{stat}" if stat else name
             if var_name in df.columns:
                 date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
                 
