@@ -1242,7 +1242,9 @@ def offset_wind_direction(wdir, offset: float):
         return wdir.add(offset).apply(utils._range_0_to_360)
 
 
-def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_results_table=False):
+def apply_wind_vane_deadband_offset(
+        data, measurements, inplace=False, return_results_table=False, apply_to_related_statistics=True
+        ):
     """
     Automatically apply deadband offsets of the wind vanes to the timeseries data. The deadband orientation
     information for each wind direction measurement and time period is contained in the measurements
@@ -1261,23 +1263,34 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
 
     This function accounts for this adjustment.
 
-    :param data:                    Timeseries data.
-    :type data:                     pd.DataFrame or pd.Series
-    :param measurements:            Measurement information extracted from a WRA Data Model using bw.MeasurementStation
-    :type measurements:             list or dict or _Measurements
-    :param inplace:                 If 'inplace' is True, the original direction data, contained in 'data', will be
-                                    modified and replaced with the adjusted direction data. If 'inplace' is False, the
-                                    original data will not be touched and instead a new DataFrame containing the 
-                                    adjusted direction data is created. To store this adjusted direction data, please 
-                                    ensure it is assigned to a new variable.
-    :type inplace:                  bool
-    :param return_results_table:    Optional key to return a dataframe containing deadband offset, logger offset and
-                                    applied offset for each directional sensor and the time period it is relevant for.
-    :type return_results_table:     pd.DataFrame
-    :return:                        Data with adjusted wind direction by the deadband orientation, or where 
-                                    return_results_table is specified, a tuple of the data and a DataFrame of 
-                                    deadband offsets.
-    :rtype:                         pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
+    :param data:                        Timeseries data.
+    :type data:                         pd.DataFrame or pd.Series
+    :param measurements:                Measurement information extracted from a WRA Data Model using 
+                                        bw.MeasurementStation
+    :type measurements:                 list or dict or _Measurements
+    :param inplace:                     If 'inplace' is True, the original direction data, contained in 'data', will be
+                                        modified and replaced with the adjusted direction data. If 'inplace' is False, 
+                                        the original data will not be touched and instead a new DataFrame containing the 
+                                        adjusted direction data is created. To store this adjusted direction data, 
+                                        please ensure it is assigned to a new variable.
+    :type inplace:                      bool
+    :param return_results_table:        Optional key to return a dataframe containing deadband offset, logger offset 
+                                        and applied offset for each directional sensor and the time period it is 
+                                        relevant for.
+    :type return_results_table:         pd.DataFrame
+    :param apply_to_related_statistics: If True, apply the adjustment to related statistics (e.g. if Dir60mS is 
+                                        adjusted, also adjust Dir60mS_max and Dir60mS_min). If False, only apply the
+                                        adjustment to the specific wind direction properties. If True then the function 
+                                        expects the column name convention where the average has nothing appended, max
+                                        is appended with '_max' and min is appended with '_min'. 
+                                        If the column name convention is different, set this parameter to False and the 
+                                        adjustment will only be applied to the specific wind direction properties or 
+                                        rename your data columns. Defaults to True.                           
+    :type apply_to_related_statistics:  bool
+    :return:                            Data with adjusted wind direction by the deadband orientation, or where 
+                                        return_results_table is specified, a tuple of the data and a DataFrame of 
+                                        deadband offsets.
+    :rtype:                             pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
 
     **Example usage**
     ::
@@ -1328,13 +1341,16 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     col_not_in_data = []
     for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
-        associated_statistics = [
-            "" if prop["statistic_type_id"] == "avg" else prop["statistic_type_id"]
-            for prop in wdir_prop["logger_measurement_config.column_name"]
-            if prop["statistic_type_id"] in ["avg", "max", "min"]
-        ]
-        for stat in associated_statistics:
-            var_name = f"{name}_{stat}" if stat else name
+        if not apply_to_related_statistics:
+            associated_statistics = [name]
+        else:
+            # This assumed variable naming is based on what BrightHub uses
+            associated_statistics = [
+                name if prop["statistic_type_id"] == "avg" else f"{name}_{prop['statistic_type_id']}"
+                for prop in wdir_prop["logger_measurement_config.column_name"]
+                if prop["statistic_type_id"] in ["avg", "max", "min"]
+            ]
+        for var_name in associated_statistics:
             if var_name in df.columns:
                 date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
                 deadband = wdir_prop.get('vane_dead_band_orientation_deg')
@@ -1692,7 +1708,8 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
 
 def apply_device_orientation_offset(
-        data, measurement_station, wdir_cols=[], inplace=False, return_results_table=False
+        data, measurement_station, wdir_cols=[], inplace=False, return_results_table=False, 
+        apply_to_related_statistics=True
         ):
     """
     Applies a device orientation offset to wind direction data from remote sensing devices
@@ -1736,6 +1753,16 @@ def apply_device_orientation_offset(
     :param return_results_table:                If True, returns a DataFrame containing the device orientation, 
                                                 logger orientation and offset applied for each relevant time period.
     :type return_results_table:                 bool, optional
+    :param apply_to_related_statistics:         If True, apply the adjustment to related statistics (e.g. if Dir60mS is 
+                                                adjusted, also adjust Dir60mS_max and Dir60mS_min). If False, only apply
+                                                the adjustment to the specific wind direction properties. If True then 
+                                                the function expects the column name convention where the average has 
+                                                nothing appended, max is appended with '_max' and min is appended 
+                                                with '_min'. If the column name convention is different, set this 
+                                                parameter to False and the adjustment will only be applied to the 
+                                                specific wind direction properties or rename your data columns. 
+                                                Defaults to True.                           
+    :type apply_to_related_statistics:          bool
     :return:                                    Data with wind direction adjusted by the orientation offset.
     :rtype:                                     pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
     
@@ -1800,13 +1827,16 @@ def apply_device_orientation_offset(
     # Apply the offset
     for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
-        associated_statistics = [
-            "" if prop["statistic_type_id"] == "avg" else prop["statistic_type_id"]
-            for prop in wdir_prop["logger_measurement_config.column_name"]
-            if prop["statistic_type_id"] in ["avg", "max", "min"]
-        ]
-        for stat in associated_statistics:
-            var_name = f"{name}_{stat}" if stat else name
+        if not apply_to_related_statistics:
+            associated_statistics = [name]
+        else:
+            # This assumed variable naming is based on what BrightHub uses
+            associated_statistics = [
+                name if prop["statistic_type_id"] == "avg" else f"{name}_{prop['statistic_type_id']}"
+                for prop in wdir_prop["logger_measurement_config.column_name"]
+                if prop["statistic_type_id"] in ["avg", "max", "min"]
+            ]
+        for var_name in associated_statistics:
             if var_name in df.columns:
                 date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
                 
