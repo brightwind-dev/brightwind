@@ -1122,52 +1122,59 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
     # Apply the adjustment
     for wspd_prop in wspd_properties:
         name = wspd_prop['name']
-        if name in df.columns:
-            wspd_in_dataset = True
-            date_to = wspd_prop.get('date_to')
-            date_from = wspd_prop.get('date_from')
-            if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
-                date_to_txt = 'the end of dataset'
-            else:
-                date_to_txt = date_to
+        associated_statistics = [
+            "" if prop["statistic_type_id"] == "avg" else prop["statistic_type_id"]
+            for prop in wspd_prop["logger_measurement_config.column_name"]
+            if prop["statistic_type_id"] in ["avg", "max", "min"]
+        ]
+        for stat in associated_statistics:
+            var_name = f"{name}_{stat}" if stat else name
+            if var_name in df.columns:
+                wspd_in_dataset = True
+                date_to = wspd_prop.get('date_to')
+                date_from = wspd_prop.get('date_from')
+                if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+                    date_to_txt = 'the end of dataset'
+                else:
+                    date_to_txt = date_to
 
-            variables = {
-                'slope': 'logger_measurement_config.slope',
-                'offset': 'logger_measurement_config.offset',
-                'cal_slope': 'calibration.slope',
-                'cal_offset': 'calibration.offset'
-            }
-            none_variables = [v for v in variables.values() if wspd_prop.get(v) is None]
+                variables = {
+                    'slope': 'logger_measurement_config.slope',
+                    'offset': 'logger_measurement_config.offset',
+                    'cal_slope': 'calibration.slope',
+                    'cal_offset': 'calibration.offset'
+                }
+                none_variables = [v for v in variables.values() if wspd_prop.get(v) is None]
 
-            if none_variables:
-                print("{} has {} value set as None. Slope and offset adjustment can't be applied "
-                      "from {} to {}.\n".format(utils.bold(name), utils.bold(', '.join(none_variables)),
-                                                utils.bold(date_from),
-                                                utils.bold(date_to_txt)))
-            elif float(wspd_prop[variables['slope']]) != float(wspd_prop[variables['cal_slope']]) or \
-                    float(wspd_prop[variables['offset']]) != float(wspd_prop[variables['cal_offset']]):
-                try:
-                    df.loc[date_from:date_to, name] = \
-                        adjust_slope_offset(df[name][date_from:date_to],
-                                            current_slope=float(wspd_prop[variables['slope']]),
-                                            current_offset=float(wspd_prop[variables['offset']]),
-                                            new_slope=float(wspd_prop[variables['cal_slope']]),
-                                            new_offset=float(wspd_prop[variables['cal_offset']]))
-                    print('{} has slope and offset adjustment applied from {} to {}.\n'
-                          .format(utils.bold(name), utils.bold(date_from),
-                                  utils.bold(date_to_txt)))
-                except TypeError:
-                    print('{} has TypeError with logger or calibration slope and offset values. Skipping.\n'
-                          .format(utils.bold(name)))
-                except Exception as error_msg:
-                    print(error_msg)
+                if none_variables:
+                    print("{} has {} value set as None. Slope and offset adjustment can't be applied "
+                        "from {} to {}.\n".format(utils.bold(var_name), utils.bold(', '.join(none_variables)),
+                                                    utils.bold(date_from),
+                                                    utils.bold(date_to_txt)))
+                elif float(wspd_prop[variables['slope']]) != float(wspd_prop[variables['cal_slope']]) or \
+                        float(wspd_prop[variables['offset']]) != float(wspd_prop[variables['cal_offset']]):
+                    try:
+                        df.loc[date_from:date_to, var_name] = \
+                            adjust_slope_offset(df[var_name][date_from:date_to],
+                                                current_slope=float(wspd_prop[variables['slope']]),
+                                                current_offset=float(wspd_prop[variables['offset']]),
+                                                new_slope=float(wspd_prop[variables['cal_slope']]),
+                                                new_offset=float(wspd_prop[variables['cal_offset']]))
+                        print('{} has slope and offset adjustment applied from {} to {}.\n'
+                            .format(utils.bold(var_name), utils.bold(date_from),
+                                    utils.bold(date_to_txt)))
+                    except TypeError:
+                        print('{} has TypeError with logger or calibration slope and offset values. Skipping.\n'
+                            .format(utils.bold(var_name)))
+                    except Exception as error_msg:
+                        print(error_msg)
+                else:
+                    print('{} logger slope and offsets are equal to calibration slope and offsets from '
+                        '{} to {}.\n'.format(utils.bold(var_name),
+                                            utils.bold(date_from),
+                                            utils.bold(date_to_txt)))
             else:
-                print('{} logger slope and offsets are equal to calibration slope and offsets from '
-                      '{} to {}.\n'.format(utils.bold(name),
-                                           utils.bold(date_from),
-                                           utils.bold(date_to_txt)))
-        else:
-            print('{} is not found in data.\n'.format(utils.bold(name)))
+                print('{} is not found in data.\n'.format(utils.bold(var_name)))
 
     if wspd_in_dataset is False:
         print('No wind speed measurement type found in the configurations.')
