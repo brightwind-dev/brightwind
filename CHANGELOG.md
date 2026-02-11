@@ -19,6 +19,7 @@ Additional labels for pre-release and build metadata are available as extensions
 4. Fixed two bugs on `apply_device_orientation_offset()` reported table and prints. ([#571](https://github.com/brightwind-dev/brightwind/issues/571))
 5. Fixed bug on `apply_wind_vane_deadband_offset()` reported table and prints. ([#569](https://github.com/brightwind-dev/brightwind/issues/569))
 6. Updated `apply_wind_vane_deadband_offset()` to use same core function than `apply_device_orientation_offset()` for the adjustment. ([#498](https://github.com/brightwind-dev/brightwind/issues/498))
+7. Updated `apply_device_orientation_offset` and `apply_wind_vane_deadband_offset` in order to also apply directional adjustment to related columns (for 'avg', 'min' and 'max statistic types) in addition to the main variable itself ([#574](https://github.com/brightwind-dev/brightwind/issues/574)).
 
 
 ## [2.4.0]
