@@ -1061,7 +1061,7 @@ def _get_consistent_properties_format(measurements, measurement_type_id):
     return property_list
 
 
-def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
+def apply_wspd_slope_offset_adj(data, measurements, inplace=False, apply_to_related_statistics=True):
     """
     Automatically apply wind speed calibration slope and offset adjustments to the timeseries data when they
     differ from the logger programmed slope and offsets. The slope and offset information for each measurement
@@ -1072,18 +1072,28 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
     Note: Be careful not to run this more than once in an assessment, when using inplace=True, as it will
           apply the adjustment again.
 
-    :param data:         Timeseries data.
-    :type data:          pd.DataFrame or pd.Series
-    :param measurements: Measurement information extracted from a WRA Data Model using bw.MeasurementStation
-    :type measurements:  list or dict or _Measurements
-    :param inplace:      If 'inplace' is True, the original direction data, contained in 'data', will be
-                         modified and replaced with the adjusted direction data. If 'inplace' is False, the
-                         original data will not be touched and instead a new DataFrame containing the adjusted
-                         direction data is created. To store this adjusted direction data, please ensure it is
-                         assigned to a new variable.
-    :type inplace:       bool
-    :return:             Data with adjusted wind speeds.
-    :rtype:              pd.DataFrame or pd.Series
+    :param data:                        Timeseries data.
+    :type data:                         pd.DataFrame or pd.Series
+    :param measurements:                Measurement information extracted from a WRA Data Model using 
+                                        bw.MeasurementStation
+    :type measurements:                 list or dict or _Measurements
+    :param inplace:                     If 'inplace' is True, the original direction data, contained in 'data', will be
+                                        modified and replaced with the adjusted direction data. If 'inplace' is False, 
+                                        the original data will not be touched and instead a new DataFrame containing the
+                                        adjusted direction data is created. To store this adjusted direction data, 
+                                        please ensure it is assigned to a new variable.
+    :type inplace:                      bool
+    :param apply_to_related_statistics: If True, apply the adjustment to related statistics (e.g. if Spd60mS is 
+                                        adjusted, also adjust Spd60mS_max and Spd60mS_min). If False, only apply the
+                                        adjustment to the specific wind speed properties. If True then the function 
+                                        expects the column name convention where the average has nothing appended, max
+                                        is appended with '_max' and min is appended with '_min'. 
+                                        If the column name convention is different, set this parameter to False and the 
+                                        adjustment will only be applied to the specific wind speed properties or rename
+                                        your data columns. Defaults to True.                           
+    :type apply_to_related_statistics:  bool
+    :return:                            Data with adjusted wind speeds.
+    :rtype:                             pd.DataFrame or pd.Series
 
     **Example usage**
     ::
@@ -1119,15 +1129,20 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
     wspd_in_dataset = False
     df = pd.DataFrame(data) if type(data) == pd.Series else data
 
+    col_not_in_data = []
     # Apply the adjustment
     for wspd_prop in wspd_properties:
         name = wspd_prop['name']
-        associated_statistics = [
-            "" if prop["statistic_type_id"] == "avg" else prop["statistic_type_id"]
-            for prop in wspd_prop["logger_measurement_config.column_name"]
-            if prop["statistic_type_id"] in ["avg", "max", "min"]
-        ]
+        if not apply_to_related_statistics:
+            associated_statistics = [""]
+        else:
+            associated_statistics = [
+                "" if prop["statistic_type_id"] == "avg" else prop["statistic_type_id"]
+                for prop in wspd_prop["logger_measurement_config.column_name"]
+                if prop["statistic_type_id"] in ["avg", "max", "min"]
+            ]
         for stat in associated_statistics:
+            # This assumed variable naming is based on what BrightHub uses
             var_name = f"{name}_{stat}" if stat else name
             if var_name in df.columns:
                 wspd_in_dataset = True
@@ -1174,10 +1189,16 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
                                             utils.bold(date_from),
                                             utils.bold(date_to_txt)))
             else:
-                print('{} is not found in data.\n'.format(utils.bold(var_name)))
+                col_not_in_data.append(var_name)
 
     if wspd_in_dataset is False:
         print('No wind speed measurement type found in the configurations.')
+    if col_not_in_data and wspd_in_dataset:
+        print(
+            f"Following wind speed measurement(s) reported in the 'measurements' input not found in the data: "
+            f"{utils.bold(str(col_not_in_data))}."
+            )
+
     # if a Series is sent, send back a Series
     if type(data) == pd.Series:
         df = df[df.columns[0]]
