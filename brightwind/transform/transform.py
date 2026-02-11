@@ -1800,68 +1800,74 @@ def apply_device_orientation_offset(
     # Apply the offset
     for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
-
-        if name in df.columns:
-            date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
-            
-            logger_offset = wdir_prop.get('logger_measurement_config.offset')
-            for j, device_properties in enumerate(measurement_station):
-                meas_station_data_model_from = device_properties.get('date_from')
-                meas_station_data_model_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') if
-                                                meas_station_data_model_from is None or meas_station_data_model_from ==
-                                                DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
-                meas_station_data_model_to = device_properties.get('date_to')
-                # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
-                # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
-                if meas_station_data_model_to is not None:
-                    if pd.to_datetime(meas_station_data_model_to) >= df.index[-1]:
-                        meas_station_data_model_to = None
-                # If [date_from, date_to) convention has not been used, we force this convention by setting
-                # meas_station_data_model_to to the next_meas_station_data_model_from of the next
-                # measurement_station property.
-                if j < len(measurement_station_items) - 1:
-                    next_meas_station_data_model_from = measurement_station[j+1].get('date_from')
-                    if next_meas_station_data_model_from != meas_station_data_model_to:
-                        meas_station_data_model_to = next_meas_station_data_model_from
+        associated_variable_names = [
+            prop["column_name"] for prop in wdir_prop[
+                "logger_measurement_config.column_name"
+                ] if prop["statistic_type_id"] in [
+            "avg", "max", "min"]
+            ]
+        for var_name in associated_variable_names:
+            if var_name in df.columns:
+                date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
                 
-                if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
-                    date_to_tmp = meas_station_data_model_to
-                else:
-                    date_to_tmp = date_to
-                
-                date_range_overlaps = False
-                if meas_station_data_model_to is None and date_to_tmp is None:
-                    date_range_overlaps = True
-                elif meas_station_data_model_to is None:
-                    date_range_overlaps = date_to_tmp is None or date_to_tmp >= meas_station_data_model_from
-                elif date_to_tmp is None:
-                    date_range_overlaps = date_from <= meas_station_data_model_to
-                else:
-                    date_range_overlaps = (
-                        date_from <= meas_station_data_model_to and
-                        date_to_tmp >= meas_station_data_model_from
-                    )
-
-                if date_range_overlaps:
-                    device_orientation_deg = device_properties.get('device_orientation_deg')
-                    apply_offset_from = (date_from if date_from > meas_station_data_model_from 
-                                         else meas_station_data_model_from)
-                    if date_to_tmp is None or meas_station_data_model_to is None:
-                        apply_offset_to = date_to_tmp if date_to_tmp is not None else meas_station_data_model_to
+                logger_offset = wdir_prop.get('logger_measurement_config.offset')
+                for j, device_properties in enumerate(measurement_station):
+                    meas_station_data_model_from = device_properties.get('date_from')
+                    meas_station_data_model_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') if
+                                                    meas_station_data_model_from is None or meas_station_data_model_from ==
+                                                    DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
+                    meas_station_data_model_to = device_properties.get('date_to')
+                    # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
+                    # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
+                    if meas_station_data_model_to is not None:
+                        if pd.to_datetime(meas_station_data_model_to) >= df.index[-1]:
+                            meas_station_data_model_to = None
+                    # If [date_from, date_to) convention has not been used, we force this convention by setting
+                    # meas_station_data_model_to to the next_meas_station_data_model_from of the next
+                    # measurement_station property.
+                    if j < len(measurement_station_items) - 1:
+                        next_meas_station_data_model_from = measurement_station[j+1].get('date_from')
+                        if next_meas_station_data_model_from != meas_station_data_model_to:
+                            meas_station_data_model_to = next_meas_station_data_model_from
+                    
+                    if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+                        date_to_tmp = meas_station_data_model_to
                     else:
-                        apply_offset_to = min(date_to_tmp, meas_station_data_model_to)
-                    height = wdir_prop.get('height_m')
-
-                    df[name], applied_results = _apply_dir_offset_target_orientation(
-                        df[name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
-                        target_orientation_name='device orientation', heights=height, 
-                        target_orientation_table_name="Device Orientation [deg]"
+                        date_to_tmp = date_to
+                    
+                    date_range_overlaps = False
+                    if meas_station_data_model_to is None and date_to_tmp is None:
+                        date_range_overlaps = True
+                    elif meas_station_data_model_to is None:
+                        date_range_overlaps = date_to_tmp is None or date_to_tmp >= meas_station_data_model_from
+                    elif date_to_tmp is None:
+                        date_range_overlaps = date_from <= meas_station_data_model_to
+                    else:
+                        date_range_overlaps = (
+                            date_from <= meas_station_data_model_to and
+                            date_to_tmp >= meas_station_data_model_from
                         )
-                             
-                    rows.append(applied_results)
-        else:
-            wdir_not_in_dataset = True
-            col_not_in_data.append(name)
+
+                    if date_range_overlaps:
+                        device_orientation_deg = device_properties.get('device_orientation_deg')
+                        apply_offset_from = (date_from if date_from > meas_station_data_model_from 
+                                            else meas_station_data_model_from)
+                        if date_to_tmp is None or meas_station_data_model_to is None:
+                            apply_offset_to = date_to_tmp if date_to_tmp is not None else meas_station_data_model_to
+                        else:
+                            apply_offset_to = min(date_to_tmp, meas_station_data_model_to)
+                        height = wdir_prop.get('height_m')
+
+                        df[var_name], applied_results = _apply_dir_offset_target_orientation(
+                            df[var_name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
+                            target_orientation_name='device orientation', heights=height, 
+                            target_orientation_table_name="Device Orientation [deg]"
+                            )
+                                
+                        rows.append(applied_results)
+            else:
+                wdir_not_in_dataset = True
+                col_not_in_data.append(var_name)
     
     if wdir_not_in_dataset:
         indexes = np.unique(col_not_in_data, return_index=True)[1]
