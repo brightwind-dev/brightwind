@@ -2507,7 +2507,8 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
     # Calculate relative humidity
     rel_humidity_percent = 100*(_calc_water_saturation_vapour_pressure_Pa(dew_point_temperature_degC) /
                                 _calc_water_saturation_vapour_pressure_Pa(air_temperature_degC))
-    rel_humidity_percent.name = 'relative_humidity'
+    if isinstance(rel_humidity_percent, pd.Series):
+        rel_humidity_percent.name = 'relative_humidity'
     return rel_humidity_percent
 
 
