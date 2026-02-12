@@ -11,6 +11,7 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ---
 ## [2.5.0]
+12-Feb-2026
 
 ### New Features and Enhancements
 1. Updated `calc_air_density()` to incorporate additional methods. The methods differ in their approach to deriving water vapour pressure using `_calc_water_vapour_pressure_Pa()` and include the pre-existing 'IEC' method (default). The two new methods are based on the Herman Wobus approximation (`_calc_water_saturation_vapour_pressure_Pa()`) and require either relative humidity or dew point temperature as inputs. ([#539](https://github.com/brightwind-dev/brightwind/issues/539)).
@@ -25,6 +26,7 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ---
 ## [2.4.0]
+17-Dec-2025
 
 ### New Features and Enhancements
 1. Added `scale_air_pressure_to_height()` to output an air pressure value for any height based on reference air temperature and air pressure values at a different measurement height. ([#531](https://github.com/brightwind-dev/brightwind/issues/531))
@@ -53,8 +55,10 @@ Additional labels for pre-release and build metadata are available as extensions
 1. Fixed pandas<3.0.0 and numpy<2.3.1 dependencies, ([#458](https://github.com/brightwind-dev/brightwind/issues/458))
 2. Fixed pandas deprecating warnings that were linked to frequency strings, .groupby() and .map(). ([#407](https://github.com/brightwind-dev/brightwind/issues/407), [#415](https://github.com/brightwind-dev/brightwind/issues/415) and [#445](https://github.com/brightwind-dev/brightwind/issues/445))
 
-
+---
 ## [2.3.0]
+14-Apr-2025
+
 This update brings a comprehensive set of **bug fixes** and **enhancements** across the Brightwind library. 
 Key improvements include more reliable wind and solar data handling, expanded plotting capabilities (including 
 colormap support and better legends), and the introduction of new functions for downloading and applying cleaning rules 
