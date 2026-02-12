@@ -10,6 +10,19 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
 ---
+## [2.6.0-dev]
+XX-Xxx-2026
+
+### New Features and Enhancements
+1. 
+
+### Deprecated
+1. 
+
+### Bug Fixes
+1. 
+
+---
 ## [2.5.0]
 12-Feb-2026
 
@@ -23,6 +36,8 @@ Additional labels for pre-release and build metadata are available as extensions
 ### Bug Fixes
 1. Fixed two bugs on `apply_device_orientation_offset()` reported table and prints. ([#571](https://github.com/brightwind-dev/brightwind/issues/571))
 2. Fixed bug on `apply_wind_vane_deadband_offset()` reported table and prints. ([#569](https://github.com/brightwind-dev/brightwind/issues/569))
+
+---
 ## [2.4.0]
 
 ### New Features and Enhancements
