@@ -1279,10 +1279,11 @@ def apply_wind_vane_deadband_offset(
                                         relevant for.
     :type return_results_table:         pd.DataFrame
     :param apply_to_related_statistics: If True, apply the adjustment to related statistics (e.g. if Dir60mS is 
-                                        adjusted, also adjust Dir60mS_max and Dir60mS_min). If False, only apply the
-                                        adjustment to the specific wind direction properties. If True then the function 
-                                        expects the column name convention where the average has nothing appended, max
-                                        is appended with '_max' and min is appended with '_min'. 
+                                        adjusted, also adjust Dir60mS_max, Dir60mS_min and Dir60mS_gust).
+                                        If False, only apply the adjustment to the specific wind direction properties.
+                                        If True then the function expects the column name convention where the average
+                                        has nothing appended, max is appended with '_max', min is appended with '_min'
+                                        and gust is appended with '_gust'.
                                         If the column name convention is different, set this parameter to False and the 
                                         adjustment will only be applied to the specific wind direction properties or 
                                         rename your data columns. Defaults to False.
@@ -1328,8 +1329,8 @@ def apply_wind_vane_deadband_offset(
     # Depending on what is sent, get wdir properties into a list of properties
     wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
     if not wdirs_properties:
-        raise ValueError("No wind direction measurements found in the 'measurements' input. " \
-        "No deadband offset adjustments can be applied.")
+        raise ValueError("No wind direction measurements found in the 'measurements' input. "
+                         "No deadband offset adjustments can be applied.")
 
     # copy the data if needed
     data = data.copy(deep=True) if inplace is False else data
@@ -1370,7 +1371,6 @@ def apply_wind_vane_deadband_offset(
                 rows.append(applied_results)
             else:
                 col_not_in_data.append(var_name)
-
 
     if wdir_in_dataset is False:
         print('None of the wind direction measurements reported in the "measurements" input is found in the data. '
@@ -1452,7 +1452,7 @@ def _selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2,
 
     # if boom 1 'inflow' sector overlaps with 0/360
     if ((boom_dir1 + 180) % 360) >= (360 - (sector_width/2)) or ((boom_dir1 + 180) % 360) <= (sector_width/2):
-        # many nested if statments follow, all within one mapped lambda function
+        # many nested if statements follow, all within one mapped lambda function
         sel_avg = list(map(lambda spd1,spd2,Dir,inflowlow1,inflowhigh1,inflowlow2,inflowhigh2:
                            # if one value is Nan, use the other one
                            spd2 if (np.isnan(spd1)==True) else (spd1 if np.isnan(spd2)==True
@@ -1754,11 +1754,13 @@ def apply_device_orientation_offset(
                                                 logger orientation and offset applied for each relevant time period.
     :type return_results_table:                 bool, optional
     :param apply_to_related_statistics:         If True, apply the adjustment to related statistics (e.g. if Dir60mS is 
-                                                adjusted, also adjust Dir60mS_max and Dir60mS_min). If False, only apply
-                                                the adjustment to the specific wind direction properties. If True then 
-                                                the function expects the column name convention where the average has 
-                                                nothing appended, max is appended with '_max' and min is appended 
-                                                with '_min'. If the column name convention is different, set this 
+                                                adjusted, also adjust Dir60mS_max, Dir60mS_min and Dir60mS_gust).
+                                                If False, only apply the adjustment to the specific wind direction
+                                                properties.
+                                                If True then the function expects the column name convention where the
+                                                average has nothing appended, max is appended with '_max', min is
+                                                appended with '_min' and gust is appended with '_gust'.
+                                                If the column name convention is different, set this
                                                 parameter to False and the adjustment will only be applied to the 
                                                 specific wind direction properties or rename your data columns. 
                                                 Defaults to False.
@@ -1797,8 +1799,8 @@ def apply_device_orientation_offset(
     measurements = measurement_station.measurements
     wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
     if not wdirs_properties:
-        raise ValueError("No wind direction measurements found in the 'measurement_station' input. " \
-        "No device orientation offset adjustments can be applied.")
+        raise ValueError("No wind direction measurements found in the 'measurement_station' input. "
+                         "No device orientation offset adjustments can be applied.")
     
     measurement_station_items = list(measurement_station)
     # copy the data if needed
@@ -1847,8 +1849,8 @@ def apply_device_orientation_offset(
                                                     meas_station_data_model_from is None or meas_station_data_model_from ==
                                                     DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
                     meas_station_data_model_to = device_properties.get('date_to')
-                    # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
-                    # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
+                    # If the last logger properties date to has been explicitly set as the last timestamp of the
+                    # dataset, set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
                     if meas_station_data_model_to is not None:
                         if pd.to_datetime(meas_station_data_model_to) >= df.index[-1]:
                             meas_station_data_model_to = None
@@ -1880,8 +1882,8 @@ def apply_device_orientation_offset(
 
                     if date_range_overlaps:
                         device_orientation_deg = device_properties.get('device_orientation_deg')
-                        apply_offset_from = (date_from if date_from > meas_station_data_model_from 
-                                            else meas_station_data_model_from)
+                        apply_offset_from = (date_from if date_from > meas_station_data_model_from
+                                             else meas_station_data_model_from)
                         if date_to_tmp is None or meas_station_data_model_to is None:
                             apply_offset_to = date_to_tmp if date_to_tmp is not None else meas_station_data_model_to
                         else:
@@ -1903,14 +1905,14 @@ def apply_device_orientation_offset(
         indexes = np.unique(col_not_in_data, return_index=True)[1]
         col_not_in_data = [col_not_in_data[index] for index in sorted(indexes)]
         print_text = "Following wind direction measurement(s) reported in the 'measurement_station' input " \
-        "not found in the data"
+                     "not found in the data"
         if wdir_cols:
             print(print_text + ' for the requested `wdir_cols`: {}.'.format(utils.bold(str(col_not_in_data))))
         else:
             print(print_text + ': {}.'.format(utils.bold(str(col_not_in_data))))
     if col_not_in_datamodel:
-        print('No device orientation offset applied to following `wdir_cols` requested measurement(s) ' \
-        'as no wind direction measurement type found in `measurement_station` input for these: {}.'
+        print('No device orientation offset applied to following `wdir_cols` requested measurement(s) '
+              'as no wind direction measurement type found in `measurement_station` input for these: {}.'
               .format(utils.bold(str(col_not_in_datamodel))))
     # if a Series is sent, send back a Series
     if isinstance(data, pd.Series):
