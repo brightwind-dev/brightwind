@@ -1139,7 +1139,7 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False, apply_to_rela
             associated_statistics = [
                 "" if prop["statistic_type_id"] == "avg" else prop["statistic_type_id"]
                 for prop in wspd_prop["logger_measurement_config.column_name"]
-                if prop["statistic_type_id"] in ["avg", "max", "min"]
+                if prop["statistic_type_id"] in ["avg", "max", "min", "gust"]
             ]
         for stat in associated_statistics:
             # This assumed variable naming is based on what BrightHub uses
