@@ -1243,7 +1243,7 @@ def offset_wind_direction(wdir, offset: float):
 
 
 def apply_wind_vane_deadband_offset(
-        data, measurements, inplace=False, return_results_table=False, apply_to_related_statistics=True
+        data, measurements, inplace=False, return_results_table=False, apply_to_related_statistics=False
         ):
     """
     Automatically apply deadband offsets of the wind vanes to the timeseries data. The deadband orientation
@@ -1285,7 +1285,7 @@ def apply_wind_vane_deadband_offset(
                                         is appended with '_max' and min is appended with '_min'. 
                                         If the column name convention is different, set this parameter to False and the 
                                         adjustment will only be applied to the specific wind direction properties or 
-                                        rename your data columns. Defaults to True.                           
+                                        rename your data columns. Defaults to False.                           
     :type apply_to_related_statistics:  bool
     :return:                            Data with adjusted wind direction by the deadband orientation, or where 
                                         return_results_table is specified, a tuple of the data and a DataFrame of 
@@ -1709,7 +1709,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
 def apply_device_orientation_offset(
         data, measurement_station, wdir_cols=[], inplace=False, return_results_table=False, 
-        apply_to_related_statistics=True
+        apply_to_related_statistics=False
         ):
     """
     Applies a device orientation offset to wind direction data from remote sensing devices
@@ -1761,7 +1761,7 @@ def apply_device_orientation_offset(
                                                 with '_min'. If the column name convention is different, set this 
                                                 parameter to False and the adjustment will only be applied to the 
                                                 specific wind direction properties or rename your data columns. 
-                                                Defaults to True.                           
+                                                Defaults to False.                           
     :type apply_to_related_statistics:          bool
     :return:                                    Data with wind direction adjusted by the orientation offset.
     :rtype:                                     pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
