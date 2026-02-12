@@ -719,16 +719,16 @@ def test_calc_air_density():
                                       " provided.")
 
     # Check error is raised when dew_point_temperature_degC > temperature
-    with pytest.raises(ValueError) as except_info:
+    msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature "
+           "values.\n This implies that the relative humidity would be greater than 100%.")
+    with pytest.warns(UserWarning, match=msg):
         bw.calc_air_density(1, 935, dew_point_temperature_degC=5,
                             calc_method='HermanWobus_from_dew_point')
-    assert str(except_info.value) == ("dew_point_temperature_degC cannot be greater than temperature.")
 
-    with pytest.raises(ValueError) as except_info:
+    with pytest.warns(UserWarning, match=msg):
         bw.calc_air_density(DATA.T2m.tail(3), DATA.P2m.tail(3),
                             dew_point_temperature_degC=DATA.T2m.tail(3) + 5,
                             calc_method='HermanWobus_from_dew_point')
-    assert str(except_info.value) == ("dew_point_temperature_degC cannot be greater than temperature.")
 
     # Test Series inputs
     dew_point_temp = DATA.T2m - 0.5
@@ -756,21 +756,20 @@ def test_dist_matrix_by_direction_sector():
 
 def test_calc_rel_humidity_from_dew_point():
     # test error for dew point greater than temperature
-    with pytest.raises(ValueError) as except_info:
+    msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature "
+           "values.\n This will result in a calculated relative humidity value greater than 100%.")
+    with pytest.warns(UserWarning, match=msg):
         bw.calc_rel_humidity_from_dew_point(11, 10)
-    assert str(except_info.value) == "dew_point_temperature_degC cannot be greater than temperature."
-    with pytest.raises(ValueError) as except_info:
+    with pytest.warns(UserWarning, match=msg):
         bw.calc_rel_humidity_from_dew_point(dew_point_temperature_degC=DATA.T2m.tail(3)+[-1, 0, 1],
                                             air_temperature_degC=DATA.T2m.tail(3))
-    assert str(except_info.value) == "dew_point_temperature_degC cannot be greater than temperature."
-    with pytest.raises(ValueError) as except_info:
+    with pytest.warns(UserWarning, match=msg):
         bw.calc_rel_humidity_from_dew_point(dew_point_temperature_degC=20,
                                             air_temperature_degC=DATA.T2m.tail(3))
-    assert str(except_info.value) == "dew_point_temperature_degC cannot be greater than temperature."
-    with pytest.raises(ValueError) as except_info:
+    with pytest.warns(UserWarning, match=msg):
         bw.calc_rel_humidity_from_dew_point(dew_point_temperature_degC=DATA.T2m.tail(3),
                                             air_temperature_degC=0)
-    assert str(except_info.value) == "dew_point_temperature_degC cannot be greater than temperature."
+
     # test error for Series inputs with different lengths
     with pytest.raises(ValueError) as except_info:
         bw.calc_rel_humidity_from_dew_point(DATA.T2m.tail(5), DATA.T2m.tail(3))
