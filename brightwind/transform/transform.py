@@ -1242,7 +1242,9 @@ def offset_wind_direction(wdir, offset: float):
         return wdir.add(offset).apply(utils._range_0_to_360)
 
 
-def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_results_table=False):
+def apply_wind_vane_deadband_offset(
+        data, measurements, inplace=False, return_results_table=False, apply_to_related_statistics=False
+        ):
     """
     Automatically apply deadband offsets of the wind vanes to the timeseries data. The deadband orientation
     information for each wind direction measurement and time period is contained in the measurements
@@ -1261,23 +1263,35 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
 
     This function accounts for this adjustment.
 
-    :param data:                    Timeseries data.
-    :type data:                     pd.DataFrame or pd.Series
-    :param measurements:            Measurement information extracted from a WRA Data Model using bw.MeasurementStation
-    :type measurements:             list or dict or _Measurements
-    :param inplace:                 If 'inplace' is True, the original direction data, contained in 'data', will be
-                                    modified and replaced with the adjusted direction data. If 'inplace' is False, the
-                                    original data will not be touched and instead a new DataFrame containing the 
-                                    adjusted direction data is created. To store this adjusted direction data, please 
-                                    ensure it is assigned to a new variable.
-    :type inplace:                  bool
-    :param return_results_table:    Optional key to return a dataframe containing deadband offset, logger offset and
-                                    applied offset for each directional sensor and the time period it is relevant for.
-    :type return_results_table:     pd.DataFrame
-    :return:                        Data with adjusted wind direction by the deadband orientation, or where 
-                                    return_results_table is specified, a tuple of the data and a DataFrame of 
-                                    deadband offsets.
-    :rtype:                         pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
+    :param data:                        Timeseries data.
+    :type data:                         pd.DataFrame or pd.Series
+    :param measurements:                Measurement information extracted from a WRA Data Model using 
+                                        bw.MeasurementStation
+    :type measurements:                 list or dict or _Measurements
+    :param inplace:                     If 'inplace' is True, the original direction data, contained in 'data', will be
+                                        modified and replaced with the adjusted direction data. If 'inplace' is False, 
+                                        the original data will not be touched and instead a new DataFrame containing the 
+                                        adjusted direction data is created. To store this adjusted direction data, 
+                                        please ensure it is assigned to a new variable.
+    :type inplace:                      bool
+    :param return_results_table:        Optional key to return a dataframe containing deadband offset, logger offset 
+                                        and applied offset for each directional sensor and the time period it is 
+                                        relevant for.
+    :type return_results_table:         pd.DataFrame
+    :param apply_to_related_statistics: If True, apply the adjustment to related statistics (e.g. if Dir60mS is 
+                                        adjusted, also adjust Dir60mS_max, Dir60mS_min and Dir60mS_gust).
+                                        If False, only apply the adjustment to the specific wind direction properties.
+                                        If True then the function expects the column name convention where the average
+                                        has nothing appended, max is appended with '_max', min is appended with '_min'
+                                        and gust is appended with '_gust'.
+                                        If the column name convention is different, set this parameter to False and the 
+                                        adjustment will only be applied to the specific wind direction properties or 
+                                        rename your data columns. Defaults to False.
+    :type apply_to_related_statistics:  bool
+    :return:                            Data with adjusted wind direction by the deadband orientation, or where 
+                                        return_results_table is specified, a tuple of the data and a DataFrame of 
+                                        deadband offsets.
+    :rtype:                             pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
 
     **Example usage**
     ::
@@ -1315,8 +1329,8 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     # Depending on what is sent, get wdir properties into a list of properties
     wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
     if not wdirs_properties:
-        raise ValueError("No wind direction measurements found in the 'measurements' input. " \
-        "No deadband offset adjustments can be applied.")
+        raise ValueError("No wind direction measurements found in the 'measurements' input. "
+                         "No deadband offset adjustments can be applied.")
 
     # copy the data if needed
     data = data.copy(deep=True) if inplace is False else data
@@ -1328,27 +1342,35 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False, return_re
     col_not_in_data = []
     for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
-
-        if name in df.columns:
-            date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
-            deadband = wdir_prop.get('vane_dead_band_orientation_deg')
-            logger_offset = wdir_prop.get('logger_measurement_config.offset')
-            height = wdir_prop.get('height_m')
-            wdir_in_dataset = True
-            df[name], applied_results = _apply_dir_offset_target_orientation(
-                df[name], 
-                logger_offset, 
-                deadband, 
-                date_from, 
-                date_to, 
-                target_orientation_name='dead band orientation', 
-                heights=height, 
-                target_orientation_table_name="Vane Dead Band Orientation [deg]"
-                )
-            rows.append(applied_results)
+        if not apply_to_related_statistics:
+            associated_statistics = [name]
         else:
-            col_not_in_data.append(name)
-
+            # This assumed variable naming is based on what BrightHub uses
+            associated_statistics = [
+                name if prop["statistic_type_id"] == "avg" else f"{name}_{prop['statistic_type_id']}"
+                for prop in wdir_prop["logger_measurement_config.column_name"]
+                if prop["statistic_type_id"] in ["avg", "max", "min", "gust"]
+            ]
+        for var_name in associated_statistics:
+            if var_name in df.columns:
+                date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
+                deadband = wdir_prop.get('vane_dead_band_orientation_deg')
+                logger_offset = wdir_prop.get('logger_measurement_config.offset')
+                height = wdir_prop.get('height_m')
+                wdir_in_dataset = True
+                df[var_name], applied_results = _apply_dir_offset_target_orientation(
+                    df[var_name], 
+                    logger_offset, 
+                    deadband, 
+                    date_from, 
+                    date_to, 
+                    target_orientation_name='dead band orientation', 
+                    heights=height, 
+                    target_orientation_table_name="Vane Dead Band Orientation [deg]"
+                    )
+                rows.append(applied_results)
+            else:
+                col_not_in_data.append(var_name)
 
     if wdir_in_dataset is False:
         print('None of the wind direction measurements reported in the "measurements" input is found in the data. '
@@ -1430,7 +1452,7 @@ def _selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2,
 
     # if boom 1 'inflow' sector overlaps with 0/360
     if ((boom_dir1 + 180) % 360) >= (360 - (sector_width/2)) or ((boom_dir1 + 180) % 360) <= (sector_width/2):
-        # many nested if statments follow, all within one mapped lambda function
+        # many nested if statements follow, all within one mapped lambda function
         sel_avg = list(map(lambda spd1,spd2,Dir,inflowlow1,inflowhigh1,inflowlow2,inflowhigh2:
                            # if one value is Nan, use the other one
                            spd2 if (np.isnan(spd1)==True) else (spd1 if np.isnan(spd2)==True
@@ -1686,7 +1708,8 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
 
 def apply_device_orientation_offset(
-        data, measurement_station, wdir_cols=[], inplace=False, return_results_table=False
+        data, measurement_station, wdir_cols=[], inplace=False, return_results_table=False, 
+        apply_to_related_statistics=False
         ):
     """
     Applies a device orientation offset to wind direction data from remote sensing devices
@@ -1730,6 +1753,18 @@ def apply_device_orientation_offset(
     :param return_results_table:                If True, returns a DataFrame containing the device orientation, 
                                                 logger orientation and offset applied for each relevant time period.
     :type return_results_table:                 bool, optional
+    :param apply_to_related_statistics:         If True, apply the adjustment to related statistics (e.g. if Dir60mS is 
+                                                adjusted, also adjust Dir60mS_max, Dir60mS_min and Dir60mS_gust).
+                                                If False, only apply the adjustment to the specific wind direction
+                                                properties.
+                                                If True then the function expects the column name convention where the
+                                                average has nothing appended, max is appended with '_max', min is
+                                                appended with '_min' and gust is appended with '_gust'.
+                                                If the column name convention is different, set this
+                                                parameter to False and the adjustment will only be applied to the 
+                                                specific wind direction properties or rename your data columns. 
+                                                Defaults to False.
+    :type apply_to_related_statistics:          bool
     :return:                                    Data with wind direction adjusted by the orientation offset.
     :rtype:                                     pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
     
@@ -1764,8 +1799,8 @@ def apply_device_orientation_offset(
     measurements = measurement_station.measurements
     wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
     if not wdirs_properties:
-        raise ValueError("No wind direction measurements found in the 'measurement_station' input. " \
-        "No device orientation offset adjustments can be applied.")
+        raise ValueError("No wind direction measurements found in the 'measurement_station' input. "
+                         "No device orientation offset adjustments can be applied.")
     
     measurement_station_items = list(measurement_station)
     # copy the data if needed
@@ -1794,81 +1829,90 @@ def apply_device_orientation_offset(
     # Apply the offset
     for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
-
-        if name in df.columns:
-            date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
-            
-            logger_offset = wdir_prop.get('logger_measurement_config.offset')
-            for j, device_properties in enumerate(measurement_station):
-                meas_station_data_model_from = device_properties.get('date_from')
-                meas_station_data_model_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') if
-                                                meas_station_data_model_from is None or meas_station_data_model_from ==
-                                                DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
-                meas_station_data_model_to = device_properties.get('date_to')
-                # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
-                # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
-                if meas_station_data_model_to is not None:
-                    if pd.to_datetime(meas_station_data_model_to) >= df.index[-1]:
-                        meas_station_data_model_to = None
-                # If [date_from, date_to) convention has not been used, we force this convention by setting
-                # meas_station_data_model_to to the next_meas_station_data_model_from of the next
-                # measurement_station property.
-                if j < len(measurement_station_items) - 1:
-                    next_meas_station_data_model_from = measurement_station[j+1].get('date_from')
-                    if next_meas_station_data_model_from != meas_station_data_model_to:
-                        meas_station_data_model_to = next_meas_station_data_model_from
-                
-                if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
-                    date_to_tmp = meas_station_data_model_to
-                else:
-                    date_to_tmp = date_to
-                
-                date_range_overlaps = False
-                if meas_station_data_model_to is None and date_to_tmp is None:
-                    date_range_overlaps = True
-                elif meas_station_data_model_to is None:
-                    date_range_overlaps = date_to_tmp is None or date_to_tmp >= meas_station_data_model_from
-                elif date_to_tmp is None:
-                    date_range_overlaps = date_from <= meas_station_data_model_to
-                else:
-                    date_range_overlaps = (
-                        date_from <= meas_station_data_model_to and
-                        date_to_tmp >= meas_station_data_model_from
-                    )
-
-                if date_range_overlaps:
-                    device_orientation_deg = device_properties.get('device_orientation_deg')
-                    apply_offset_from = (date_from if date_from > meas_station_data_model_from 
-                                         else meas_station_data_model_from)
-                    if date_to_tmp is None or meas_station_data_model_to is None:
-                        apply_offset_to = date_to_tmp if date_to_tmp is not None else meas_station_data_model_to
-                    else:
-                        apply_offset_to = min(date_to_tmp, meas_station_data_model_to)
-                    height = wdir_prop.get('height_m')
-
-                    df[name], applied_results = _apply_dir_offset_target_orientation(
-                        df[name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
-                        target_orientation_name='device orientation', heights=height, 
-                        target_orientation_table_name="Device Orientation [deg]"
-                        )
-                             
-                    rows.append(applied_results)
+        if not apply_to_related_statistics:
+            associated_statistics = [name]
         else:
-            wdir_not_in_dataset = True
-            col_not_in_data.append(name)
+            # This assumed variable naming is based on what BrightHub uses
+            associated_statistics = [
+                name if prop["statistic_type_id"] == "avg" else f"{name}_{prop['statistic_type_id']}"
+                for prop in wdir_prop["logger_measurement_config.column_name"]
+                if prop["statistic_type_id"] in ["avg", "max", "min", "gust"]
+            ]
+        for var_name in associated_statistics:
+            if var_name in df.columns:
+                date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
+                
+                logger_offset = wdir_prop.get('logger_measurement_config.offset')
+                for j, device_properties in enumerate(measurement_station):
+                    meas_station_data_model_from = device_properties.get('date_from')
+                    meas_station_data_model_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') if
+                                                    meas_station_data_model_from is None or meas_station_data_model_from ==
+                                                    DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
+                    meas_station_data_model_to = device_properties.get('date_to')
+                    # If the last logger properties date to has been explicitly set as the last timestamp of the
+                    # dataset, set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
+                    if meas_station_data_model_to is not None:
+                        if pd.to_datetime(meas_station_data_model_to) >= df.index[-1]:
+                            meas_station_data_model_to = None
+                    # If [date_from, date_to) convention has not been used, we force this convention by setting
+                    # meas_station_data_model_to to the next_meas_station_data_model_from of the next
+                    # measurement_station property.
+                    if j < len(measurement_station_items) - 1:
+                        next_meas_station_data_model_from = measurement_station[j+1].get('date_from')
+                        if next_meas_station_data_model_from != meas_station_data_model_to:
+                            meas_station_data_model_to = next_meas_station_data_model_from
+                    
+                    if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+                        date_to_tmp = meas_station_data_model_to
+                    else:
+                        date_to_tmp = date_to
+                    
+                    date_range_overlaps = False
+                    if meas_station_data_model_to is None and date_to_tmp is None:
+                        date_range_overlaps = True
+                    elif meas_station_data_model_to is None:
+                        date_range_overlaps = date_to_tmp is None or date_to_tmp >= meas_station_data_model_from
+                    elif date_to_tmp is None:
+                        date_range_overlaps = date_from <= meas_station_data_model_to
+                    else:
+                        date_range_overlaps = (
+                            date_from <= meas_station_data_model_to and
+                            date_to_tmp >= meas_station_data_model_from
+                        )
+
+                    if date_range_overlaps:
+                        device_orientation_deg = device_properties.get('device_orientation_deg')
+                        apply_offset_from = (date_from if date_from > meas_station_data_model_from
+                                             else meas_station_data_model_from)
+                        if date_to_tmp is None or meas_station_data_model_to is None:
+                            apply_offset_to = date_to_tmp if date_to_tmp is not None else meas_station_data_model_to
+                        else:
+                            apply_offset_to = min(date_to_tmp, meas_station_data_model_to)
+                        height = wdir_prop.get('height_m')
+
+                        df[var_name], applied_results = _apply_dir_offset_target_orientation(
+                            df[var_name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
+                            target_orientation_name='device orientation', heights=height, 
+                            target_orientation_table_name="Device Orientation [deg]"
+                            )
+                                
+                        rows.append(applied_results)
+            else:
+                wdir_not_in_dataset = True
+                col_not_in_data.append(var_name)
     
     if wdir_not_in_dataset:
         indexes = np.unique(col_not_in_data, return_index=True)[1]
         col_not_in_data = [col_not_in_data[index] for index in sorted(indexes)]
         print_text = "Following wind direction measurement(s) reported in the 'measurement_station' input " \
-        "not found in the data"
+                     "not found in the data"
         if wdir_cols:
             print(print_text + ' for the requested `wdir_cols`: {}.'.format(utils.bold(str(col_not_in_data))))
         else:
             print(print_text + ': {}.'.format(utils.bold(str(col_not_in_data))))
     if col_not_in_datamodel:
-        print('No device orientation offset applied to following `wdir_cols` requested measurement(s) ' \
-        'as no wind direction measurement type found in `measurement_station` input for these: {}.'
+        print('No device orientation offset applied to following `wdir_cols` requested measurement(s) '
+              'as no wind direction measurement type found in `measurement_station` input for these: {}.'
               .format(utils.bold(str(col_not_in_datamodel))))
     # if a Series is sent, send back a Series
     if isinstance(data, pd.Series):
