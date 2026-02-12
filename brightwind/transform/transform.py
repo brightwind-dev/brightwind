@@ -1348,7 +1348,7 @@ def apply_wind_vane_deadband_offset(
             associated_statistics = [
                 name if prop["statistic_type_id"] == "avg" else f"{name}_{prop['statistic_type_id']}"
                 for prop in wdir_prop["logger_measurement_config.column_name"]
-                if prop["statistic_type_id"] in ["avg", "max", "min"]
+                if prop["statistic_type_id"] in ["avg", "max", "min", "gust"]
             ]
         for var_name in associated_statistics:
             if var_name in df.columns:
@@ -1834,7 +1834,7 @@ def apply_device_orientation_offset(
             associated_statistics = [
                 name if prop["statistic_type_id"] == "avg" else f"{name}_{prop['statistic_type_id']}"
                 for prop in wdir_prop["logger_measurement_config.column_name"]
-                if prop["statistic_type_id"] in ["avg", "max", "min"]
+                if prop["statistic_type_id"] in ["avg", "max", "min", "gust"]
             ]
         for var_name in associated_statistics:
             if var_name in df.columns:
