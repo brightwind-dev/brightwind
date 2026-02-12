@@ -206,7 +206,9 @@ def test_apply_wind_vane_dead_band_offset():
         'is_ignored': False,
         'notes': None,
         'update_at': '2021-02-24T17:04:41'}]
-    result_data = bw.apply_wind_vane_deadband_offset(data_edited, test_dict, inplace=False)
+    result_data = bw.apply_wind_vane_deadband_offset(
+        data_edited, test_dict, inplace=False, apply_to_related_statistics=True
+        )
 
     assert np.allclose(result_data['Dir78mS_max'].values[0], result_data['Dir78mS'].values[0] + 10 - 360)
 
