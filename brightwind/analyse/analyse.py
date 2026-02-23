@@ -37,6 +37,11 @@ __all__ = ['monthly_means',
            'calc_air_density',
            'calc_rel_humidity_from_dew_point']
 
+#  Specific gas constant for dry air (J/K/kg or m2/K/s2) from ISO:2533-1975 Standard Atmosphere
+GAS_CONST_DRY_AIR = 287.05 
+
+# Air density lapse rate (kg/m3/km) from WindFarmer Theory Manual Version 5.3, DNV GL (April 2014)
+AIR_DENSITY_LAPSE_RATE = -0.113
 
 def dist_matrix(var_series, x_series, y_series,
                 num_bins_x=None, num_bins_y=None,
@@ -2507,7 +2512,8 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
     # Calculate relative humidity
     rel_humidity_percent = 100*(_calc_water_saturation_vapour_pressure_Pa(dew_point_temperature_degC) /
                                 _calc_water_saturation_vapour_pressure_Pa(air_temperature_degC))
-    rel_humidity_percent.name = 'relative_humidity'
+    if isinstance(rel_humidity_percent, pd.Series):
+        rel_humidity_percent.name = 'relative_humidity'
     return rel_humidity_percent
 
 

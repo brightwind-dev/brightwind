@@ -184,6 +184,37 @@ def test_apply_wind_vane_dead_band_offset():
 
     assert (data1.fillna(0).round(10) ==
             data['Dir78mS'].fillna(0).round(10)).all()
+    
+    data_edited = copy.deepcopy(DATA)
+    data_edited['Dir78mS_max'] = data_edited['Dir78mS'] + 10
+
+    test_dict = STATION.measurements.wdirs
+    test_dict['Dir78mS'][0]['logger_measurement_config.offset'] = 300
+    test_dict['Dir78mS'][0]['logger_measurement_config.column_name'] = [{'column_name': 'Dir78mS',
+        'statistic_type_id': 'avg',
+        'is_ignored': False,
+        'notes': None,
+        'update_at': '2021-02-24T17:04:41'},
+        {'column_name': 'Dir78mSStd',
+        'statistic_type_id': 'sd',
+        'is_ignored': False,
+        'notes': None,
+        'update_at': '2021-02-24T17:04:41'},
+        {'column_name': 'Dir78mSMax',
+        'statistic_type_id': 'max',
+        'is_ignored': False,
+        'notes': None,
+        'update_at': '2021-02-24T17:04:41'},
+        {'column_name': 'Dir78mSMin',
+        'statistic_type_id': 'min',
+        'is_ignored': False,
+        'notes': None,
+        'update_at': '2021-02-24T17:04:41'}]
+    result_data = bw.apply_wind_vane_deadband_offset(
+        data_edited, test_dict, inplace=False, apply_to_related_statistics=True
+        )
+
+    assert np.allclose(result_data['Dir78mS_max'].values[0], result_data['Dir78mS'].values[0] + 10 - 360)
 
 
 def test_apply_wind_vane_dead_band_offset_table_returned():
@@ -196,6 +227,13 @@ def test_apply_wind_vane_dead_band_offset_table_returned():
                      'measurement_type_id': 'wind_direction', 'height_m': 78.0,
                     'logger_measurement_config.slope': 0.07263,
                     'logger_measurement_config.offset': 130.87,
+                    'logger_measurement_config.column_name': [
+                        {'column_name': 'Dir78mS',
+                         'statistic_type_id': 'avg',
+                         'is_ignored': False,
+                         'notes': None,
+                         'update_at': '2021-02-24T17:04:41'}
+                         ],
                     'date_from': '2025-02-20T00:10:00',
                     'date_to': None,
                     'vane_dead_band_orientation_deg': None}],
@@ -204,6 +242,13 @@ def test_apply_wind_vane_dead_band_offset_table_returned():
                 'height_m': 78.0,
                 'logger_measurement_config.slope': 0.07263,
                 'logger_measurement_config.offset': None,
+                'logger_measurement_config.column_name': [
+                    {'column_name': 'Dir78_test',
+                        'statistic_type_id': 'avg',
+                        'is_ignored': False,
+                        'notes': None,
+                        'update_at': '2021-02-24T17:04:41'}
+                        ],
                 'date_from': '2025-02-20T00:10:00',
                 'date_to': None,
                 'vane_dead_band_orientation_deg': None}],
@@ -212,6 +257,13 @@ def test_apply_wind_vane_dead_band_offset_table_returned():
             'height_m': 58.0,
             'logger_measurement_config.slope': 0.07262,
             'logger_measurement_config.offset': 127.75,
+            'logger_measurement_config.column_name': [
+                {'column_name': 'Dir58mS',
+                    'statistic_type_id': 'avg',
+                    'is_ignored': False,
+                    'notes': None,
+                    'update_at': '2021-02-24T17:04:41'}
+                    ],
             'date_from': '2025-02-20T00:10:00',
             'date_to': None,
             'vane_dead_band_orientation_deg': 127.75}],
@@ -220,6 +272,13 @@ def test_apply_wind_vane_dead_band_offset_table_returned():
             'height_m': 58.0,
             'logger_measurement_config.slope': 0.07262,
             'logger_measurement_config.offset': None,
+            'logger_measurement_config.column_name': [
+                {'column_name': 'Dir58_test',
+                    'statistic_type_id': 'avg',
+                    'is_ignored': False,
+                    'notes': None,
+                    'update_at': '2021-02-24T17:04:41'}
+                    ],
             'date_from': '2025-02-20T00:10:00',
             'date_to': None,
             'vane_dead_band_orientation_deg': 127.75}],
@@ -228,6 +287,13 @@ def test_apply_wind_vane_dead_band_offset_table_returned():
             'height_m': 38.0,
             'logger_measurement_config.slope': 22.5,
             'logger_measurement_config.offset': 36.72,
+            'logger_measurement_config.column_name': [
+                {'column_name': 'Dir38mS',
+                    'statistic_type_id': 'avg',
+                    'is_ignored': False,
+                    'notes': None,
+                    'update_at': '2021-02-24T17:04:41'}
+                    ],
             'date_from': '2025-02-20T00:10:00',
             'date_to': None,
             'vane_dead_band_orientation_deg': 2}]
@@ -279,6 +345,13 @@ def test_apply_wind_vane_dead_band_offset_table_returned():
          'measurement_type_id': 'wind_direction', 'height_m': 78.0,
          'logger_measurement_config.slope': 0.07263,
          'logger_measurement_config.offset': 132.87,
+         'logger_measurement_config.column_name': [
+            {'column_name': 'Dir78mS',
+                'statistic_type_id': 'avg',
+                'is_ignored': False,
+                'notes': None,
+                'update_at': '2021-02-24T17:04:41'}
+                ],
          'date_from': '2016-10-20T08:10:00',
          'date_to': None,
          'vane_dead_band_orientation_deg': 3}
