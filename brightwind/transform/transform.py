@@ -1139,8 +1139,19 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False, apply_to_rela
             associated_statistics = [
                 "" if prop["statistic_type_id"] == "avg" else prop["statistic_type_id"]
                 for prop in wspd_prop["logger_measurement_config.column_name"]
-                if prop["statistic_type_id"] in ["avg", "max", "min", "gust"]
+                if prop["statistic_type_id"] in ["avg", "max", "min", "gust", "sd", "median", "mode", "range"]
             ]
+            uncorrected_associated_statistics = [
+                prop["statistic_type_id"]
+                for prop in wspd_prop["logger_measurement_config.column_name"]
+                if prop["statistic_type_id"] in ["ti", "ti30sec", "sum"]
+            ]
+        for stat in uncorrected_associated_statistics:
+            # This assumed variable naming is based on what BrightHub uses
+            var_name = f"{name}_{stat}" if stat else name
+            if var_name in df.columns:
+                print(f"Found: {stat} in dataframe, this will not be corrected for slope and offset adjustments.")
+
         for stat in associated_statistics:
             # This assumed variable naming is based on what BrightHub uses
             var_name = f"{name}_{stat}" if stat else name
@@ -1169,15 +1180,28 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False, apply_to_rela
                 elif float(wspd_prop[variables['slope']]) != float(wspd_prop[variables['cal_slope']]) or \
                         float(wspd_prop[variables['offset']]) != float(wspd_prop[variables['cal_offset']]):
                     try:
-                        df.loc[date_from:date_to, var_name] = \
-                            adjust_slope_offset(df[var_name][date_from:date_to],
-                                                current_slope=float(wspd_prop[variables['slope']]),
-                                                current_offset=float(wspd_prop[variables['offset']]),
-                                                new_slope=float(wspd_prop[variables['cal_slope']]),
-                                                new_offset=float(wspd_prop[variables['cal_offset']]))
-                        print('{} has slope and offset adjustment applied from {} to {}.\n'
-                            .format(utils.bold(var_name), utils.bold(date_from),
-                                    utils.bold(date_to_txt)))
+                        if stat in ["sd", "range"]:
+                            df.loc[date_from:date_to, var_name] = adjust_slope_offset(
+                                df[var_name][date_from:date_to],
+                                current_slope=float(wspd_prop[variables['slope']]),
+                                current_offset=0,
+                                new_slope=float(wspd_prop[variables['cal_slope']]),
+                                new_offset=0
+                                )
+                            print('{} has slope adjustment applied from {} to {}.\n'
+                                .format(utils.bold(var_name), utils.bold(date_from),
+                                        utils.bold(date_to_txt)))
+                        else:    
+                            df.loc[date_from:date_to, var_name] = adjust_slope_offset(
+                                df[var_name][date_from:date_to],
+                                current_slope=float(wspd_prop[variables['slope']]),
+                                current_offset=float(wspd_prop[variables['offset']]),
+                                new_slope=float(wspd_prop[variables['cal_slope']]),
+                                new_offset=float(wspd_prop[variables['cal_offset']])
+                                )
+                            print('{} has slope and offset adjustment applied from {} to {}.\n'
+                                .format(utils.bold(var_name), utils.bold(date_from),
+                                        utils.bold(date_to_txt)))
                     except TypeError:
                         print('{} has TypeError with logger or calibration slope and offset values. Skipping.\n'
                             .format(utils.bold(var_name)))
