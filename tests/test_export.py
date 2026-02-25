@@ -20,6 +20,12 @@ def test_export_tab_file():
     assert True
 
 
+def test_export_tws_file():
+    bw.export_tws_file(10, 10, 80, DATA.Spd40mN, DATA.Dir38mS, file_name='export_tws_file.tws', folder_path=TEMP_FOLDER)
+    bw.export_tws_file(10, 10, 80, DATA[['Spd40mN']], DATA[['Dir38mS']], DATA[['Spd40mNStd']], file_name='export_tws_file_1.tws', folder_path=TEMP_FOLDER)
+    assert True
+
+
 def test_export_to_csv():
     bw.export_csv(DATA, file_name='export_to_csv', folder_path=TEMP_FOLDER)
 

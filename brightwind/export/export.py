@@ -4,7 +4,7 @@ import datetime
 import re
 import brightwind
 
-__all__ = ['export_tab_file', 'export_csv']
+__all__ = ['export_tab_file', 'export_csv', 'export_tws_file']
 
 
 def _calc_mean_speed_of_freq_tab(freq_tab):
@@ -103,6 +103,105 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, folder_path=Non
           '{1} m/s.\nLatitude: {2}N, Longitude: {3}E, Height: {4} m\n'
           ''.format(str(file_name), "{:.3f}".format(mean_wind_speed),
                     str(lat), str(long), str(height)))
+
+       
+def export_tws_file(eastings, northings, height, wspd_series, direction_series, wspd_std_series=None, site_name=None, file_name=None, folder_path=None):
+    """Export a WindSim timeseries tws file using a timeseries of wind speed and direction.
+
+    :param eastings:            Eastings of the measurement location in meters.
+    :type eastings:             float
+    :param northings:           Northings of the measurement location in meters.
+    :type northings:            float
+    :param height:              Height that the timeseries represents in meters.
+    :type height:               float
+    :param wspd_series:         Series of wind speed variable.
+    :type wspd_series:          pandas.Series
+    :param direction_series:    Series of wind directions between [0-360].
+    :type direction_series:     pandas.Series
+    :param wspd_std_series:     Series of wind speed standard deviations.
+    :type wspd_std_series:      pandas.Series
+    :param site_name:           The site name to include in the file, or use the default "brightwind_site",
+                                i.e 'Demo Data'.
+    :type site_name:            str
+    :param file_name:           The file name under which the tab file will be saved, or use the default,
+                                i.e '2019-06-07_brightwind_tws_export.tws'.
+    :type file_name:            str
+    :param folder_path:         The directory where the tab file will be saved, default is the working directory.
+    :type folder_path:          str
+    :return:                    Creates a WindSim timeseries tws file which can be used in the WindSim software.
+
+    **Example Usage**
+    ::
+        import brightwind as bw
+        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+
+        bw.export_tws_file(626100, 827971, 80, df.Spd80mN, df.Dir78mS, site_name='Demo Data', file_name='campbell_tws_file')"""
+        
+
+    # Optional inputs
+    site_name = 'brightwind_site' if site_name is None else site_name
+
+    file_name = str(datetime.datetime.now().strftime("%Y-%m-%d")) + '_brightwind_tws_export.tws' if file_name is None else file_name
+    
+    folder_path = os.getcwd() if folder_path is None else folder_path
+
+    file_name = file_name + '.tws' if file_name[-4:] != '.tws' else file_name
+
+    include_sd = True if wspd_std_series is not None else False
+    
+    # Setup
+    file_name_print = os.path.splitext(file_name)[0]
+    file_path = os.path.join(folder_path, file_name)
+
+    eastings, northings = int(round(eastings,0)), int(round(northings,0))
+    
+    local_wspd_series = brightwind.analyse.analyse._convert_df_to_series(wspd_series.copy())
+    local_direction_series = brightwind.analyse.analyse._convert_df_to_series(direction_series.copy())
+    if include_sd: local_wspd_sd_series = brightwind.analyse.analyse._convert_df_to_series(wspd_std_series.copy())
+    
+    # Get header info
+    current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    version = brightwind.__version__
+    
+    tws_string = f"{str(file_name_print)} created using brightwind version {version} at {current_timestamp}.\n"
+    
+    # Prepare timeseries output
+    tws_output = pd.concat([round(local_direction_series,4),round(local_wspd_series,4)],axis=1, keys=['dir:','speed:'])
+    if include_sd: 
+        tws_output['SDspeed:'] = round(local_wspd_sd_series,4)
+    
+    tws_output = tws_output.dropna()
+
+    tws_output['rec nr:'] = range(1, len(tws_output)+1)
+    start_id, end_id = tws_output.index[0].strftime('%B %y'), tws_output.index[-1].strftime('%B %y')
+    tws_output['year:'], tws_output['mon:'], tws_output['date:'] = tws_output.index.strftime('%Y'), tws_output.index.strftime('%m'), tws_output.index.strftime('%d')
+    tws_output['hour:'], tws_output['min:'] = tws_output.index.strftime('%H'), tws_output.index.strftime('%M')
+    tws_output.set_index('rec nr:', inplace=True)
+
+    if include_sd:
+        tws_output = tws_output[['year:','mon:','date:','hour:','min:','dir:','speed:', 'SDspeed:']]
+    else:
+        tws_output = tws_output[['year:','mon:','date:','hour:','min:','dir:','speed:']]
+    
+    tws_string += 'version            : 48\n'
+    tws_string += 'site name          : ' + site_name + '\n'
+    tws_string += 'measurement period : ' + start_id + ' - ' + end_id + '\n'
+    tws_string += 'site position      : ' + str(eastings) + '    ' + str(northings) + '\n'
+    tws_string += 'coordinate system  : 3\n'
+    tws_string += 'measurement height : ' + str(height) + '\n\n'
+    
+    if include_sd:
+        tws_string += 'rec nr: year: mon: date: hour: min: dir: speed: SDspeed:\n'
+    else:
+        tws_string += 'rec nr: year: mon: date: hour: min: dir: speed:\n'
+    
+    # Write to file
+    with open(str(file_path), "w") as file:
+        file.write(tws_string)
+        tws_output.to_csv(file, header=False, sep=" ", mode='a', lineterminator='\n')
+    
+    # Print success message
+    print(f'Export of tws file "{str(file_name)}" successful.\nEastings: {eastings}E, Northings: {northings}N, Height: {str(height)} m\n')
 
 
 def export_csv(data, file_name=None, folder_path=None, **kwargs):
