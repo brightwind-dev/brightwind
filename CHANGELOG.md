@@ -12,6 +12,7 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ## [2.X.0]
 1. Write new note here (Issue [#4xx](https://github.com/brightwind-dev/brightwind/issues/4xx)).
+2. Added `export_tws_file()` to export.py to allow export of wind timeseries climatology in WindSim .tws format. Issue [#305](https://github.com/brightwind-dev/brightwind/issues/305)).
 
 
 ## [2.2.1]
