@@ -1,0 +1,123 @@
+{
+  "author": "Brighthub",
+  "organisation": "Brightwind",
+  "date": "2025-03-19",
+  "version": "1.3.0-2024.03",
+  "measurement_location": [
+    {
+      "uuid": "7ce870fa-e7df-454e-82af-41ab8e1f1e9d",
+      "name": "test-sodar",
+      "latitude_ddeg": -1,
+      "longitude_ddeg": 50,
+      "measurement_station_type_id": "sodar",
+      "notes": "-",
+      "update_at": "2024-05-23T07:15:14",
+      "logger_main_config": [
+        {
+          "logger_serial_number": "Fulcrum3D",
+          "logger_model_name": "300M",
+          "logger_id": null,
+          "logger_oem_id": "Other",
+          "logger_name": "Fulcrum3D",
+          "logger_firmware_version": "1.1.1",
+          "date_from": "2020-11-24T00:10:00",
+          "date_to": "2020-11-27T23:50:00",
+          "encryption_pin_or_key": null,
+          "enclosure_lock_details": null,
+          "data_transfer_details": null,
+          "offset_from_utc_hrs": null,
+          "sampling_rate_sec": null,
+          "averaging_period_minutes": 10,
+          "timestamp_is_end_of_period": null,
+          "clock_is_auto_synced": null,
+          "logger_acquisition_uncertainty": null,
+          "uncertainty_k_factor": null,
+          "notes": null,
+          "update_at": "2024-05-23T06:29:23"
+        }
+      ],
+      "measurement_point": [
+        {
+          "name": "Spd_100m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 100,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-22T05:55:32",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 100,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2020-11-24T00:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-23T07:15:12",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Spd_100m",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-05-23T07:15:12"
+                },
+                {
+                  "column_name": "Spd_100m_sd",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-05-23T07:15:12"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd_200m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 200,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-22T06:32:43",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 200,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2020-11-24T00:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-23T07:15:12",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Spd_200m",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-05-23T07:15:12"
+                },
+                {
+                  "column_name": "Spd_200m_sd",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": "2024-05-23T07:15:12"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

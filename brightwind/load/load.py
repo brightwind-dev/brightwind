@@ -13,9 +13,11 @@ from io import StringIO
 import warnings
 from dateutil.parser import parse
 from brightwind.analyse import plot as bw_plt
+from brightwind.load import cleaning_rules_schema
 import time
 import concurrent
 import math
+import operator
 
 
 __all__ = ['load_csv',
@@ -26,7 +28,17 @@ __all__ = ['load_csv',
            'LoadBrightHub',
            'load_cleaning_file',
            'apply_cleaning',
+           'apply_cleaning_rules',
            'apply_cleaning_windographer']
+
+OPERATOR_DICT = {
+    1: operator.lt,
+    2: operator.le,
+    3: operator.gt,
+    4: operator.ge,
+    5: operator.eq,
+    6: operator.ne,
+    }
 
 
 def _list_files(folder_path, file_type):
@@ -76,7 +88,7 @@ def _assemble_df_from_folder(source_folder, file_type, function_to_get_df, print
     assembled_df = pd.DataFrame()
     for file_name in files_list:
         df = function_to_get_df(file_name, **kwargs)
-        assembled_df = assembled_df.append(df, verify_integrity=True)
+        assembled_df = pd.concat([assembled_df, df], verify_integrity=True)
         if print_progress:
             print("{0} file read and appended".format(file_name))
         ctr = ctr + 1
@@ -435,6 +447,12 @@ def _append_files_together(source_folder, assembled_file_name, file_type, append
 
 class LoadBrightdata:
     """
+    ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
+    REMOVED IN V3.0.
+
+    SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
+    CONTINUE ACCESSING REANALYSIS DATA. **
+
     LoadBrightdata allows you to pull meta data and timeseries data of reanalysis datasets from brightdata. This
     is a fast way to get access to the available reanalysis datasets.
 
@@ -485,6 +503,15 @@ class LoadBrightdata:
         :param query_params: dictionary of the query parameters to be sent
         :return: List(Node)
         """
+
+        warnings.warn(
+            "BrightDATA was deprecated in v2.4.0 and will be removed in v3.0.0. "
+            "Support for reanalysis data has moved to BrightHub. "
+            "Please use LoadBrightHub instead of LoadBrightdata to continue accessing reanalysis data.",
+            DeprecationWarning,
+            stacklevel=3
+        )
+
         username = utils.get_environment_variable('BRIGHTDATA_USERNAME')
         password = utils.get_environment_variable('BRIGHTDATA_PASSWORD')
 
@@ -536,6 +563,12 @@ class LoadBrightdata:
     @staticmethod
     def timeseries(dataset, lat, long, nearest=None, from_date=None, to_date=None, variables=None):
         """
+            ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
+            REMOVED IN V3.0.
+
+            SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
+            CONTINUE ACCESSING REANALYSIS DATA. **
+
             Retrieve timeseries datasets available from brightdata. Returns a list of Node objects in order
             of closest distance to the requested lat, long.
 
@@ -620,6 +653,12 @@ class LoadBrightdata:
     @staticmethod
     def monthly_means(dataset, lat, long, nearest=None, from_date=None, to_date=None, variables=None):
         """
+            ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
+            REMOVED IN V3.0.
+
+            SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
+            CONTINUE ACCESSING REANALYSIS DATA. **
+
             Retrieve monthly means from brightdata datasets such as merra2 and era5. Returns a list of Node objects
             in order of closest distance to the requested lat, long. Monthly coverage is also returned in the data.
 
@@ -701,6 +740,12 @@ class LoadBrightdata:
     @staticmethod
     def momm(dataset, lat, long, nearest=None, from_date=None, to_date=None, variables=None):
         """
+            ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
+            REMOVED IN V3.0.
+
+            SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
+            CONTINUE ACCESSING REANALYSIS DATA. **
+
             Retrieve the mean of monthly means from brightdata datasets such as merra2 and era5. Returns a list of
             Node objects in order of closest distance to the requested lat, long.
 
@@ -784,6 +829,12 @@ class LoadBrightdata:
     def monthly_norms(dataset, lat, long, nearest=None, from_date=None, to_date=None, ref_from_date=None,
                       ref_to_date=None, ref_no_years=None, variables=None):
         """
+        ** BRIGHTDATA IS NO LONGER SUPPORTED WITH NEW DATA. THIS FUNCTION WAS DEPRECIATED IN V2.4.0 AND WILL BE
+        REMOVED IN V3.0.
+
+        SUPPORT FOR REANALYSIS DATA HAS MOVED TO BRIGHTHUB. PLEASE USE LOADBRIGHTHUB INSTEAD OF LOADBRIGHTDATA TO
+        CONTINUE ACCESSING REANALYSIS DATA. **
+
         Return the monthly mean wind speeds normalised to a specific reference period. The reference period can be
         between two specific dates or it could be a number of rolling years preceding each month of interest.
 
@@ -891,7 +942,6 @@ class _BrighthubAuth:
     This class is used to define general functions that are then called by LoadBrightHub. Functions in this
     class are outside of LoadBrightHub and will be called only once during the analysis and this will avoid making
     multiple login to the Brighthub user pool.
-
     """
 
     # List possible errors encountered on Login
@@ -902,12 +952,61 @@ class _BrighthubAuth:
         "new_password_required": "Your password has expired or needs to be reset. "
                                  "Kindly reset your Brighthub password and try again.",
         "password_not_verified": "Could not verify your password. "
-                                 "Please ensure you have confirmed your email and the password is correct."
+                                 "Please ensure you have confirmed your email and the password is correct.",
+        "ms_sso_user": "Microsoft SSO users cannot authenticate using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD'. "
+                       "Please migrate to API key authentication."
     }
     ID_TOKEN = ''
     REFRESH_TOKEN = ''
     USERNAME = ''
     PASSWORD = ''
+    CLIENT_ID = ''
+    CLIENT_SECRET = ''
+
+    class BrighthubAuthError(Exception):
+        """Custom exception for Brighthub authentication failures."""
+        pass
+
+    @staticmethod
+    def _authenticate_with_client_credentials():
+        """
+        Authenticate a Brighthub user using the OAuth2 client credentials flow.
+
+        This method retrieves the Brighthub client ID and client secret from environmental
+        variables if not already assigned in the _BrighthubAuth class.
+
+        :rtype: str
+        :return: The JWT ID token for authenticated requests.
+        """
+
+        if not _BrighthubAuth.CLIENT_ID:
+            _BrighthubAuth.CLIENT_ID = utils.get_environment_variable('BRIGHTHUB_CLIENT_ID')
+
+        if not _BrighthubAuth.CLIENT_SECRET:
+            _BrighthubAuth.CLIENT_SECRET = utils.get_environment_variable('BRIGHTHUB_CLIENT_SECRET')
+
+        base_uri = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
+        auth_url = f"{base_uri}/auth/token"
+        try:
+            response = requests.post(
+                url=auth_url,
+                auth=requests.auth.HTTPBasicAuth(_BrighthubAuth.CLIENT_ID, _BrighthubAuth.CLIENT_SECRET),
+                data={"grant_type": "client_credentials"},
+                timeout=10
+            )
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            raise _BrighthubAuth.BrighthubAuthError(f"Network or connection error during authentication: {e}")
+
+        try:
+            token_data = response.json()
+        except ValueError:
+            raise _BrighthubAuth.BrighthubAuthError(f"Invalid JSON response from Brighthub: {response.text}")
+
+        if 'id_token' not in token_data:
+            raise _BrighthubAuth.BrighthubAuthError(f"Authentication failed, no id_token returned: {token_data}")
+
+        return token_data['id_token']
 
     @staticmethod
     def _get_cognito_request():
@@ -919,27 +1018,33 @@ class _BrighthubAuth:
             'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
             'Content-Type': 'application/x-amz-json-1.1'
         }
-        client_id = "3qkkpikve578cbok46p136au3g"
-        # client_id = utils.get_environment_variable('BRIGHTHUB_USER_POOL_CLIENT_ID')
+        client_id = os.getenv("BRIGHTHUB_USER_POOL_CLIENT_ID", "3qkkpikve578cbok46p136au3g")
 
         return url, headers, client_id
-
+    
     @staticmethod
-    def _get_id_token():
-        """
-        Function to login to the Brighthub user pool.
-        Assign a id_token and a refresh_token to the global variables ID_TOKEN, REFRESH_TOKEN which can be used to
-        make requests to the APIs.
-        In case of an error, a error message will be returned
+    def _authenticate_with_basic_auth():
+        """Authenticate a Brighthub user using username and password (USER_PASSWORD_AUTH flow) 
+        via Cognito and return the ID token and refresh token.
 
+        :rtype: tuple
+        :return: A tuple containing the JWT ID token and refresh token for authenticated requests.
         """
-        url, headers, client_id = _BrighthubAuth._get_cognito_request()
-
+        warnings.warn(
+            "Authentication using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD' is deprecated in v2.4.0 and "
+            "will be removed in v3.0.0. \nPlease migrate to API key authentication. "
+            "Create and manage API keys at: https://brighthub.io/account-settings/settings. "
+            "After generating a key, set the environment variables 'BRIGHTHUB_CLIENT_ID' and "
+            "'BRIGHTHUB_CLIENT_SECRET'.",
+            FutureWarning
+        )
         if not _BrighthubAuth.USERNAME:
             _BrighthubAuth.USERNAME = utils.get_environment_variable('BRIGHTHUB_EMAIL')
 
         if not _BrighthubAuth.PASSWORD:
             _BrighthubAuth.PASSWORD = utils.get_environment_variable('BRIGHTHUB_PASSWORD')
+
+        url, headers, client_id = _BrighthubAuth._get_cognito_request()
 
         body = {
             "AuthParameters": {
@@ -949,34 +1054,86 @@ class _BrighthubAuth:
             "AuthFlow": "USER_PASSWORD_AUTH",
             "ClientId": client_id
         }
-
         response = requests.post(url, headers=headers, json=body)
         login_response = response.json()
+        login_response_type = login_response.get("__type")
 
         # a login error occurred
-        if login_response.get("__type"):
-            if login_response["__type"] == "NotAuthorizedException":
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
-            elif login_response["__type"] == "UserNotConfirmedException":
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+        if login_response_type:
+            if login_response_type == "NotAuthorizedException":
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
+            elif login_response_type == "UserNotConfirmedException":
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+            elif 'This account is linked to Microsoft SSO' in login_response.get("message", ""):
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["ms_sso_user"])
             else:
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
 
         # challenge returned
         if login_response.get("ChallengeName"):
             if login_response["ChallengeName"] == "NEW_PASSWORD_REQUIRED":
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["new_password_required"])
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["new_password_required"])
             elif login_response["ChallengeName"] == "PASSWORD_VERIFIER":
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["password_verifier"])
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["password_verifier"])
             else:
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+                raise _BrighthubAuth.BrighthubAuthError(
+                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
 
         # login successful
         id_token = login_response['AuthenticationResult']['IdToken']
         refresh_token = login_response['AuthenticationResult']['RefreshToken']
+        return id_token, refresh_token
 
-        _BrighthubAuth.ID_TOKEN = id_token
-        _BrighthubAuth.REFRESH_TOKEN = refresh_token
+    @staticmethod
+    def _get_id_token():
+        """
+        Retrieve an ID token for authenticating BrightHub API requests.
+
+        This method attempts to authenticate using API client credentials if
+        `BRIGHTHUB_CLIENT_ID` and `BRIGHTHUB_CLIENT_SECRET` are available. If they
+        are not provided, it falls back to username/password authentication using
+        `BRIGHTHUB_EMAIL` and `BRIGHTHUB_PASSWORD`.
+
+        Username/password authentication is deprecated in v2.4.0 and will be removed in
+        v3.0.0. Users should migrate to API key–based authentication.
+
+        Upon success, this method stores the resulting ID token (and refresh token,
+        when applicable) in the class-level attributes `ID_TOKEN` and
+        `REFRESH_TOKEN`. In case of authentication failure, an appropriate
+        exception is raised by the underlying authentication method.
+
+        :rtype: dict
+        :return: An empty dictionary upon successful authentication.
+        """
+        if _BrighthubAuth.REFRESH_TOKEN:
+            try:
+                _BrighthubAuth._brighthub_refresh_token()
+                return {}
+            except Exception:
+                # If refresh fails, proceed to re-authenticate
+                pass
+
+        # Preferred authentication flow: client credentials (API key)
+        try:
+            _BrighthubAuth.ID_TOKEN = _BrighthubAuth._authenticate_with_client_credentials()
+            return {}
+        
+        except Exception as e:
+            if str(e) in [
+                f'BRIGHTHUB_CLIENT_ID environmental variable is not set.',
+                f'BRIGHTHUB_CLIENT_SECRET environmental variable is not set.'
+            ]:
+                # Fallback to basic auth if client credentials are not provided
+                # This method is depreciated in v2.4.0 and will be removed in v3.0.0
+                _BrighthubAuth.ID_TOKEN, _BrighthubAuth.REFRESH_TOKEN = _BrighthubAuth._authenticate_with_basic_auth()
+            else:
+                raise e
 
         return {}
 
@@ -985,17 +1142,22 @@ class _BrighthubAuth:
         """
         Function to generate a new token if the current id_token has expired. The new tokens are assigned to the global
         variables ID_TOKEN, REFRESH_TOKEN.
-        In case of an error, a error message will be returned
-
+        In case of an error, an error message will be returned.
         """
-        url, headers, client_id = _BrighthubAuth._get_cognito_request()
+        warnings.warn(
+            "Refresh token authentication is depreciated in v2.4.0 and will be removed in v3.0.0. "
+            "Please migrate to API key authentication.",
+            DeprecationWarning,
+            stacklevel=3
+        )
+        url, headers, cognito_client_id = _BrighthubAuth._get_cognito_request()
 
         body = {
             "AuthParameters": {
                 "REFRESH_TOKEN": _BrighthubAuth.REFRESH_TOKEN
             },
             "AuthFlow": "REFRESH_TOKEN_AUTH",
-            "ClientId": client_id
+            "ClientId": cognito_client_id
         }
         response = requests.post(url, headers=headers, json=body)
         login_response = response.json()
@@ -1003,17 +1165,16 @@ class _BrighthubAuth:
         # a login error occurred
         if login_response.get("__type"):
             if login_response["__type"] == "NotAuthorizedException":
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
+                raise ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
             elif login_response["__type"] == "UserNotConfirmedException":
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+                raise ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
             else:
-                return ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+                raise ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
 
         id_token = login_response['AuthenticationResult']['IdToken']
         _BrighthubAuth.ID_TOKEN = id_token
         new_refresh_token = ""
 
-        # refresh token only expires after 30 days, it is not returned in the response if it is still valid
         if login_response['AuthenticationResult'].get('RefreshToken'):
             new_refresh_token = login_response['AuthenticationResult']['RefreshToken']
 
@@ -1027,20 +1188,20 @@ class _BrighthubAuth:
 
 class LoadBrightHub:
     """
-    LoadBrightHub allows you to pull meta data and timeseries data of measurements from the BrightHub
+    LoadBrightHub allows you to pull metadata and timeseries data of measurements from the BrightHub
     platform. This is a fast way to get access to the available open datasets on the platform.
 
-    To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
+    To use LoadBrightHub:
+       1. Create a BrightHub account at https://brighthub.io/auth/create-account.
+       2. Create a new API key at https://brighthub.io/account-settings/settings.
+          and note your Client ID and Client Secret.
+       3. Set the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET as environmental variables.
+          In Windows this can be done by opening the command prompt in Administrator mode and running:
+             > setx BRIGHTHUB_CLIENT_ID "your API key client id")
+             > setx BRIGHTHUB_CLIENT_SECRET "your API key client secret")
 
-    For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
-    BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
-    done by opening the command prompt in Administrator mode and running:
-
-    > setx BRIGHTHUB_EMAIL "your email")
-    > setx BRIGHTHUB_PASSWORD "your password")
-
-    If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
-    take effect.
+          If Anaconda or your Python environment is running you will need to restart it for
+          the environmental variables to take effect.
 
     You can start by pulling all the available measurement stations available to you by running:
 
@@ -1048,8 +1209,7 @@ class LoadBrightHub:
 
     """
 
-    __BASE_URI = 'https://api.brighthub.io'
-    # __BASE_URI = utils.get_environment_variable('BRIGHTHUB_BASE_URI')
+    __BASE_URI = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
 
     @staticmethod
     def _brighthub_request(url_end, params=None):
@@ -1063,11 +1223,9 @@ class LoadBrightHub:
         :return response:   The requests response object returned by requests.get()
         :rtype:             requests.Response object
         """
-
+      
         if not _BrighthubAuth.ID_TOKEN:
-            login_response = _BrighthubAuth._get_id_token()
-            if "error" in login_response:
-                return ImportError(login_response)
+            _BrighthubAuth._get_id_token()
 
         url = "{}{}".format(LoadBrightHub.__BASE_URI, url_end)
         headers = {"authorization": _BrighthubAuth.ID_TOKEN}
@@ -1076,19 +1234,11 @@ class LoadBrightHub:
 
         # If there is an auth error due to expired token
         if response.status_code == 401 and response.json().get("message") == "The incoming token has expired":
-            # generate the token again
-            refresh_token_response = _BrighthubAuth._brighthub_refresh_token()
-
-            # if an error occurred
-            if refresh_token_response.get("error"):
-                return ImportError(refresh_token_response)
-            else:
-                # token refreshed successfully
-                headers = {"authorization": _BrighthubAuth.ID_TOKEN}
-
-                # make the request again
-                response = requests.get(url=url, headers=headers, params=params)
-                return response
+            # Authenticate again
+            _BrighthubAuth._get_id_token()
+            headers = {"authorization": _BrighthubAuth.ID_TOKEN}
+            # Make the request again
+            response = requests.get(url=url, headers=headers, params=params)
 
         return response
 
@@ -1104,17 +1254,17 @@ class LoadBrightHub:
         :return:           A table showing the available plants.
         :rtype:            pd.DataFrame
 
-        To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
+        To use LoadBrightHub:
+           1. Create a BrightHub account at https://brighthub.io/auth/create-account.
+           2. Create a new API key at https://brighthub.io/account-settings/settings.
+              and note your Client ID and Client Secret.
+           3. Set the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET as environmental variables.
+              In Windows this can be done by opening the command prompt in Administrator mode and running:
+                 > setx BRIGHTHUB_CLIENT_ID "your API key client id")
+                 > setx BRIGHTHUB_CLIENT_SECRET "your API key client secret")
 
-        For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
-        BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
-        done by opening the command prompt in Administrator mode and running:
-
-        > setx BRIGHTHUB_EMAIL "your email")
-        > setx BRIGHTHUB_PASSWORD "your password")
-
-        If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
-        take effect.
+              If Anaconda or your Python environment is running you will need to restart it for
+              the environmental variables to take effect.
 
         **Example usage**
         ::
@@ -1161,7 +1311,8 @@ class LoadBrightHub:
         return plants_df
 
     @staticmethod
-    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None):
+    def get_measurement_stations(plant_uuid=None, measurement_station_uuid=None, measurement_station_type=None,
+                                 return_df=True):
         """
         Get measurement stations available to you on BrightHub.
 
@@ -1170,20 +1321,26 @@ class LoadBrightHub:
         :param measurement_station_uuid: Filter for a specific measurement station by sending it's uuid. This
                                          preferences over plant_uuid.
         :type measurement_station_uuid:  str
+        :param measurement_station_type: The type of measurement station i.e. lidar, mast, sodar, etc. If None is set, 
+                                         all types will be returned. Default, None.
+        :type measurement_station_type:  str | List | None
+        :param return_df:                If True, returns the measurement stations as a pd.DataFrame. Otherwise a JSON
+                                         is returned. Default, True.
+        :type return_df:                 bool
         :return:                         A table showing the available measurement stations.
-        :rtype:                          pd.DataFrame
+        :rtype:                          pd.DataFrame | List[dict]
 
-        To use LoadBrightHub, first sign up on www.brighthub.io and note your email and password.
+        To use LoadBrightHub:
+           1. Create a BrightHub account at https://brighthub.io/auth/create-account.
+           2. Create a new API key at https://brighthub.io/account-settings/settings.
+              and note your Client ID and Client Secret.
+           3. Set the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET as environmental variables.
+              In Windows this can be done by opening the command prompt in Administrator mode and running:
+                 > setx BRIGHTHUB_CLIENT_ID "your API key client id")
+                 > setx BRIGHTHUB_CLIENT_SECRET "your API key client secret")
 
-        For security purposes LoadBrightHub uses stored environmental variables for your log in details. The
-        BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD environmental variables need to be set. In Windows this can be
-        done by opening the command prompt in Administrator mode and running:
-
-        > setx BRIGHTHUB_EMAIL "your email")
-        > setx BRIGHTHUB_PASSWORD "your password")
-
-        If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
-        take effect.
+              If Anaconda or your Python environment is running you will need to restart it for
+              the environmental variables to take effect.
 
         **Example usage**
         ::
@@ -1200,6 +1357,16 @@ class LoadBrightHub:
         To get a specific measurement station
         ::
             bw.LoadBrightHub.get_measurement_stations(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14')
+        
+        To get all available lidar measurement stations
+        ::
+            bw.LoadBrightHub.get_measurement_stations(measurement_station_type='lidar')
+        
+        To get a specific measurement station as a list of dictionaries instead of a DataFrame
+        ::
+            bw.LoadBrightHub.get_measurement_stations(
+                    measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14', return_df=False
+                    )
 
         """
         measurement_locations = None
@@ -1221,14 +1388,30 @@ class LoadBrightHub:
         meas_loc_json = measurement_locations.json()
         if 'Error' in meas_loc_json:    # catch if error comes back e.g. measurement_location_uuid isn't found
             raise ValueError(meas_loc_json['Error'])
-        meas_loc_df = pd.read_json(json.dumps(meas_loc_json))
-        required_cols = ['name', 'measurement_station_type_id',
-                         'latitude_ddeg', 'longitude_ddeg', 'plant_uuid', 'uuid', 'notes']
-        meas_loc_df = meas_loc_df[required_cols]
-        meas_loc_df.set_index(['name'], inplace=True)
-        meas_loc_df.sort_index(ascending=True, inplace=True)
-        meas_loc_df.rename(columns={'uuid': 'measurement_station_uuid',
-                                    'measurement_station_type_id': 'measurement_station_type'}, inplace=True)
+        
+        if measurement_station_type is not None:
+            if isinstance(measurement_station_type, str):
+                measurement_station_type = [measurement_station_type]
+            available_measurement_station_types = list(set([m['measurement_station_type_id'] for m in meas_loc_json]))
+            meas_loc_json = [m for m in meas_loc_json if m['measurement_station_type_id'] in measurement_station_type]
+            if len(meas_loc_json) == 0:
+                raise ValueError(
+                    f"No measurement stations found for the provided station types: {measurement_station_type}. "
+                    f"Available data types are: {available_measurement_station_types}."
+                    )
+
+        if return_df:
+            meas_loc_df = pd.read_json(StringIO(json.dumps(meas_loc_json)))
+            required_cols = ['name', 'measurement_station_type_id',
+                             'latitude_ddeg', 'longitude_ddeg', 'plant_uuid', 'uuid', 'notes']
+            meas_loc_df = meas_loc_df[required_cols]
+            meas_loc_df.set_index(['name'], inplace=True)
+            meas_loc_df.sort_index(ascending=True, inplace=True)
+            meas_loc_df.rename(columns={'uuid': 'measurement_station_uuid',
+                                        'measurement_station_type_id': 'measurement_station_type'}, inplace=True)
+        else:
+            meas_loc_df = meas_loc_json
+        
         return meas_loc_df
 
     @staticmethod
@@ -1450,7 +1633,53 @@ class LoadBrightHub:
             # Handle all request-related errors
             raise RuntimeError(f"An error occurred while fetching the cleaning log: {e}")
         return pd.read_csv(StringIO(cleaning_log_response.text))
-      
+
+    @staticmethod
+    def get_cleaning_rules(measurement_station_uuid):
+        """
+        Get the cleaning rules from BrightHub for a particular measurement station.
+
+        :param measurement_station_uuid: A specific measurement station's uuid.
+        :type measurement_station_uuid:  str
+        :return:                         The cleaning rules for the measurement station.
+        :rtype:                          list(dict)
+
+        **Example usage**
+        ::
+            import brightwind as bw
+
+        To get the cleaning rules for a specific measurement station
+        ::
+            measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14'
+            cleaning_rules_json = bw.LoadBrightHub.get_cleaning_rules(measurement_station_uuid)
+
+        Applying the cleaning rules to the timeseries data.
+        ::
+            # First get the timeseries data.
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid)
+
+            # Apply the cleaning rules to the data resulting in a dataset that is ready to work with.
+            data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_json)
+
+        """
+        response = LoadBrightHub._brighthub_request(
+            url_end="/measurement-locations/{}/cleaning-rules".format(measurement_station_uuid))
+        response_json = response.json()
+
+        # error handling
+        if response.status_code == 400 and 'details' in response_json:  # request parameters invalid or missing
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 403 and 'details' in response_json:  # insufficient permissions or download limit
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 404 and 'details' in response_json:  # requested resource not found
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        if response.status_code == 500 and 'details' in response_json:  # unexpected server error
+            raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
+        elif 'error' in response_json:
+            raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
+
+        return response_json
+
     @staticmethod
     def __get_reanalysis_nodes(reanalysis_name, min_latitude_ddeg, max_latitude_ddeg,
                                min_longitude_ddeg, max_longitude_ddeg):
@@ -2192,8 +2421,8 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
         import brightwind as bw
 
     Load data:
-        data = bw.load_csv(r'C:\\Users\\Stephen\\Documents\\Analysis\\demo_data')
-        cleaning_file = r'C:\\Users\\Stephen\\Documents\\Analysis\\demo_cleaning_file.csv'
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        cleaning_file = bw.demo_datasets.demo_cleaning_file
 
     To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
         data_cleaned = bw.apply_cleaning(data, cleaning_file)
@@ -2232,10 +2461,158 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
         else:
             for col in data.columns:
                 if col.find(cleaning_df[sensor_col_name][k]) == 0:
-                    data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
+                    data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
     return data
+
+
+def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, comparison_operator_id, replacement_value, 
+                         date_from, date_to):
+    """Apply cleaning rule based on a single column to replace values on a list of columns
+
+    :param df:                      Data to be cleaned.       
+    :type df:                       pandas.DataFrame
+    :param condition_col:           Column that the cleaning rule is based on
+    :type condition_col:            str
+    :param target_cols:             Column to apply the cleaning rule to clean the data of
+    :type target_cols:              List[str]
+    :param comparator_value:        Threshold value to use in the cleaning rule, defined by 
+                                    the cleaning_rule_json format.
+    :type comparator_value:         float
+    :param comparison_operator_id:  Operator code (1-6) defined by the cleaning_rule_json format, to be used with
+                                    variable operator_dict to define the operator used on the condition column.
+                                    Code number corresponds to the following operators:
+                                        1: is less than (<),
+                                        2: is less than or equal (≤),
+                                        3: is greater than (>),
+                                        4: is greater than or equal (≥),
+                                        5: equals (=),
+                                        6: not equals (≠)
+    :type comparison_operator_id:   int
+    :param replacement_value:       Value or string to replace the data in the target_cols with
+    :type replacement_value:        str | np.nan
+    :param dates_from:              List of datetimes that the cleaning rule should be applied from for each column. 
+    :type dates_from:               str
+    :param dates_to:                List of datetimes that the cleaning rule should be applied until for each column. If
+                                    None is present the data is cleaned until the end of the file.
+    :type dates_to:                 str| None
+    :return:                        Cleaned data
+    :rtype:                         pandas.DataFrame
+    """
+
+    result_df = df
+    op = OPERATOR_DICT[comparison_operator_id]
+    mask = op(df[condition_col], comparator_value)
+    if date_to:
+        date_filter = (df.index >= date_from) & (df.index < date_to)
+    else:
+        date_filter = (df.index >= date_from)
+
+    for col in target_cols:
+        mask_date_range = mask & date_filter
+        result_df.loc[mask_date_range, col] = replacement_value
+    
+    return result_df
+
+
+def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, replacement_text='NaN'):
+    """
+    Apply cleaning to a timeseries DataFrame using cleaning rules either from file or from an input list(dict).
+    The flagged data will be replaced with replacement_text values which then do not appear in any plots or affect 
+    calculations.
+
+    The format of the cleaning rules JSON should validate against the 'cleaning_rule.schema.json' file found
+    in the 'load' area of this library.
+
+    :param data:                        Data to be cleaned.
+    :type data:                         pandas.DataFrame
+    :param cleaning_rules_file_or_list: File path of the json file or a list dictionary which contains the cleaning
+                                        rules to apply.
+    :type cleaning_rules_file_or_list:  str | List[dict]
+    :param inplace:                     If 'inplace' is True, the original data, 'data', will be modified and replaced
+                                        with the cleaned data. If 'inplace' is False, the original data will not be
+                                        touched and instead a new object containing the cleaned data is created.
+                                        To store this cleaned data, please ensure it is assigned to a new variable.
+    :type inplace:                      bool
+    :param replacement_text:            Text used to replace the flagged data.
+    :type replacement_text:             str | np.nan, default 'NaN'
+    :return:                            DataFrame with the flagged data removed.
+    :rtype:                             pandas.DataFrame
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        # Load data:
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        cleaning_rules_file_or_list = bw.demo_datasets.demo_cleaning_rules_file
+
+        print("Before")
+        display(bw.plot_timeseries(data[['Spd80mN', 'Spd60mN']],
+                                   date_from='2016-03-01', date_to='2016-03-15'))
+
+        # To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
+        data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_file_or_list)
+
+        print("After")
+        display(bw.plot_timeseries(data_cleaned[['Spd80mN', 'Spd60mN']],
+                                   date_from='2016-03-01', date_to='2016-03-15'))
+
+    ::
+        # To modify 'data' and replace it with the cleaned data:
+        bw.apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=True)
+        bw.plot_timeseries(data_cleaned[['Spd80mN', 'Spd60mN']],
+                           date_from='2016-03-01', date_to='2016-03-15'))
+
+    ::
+        # To view the cleaning rule schema file:
+        with open(bw.load.load.cleaning_rules_schema) as file:
+            schema = json.load(file)
+        schema
+
+    """
+
+    if inplace is False:
+        data = data.copy(deep=True)
+
+    if isinstance(cleaning_rules_file_or_list, str):
+        if utils.is_file_extension(cleaning_rules_file_or_list, ".json"):
+            with open(cleaning_rules_file_or_list) as file:
+                cleaning_json = json.load(file)
+    elif isinstance(cleaning_rules_file_or_list, list):
+        if not all(isinstance(item, dict) for item in cleaning_rules_file_or_list):
+            raise TypeError("All elements in the `cleaning_rules_file_or_list` must be dictionaries.")
+        cleaning_json = cleaning_rules_file_or_list
+    else:
+        raise TypeError("Can't recognise the cleaning_rules_file_or_list. Please make sure it is a file path "
+                        "or a list(dict).")
+
+    validation_errors = False
+    for cleaning_rule in cleaning_json:
+        if not utils.validate_json(cleaning_rule, cleaning_rules_schema):
+            validation_errors = True
+    if validation_errors:
+        raise ValueError("There is a problem with the validity of the supplied JSON please check the errors above")
+
+    if replacement_text == 'NaN':
+        replacement_text = np.nan
+    
+    for cleaning_rule in cleaning_json:
+        columns_to_clean = [column_name['assembled_column_name'] for column_name in cleaning_rule['rule']['clean_out']]
+        date_from = cleaning_rule['rule'].get('date_from', data.index[0])
+        date_to = cleaning_rule['rule'].get('date_to', None)
+        columns_to_clean = [column_name for column_to_clean in columns_to_clean for column_name in data.columns 
+                            if column_to_clean in column_name]
+
+        condition_column_name = cleaning_rule['rule']['conditions']['assembled_column_name']
+        comparator_value = cleaning_rule['rule']['conditions']['comparator_value']
+        comparison_operator_id = cleaning_rule['rule']['conditions']['comparison_operator_id']
+
+        data = _apply_cleaning_rule(data, condition_column_name, columns_to_clean, comparator_value,
+                                    comparison_operator_id, replacement_text, date_from, date_to)
+    if inplace is False:
+        return data
 
 
 def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags_to_exclude=['Synthesized'],
@@ -2274,8 +2651,8 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
         import brightwind as bw
 
     Load data:
-        data = bw.load_csv(r'C:\\Users\\Stephen\\Documents\\Analysis\\demo_data')
-        windog_cleaning_file = r'C:\\some\\folder\\windog_cleaning_file.txt'
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        windog_cleaning_file = bw.demo_datasets.demo_windographer_flagging_log
 
     To apply cleaning to 'data' and store the cleaned data in 'data_cleaned':
         data_cleaned = bw.apply_cleaning_windographer(data, windog_cleaning_file)
@@ -2313,7 +2690,7 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
         for col in data.columns:
             if col.find(cleaning_df[sensor_col_name][k]) == 0:
                 if cleaning_df[flag_col_name][k] not in flags_to_exclude:
-                    data[col][(data.index >= date_from) & (data.index < date_to)] = replacement_text
+                    data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
     return data

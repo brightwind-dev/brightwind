@@ -1,12 +1,16 @@
-import datetime
-import numpy as np
+import copy  
+import datetime  
+import warnings  
+from typing import Union  
+
+import numpy as np  
 import pandas as pd
+
+import brightwind.transform.scale
 from brightwind.utils import utils
 from brightwind.load.station import _Measurements
 from brightwind.load.station import DATE_INSTEAD_OF_NONE
 from brightwind.utils.utils import validate_coverage_threshold
-import copy
-import warnings
 
 __all__ = ['average_data_by_period',
            'merge_datasets_by_period',
@@ -17,7 +21,14 @@ __all__ = ['average_data_by_period',
            'offset_wind_direction',
            'selective_avg',
            'offset_timestamps',
-           'apply_wspd_slope_offset_adj']
+           'apply_wspd_slope_offset_adj',
+           'apply_device_orientation_offset']
+
+_warned_a = False  # warning for pandas 'A' frequency string so only shows once
+_warned_as = False  # warning for pandas 'AS' frequency string so only shows once
+_warned_h = False  # warning for pandas 'H' frequency string so only shows once
+_warned_t = False  # warning for pandas 'T' frequency string so only shows once
+_warned_s = False  # warning for pandas 'S' frequency string so only shows once
 
 
 def _compute_wind_vector(wspd, wdir):
@@ -25,6 +36,120 @@ def _compute_wind_vector(wspd, wdir):
     Returns north and east component of wind-vector
     """
     return wspd*np.cos(wdir), wspd*np.sin(wdir)
+
+
+def dataframe_map(df, func, **kwargs):
+    """
+    Apply a function element-wise to a DataFrame.
+    
+    Compatibility wrapper for DataFrame.map() (pandas >=2.1) and 
+    DataFrame.applymap() (pandas <2.1).
+
+    :param df:              DataFrame to apply function to
+    :type df:               pd.DataFrame
+    :param func:            Function to apply element-wise
+    :type func:             Callable
+    :return:                Transformed DataFrame
+    :rtype:                 pd.DataFrame
+    """
+    if hasattr(df, 'map'):
+        # pandas >= 2.1
+        return df.map(func, **kwargs)
+    else:
+        # pandas < 2.1
+        warnings.warn(
+            "Support for pandas versions <2.1 is ending in a future brightwind version.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return df.applymap(func, **kwargs)
+
+
+def _normalize_freq_string(period):
+    """
+    Convert a deprecated pandas frequency string to its modern equivalent.
+
+    Pandas frequency strings are available here:
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
+
+    :param period: Frequency string that may or may not be deprecated
+    :type period:  str
+    :return:       Frequency string in it's modern equivalent form where necessary.
+    :rtype:        str
+    """
+    global _warned_a, _warned_as, _warned_h, _warned_t, _warned_s
+    pandas_version = tuple(map(int, pd.__version__.split('.')[:2]))
+    
+    # Handle deprecated 'A' -> 'Y' (but 'YS' is preferred for year-start)
+    if period.endswith('A') and not period.endswith('BA'):
+        if not _warned_a:
+            warnings.warn(
+                "'A' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_a = True
+        if pandas_version < (2, 2):
+            return period[:-1] + 'YS'
+    
+    # Handle deprecated 'AS' -> 'YS'
+    if period.endswith('AS'):
+        if not _warned_as:
+            warnings.warn(
+                "'AS' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'YS' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_as = True
+        if pandas_version < (2, 2):
+            return period[:-2] + 'YS'
+    
+    # Handle deprecated 'H' -> 'h'
+    if period.endswith('H'):
+        if not _warned_h:
+            warnings.warn(
+                "'H' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'h' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_h = True
+        if pandas_version < (2, 2):
+            return period[:-1] + 'h'
+    
+    # Handle deprecated 'T' -> 'min'
+    if period.endswith('T'):
+        if not _warned_t:
+            warnings.warn(
+                "'T' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'min' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_t = True
+        if pandas_version < (2, 2):
+            return period[:-1] + 'min'
+    
+    # Handle deprecated 'S' -> 's' (but not 'MS', 'YS', 'AS', etc.)
+    if period.endswith('S') and not any(period.endswith(x) for x in ['MS', 'YS', 'AS', 'NS']):
+        if not _warned_s:
+            warnings.warn(
+                "'S' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 's' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_s = True
+        if pandas_version < (2, 2):
+            return period[:-1] + 's'
+    
+    return period
 
 
 def _freq_str_to_dateoffset(period):
@@ -39,38 +164,96 @@ def _freq_str_to_dateoffset(period):
     :return:       A pd.DateOffset
     :rtype:        pd.DateOffset
     """
+    global _warned_a
+    global _warned_as
+    global _warned_h
+    global _warned_t
+    global _warned_s
+
     if period[-1] == 'M':
         as_dateoffset = pd.DateOffset(months=int(period[:-1]))
     elif period[-2:] == 'MS':
         as_dateoffset = pd.DateOffset(months=int(period[:-2]))
     elif period[-1] == 'A':
+        if not _warned_a:
+            warnings.warn(
+                "'A' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_a = True
         as_dateoffset = pd.DateOffset(years=float(period[:-1]))
     elif period[-2:] == 'AS':
+        if not _warned_as:
+            warnings.warn(
+                "'AS' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'YS' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_as = True
+        as_dateoffset = pd.DateOffset(years=float(period[:-2]))
+    elif period[-2:] == 'YS':
         as_dateoffset = pd.DateOffset(years=float(period[:-2]))
     elif period[-1:] == 'W':
         as_dateoffset = pd.DateOffset(weeks=float(period[:-1]))
     elif period[-1:] == 'D':
         as_dateoffset = pd.DateOffset(days=float(period[:-1]))
     elif period[-1:] == 'H':
+        if not _warned_h:
+            warnings.warn(
+                "'H' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'h' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_h = True
+        as_dateoffset = pd.DateOffset(hours=float(period[:-1]))
+    elif period[-1:] == 'h':
         as_dateoffset = pd.DateOffset(hours=float(period[:-1]))
     elif period[-1:] == 'T':
+        if not _warned_t:
+            warnings.warn(
+                "'T' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 'min' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_t = True
         as_dateoffset = pd.DateOffset(minutes=float(period[:-1]))
     elif period[-3:] == 'min':
         as_dateoffset = pd.DateOffset(minutes=float(period[:-3]))
     elif period[-1:] == 'S':
+        if not _warned_s:
+            warnings.warn(
+                "'S' frequency string is deprecated by Pandas v2.2.0 and will be removed in a future "
+                "brightwind version. "
+                "Please use 's' instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            _warned_s = True
+        as_dateoffset = pd.DateOffset(seconds=float(period[:-1]))
+    elif period[-1:] == 's':
         as_dateoffset = pd.DateOffset(seconds=float(period[:-1]))
     else:
-        raise ValueError('"{}" period not recognized. Only units "M", "MS", "A", "AS", "W", "D", "H", "T", "min", "S" '
+        raise ValueError('"{}" period not recognized. Only units "M", "MS", "YS", "W", "D", "h", "min", "s" '
                          'are recognized'.format(period))
+
+
     return as_dateoffset
 
 
 def _convert_days_to_hours(prd):
-    return str(int(prd[:-1])*24)+'H'
+    return str(int(prd[:-1])*24)+'h'
 
 
 def _convert_weeks_to_hours(prd):
-    return str(int(prd[:-1])*24*7)+'H'
+    return str(int(prd[:-1])*24*7)+'h'
 
 
 def _get_min_overlap_timestamp(df1_timestamps, df2_timestamps):
@@ -169,7 +352,7 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
 
     :param timestamp: Timestamp to round down from.
     :type timestamp:  pd.Timestamp
-    :param period:    Averaging period e.g. '10min', '1H', '3H', '6H', '1D', '7D', '1W', '1MS', '1AS'
+    :param period:    Averaging period e.g. '10min', '1h', '3h', '6h', '1D', '7D', '1W', '1MS', '1YS'
     :type period:     str
     :return:          Timestamp to represent the start of an averaging period which covers the timestamp.
     :rtype:           str
@@ -183,12 +366,13 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
     if 1M, 1MS it should go to start of month
     if 1A, 1AS it should go to start of year
     """
+    period = _normalize_freq_string(period)
     if period[-3:] == 'min':
         return '{year}-{month}-{day} {hour}:{minute}:00'.format(year=timestamp.year, month=timestamp.month,
                                                                 day=timestamp.day, hour=timestamp.hour,
                                                                 minute=_round_down_to_multiple(timestamp.minute,
                                                                                                int(period[:-3])))
-    elif period[-1] == 'H':
+    elif period[-1] == 'h' or period[-1] == 'H':
         return '{year}-{month}-{day} {hour}:00:00'.format(year=timestamp.year, month=timestamp.month, day=timestamp.day,
                                                           hour=_round_down_to_multiple(timestamp.hour,
                                                                                        int(period[:-1])))
@@ -197,7 +381,7 @@ def _round_timestamp_down_to_averaging_prd(timestamp, period):
                                              hour=timestamp.hour)
     elif period[-1] == 'M' or period[-2:] == 'MS':
         return '{year}-{month}'.format(year=timestamp.year, month=timestamp.month)
-    elif period[-2:] == 'AS' or period[-1:] == 'A':
+    elif period[-2:] == 'YS' or period[-1:] == 'A' or period[-2:] == 'AS':
         return '{year}'.format(year=timestamp.year)
     else:
         print("Warning: Averaging period not identified returning default timestamps")
@@ -239,18 +423,18 @@ def _get_overlapping_data(df1, df2, averaging_prd=None):
     # averaging will start from this timestamp.
     if not (df2.index == start).any():
         if type(df2) == pd.DataFrame:
-            df2 = pd.concat([df2, pd.DataFrame({cols: [np.NaN] for cols in df2.columns},
+            df2 = pd.concat([df2, pd.DataFrame({cols: [np.nan] for cols in df2.columns},
                                                index=[pd.to_datetime(start)])])
         else:
-            df2[pd.to_datetime(start)] = np.NaN
+            df2[pd.to_datetime(start)] = np.nan
         df2.sort_index(inplace=True)
     if not (df1.index == start).any():
-        # df1.loc[pd.to_datetime(start)] = np.NaN
+        # df1.loc[pd.to_datetime(start)] = np.nan
         if type(df1) == pd.DataFrame:
-            df1 = pd.concat([df1, pd.DataFrame({cols: [np.NaN] for cols in df1.columns},
+            df1 = pd.concat([df1, pd.DataFrame({cols: [np.nan] for cols in df1.columns},
                                                index=[pd.to_datetime(start)])])
         else:
-            df1[pd.to_datetime(start)] = np.NaN
+            df1[pd.to_datetime(start)] = np.nan
         df1.sort_index(inplace=True)
     return df1[start:], df2[start:]
 
@@ -332,11 +516,11 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
     :param period:             Groups data by the period specified here. The following formats are supported
 
             - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
-            - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
+            - Set period to '1h' for hourly average, '3h' for three hourly average and so on for '4h', '6h' etc.
             - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
-            - Set period to '1A' for annual average with the timestamp at the start of the year.
+            - Set period to '1YS' for annual average with the timestamp at the start of the year.
 
     :type period:              str
     :param wdir_column_names:  List of wind direction column names. These columns, if the aggregation_method is mean,
@@ -371,7 +555,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
         data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # To find hourly averages
-        data_hourly = bw.average_data_by_period(data.Spd80mN, period='1H')
+        data_hourly = bw.average_data_by_period(data.Spd80mN, period='1h')
 
         # To find monthly averages
         data_monthly = bw.average_data_by_period(data.Spd80mN, period='1M')
@@ -392,6 +576,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
 
     """
     coverage_threshold = validate_coverage_threshold(coverage_threshold)
+    period = _normalize_freq_string(period)
 
     if isinstance(period, str):
         if period[-1] == 'D':
@@ -403,7 +588,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
         if period[-1] == 'A':
             period = period+'S'
         if period[-1] == 'Y':
-            raise TypeError("Please use '1AS' for annual frequency at the start of the year.")
+            raise TypeError("Please use '1YS' for annual frequency at the start of the year.")
     
     # Check that the data resolution is not less than the period specified
     if data_resolution is None:
@@ -411,8 +596,7 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
             raise ValueError("The time period specified is less than the temporal resolution of the data. "
                              "For example, hourly data should not be averaged to 10 minute data.")
     data = data.sort_index()
-    grouper_obj = data.resample(period, axis=0, closed='left', label='left',
-                                convention='start', kind='timestamp')
+    grouper_obj = data.resample(period, closed='left', label='left')
 
     # if period is equal to data resolution then no need to vector average wind direction
     is_period_not_equal_to_resolution = (_freq_str_to_dateoffset(period) != _get_data_resolution(data.index))
@@ -537,7 +721,7 @@ def _vector_avg_of_wdirs_dataframe(wdirs, wspds=None):
     # means there is no wind direction => return NaN
     nan_mask = (avg_dir_df['sine'] == 0) & (avg_dir_df['cosine'] == 0)
     avg_dir_df['avg_dir'] = np.rad2deg(np.arctan2(sine, cosine)) % 360
-    avg_dir_df['avg_dir'][nan_mask] = np.NaN
+    avg_dir_df.loc[nan_mask,'avg_dir'] = np.nan
     return avg_dir_df['avg_dir']
 
 
@@ -581,7 +765,7 @@ def _vector_avg_of_wdirs_list(wdirs, wspds=None):
         wspds = a[1]
     # if the resulting wdir array is empty, return NAN
     if wdirs.size == 0:
-        return np.NaN
+        return np.nan
 
     if wspds is None:
         sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5))  # sin of each angle, East component
@@ -593,7 +777,7 @@ def _vector_avg_of_wdirs_list(wdirs, wspds=None):
     # If both sine and cosine result in zero then all the directions cancel and you end up where you started which
     # means there is no wind direction => return NaN
     if sine == 0 and cosine == 0:
-        avg_dir = np.NaN
+        avg_dir = np.nan
     else:
         avg_dir = np.rad2deg(np.arctan2(sine, cosine)) % 360
         if avg_dir == 360.0:  # preference to have 0 returned instead of 360
@@ -700,11 +884,11 @@ def merge_datasets_by_period(data_1, data_2, period,
     :param period: Groups data by the time period specified here. The following formats are supported
 
             - Set period to '10min' for 10 minute average, '30min' for 30 minute average.
-            - Set period to '1H' for hourly average, '3H' for three hourly average and so on for '4H', '6H' etc.
+            - Set period to '1h' for hourly average, '3h' for three hourly average and so on for '4h', '6h' etc.
             - Set period to '1D' for a daily average, '3D' for three day average, similarly '5D', '7D', '15D' etc.
             - Set period to '1W' for a weekly average, '3W' for three week average, similarly '2W', '4W' etc.
             - Set period to '1M' for monthly average with the timestamp at the start of the month.
-            - Set period to '1A' for annual average with the timestamp at the start of the year.
+            - Set period to '1YS' for annual average with the timestamp at the start of the year.
 
     :type period:                str
     :param wdir_column_names_1:  List of wind direction column names. These columns, if the aggregation_method is mean,
@@ -993,17 +1177,53 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False):
     return df
 
 
-def scale_wind_speed(spd, scale_factor: float):
+def scale_wind_speed(spd: Union[pd.Series, pd.DataFrame, float, int],
+                     scale_factor: Union[int, float]
+                     ) -> Union[pd.Series, pd.DataFrame, float, int]:
     """
     Scales wind speed by the scale_factor
 
-    :param spd: Series or data frame or a single value of wind speed to scale
-    :param scale_factor: Scaling factor in decimal, if scaling factor is 0.8 output would be (1+0.8) times wind speed,
-    if it is -0.8 the output would be (1-0.8) times the wind speed
-    :return: Series or data frame with scaled wind speeds
+    :param spd:             Wind speed value(s) to scale.
+    :type spd:              pandas.Series or pandas.DataFrame or float or int
+    :param scale_factor:    Scaling factor to use for scaling wind speed.
+                            If scaling factor is 0.8, output would be 0.8 times wind speed.
+    :type scale_factor:     int or float
+    :return:                Value(s) of scaled wind speed. Output type depends on type(spd).
+    :rtype:                 pandas.Series or pandas.DataFrame or float or int
 
+        **Example usage**
+    ::
+    import brightwind as bw
+    import pandas as pd
+    import numpy as np
+
+    data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+
+    # scale float by scale_factor of 0.5
+    bw.scale_wind_speed(3, 0.5)
+    # 1.5
+
+    # scale np.array by scale_factor of 0.5
+    bw.scale_wind_speed(np.array([0, 1, 2]), 0.5)
+    # array([0. , 0.5, 1. ])
+
+    # scale pd.Series by scale_factor of 0.5
+    bw.scale_wind_speed(data['Spd40mN'].tail(3), 0.5)
+    # Timestamp
+    # 2017-11-23 10:30:00    4.0150
+    # 2017-11-23 10:40:00    3.4055
+    # 2017-11-23 10:50:00    2.9325
+    # Name: Spd40mN, dtype: float64
+
+    # scale pd.DataFrame by scale factor of 2
+    bw.scale_wind_speed(data.tail(3)[['Spd60mS', 'Spd40mS']], 2)
+    # 	          Spd60mS	    Spd40mS
+    # Timestamp		
+    # 2017-11-23 10:30:00	16.900	15.750
+    # 2017-11-23 10:40:00	14.318	13.336
+    # 2017-11-23 10:50:00	12.808	11.498
     """
-    return spd * scale_factor
+    return brightwind.transform.scale.apply_scale_factor(spd, scale_factor)
 
 
 def offset_wind_direction(wdir, offset: float):
@@ -1017,12 +1237,14 @@ def offset_wind_direction(wdir, offset: float):
     if isinstance(wdir, float) or isinstance(wdir, int):
         return utils._range_0_to_360(wdir + offset)
     elif isinstance(wdir, pd.DataFrame):
-        return wdir.add(offset).applymap(utils._range_0_to_360)
+        return dataframe_map(wdir.add(offset), utils._range_0_to_360)
     elif isinstance(wdir, pd.Series):
         return wdir.add(offset).apply(utils._range_0_to_360)
 
 
-def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
+def apply_wind_vane_deadband_offset(
+        data, measurements, inplace=False, return_results_table=False, apply_to_related_statistics=False
+        ):
     """
     Automatically apply deadband offsets of the wind vanes to the timeseries data. The deadband orientation
     information for each wind direction measurement and time period is contained in the measurements
@@ -1041,18 +1263,35 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
 
     This function accounts for this adjustment.
 
-    :param data:         Timeseries data.
-    :type data:          pd.DataFrame or pd.Series
-    :param measurements: Measurement information extracted from a WRA Data Model using bw.MeasurementStation
-    :type measurements:  list or dict or _Measurements
-    :param inplace:      If 'inplace' is True, the original direction data, contained in 'data', will be
-                         modified and replaced with the adjusted direction data. If 'inplace' is False, the
-                         original data will not be touched and instead a new DataFrame containing the adjusted
-                         direction data is created. To store this adjusted direction data, please ensure it is
-                         assigned to a new variable.
-    :type inplace:       bool
-    :return:             Data with adjusted wind direction by the deadband orientation.
-    :rtype:              pd.DataFrame or pd.Series
+    :param data:                        Timeseries data.
+    :type data:                         pd.DataFrame or pd.Series
+    :param measurements:                Measurement information extracted from a WRA Data Model using 
+                                        bw.MeasurementStation
+    :type measurements:                 list or dict or _Measurements
+    :param inplace:                     If 'inplace' is True, the original direction data, contained in 'data', will be
+                                        modified and replaced with the adjusted direction data. If 'inplace' is False, 
+                                        the original data will not be touched and instead a new DataFrame containing the 
+                                        adjusted direction data is created. To store this adjusted direction data, 
+                                        please ensure it is assigned to a new variable.
+    :type inplace:                      bool
+    :param return_results_table:        Optional key to return a dataframe containing deadband offset, logger offset 
+                                        and applied offset for each directional sensor and the time period it is 
+                                        relevant for.
+    :type return_results_table:         pd.DataFrame
+    :param apply_to_related_statistics: If True, apply the adjustment to related statistics (e.g. if Dir60mS is 
+                                        adjusted, also adjust Dir60mS_max, Dir60mS_min and Dir60mS_gust).
+                                        If False, only apply the adjustment to the specific wind direction properties.
+                                        If True then the function expects the column name convention where the average
+                                        has nothing appended, max is appended with '_max', min is appended with '_min'
+                                        and gust is appended with '_gust'.
+                                        If the column name convention is different, set this parameter to False and the 
+                                        adjustment will only be applied to the specific wind direction properties or 
+                                        rename your data columns. Defaults to False.
+    :type apply_to_related_statistics:  bool
+    :return:                            Data with adjusted wind direction by the deadband orientation, or where 
+                                        return_results_table is specified, a tuple of the data and a DataFrame of 
+                                        deadband offsets.
+    :rtype:                             pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
 
     **Example usage**
     ::
@@ -1080,11 +1319,18 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
         bw.apply_wind_vane_deadband_offset(data['Dir78mS'], mm1.measurements['Dir78mS'], inplace=True)
         print('\nWind vane deadband offset adjustment is completed.')
 
+    Specifying that the deadband offsets should be returned::
+        data_adj, results_table = bw.apply_wind_vane_deadband_offset(
+            data['Dir78mS'], mm1.measurements['Dir78mS'], inplace=True, return_results_table=True
+            )
+        results_table
+
     """
     # Depending on what is sent, get wdir properties into a list of properties
     wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
     if not wdirs_properties:
-        raise ValueError('No wind direction measurements found.')
+        raise ValueError("No wind direction measurements found in the 'measurements' input. "
+                         "No deadband offset adjustments can be applied.")
 
     # copy the data if needed
     data = data.copy(deep=True) if inplace is False else data
@@ -1092,49 +1338,108 @@ def apply_wind_vane_deadband_offset(data, measurements, inplace=False):
     df = pd.DataFrame(data) if type(data) == pd.Series else data
 
     # Apply the offset
-    for wdir_prop in wdirs_properties:
+    rows = []
+    col_not_in_data = []
+    for i, wdir_prop in enumerate(wdirs_properties):
         name = wdir_prop['name']
-        if name in df.columns:
-            wdir_in_dataset = True
-            date_to = wdir_prop.get('date_to')
-            if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
-                date_to_txt = 'the end of dataset'
-            else:
-                date_to_txt = date_to
-
-            deadband = wdir_prop.get('vane_dead_band_orientation_deg')
-            date_from = wdir_prop['date_from']
-            # Account for a logger offset
-            logger_offset = wdir_prop.get('logger_measurement_config.offset')
-            offset = deadband
-            additional_comment_txt = 'to account for deadband'
-            if logger_offset is not None and logger_offset != 0 and deadband is not None:
-                offset = offset_wind_direction(float(deadband), offset=-float(logger_offset))
-                additional_comment_txt = additional_comment_txt + ' and logger offset'
-
-            if offset:
-                df[name][date_from:date_to] = \
-                    offset_wind_direction(df[name][date_from:date_to],
-                                          float(offset))
-                print('{0} adjusted by {1} degrees from {2} to {3} {4}.\n'
-                      .format(utils.bold(name), utils.bold(str(offset)),
-                              utils.bold(date_from), utils.bold(date_to_txt), additional_comment_txt))
-            elif offset == 0:
-                print('{} has an offset to be applied of 0 from {} to {} {}.\n'
-                      .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt),
-                              additional_comment_txt))
-            else:
-                print('{} has dead_band_orientation of None from {} to {}.\n'
-                      .format(utils.bold(name), utils.bold(date_from), utils.bold(date_to_txt)))
+        if not apply_to_related_statistics:
+            associated_statistics = [name]
         else:
-            print('{} is not found in data.\n'.format(utils.bold(name)))
+            # This assumed variable naming is based on what BrightHub uses
+            associated_statistics = [
+                name if prop["statistic_type_id"] == "avg" else f"{name}_{prop['statistic_type_id']}"
+                for prop in wdir_prop["logger_measurement_config.column_name"]
+                if prop["statistic_type_id"] in ["avg", "max", "min", "gust"]
+            ]
+        for var_name in associated_statistics:
+            if var_name in df.columns:
+                date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
+                deadband = wdir_prop.get('vane_dead_band_orientation_deg')
+                logger_offset = wdir_prop.get('logger_measurement_config.offset')
+                height = wdir_prop.get('height_m')
+                wdir_in_dataset = True
+                df[var_name], applied_results = _apply_dir_offset_target_orientation(
+                    df[var_name], 
+                    logger_offset, 
+                    deadband, 
+                    date_from, 
+                    date_to, 
+                    target_orientation_name='dead band orientation', 
+                    heights=height, 
+                    target_orientation_table_name="Vane Dead Band Orientation [deg]"
+                    )
+                rows.append(applied_results)
+            else:
+                col_not_in_data.append(var_name)
 
     if wdir_in_dataset is False:
-        print('No wind direction measurement type found in the data.\n')
+        print('None of the wind direction measurements reported in the "measurements" input is found in the data. '
+              'No deadband offset adjustments can be applied.\n')
+    if col_not_in_data and wdir_in_dataset:
+        print(
+            f"Following wind direction measurement(s) reported in the 'measurements' input not found in the data: "
+            f"{utils.bold(str(col_not_in_data))}."
+            )
     # if a Series is sent, send back a Series
-    if type(data) == pd.Series:
+    if isinstance(data, pd.Series):
         df = df[df.columns[0]]
+    if return_results_table:
+        if rows:
+            return df, _aggregate_consecutive_periods(
+                rows, target_orientation_table_name="Vane Dead Band Orientation [deg]"
+                )
+        else:
+            return df, None
     return df
+
+
+def _aggregate_consecutive_periods(offset_applied_tables, target_orientation_table_name):
+    """
+    Function creates a dataframe from list of tables containing offset applied for each measurement. For each table 
+    neighbouring rows are agreegated into one row if they are consecutive periods that contain the same information 
+    for the following columns: "Name", "Height [m], "Logger Offset", "Offset Applied [deg]" 
+    and target_orientation_table_name.
+
+    The list of offset_applied_tables can be created using _apply_dir_offset_target_orientation function.
+
+    :param offset_applied_tables:           List of tables containing offset applied for each measurement.
+    :type offset_applied_tables:            List[pd.DataFrame]
+    :param target_orientation_table_name:   Name of the column on tables representing the target orientation
+                                            e.g. "Vane Dead Band Orientation [deg]".
+    :type target_orientation_table_name:    str
+    :return:                                DataFrame of offset applied for each measurement, with consecutive periods 
+                                            merged when appropriate.
+    :rtype:                                 pd.DataFrame
+    """
+    results_df = pd.concat(offset_applied_tables).sort_values(
+        by=["Height [m]", "Date From"], ascending=[False, True]
+    )
+    results_df['consecutive_group'] = (
+        (results_df['Name'] != results_df['Name'].shift()) |
+        (results_df['Height [m]'] != results_df['Height [m]'].shift()) |
+        (results_df[target_orientation_table_name] != results_df[target_orientation_table_name].shift()) |
+        (results_df['Logger Offset'] != results_df['Logger Offset'].shift()) |
+        (results_df['Offset Applied [deg]'] != results_df['Offset Applied [deg]'].shift())
+    ).cumsum()
+    
+    # Group and aggregate consecutive periods
+    results_table = results_df.groupby([
+        'Name',
+        'consecutive_group',
+        'Height [m]',
+        target_orientation_table_name,
+        'Logger Offset',
+        'Offset Applied [deg]'
+    ], dropna=False).agg({
+        'Date From': 'first',
+        'Date To': lambda x: None if any(d is None for d in x) else max(x)
+    }).reset_index(drop=False).drop(columns=['consecutive_group']).sort_values(
+        by=["Height [m]", "Date From", "Name"], ascending=[False, True, True]
+        ).set_index("Name")
+    results_table = results_table.fillna({
+        'Offset Applied [deg]': 0
+        })
+    return results_table
 
 
 def _selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2,
@@ -1147,7 +1452,7 @@ def _selective_avg(wspd1, wspd2, wdir, boom_dir1, boom_dir2,
 
     # if boom 1 'inflow' sector overlaps with 0/360
     if ((boom_dir1 + 180) % 360) >= (360 - (sector_width/2)) or ((boom_dir1 + 180) % 360) <= (sector_width/2):
-        # many nested if statments follow, all within one mapped lambda function
+        # many nested if statements follow, all within one mapped lambda function
         sel_avg = list(map(lambda spd1,spd2,Dir,inflowlow1,inflowhigh1,inflowlow2,inflowhigh2:
                            # if one value is Nan, use the other one
                            spd2 if (np.isnan(spd1)==True) else (spd1 if np.isnan(spd2)==True
@@ -1277,14 +1582,14 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
                         - Set offset to 10min to add 10 minutes to each timestamp, -10min to subtract 10 minutes and so
                           on for 4min, 20min, etc.
-                        - Set offset to 1H to add 1 hour to each timestamp and -1H to subtract and so on for 5H, 6H,
+                        - Set offset to 1h to add 1 hour to each timestamp and -1h to subtract and so on for 5h, 6h,
                           etc.
                         - Set offset to 1D to add a day and -1D to subtract and so on for 5D, 7D, 15D, etc.
                         - Set offset to 1W to add a week and -1W to subtract from each timestamp and so on for 2W,
                           4W, etc.
                         - Set offset to 1M to add a month and -1M to subtract a month from each timestamp and so on
                           for 2M, 3M, etc.
-                        - Set offset to 1Y to add an year and -1Y to subtract an year from each timestamp and so on
+                        - Set offset to 1Y to add an year and -1Y to subtract a year from each timestamp and so on
                           for 2Y, 3Y, etc.
 
     :type offset:       str
@@ -1312,7 +1617,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
         data = bw.load_csv(bw.demo_datasets.demo_data)
 
         # To decrease 10 minutes within a given date range and overwrite the original data
-        op1 = bw.offset_timestamps(data, offset='1H', date_from='2016-02-01 00:20:00',
+        op1 = bw.offset_timestamps(data, offset='1h', date_from='2016-02-01 00:20:00',
             date_to='2016-02-01 01:40:00', overwrite=True)
 
         # To decrease 10 minutes within a given date range not overwriting the original data
@@ -1329,14 +1634,14 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
         op4 = bw.offset_timestamps(data.index, offset='-10min', date_from='2016-02-01 00:20:00',
             date_to='2016-02-01 01:40:00')
 
-        # Can also except decimal values for offset, like 3.5H for 3 hours and 30 minutes
-        op5 = bw.offset_timestamps(data.index, offset='3.5H', date_from='2016-02-01 00:20:00',
+        # Can also except decimal values for offset, like 3.5h for 3 hours and 30 minutes
+        op5 = bw.offset_timestamps(data.index, offset='3.5h', date_from='2016-02-01 00:20:00',
             date_to='2016-02-01 01:40:00')
 
         # Can accept also Timestamp and datetime objects
-        bw.offset_timestamps(data.index[0], offset='4H')
-        bw.offset_timestamps(datetime.datetime(2016, 2, 1, 0, 20), offset='3.5H')
-        bw.offset_timestamps(datetime.date(2016, 2, 1), offset='-5H')
+        bw.offset_timestamps(data.index[0], offset='4h')
+        bw.offset_timestamps(datetime.datetime(2016, 2, 1, 0, 20), offset='3.5h')
+        bw.offset_timestamps(datetime.date(2016, 2, 1), offset='-5h')
         bw.offset_timestamps(datetime.time(0, 20), offset='30min')
 
     """
@@ -1351,9 +1656,9 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
 
     if pd.isnull(date_to):
         if isinstance(data, pd.DatetimeIndex):
-            date_to = data[-1]
+            date_to = data[-1] + pd.DateOffset(seconds=1)
         elif isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
-            date_to = data.index[-1]
+            date_to = data.index[-1] + pd.DateOffset(seconds=1)
     else:
         date_to = pd.to_datetime(date_to)
 
@@ -1400,3 +1705,435 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
                 shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original >= date_to)])
             df_copy.index = shifted
             return df_copy.sort_index()
+
+
+def apply_device_orientation_offset(
+        data, measurement_station, wdir_cols=[], inplace=False, return_results_table=False, 
+        apply_to_related_statistics=False
+        ):
+    """
+    Applies a device orientation offset to wind direction data from remote sensing devices
+    (lidar, sodar, or floating lidar) to align measurements with north.
+
+    The device's as-installed orientation is specified in
+    `vertical_profiler_properties.device_orientation_deg` according to the IEA Wind Task 43
+    WRA Data Model. This data model is represented using the `bw.MeasurementStation()` object.
+
+    If `wdir_cols` is empty, the offset is applied to all wind direction columns reported in
+    the measurement station. Otherwise, only the specified columns are adjusted.
+
+    This function uses the brightwind 'offset_wind_direction()' function to apply the adjustment to the data.
+
+    **Note:** When using `inplace=True`, be careful not to apply this function multiple times within
+              the same assessment, as the offset will be applied again.
+
+    If a logger offset is defined in `logger_measurement_config.offset`, this indicates
+    that the wind direction data has already been adjusted by this amount. This value may differ
+    from `device_orientation_deg`, so the function calculates the difference to ensure the total
+    adjustment equals the intended device orientation:
+
+        offset_to_apply = device_orientation_deg - logger_measurement_config.offset
+
+    Configuration date ranges are treated as half-open intervals: [date_from, date_to),
+    meaning 'date_from' is inclusive and 'date_to' is exclusive.
+
+    Overlapping periods with non-zero `device_orientation_deg` values in `vertical_profiler_properties`
+    are not supported and will raise an error.
+
+    :param data:                                Timeseries data.
+    :type data:                                 pd.DataFrame or pd.Series
+    :param measurement_station:                 A simplified object to represent the IEA Wind Task 43 WRA Data Model.
+    :type measurement_station:                  bw.MeasurementStation
+    :param wdir_cols:                           Wind direction column names to apply the offset to. If empty, all wind 
+                                                direction columns in the data are used. Default is an empty list.
+    :type wdir_cols:                            list
+    :param inplace:                             If True, modifies `data` in place. If False, returns a new 
+                                                DataFrame/Series with adjusted values. Default is False.
+    :type inplace:                              bool, optional
+    :param return_results_table:                If True, returns a DataFrame containing the device orientation, 
+                                                logger orientation and offset applied for each relevant time period.
+    :type return_results_table:                 bool, optional
+    :param apply_to_related_statistics:         If True, apply the adjustment to related statistics (e.g. if Dir60mS is 
+                                                adjusted, also adjust Dir60mS_max, Dir60mS_min and Dir60mS_gust).
+                                                If False, only apply the adjustment to the specific wind direction
+                                                properties.
+                                                If True then the function expects the column name convention where the
+                                                average has nothing appended, max is appended with '_max', min is
+                                                appended with '_min' and gust is appended with '_gust'.
+                                                If the column name convention is different, set this
+                                                parameter to False and the adjustment will only be applied to the 
+                                                specific wind direction properties or rename your data columns. 
+                                                Defaults to False.
+    :type apply_to_related_statistics:          bool
+    :return:                                    Data with wind direction adjusted by the orientation offset.
+    :rtype:                                     pd.DataFrame | pd.Series | Tuple[pd.DataFrame | pd.Series, pd.DataFrame]
+    
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        fl1 = bw.MeasurementStation(bw.demo_datasets.floating_lidar_demo_iea43_wra_data_model_v1_3)
+        data = bw.load_csv(bw.demo_datasets.demo_floating_lidar_data)
+
+        # Adjust only specific wind direction columns:
+        data_dev_orient_adj = bw.apply_device_orientation_offset(data, fl1, wdir_cols=['Dir_40m', 'Dir_50m'])
+
+    Adjust all wind directions in-place:
+    ::
+        bw.apply_device_orientation_offset(data, fl1, inplace=True)
+        print('Wind direction device orientation offset adjustment is completed.')
+
+    Return the orientation offset results table along with adjusted timeseries data::
+    ::
+        # Adjust only specific wind direction columns:
+        data_dev_orient_adj, results_table = bw.apply_device_orientation_offset(
+            data, fl1, wdir_cols=['Dir_40m', 'Dir_50m'], return_results_table=True
+            )
+        results_table
+    
+    """
+    
+    if measurement_station.type not in ['lidar', 'floating_lidar', 'sodar']:
+        raise ValueError(f"Device type: {measurement_station.type} is not supported for this function.")
+    
+    measurements = measurement_station.measurements
+    wdirs_properties = _get_consistent_properties_format(measurements, 'wind_direction')
+    if not wdirs_properties:
+        raise ValueError("No wind direction measurements found in the 'measurement_station' input. "
+                         "No device orientation offset adjustments can be applied.")
+    
+    measurement_station_items = list(measurement_station)
+    # copy the data if needed
+    data = data.copy(deep=True) if inplace is False else data
+    wdir_not_in_dataset = False
+    col_not_in_data = []
+    col_not_in_datamodel = []
+    df = pd.DataFrame(data) if isinstance(data, pd.Series) else data
+
+    if wdir_cols:
+        wdirs_properties_temp = []
+        for col in wdir_cols:
+            if col not in df.columns:
+                wdir_not_in_dataset = True
+                col_not_in_data.append(col)
+            if not any(col == prop['name'] for prop in wdirs_properties):
+                col_not_in_datamodel.append(col)
+            else:
+                # keep wind direction properties only for input wdir_cols
+                wdirs_properties_temp.extend([prop for prop in wdirs_properties if col == prop['name']])
+        wdirs_properties = wdirs_properties_temp
+
+    _check_vertical_profiler_properties_overlap(measurement_station, df)
+
+    rows = []
+    # Apply the offset
+    for i, wdir_prop in enumerate(wdirs_properties):
+        name = wdir_prop['name']
+        if not apply_to_related_statistics:
+            associated_statistics = [name]
+        else:
+            # This assumed variable naming is based on what BrightHub uses
+            associated_statistics = [
+                name if prop["statistic_type_id"] == "avg" else f"{name}_{prop['statistic_type_id']}"
+                for prop in wdir_prop["logger_measurement_config.column_name"]
+                if prop["statistic_type_id"] in ["avg", "max", "min", "gust"]
+            ]
+        for var_name in associated_statistics:
+            if var_name in df.columns:
+                date_from, date_to = _resolve_period_boundaries(df, wdirs_properties, i, name)
+                
+                logger_offset = wdir_prop.get('logger_measurement_config.offset')
+                for j, device_properties in enumerate(measurement_station):
+                    meas_station_data_model_from = device_properties.get('date_from')
+                    meas_station_data_model_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') if
+                                                    meas_station_data_model_from is None or meas_station_data_model_from ==
+                                                    DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
+                    meas_station_data_model_to = device_properties.get('date_to')
+                    # If the last logger properties date to has been explicitly set as the last timestamp of the
+                    # dataset, set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
+                    if meas_station_data_model_to is not None:
+                        if pd.to_datetime(meas_station_data_model_to) >= df.index[-1]:
+                            meas_station_data_model_to = None
+                    # If [date_from, date_to) convention has not been used, we force this convention by setting
+                    # meas_station_data_model_to to the next_meas_station_data_model_from of the next
+                    # measurement_station property.
+                    if j < len(measurement_station_items) - 1:
+                        next_meas_station_data_model_from = measurement_station[j+1].get('date_from')
+                        if next_meas_station_data_model_from != meas_station_data_model_to:
+                            meas_station_data_model_to = next_meas_station_data_model_from
+                    
+                    if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+                        date_to_tmp = meas_station_data_model_to
+                    else:
+                        date_to_tmp = date_to
+                    
+                    date_range_overlaps = False
+                    if meas_station_data_model_to is None and date_to_tmp is None:
+                        date_range_overlaps = True
+                    elif meas_station_data_model_to is None:
+                        date_range_overlaps = date_to_tmp is None or date_to_tmp >= meas_station_data_model_from
+                    elif date_to_tmp is None:
+                        date_range_overlaps = date_from <= meas_station_data_model_to
+                    else:
+                        date_range_overlaps = (
+                            date_from <= meas_station_data_model_to and
+                            date_to_tmp >= meas_station_data_model_from
+                        )
+
+                    if date_range_overlaps:
+                        device_orientation_deg = device_properties.get('device_orientation_deg')
+                        apply_offset_from = (date_from if date_from > meas_station_data_model_from
+                                             else meas_station_data_model_from)
+                        if date_to_tmp is None or meas_station_data_model_to is None:
+                            apply_offset_to = date_to_tmp if date_to_tmp is not None else meas_station_data_model_to
+                        else:
+                            apply_offset_to = min(date_to_tmp, meas_station_data_model_to)
+                        height = wdir_prop.get('height_m')
+
+                        df[var_name], applied_results = _apply_dir_offset_target_orientation(
+                            df[var_name], logger_offset, device_orientation_deg, apply_offset_from, apply_offset_to,
+                            target_orientation_name='device orientation', heights=height, 
+                            target_orientation_table_name="Device Orientation [deg]"
+                            )
+                                
+                        rows.append(applied_results)
+            else:
+                wdir_not_in_dataset = True
+                col_not_in_data.append(var_name)
+    
+    if wdir_not_in_dataset:
+        indexes = np.unique(col_not_in_data, return_index=True)[1]
+        col_not_in_data = [col_not_in_data[index] for index in sorted(indexes)]
+        print_text = "Following wind direction measurement(s) reported in the 'measurement_station' input " \
+                     "not found in the data"
+        if wdir_cols:
+            print(print_text + ' for the requested `wdir_cols`: {}.'.format(utils.bold(str(col_not_in_data))))
+        else:
+            print(print_text + ': {}.'.format(utils.bold(str(col_not_in_data))))
+    if col_not_in_datamodel:
+        print('No device orientation offset applied to following `wdir_cols` requested measurement(s) '
+              'as no wind direction measurement type found in `measurement_station` input for these: {}.'
+              .format(utils.bold(str(col_not_in_datamodel))))
+    # if a Series is sent, send back a Series
+    if isinstance(data, pd.Series):
+        df = df[df.columns[0]]
+        data.update(df)
+
+    if return_results_table:
+        if rows:
+            return df, _aggregate_consecutive_periods(rows, target_orientation_table_name="Device Orientation [deg]")
+        else:
+            return df, None
+    return df
+
+
+def _resolve_period_boundaries(df, wdirs_properties, current_index, name):
+    """
+    Normalize logger period time boundaries to enforce [date_from, date_to) half-open interval logic.
+    
+    This ensures data points are not corrected twice by making the earlier logger property period
+    end exactly when the next entry starts.
+
+    :param df:                  Wind measurement dataframe with datetime index
+    :type df:                   pd.DataFrame
+    :param wdirs_properties:    Consistent list of properties for the wind_direction
+    :type wdirs_properties:     list
+    :param current_index:       Index of wind direction property currently being processed
+    :type current_index:        int
+    :param name:                Wind direction name
+    :type name:                 str
+    :return:                    Tuple of (date_from, date_to) as ISO format strings. date_to may be None to indicate
+                                the period extends to the end of the dataset. 
+    :rtype:                     Tuple[str, str]
+    """
+    date_to = wdirs_properties[current_index].get('date_to')
+
+    # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
+    # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
+    if date_to is not None:
+        if pd.to_datetime(date_to) >= df.index[-1]:
+            date_to = None
+
+    # If [date_from, date_to) convention has not been used, we force this convention by setting 
+    # date_to to the date_from of the next logger property
+    if current_index < len(wdirs_properties) - 1:
+        if wdirs_properties[current_index+1].get('name') == name:
+            next_date_from = wdirs_properties[current_index + 1].get('date_from')
+            if next_date_from != date_to:
+                date_to = next_date_from
+
+    date_from = wdirs_properties[current_index].get('date_from')
+    date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
+                    if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
+    
+    return date_from, date_to  
+
+
+def _check_vertical_profiler_properties_overlap(measurement_station, df):
+    """
+    Checks if in vertical_profiler_properties there are any overlapping 
+    date ranges with device orientation values.
+    
+    Date ranges are considered as [from, to) where 'from' is inclusive and 'to' is exclusive.
+    Overlapping date ranges with device orientation values are not supported 
+    by apply_device_orientation_offset function and will raise an error.
+    
+    :param measurement_station:         A simplified object to represent the IEA WRA Task 43 data model.
+    :type measurement_station:          brightwind.load.station.MeasurementStation
+    :param df:                          DataFrame with the time series data
+    :type df:                           pd.DataFrame
+    :raises ValueError:                 If overlapping date ranges with device orientation values are detected
+    """
+    date_ranges = []
+    
+    for device_properties in measurement_station:
+        date_from = device_properties.get('date_from')
+        if date_from is None or date_from == DATE_INSTEAD_OF_NONE:
+            date_from = df.index[0].strftime('%Y-%m-%dT%H:%M:%S')
+        date_to = device_properties.get('date_to')
+        if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
+            date_to = df.index[-1].strftime('%Y-%m-%dT%H:%M:%S')
+        device_orientation_deg = device_properties.get('device_orientation_deg', None)
+        
+        date_ranges.append({
+            'from': pd.to_datetime(date_from),
+            'to': pd.to_datetime(date_to),
+            'device_orientation_deg': device_orientation_deg,
+            'model': device_properties
+        })
+    
+    for i, range1 in enumerate(date_ranges):
+        for j, range2 in enumerate(date_ranges):
+            if i >= j:
+                continue
+            # Check if date ranges overlap
+            overlap = (range1['from'] < range2['to'] and range2['from'] < range1['to'])
+            
+            # If ranges overlap and at least one device_orientation_deg has a value different than None, raise error
+            if overlap and (range1['device_orientation_deg'] is not None or
+                            range2['device_orientation_deg'] is not None):
+                raise ValueError(
+                    f"Overlapping periods detected on vertical_profiler_properties with at least one " +
+                    "device_orientation_deg value different than None: \n"
+                    f"{range1['from']} to {range1['to']} (device_orientation_deg: {range1['device_orientation_deg']}°) "
+                    f"and "
+                    f"{range2['from']} to {range2['to']} (device_orientation_deg: {range2['device_orientation_deg']}°)"
+                    f"\nthis is currently unsupported."
+                )
+    return False
+
+
+def _apply_dir_offset_target_orientation(
+        wdir_data, logger_offset, target_orientation, apply_offset_from, apply_offset_to, target_orientation_name,
+        heights, target_orientation_table_name
+        ):
+    """
+    Function to apply the required offset to the wind direction data based on the logger offset and a target
+    orientation.
+    Note that if `wdir_data` is a DataFrame, the adjustment derived from `logger_offset` and `target_orientation` 
+    is applied to all columns.
+
+    Function returns also a DataFrame containing the target orientation, logger orientation and offset applied
+    for each relevant time period.
+    
+    This function uses the brightwind 'offset_wind_direction()' function to apply the actual adjustment to 
+    the wind direction data.
+
+    If there is a value in the logger measurement config for an offset, then the wind direction data has already 
+    been adjusted by this amount. This may or may not be equal to the target orientation. Therefore, 
+    the adjustment to be made should make up the difference to equal a target orientation. E.g.
+
+            offset to be applied = target_orientation - logger_offset
+
+    This function accounts for this adjustment.
+
+    Date ranges are considered as [from, to) where 'from' is inclusive and 'to' is exclusive.
+
+    :param wdir_data:                       The wind direction data time series.
+    :type wdir_data:                        pd.Series or pd.DataFrame
+    :param logger_offset:                   The logger offset value in degrees for the input wind direction data.
+    :type logger_offset:                    float
+    :param target_orientation:              The target orientation value in degrees.
+    :type target_orientation:               float
+    :param apply_offset_from:               The date to apply the offset from.
+    :type apply_offset_from:                str | datetime.datetime | pd.Timestamp
+    :param apply_offset_to:                 The date to apply the offset to, treated in and exclusive manner.
+    :type apply_offset_to:                  str | datetime.datetime | pd.Timestamp
+    :param target_orientation_name:         The target orientation name to use for the print statements. 
+                                            e.g 'device orientation' or 'deadband orientation'
+    :type target_orientation_name:          str
+    :param heights:                         The height(s) corresponding to the measurement(s) in
+                                            wdir_data .
+    :type heights:                          list | float
+    :param target_orientation_table_name:   The target orientation name to use for the column of the returned results
+                                            DataFrame.      
+    :type target_orientation_table_name:    str 
+    :return:                                A tuple of the data and a DataFrame with the appropriate offset applied
+                                            in addition to a table of the offset information.
+    :rtype:                                 Tuple[pd.DataFrame, pd.DataFrame]    
+    """
+
+    offset = target_orientation
+    wdir_names = list(wdir_data.columns) if isinstance(wdir_data, pd.DataFrame) else [wdir_data.name]
+    additional_comment_txt = 'to account for {}'.format(target_orientation_name)
+
+    if apply_offset_to is None or apply_offset_to == DATE_INSTEAD_OF_NONE:
+        to_text = "end of data"
+        mask = (wdir_data.index >= pd.Timestamp(apply_offset_from))
+    else:
+        mask = (wdir_data.index >= pd.Timestamp(apply_offset_from)) & (wdir_data.index < pd.Timestamp(apply_offset_to))
+        if pd.Timestamp(apply_offset_to) not in wdir_data.index:
+            valid_timestamps = wdir_data.index[wdir_data.index <= pd.Timestamp(apply_offset_to)]
+            apply_offset_to_inclusive = valid_timestamps[-1].strftime('%Y-%m-%dT%H:%M:%S')
+        else:
+            idx_pos = wdir_data.index.get_indexer([pd.Timestamp(apply_offset_to)], method='nearest')[0]
+            apply_offset_to_inclusive = wdir_data.index[idx_pos - 1].strftime('%Y-%m-%dT%H:%M:%S')
+        to_text = f"{apply_offset_to} (exclusive)"
+        if apply_offset_from > apply_offset_to_inclusive:
+            return wdir_data, pd.DataFrame([])   
+
+    if logger_offset is not None and logger_offset != 0 and target_orientation is not None:
+        offset = offset_wind_direction(float(target_orientation), offset=-float(logger_offset))
+        additional_comment_txt = additional_comment_txt + ' and logger offset'
+    if offset:    
+        # Apply offset only to the masked data
+        wdir_data.loc[mask] = offset_wind_direction(wdir_data.loc[mask], float(offset))
+        print_statement = '{0} adjusted by {1} degrees from {2} to {3} {4}.\n'
+        if logger_offset is None:       
+            print_statement = print_statement.strip("\n") + ' The logger offset value is set as None.\n'
+
+        print(print_statement.format(utils.bold(", ".join(wdir_names)), utils.bold(str(offset)),
+                        utils.bold(str(apply_offset_from)), utils.bold(to_text),
+                        additional_comment_txt))
+    elif offset == 0:  
+        print_statement = '{0} has an offset to be applied of 0 degrees from {1} to {2} {3}.\n'
+        if logger_offset is None:  
+            print_statement = print_statement.strip("\n") + ' The logger offset value is set as None.\n'     
+        print(print_statement.format(utils.bold(str(", ".join(wdir_names))), utils.bold(str(apply_offset_from)),
+                    utils.bold(to_text),
+                    additional_comment_txt))
+        
+    else:
+        if logger_offset is None:
+            print('{0} has {1} as None and logger offset as None from {2} to {3}. No adjustment applied.\n'
+                .format(utils.bold(str(", ".join(wdir_names))), target_orientation_name,
+                        utils.bold(str(apply_offset_from)), utils.bold(to_text)))
+        else:
+            print('{0} has {1} as None from {2} to {3}. No adjustment applied.\n'
+                .format(utils.bold(str(", ".join(wdir_names))), target_orientation_name,
+                        utils.bold(str(apply_offset_from)), utils.bold(to_text)))
+        
+    rows = []
+    if not isinstance(heights, (list, tuple, np.ndarray)):
+        heights = [heights] * len(wdir_names)
+    for (wdir_name, height) in zip(wdir_names, heights):
+        rows.append({
+            "Name": wdir_name,
+            "Height [m]": height,
+            target_orientation_table_name: target_orientation,
+            "Logger Offset": logger_offset,
+            "Offset Applied [deg]": offset,
+            "Date From": apply_offset_from,
+            "Date To": apply_offset_to
+            })
+    return wdir_data, pd.DataFrame(rows)

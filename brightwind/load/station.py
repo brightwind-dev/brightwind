@@ -16,6 +16,7 @@
 
 
 from brightwind.utils.utils import is_file
+from brightwind.utils import utils
 import numpy as np
 import pandas as pd
 import requests
@@ -116,7 +117,8 @@ def _rename_to_title(list_or_dict, schema):
             prefixed_names[prefixed_name] = {'prefix_separator': PREFIX_DICT[key]['prefix_separator'],
                                              'title_prefix': PREFIX_DICT[key]['title_prefix']}
     list_special_cases_no_prefix = ['logger_measurement_config.slope', 'logger_measurement_config.offset',
-                                    'logger_measurement.sensitivity',
+                                    'logger_measurement_config.sensitivity',
+                                    'logger_measurement_config.height_m',
                                     'calibration.slope', 'calibration.offset', 'calibration.sensitivity']
     if isinstance(list_or_dict, dict):
         renamed_dict = {}
@@ -211,7 +213,7 @@ def _filter_parent_level(dictionary):
     return parent
 
 
-def _flatten_dict(dictionary, property_to_bring_up):
+def _flatten_dict(dictionary, property_to_bring_up, remove_child_lists=True):
     """
     Bring a child level in a dictionary up to the parent level.
 
@@ -221,6 +223,8 @@ def _flatten_dict(dictionary, property_to_bring_up):
     :type dictionary:            dict
     :param property_to_bring_up: The child property name to raise up to the parent level.
     :type property_to_bring_up:  str
+    :param remove_child_lists:   Remove child lists from the flattened dictionary.
+    :type remove_child_lists:    bool
     :return:                     A list of merged dictionaries
     :rtype:                      list(dict)
     """
@@ -229,11 +233,15 @@ def _flatten_dict(dictionary, property_to_bring_up):
     for key, value in dictionary.items():
         if (type(value) == list) and (key == property_to_bring_up):
             for item in value:
-                child = _filter_parent_level(item)
+                child = item
+                if remove_child_lists:
+                    child = _filter_parent_level(item)
                 child = _add_prefix(child, property_section=property_to_bring_up)
                 result.append(_merge_two_dicts(parent, child))
         if (type(value) == dict) and (key == property_to_bring_up):
-            child = _filter_parent_level(value)
+            child = value
+            if remove_child_lists:
+                child = _filter_parent_level(value)
             child = _add_prefix(child, property_section=property_to_bring_up)
             # return a dictionary and not a list
             result = _merge_two_dicts(parent, child)
@@ -243,11 +251,12 @@ def _flatten_dict(dictionary, property_to_bring_up):
     return result
 
 
-def _raise_child(dictionary, child_to_raise):
+def _raise_child(dictionary, child_to_raise, remove_child_lists=True):
     """
 
     :param dictionary:
     :param child_to_raise:
+    :param remove_child_lists:
     :return:
     """
     # FUTURE DEV: ACCOUNT FOR 'DATE_OF_CALIBRATION' WHEN RAISING UP MULTIPLE CALIBRATIONS
@@ -257,12 +266,12 @@ def _raise_child(dictionary, child_to_raise):
     for key, value in dictionary.items():
         if (key == child_to_raise) and (value is not None):
             # Found the key to raise. Flattening dictionary.
-            return _flatten_dict(dictionary, child_to_raise)
+            return _flatten_dict(dictionary, child_to_raise, remove_child_lists=remove_child_lists)
     # didn't find the child to raise. search down through each nested dict or list
     for key, value in dictionary.items():
         if (type(value) == dict) and (value is not None):
             # 'key' is a dict, looping through it's own keys.
-            flattened_dicts = _raise_child(value, child_to_raise)
+            flattened_dicts = _raise_child(value, child_to_raise, remove_child_lists=remove_child_lists)
             if flattened_dicts:
                 new_dict[key] = flattened_dicts
                 return new_dict
@@ -270,7 +279,7 @@ def _raise_child(dictionary, child_to_raise):
             # 'key' is a list, looping through it's items.
             temp_list = []
             for idx, item in enumerate(value):
-                flattened_dicts = _raise_child(item, child_to_raise)
+                flattened_dicts = _raise_child(item, child_to_raise, remove_child_lists=remove_child_lists)
                 if flattened_dicts:
                     if isinstance(flattened_dicts, list):
                         for flat_dict in flattened_dicts:
@@ -289,7 +298,7 @@ PREFIX_DICT = {
     'mast_properties': {
         'prefix_separator': '.',
         'title_prefix': 'Mast ',
-        'keys_to_prefix': ['notes', 'update_at']
+        'keys_to_prefix': ['notes', 'update_at', 'mast_section_geometry']
     },
     'vertical_profiler_properties': {
         'prefix_separator': '.',
@@ -304,7 +313,9 @@ PREFIX_DICT = {
     'logger_measurement_config': {
         'prefix_separator': '.',
         'title_prefix': 'Logger ',
-        'keys_to_prefix': ['height_m', 'serial_number', 'slope', 'offset', 'sensitivity', 'notes', 'update_at']
+        'keys_to_prefix': [
+            'height_m', 'serial_number', 'slope', 'offset', 'sensitivity', 'notes', 'update_at', 'column_name'
+            ]
     },
     'column_name': {
         'prefix_separator': '.',
@@ -319,8 +330,10 @@ PREFIX_DICT = {
     'calibration': {
         'prefix_separator': '.',
         'title_prefix': 'Calibration ',
-        'keys_to_prefix': ['slope', 'offset', 'sensitivity', 'report_file_name', 'report_link',
-                           'uncertainty_k_factor', 'date_from', 'date_to', 'notes', 'update_at']
+        'keys_to_prefix': [
+            'slope', 'offset', 'sensitivity', 'report_file_name', 'report_link', 'uncertainty_k_factor', 
+            'date_from', 'date_to', 'notes', 'update_at', 'calibration_uncertainty'
+            ]
     },
     'calibration_uncertainty': {
         'prefix_separator': '.',
@@ -364,7 +377,8 @@ class MeasurementStation:
     The IEA Wind: Task 43 Work Package 4 WRA Data Model was first released in January 2021. Versions of the
     Data Model Schema can be found at https://github.com/IEA-Task-43/digital_wra_data_standard
 
-    The Schema associated with this data model file will be downloaded from GitHub and used to parse the data model.
+    The Schema associated with this data model file will be downloaded from GitHub and used to validate and
+    parse the data model.
 
     :param wra_data_model: The filepath to an implementation of the WRA Data Model as a .json file or
                            a json formatted string or
@@ -375,8 +389,7 @@ class MeasurementStation:
     """
     def __init__(self, wra_data_model):
         self.__data_model = self._load_wra_data_model(wra_data_model)
-        version = self.__data_model.get('version')
-        self.__schema = self._get_schema(version=version)
+        self.__schema = self._get_schema(dm=self.__data_model)
         self.__header = _Header(dm=self.__data_model, schema=self.__schema)
         self.__meas_loc_data_model = self._get_meas_loc_data_model(dm=self.__data_model)
         self.__meas_loc_properties = self.__get_properties()
@@ -402,9 +415,6 @@ class MeasurementStation:
         The IEA Wind: Task 43 Work Package 4 WRA Data Model was first released in January 2021. Versions of the
         Data Model Schema can be found at https://github.com/IEA-Task-43/digital_wra_data_standard
 
-        *** SHOULD INCLUDE CHECKING AGAINST THE JSON SCHEMA (WHICH WOULD MEAN GETTING THE CORRECT VERSION FROM GITHUB)
-            AND MAKE SURE PROPER JSON
-
         :param wra_data_model: The filepath to an implementation of the WRA Data Model as a .json file or
                                a json formatted string or
                                a dictionary format of the data model.
@@ -414,7 +424,7 @@ class MeasurementStation:
         # Assess whether filepath or json str sent.
         dm = dict()
         if isinstance(wra_data_model, str) and '.json' == wra_data_model[-5:]:
-            if _is_file(wra_data_model):
+            if is_file(wra_data_model):
                 with open(wra_data_model) as json_file:
                     dm = json.load(json_file)
         elif isinstance(wra_data_model, str):
@@ -422,18 +432,21 @@ class MeasurementStation:
         else:
             # it is most likely already a dict so return itself
             dm = wra_data_model
+
         return dm
 
     @staticmethod
-    def _get_schema(version):
+    def _get_schema(dm):
         """
-        Get the JSON Schema from GitHub based on the version number in the data model.
+        Get the JSON Schema from GitHub based on the version number in the data model and validate the supplied
+        data model against the schema.
 
-        :param version: The version from the header information from the data model json file.
-        :type version:  str
+        :param dm:      The data model.
+        :type dm:       dict
         :return:        The IEA Wind Task 43 WRA Data Model Schema.
         :rtype:         dict
         """
+        version = dm.get('version')
         schema_link = 'https://github.com/IEA-Task-43/digital_wra_data_standard/releases/download/v{}' \
                       '/iea43_wra_data_model.schema.json'
         response = requests.get(schema_link.format(version))
@@ -441,6 +454,12 @@ class MeasurementStation:
             raise ValueError('Schema could not be downloaded from GitHub. Please check the version number in the '
                              'data model json file.')
         schema = json.loads(response.content)
+
+        is_schema_valid = utils.validate_json(dm, schema)
+        if is_schema_valid is False:
+            raise ValueError("There is a problem with the validity of the supplied WRA Data Model." +
+                             " Please check the errors above.")
+
         return schema
 
     @staticmethod
@@ -480,8 +499,8 @@ class MeasurementStation:
 
     def __get_properties(self):
         meas_loc_prop = []
-        if self.type == 'mast':
-            meas_loc_prop = _flatten_dict(self.__meas_loc_data_model, property_to_bring_up='mast_properties')
+        if self.type in ['mast', 'solar']:
+            meas_loc_prop = _flatten_dict(self.__meas_loc_data_model, property_to_bring_up='mast_properties', remove_child_lists=False)
         elif self.type in ['lidar', 'sodar', 'floating_lidar']:
             meas_loc_prop = _flatten_dict(self.__meas_loc_data_model,
                                           property_to_bring_up='vertical_profiler_properties')
@@ -620,7 +639,7 @@ class _LoggerMainConfigs:
 
     def __get_properties(self):
         log_cfg_props = []
-        if self._type == 'mast':
+        if self._type in ['mast', 'solar', 'sodar'] :
             # if mast, there are no child dictionaries
             log_cfg_props = self._log_cfg_data_model  # logger config data model is already a list
         elif self._type in ['lidar', 'floating_lidar']:
@@ -729,7 +748,7 @@ class _Measurements:
         :return: The list of names.
         :rtype:  list(str)
         """
-        return self.__get_names()
+        return self.get_names()
 
     @property
     def wspds(self):
@@ -737,7 +756,7 @@ class _Measurements:
 
     @property
     def wspd_names(self):
-        return self.__get_names(measurement_type_id='wind_speed')
+        return self.get_names(measurement_type_id='wind_speed')
 
     @property
     def wspd_heights(self):
@@ -749,7 +768,7 @@ class _Measurements:
 
     @property
     def wdir_names(self):
-        return self.__get_names(measurement_type_id='wind_direction')
+        return self.get_names(measurement_type_id='wind_direction')
 
     @property
     def wdir_heights(self):
@@ -815,13 +834,18 @@ class _Measurements:
     def __get_properties(self):
         meas_props = []
         for meas_point in self._meas_data_model:
-            logger_meas_configs = _raise_child(meas_point, child_to_raise='logger_measurement_config')
-            calib_raised = _raise_child(meas_point, child_to_raise='calibration')
+            logger_meas_configs = _raise_child(
+                meas_point, child_to_raise='logger_measurement_config', remove_child_lists=False
+                )
+            calib_raised = _raise_child(meas_point, child_to_raise='calibration', remove_child_lists=False)
             if calib_raised is None:
                 sensors = _raise_child(meas_point, child_to_raise='sensor')
             else:
-                sensors = _raise_child(calib_raised, child_to_raise='sensor')
-            mounting_arrangements = _raise_child(meas_point, child_to_raise='mounting_arrangement')
+                sensors = _raise_child(calib_raised, child_to_raise='sensor', remove_child_lists=False)
+                sensors = [sensors_needed for sensors_needed in sensors if sensors_needed['measurement_type_id'] == meas_point['measurement_type_id']]
+            mounting_arrangements = _raise_child(
+                meas_point, child_to_raise='mounting_arrangement', remove_child_lists=False
+                )
 
             if mounting_arrangements is None:
                 meas_point_merged = self.__meas_point_merge(logger_measurement_configs=logger_meas_configs,
@@ -894,7 +918,7 @@ class _Measurements:
         temp_df.sort_values(['name', 'date_from'], ascending=[True, True], inplace=True)
         temp_df.fillna('-', inplace=True)  # groupby drops nan so need to fill them in
         # group duplicate data for the columns available
-        grouped_by_avail_cols = temp_df.groupby(avail_cols)
+        grouped_by_avail_cols = temp_df.groupby(avail_cols, observed=False)
         # get date_to from the last row in each group to assign to the first row.
         new_date_to = grouped_by_avail_cols.last()['date_to']
         df = grouped_by_avail_cols.first()[['date_from', 'date_to']]
@@ -915,15 +939,16 @@ class _Measurements:
 
         :param detailed:              For a more detailed table that includes how the sensor is programmed into the
                                       logger, information about the sensor itself and how it is mounted on the mast
-                                      if it was.
+                                      if it was. 
+                                      If detailed=False then table is showing details only for measurement points.
         :type detailed:               bool
         :param wind_speeds:           Wind speed specific details.
         :type wind_speeds:            bool
-        :param wind_directions:       Wind speed specific details.
+        :param wind_directions:       Wind direction specific details.
         :type wind_directions:        bool
-        :param calibrations:          Wind speed specific details.
+        :param calibrations:          Calibration specific details.
         :type calibrations:           bool
-        :param mounting_arrangements: Wind speed specific details.
+        :param mounting_arrangements: Mounting arrangement specific details.
         :type mounting_arrangements:  bool
         :param columns_to_show:       Optionally provide a list of column names you want to see in a table. This list
                                       should be pulled from the list of keys available in the measurements.properties.
@@ -972,9 +997,8 @@ class _Measurements:
             order_index = dict(zip(MEAS_TYPE_ORDER, range(len(MEAS_TYPE_ORDER))))
             df['meas_type_rank'] = df['Measurement Type'].map(order_index)
             df.sort_values(['meas_type_rank', 'Height [m]'], ascending=[True, False], inplace=True)
-            df.drop('meas_type_rank', 1, inplace=True)
+            df.drop('meas_type_rank', axis=1, inplace=True)
             df.set_index('Name', inplace=True)
-            df.dropna(axis=1, how='all', inplace=True)
             df.fillna('-', inplace=True)
         elif detailed is True:
             cols_required = ['name', 'oem', 'model', 'sensor_type_id', 'sensor.serial_number',
@@ -984,7 +1008,7 @@ class _Measurements:
                              'calibration.slope', 'calibration.offset',
                              'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties).set_index(
-                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
+                ['date_from', 'date_to']).reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
@@ -993,7 +1017,7 @@ class _Measurements:
                 order_index = dict(zip(SENSOR_TYPE_ORDER, range(len(SENSOR_TYPE_ORDER))))
                 df['sensor_rank'] = df['sensor_type_id'].map(order_index)
                 df.sort_values(['sensor_rank', 'height_m'], ascending=[True, False], inplace=True)
-                df.drop(columns='sensor_rank', axis=1, inplace=True)
+                df.drop('sensor_rank', axis=1, inplace=True)
             else:
                 df.sort_values(['name', 'height_m'], ascending=[True, False], inplace=True)
             # get titles
@@ -1012,11 +1036,11 @@ class _Measurements:
                              'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
             df = df[df['measurement_type_id'] == 'wind_speed'].set_index(
-                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
+                ['date_from', 'date_to']).reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
-            df.drop('measurement_type_id', 1, inplace=True)
+            df.drop('measurement_type_id', axis=1, inplace=True)
             # order rows
             df.sort_values(['height_m', 'name'], ascending=[False, True], inplace=True)
             # get titles
@@ -1035,11 +1059,11 @@ class _Measurements:
                              'logger_measurement_config.notes', 'sensor.notes']
             df = pd.DataFrame(self.__meas_properties)
             df = df[df['measurement_type_id'] == 'wind_direction'].set_index(
-                ['date_from', 'date_to']).dropna(axis=1, how='all').reset_index()
+                ['date_from', 'date_to']).reset_index()
             # get what is common from both lists and use this to filter df
             cols_required = [col for col in cols_required if col in df.columns]
             df = df[cols_required]
-            df.drop('measurement_type_id', 1, inplace=True)
+            df.drop('measurement_type_id', axis=1, inplace=True)
             # order rows
             df.sort_values(['height_m', 'name'], ascending=[False, True], inplace=True)
             # get titles
@@ -1064,21 +1088,38 @@ class _Measurements:
             df = self.__get_table_for_cols(columns_to_show)
         return df
 
-    def __get_names(self, measurement_type_id=None):
+    def get_names(self, measurement_type_id=None):
         """
-        Get the names of measurements for a particular measurement_type or all of them if measurement_type_id is None.
+        Get the names of measurements for a particular measurement_type, or all of them if measurement_type_id is None.
 
-        :param measurement_type_id: The measurement_type_id to filter for the names.
+        :param measurement_type_id: The measurement_type_id (as defined by the IEA Wind Task 43
+                                    WRA Data Model) to filter for the names.
         :type measurement_type_id:  str or None
         :return:                    The list of names.
         :rtype:                     list(str)
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            mm1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
+
+            # To get all measurement point names:
+            mm1.measurements.get_names(measurement_type_id=None)
+
+            # To get measurement point names only for measurement_type_id='air_temperature':
+            mm1.measurements.get_names(measurement_type_id='air_temperature')
+
         """
+
+        if type(measurement_type_id) is not str and measurement_type_id is not None:
+            raise TypeError('measurement_type_id must be a string or None')
+        
         names = []
         for meas_point in self.__meas_properties:  # use __meas_properties as it is a list and holds it's order
             meas_type = meas_point.get('measurement_type_id')
             meas_name = meas_point.get('name')
             if measurement_type_id is not None:
-                if meas_type is not None and meas_type in measurement_type_id:
+                if meas_type is not None and meas_type == measurement_type_id:
                     if meas_name not in names:
                         names.append(meas_point.get('name'))
             else:
@@ -1103,10 +1144,32 @@ class _Measurements:
         :type measurement_type_id:  str
         :return:                    The heights of the measurements.
         :rtype:                     list(float)
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            mm1 = bw.MeasurementStation(bw.demo_datasets.iea43_wra_data_model_v1_0)
+
+            # To get heights for all measurements:
+            mm1.measurements.get_heights(names=None, measurement_type_id=None)
+
+            # To get heights only for defined names=['Spd_80mSE', 'Dir_76mNW']:
+            mm1.measurements.get_heights(names=['Spd_80mSE', 'Dir_76mNW'])
+
+            # To get heights only for defined names='Spd_40mSE':
+            mm1.measurements.get_heights(names='Spd_40mSE')
+
+            # To get heights only for measurement_type_id='air_temperature':
+            mm1.measurements.get_heights(measurement_type_id='air_temperature')
+
         """
+
+        if type(measurement_type_id) is not str and measurement_type_id is not None:
+            raise TypeError('measurement_type_id must be a string or None')
+        
         heights = []
         if names is None:
-            names = self.__get_names(measurement_type_id=measurement_type_id)
+            names = self.get_names(measurement_type_id=measurement_type_id)
         if isinstance(names, str):
             names = [names]
         for name in names:
@@ -1117,11 +1180,11 @@ class _Measurements:
                     name_found = True
                     break
                 elif meas_point['name'] == name and meas_point.get('height_m') is None:
-                    heights.append(np.NaN)
+                    heights.append(np.nan)
                     name_found = True
                     break
             if name_found is False:
-                heights.append(np.NaN)
+                heights.append(np.nan)
         return heights
 
 

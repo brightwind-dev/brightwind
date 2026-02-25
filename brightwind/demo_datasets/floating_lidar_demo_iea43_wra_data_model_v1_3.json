@@ -1,0 +1,3406 @@
+{
+  "author": "Brighthub",
+  "organisation": "Brightwind",
+  "date": "2025-03-26",
+  "version": "1.3.0-2024.03",
+  "measurement_location": [
+    {
+      "uuid": "f4af1419-147e-420d-b71a-431df3bf4fe2",
+      "name": "MDE-CelticArray-LR1_Modified",
+      "latitude_ddeg": 53.815278,
+      "longitude_ddeg": -3.561667,
+      "measurement_station_type_id": "lidar",
+      "notes": "Celtic Array LiDAR fixed on offshore DP3 Platform. Sourced from Marine Data Exchange: https://www.marinedataexchange.co.uk/details/TCE-2667/2012-2014-zone-9-celtic-array-lidar-windcube-data",
+      "update_at": "2024-06-20T15:24:42",
+      "logger_main_config": [
+        {
+          "logger_model_name": "WindCube v2",
+          "logger_oem_id": "Vaisala",
+          "logger_serial_number": "WLS7-239",
+          "logger_id": "WLS7-239",
+          "logger_name": "",
+          "date_from": "2012-10-23T12:10:00",
+          "date_to": "2012-10-23T12:30:00",
+          "encryption_pin_or_key": null,
+          "enclosure_lock_details": null,
+          "data_transfer_details": null,
+          "offset_from_utc_hrs": 0,
+          "sampling_rate_sec": null,
+          "averaging_period_minutes": 10,
+          "timestamp_is_end_of_period": true,
+          "clock_is_auto_synced": null,
+          "notes": null,
+          "update_at": "2024-05-02T14:27:37",
+          "logger_firmware_version": "1.1.3.c",
+          "logger_acquisition_uncertainty": null,
+          "uncertainty_k_factor": null,
+          "lidar_config": [
+            {
+              "flow_corrections_applied": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": "2012-10-23T12:30:00",
+              "notes": null,
+              "update_at": "2024-05-02T14:27:37"
+            }
+          ]
+        },
+        {
+          "logger_model_name": "WindCube v2",
+          "logger_oem_id": "Vaisala",
+          "logger_serial_number": "WLS7-239",
+          "logger_id": "WLS7-239",
+          "logger_name": "DP3 plaform",
+          "date_from": "2013-10-08T14:00:00",
+          "date_to": "2014-05-06T09:50:00",
+          "encryption_pin_or_key": null,
+          "enclosure_lock_details": null,
+          "data_transfer_details": null,
+          "offset_from_utc_hrs": 0,
+          "sampling_rate_sec": null,
+          "averaging_period_minutes": 10,
+          "timestamp_is_end_of_period": true,
+          "clock_is_auto_synced": null,
+          "notes": null,
+          "update_at": "2024-06-18T15:20:20",
+          "logger_firmware_version": "1.1.3.c",
+          "logger_acquisition_uncertainty": null,
+          "uncertainty_k_factor": null,
+          "lidar_config": [
+            {
+              "flow_corrections_applied": null,
+              "date_from": "2013-10-08T14:00:00",
+              "date_to": "2014-01-01T00:00:00",
+              "notes": null,
+              "update_at": "2024-05-02T14:27:37"
+            }
+          ]
+        },
+        {
+          "logger_model_name": "WindCube v2",
+          "logger_oem_id": "Vaisala",
+          "logger_serial_number": "WLS7-239",
+          "logger_id": "WLS7-239",
+          "logger_name": "K.-W.-Koog, Germany",
+          "date_from": "2012-10-23T13:10:00",
+          "date_to": "2013-10-08T13:40:00",
+          "encryption_pin_or_key": null,
+          "enclosure_lock_details": null,
+          "data_transfer_details": null,
+          "offset_from_utc_hrs": 0,
+          "sampling_rate_sec": null,
+          "averaging_period_minutes": 10,
+          "timestamp_is_end_of_period": true,
+          "clock_is_auto_synced": null,
+          "notes": null,
+          "update_at": "2024-05-02T14:27:37",
+          "logger_firmware_version": "1.1.3.c",
+          "logger_acquisition_uncertainty": null,
+          "uncertainty_k_factor": null,
+          "lidar_config": [
+            {
+              "flow_corrections_applied": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": "2013-10-08T13:40:00",
+              "notes": null,
+              "update_at": "2024-05-02T14:27:37"
+            }
+          ]
+        }
+      ],
+      "measurement_point": [
+        {
+          "name": "Spd_250m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 250,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 250,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "250m Wind Speed (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "250m Wind Speed Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "250m Wind Speed max (m/s)",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "250m Wind Speed min (m/s)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd_200m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 200,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 200,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "200m Wind Speed (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "200m Wind Speed Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "200m Wind Speed max (m/s)",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "200m Wind Speed min (m/s)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd_180m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 180,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 180,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "180m Wind Speed (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "180m Wind Speed Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "180m Wind Speed max (m/s)",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "180m Wind Speed min (m/s)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd_160m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 160,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 160,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "160m Wind Speed (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "160m Wind Speed Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "160m Wind Speed max (m/s)",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "160m Wind Speed min (m/s)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd_140m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 140,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 140,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "140m Wind Speed (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "140m Wind Speed Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "140m Wind Speed max (m/s)",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "140m Wind Speed min (m/s)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd_120m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 120,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 120,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "120m Wind Speed (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "120m Wind Speed Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "120m Wind Speed max (m/s)",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "120m Wind Speed min (m/s)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd_100m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 100,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 100,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "100m Wind Speed (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "100m Wind Speed Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "100m Wind Speed max (m/s)",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "100m Wind Speed min (m/s)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd_80m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 80,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 80,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "80m Wind Speed (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "80m Wind Speed Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "80m Wind Speed max (m/s)",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "80m Wind Speed min (m/s)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd_62m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 62,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 62,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "62m Wind Speed (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "62m Wind Speed Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "62m Wind Speed max (m/s)",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "62m Wind Speed min (m/s)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd_50m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 50,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 50,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "50m Wind Speed (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "50m Wind Speed Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "50m Wind Speed max (m/s)",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "50m Wind Speed min (m/s)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Spd_40m",
+          "measurement_type_id": "wind_speed",
+          "height_m": 40,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 40,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "40m Wind Speed (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "40m Wind Speed Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "40m Wind Speed max (m/s)",
+                  "statistic_type_id": "max",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "40m Wind Speed min (m/s)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dir_250m",
+          "measurement_type_id": "wind_direction",
+          "height_m": 250,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": 262,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 250,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2013-10-08T14:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "250m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 170,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 250,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": "2012-11-15T13:30:00",
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "250m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 165,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 250,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-11-15T13:50:00",
+              "date_to": "2013-04-24T14:50:00",
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "250m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dir_200m",
+          "measurement_type_id": "wind_direction",
+          "height_m": 200,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": 165,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 200,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-11-15T13:50:00",
+              "date_to": "2013-04-24T14:50:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "200m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 170,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 200,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": "2012-11-15T13:30:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "200m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 262,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 200,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2013-10-08T14:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "200m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dir_180m",
+          "measurement_type_id": "wind_direction",
+          "height_m": 180,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": 170,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 180,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": "2012-11-15T13:30:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "180m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 165,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 180,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-11-15T13:50:00",
+              "date_to": "2013-04-24T14:50:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "180m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 262,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 180,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2013-10-08T14:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "180m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dir_160m",
+          "measurement_type_id": "wind_direction",
+          "height_m": 160,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": 262,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 160,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2013-10-08T14:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "160m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 165,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 160,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-11-15T13:50:00",
+              "date_to": "2013-04-24T14:50:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "160m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 170,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 160,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": "2012-11-15T13:30:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "160m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dir_140m",
+          "measurement_type_id": "wind_direction",
+          "height_m": 140,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": 262,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 140,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2013-10-08T14:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "140m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 170,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 140,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": "2012-11-15T13:30:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "140m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 165,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 140,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-11-15T13:50:00",
+              "date_to": "2013-04-24T14:50:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "140m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dir_120m",
+          "measurement_type_id": "wind_direction",
+          "height_m": 120,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": 262,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 120,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2013-10-08T14:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "120m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 165,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 120,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-11-15T13:50:00",
+              "date_to": "2013-04-24T14:50:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "120m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 170,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 120,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": "2012-11-15T13:30:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "120m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dir_100m",
+          "measurement_type_id": "wind_direction",
+          "height_m": 100,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": 262,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 100,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2013-10-08T14:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "100m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 170,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 100,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": "2012-11-15T13:30:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "100m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 165,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 100,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-11-15T13:50:00",
+              "date_to": "2013-04-24T14:50:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "100m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dir_80m",
+          "measurement_type_id": "wind_direction",
+          "height_m": 80,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": 262,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 80,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2013-10-08T14:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "80m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 170,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 80,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": "2012-11-15T13:30:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "80m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 165,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 80,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-11-15T13:50:00",
+              "date_to": "2013-04-24T14:50:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "80m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dir_62m",
+          "measurement_type_id": "wind_direction",
+          "height_m": 62,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": 170,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 62,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": "2012-11-15T13:30:00",
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "62m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 165,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 62,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-11-15T13:50:00",
+              "date_to": "2013-04-24T14:50:00",
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "62m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 262,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 62,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2013-10-08T14:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "62m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dir_50m",
+          "measurement_type_id": "wind_direction",
+          "height_m": 50,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": 165,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 50,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-11-15T13:50:00",
+              "date_to": "2013-04-24T14:50:00",
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "50m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 262,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 50,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2013-10-08T14:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "50m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 170,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 50,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": "2012-11-15T13:30:00",
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "50m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dir_40m",
+          "measurement_type_id": "wind_direction",
+          "height_m": 40,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": 170,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 40,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": "2012-11-15T13:30:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "40m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 165,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 40,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-11-15T13:50:00",
+              "date_to": "2013-04-24T14:50:00",
+              "notes": null,
+              "update_at": "2024-06-20T12:06:48",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "40m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            },
+            {
+              "slope": null,
+              "offset": 262,
+              "sensitivity": null,
+              "measurement_units_id": "deg",
+              "height_m": 40,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2013-10-08T14:00:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "40m Wind Direction (°)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Tmp",
+          "measurement_type_id": "air_temperature",
+          "height_m": 0.5,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "deg_C",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Ext Temp (°C)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Logger_tmp",
+          "measurement_type_id": "temperature",
+          "height_m": 0.5,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "deg_C",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Int Temp (°C)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Prs",
+          "measurement_type_id": "air_pressure",
+          "height_m": 0.5,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "hPa",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Pressure (hPa)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Hum",
+          "measurement_type_id": "relative_humidity",
+          "height_m": 0.5,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "%",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Rel Humidity (%)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Logger_V",
+          "measurement_type_id": "voltage",
+          "height_m": 0.5,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "V",
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Vbatt (V)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Vspd_250m",
+          "measurement_type_id": "vertical_wind_speed",
+          "height_m": 250,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 250,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "250m Z-wind (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "250m Z-wind Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Vspd_200m",
+          "measurement_type_id": "vertical_wind_speed",
+          "height_m": 200,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 200,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "200m Z-wind (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "200m Z-wind Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Vspd_180m",
+          "measurement_type_id": "vertical_wind_speed",
+          "height_m": 180,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 180,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "180m Z-wind (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "180m Z-wind Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Vspd_160m",
+          "measurement_type_id": "vertical_wind_speed",
+          "height_m": 160,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 160,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "160m Z-wind (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "160m Z-wind Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Vspd_140m",
+          "measurement_type_id": "vertical_wind_speed",
+          "height_m": 140,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 140,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "140m Z-wind (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "140m Z-wind Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Vspd_120m",
+          "measurement_type_id": "vertical_wind_speed",
+          "height_m": 120,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 120,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "120m Z-wind (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "120m Z-wind Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Vspd_100m",
+          "measurement_type_id": "vertical_wind_speed",
+          "height_m": 100,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 100,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "100m Z-wind (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "100m Z-wind Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Vspd_80m",
+          "measurement_type_id": "vertical_wind_speed",
+          "height_m": 80,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 80,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "80m Z-wind (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "80m Z-wind Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Vspd_62m",
+          "measurement_type_id": "vertical_wind_speed",
+          "height_m": 62,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 62,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "62m Z-wind (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "62m Z-wind Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Vspd_50m",
+          "measurement_type_id": "vertical_wind_speed",
+          "height_m": 50,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 50,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "50m Z-wind (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "50m Z-wind Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Vspd_40m",
+          "measurement_type_id": "vertical_wind_speed",
+          "height_m": 40,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:35:21",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 40,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "40m Z-wind (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "40m Z-wind Dispersion (m/s)",
+                  "statistic_type_id": "sd",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Wiper",
+          "measurement_type_id": "counter",
+          "height_m": 0.5,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": null,
+              "height_m": null,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "Wiper count",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Avail_250m",
+          "measurement_type_id": "availability",
+          "height_m": 250,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "%",
+              "height_m": 250,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "250m Data Availability (%)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Avail_200m",
+          "measurement_type_id": "availability",
+          "height_m": 200,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "%",
+              "height_m": 200,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "200m Data Availability (%)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Avail_180m",
+          "measurement_type_id": "availability",
+          "height_m": 180,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "%",
+              "height_m": 180,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "180m Data Availability (%)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Avail_160m",
+          "measurement_type_id": "availability",
+          "height_m": 160,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "%",
+              "height_m": 160,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "160m Data Availability (%)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Avail_140m",
+          "measurement_type_id": "availability",
+          "height_m": 140,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "%",
+              "height_m": 140,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "140m Data Availability (%)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Avail_120m",
+          "measurement_type_id": "availability",
+          "height_m": 120,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "%",
+              "height_m": 120,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "120m Data Availability (%)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Avail_100m",
+          "measurement_type_id": "availability",
+          "height_m": 100,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "%",
+              "height_m": 100,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "100m Data Availability (%)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Avail_80m",
+          "measurement_type_id": "availability",
+          "height_m": 80,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "%",
+              "height_m": 80,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "80m Data Availability (%)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Avail_62m",
+          "measurement_type_id": "availability",
+          "height_m": 62,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "%",
+              "height_m": 62,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "62m Data Availability (%)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Avail_50m",
+          "measurement_type_id": "availability",
+          "height_m": 50,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "%",
+              "height_m": 50,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "50m Data Availability (%)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Avail_40m",
+          "measurement_type_id": "availability",
+          "height_m": 40,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "%",
+              "height_m": 40,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "40m Data Availability (%)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CNR_250m",
+          "measurement_type_id": "carrier_to_noise_ratio",
+          "height_m": 250,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "dB",
+              "height_m": 250,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "250m CNR (dB)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "250m CNR min (dB)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CNR_200m",
+          "measurement_type_id": "carrier_to_noise_ratio",
+          "height_m": 200,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "dB",
+              "height_m": 200,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "200m CNR (dB)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "200m CNR min (dB)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CNR_180m",
+          "measurement_type_id": "carrier_to_noise_ratio",
+          "height_m": 180,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "dB",
+              "height_m": 180,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "180m CNR (dB)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "180m CNR min (dB)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CNR_160m",
+          "measurement_type_id": "carrier_to_noise_ratio",
+          "height_m": 160,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "dB",
+              "height_m": 160,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "160m CNR (dB)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "160m CNR min (dB)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CNR_140m",
+          "measurement_type_id": "carrier_to_noise_ratio",
+          "height_m": 140,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "dB",
+              "height_m": 140,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "140m CNR (dB)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "140m CNR min (dB)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CNR_120m",
+          "measurement_type_id": "carrier_to_noise_ratio",
+          "height_m": 120,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "dB",
+              "height_m": 120,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "120m CNR (dB)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "120m CNR min (dB)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CNR_100m",
+          "measurement_type_id": "carrier_to_noise_ratio",
+          "height_m": 100,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "dB",
+              "height_m": 100,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "100m CNR (dB)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "100m CNR min (dB)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CNR_80m",
+          "measurement_type_id": "carrier_to_noise_ratio",
+          "height_m": 80,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "dB",
+              "height_m": 80,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "80m CNR (dB)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "80m CNR min (dB)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CNR_62m",
+          "measurement_type_id": "carrier_to_noise_ratio",
+          "height_m": 62,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "dB",
+              "height_m": 62,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "62m CNR (dB)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "62m CNR min (dB)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CNR_50m",
+          "measurement_type_id": "carrier_to_noise_ratio",
+          "height_m": 50,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "dB",
+              "height_m": 50,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "50m CNR (dB)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "50m CNR min (dB)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CNR_40m",
+          "measurement_type_id": "carrier_to_noise_ratio",
+          "height_m": 40,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "dB",
+              "height_m": 40,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "40m CNR (dB)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                },
+                {
+                  "column_name": "40m CNR min (dB)",
+                  "statistic_type_id": "min",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DSB_250m",
+          "measurement_type_id": "doppler_spectral_broadening",
+          "height_m": 250,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 250,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "250m Dopp Spect Broad (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DSB_200m",
+          "measurement_type_id": "doppler_spectral_broadening",
+          "height_m": 200,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 200,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "200m Dopp Spect Broad (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DSB_180m",
+          "measurement_type_id": "doppler_spectral_broadening",
+          "height_m": 180,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 180,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "180m Dopp Spect Broad (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DSB_160m",
+          "measurement_type_id": "doppler_spectral_broadening",
+          "height_m": 160,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 160,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "160m Dopp Spect Broad (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DSB_140m",
+          "measurement_type_id": "doppler_spectral_broadening",
+          "height_m": 140,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 140,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "140m Dopp Spect Broad (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DSB_120m",
+          "measurement_type_id": "doppler_spectral_broadening",
+          "height_m": 120,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 120,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "120m Dopp Spect Broad (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DSB_100m",
+          "measurement_type_id": "doppler_spectral_broadening",
+          "height_m": 100,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 100,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "100m Dopp Spect Broad (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DSB_80m",
+          "measurement_type_id": "doppler_spectral_broadening",
+          "height_m": 80,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 80,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "80m Dopp Spect Broad (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DSB_62m",
+          "measurement_type_id": "doppler_spectral_broadening",
+          "height_m": 62,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 62,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "62m Dopp Spect Broad (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DSB_50m",
+          "measurement_type_id": "doppler_spectral_broadening",
+          "height_m": 50,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 50,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T13:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "50m Dopp Spect Broad (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DSB_40m",
+          "measurement_type_id": "doppler_spectral_broadening",
+          "height_m": 40,
+          "height_reference_id": "ground_level",
+          "notes": null,
+          "update_at": "2024-05-02T14:27:39",
+          "logger_measurement_config": [
+            {
+              "slope": null,
+              "offset": null,
+              "sensitivity": null,
+              "measurement_units_id": "m/s",
+              "height_m": 40,
+              "serial_number": null,
+              "connection_channel": null,
+              "date_from": "2012-10-23T12:10:00",
+              "date_to": null,
+              "notes": null,
+              "update_at": "2024-05-02T14:27:39",
+              "logger_stated_boom_orientation_deg": null,
+              "column_name": [
+                {
+                  "column_name": "40m Dopp Spect Broad (m/s)",
+                  "statistic_type_id": "avg",
+                  "is_ignored": false,
+                  "notes": null,
+                  "update_at": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "vertical_profiler_properties": [
+        {
+          "device_vertical_orientation": "upward",
+          "device_datum_plane_height_m": 0,
+          "height_reference_id": "ground_level",
+          "device_orientation_deg": 262,
+          "orientation_reference_id": null,
+          "date_from": "2012-10-23T12:10:00",
+          "date_to": "2012-11-23T12:10:00",
+          "notes": "The direction offset configured in the .sta files was 262 deg from 2013-10-08 onwards when the LiDAR was at the Celtic Array site. The orientation reference (true north, magnetic north or grid north) is unknown.",
+          "update_at": "2024-06-20T14:07:38"
+        },
+        {
+          "device_vertical_orientation": "upward",
+          "device_datum_plane_height_m": 0,
+          "height_reference_id": "ground_level",
+          "device_orientation_deg": 265,
+          "orientation_reference_id": null,
+          "date_from": "2012-11-23T12:10:00",
+          "date_to": null,
+          "notes": "The direction offset configured in the .sta files was 265 deg from 2013-10-08 onwards when the LiDAR was at the Celtic Array site. The orientation reference (true north, magnetic north or grid north) is unknown.",
+          "update_at": "2024-06-20T14:07:38"
+        }
+      ]
+    }
+  ],
+  "license": "MDE"
+}

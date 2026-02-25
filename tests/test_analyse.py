@@ -3,6 +3,7 @@ import brightwind as bw
 import pandas as pd
 import numpy as np
 import matplotlib as mpl
+import matplotlib.dates as mdates
 
 DATA = bw.load_csv(bw.demo_datasets.demo_data)
 DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
@@ -11,24 +12,69 @@ WDIR_COLS = ['Dir78mS', 'Dir58mS', 'Dir38mS']
 
 
 def test_monthly_means():
-    # Load data
-    bw.monthly_means(DATA)
-    bw.monthly_means(DATA[['Spd80mN']])
 
-    assert list(round(bw.monthly_means(DATA[WSPD_COLS], return_data=True)[1][
-                      :'2016-01-01'], 5).values[0]) == [9.25346, 9.22915, 8.51025, 8.68109, 8.10126, 8.20393]
-    assert round(bw.monthly_means(DATA.Spd80mN, return_data=True)[1], 5)[0] == 9.25346
+    monthly_means_multiple_columns_plot, monthly_means_multiple_columns_data = bw.monthly_means(
+        DATA[WSPD_COLS], return_data=True, legend=False, ylabel='Test Wind speed [m/s]'
+        )
+    legend = monthly_means_multiple_columns_plot.axes[0].get_legend()
+    assert monthly_means_multiple_columns_plot.axes[0].get_ylabel() == 'Test Wind speed [m/s]'
+    assert len(monthly_means_multiple_columns_plot.axes) == 1
+    assert np.allclose(monthly_means_multiple_columns_data[:'2016-01-01'].values[0], 
+                       [9.25346, 9.22915, 8.51025, 8.68109, 8.10126, 8.20393])
+    assert legend is None
+
+    monthly_means_wcoverage_plot, _ = bw.monthly_means(
+        DATA.Spd80mN, return_data=True, legend=True, return_coverage=True, ylabel='Test Wind speed [m/s]'
+        )
+    assert len(monthly_means_wcoverage_plot.axes) >= 2
+    assert monthly_means_wcoverage_plot.axes[0].get_ylabel() == 'Test Wind speed [m/s]'
+    assert monthly_means_wcoverage_plot.axes[1].get_ylabel() == 'Coverage [-]'
+    assert len(monthly_means_wcoverage_plot.legends[0].get_texts()) == 2
+
+    monthly_means_wcoverage_plot1, _ = bw.monthly_means(
+        DATA.Spd80mN, return_data=False, return_coverage=True, external_legend=True)
+    legend = monthly_means_wcoverage_plot1.legends[0]
+    nrows = legend.properties().get('nrows', 1)  # Default to 1 if 'nrows' is not found
+    ncols = len(legend.get_texts()) // nrows  # Calculate number of columns
+    assert ncols == 2
+
+    monthly_means_single_column_plot, monthly_means_single_column_data = bw.monthly_means(
+        DATA.Spd80mN, return_data=True, xtick_delta='3MS'
+        )
+    xticks = monthly_means_single_column_plot.axes[0].get_xticks()
+    xtick_dates = [pd.Timestamp(mdates.num2date(tick)) for tick in xticks]
+    
+    for i in range(1, len(xtick_dates)):
+        months_diff = (xtick_dates[i].year - xtick_dates[i-1].year) * 12 + (xtick_dates[i].month - xtick_dates[i-1].month)
+        assert months_diff == 3
+        assert xtick_dates[i].day == 1
+    assert np.allclose(monthly_means_single_column_data.iloc[0], 9.25346)
+
     # input data_resolution
     data_monthly = bw.average_data_by_period(DATA.Spd80mS, period='1M')
     data_monthly = data_monthly[data_monthly.index.month.isin([2, 4, 6, 8])]
-    _, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
-                                            data_resolution=pd.DateOffset(months=1))
+    monthly_mean_data_fig, monthly_mean_data = bw.monthly_means(data_monthly, return_data=True,
+                                            data_resolution=pd.DateOffset(months=1), external_legend=True)
+    legend = monthly_mean_data_fig.axes[0].get_legend()
+    xticks = monthly_mean_data_fig.axes[0].get_xticks()
+    xtick_dates = [pd.Timestamp(mdates.num2date(tick)) for tick in xticks]
+
     assert (monthly_mean_data.dropna() == data_monthly).all()
+    assert legend is not None
+    assert legend._bbox_to_anchor is not None
+    for tick_date in xtick_dates:
+        assert tick_date.day == 1
+
+    # to show legend inside and show grid.
+    mm_plot, _ = bw.monthly_means(DATA[['Spd80mN', 'Spd80mS']], return_data=True,  
+                                  legend=True, external_legend=False, show_grid=True)
+    assert any(line.get_visible() for line in mm_plot.axes[0].get_xgridlines() + mm_plot.axes[0].get_ygridlines())
+
     with pytest.raises(ValueError) as except_info:
         bw.monthly_means(data_monthly, return_data=True)
     assert str(except_info.value) == "The time period specified is less than the temporal resolution of the data. " \
                                      "For example, hourly data should not be averaged to 10 minute data."
-
+    
 
 def test_momm():
     # Derive mean of monthly mean with standard method
@@ -93,9 +139,9 @@ def test_sector_ratio():
 def test_basic_stats():
     bw.basic_stats(DATA)
     bs2 = bw.basic_stats(DATA['Spd80mN'])
-    assert (bs2['count'][0] == 95180.0) and (round(bs2['mean'][0], 6) == 7.518636) and \
-           (round(bs2['std'][0], 6) == 3.994552) and (round(bs2['min'][0], 3) == 0.215) and \
-           (round(bs2['max'][0], 1) == 29.0)
+    assert (bs2['count'].iloc[0] == 95180.0) and (round(bs2['mean'].iloc[0], 6) == 7.518636) and \
+           (round(bs2['std'].iloc[0], 6) == 3.994552) and (round(bs2['min'].iloc[0], 3) == 0.215) and \
+           (round(bs2['max'].iloc[0], 1) == 29.0)
 
 
 def test_time_continuity_gaps():
@@ -106,6 +152,12 @@ def test_time_continuity_gaps():
     assert gaps.iloc[1, 1] == pd.Timestamp('2016-03-30 07:10:00')
     assert abs(gaps.iloc[0, 2] - 0.173611) < 1e-5
     assert abs(gaps.iloc[1, 2] - 0.305556) < 1e-5
+    
+    gaps = bw.time_continuity_gaps(DATA['Spd80mN'], pd.Timedelta("4h 30min"))
+    assert gaps.iloc[0, 0] == pd.Timestamp('2016-03-29 23:40:00')
+    assert gaps.iloc[0, 1] == pd.Timestamp('2016-03-30 07:10:00')
+    assert gaps.iloc[1, 0] == pd.Timestamp('2016-05-11 23:00:00')
+    assert gaps.iloc[1, 1] == pd.Timestamp('2016-05-31 15:20:00')
 
     # test for when timesteps are irregular
     # THIS WILL RAISE 3 WARNINGS.
@@ -157,9 +209,9 @@ def test_ti_twelve_by_24():
 
 def test_coverage():
     # hourly coverage
-    assert round(bw.coverage(DATA[['Spd80mN']], period='1H')[
+    assert round(bw.coverage(DATA[['Spd80mN']], period='1h')[
            '2016-01-09 17:00':'2016-01-09 17:30'].values[0][0], 5) == 0.83333
-    assert round(bw.coverage(DATA.Spd80mN, period='1H')[
+    assert round(bw.coverage(DATA.Spd80mN, period='1h')[
            '2016-01-09 17:00':'2016-01-09 17:30'].values[0], 5) == 0.83333
     # monthly_coverage
     assert round(bw.coverage(DATA.Spd80mN, period='1M')['2016-05-01'], 5) == 0.36537
@@ -339,8 +391,24 @@ def test_dist():
 
     # For distribution of multiple sum wind speeds with respect themselves
     bw.dist(DATA[['Spd80mN', 'Spd80mS']], aggregation_method='sum')
+    
+    # For distribution of %frequency of wind speeds with no valid data
+    with pytest.raises(ValueError) as excinfo:
+        bw.dist(DATA.Spd40mN * np.nan, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
+    expected_msg = "Cannot derive distribution of Spd40mN as this is either an empty pandas.Series or contains only NaN or Inf values."
+    assert str(excinfo.value) == expected_msg
+    with pytest.raises(ValueError) as excinfo:
+        bw.dist(DATA.Spd40mN, DATA.Spd40mN * np.nan, bins=[0, 8, 12, 21], bin_labels=['normal', 'gale', 'storm'])
+    expected_msg = "Cannot derive distribution with respect to Spd40mN as this is either an empty pandas.Series or contains only NaN or Inf values."
+    assert str(excinfo.value) == expected_msg
 
-    assert True
+    # For distribution of %frequency of wind speeds with only one bin
+    DATA.Spd40mN = 2
+    fig_dist, dist_values = bw.dist(DATA.Spd40mN, x_label='bin', max_y_value=90, return_data=True)
+    assert dist_values.index.to_list() == [pd.Interval(1.5, 2.5, closed='left')]
+    assert fig_dist.axes[0].get_xlabel() == 'bin'
+    assert fig_dist.axes[0].get_xlim() == (1.2, 2.8)
+    assert fig_dist.axes[0].get_ylim() == (0, 90)
 
     # For distribution of multiple mean wind speeds with respect to temperature
     fig, dist = bw.dist(DATA[['Spd80mN', 'Spd80mS']], var_to_bin_against=DATA.T2m,
@@ -570,20 +638,108 @@ def test_ti_by_sector():
 
 
 def test_calc_air_density():
-    bw.calc_air_density(DATA[['T2m']], DATA[['P2m']])
-    bw.calc_air_density(DATA.T2m, DATA.P2m)
-    bw.calc_air_density(DATA.T2m, DATA.P2m, elevation_ref=0, elevation_site=200)
 
+    # Test error for invalid calc_method
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(DATA.T2m, DATA.P2m, calc_method='invalid_method')
+    assert str(except_info.value) == ("Invalid calc_method. Choose from 'IEC', 'HermanWobus_from_rel_humidity',"
+                                      "'HermanWobus_from_dew_point'.")
+
+    # Tests for default calc_method = 'IEC'
+
+    # Test Series inputs
+    assert list(round(bw.calc_air_density(DATA.T2m, DATA.P2m).tail(5), 6).values
+                ) == [1.199177, 1.199838, 1.199794, 1.199439, 1.201066]
+    assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m).tail(5).values -
+                pd.Series([1.19918, 1.19984, 1.19979, 1.19944, 1.20107])) < 1e-3).all()
+    assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m, rel_humidity_percent=DATA.RH2m).tail(5).values -
+                pd.Series([1.19529, 1.19601, 1.19592, 1.19555, 1.19719])) < 1e-3).all()
+    assert list(bw.calc_air_density(DATA.T2m, DATA.P2m, specific_gas_constant=287.05).head(5).round(6).dropna()
+                ) == [1.187064, 1.187458]
+
+    # Test Series inputs with elevation adjustment
+    assert list(bw.calc_air_density(DATA.T2m, DATA.P2m, elevation_ref=0, elevation_site=200).tail(5).values
+                ) == [1.177, 1.177, 1.177, 1.177, 1.178]
+
+    # Test float/int inputs
+    assert bw.calc_air_density(15, 1013) == 1.2253503331640465
+    assert (bw.calc_air_density(15, 1012, rel_humidity_percent=None, specific_gas_constant=287.05) ==
+            bw.calc_air_density(15, 1012, rel_humidity_percent=0))
+    assert round(bw.calc_air_density(15, 1012, rel_humidity_percent=0), 5) == 1.2235
+    assert round(bw.calc_air_density(15, 1012), 5) == 1.22414
+    assert abs(bw.calc_air_density(15, 1013, specific_gas_constant=287.05) - 1.22471) < 1e-3
+    assert abs(bw.calc_air_density(15, 1013, rel_humidity_percent=50) - 1.22093) < 1e-3
+    assert round(bw.calc_air_density(15, 1013, rel_humidity_percent=50,
+                                     elevation_ref=0, elevation_site=200), 5) == 1.198
+
+    # Test float/int inputs with elevation adjustment
+    assert bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200) == 1.203
+    assert bw.calc_air_density(15, 1013, rel_humidity_percent=50, elevation_ref=0, elevation_site=200
+                               ) - bw.transform.scale.scale_air_density_to_height(
+                                   bw.calc_air_density(15, 1013, rel_humidity_percent=50), 0, 200) < 1e-3
+
+    # Test errors
     with pytest.raises(TypeError) as except_info:
         bw.calc_air_density(15, 1013, elevation_site=200)
-    assert str(except_info.value) == 'elevation_ref should be a number'
+    assert str(except_info.value) == "Specify value of elevation_ref (float or int) when elevation_site is provided."
     with pytest.raises(TypeError) as except_info:
         bw.calc_air_density(15, 1013, elevation_ref=200)
-    assert str(except_info.value) == 'elevation_site should be a number'
-    assert abs(bw.calc_air_density(15, 1013) - 1.225) < 1e-3
-    assert abs(bw.calc_air_density(15, 1013, elevation_ref=0, elevation_site=200) - 1.203) < 1e-3
-    assert (abs(bw.calc_air_density(pd.Series([15, 12.5, -5, 23]), pd.Series([1013, 990, 1020, 900])) -
-                pd.Series([1.225, 1.208, 1.326, 1.059])) < 1e-3).all()
+    assert str(except_info.value) == "Specify value of elevation_site (float or int) when elevation_ref is provided."
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(DATA.T2m.tail(5), DATA['P2m'].tail(3), rel_humidity_percent=DATA.RH2m.tail(5))
+    assert str(except_info.value) == "temperature and pressure must have the same dimensions."
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(DATA.T2m.tail(5), DATA['P2m'].tail(5), rel_humidity_percent=DATA.RH2m.tail(3))
+    assert str(except_info.value) == "temperature, pressure and rel_humidity_percent must have the same dimensions."
+
+    # Tests for calc_method = 'HermanWobus_from_rel_humidity'
+
+    # Check error is raised when rel_humidity_percent is not provided
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(0.711, 935,
+                            calc_method='HermanWobus_from_rel_humidity')
+    assert str(except_info.value) == ("For 'HermanWobus_from_rel_humidity' calc_method, both air_temperature_degC"
+                                      " and rel_humidity_percent must be provided.")
+
+    # Test Series inputs
+    assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m, rel_humidity_percent=DATA.RH2m,
+                                    calc_method='HermanWobus_from_rel_humidity').tail(5).values -
+                pd.Series([1.19541777, 1.19614486, 1.19605542, 1.19568365, 1.19732707]) < 1e-3)).all()
+    # Test float inputs
+    assert bw.calc_air_density(0.711, 935, rel_humidity_percent=50,
+                               calc_method='HermanWobus_from_rel_humidity') - 1.1878427585014013 < 1e-6
+
+    # Tests for calc_method = 'HermanWobus_from_dew_point'
+
+    # Check error is raised when dew_point_temperature_degC is not provided
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_air_density(0.711, 935, rel_humidity_percent=85,
+                            calc_method='HermanWobus_from_dew_point')
+    assert str(except_info.value) == ("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
+                                      " provided.")
+
+    # Check error is raised when dew_point_temperature_degC > temperature
+    msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature "
+           "values.\n This implies that the relative humidity would be greater than 100%.")
+    with pytest.warns(UserWarning, match=msg):
+        bw.calc_air_density(1, 935, dew_point_temperature_degC=5,
+                            calc_method='HermanWobus_from_dew_point')
+
+    with pytest.warns(UserWarning, match=msg):
+        bw.calc_air_density(DATA.T2m.tail(3), DATA.P2m.tail(3),
+                            dew_point_temperature_degC=DATA.T2m.tail(3) + 5,
+                            calc_method='HermanWobus_from_dew_point')
+
+    # Test Series inputs
+    dew_point_temp = DATA.T2m - 0.5
+    assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m,
+                                    dew_point_temperature_degC=dew_point_temp,
+                                    calc_method='HermanWobus_from_dew_point').tail(5).values -
+                pd.Series([1.19551981, 1.19621178, 1.19616594, 1.19579471, 1.19743759]) < 1e-3)).all()
+    # Test float inputs
+    assert bw.calc_air_density(0.711, 935,
+                               dew_point_temperature_degC=-1.299,
+                               calc_method='HermanWobus_from_dew_point') - 1.186717791022866 < 1e-6
 
 
 def test_dist_matrix_by_direction_sector():
@@ -597,3 +753,43 @@ def test_dist_matrix_by_direction_sector():
                                  var_to_bin_by_array=[-8, -5, 5, 10, 15, 20, 26], sectors=8)
     assert True
 
+
+def test_calc_rel_humidity_from_dew_point():
+    # test error for dew point greater than temperature
+    msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature "
+           "values.\n This will result in a calculated relative humidity value greater than 100%.")
+    with pytest.warns(UserWarning, match=msg):
+        bw.calc_rel_humidity_from_dew_point(11, 10)
+    with pytest.warns(UserWarning, match=msg):
+        bw.calc_rel_humidity_from_dew_point(dew_point_temperature_degC=DATA.T2m.tail(3)+[-1, 0, 1],
+                                            air_temperature_degC=DATA.T2m.tail(3))
+    with pytest.warns(UserWarning, match=msg):
+        bw.calc_rel_humidity_from_dew_point(dew_point_temperature_degC=20,
+                                            air_temperature_degC=DATA.T2m.tail(3))
+    with pytest.warns(UserWarning, match=msg):
+        bw.calc_rel_humidity_from_dew_point(dew_point_temperature_degC=DATA.T2m.tail(3),
+                                            air_temperature_degC=0)
+
+    # test error for Series inputs with different lengths
+    with pytest.raises(ValueError) as except_info:
+        bw.calc_rel_humidity_from_dew_point(DATA.T2m.tail(5), DATA.T2m.tail(3))
+    assert str(except_info.value) == "air_temperature_degC and dew_point_temperature_degC must have the same dimensions."
+    # test float/int inputs
+    assert bw.calc_rel_humidity_from_dew_point(10, 11) - 93.54469072330612 < 1e-3
+    assert bw.calc_rel_humidity_from_dew_point(12.1, 12.1) == 100
+    # test Series inputs
+    merra2_node = bw.LoadBrightHub.get_reanalysis('MERRA-2', 53.5, -10.8, '2025-01-01', '2025-02-01',
+                                                  nearest_nodes=1, variables=['Tmp_2m_degC', 'DPTmp_2m_degC'],
+                                                  print_status=True)
+    assert (abs(bw.calc_rel_humidity_from_dew_point(merra2_node[1]['DPTmp_2m_degC'],
+                                                    merra2_node[1]['Tmp_2m_degC']).head(5).values -
+                pd.Series([71.97026223, 72.4558096, 72.94502496, 73.9525735, 74.45269691])) < 1e-3).all()
+
+
+def test_calc_water_saturation_vapour_pressure_Pa():
+    # test float input
+    assert abs(bw.analyse.analyse._calc_water_saturation_vapour_pressure_Pa(20) - 2337.237477998109) < 1e-4
+
+    # test series input
+    assert abs(bw.analyse.analyse._calc_water_saturation_vapour_pressure_Pa(DATA.T2m.tail(3)).values -
+               pd.Series([647.3225, 651.1171, 647.3225]) < 1e-4).all()
