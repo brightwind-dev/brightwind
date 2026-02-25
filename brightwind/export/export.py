@@ -114,11 +114,11 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
     :type northings:            float
     :param height:              Height that the timeseries represents in meters.
     :type height:               float
-    :param wspd_series:         Series of wind speed variable.
+    :param wspd_series:         Series of wind speed variable with datetimeindex.
     :type wspd_series:          pandas.Series
-    :param direction_series:    Series of wind directions between [0-360].
+    :param direction_series:    Series of wind directions between [0-360] with datetimeindex.
     :type direction_series:     pandas.Series
-    :param wspd_std_series:     Series of wind speed standard deviations.
+    :param wspd_std_series:     Series of wind speed standard deviations with datetimeindex.
     :type wspd_std_series:      pandas.Series
     :param site_name:           The site name to include in the file, or use the default "brightwind_site",
                                 i.e 'Demo Data'.
@@ -149,6 +149,13 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
             
     if wspd_std_series is not None and not isinstance(wspd_std_series, pd.Series):         
         raise TypeError(f"'wspd_std_series' must be type: {pd.Series}, received: {type(wspd_std_series).__name__}")
+        
+    # Value checks
+    if not direction_series.dropna().between(0, 360).all():
+        raise ValueError("direction_series values must be between 0 and 360")
+        
+    if height not in range(0, 400):
+        raise ValueError("height value must be between 0 and 400")
             
     # Optional inputs
     site_name = 'brightwind_site' if site_name is None else site_name
@@ -164,8 +171,6 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
     # Setup
     file_name_print = os.path.splitext(file_name)[0]
     file_path = os.path.join(folder_path, file_name)
-
-    eastings, northings = int(round(eastings,0)), int(round(northings,0))
     
     local_wspd_series = brightwind.analyse.analyse._convert_df_to_series(wspd_series.copy())
     local_direction_series = brightwind.analyse.analyse._convert_df_to_series(direction_series.copy())
@@ -175,7 +180,7 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
     current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     version = brightwind.__version__
     
-    tws_string = f"{str(file_name_print)} created using brightwind version {version} at {current_timestamp}.\n"
+    tws_string = f"{file_name_print} created using brightwind version {version} at {current_timestamp}.\n"
     
     # Prepare timeseries output
     tws_output = pd.concat([round(local_direction_series,4),round(local_wspd_series,4)],axis=1, keys=['dir:','speed:'])
@@ -198,7 +203,7 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
     tws_string += 'version            : 48\n'
     tws_string += 'site name          : ' + site_name + '\n'
     tws_string += 'measurement period : ' + start_id + ' - ' + end_id + '\n'
-    tws_string += 'site position      : ' + str(eastings) + '    ' + str(northings) + '\n'
+    tws_string += 'site position      : ' + f"{eastings:.0f}" + '    ' + f"{northings:.0f}" + '\n'
     tws_string += 'coordinate system  : 3\n'
     tws_string += 'measurement height : ' + str(height) + '\n\n'
     
@@ -213,7 +218,7 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
         tws_output.to_csv(file, header=False, sep=" ", mode='a', lineterminator='\n')
     
     # Print success message
-    print(f'Export of tws file "{str(file_name)}" successful.\nEastings: {eastings}E, Northings: {northings}N, Height: {str(height)} m\n')
+    print(f'Export of tws file {file_name} successful.\nEastings: {eastings:.0f} E, Northings: {northings:.0f} N, Height: {height} m\n')
 
 
 def export_csv(data, file_name=None, folder_path=None, **kwargs):
