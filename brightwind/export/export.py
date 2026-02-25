@@ -137,7 +137,19 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
 
         bw.export_tws_file(626100, 827971, 80, df.Spd80mN, df.Dir78mS, site_name='Demo Data', file_name='campbell_tws_file')"""
         
+    
+    # Type checks
+    names    = ['eastings', 'northings', 'height', 'wspd_series', 'direction_series']
+    objs     = [ eastings,   northings,   height,   wspd_series,   direction_series]
+    expected = [(int,float), (int,float), (int,float), pd.Series,  pd.Series]
 
+    for name, obj, exp in zip(names, objs, expected):
+        if not isinstance(obj, exp):
+            raise TypeError(f"'{name}' must be type: {exp}, received: {type(obj).__name__}")
+            
+    if wspd_std_series is not None and not isinstance(wspd_std_series, pd.Series):         
+        raise TypeError(f"'wspd_std_series' must be type: {pd.Series}, received: {type(wspd_std_series).__name__}")
+            
     # Optional inputs
     site_name = 'brightwind_site' if site_name is None else site_name
 
