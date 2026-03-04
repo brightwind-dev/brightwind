@@ -1077,10 +1077,10 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False, apply_to_rela
     :param measurements:                Measurement information extracted from a WRA Data Model using 
                                         bw.MeasurementStation
     :type measurements:                 list or dict or _Measurements
-    :param inplace:                     If 'inplace' is True, the original direction data, contained in 'data', will be
-                                        modified and replaced with the adjusted direction data. If 'inplace' is False, 
+    :param inplace:                     If 'inplace' is True, the original wind speed data, contained in 'data', will be
+                                        modified and replaced with the adjusted wind speed data. If 'inplace' is False, 
                                         the original data will not be touched and instead a new DataFrame containing the
-                                        adjusted direction data is created. To store this adjusted direction data, 
+                                        adjusted wind speed data is created. To store this adjusted wind speed data, 
                                         please ensure it is assigned to a new variable.
     :type inplace:                      bool
     :param apply_to_related_statistics: If True, apply the adjustment to related statistics (e.g. if Spd60mS is 
@@ -1115,14 +1115,22 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False, apply_to_rela
     Send a specific wind speed property::
         bw.apply_wspd_slope_offset_adj(data, mm1.measurements['Spd60mS'], inplace=True)
 
-    Send a specific wind direction property and data column::
+    Send a specific wind speed property and data column::
         bw.apply_wspd_slope_offset_adj(data['Spd60mS'], mm1.measurements['Spd60mS'], inplace=True)
+
+    Send a specific wind speed property and data column and adjust related statistics::
+        data_edited = data.copy(deep=True)
+        data_edited = data_edited.rename(columns={'Spd60mSMax': 'Spd60mS_max', 'Spd60mSStd': 'Spd60mS_sd'})
+        bw.apply_wspd_slope_offset_adj(data_edited[['Spd80mS', 'Spd80mS_max', 'Spd80mS_sd']], 
+                                       mm1.measurements['Spd80mS'], inplace=True, 
+                                       apply_to_related_statistics=True)
 
     """
     # Depending on what is sent, get wspd properties into a list of properties
     wspd_properties = _get_consistent_properties_format(measurements, 'wind_speed')
     if not wspd_properties:
-        raise ValueError('No wind speed measurements found.')
+        raise ValueError("No wind speed measurements found in the 'measurements' input. "
+                         "No slope and offset adjustments can be applied.")
 
     # copy the data if needed
     data = data.copy(deep=True) if inplace is False else data

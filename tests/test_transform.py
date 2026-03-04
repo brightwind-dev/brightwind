@@ -172,7 +172,6 @@ def test_apply_wspd_slope_offset_adj():
     )
 
 
-
 def test_offset_wind_direction_float():
     wdir_offset = float(5)
     assert wdir_offset == bw.offset_wind_direction(float(20), 345)
@@ -452,6 +451,7 @@ def test_apply_device_orientation_offset_table_returned():
         'Date From': '2013-10-08T14:00:00',
         'Date To': None}]).set_index('Name')
     pd.testing.assert_frame_equal(table, expected_table)
+
 
 def test_apply_device_orientation_offset():
 
