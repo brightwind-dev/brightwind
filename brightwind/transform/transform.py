@@ -1120,10 +1120,10 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False, apply_to_rela
 
     Send a specific wind speed property and data column and adjust related statistics::
         data_edited = data.copy(deep=True)
-        data_edited = data_edited.rename(columns={'Spd60mSMax': 'Spd60mS_max', 'Spd60mSStd': 'Spd60mS_sd'})
-        bw.apply_wspd_slope_offset_adj(data_edited[['Spd80mS', 'Spd80mS_max', 'Spd80mS_sd']], 
-                                       mm1.measurements['Spd80mS'], inplace=True, 
-                                       apply_to_related_statistics=True)
+        data_edited = data_edited.rename(columns={'Spd80mSMax': 'Spd80mS_max', 'Spd80mSStd': 'Spd80mS_sd'})
+        data_calib_adj = bw.apply_wspd_slope_offset_adj(data_edited[['Spd80mS', 'Spd80mS_max', 'Spd80mS_sd']], 
+                                                        mm1.measurements['Spd80mS'], inplace=False, 
+                                                        apply_to_related_statistics=True)
 
     """
     # Depending on what is sent, get wspd properties into a list of properties
