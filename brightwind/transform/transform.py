@@ -1143,6 +1143,7 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False, apply_to_rela
         name = wspd_prop['name']
         if not apply_to_related_statistics:
             associated_statistics = [""]
+            uncorrected_associated_statistics = []
         else:
             associated_statistics = [
                 "" if prop["statistic_type_id"] == "avg" else prop["statistic_type_id"]
