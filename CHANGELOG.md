@@ -10,7 +10,34 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
 ---
+## [2.6.0-dev]
+XX-Xxx-2026
 
+### New Features and Enhancements
+1. 
+
+### Deprecated
+1. 
+
+### Bug Fixes
+1. 
+
+---
+## [2.5.0]
+12-Feb-2026
+
+### New Features and Enhancements
+1. Updated `calc_air_density()` to incorporate additional methods. The methods differ in their approach to deriving water vapour pressure using `_calc_water_vapour_pressure_Pa()` and include the pre-existing 'IEC' method (default). The two new methods are based on the Herman Wobus approximation (`_calc_water_saturation_vapour_pressure_Pa()`) and require either relative humidity or dew point temperature as inputs. ([#539](https://github.com/brightwind-dev/brightwind/issues/539)).
+2. Added `calc_rel_humidity_from_dew_point()` to calculate relative humidity from air temperature and dew point temperature. ([#581](https://github.com/brightwind-dev/brightwind/issues/581)).
+3. Updated `MeasurementStation` function `__get_properties()` in order to raise child properties when flattening the dictionary to include sub-lists and sub-dictionaries when raising the following parts of the data model 'mast_properties', 'logger_measurement_config', 'sensor' and 'mounting_arrangement'. This is called by a user with `MeasurementStation.properties` or `MeasurementStation.measurements.properties` ([#576](https://github.com/brightwind-dev/brightwind/issues/576))
+4. Updated `apply_wind_vane_deadband_offset()` to use same core function than `apply_device_orientation_offset()` for the adjustment. ([#498](https://github.com/brightwind-dev/brightwind/issues/498))
+5. Updated `apply_device_orientation_offset()` and `apply_wind_vane_deadband_offset()` in order to also apply directional adjustment to related columns (for 'avg', 'min', 'max' and 'gust' statistic types) in addition to the main variable itself. ([#574](https://github.com/brightwind-dev/brightwind/issues/574)).
+
+### Bug Fixes
+1. Fixed two bugs on `apply_device_orientation_offset()` reported table and prints. ([#571](https://github.com/brightwind-dev/brightwind/issues/571))
+2. Fixed bug on `apply_wind_vane_deadband_offset()` reported table and prints. ([#569](https://github.com/brightwind-dev/brightwind/issues/569))
+
+---
 ## [2.4.0]
 
 ### New Features and Enhancements
@@ -41,7 +68,41 @@ Additional labels for pre-release and build metadata are available as extensions
 1. Fixed pandas deprecating warnings that were linked to frequency strings, .groupby() and .map(). ([#407](https://github.com/brightwind-dev/brightwind/issues/407), [#415](https://github.com/brightwind-dev/brightwind/issues/415) and [#445](https://github.com/brightwind-dev/brightwind/issues/445))
 
 
+---
+## [2.4.0]
+17-Dec-2025
+
+### New Features and Enhancements
+1. Added `scale_air_pressure_to_height()` to output an air pressure value for any height based on reference air temperature and air pressure values at a different measurement height. ([#531](https://github.com/brightwind-dev/brightwind/issues/531))
+2. Added `scale_air_density_to_height()` to output an air density value for any height by applying a constant lapse rate to a known reference air density value at a reference measurement height. ([#534](https://github.com/brightwind-dev/brightwind/issues/534)) 
+3. Added `scale_air_temperature_to_height()` to output an air temperature value for any height by applying a constant lapse rate to a known reference air temperature value at a reference measurement height. ([#530](https://github.com/brightwind-dev/brightwind/issues/530))
+4. Updated `calc_air_density()` to include relative humidity as suggested in IEC 61400-12-1. ([#535](https://github.com/brightwind-dev/brightwind/issues/535))
+   1. Added deprecation warning the `specific_gas_constant` argument of `calc_air_density()` will be removed in v3.0.
+   1. Added deprecation warning the scaling of air density to height within `calc_air_density()` will be removed in v3.0. Users should use `scale_air_density_to_height()` separately instead.
+5. Added `apply_scale_factor()` to scale data by the scale_factor. ([#541](https://github.com/brightwind-dev/brightwind/issues/541))
+6. Added optional output to `apply_wind_vane_deadband_offset()` which provides a results table showing the applied offset. ([#520](https://github.com/brightwind-dev/brightwind/issues/520))
+7. Added optional output to `apply_device_orientation_offset()` which provides a results table showing the applied offset. ([#521](https://github.com/brightwind-dev/brightwind/issues/521)).
+8. Updated `LoadBrightHub()` to use BrightHub API Keys. ([#550](https://github.com/brightwind-dev/brightwind/issues/550))
+   1. Added deprecation warning the username and password method of authenticating in BrightHub will be removed in a future version.
+9. Updated `time_continuity_gaps()` in order to take an argument `minimum_gap_length` which allows the user to filter the time gaps returned. (Issue [#545](https://github.com/brightwind-dev/brightwind/issues/545))
+10. Updated `offset_timestamps()`to include last timestamp when date_to is unspecified, so that offset is applied to the entire record if date_to not specified. ([#504](https://github.com/brightwind-dev/brightwind/issues/504))
+
+### Deprecated
+1. `LoadBrightdata()` is deprecated and will be removed in version 3.0. Please use `LoadBrightHub()` instead to continue accessing reanalysis data.
+2. `LoadBrightHub()` authentication using email and password is deprecated and will be removed in v3.0. Please migrate to API key authentication. Create and manage API keys at: https://brighthub.io/account-settings/settings.
+3. `specific_gas_constant` argument of `calc_air_density()` is deprecated and will be removed in v3.0 because the updated method depends on the gas constants for dry air and water vapour, making this argument redundant.
+4. The scaling of air density to height within `calc_air_density()` is deprecated and will be removed in v3.0. Users should use `scale_air_density_to_height()` separately instead.
+5. Support for **Python ≤ 3.10** is deprecated and will be dropped in v3.0.0. Users should upgrade to Python 3.11 or newer. 
+6. Support for **Pandas ≤ 2.2** is deprecated and will be dropped in v3.0.0. Users should upgrade to Pandas 2.3 or newer.
+
+### Bug Fixes
+1. Fixed pandas<3.0.0 and numpy<2.3.1 dependencies, ([#458](https://github.com/brightwind-dev/brightwind/issues/458))
+2. Fixed pandas deprecating warnings that were linked to frequency strings, .groupby() and .map(). ([#407](https://github.com/brightwind-dev/brightwind/issues/407), [#415](https://github.com/brightwind-dev/brightwind/issues/415) and [#445](https://github.com/brightwind-dev/brightwind/issues/445))
+
+---
 ## [2.3.0]
+14-Apr-2025
+
 This update brings a comprehensive set of **bug fixes** and **enhancements** across the Brightwind library. 
 Key improvements include more reliable wind and solar data handling, expanded plotting capabilities (including 
 colormap support and better legends), and the introduction of new functions for downloading and applying cleaning rules 
