@@ -14,7 +14,8 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. 
+1. Updated `MeasurementStation` function `_mast_section_geometry` to extract mast section geometry properties. This is called by a user with `MeasurementStation.mast_section_geometry`. ([#362](https://github.com/brightwind-dev/brightwind/issues/362))
+
 
 ### Deprecated
 1. 
