@@ -106,23 +106,23 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, folder_path=Non
 
        
 def export_tws_file(
-        eastings, northings, height, wspd_series, direction_series, wspd_std_series=None, site_name=None, 
+        wspd_series, direction_series, eastings, northings, height, wspd_std_series=None, site_name=None, 
         file_name=None, folder_path=None
         ):
     """
     Export a WindSim timeseries tws file using a timeseries of wind speed, wind direction and optionally 
     standard deviation of wind speed.
 
+    :param wspd_series:         Series of wind speed variable with datetimeindex.
+    :type wspd_series:          pandas.Series
+    :param direction_series:    Series of wind direction variable between [0-360] with datetimeindex.
+    :type direction_series:     pandas.Series
     :param eastings:            Eastings of the measurement location in meters.
     :type eastings:             float
     :param northings:           Northings of the measurement location in meters.
     :type northings:            float
     :param height:              Height that the timeseries represents in meters.
     :type height:               float
-    :param wspd_series:         Series of wind speed variable with datetimeindex.
-    :type wspd_series:          pandas.Series
-    :param direction_series:    Series of wind direction variable between [0-360] with datetimeindex.
-    :type direction_series:     pandas.Series
     :param wspd_std_series:     Series of wind speed standard deviations with datetimeindex.
     :type wspd_std_series:      pandas.Series
     :param site_name:           The site name to include in the file, or use the default "brightwind_site",
@@ -142,10 +142,10 @@ def export_tws_file(
         data = bw.apply_cleaning(data, bw.demo_datasets.demo_cleaning_file)
 
         bw.export_tws_file(
-            626100, 827971, 80, data.Spd40mN, data.Dir38mS, data.Spd40mNStd, site_name='Demo Data', file_name='demo.tws'
+            data.Spd40mN, data.Dir38mS, 626100, 827971, 80, data.Spd40mNStd, site_name='Demo Data', file_name='demo.tws'
             )
         bw.export_tws_file(
-            626100, 827971, 80, data.Spd40mN, data.Dir38mS, site_name='Demo Data', file_name='demo_no_std.tws'
+            data.Spd40mN, data.Dir38mS, 626100, 827971, 80, site_name='Demo Data', file_name='demo_no_std.tws'
             )
     """
         

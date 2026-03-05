@@ -23,7 +23,7 @@ def test_export_tab_file():
 def test_export_tws_file():
     # Generate the files
     bw.export_tws_file(
-        10, 10, 80, DATA.Spd40mN.iloc[:20], DATA.Dir38mS.iloc[:20], DATA.Spd40mNStd.iloc[:20], 
+        DATA.Spd40mN.iloc[:20], DATA.Dir38mS.iloc[:20], 10, 10, 80, DATA.Spd40mNStd.iloc[:20], 
         file_name='export_tws_file.tws', folder_path=TEMP_FOLDER
         )
     
