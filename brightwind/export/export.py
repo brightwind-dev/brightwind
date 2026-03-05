@@ -105,8 +105,13 @@ def export_tab_file(freq_tab, height, lat, long, file_name=None, folder_path=Non
                     str(lat), str(long), str(height)))
 
        
-def export_tws_file(eastings, northings, height, wspd_series, direction_series, wspd_std_series=None, site_name=None, file_name=None, folder_path=None):
-    """Export a WindSim timeseries tws file using a timeseries of wind speed and direction.
+def export_tws_file(
+        eastings, northings, height, wspd_series, direction_series, wspd_std_series=None, site_name=None, 
+        file_name=None, folder_path=None
+        ):
+    """
+    Export a WindSim timeseries tws file using a timeseries of wind speed, wind direction and optionally 
+    standard deviation of wind speed.
 
     :param eastings:            Eastings of the measurement location in meters.
     :type eastings:             float
@@ -116,26 +121,33 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
     :type height:               float
     :param wspd_series:         Series of wind speed variable with datetimeindex.
     :type wspd_series:          pandas.Series
-    :param direction_series:    Series of wind directions between [0-360] with datetimeindex.
+    :param direction_series:    Series of wind direction variable between [0-360] with datetimeindex.
     :type direction_series:     pandas.Series
     :param wspd_std_series:     Series of wind speed standard deviations with datetimeindex.
     :type wspd_std_series:      pandas.Series
     :param site_name:           The site name to include in the file, or use the default "brightwind_site",
                                 i.e 'Demo Data'.
     :type site_name:            str
-    :param file_name:           The file name under which the tab file will be saved, or use the default,
+    :param file_name:           The file name under which the tws file will be saved, or use the default,
                                 i.e '2019-06-07_brightwind_tws_export.tws'.
     :type file_name:            str
-    :param folder_path:         The directory where the tab file will be saved, default is the working directory.
+    :param folder_path:         The directory where the tws file will be saved, default is the working directory.
     :type folder_path:          str
     :return:                    Creates a WindSim timeseries tws file which can be used in the WindSim software.
 
     **Example Usage**
     ::
         import brightwind as bw
-        df = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        data = bw.apply_cleaning(data, bw.demo_datasets.demo_cleaning_file)
 
-        bw.export_tws_file(626100, 827971, 80, df.Spd80mN, df.Dir78mS, site_name='Demo Data', file_name='campbell_tws_file')"""
+        bw.export_tws_file(
+            626100, 827971, 80, data.Spd40mN, data.Dir38mS, data.Spd40mNStd, site_name='Demo Data', file_name='demo.tws'
+            )
+        bw.export_tws_file(
+            626100, 827971, 80, data.Spd40mN, data.Dir38mS, site_name='Demo Data', file_name='demo_no_std.tws'
+            )
+    """
         
     
     # Type checks
@@ -149,7 +161,12 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
             
     if wspd_std_series is not None and not isinstance(wspd_std_series, pd.Series):         
         raise TypeError(f"'wspd_std_series' must be type: {pd.Series}, received: {type(wspd_std_series).__name__}")
-        
+    if len(wspd_series) != len(direction_series):
+        raise ValueError("The lengths of 'wspd_series' and 'direction_series' are not the same.")
+    if wspd_std_series is not None and len(wspd_series) != len(wspd_std_series):
+        raise ValueError("The length of 'wspd_std_series' is not equal to 'wspd_series' and 'direction_series'.")
+
+
     # Value checks
     if not direction_series.dropna().between(0, 360).all():
         raise ValueError("direction_series values must be between 0 and 360")
@@ -183,9 +200,9 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
     tws_string = f"{file_name_print} created using brightwind version {version} at {current_timestamp}.\n"
     
     # Prepare timeseries output
-    tws_output = pd.concat([round(local_direction_series,4),round(local_wspd_series,4)],axis=1, keys=['dir:','speed:'])
+    tws_output = pd.concat([local_direction_series, local_wspd_series],axis=1, keys=['dir:','speed:'])
     if include_sd: 
-        tws_output['SDspeed:'] = round(local_wspd_sd_series,4)
+        tws_output['SDspeed:'] = local_wspd_sd_series
     
     tws_output = tws_output.dropna()
 
@@ -212,6 +229,11 @@ def export_tws_file(eastings, northings, height, wspd_series, direction_series, 
     else:
         tws_string += 'rec nr: year: mon: date: hour: min: dir: speed:\n'
     
+    tws_output['speed:'] = tws_output['speed:'].map('{:.3f}'.format)
+    if include_sd:
+        tws_output['SDspeed:'] = tws_output['SDspeed:'].map('{:.3f}'.format)
+    tws_output['dir:'] = tws_output['dir:'].map('{:.1f}'.format)
+
     # Write to file
     with open(str(file_path), "w") as file:
         file.write(tws_string)

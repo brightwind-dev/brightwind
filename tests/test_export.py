@@ -22,11 +22,13 @@ def test_export_tab_file():
 
 def test_export_tws_file():
     # Generate the files
-    bw.export_tws_file(10, 10, 80, DATA.Spd40mN, DATA.Dir38mS, file_name='export_tws_file.tws', folder_path=TEMP_FOLDER)
-    bw.export_tws_file(10, 10, 80, DATA[['Spd40mN']], DATA[['Dir38mS']], DATA[['Spd40mNStd']], file_name='export_tws_file_1.tws', folder_path=TEMP_FOLDER)
+    bw.export_tws_file(
+        10, 10, 80, DATA.Spd40mN.iloc[:20], DATA.Dir38mS.iloc[:20], DATA.Spd40mNStd.iloc[:20], 
+        file_name='export_tws_file.tws', folder_path=TEMP_FOLDER
+        )
     
     # Load the export file and test that it matches the test file
-    with open("..\\brightwind\demo_datasets\export_tws_file_TEST.tws", "r") as f:
+    with open(r"..\brightwind\demo_datasets\demo_tws_file.tws", "r") as f:
         test_file = f.read()
         
     with open('temp\export_tws_file.tws', "r") as f:
