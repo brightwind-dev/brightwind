@@ -156,7 +156,7 @@ def test_apply_wspd_slope_offset_adj():
             DATA_ADJUSTED['Spd60mS'].fillna(0).round(10)).all()
     
     DATA['Spd80mS_max'] = DATA['Spd80mS'] + 10
-    data = bw.apply_wspd_slope_offset_adj(DATA, STATION.measurements)
+    data = bw.apply_wspd_slope_offset_adj(DATA, STATION.measurements, apply_to_related_statistics=True)
     assert np.allclose(
         data['Spd80mS_max'],
         bw.adjust_slope_offset(DATA['Spd80mS_max'], 0.8445, 0.321, 0.84449, 0.3209),
@@ -164,7 +164,7 @@ def test_apply_wspd_slope_offset_adj():
     )
     
     DATA['Spd80mS_sd'] = DATA['Spd80mS'] + 10
-    data = bw.apply_wspd_slope_offset_adj(DATA, STATION.measurements)
+    data = bw.apply_wspd_slope_offset_adj(DATA, STATION.measurements, apply_to_related_statistics=True)
     assert np.allclose(
         data['Spd80mS_sd'],
         bw.adjust_slope_offset(DATA['Spd80mS_sd'], 0.8445, 0, 0.84449, 0),
