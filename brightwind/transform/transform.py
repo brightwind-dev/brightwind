@@ -1121,14 +1121,22 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False, apply_to_rela
     Send a specific wind speed property::
         bw.apply_wspd_slope_offset_adj(data, mm1.measurements['Spd60mS'], inplace=True)
 
-    Send a specific wind direction property and data column::
+    Send a specific wind speed property and data column::
         bw.apply_wspd_slope_offset_adj(data['Spd60mS'], mm1.measurements['Spd60mS'], inplace=True)
+
+    Send a specific wind speed property and data column and adjust related statistics::
+        data_edited = data.copy(deep=True)
+        data_edited = data_edited.rename(columns={'Spd80mSMax': 'Spd80mS_max', 'Spd80mSStd': 'Spd80mS_sd'})
+        data_calib_adj = bw.apply_wspd_slope_offset_adj(data_edited[['Spd80mS', 'Spd80mS_max', 'Spd80mS_sd']], 
+                                                        mm1.measurements['Spd80mS'], inplace=False, 
+                                                        apply_to_related_statistics=True)
 
     """
     # Depending on what is sent, get wspd properties into a list of properties
     wspd_properties = _get_consistent_properties_format(measurements, 'wind_speed')
     if not wspd_properties:
-        raise ValueError('No wind speed measurements found.')
+        raise ValueError("No wind speed measurements found in the 'measurements' input. "
+                         "No slope and offset adjustments can be applied.")
 
     # copy the data if needed
     data = data.copy(deep=True) if inplace is False else data
@@ -1141,6 +1149,7 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False, apply_to_rela
         name = wspd_prop['name']
         if not apply_to_related_statistics:
             associated_statistics = [""]
+            uncorrected_associated_statistics = []
         else:
             associated_statistics = [
                 "" if prop["statistic_type_id"] == "avg" else prop["statistic_type_id"]
