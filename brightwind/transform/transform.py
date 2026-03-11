@@ -1212,7 +1212,8 @@ def apply_wspd_slope_offset_adj(data, measurements, inplace=False, apply_to_rela
                         new_slope=float(wspd_prop[variables['cal_slope']]),
                         new_offset=new_offset
                         )
-                    adjusted_slope_offset.append(var_name)
+                    (adjusted_slope_only if stat in ["sd", "range"] else adjusted_slope_offset).append(var_name)
+                    
                 except TypeError:
                     print('{} has TypeError with logger or calibration slope and offset values. Skipping.\n'
                         .format(utils.bold(var_name)))
