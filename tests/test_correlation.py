@@ -357,6 +357,21 @@ def test_synthesize():
     assert ss_cor._ref_spd_col_name == 'Spd80mN_ref'
     assert ss_cor._tar_spd_col_name == 'Spd80mN'
 
+    # Test that synthesize(input_spd, input_dir) preserves NaN timestamps — output length must
+    # equal input length, and rows where input speed or direction is NaN must be NaN in output.
+    ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir58mS'],
+                                 averaging_prd='10min')
+    ss_cor.run(show_params=False)
+    data_synt_ext = ss_cor.synthesize(input_spd=data_test['Spd80mN'], input_dir=data_test['Dir78mS'])
+    # Output index must match the input index exactly
+    assert len(data_synt_ext) == len(data_test['Spd80mN'])
+    # Confirm the input direction is actually NaN at the timestamps we're testing against
+    assert data_test['Dir78mS']['2016-01-09 17:10:00':'2016-01-09 17:50:00'].isnull().all()
+    # Timestamps where input direction (Dir78mS) is NaN must produce NaN in both output columns
+    dir_nan_slice = data_synt_ext['2016-01-09 17:10:00':'2016-01-09 17:50:00']
+    assert dir_nan_slice['Spd60mN_Synthesized'].isnull().all()
+    assert dir_nan_slice['Dir58mS_Synthesized'].isnull().all()
+
 
 def test_orthogonal_least_squares():
     correl_monthly_results = {'slope': 1.01778, 'offset': -0.13473, 'r2': 0.8098, 'num_data_points': 18}

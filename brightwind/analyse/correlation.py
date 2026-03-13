@@ -1241,8 +1241,8 @@ class SpeedSort(CorrelBase):
                                                    return_coverage=False).combine_first(dir_output)
 
         else:
-            output = self._predict(input_spd, input_dir)
-            dir_output = self._predict_dir(input_dir)
+            output = self._predict(input_spd, input_dir).reindex(input_spd.index)
+            dir_output = self._predict_dir(input_dir).reindex(input_dir.index)
         output[output < 0] = 0
         return pd.concat([output.rename(self._tar_spd_col_name + "_Synthesized"),
                           dir_output.rename(self._tar_dir_col_name + "_Synthesized")], axis=1, join='outer')
