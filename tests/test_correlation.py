@@ -372,6 +372,17 @@ def test_synthesize():
     assert dir_nan_slice['Spd60mN_Synthesized'].isnull().all()
     assert dir_nan_slice['Dir58mS_Synthesized'].isnull().all()
 
+    # Test that a direction value of exactly 360 (= 0°, North) does not produce NaN in the output.
+    data_test_360 = DATA_CLND[['Spd80mN', 'Spd60mN', 'Dir78mS', 'Dir58mS']].copy()
+    data_test_360.loc['2016-01-09 18:00:00', 'Dir78mS'] = 360
+    ss_cor = bw.Correl.SpeedSort(data_test_360['Spd80mN'], data_test_360['Dir78mS'],
+                                 data_test_360['Spd60mN'], data_test_360['Dir58mS'],
+                                 averaging_prd='10min')
+    ss_cor.run(show_params=False)
+    data_synt_360 = ss_cor.synthesize(input_spd=data_test_360['Spd80mN'], input_dir=data_test_360['Dir78mS'])
+    assert data_test_360.loc['2016-01-09 18:00:00', 'Dir78mS'] == 360  # confirm input has 360
+    assert not pd.isnull(data_synt_360.loc['2016-01-09 18:00:00', 'Dir58mS_Synthesized'])
+
 
 def test_orthogonal_least_squares():
     correl_monthly_results = {'slope': 1.01778, 'offset': -0.13473, 'r2': 0.8098, 'num_data_points': 18}

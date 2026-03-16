@@ -1091,7 +1091,7 @@ class SpeedSort(CorrelBase):
 
     def _predict_dir(self, x_dir):
 
-        x_dir = x_dir.dropna().rename('dir')
+        x_dir = (x_dir.dropna() % 360).rename('dir')
 
         sector_min = []
         sector_max = []
