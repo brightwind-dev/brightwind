@@ -286,9 +286,10 @@ class CorrelBase:
                                                          coverage_threshold=ref_coverage_threshold,
                                                          return_coverage=False)
                 synth_data = ref_averaged[self._ref_spd_col_name].copy() * np.nan
+                ref_dir_normalised = ref_averaged[self._ref_dir_col_name] % 360
                 for params_dict in self.params:
                     if params_dict['num_data_points'] > 1:
-                        logic_sect = self._get_logic_dir_sector(ref_dir=ref_averaged[self._ref_dir_col_name],
+                        logic_sect = self._get_logic_dir_sector(ref_dir=ref_dir_normalised,
                                                                 sector_min=params_dict['sector_min'],
                                                                 sector_max=params_dict['sector_max'])
 

@@ -383,6 +383,21 @@ def test_synthesize():
     assert data_test_360.loc['2016-01-09 18:00:00', 'Dir78mS'] == 360  # confirm input has 360
     assert not pd.isnull(data_synt_360.loc['2016-01-09 18:00:00', 'Dir58mS_Synthesized'])
 
+    # Test that a ref direction of exactly 360 in the splice path (synthesize() no args) does not
+    # produce NaN. With 10min averaging period each period has one data point so the averaged ref
+    # direction equals the raw value, making it straightforward to inject exactly 360.
+    data_test_splice_360 = DATA_CLND[['Spd80mN', 'Spd60mN', 'Dir78mS', 'Dir58mS']].copy()
+    data_test_splice_360.loc['2016-01-09 17:50:00':'2016-01-10 19:10:00', 'Dir58mS'] = np.nan
+    data_test_splice_360.loc['2016-01-09 17:50:00':'2016-01-10 19:10:00', 'Spd60mN'] = np.nan
+    data_test_splice_360.loc['2016-01-09 18:00:00', 'Dir78mS'] = 360
+    ss_cor = bw.Correl.SpeedSort(data_test_splice_360['Spd80mN'], data_test_splice_360['Dir78mS'],
+                                 data_test_splice_360['Spd60mN'], data_test_splice_360['Dir58mS'],
+                                 averaging_prd='10min')
+    ss_cor.run(show_params=False)
+    data_synt_splice = ss_cor.synthesize()
+    assert data_test_splice_360.loc['2016-01-09 18:00:00', 'Dir78mS'] == 360  # confirm ref dir is 360
+    assert not pd.isnull(data_synt_splice.loc['2016-01-09 18:00:00', 'Spd60mN_Synthesized'])
+
 
 def test_orthogonal_least_squares():
     correl_monthly_results = {'slope': 1.01778, 'offset': -0.13473, 'r2': 0.8098, 'num_data_points': 18}
