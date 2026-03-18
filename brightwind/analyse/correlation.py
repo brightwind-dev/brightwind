@@ -1223,7 +1223,26 @@ class SpeedSort(CorrelBase):
         return prediction.sort_index()
 
     def synthesize(self, input_spd=None, input_dir=None):
+        """
+        Apply the derived SpeedSort correlation model to produce a synthesized speed and direction dataset.
 
+        When called with no arguments, the model is applied to the original reference speed and direction data.
+        The resulting synthesized dataset is then spliced with the target dataset — where a target value is
+        available it is used instead of the synthesized value.
+
+        When `input_spd` and `input_dir` are provided, the model is applied to those inputs directly and
+        no splicing with the target dataset is performed. The output index matches the input index.
+
+        :param input_spd:   Optional external speed series to apply the model to instead of the original
+                            reference speed. Must be provided together with `input_dir`.
+        :type input_spd:    pd.Series or None
+        :param input_dir:   Optional external direction series to apply the model to instead of the original
+                            reference direction. Must be provided together with `input_spd`.
+        :type input_dir:    pd.Series or None
+        :return:            DataFrame with two columns: synthesized speed (named `<target_spd>_Synthesized`)
+                            and synthesized direction (named `<target_dir>_Synthesized`).
+        :rtype:             pd.DataFrame
+        """
         if input_spd is None and input_dir is None:
             ref_start_date, target_start_date = self._get_synth_start_dates()
 
