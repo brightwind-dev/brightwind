@@ -14,7 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. Updated `apply_wspd_slope_offset_adj` in order to also apply slope and offset adjustments to related columns (for 'avg', 'min', 'max', 'gust', 'median', 'mode', 'range' and 'sd' statistic types) in addition to the main variable itself. It should be noted given lack of required information available no correction is applied to 'ti' 'ti30sec' or 'sum'. ([#575](https://github.com/brightwind-dev/brightwind/issues/575)).
+1. Updated `apply_wspd_slope_offset_adj()` in order to also apply slope and offset adjustments to related columns (for 'avg', 'min', 'max', 'gust', 'median', 'mode', 'range' and 'sd' statistic types) in addition to the main variable itself. It should be noted given lack of required information available no correction is applied to 'ti' 'ti30sec' or 'sum'. ([#575](https://github.com/brightwind-dev/brightwind/issues/575)).
 1. Updated `MeasurementStation` function `_mast_section_geometry()` to extract mast section geometry properties. This is called by a user with `MeasurementStation.mast_section_geometry`. ([#362](https://github.com/brightwind-dev/brightwind/issues/362))
 1. Added `export_tws_file()` to allow export of a WindSim .tws formated timeseries climatology file. ([#305](https://github.com/brightwind-dev/brightwind/issues/305)).
 
