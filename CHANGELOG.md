@@ -14,7 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. 
+1. Added `export_tws_file()` to allow export of a WindSim .tws formated timeseries climatology file. ([#305](https://github.com/brightwind-dev/brightwind/issues/305)).
 
 ### Deprecated
 1. 
