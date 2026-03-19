@@ -20,7 +20,7 @@ XX-Xxx-2026
 1. 
 
 ### Bug Fixes
-1. Fixed two bugs on SpeedSort.synthesize() ([#406](https://github.com/brightwind-dev/brightwind/issues/406)).
+1. Fixed two bugs on `SpeedSort.synthesize()` accounting for NaNs and when direction is 360. ([#406](https://github.com/brightwind-dev/brightwind/issues/406)).
 
 ---
 ## [2.5.0]
