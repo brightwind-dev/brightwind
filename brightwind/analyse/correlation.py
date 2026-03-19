@@ -1227,8 +1227,9 @@ class SpeedSort(CorrelBase):
         Apply the derived SpeedSort correlation model to produce a synthesized speed and direction dataset.
 
         When called with no arguments, the model is applied to the original reference speed and direction data.
-        The resulting synthesized dataset is then spliced with the target dataset — where a target value is
-        available it is used instead of the synthesized value.
+        This is first averaged to the averaging period requested when `SpeedSort` is initialised. The resulting 
+        synthesized dataset is then spliced with the target dataset — where a target value is available it is used 
+        instead of the synthesized value.
 
         When `input_spd` and `input_dir` are provided, the model is applied to those inputs directly and
         no splicing with the target dataset is performed. The output index matches the input index.
