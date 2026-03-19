@@ -20,6 +20,22 @@ def test_export_tab_file():
     assert True
 
 
+def test_export_tws_file():
+    # Generate the files
+    bw.export_tws_file(
+        DATA.Spd40mN.iloc[:20], DATA.Dir38mS.iloc[:20], 10, 10, 80, DATA.Spd40mNStd.iloc[:20], 
+        file_name='export_tws_file.tws', folder_path=TEMP_FOLDER
+        )
+    
+    # Load the export file and test that it matches the test file
+    with open(r"..\brightwind\demo_datasets\demo_tws_file.tws", "r") as f:
+        test_file = f.read()
+        
+    with open('temp\export_tws_file.tws', "r") as f:
+        new_file = f.read()
+    assert new_file[85:] == test_file[85:] # skipping header, as timestamp is present, which will never match
+
+
 def test_export_to_csv():
     bw.export_csv(DATA, file_name='export_to_csv', folder_path=TEMP_FOLDER)
 

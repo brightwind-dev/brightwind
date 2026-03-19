@@ -119,7 +119,8 @@ def _rename_to_title(list_or_dict, schema):
     list_special_cases_no_prefix = ['logger_measurement_config.slope', 'logger_measurement_config.offset',
                                     'logger_measurement_config.sensitivity',
                                     'logger_measurement_config.height_m',
-                                    'calibration.slope', 'calibration.offset', 'calibration.sensitivity']
+                                    'calibration.slope', 'calibration.offset', 'calibration.sensitivity',
+                                    'mast_properties.mast_section_geometry']
     if isinstance(list_or_dict, dict):
         renamed_dict = {}
         for k, v in list_or_dict.items():
@@ -396,7 +397,8 @@ class MeasurementStation:
         self.__logger_main_configs = _LoggerMainConfigs(meas_loc_dm=self.__meas_loc_data_model,
                                                         schema=self.__schema, station_type=self.type)
         self.__measurements = _Measurements(meas_loc_dm=self.__meas_loc_data_model, schema=self.__schema)
-        # self.__mast_section_geometry = _MastSectionGeometry()
+        self.__mast_section_geometry = _MastSectionGeometry(meas_loc_dm=self.__meas_loc_data_model, 
+                                                            schema=self.__schema)
 
     def __getitem__(self, item):
         return self.__meas_loc_properties[item]
@@ -564,8 +566,7 @@ class MeasurementStation:
 
     @property
     def mast_section_geometry(self):
-        return 'Not yet implemented.'
-        # return self.__mast_section_geometry
+        return self.__mast_section_geometry
 
 
 class _Header:
@@ -1189,5 +1190,38 @@ class _Measurements:
 
 
 class _MastSectionGeometry:
-    def __init__(self):
-        raise NotImplementedError
+    def __init__(self, meas_loc_dm, schema):
+        self._mast_section_geometry = meas_loc_dm.get('mast_properties', {}).get('mast_section_geometry', [])
+        self._schema = schema
+
+    def __getitem__(self, item):
+        return self._mast_section_geometry[item]
+
+    def __iter__(self):
+        return iter(self._mast_section_geometry)
+
+    def __repr__(self):
+        return repr(self._mast_section_geometry)
+
+    @property
+    def data_model(self):
+        return self._mast_section_geometry
+    
+
+    def get_table(self):
+        """
+        Get a table representation of the mast section geometry.
+
+        :return:    A table showing all the information for the mast section geometry.
+        :rtype:     pd.io.formats.style.Styler
+        """
+        list_for_df = self._mast_section_geometry
+
+        df = pd.DataFrame()
+        for idx, row in enumerate(list_for_df):
+            titles = list(_rename_to_title(list_or_dict=row, schema=self._schema).keys())
+            df_temp = pd.DataFrame({idx + 1: list(row.values())}, index=titles)
+            df = pd.concat([df, df_temp], axis=1, sort=False)
+        df = df.style.set_properties(**{'text-align': 'left'})
+        df = df.set_table_styles([dict(selector='th', props=[('text-align', 'left')])])
+        return df
