@@ -106,8 +106,10 @@ class CorrelBase:
 
         :param figure_size: Figure size in tuple format (width, height)
         :type figure_size:  tuple
+        :param ax:          Matplotlib ax object for a subplot.
+        :type ax:           matplotlib.axes.Axes
         :returns:           A matplotlib figure
-        :rtype:             matplotlib.figure.Figure
+        :rtype:             matplotlib.figure.Figure | None
 
         **Example usage**
         ::

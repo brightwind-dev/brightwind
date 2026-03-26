@@ -1001,9 +1001,11 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
     :type trendline_dots:       Bool
     :param figure_size:         Figure size in tuple format (width, height)
     :type figure_size:          tuple
+    :param ax:                  Matplotlib ax object for a subplot.
+    :type ax:                   matplotlib.axes.Axes
     :param kwargs:              Additional keyword arguments for matplotlib.pyplot.subplot
     :return:                    A scatter plot
-    :rtype:                     matplotlib.figure.Figure
+    :rtype:                     matplotlib.figure.Figure | None
 
     **Example usage**
     ::
