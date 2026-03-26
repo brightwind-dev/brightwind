@@ -98,7 +98,7 @@ class CorrelBase:
         """Show the dictionary of parameters"""
         pprint.pprint(self.params)
 
-    def plot(self, figure_size=(10, 10.2)):
+    def plot(self, figure_size=(10, 10.2), ax=None):
         """
         Plots scatter plot of reference versus target speed data. If ref_dir is given as input to the correlation then
         the plot is showing scatter subplots for each sector. The regression line and the line of slope 1 passing
@@ -134,7 +134,7 @@ class CorrelBase:
                                 self.data[self._tar_spd_col_name],
                                 self._predict(self.data[self._ref_spd_col_name]),
                                 x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name,
-                                line_of_slope_1=True, figure_size=figure_size)
+                                line_of_slope_1=True, figure_size=figure_size, ax=ax)
         else:
             """For plotting scatter by sector"""
             return plot_scatter_by_sector(self.data[self._ref_spd_col_name],

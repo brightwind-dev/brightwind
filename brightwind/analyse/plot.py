@@ -972,7 +972,7 @@ def _get_best_row_col_number_for_subplot(number_subplots):
 
 def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False,
                  x_label=None, y_label=None, x_limits=None, y_limits=None, axes_equal=True, figure_size=(10, 10.2),
-                 trendline_dots=False, **kwargs):
+                 trendline_dots=False, ax=None, **kwargs):
     """
     Plots a scatter plot of x and y data. The trendline_y data is also shown if provided as input of the function.
 
@@ -1064,13 +1064,19 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
     if line_of_slope_1 is True:
         legend = True
 
-    fig, axes = plt.subplots(figsize=figure_size, **kwargs)
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figure_size, **kwargs)
+        return_fig = True
+    else:
+        fig = ax.get_figure()
+        return_fig = False
     _scatter_subplot(x, y, trendline_y=trendline_y, trendline_x=trendline_x, line_of_slope_1=line_of_slope_1,
                      x_label=x_label, y_label=y_label, x_limits=x_limits, y_limits=y_limits, axes_equal=axes_equal,
-                     trendline_dots=trendline_dots, legend=legend, ax=axes)
+                     trendline_dots=trendline_dots, legend=legend, ax=ax)
 
-    plt.close()
-    return fig
+    if return_fig:
+        plt.close()
+        return fig
 
 
 def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_label=None, y_label=None,
