@@ -17,6 +17,7 @@ XX-Xxx-2026
 1. Updated `apply_wspd_slope_offset_adj()` in order to also apply slope and offset adjustments to related columns (for 'avg', 'min', 'max', 'gust', 'median', 'mode', 'range' and 'sd' statistic types) in addition to the main variable itself. It should be noted given lack of required information available no correction is applied to 'ti' 'ti30sec' or 'sum'. ([#575](https://github.com/brightwind-dev/brightwind/issues/575)).
 1. Updated `MeasurementStation` function `_mast_section_geometry()` to extract mast section geometry properties. This is called by a user with `MeasurementStation.mast_section_geometry`. ([#362](https://github.com/brightwind-dev/brightwind/issues/362))
 1. Added `export_tws_file()` to allow export of a WindSim .tws formated timeseries climatology file. ([#305](https://github.com/brightwind-dev/brightwind/issues/305)).
+4. Updated `scale_air_pressure_to_height()` to accept temperature and pressure time series at different heights, the user can now specify a separate height for the reference temperature time series. This is then used to scale the time series to the target height before scaled air pressure is calculated ([#562](https://github.com/brightwind-dev/brightwind/issues/562)).
 
 ### Deprecated
 1. 

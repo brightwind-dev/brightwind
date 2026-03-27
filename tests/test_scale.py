@@ -8,10 +8,10 @@ DATA = bw.apply_cleaning(DATA, bw.demo_datasets.demo_cleaning_file)
 
 
 def test_scale_air_pressure_to_height():
-    assert round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
-                                                 ref_height_m=10, target_height_m=200), 2) == 977.45
-    assert round(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
-                                                 ref_height_m=10, target_height_m=15), 2) == 999.4
+    assert np.allclose(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
+                                                 ref_height_m=10, target_height_m=200), 977.45)
+    assert np.allclose(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
+                                                 ref_height_m=10, target_height_m=15), 999.4)
     pd.testing.assert_series_equal(bw.scale_air_pressure_to_height(
         ref_air_pressure_hPa=DATA['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
         ref_air_temp_degC=DATA['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
@@ -20,6 +20,33 @@ def test_scale_air_pressure_to_height():
                   index=pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
                                         '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
         check_names=False)
+
+    assert np.allclose(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
+                                                 ref_height_m=10, target_height_m=200,
+                                                 air_temperature_height_m=10), 977.45)
+
+    # air_temperature_height_m at a different height than ref_height_m, float scalar inputs
+    assert np.allclose(bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
+                                                 ref_height_m=10, target_height_m=200,
+                                                 air_temperature_height_m=50), 977.4654461)
+
+    # air_temperature_height_m at a different height than ref_height_m, Series inputs
+    pd.testing.assert_series_equal(bw.scale_air_pressure_to_height(
+        ref_air_pressure_hPa=DATA['P2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        ref_air_temp_degC=DATA['T2m'].loc['2016-01-09 17:10':'2016-01-09 18:00'],
+        ref_height_m=2, target_height_m=10,
+        air_temperature_height_m=200),
+        pd.Series(data=[933.07343532, 933.07312917, 933.07268472, 932.07408455, 932.07381214, 932.07428959],
+                index=pd.to_datetime(['2016-01-09 17:10:00', '2016-01-09 17:20:00', '2016-01-09 17:30:00',
+                                        '2016-01-09 17:40:00', '2016-01-09 17:50:00', '2016-01-09 18:00:00'])),
+        check_names=False)
+
+    # TypeError raised when air_temperature_height_m is not float, int, or None
+    with pytest.raises(TypeError):
+        bw.scale_air_pressure_to_height(ref_air_pressure_hPa=1000, ref_air_temp_degC=12,
+                                        ref_height_m=10, target_height_m=200,
+                                        air_temperature_height_m='10')
+
 
     # test error raising for invalid input types
     with pytest.raises(TypeError):
