@@ -338,9 +338,9 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
     :param target_height_m:         Height (in metres) which ref_air_pressure_hPa is scaled to.
     :type target_height_m:          float or int
     :param ref_air_temp_height_m:   Height (in metres) at which ref_air_temp_degC is measured. If None
-                                    (default), temperature is assumed to be at ref_height_m and no internal
+                                    (default), air temperature is assumed to be at ref_height_m and no internal
                                     temperature scaling is applied. If a float or int value is provided,
-                                    the temperature is first scaled from ref_air_temp_height_m to ref_height_m
+                                    the air temperature is first scaled from ref_air_temp_height_m to ref_height_m
                                     before being used in the pressure scaling calculation.
     :type ref_air_temp_height_m:    float or int or None
     :return:                        Air pressure at specified height of target_height_m in hPa (1mbar = 1hPa = 100Pa).
