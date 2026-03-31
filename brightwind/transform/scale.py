@@ -305,7 +305,7 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
                                  ref_air_temp_degC: Union[float, pd.Series],
                                  ref_height_m: Union[float, int],
                                  target_height_m: Union[float, int],
-                                 air_temperature_height_m: Union[float, int, None] = None
+                                 ref_air_temp_height_m: Union[float, int, None] = None
                                  ) -> Union[float, int, pd.Series]:
     """
     Calculates air pressure at target height (target_height_m) using reference air pressure (ref_air_pressure_hPa)
@@ -381,8 +381,8 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
     for var, var_name in zip([ref_height_m, target_height_m], ['ref_height_m', 'target_height_m']):
         if not isinstance(var, (float, int)):
             raise TypeError(f"{var_name} must be a float or int.")
-    if air_temperature_height_m is not None and not isinstance(air_temperature_height_m, (float, int)):
-        raise TypeError("air_temperature_height_m must be a float, int, or None.")
+    if ref_air_temp_height_m is not None and not isinstance(ref_air_temp_height_m, (float, int)):
+        raise TypeError("ref_air_temp_height_m must be a float, int, or None.")
 
     # check dimensions of ref_air_pressure_hPa and ref_air_temp_degC if Series
     if isinstance(ref_air_pressure_hPa, pd.Series) and (isinstance(ref_air_temp_degC, pd.Series)):
@@ -390,8 +390,8 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
             raise ValueError("ref_air_pressure_hPa and ref_air_temp_degC must have the same dimensions.")
 
     # if air temperature is at a different height than air pressure, scale it to the air pressure height first
-    if air_temperature_height_m is not None:
-        ref_air_temp_degC = scale_air_temperature_to_height(ref_air_temp_degC, air_temperature_height_m, ref_height_m)
+    if ref_air_temp_height_m is not None:
+        ref_air_temp_degC = scale_air_temperature_to_height(ref_air_temp_degC, ref_air_temp_height_m, ref_height_m)
         
     # Constants as outlined in ISO:2533
     g = ACCEL_DUE_TO_GRAVITY  # Acceleration due to gravity (m/s^2)
