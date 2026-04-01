@@ -1270,16 +1270,21 @@ class SpeedSort(CorrelBase):
         return pd.concat([output.rename(self._tar_spd_col_name + "_Synthesized"),
                           dir_output.rename(self._tar_dir_col_name + "_Synthesized")], axis=1, join='outer')
 
-    def plot_wind_directions(self):
+    def plot_wind_directions(self, ax=None):
         """
         Plots reference and target directions in a scatter plot
+
+        :param ax:          Matplotlib ax object for a subplot.
+        :type ax:           matplotlib.axes.Axes
+        :returns:           A matplotlib figure
+        :rtype:             matplotlib.figure.Figure | None
         """
         return plot_scatter_wdir(
             self.data[self._ref_dir_col_name][(self.data[self._ref_spd_col_name] > self.cutoff) &
                                               (self.data[self._tar_spd_col_name] > self.cutoff)],
             self.data[self._tar_dir_col_name][(self.data[self._ref_spd_col_name] > self.cutoff) &
                                               (self.data[self._tar_spd_col_name] > self.cutoff)],
-            x_label=self._ref_dir_col_name, y_label=self._tar_dir_col_name)
+            x_label=self._ref_dir_col_name, y_label=self._tar_dir_col_name, ax=ax)
 
 
 class SVR:

@@ -1082,7 +1082,7 @@ def plot_scatter(x, y, trendline_y=None, trendline_x=None, line_of_slope_1=False
 
 
 def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_label=None, y_label=None,
-                      x_limits=(0, 360), y_limits=(0, 360)):
+                      x_limits=(0, 360), y_limits=(0, 360), ax=None):
     """
     Plots a scatter plot of two wind direction timeseries and adds a line from 0,0 to 360,360.
 
@@ -1098,8 +1098,10 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_label=None, y_label=None,
     :type x_limits:                  tuple
     :param y_limits:                 y-axis min and max limits.
     :type y_limits:                  tuple
+    :param ax:                       Matplotlib ax object for a subplot.
+    :type ax:                        matplotlib.axes.Axes
     :return:                         A scatter plot
-    :rtype:                          matplotlib.figure.Figure
+    :rtype:                          matplotlib.figure.Figure | None
 
     **Example usage**
     ::
@@ -1123,13 +1125,13 @@ def plot_scatter_wdir(x_wdir_series, y_wdir_series, x_label=None, y_label=None,
     if y_label is None:
         y_label = y_wdir_series.name + ' [°]'
     scat_plot = plot_scatter(x_wdir_series, y_wdir_series, x_label=x_label, y_label=y_label,
-                             x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True)
+                             x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True, ax=ax)
 
     return scat_plot
 
 
 def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_label=None, y_label=None,
-                      x_limits=(0, 30), y_limits=(0, 30)):
+                      x_limits=(0, 30), y_limits=(0, 30), ax=None):
     """
     Plots a scatter plot of two wind speed timeseries and adds a reference line from 0,0 to 40,40. This should
     only be used for wind speeds in m/s and not when one of the wind speed series is normalised. Please use the
@@ -1149,8 +1151,10 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_label=None, y_label=None,
     :param y_limits:      y-axis min and max limits. Can be set to None to let the code derive the min and max from
                           the y_wspd_series.
     :type y_limits:       tuple, None
+    :param ax:            Matplotlib ax object for a subplot.
+    :type ax:             matplotlib.axes.Axes
     :return:              A scatter plot
-    :rtype:               matplotlib.figure.Figure
+    :rtype:               matplotlib.figure.Figure | None
 
     **Example usage**
     ::
@@ -1174,7 +1178,7 @@ def plot_scatter_wspd(x_wspd_series, y_wspd_series, x_label=None, y_label=None,
     if y_label is None:
         y_label = y_wspd_series.name + ' [m/s]'
     scat_plot = plot_scatter(x_wspd_series, y_wspd_series, x_label=x_label, y_label=y_label,
-                             x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True)
+                             x_limits=x_limits, y_limits=y_limits, line_of_slope_1=True, ax=ax)
 
     return scat_plot
 
