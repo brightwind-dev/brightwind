@@ -304,7 +304,8 @@ def scale_air_temperature_to_height(ref_air_temperature: Union[float, pd.Series]
 def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
                                  ref_air_temp_degC: Union[float, pd.Series],
                                  ref_height_m: Union[float, int],
-                                 target_height_m: Union[float, int]
+                                 target_height_m: Union[float, int],
+                                 ref_air_temp_height_m: Union[float, int, None] = None
                                  ) -> Union[float, int, pd.Series]:
     """
     Calculates air pressure at target height (target_height_m) using reference air pressure (ref_air_pressure_hPa)
@@ -319,15 +320,29 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
     L = -0.0065 is the temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
     R = 287.05 is the specific gas constant for dry air (J/K/kg or m2/K/s2)
 
+    If air temperature is measured at a different height than air pressure, the `ref_air_temp_height_m` parameter
+    can be provided. In this case, the air temperature is first scaled from `ref_air_temp_height_m` to
+    `ref_height_m` internally using `scale_air_temperature_to_height` before the pressure scaling is applied.
+
     :param ref_air_pressure_hPa:    Reference air pressure value(s) in hPa (1mbar = 1hPa = 100Pa).
     :type ref_air_pressure_hPa:     float or int or pandas.Series
-    :param ref_air_temp_degC:       Reference air temperature value(s) in degrees celsius.
+    :param ref_air_temp_degC:       Reference air temperature value(s) in degrees celsius. If
+                                    `ref_air_temp_height_m` is provided, this temperature is assumed to be
+                                    measured at `ref_air_temp_height_m` and will be scaled to `ref_height_m`
+                                    internally. Otherwise, temperature is assumed to be at `ref_height_m`.
     :type ref_air_temp_degC:        float or int or pandas.Series
-    :param ref_height_m:            Height (in metres) of reference air temperature (ref_air_temp_degC)
-                                    and air pressure (ref_air_pressure_hPa).
+    :param ref_height_m:            Height (in metres) of reference air pressure (ref_air_pressure_hPa).
+                                    If `ref_air_temp_height_m` is None, this is also assumed to be the
+                                    height of ref_air_temp_degC.
     :type ref_height_m:             float or int
     :param target_height_m:         Height (in metres) which ref_air_pressure_hPa is scaled to.
-    :type target_height_m           float or int
+    :type target_height_m:          float or int
+    :param ref_air_temp_height_m:   Height (in metres) at which ref_air_temp_degC is measured. If None
+                                    (default), air temperature is assumed to be at ref_height_m and no internal
+                                    temperature scaling is applied. If a float or int value is provided,
+                                    the air temperature is first scaled from ref_air_temp_height_m to ref_height_m
+                                    before being used in the pressure scaling calculation.
+    :type ref_air_temp_height_m:    float or int or None
     :return:                        Air pressure at specified height of target_height_m in hPa (1mbar = 1hPa = 100Pa).
                                     Type depends on type(ref_air_pressure_hPa) and type(ref_air_temp_degC) inputs.
     :rtype:                         float or int or pandas.Series
@@ -366,12 +381,18 @@ def scale_air_pressure_to_height(ref_air_pressure_hPa: Union[float, pd.Series],
     for var, var_name in zip([ref_height_m, target_height_m], ['ref_height_m', 'target_height_m']):
         if not isinstance(var, (float, int)):
             raise TypeError(f"{var_name} must be a float or int.")
+    if ref_air_temp_height_m is not None and not isinstance(ref_air_temp_height_m, (float, int)):
+        raise TypeError("ref_air_temp_height_m must be a float, int, or None.")
 
     # check dimensions of ref_air_pressure_hPa and ref_air_temp_degC if Series
     if isinstance(ref_air_pressure_hPa, pd.Series) and (isinstance(ref_air_temp_degC, pd.Series)):
         if len(ref_air_pressure_hPa) != len(ref_air_temp_degC):
             raise ValueError("ref_air_pressure_hPa and ref_air_temp_degC must have the same dimensions.")
 
+    # if air temperature is at a different height than air pressure, scale it to the air pressure height first
+    if ref_air_temp_height_m is not None:
+        ref_air_temp_degC = scale_air_temperature_to_height(ref_air_temp_degC, ref_air_temp_height_m, ref_height_m)
+        
     # Constants as outlined in ISO:2533
     g = ACCEL_DUE_TO_GRAVITY  # Acceleration due to gravity (m/s^2)
     L = TEMP_LAPSE_RATE_STANDARD_ATMOSPHERE  # Temperature lapse rate (K/m) (denoted beta in ISO:2533 notation)
