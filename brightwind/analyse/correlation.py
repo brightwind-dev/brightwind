@@ -98,7 +98,7 @@ class CorrelBase:
         """Show the dictionary of parameters"""
         pprint.pprint(self.params)
 
-    def plot(self, figure_size=(10, 10.2)):
+    def plot(self, figure_size=(10, 10.2), ax=None):
         """
         Plots scatter plot of reference versus target speed data. If ref_dir is given as input to the correlation then
         the plot is showing scatter subplots for each sector. The regression line and the line of slope 1 passing
@@ -106,8 +106,10 @@ class CorrelBase:
 
         :param figure_size: Figure size in tuple format (width, height)
         :type figure_size:  tuple
+        :param ax:          Matplotlib ax object for a subplot.
+        :type ax:           matplotlib.axes.Axes
         :returns:           A matplotlib figure
-        :rtype:             matplotlib.figure.Figure
+        :rtype:             matplotlib.figure.Figure | None
 
         **Example usage**
         ::
@@ -134,7 +136,7 @@ class CorrelBase:
                                 self.data[self._tar_spd_col_name],
                                 self._predict(self.data[self._ref_spd_col_name]),
                                 x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name,
-                                line_of_slope_1=True, figure_size=figure_size)
+                                line_of_slope_1=True, figure_size=figure_size, ax=ax)
         else:
             """For plotting scatter by sector"""
             return plot_scatter_by_sector(self.data[self._ref_spd_col_name],
@@ -1268,16 +1270,21 @@ class SpeedSort(CorrelBase):
         return pd.concat([output.rename(self._tar_spd_col_name + "_Synthesized"),
                           dir_output.rename(self._tar_dir_col_name + "_Synthesized")], axis=1, join='outer')
 
-    def plot_wind_directions(self):
+    def plot_wind_directions(self, ax=None):
         """
         Plots reference and target directions in a scatter plot
+
+        :param ax:          Matplotlib ax object for a subplot.
+        :type ax:           matplotlib.axes.Axes
+        :returns:           A matplotlib figure
+        :rtype:             matplotlib.figure.Figure | None
         """
         return plot_scatter_wdir(
             self.data[self._ref_dir_col_name][(self.data[self._ref_spd_col_name] > self.cutoff) &
                                               (self.data[self._tar_spd_col_name] > self.cutoff)],
             self.data[self._tar_dir_col_name][(self.data[self._ref_spd_col_name] > self.cutoff) &
                                               (self.data[self._tar_spd_col_name] > self.cutoff)],
-            x_label=self._ref_dir_col_name, y_label=self._tar_dir_col_name)
+            x_label=self._ref_dir_col_name, y_label=self._tar_dir_col_name, ax=ax)
 
 
 class SVR:
