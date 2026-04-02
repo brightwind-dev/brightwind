@@ -10,8 +10,8 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
 ---
-## [2.6.0-dev]
-XX-Xxx-2026
+## [2.6.0]
+02-Apr-2026
 
 ### New Features and Enhancements
 1. Updated `apply_wspd_slope_offset_adj()` in order to also apply slope and offset adjustments to related columns (for 'avg', 'min', 'max', 'gust', 'median', 'mode', 'range' and 'sd' statistic types) in addition to the main variable itself. It should be noted given lack of required information available no correction is applied to 'ti' 'ti30sec' or 'sum'. ([#575](https://github.com/brightwind-dev/brightwind/issues/575))
@@ -20,11 +20,8 @@ XX-Xxx-2026
 1. Updated `plot_scatter()`, `plot_scatter_wdir()`, `plot_scatter_wspd()`, `CorrelBase.plot()` and `SpeedSort.plot_wind_directions()`, to accept an `ax` parameter to support use in subplots. ([#596](https://github.com/brightwind-dev/brightwind/issues/596))
 1. Updated `scale_air_pressure_to_height()` to accept air temperature and air pressure time series at different heights, the user can now specify a separate height for the reference temperature time series. This is then used to scale the time series to the target height before scaled air pressure is calculated. ([#562](https://github.com/brightwind-dev/brightwind/issues/562))
 
-### Deprecated
-1. 
-
 ### Bug Fixes
-1. Fixed two bugs on `SpeedSort.synthesize()` accounting for NaNs and when direction is 360. ([#406](https://github.com/brightwind-dev/brightwind/issues/406)).
+1. Fixed two bugs on `SpeedSort.synthesize()` accounting for NaNs and when direction is 360. ([#406](https://github.com/brightwind-dev/brightwind/issues/406))
 
 ---
 ## [2.5.0]
