@@ -34,4 +34,4 @@ if Version(pd.__version__) <= Version("2.2"):
 
 __all__ = ['analyse', 'transform', 'export', 'load', 'demo_datasets']
 
-__version__ = '2.6.0'
+__version__ = '2.7.0_dev'
