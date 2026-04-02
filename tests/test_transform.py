@@ -154,6 +154,22 @@ def test_apply_wspd_slope_offset_adj():
     data1 = bw.apply_wspd_slope_offset_adj(DATA['Spd60mS'], STATION.measurements['Spd60mS'])
     assert (data1.fillna(0).round(10) ==
             DATA_ADJUSTED['Spd60mS'].fillna(0).round(10)).all()
+    
+    DATA['Spd80mS_max'] = DATA['Spd80mS'] + 10
+    data = bw.apply_wspd_slope_offset_adj(DATA, STATION.measurements, apply_to_related_statistics=True)
+    assert np.allclose(
+        data['Spd80mS_max'],
+        bw.adjust_slope_offset(DATA['Spd80mS_max'], 0.8445, 0.321, 0.84449, 0.3209),
+        equal_nan=True
+    )
+    
+    DATA['Spd80mS_sd'] = DATA['Spd80mS'] + 10
+    data = bw.apply_wspd_slope_offset_adj(DATA, STATION.measurements, apply_to_related_statistics=True)
+    assert np.allclose(
+        data['Spd80mS_sd'],
+        bw.adjust_slope_offset(DATA['Spd80mS_sd'], 0.8445, 0, 0.84449, 0),
+        equal_nan=True
+    )
 
 
 def test_offset_wind_direction_float():
@@ -435,6 +451,7 @@ def test_apply_device_orientation_offset_table_returned():
         'Date From': '2013-10-08T14:00:00',
         'Date To': None}]).set_index('Name')
     pd.testing.assert_frame_equal(table, expected_table)
+
 
 def test_apply_device_orientation_offset():
 

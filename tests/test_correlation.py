@@ -357,6 +357,47 @@ def test_synthesize():
     assert ss_cor._ref_spd_col_name == 'Spd80mN_ref'
     assert ss_cor._tar_spd_col_name == 'Spd80mN'
 
+    # Test that synthesize(input_spd, input_dir) preserves NaN timestamps — output length must
+    # equal input length, and rows where input speed or direction is NaN must be NaN in output.
+    ss_cor = bw.Correl.SpeedSort(data_test['Spd80mN'], data_test['Dir78mS'], data_test['Spd60mN'], data_test['Dir58mS'],
+                                 averaging_prd='10min')
+    ss_cor.run(show_params=False)
+    data_synt_ext = ss_cor.synthesize(input_spd=data_test['Spd80mN'], input_dir=data_test['Dir78mS'])
+    # Output index must match the input index exactly
+    assert len(data_synt_ext) == len(data_test['Spd80mN'])
+    # Confirm the input direction is actually NaN at the timestamps we're testing against
+    assert data_test['Dir78mS']['2016-01-09 17:10:00':'2016-01-09 17:50:00'].isnull().all()
+    # Timestamps where input direction (Dir78mS) is NaN must produce NaN in both output columns
+    dir_nan_slice = data_synt_ext['2016-01-09 17:10:00':'2016-01-09 17:50:00']
+    assert dir_nan_slice['Spd60mN_Synthesized'].isnull().all()
+    assert dir_nan_slice['Dir58mS_Synthesized'].isnull().all()
+
+    # Test that a direction value of exactly 360 (= 0°, North) does not produce NaN in the output.
+    data_test_360 = DATA_CLND[['Spd80mN', 'Spd60mN', 'Dir78mS', 'Dir58mS']].copy()
+    data_test_360.loc['2016-01-09 18:00:00', 'Dir78mS'] = 360
+    ss_cor = bw.Correl.SpeedSort(data_test_360['Spd80mN'], data_test_360['Dir78mS'],
+                                 data_test_360['Spd60mN'], data_test_360['Dir58mS'],
+                                 averaging_prd='10min')
+    ss_cor.run(show_params=False)
+    data_synt_360 = ss_cor.synthesize(input_spd=data_test_360['Spd80mN'], input_dir=data_test_360['Dir78mS'])
+    assert data_test_360.loc['2016-01-09 18:00:00', 'Dir78mS'] == 360  # confirm input has 360
+    assert not pd.isnull(data_synt_360.loc['2016-01-09 18:00:00', 'Dir58mS_Synthesized'])
+
+    # Test that a ref direction of exactly 360 in the splice path (synthesize() no args) does not
+    # produce NaN. With 10min averaging period each period has one data point so the averaged ref
+    # direction equals the raw value, making it straightforward to inject exactly 360.
+    data_test_splice_360 = DATA_CLND[['Spd80mN', 'Spd60mN', 'Dir78mS', 'Dir58mS']].copy()
+    data_test_splice_360.loc['2016-01-09 17:50:00':'2016-01-10 19:10:00', 'Dir58mS'] = np.nan
+    data_test_splice_360.loc['2016-01-09 17:50:00':'2016-01-10 19:10:00', 'Spd60mN'] = np.nan
+    data_test_splice_360.loc['2016-01-09 18:00:00', 'Dir78mS'] = 360
+    ss_cor = bw.Correl.SpeedSort(data_test_splice_360['Spd80mN'], data_test_splice_360['Dir78mS'],
+                                 data_test_splice_360['Spd60mN'], data_test_splice_360['Dir58mS'],
+                                 averaging_prd='10min')
+    ss_cor.run(show_params=False)
+    data_synt_splice = ss_cor.synthesize()
+    assert data_test_splice_360.loc['2016-01-09 18:00:00', 'Dir78mS'] == 360  # confirm ref dir is 360
+    assert not pd.isnull(data_synt_splice.loc['2016-01-09 18:00:00', 'Spd60mN_Synthesized'])
+
 
 def test_orthogonal_least_squares():
     correl_monthly_results = {'slope': 1.01778, 'offset': -0.13473, 'r2': 0.8098, 'num_data_points': 18}

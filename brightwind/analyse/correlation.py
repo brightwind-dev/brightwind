@@ -98,7 +98,7 @@ class CorrelBase:
         """Show the dictionary of parameters"""
         pprint.pprint(self.params)
 
-    def plot(self, figure_size=(10, 10.2)):
+    def plot(self, figure_size=(10, 10.2), ax=None):
         """
         Plots scatter plot of reference versus target speed data. If ref_dir is given as input to the correlation then
         the plot is showing scatter subplots for each sector. The regression line and the line of slope 1 passing
@@ -106,8 +106,10 @@ class CorrelBase:
 
         :param figure_size: Figure size in tuple format (width, height)
         :type figure_size:  tuple
+        :param ax:          Matplotlib ax object for a subplot.
+        :type ax:           matplotlib.axes.Axes
         :returns:           A matplotlib figure
-        :rtype:             matplotlib.figure.Figure
+        :rtype:             matplotlib.figure.Figure | None
 
         **Example usage**
         ::
@@ -134,7 +136,7 @@ class CorrelBase:
                                 self.data[self._tar_spd_col_name],
                                 self._predict(self.data[self._ref_spd_col_name]),
                                 x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name,
-                                line_of_slope_1=True, figure_size=figure_size)
+                                line_of_slope_1=True, figure_size=figure_size, ax=ax)
         else:
             """For plotting scatter by sector"""
             return plot_scatter_by_sector(self.data[self._ref_spd_col_name],
@@ -286,9 +288,10 @@ class CorrelBase:
                                                          coverage_threshold=ref_coverage_threshold,
                                                          return_coverage=False)
                 synth_data = ref_averaged[self._ref_spd_col_name].copy() * np.nan
+                ref_dir_normalised = ref_averaged[self._ref_dir_col_name] % 360
                 for params_dict in self.params:
                     if params_dict['num_data_points'] > 1:
-                        logic_sect = self._get_logic_dir_sector(ref_dir=ref_averaged[self._ref_dir_col_name],
+                        logic_sect = self._get_logic_dir_sector(ref_dir=ref_dir_normalised,
                                                                 sector_min=params_dict['sector_min'],
                                                                 sector_max=params_dict['sector_max'])
 
@@ -1091,7 +1094,7 @@ class SpeedSort(CorrelBase):
 
     def _predict_dir(self, x_dir):
 
-        x_dir = x_dir.dropna().rename('dir')
+        x_dir = (x_dir.dropna() % 360).rename('dir')
 
         sector_min = []
         sector_max = []
@@ -1222,7 +1225,27 @@ class SpeedSort(CorrelBase):
         return prediction.sort_index()
 
     def synthesize(self, input_spd=None, input_dir=None):
+        """
+        Apply the derived SpeedSort correlation model to produce a synthesized speed and direction dataset.
 
+        When called with no arguments, the model is applied to the original reference speed and direction data.
+        This is first averaged to the averaging period requested when `SpeedSort` is initialised. The resulting 
+        synthesized dataset is then spliced with the target dataset — where a target value is available it is used 
+        instead of the synthesized value.
+
+        When `input_spd` and `input_dir` are provided, the model is applied to those inputs directly and
+        no splicing with the target dataset is performed. The output index matches the input index.
+
+        :param input_spd:   Optional external speed series to apply the model to instead of the original
+                            reference speed. Must be provided together with `input_dir`.
+        :type input_spd:    pd.Series or None
+        :param input_dir:   Optional external direction series to apply the model to instead of the original
+                            reference direction. Must be provided together with `input_spd`.
+        :type input_dir:    pd.Series or None
+        :return:            DataFrame with two columns: synthesized speed (named `<target_spd>_Synthesized`)
+                            and synthesized direction (named `<target_dir>_Synthesized`).
+        :rtype:             pd.DataFrame
+        """
         if input_spd is None and input_dir is None:
             ref_start_date, target_start_date = self._get_synth_start_dates()
 
@@ -1241,22 +1264,27 @@ class SpeedSort(CorrelBase):
                                                    return_coverage=False).combine_first(dir_output)
 
         else:
-            output = self._predict(input_spd, input_dir)
-            dir_output = self._predict_dir(input_dir)
+            output = self._predict(input_spd, input_dir).reindex(input_spd.index)
+            dir_output = self._predict_dir(input_dir).reindex(input_dir.index)
         output[output < 0] = 0
         return pd.concat([output.rename(self._tar_spd_col_name + "_Synthesized"),
                           dir_output.rename(self._tar_dir_col_name + "_Synthesized")], axis=1, join='outer')
 
-    def plot_wind_directions(self):
+    def plot_wind_directions(self, ax=None):
         """
         Plots reference and target directions in a scatter plot
+
+        :param ax:          Matplotlib ax object for a subplot.
+        :type ax:           matplotlib.axes.Axes
+        :returns:           A matplotlib figure
+        :rtype:             matplotlib.figure.Figure | None
         """
         return plot_scatter_wdir(
             self.data[self._ref_dir_col_name][(self.data[self._ref_spd_col_name] > self.cutoff) &
                                               (self.data[self._tar_spd_col_name] > self.cutoff)],
             self.data[self._tar_dir_col_name][(self.data[self._ref_spd_col_name] > self.cutoff) &
                                               (self.data[self._tar_spd_col_name] > self.cutoff)],
-            x_label=self._ref_dir_col_name, y_label=self._tar_dir_col_name)
+            x_label=self._ref_dir_col_name, y_label=self._tar_dir_col_name, ax=ax)
 
 
 class SVR:
