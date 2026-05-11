@@ -26,7 +26,18 @@ results to formats used by wind analysis software such as WAsP.
 
 Install brightwind into its own environment to avoid dependency clashes. Pick whichever option suits you.
 
-#### Option 1 — venv
+#### Option 1 — venv (quick way to try brightwind out)
+
+Check Python is installed (3.9+ recommended):
+
+```bash
+python --version
+```
+
+If not, install it from [python.org/downloads](https://www.python.org/downloads/) — on Windows, tick **"Add
+Python to PATH"** in the installer.
+
+Then create an environment and install brightwind:
 
 ```bash
 python -m venv brightwind_env
@@ -40,8 +51,9 @@ pip install brightwind
 
 #### Option 2 — conda
 
-New to Python? We recommend [Anaconda](https://www.datacamp.com/tutorial/installing-anaconda-windows), which
-bundles Python, pip and Jupyter. Then from the **Anaconda Prompt**:
+Common if you already use Anaconda or work primarily in Jupyter.
+[Anaconda](https://www.datacamp.com/tutorial/installing-anaconda-windows) bundles Python, pip and Jupyter in one
+installer. From the **Anaconda Prompt**:
 
 ```bash
 conda create --name brightwind_env python=3.11
@@ -81,6 +93,18 @@ For full examples — loading, plotting, shear, correlations, exporting — see 
 ![demo_image_1](read_me_1.png)
 ![demo_image_2](read_me_2.png)
 </p>
+
+<br>
+
+---
+### Why open-source?
+
+Brightwind makes every step of an assessment transparent, auditable and reproducible. The full record of
+adjustments to a dataset lives in a single file that internal reviewers, third parties and banks can inspect
+directly — sharpening due diligence and removing the "black box" problem of proprietary tools.
+
+The intent is a shared, validated toolkit that the wind and solar industry builds on together, rather than each
+consultancy reinventing the same calculations behind closed doors.
 
 <br>
 

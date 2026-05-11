@@ -98,7 +98,7 @@ conda activate brightwind_dev
 
 ### Editable install
 
-With the environment active:
+With the environment active, clone the repo and install brightwind in editable mode:
 
 ```bash
 git clone https://github.com/brightwind-dev/brightwind.git
