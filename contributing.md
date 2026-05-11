@@ -1,48 +1,144 @@
-Contributing
-============
+# Contributing
 
-## Issue Tracking
+Brightwind is an **open-source library** and contributions from the wind and solar industry are warmly welcomed —
+analysts, engineers, researchers and developers. Bug fixes, new features, docs improvements and feedback all help
+build a standardised, validated toolkit for the industry.
 
-New feature requests, changes, enhancements, non-methodology features, and bug reports can be filed as new issues in the
-[GitHub.com issue tracker](https://github.com/brightwind-dev/brightwind/issues) at any time. Please be sure to fully describe the
-issue.
+For library usage and tutorials, see the [documentation site](https://brightwind-dev.github.io/brightwind-docs/).
+This guide covers contributing to the **codebase itself**.
 
+---
 
-## Repository
+## Reporting issues
 
-The brightwind repository is hosted on GitHub, and located here: https://github.com/brightwind-dev/brightwind
+Search the [issue tracker](https://github.com/brightwind-dev/brightwind/issues) before opening a new issue. When
+reporting a bug or requesting a feature, please include:
 
-This repository is organized using a modified git-flow system. Branches are organized as follows:
+- A clear, descriptive title.
+- What you expected to happen, and what actually happened.
+- A minimal code example that reproduces the problem.
+- Your brightwind version, Python version and operating system.
 
-- master: Stable release version. Must have good test coverage and may not have all the newest features.
-- dev: Development branch which contains the newest features. Tests must pass, but code may be unstable.
-- feature/xxx: Branch from dev, should reference a GitHub issue number.
+---
 
-To work on a feature, first create an issue exaplaining the issue or idea and clone the repository locally when you are ready to get to work.
+## Development workflow
 
-Once you have successfully cloned, create a feature branch from the dev branch. Please name your branch with the issue number you are working from e.g. `iss255_fix_bug`. Work out of this feature branch and push changes to it before submitting a pull request.
+The repo follows a modified git-flow:
 
-Commit messages should contain the issue number, preceded with a #, so these commits can automatically show up in the issue conversation e.g. `git commit -m "iss #255 bug fixed"`.
+- **`master`** — stable release.
+- **`dev`** — newest features; tests must pass.
+- **`iss<number>_<short_description>`** — feature branches off `dev`, one per issue.
 
-Be sure to periodically synchronize the upstream dev branch into your feature branch to avoid conflicts in the pull request. You can continue to iterate on your feature branch until you are ready to submit your pull request.
+### Branching and committing
 
-When the feature branch is ready, make a pull request to the dev branch through the GitHub.com UI.
+1. Sync `dev`:
+   ```bash
+   git checkout dev
+   git pull
+   ```
 
-## Pull Request
+2. Create a feature branch named after the issue:
+   ```bash
+   git checkout -b iss123_short_description
+   ```
 
-Pull requests must be made for any changes to be merged into release branches.
-They must include updated documentation and pass all unit tests and integration tests.
-In addition, code coverage should not be negatively affected by the pull request.
+3. Keep changes small and focused. Verify before committing:
+   ```bash
+   git diff
+   git status
+   ```
 
-**Scope:**
-Encapsulate the changes of ideally one, or potentially a couple, issues.
-It is greatly preferable to submit three small pull requests than it is to submit one large pull request.
-Write a complete description of these changes in the pull request body.
+4. Commit with a message that **starts with the issue number** (the space between `iss` and `#` links the commit
+   to the issue on GitHub):
+   ```bash
+   git commit -m "iss #123 short description of the change"
+   ```
 
-**Tests:**
-The contributor should write a test to cover the new changes.
+5. Push:
+   ```bash
+   git push -u origin iss123_short_description
+   ```
 
-**Documentation:**
-Function docstrings should be fully updated to explain any behaviour changes to the user along with examples. For complicated logic some inline comments are encouraged.
+### Pull requests
 
-**Changelog:** For pull requests that encapsulate a user-facing feature, or is significant to other contributors for some other reason, please add a line to CHANGELOG.md in the [Unreleased] section.
+Open PRs against **`dev`**, not `master`.
+
+Before raising a PR:
+
+- All tests pass — see [Running tests](#running-tests).
+- Add a [CHANGELOG.md](CHANGELOG.md) entry under `[Unreleased]` for user-facing changes.
+- Update docstrings for new or changed behaviour.
+- Add a test for new functionality or bug fixes.
+
+In the PR, keep the scope focused (ideally one issue), reference the issue number in the title
+(e.g. `[iss123] Short description`), and clearly explain what changed and why.
+
+---
+
+## Development setup
+
+Install brightwind in **editable mode** in a dedicated environment.
+
+### Option 1 — venv
+
+```bash
+python -m venv brightwind_dev
+# Windows
+brightwind_dev\Scripts\activate
+# macOS / Linux
+source brightwind_dev/bin/activate
+```
+
+### Option 2 — conda
+
+```bash
+conda create --name brightwind_dev python=3.11
+conda activate brightwind_dev
+```
+
+### Editable install
+
+With the environment active:
+
+```bash
+git clone https://github.com/brightwind-dev/brightwind.git
+cd brightwind
+pip install -e .
+```
+
+The `-e` flag links the install to your local clone, so code changes are picked up without reinstalling.
+
+---
+
+## Running tests
+
+From the repo root:
+
+```bash
+pytest tests/
+```
+
+Single file or single test:
+
+```bash
+pytest tests/test_load.py
+pytest tests/test_load.py::test_load_brighthub -v
+```
+
+All tests must pass before raising a PR. New functionality should include tests covering normal behaviour and
+edge cases.
+
+---
+
+## Code standards
+
+- **UK English** in comments, docstrings and user-facing strings (e.g. "analyse", "colour", "metres").
+- **Docstrings** use reStructuredText style (`:param`, `:type`, `:return`, `:rtype`) — see existing functions
+  for examples.
+- **Follow existing patterns** in the codebase.
+- **Wind and solar industry terminology** used correctly and consistently.
+
+---
+
+The library is licensed under the MIT license. By contributing you agree that your contributions will be licensed
+under the same terms.
