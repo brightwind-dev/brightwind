@@ -9,7 +9,7 @@ import errno
 import os
 import shutil
 import json
-from io import StringIO
+from io import StringIO, BytesIO
 import warnings
 from dateutil.parser import parse
 from brightwind.analyse import plot as bw_plt
@@ -30,6 +30,8 @@ __all__ = ['load_csv',
            'apply_cleaning',
            'apply_cleaning_rules',
            'apply_cleaning_windographer']
+
+_FILE_EXTENSION_NOT_SET = object()
 
 OPERATOR_DICT = {
     1: operator.lt,
@@ -1491,19 +1493,19 @@ class LoadBrightHub:
         return date_str
 
     @staticmethod
-    def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None):
+    def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None, file_extension='.csv'):
         """
         Sub function to return the Brighthub GET timeseries-data API response.
         """
         date_from = LoadBrightHub.__date_to_datetime_str(date_from)
         date_to = LoadBrightHub.__date_to_datetime_str(date_to)
-        
+
         return LoadBrightHub._brighthub_request(
             url_end=f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
-            params={"date_from": date_from, "date_to": date_to})
+            params={"date_from": date_from, "date_to": date_to, "file_extension": file_extension})
 
     @staticmethod
-    def get_data(measurement_station_uuid, date_from=None, date_to=None):
+    def get_data(measurement_station_uuid, date_from=None, date_to=None, file_extension=_FILE_EXTENSION_NOT_SET):
         """
         Get the timeseries data from BrightHub for a particular measurement station.
 
@@ -1516,6 +1518,17 @@ class LoadBrightHub:
         :type date_from:                 str
         :param date_to:                  Optional filter to retrieve data up to this date.
         :type date_to:                   str
+        :param file_extension:           File format to request from BrightHub. One of '.csv' (current default) or
+                                         '.parquet'. Reading '.parquet' requires either ``pyarrow`` or ``fastparquet``
+                                         to be installed (``pip install brightwind[parquet]`` for ``pyarrow``, or
+                                         ``pip install brightwind[parquet-fastparquet]`` for ``fastparquet``).
+
+                                         .. deprecated::
+                                             The default of '.csv' is retained for backwards compatibility and will
+                                             change to '.parquet' in the next major release of brightwind. Pass
+                                             ``file_extension`` explicitly to silence the DeprecationWarning and lock
+                                             in the desired format.
+        :type file_extension:            str
         :return:                         The timeseries data.
         :rtype:                          pd.DataFrame
 
@@ -1544,8 +1557,31 @@ class LoadBrightHub:
             data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
                                              date_to='2016-07-01')
 
+        To get data as a parquet file (faster downloads and preserves dtypes; requires a parquet engine to be
+        installed)
+        ::
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
+                                             file_extension='.parquet')
+
         """
-        response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to)
+        if file_extension is _FILE_EXTENSION_NOT_SET:
+            warnings.warn(
+                "The default file_extension for LoadBrightHub.get_data will change from '.csv' to '.parquet' in the "
+                "next major release of brightwind. Pass file_extension='.csv' explicitly to keep the current "
+                "behaviour, or file_extension='.parquet' to opt in early. Reading parquet requires a parquet engine: "
+                "`pip install brightwind[parquet]` (pyarrow) or `pip install brightwind[parquet-fastparquet]` "
+                "(fastparquet).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            file_extension = '.csv'
+
+        if file_extension not in ('.csv', '.parquet'):
+            raise ValueError(
+                f"Unsupported file_extension '{file_extension}'. Expected '.csv' or '.parquet'."
+            )
+
+        response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to, file_extension)
         response_json = response.json()
 
         # Handle 503 Service Unavailable error response using Retry-After header.
@@ -1556,7 +1592,9 @@ class LoadBrightHub:
             retry_after = int(response.headers.get('Retry-After', 60))  # default retry after default 60 seconds
             for _ in range(4):  # attempt 4 more times
                 time.sleep(retry_after)  # wait before retrying
-                response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to)
+                response = LoadBrightHub.__get_timeseries_data(
+                    measurement_station_uuid, date_from, date_to, file_extension
+                )
                 response_json = response.json()
                 if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
                     retry_after *= 2  # double the retry time for each attempt
@@ -1580,6 +1618,16 @@ class LoadBrightHub:
         except requests.exceptions.RequestException as e:
             # Handle all request-related errors
             raise RuntimeError(f"An error occurred while fetching the data: {e}")
+
+        if file_extension == '.parquet':
+            try:
+                return pd.read_parquet(BytesIO(timeseries_response.content), engine='auto')
+            except ImportError as e:
+                raise ImportError(
+                    "Reading parquet requires a parquet engine. Install one with "
+                    "`pip install brightwind[parquet]` (pyarrow) or "
+                    "`pip install brightwind[parquet-fastparquet]` (fastparquet)."
+                ) from e
 
         df = pd.read_csv(StringIO(timeseries_response.text))
         df['Timestamp'] = pd.to_datetime(df['Timestamp'])  # this throws error if return doesn't have 'Timestamp'
