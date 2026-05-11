@@ -20,3 +20,9 @@ tests/temp/*
 temp/*
 brightwind.egg-info/
 **/.ipynb_checkpoints
+
+### Virtual Environments ###
+.venv/
+venv/
+env/
+brightwind_dev/
