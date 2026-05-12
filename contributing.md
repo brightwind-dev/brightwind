@@ -29,39 +29,54 @@ The repo follows a modified git-flow:
 - **`dev`** — newest features; tests must pass.
 - **`iss<number>_<short_description>`** — feature branches off `dev`, one per issue.
 
-### Branching and committing
+### Fork, branch and commit
 
-1. Sync `dev`:
+Brightwind follows the standard open-source fork-based workflow.
+
+> **Internal BrightWind contributors** with push access to `brightwind-dev/brightwind` can skip step 1 and
+> clone the upstream repo directly.
+
+1. **Fork the repo** on GitHub — click the **Fork** button (top-right of the
+   [brightwind repo page](https://github.com/brightwind-dev/brightwind)).
+
+2. **Clone your fork** locally:
    ```bash
-   git checkout dev
-   git pull
+   git clone https://github.com/YOUR_USERNAME/brightwind.git
+   cd brightwind
    ```
 
-2. Create a feature branch named after the issue:
+3. **Add the upstream remote** so you can pull future changes from the main repo:
    ```bash
+   git remote add upstream https://github.com/brightwind-dev/brightwind.git
+   ```
+
+4. **Sync `dev`** and create a feature branch named after the issue:
+   ```bash
+   git checkout dev
+   git pull upstream dev
    git checkout -b iss123_short_description
    ```
 
-3. Keep changes small and focused. Verify before committing:
+5. Keep changes small and focused. Verify before committing:
    ```bash
    git diff
    git status
    ```
 
-4. Commit with a message that **starts with the issue number** (the space between `iss` and `#` links the commit
-   to the issue on GitHub):
+6. **Commit** with a message that **starts with the issue number** (the space between `iss` and `#` links the
+   commit to the issue on GitHub):
    ```bash
    git commit -m "iss #123 short description of the change"
    ```
 
-5. Push:
+7. **Push to your fork**:
    ```bash
    git push -u origin iss123_short_description
    ```
 
 ### Pull requests
 
-Open PRs against **`dev`**, not `master`.
+Open PRs from your fork's feature branch into **`brightwind-dev/brightwind:dev`** — not `master`.
 
 Before raising a PR:
 
@@ -127,6 +142,25 @@ pytest tests/test_load.py::test_load_brighthub -v
 
 All tests must pass before raising a PR. New functionality should include tests covering normal behaviour and
 edge cases.
+
+### Integration tests against BrightHub
+
+Some tests hit the live [BrightHub](https://brighthub.io) API and require API credentials. They are automatically
+**skipped** if the credentials are not set, so the rest of the suite runs cleanly without them.
+
+To run the BrightHub tests, set the following environment variables before running `pytest`:
+
+```bash
+# Windows (PowerShell, current session)
+$env:BRIGHTHUB_CLIENT_ID="your-client-id"
+$env:BRIGHTHUB_CLIENT_SECRET="your-client-secret"
+
+# macOS / Linux
+export BRIGHTHUB_CLIENT_ID="your-client-id"
+export BRIGHTHUB_CLIENT_SECRET="your-client-secret"
+```
+
+Generate an API key from [brighthub.io/account-settings/settings](https://brighthub.io/account-settings/settings).
 
 ---
 

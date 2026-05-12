@@ -158,6 +158,11 @@ def test_load_campbell_scientific():
             data1['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999)).all().all()
 
 
+@pytest.mark.skipif(
+    not (os.environ.get('BRIGHTHUB_CLIENT_ID') and os.environ.get('BRIGHTHUB_CLIENT_SECRET')),
+    reason="BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET must be set to run this integration test "
+           "against the live BrightHub API."
+)
 def test_load_brighthub():
 
     plant_uuid = '7a58497e-bee1-42a2-8084-c47a5cf213b7'
