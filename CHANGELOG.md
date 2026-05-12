@@ -14,7 +14,8 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. 
+1. Rewrote `README.md` and `contributing.md` to align with the [docs site](https://brightwind-dev.github.io/brightwind-docs/), with clearer install options (venv / conda), a quick-start example, and an expanded contributing guide covering the fork workflow, editable dev install and running the test suite. ([#602](https://github.com/brightwind-dev/brightwind/issues/602))
+2. `test_load_brighthub` is now skipped automatically when `BRIGHTHUB_CLIENT_ID` and `BRIGHTHUB_CLIENT_SECRET` environment variables are not set, so the test suite runs cleanly without BrightHub credentials. ([#602](https://github.com/brightwind-dev/brightwind/issues/602))
 
 ### Bug Fixes
 1. 
