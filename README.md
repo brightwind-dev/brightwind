@@ -109,6 +109,21 @@ consultancy reinventing the same calculations behind closed doors.
 <br>
 
 ---
+### Test datasets
+
+Demo datasets are bundled with the library to demonstrate functions and exercise the test suite:
+
+| Dataset | Source | Notes |
+|:--- |:--- |:--- |
+| `demo_data.csv` | BrightWind | A modified 2-year met mast dataset in CSV and Campbell Scientific format. |
+| `MERRA-2_XX_2000-01-01_2017-06-30.csv` | NASA [GES DISC](https://disc.gsfc.nasa.gov/) | 4 × MERRA-2 18-year datasets to complement the demo data for long-term analyses. |
+| `demo_cleaning_file.csv` | BrightWind | Periods to clean out from the demo data. |
+| `windographer_flagging_log.txt` | BrightWind | Same cleaning info as `demo_cleaning_file.csv` formatted as a Windographer flagging file. |
+| `demo_data_iea43_wra_data_model.json` | BrightWind | A JSON file formatted to the IEA Wind Task 43 [WRA Data Model](https://github.com/IEA-Task-43/digital_wra_data_standard) standard, describing the mast configuration for the demo data. |
+
+<br>
+
+---
 ### Contributing
 
 Brightwind welcomes contributions from across the wind and solar industry — analysts, engineers, researchers and
