@@ -112,6 +112,185 @@ def test_apply_cleaning_rules():
     assert (data[data_original["T2m"] > 5][date_from:date_to]["Spd80mS"] == "-").all()
 
 
+def _synthetic_cleaning_df():
+    """Deterministic synthetic DataFrame for nested-condition / time-range tests."""
+    index = pd.date_range('2016-01-01', '2016-03-31 23:50', freq='10min')
+    n = len(index)
+    return pd.DataFrame(
+        {
+            'Spd': np.linspace(0, 20, n),
+            'Dir': np.linspace(0, 359, n),
+            'T2m': np.linspace(-10, 30, n),
+        },
+        index=index,
+    )
+
+
+def test_apply_cleaning_rules_nested_and_time_range():
+    df = _synthetic_cleaning_df()
+
+    # 1. Flat condition regression — equivalent to old single-condition behaviour.
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Spd'}],
+        'conditions': {'assembled_column_name': 'Spd', 'comparison_operator_id': 1, 'comparator_value': 10},
+    }}]
+    cleaned = bw.apply_cleaning_rules(df, rules)
+    expected_mask = df['Spd'] < 10
+    assert cleaned.loc[expected_mask, 'Spd'].isna().all()
+    assert cleaned.loc[~expected_mask, 'Spd'].notna().all()
+
+    # 2. AND of two single comparisons — both must be true.
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Spd'}],
+        'conditions': {'and': [
+            {'assembled_column_name': 'Spd', 'comparison_operator_id': 1, 'comparator_value': 10},
+            {'assembled_column_name': 'T2m', 'comparison_operator_id': 1, 'comparator_value': 5},
+        ]},
+    }}]
+    cleaned = bw.apply_cleaning_rules(df, rules)
+    expected_mask = (df['Spd'] < 10) & (df['T2m'] < 5)
+    assert cleaned.loc[expected_mask, 'Spd'].isna().all()
+    assert cleaned.loc[~expected_mask, 'Spd'].notna().all()
+
+    # 3. OR of two single comparisons — either may be true.
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Spd'}],
+        'conditions': {'or': [
+            {'assembled_column_name': 'Spd', 'comparison_operator_id': 1, 'comparator_value': 5},
+            {'assembled_column_name': 'T2m', 'comparison_operator_id': 3, 'comparator_value': 20},
+        ]},
+    }}]
+    cleaned = bw.apply_cleaning_rules(df, rules)
+    expected_mask = (df['Spd'] < 5) | (df['T2m'] > 20)
+    assert cleaned.loc[expected_mask, 'Spd'].isna().all()
+    assert cleaned.loc[~expected_mask, 'Spd'].notna().all()
+
+    # 4. NOT — negation of a single comparison.
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Spd'}],
+        'conditions': {'not': {'assembled_column_name': 'Spd', 'comparison_operator_id': 1, 'comparator_value': 10}},
+    }}]
+    cleaned = bw.apply_cleaning_rules(df, rules)
+    expected_mask = ~(df['Spd'] < 10)
+    assert cleaned.loc[expected_mask, 'Spd'].isna().all()
+    assert cleaned.loc[~expected_mask, 'Spd'].notna().all()
+
+    # 5. Nested AND containing OR.
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Spd'}],
+        'conditions': {'and': [
+            {'assembled_column_name': 'Dir', 'comparison_operator_id': 4, 'comparator_value': 180},
+            {'or': [
+                {'assembled_column_name': 'Spd', 'comparison_operator_id': 1, 'comparator_value': 3},
+                {'assembled_column_name': 'Spd', 'comparison_operator_id': 3, 'comparator_value': 15},
+            ]},
+        ]},
+    }}]
+    cleaned = bw.apply_cleaning_rules(df, rules)
+    expected_mask = (df['Dir'] >= 180) & ((df['Spd'] < 3) | (df['Spd'] > 15))
+    assert cleaned.loc[expected_mask, 'Spd'].isna().all()
+    assert cleaned.loc[~expected_mask, 'Spd'].notna().all()
+
+    # 6. time_range_conditions alone (combined with an always-true conditions block).
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Spd'}],
+        'conditions': {'assembled_column_name': 'Spd', 'comparison_operator_id': 4, 'comparator_value': -1},
+        'time_range_conditions': {'and': [
+            {'value': '2016-02-01T00:00:00', 'comparison_operator_id': 4},
+            {'value': '2016-03-01T00:00:00', 'comparison_operator_id': 1},
+        ]},
+    }}]
+    cleaned = bw.apply_cleaning_rules(df, rules)
+    expected_mask = (df.index >= pd.Timestamp('2016-02-01')) & (df.index < pd.Timestamp('2016-03-01'))
+    assert cleaned.loc[expected_mask, 'Spd'].isna().all()
+    assert cleaned.loc[~expected_mask, 'Spd'].notna().all()
+
+    # 7. time_range_conditions ANDed with a measurement condition.
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Spd'}],
+        'conditions': {'assembled_column_name': 'Spd', 'comparison_operator_id': 1, 'comparator_value': 10},
+        'time_range_conditions': {'and': [
+            {'value': '2016-02-01T00:00:00', 'comparison_operator_id': 4},
+            {'value': '2016-03-01T00:00:00', 'comparison_operator_id': 1},
+        ]},
+    }}]
+    cleaned = bw.apply_cleaning_rules(df, rules)
+    in_window = (df.index >= pd.Timestamp('2016-02-01')) & (df.index < pd.Timestamp('2016-03-01'))
+    expected_mask = (df['Spd'] < 10) & in_window
+    assert cleaned.loc[expected_mask, 'Spd'].isna().all()
+    assert cleaned.loc[~expected_mask, 'Spd'].notna().all()
+
+    # 8. time_range_conditions combined with date_from/date_to — all three ANDed.
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Spd'}],
+        'conditions': {'assembled_column_name': 'Spd', 'comparison_operator_id': 4, 'comparator_value': -1},
+        'date_from': '2016-01-15T00:00:00',
+        'date_to': '2016-03-15T00:00:00',
+        'time_range_conditions': {'and': [
+            {'value': '2016-02-01T00:00:00', 'comparison_operator_id': 4},
+            {'value': '2016-04-01T00:00:00', 'comparison_operator_id': 1},
+        ]},
+    }}]
+    cleaned = bw.apply_cleaning_rules(df, rules)
+    expected_mask = (
+        (df.index >= pd.Timestamp('2016-01-15')) & (df.index < pd.Timestamp('2016-03-15')) &
+        (df.index >= pd.Timestamp('2016-02-01')) & (df.index < pd.Timestamp('2016-04-01'))
+    )
+    assert cleaned.loc[expected_mask, 'Spd'].isna().all()
+    assert cleaned.loc[~expected_mask, 'Spd'].notna().all()
+
+    # 9. Validation error — single comparison missing comparator_value.
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Spd'}],
+        'conditions': {'assembled_column_name': 'Spd', 'comparison_operator_id': 1},
+    }}]
+    with pytest.raises(ValueError) as except_info:
+        bw.apply_cleaning_rules(df, rules)
+    assert "validity of the supplied JSON" in str(except_info.value)
+
+    # 10. Stat-type expansion — clean_out on the avg column also cleans all stat variants present.
+    index = pd.date_range('2016-01-01', '2016-01-02 23:50', freq='10min')
+    n = len(index)
+    df_stats = pd.DataFrame(
+        {
+            'Spd_40m': np.linspace(0, 20, n),
+            'Spd_40m_sd': np.linspace(0, 2, n),
+            'Spd_40m_max': np.linspace(0, 25, n),
+            'Spd_40m_min': np.linspace(0, 15, n),
+            'OtherCol': np.linspace(0, 1, n),
+        },
+        index=index,
+    )
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Spd_40m'}],
+        'conditions': {'assembled_column_name': 'Spd_40m', 'comparison_operator_id': 1, 'comparator_value': 10},
+    }}]
+    cleaned = bw.apply_cleaning_rules(df_stats, rules)
+    mask = df_stats['Spd_40m'] < 10
+    for col in ('Spd_40m', 'Spd_40m_sd', 'Spd_40m_max', 'Spd_40m_min'):
+        assert cleaned.loc[mask, col].isna().all()
+        assert cleaned.loc[~mask, col].notna().all()
+    assert cleaned['OtherCol'].notna().all()
+
+    # New fields measurement_point_uuid and statistic_type_id are accepted but ignored.
+    rules = [{'rule': {
+        'clean_out': [{
+            'assembled_column_name': 'Spd_40m',
+            'measurement_point_uuid': '00000000-0000-0000-0000-000000000000',
+            'statistic_type_id': 'avg',
+        }],
+        'conditions': {
+            'assembled_column_name': 'Spd_40m',
+            'comparison_operator_id': 1,
+            'comparator_value': 10,
+            'measurement_point_uuid': '00000000-0000-0000-0000-000000000000',
+            'statistic_type_id': 'avg',
+        },
+    }}]
+    cleaned = bw.apply_cleaning_rules(df_stats, rules)
+    assert cleaned.loc[mask, 'Spd_40m'].isna().all()
+
+
 def test_load_csv():
     data = bw.load_csv(os.path.join(DEMO_DATA_FOLDER, 'demo_data.csv'))
     data2 = bw.load_csv(os.path.join(DEMO_DATA_FOLDER, 'demo_data2.csv'), dayfirst=True)

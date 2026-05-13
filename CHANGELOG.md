@@ -14,7 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. 
+1. Updated `apply_cleaning_rules()` to support nested boolean conditions (`and`/`or`/`not`) inside the `conditions` block and a new optional `time_range_conditions` block on cleaning rules, in line with the updated BrightHub `/measurement-locations/{uuid}/cleaning-rules` API response. Existing flat-condition cleaning rule files continue to work unchanged. The new `measurement_point_uuid` and `statistic_type_id` fields on `conditions` and `clean_out` items are accepted but currently ignored — column resolution still relies on `assembled_column_name`. The `cleaning_rule.schema.json` was extended with a `time_condition` definition.
 
 ### Bug Fixes
 1. 
