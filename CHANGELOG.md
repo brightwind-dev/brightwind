@@ -10,8 +10,8 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
 ---
-## [2.X.X]
-XX-Xxx-2026
+## [2.7.0]
+XX-May-2026
 
 ### New Features and Enhancements
 1. Added support for reading Parquet files from BrightHub in `LoadBrightHub.get_data()` via a new `file_extension` argument (one of `'.csv'` or `'.parquet'`). Default remains `'.csv'` for backwards compatibility; Parquet is expected to become the default in the next major release. Reading Parquet requires a parquet engine — install with `pip install brightwind[parquet]` (pyarrow) or `pip install brightwind[parquet-fastparquet]` (fastparquet). ([#601](https://github.com/brightwind-dev/brightwind/issues/601))
