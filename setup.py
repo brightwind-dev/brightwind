@@ -61,6 +61,12 @@ setup(
         'jsonschema>=4.17.3',
         'jinja2>= 3.0.0'
     ],
+    extras_require={
+        # Optional parquet engines for LoadBrightHub.get_data(file_extension='.parquet').
+        # pandas picks the installed engine at read time (prefers pyarrow, falls back to fastparquet).
+        'parquet': ['pyarrow>=5.0.0'],
+        'parquet-fastparquet': ['fastparquet>=0.8.0'],
+    },
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
