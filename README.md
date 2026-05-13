@@ -99,7 +99,7 @@ For full examples — loading, plotting, shear, correlations, exporting — see 
 ---
 ### Why open-source?
 
-Brightwind makes every step of an assessment transparent, auditable and reproducible. The full record of
+The brightwind library is open-source, making every step of an assessment transparent, auditable and reproducible. The full record of
 adjustments to a dataset lives in a single file that internal reviewers, third parties and banks can inspect
 directly — sharpening due diligence and removing the "black box" problem of proprietary tools.
 
