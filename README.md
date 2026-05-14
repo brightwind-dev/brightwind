@@ -13,46 +13,89 @@
 
 <br>
 
-Brightwind is a Python library specifically built for wind analysis. It can load in wind speed, wind direction and 
-other metrological timeseries data. There are various plots you can use to understand this data and to find any 
-potential issues. You can perform many common functions to the data such as shear and long-term adjustments. The 
-resulting adjusted data is then outputted as a frequency distribution tab file which can be used in wind analysis 
-software such as WAsP.
+Brightwind is an open-source Python library for wind (and solar) resource analysis. It loads meteorological
+timeseries data, runs common analyses — shear, long-term adjustments, correlations, distributions — and exports
+results to formats used by wind analysis software such as WAsP.
 
-This library can also be used for solar resource analysis.
+📚 **Full documentation, tutorials and API reference:** https://brightwind-dev.github.io/brightwind-docs/
 
 <br>
 
 ---
 ### Installation
 
-You can use pip from the command line to install the library.
+Install brightwind into its own environment to avoid dependency clashes. Pick whichever option suits you.
 
+#### Option 1 — venv (quick way to try brightwind out)
+
+Check Python is installed (3.9+ recommended):
+
+```bash
+python --version
 ```
-C:\Users\Stephen> pip install brightwind
+
+If not, install it from [python.org/downloads](https://www.python.org/downloads/) — on Windows, tick **"Add
+Python to PATH"** in the installer.
+
+Then create an environment and install brightwind:
+
+```bash
+python -m venv brightwind_env
+# Windows
+brightwind_env\Scripts\activate
+# macOS / Linux
+source brightwind_env/bin/activate
+
+pip install brightwind
 ```
-It is advisable to use a separate environment to avoid any dependency clashes with other libraries such as Pandas, Numpy 
-or Matplotlib you may already have installed.
+
+#### Option 2 — conda
+
+Common if you already use Anaconda or work primarily in Jupyter.
+[Anaconda](https://www.datacamp.com/tutorial/installing-anaconda-windows) bundles Python, pip and Jupyter in one
+installer. From the **Anaconda Prompt**:
+
+```bash
+conda create --name brightwind_env python=3.11
+conda activate brightwind_env
+pip install brightwind
+```
+
+A step-by-step Windows install walkthrough is also available in the
+[tutorials](https://brightwind-dev.github.io/brightwind-docs/).
+
+**Optional — parquet support**
+
+Reading `.parquet` files from BrightHub needs a parquet engine. Install the default (pyarrow):
+
+```bash
+pip install brightwind[parquet]
+```
+
+Or use fastparquet instead: `pip install brightwind[parquet-fastparquet]`.
 
 <br>
-
-For those that do not have Python installed and are just getting started, we recommend installing Anaconda. Anaconda is 
-a Python distribution for scientific computing and so provides everything you need, Python, pip and Jupyter Notebook 
-along with libraries such as Pandas, Numpy and Matplotlib. Datacamp provide a good tutorial for [installing 
-Anaconda on Windows](https://www.datacamp.com/tutorial/installing-anaconda-windows) to get started.
-
-Once Anaconda is installed, you can use the **Anaconda Prompt** to run the above command line `pip install brightwind`. 
-Or first use **Anaconda Navigator** to create an environment.
 
 ---
-### Documentation
+### Quick start
 
-Documentation on how to get setup and use the library can be found at https://brightwind-dev.github.io/brightwind-docs/
+Most analysts use brightwind from a Jupyter Notebook:
 
-<br>
+```bash
+pip install jupyter
+jupyter notebook
+```
 
-Example usage of the brightwind library is shown below using Jupyter Notebook. Jupyter Notebook is a powerful way to 
-immediately see the results of code you have written.
+```python
+import brightwind as bw
+
+data = bw.load_csv(bw.demo_datasets.demo_data)
+bw.basic_stats(data)
+```
+
+For full examples — loading, plotting, shear, correlations, exporting — see the
+[tutorials and API reference](https://brightwind-dev.github.io/brightwind-docs/).
+
 <br>
 
 <p>
@@ -61,58 +104,48 @@ immediately see the results of code you have written.
 ![demo_image_2](read_me_2.png)
 </p>
 
-
-
-
 <br>
 
-##### Features
-The library provides wind analysts with easy to use tools for working with
-meteorological data. It supports loading of meteorological data, averaging,
-filtering, plotting, correlations, shear analysis, long term adjustments, etc.
-The library can then export a resulting long term adjusted tab file to be used in
-other wind analysis software.
+---
+### Why open-source?
 
-<br>
+The brightwind library is open-source, making every step of an assessment transparent, auditable and reproducible. The full record of
+adjustments to a dataset lives in a single file that internal reviewers, third parties and banks can inspect
+directly — sharpening due diligence and removing the "black box" problem of proprietary tools.
 
-##### Benefits
-The key benefits to an open-source library is that it provides complete transparency
-and traceability. Anyone in the industry can review any part of the code and suggest changes,
-thus creating a standardised, validated toolkit for the industry.
-
-By default, during an assessment every manipulation or adjustment made to the wind data is
-contained in a single file. This can easily be reviewed and checked by internal reviewers or,
-as the underlying code is open-sourced, there is no reason why this file cannot be sent to
-3rd parties for review thus increasing the effectiveness of a banks due diligence.
-
-<br>
-
-##### License
-The library is licensed under the MIT license.
+The intent is a shared, validated toolkit that the wind and solar industry builds on together, rather than each
+consultancy reinventing the same calculations behind closed doors.
 
 <br>
 
 ---
 ### Test datasets
-A test dataset is included in this repository and is used to demonstrate function and test functions in the code. 
-Other files and datasets are also included to complement this demo dataset. These are outlined below:
 
-<br>
+Demo datasets are bundled with the library to demonstrate functions and exercise the test suite:
 
-| Dataset               | Source           | Notes  |
-|:--------------------- |:-------------|:-----|
-| demo_data.csv         | BrightWind | A modified 2 year met mast dataset in csv and Campbell Scientific format. |
-| MERRA-2_XX_2000-01-01_2017-06-30.csv | NASA [GES DISC](https://disc.gsfc.nasa.gov/) | 4 x MERRA-2 18-yr datasets to complement the demo data for long term analyses. |
-| demo_cleaning_file.csv | BrightWind | A file containing information on what periods to clean out from the demo data. |
-| windographer_flagging_log.txt | BrightWind | The same cleaning info as found in 'demo_cleaning_file.csv' formatted as a Windographer flagging file. |
-| demo_data_iea43_wra_data_model.json | BrightWind | A JSON file formatted according to the IEA Wind Task 43 [WRA Data Model](https://github.com/IEA-Task-43/digital_wra_data_standard) standard which describes the mast configuration for the demo data. |
+| Dataset | Source | Notes |
+|:--- |:--- |:--- |
+| `demo_data.csv` | BrightWind | A modified 2-year met mast dataset in CSV and Campbell Scientific format. |
+| `MERRA-2_XX_2000-01-01_2017-06-30.csv` | NASA [GES DISC](https://disc.gsfc.nasa.gov/) | 4 × MERRA-2 18-year datasets to complement the demo data for long-term analyses. |
+| `demo_cleaning_file.csv` | BrightWind | Periods to clean out from the demo data. |
+| `windographer_flagging_log.txt` | BrightWind | Same cleaning info as `demo_cleaning_file.csv` formatted as a Windographer flagging file. |
+| `demo_data_iea43_wra_data_model.json` | BrightWind | A JSON file formatted to the IEA Wind Task 43 [WRA Data Model](https://github.com/IEA-Task-43/digital_wra_data_standard) standard, describing the mast configuration for the demo data. |
 
 <br>
 
 ---
 ### Contributing
-If you wish to be involved or find out more please contact stephen@brightwindanalysis.com.
 
-More information can be found in the [contributing.md](https://github.com/brightwind-dev/brightwind/blob/master/contributing.md) section of the website.
+Brightwind welcomes contributions from across the wind and solar industry — analysts, engineers, researchers and
+developers.
+
+- **Issues, bugs and feature requests:** [GitHub issue tracker](https://github.com/brightwind-dev/brightwind/issues)
+- **Code contributions and development setup:** see [contributing.md](contributing.md)
+- **General enquiries:** stephen@brightwindanalysis.com
 
 <br>
+
+---
+### License
+
+MIT — see [LICENSE.txt](LICENSE.txt).
