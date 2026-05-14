@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$version": "1.0.0",
+  "$version": "1.1.0",
   "definitions": {
     "condition": {
       "type": "object",
@@ -47,6 +47,44 @@
         { "required": ["or"], "maxProperties": 1 },
         { "required": ["not"], "maxProperties": 1 }
       ]
+    },
+    "time_condition": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string",
+          "format": "date-time",
+          "description": "An ISO 8601 timestamp compared against the timeseries datetime index."
+        },
+        "comparison_operator_id": {
+          "type": "integer",
+          "oneOf": [
+            { "const": 1, "description": "is less than" },
+            { "const": 2, "description": "is less than or equal" },
+            { "const": 3, "description": "is greater than" },
+            { "const": 4, "description": "is greater than or equal" },
+            { "const": 5, "description": "equals" },
+            { "const": 6, "description": "not equals" }
+          ]
+        },
+        "and": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/time_condition" },
+          "minItems": 2
+        },
+        "or": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/time_condition" },
+          "minItems": 2
+        },
+        "not": { "$ref": "#/definitions/time_condition" }
+      },
+      "oneOf": [
+        { "required": ["value", "comparison_operator_id"] },
+        { "required": ["and"], "maxProperties": 1 },
+        { "required": ["or"], "maxProperties": 1 },
+        { "required": ["not"], "maxProperties": 1 }
+      ]
     }
   },
   "type": "object",
@@ -55,6 +93,7 @@
       "type": "object",
       "properties": {
         "conditions": { "$ref": "#/definitions/condition" },
+        "time_range_conditions": { "$ref": "#/definitions/time_condition" },
         "clean_out": {
           "type": "array",
           "items": {

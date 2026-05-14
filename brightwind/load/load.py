@@ -9,7 +9,7 @@ import errno
 import os
 import shutil
 import json
-from io import StringIO
+from io import StringIO, BytesIO
 import warnings
 from dateutil.parser import parse
 from brightwind.analyse import plot as bw_plt
@@ -18,6 +18,7 @@ import time
 import concurrent
 import math
 import operator
+import functools
 
 
 __all__ = ['load_csv',
@@ -30,6 +31,8 @@ __all__ = ['load_csv',
            'apply_cleaning',
            'apply_cleaning_rules',
            'apply_cleaning_windographer']
+
+_FILE_EXTENSION_NOT_SET = object()
 
 OPERATOR_DICT = {
     1: operator.lt,
@@ -1491,19 +1494,19 @@ class LoadBrightHub:
         return date_str
 
     @staticmethod
-    def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None):
+    def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None, file_extension='.csv'):
         """
         Sub function to return the Brighthub GET timeseries-data API response.
         """
         date_from = LoadBrightHub.__date_to_datetime_str(date_from)
         date_to = LoadBrightHub.__date_to_datetime_str(date_to)
-        
+
         return LoadBrightHub._brighthub_request(
             url_end=f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
-            params={"date_from": date_from, "date_to": date_to})
+            params={"date_from": date_from, "date_to": date_to, "file_extension": file_extension})
 
     @staticmethod
-    def get_data(measurement_station_uuid, date_from=None, date_to=None):
+    def get_data(measurement_station_uuid, date_from=None, date_to=None, file_extension=_FILE_EXTENSION_NOT_SET):
         """
         Get the timeseries data from BrightHub for a particular measurement station.
 
@@ -1516,6 +1519,17 @@ class LoadBrightHub:
         :type date_from:                 str
         :param date_to:                  Optional filter to retrieve data up to this date.
         :type date_to:                   str
+        :param file_extension:           File format to request from BrightHub. One of '.csv' (current default) or
+                                         '.parquet'. Reading '.parquet' requires either ``pyarrow`` or ``fastparquet``
+                                         to be installed (``pip install brightwind[parquet]`` for ``pyarrow``, or
+                                         ``pip install brightwind[parquet-fastparquet]`` for ``fastparquet``).
+
+                                         .. deprecated::
+                                             The default of '.csv' is retained for backwards compatibility and will
+                                             change to '.parquet' in the next major release of brightwind. Pass
+                                             ``file_extension`` explicitly to silence the DeprecationWarning and lock
+                                             in the desired format.
+        :type file_extension:            str
         :return:                         The timeseries data.
         :rtype:                          pd.DataFrame
 
@@ -1544,8 +1558,31 @@ class LoadBrightHub:
             data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
                                              date_to='2016-07-01')
 
+        To get data as a parquet file (faster downloads and preserves dtypes; requires a parquet engine to be
+        installed)
+        ::
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
+                                             file_extension='.parquet')
+
         """
-        response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to)
+        if file_extension is _FILE_EXTENSION_NOT_SET:
+            warnings.warn(
+                "The default file_extension for LoadBrightHub.get_data will change from '.csv' to '.parquet' in the "
+                "next major release of brightwind. Pass file_extension='.csv' explicitly to keep the current "
+                "behaviour, or file_extension='.parquet' to opt in early. Reading parquet requires a parquet engine: "
+                "`pip install brightwind[parquet]` (pyarrow) or `pip install brightwind[parquet-fastparquet]` "
+                "(fastparquet).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            file_extension = '.csv'
+
+        if file_extension not in ('.csv', '.parquet'):
+            raise ValueError(
+                f"Unsupported file_extension '{file_extension}'. Expected '.csv' or '.parquet'."
+            )
+
+        response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to, file_extension)
         response_json = response.json()
 
         # Handle 503 Service Unavailable error response using Retry-After header.
@@ -1556,7 +1593,9 @@ class LoadBrightHub:
             retry_after = int(response.headers.get('Retry-After', 60))  # default retry after default 60 seconds
             for _ in range(4):  # attempt 4 more times
                 time.sleep(retry_after)  # wait before retrying
-                response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to)
+                response = LoadBrightHub.__get_timeseries_data(
+                    measurement_station_uuid, date_from, date_to, file_extension
+                )
                 response_json = response.json()
                 if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
                     retry_after *= 2  # double the retry time for each attempt
@@ -1580,6 +1619,16 @@ class LoadBrightHub:
         except requests.exceptions.RequestException as e:
             # Handle all request-related errors
             raise RuntimeError(f"An error occurred while fetching the data: {e}")
+
+        if file_extension == '.parquet':
+            try:
+                return pd.read_parquet(BytesIO(timeseries_response.content), engine='auto')
+            except ImportError as e:
+                raise ImportError(
+                    "Reading parquet requires a parquet engine. Install one with "
+                    "`pip install brightwind[parquet]` (pyarrow) or "
+                    "`pip install brightwind[parquet-fastparquet]` (fastparquet)."
+                ) from e
 
         df = pd.read_csv(StringIO(timeseries_response.text))
         df['Timestamp'] = pd.to_datetime(df['Timestamp'])  # this throws error if return doesn't have 'Timestamp'
@@ -2467,53 +2516,60 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     return data
 
 
-def _apply_cleaning_rule(df, condition_col, target_cols, comparator_value, comparison_operator_id, replacement_value, 
-                         date_from, date_to):
-    """Apply cleaning rule based on a single column to replace values on a list of columns
+def _build_date_range_mask(df, date_from, date_to):
+    """Build a boolean Series selecting rows of df.index within [date_from, date_to).
 
-    :param df:                      Data to be cleaned.       
-    :type df:                       pandas.DataFrame
-    :param condition_col:           Column that the cleaning rule is based on
-    :type condition_col:            str
-    :param target_cols:             Column to apply the cleaning rule to clean the data of
-    :type target_cols:              List[str]
-    :param comparator_value:        Threshold value to use in the cleaning rule, defined by 
-                                    the cleaning_rule_json format.
-    :type comparator_value:         float
-    :param comparison_operator_id:  Operator code (1-6) defined by the cleaning_rule_json format, to be used with
-                                    variable operator_dict to define the operator used on the condition column.
-                                    Code number corresponds to the following operators:
-                                        1: is less than (<),
-                                        2: is less than or equal (≤),
-                                        3: is greater than (>),
-                                        4: is greater than or equal (≥),
-                                        5: equals (=),
-                                        6: not equals (≠)
-    :type comparison_operator_id:   int
-    :param replacement_value:       Value or string to replace the data in the target_cols with
-    :type replacement_value:        str | np.nan
-    :param dates_from:              List of datetimes that the cleaning rule should be applied from for each column. 
-    :type dates_from:               str
-    :param dates_to:                List of datetimes that the cleaning rule should be applied until for each column. If
-                                    None is present the data is cleaned until the end of the file.
-    :type dates_to:                 str| None
-    :return:                        Cleaned data
-    :rtype:                         pandas.DataFrame
+    `date_from` is inclusive, `date_to` is exclusive (matches the schema documentation).
+    Either bound may be None — a None bound is treated as unbounded on that side.
     """
+    if date_from is None and date_to is None:
+        return pd.Series(True, index=df.index)
+    if date_to is None:
+        return pd.Series(df.index >= pd.Timestamp(date_from), index=df.index)
+    if date_from is None:
+        return pd.Series(df.index < pd.Timestamp(date_to), index=df.index)
+    return pd.Series((df.index >= pd.Timestamp(date_from)) & (df.index < pd.Timestamp(date_to)), index=df.index)
 
-    result_df = df
-    op = OPERATOR_DICT[comparison_operator_id]
-    mask = op(df[condition_col], comparator_value)
-    if date_to:
-        date_filter = (df.index >= date_from) & (df.index < date_to)
-    else:
-        date_filter = (df.index >= date_from)
 
-    for col in target_cols:
-        mask_date_range = mask & date_filter
-        result_df.loc[mask_date_range, col] = replacement_value
-    
-    return result_df
+def _evaluate_condition(df, condition):
+    """Recursively evaluate a column-based condition node and return a boolean Series aligned to df.index.
+
+    A node is either a single comparison with ``assembled_column_name`` / ``comparison_operator_id`` /
+    ``comparator_value``, or a boolean combinator with one of ``and`` / ``or`` / ``not`` wrapping
+    further nodes. Schema validation is assumed to have already enforced exactly one shape per node.
+    """
+    if 'and' in condition:
+        return functools.reduce(operator.and_,
+                                (_evaluate_condition(df, child) for child in condition['and']))
+    if 'or' in condition:
+        return functools.reduce(operator.or_,
+                                (_evaluate_condition(df, child) for child in condition['or']))
+    if 'not' in condition:
+        return ~_evaluate_condition(df, condition['not'])
+
+    op = OPERATOR_DICT[condition['comparison_operator_id']]
+    return op(df[condition['assembled_column_name']], condition['comparator_value'])
+
+
+def _evaluate_time_range_condition(df, condition):
+    """Recursively evaluate a time-range condition node and return a boolean Series aligned to df.index.
+
+    Mirrors :func:`_evaluate_condition` but each single comparison compares ``df.index`` against
+    an ISO timestamp ``value`` rather than comparing a column against a numeric ``comparator_value``.
+    """
+    if 'and' in condition:
+        return functools.reduce(operator.and_,
+                                (_evaluate_time_range_condition(df, child) for child in condition['and']))
+    if 'or' in condition:
+        return functools.reduce(operator.or_,
+                                (_evaluate_time_range_condition(df, child) for child in condition['or']))
+    if 'not' in condition:
+        return ~_evaluate_time_range_condition(df, condition['not'])
+
+    op = OPERATOR_DICT[condition['comparison_operator_id']]
+    result = op(df.index.to_series(), pd.Timestamp(condition['value']))
+    result.name = None
+    return result
 
 
 def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, replacement_text='NaN'):
@@ -2571,6 +2627,39 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
             schema = json.load(file)
         schema
 
+    **Nested conditions**
+
+    The ``conditions`` block may be a single flat comparison or a recursive tree built with
+    ``and`` / ``or`` / ``not``. All forms are evaluated against the supplied DataFrame and the
+    resulting boolean mask is applied to the columns listed in ``clean_out``.
+    ::
+        "conditions": {"and": [
+            {"assembled_column_name": "Spd80mN", "comparison_operator_id": 1, "comparator_value": 10},
+            {"assembled_column_name": "T2m",     "comparison_operator_id": 3, "comparator_value": 5}
+        ]}
+
+    **Time-range conditions**
+
+    An optional ``time_range_conditions`` block (same nested ``and`` / ``or`` / ``not`` structure,
+    with ISO-timestamp ``value`` leaves) restricts cleaning to specific time windows. It is ANDed
+    with ``conditions`` and any ``date_from`` / ``date_to``.
+    ::
+        "time_range_conditions": {"and": [
+            {"value": "2016-02-01T00:00:00", "comparison_operator_id": 4},
+            {"value": "2017-09-01T00:00:00", "comparison_operator_id": 1}
+        ]}
+
+    **Stat-type expansion of ``clean_out``**
+
+    A ``clean_out`` item naming the avg column will also clean all associated stat-type columns at
+    the same measurement point (``_sd``, ``_max``, ``_min``, ``_count``, ``_availability``,
+    ``_quality``, ``_sum``, ``_median``, ``_mode``, ``_range``, ``_gust``, ``_ti``, ``_ti30sec``,
+    ``_text``, ``_val``) via substring matching on column names.
+
+    The new ``measurement_point_uuid`` and ``statistic_type_id`` fields on ``conditions`` and
+    ``clean_out`` items (added in the BrightHub API) are accepted but currently ignored — only
+    ``assembled_column_name`` is used for column resolution.
+
     """
 
     if inplace is False:
@@ -2597,20 +2686,23 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
 
     if replacement_text == 'NaN':
         replacement_text = np.nan
-    
+
     for cleaning_rule in cleaning_json:
-        columns_to_clean = [column_name['assembled_column_name'] for column_name in cleaning_rule['rule']['clean_out']]
-        date_from = cleaning_rule['rule'].get('date_from', data.index[0])
-        date_to = cleaning_rule['rule'].get('date_to', None)
-        columns_to_clean = [column_name for column_to_clean in columns_to_clean for column_name in data.columns 
+        rule = cleaning_rule['rule']
+
+        columns_to_clean = [c['assembled_column_name'] for c in rule['clean_out']]
+        columns_to_clean = [column_name for column_to_clean in columns_to_clean
+                            for column_name in data.columns
                             if column_to_clean in column_name]
 
-        condition_column_name = cleaning_rule['rule']['conditions']['assembled_column_name']
-        comparator_value = cleaning_rule['rule']['conditions']['comparator_value']
-        comparison_operator_id = cleaning_rule['rule']['conditions']['comparison_operator_id']
+        mask = _evaluate_condition(data, rule['conditions'])
+        mask &= _build_date_range_mask(data, rule.get('date_from'), rule.get('date_to'))
+        if 'time_range_conditions' in rule:
+            mask &= _evaluate_time_range_condition(data, rule['time_range_conditions'])
 
-        data = _apply_cleaning_rule(data, condition_column_name, columns_to_clean, comparator_value,
-                                    comparison_operator_id, replacement_text, date_from, date_to)
+        for col in columns_to_clean:
+            data.loc[mask, col] = replacement_text
+
     if inplace is False:
         return data
 

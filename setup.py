@@ -34,7 +34,7 @@ setup(
     },
     url='https://github.com/brightwind-dev/brightwind.git',
     # UPDATE VERSION NUMBER HERE:
-    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.6.0.tar.gz',
+    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.7.0.tar.gz',
     license='MIT',
     author='Stephen Holleran of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
@@ -61,6 +61,12 @@ setup(
         'jsonschema>=4.17.3',
         'jinja2>= 3.0.0'
     ],
+    extras_require={
+        # Optional parquet engines for LoadBrightHub.get_data(file_extension='.parquet').
+        # pandas picks the installed engine at read time (prefers pyarrow, falls back to fastparquet).
+        'parquet': ['pyarrow>=5.0.0'],
+        'parquet-fastparquet': ['fastparquet>=0.8.0'],
+    },
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
