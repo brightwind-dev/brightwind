@@ -271,7 +271,10 @@ def test_load_brighthub_get_data_csv_explicit_no_warning():
 
 
 def test_load_brighthub_get_data_parquet():
-    pytest.importorskip('pyarrow', reason="parquet engine required to round-trip parquet bytes")
+    try:
+        import pyarrow  # noqa: F401
+    except ImportError:
+        pytest.importorskip('fastparquet', reason="parquet engine (pyarrow or fastparquet) required to round-trip parquet bytes")
 
     index = pd.to_datetime(['2016-06-01 00:00:00', '2016-06-01 00:10:00'])
     index.name = 'Timestamp'

@@ -123,6 +123,14 @@ pip install -e .
 
 The `-e` flag links the install to your local clone, so code changes are picked up without reinstalling.
 
+To work on or test parquet loading, include the optional engine (pyarrow by default):
+
+```bash
+pip install -e .[parquet]
+```
+
+Or use fastparquet instead: `pip install -e .[parquet-fastparquet]`.
+
 ---
 
 ## Running tests
@@ -147,6 +155,8 @@ edge cases.
 
 Some tests hit the live [BrightHub](https://brighthub.io) API and require API credentials. They are automatically
 **skipped** if the credentials are not set, so the rest of the suite runs cleanly without them.
+
+Tests covering `.parquet` downloads also require the `[parquet]` extra (see [Development setup](#development-setup)) — they are skipped otherwise.
 
 To run the BrightHub tests, set **either** an API key pair **or** an email/password pair as environment variables
 before running `pytest`.

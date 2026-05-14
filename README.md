@@ -64,6 +64,16 @@ pip install brightwind
 A step-by-step Windows install walkthrough is also available in the
 [tutorials](https://brightwind-dev.github.io/brightwind-docs/).
 
+**Optional — parquet support**
+
+Reading `.parquet` files from BrightHub needs a parquet engine. Install the default (pyarrow):
+
+```bash
+pip install brightwind[parquet]
+```
+
+Or use fastparquet instead: `pip install brightwind[parquet-fastparquet]`.
+
 <br>
 
 ---
