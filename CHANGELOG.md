@@ -10,18 +10,19 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
 ---
-## [2.X.X]
-XX-Xxx-2026
+## [2.7.0]
+XX-May-2026
 
 ### New Features and Enhancements
 1. Rewrote `README.md` and `contributing.md` to align with the [docs site](https://brightwind-dev.github.io/brightwind-docs/), with clearer install options (venv / conda), a quick-start example, and an expanded contributing guide covering the fork workflow, editable dev install and running the test suite. ([#602](https://github.com/brightwind-dev/brightwind/issues/602))
 2. `test_load_brighthub` is now skipped automatically when no BrightHub credentials are available — either `BRIGHTHUB_CLIENT_ID` and `BRIGHTHUB_CLIENT_SECRET`, or the deprecated `BRIGHTHUB_EMAIL` and `BRIGHTHUB_PASSWORD` — so the test suite runs cleanly without BrightHub credentials. ([#602](https://github.com/brightwind-dev/brightwind/issues/602))
+1. Added support for reading Parquet files from BrightHub in `LoadBrightHub.get_data()` via a new `file_extension` argument (one of `'.csv'` or `'.parquet'`). Default remains `'.csv'` for backwards compatibility; Parquet is expected to become the default in the next major release. Reading Parquet requires a parquet engine — install with `pip install brightwind[parquet]` (pyarrow) or `pip install brightwind[parquet-fastparquet]` (fastparquet). ([#601](https://github.com/brightwind-dev/brightwind/issues/601))
 
 ### Bug Fixes
 1. 
 
 ### Deprecated
-1. 
+1. The implicit default of `file_extension='.csv'` in `LoadBrightHub.get_data()` is deprecated and will change to `'.parquet'` in the next major release. Calls that do not pass `file_extension` explicitly will emit a `DeprecationWarning`. Pass `file_extension='.csv'` to keep the current behaviour, or `file_extension='.parquet'` to opt in early. ([#601](https://github.com/brightwind-dev/brightwind/issues/601))
 
 ---
 ## [2.6.0]
