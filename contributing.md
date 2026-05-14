@@ -148,7 +148,11 @@ edge cases.
 Some tests hit the live [BrightHub](https://brighthub.io) API and require API credentials. They are automatically
 **skipped** if the credentials are not set, so the rest of the suite runs cleanly without them.
 
-To run the BrightHub tests, set the following environment variables before running `pytest`:
+To run the BrightHub tests, set **either** an API key pair **or** an email/password pair as environment variables
+before running `pytest`.
+
+Using an API key (recommended — generate one from
+[brighthub.io/account-settings/settings](https://brighthub.io/account-settings/settings)):
 
 ```bash
 # Windows (PowerShell, current session)
@@ -160,7 +164,18 @@ export BRIGHTHUB_CLIENT_ID="your-client-id"
 export BRIGHTHUB_CLIENT_SECRET="your-client-secret"
 ```
 
-Generate an API key from [brighthub.io/account-settings/settings](https://brighthub.io/account-settings/settings).
+Using email and password (deprecated — will be removed in the next major release (v3.0); not available for
+Microsoft SSO users):
+
+```bash
+# Windows (PowerShell, current session)
+$env:BRIGHTHUB_EMAIL="your-email"
+$env:BRIGHTHUB_PASSWORD="your-password"
+
+# macOS / Linux
+export BRIGHTHUB_EMAIL="your-email"
+export BRIGHTHUB_PASSWORD="your-password"
+```
 
 ---
 

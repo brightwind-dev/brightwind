@@ -159,9 +159,12 @@ def test_load_campbell_scientific():
 
 
 @pytest.mark.skipif(
-    not (os.environ.get('BRIGHTHUB_CLIENT_ID') and os.environ.get('BRIGHTHUB_CLIENT_SECRET')),
-    reason="BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET must be set to run this integration test "
-           "against the live BrightHub API."
+    not (
+        (os.environ.get('BRIGHTHUB_CLIENT_ID') and os.environ.get('BRIGHTHUB_CLIENT_SECRET'))
+        or (os.environ.get('BRIGHTHUB_EMAIL') and os.environ.get('BRIGHTHUB_PASSWORD'))
+    ),
+    reason="Either BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET, or BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD "
+           "must be set to run this integration test against the live BrightHub API."
 )
 def test_load_brighthub():
 
