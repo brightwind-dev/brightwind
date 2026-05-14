@@ -160,6 +160,14 @@ def test_load_campbell_scientific():
             data1['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999)).all().all()
 
 
+@pytest.mark.skipif(
+    not (
+        (os.environ.get('BRIGHTHUB_CLIENT_ID') and os.environ.get('BRIGHTHUB_CLIENT_SECRET'))
+        or (os.environ.get('BRIGHTHUB_EMAIL') and os.environ.get('BRIGHTHUB_PASSWORD'))
+    ),
+    reason="Either BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET, or BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD "
+           "must be set to run this integration test against the live BrightHub API."
+)
 def test_load_brighthub():
 
     plant_uuid = '7a58497e-bee1-42a2-8084-c47a5cf213b7'
@@ -263,7 +271,10 @@ def test_load_brighthub_get_data_csv_explicit_no_warning():
 
 
 def test_load_brighthub_get_data_parquet():
-    pytest.importorskip('pyarrow', reason="parquet engine required to round-trip parquet bytes")
+    try:
+        import pyarrow  # noqa: F401
+    except ImportError:
+        pytest.importorskip('fastparquet', reason="parquet engine (pyarrow or fastparquet) required to round-trip parquet bytes")
 
     index = pd.to_datetime(['2016-06-01 00:00:00', '2016-06-01 00:10:00'])
     index.name = 'Timestamp'
