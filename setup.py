@@ -50,7 +50,6 @@ setup(
         'matplotlib>=3.0.3',
         'requests>=2.20.0',
         'scipy>=0.19.1',
-        'pytest>= 4.1.0',
         'six>= 1.12.0',
         'python-dateutil>=2.8.0',
         'ipywidgets>=7.4.2',
@@ -66,6 +65,7 @@ setup(
         # pandas picks the installed engine at read time (prefers pyarrow, falls back to fastparquet).
         'parquet': ['pyarrow>=5.0.0'],
         'parquet-fastparquet': ['fastparquet>=0.8.0'],
+        'dev': ['pytest>=4.1.0'],
     },
     classifiers=[
         "Programming Language :: Python :: 3.6",
