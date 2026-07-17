@@ -50,7 +50,6 @@ setup(
         'matplotlib>=3.0.3',
         'requests>=2.20.0',
         'scipy>=0.19.1',
-        'pytest>= 4.1.0',
         'six>= 1.12.0',
         'python-dateutil>=2.8.0',
         'ipywidgets>=7.4.2',
@@ -60,6 +59,9 @@ setup(
         'easydev>=0.10.0',
         'jsonschema>=4.17.3',
         'jinja2>= 3.0.0'
+    ],
+    tests_require=[
+        'pytest>=4.1.0',
     ],
     extras_require={
         # Optional parquet engines for LoadBrightHub.get_data(file_extension='.parquet').
