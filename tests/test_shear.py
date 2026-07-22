@@ -23,6 +23,12 @@ def test_average():
     assert round(shear_avg_power_law.alpha, 4) == 0.1434
     assert round(shear_avg_log_law.roughness, 4) == 0.0549
 
+    # Test plot axis labels
+    assert shear_avg_power_law.plot.axes[0].get_xlabel() == 'Wind Speed [m/s]'
+    assert shear_avg_power_law.plot.axes[0].get_ylabel() == 'Height AGL [m]'
+    assert shear_avg_log_law.plot.axes[0].get_xlabel() == 'Wind Speed [m/s]'
+    assert shear_avg_log_law.plot.axes[0].get_ylabel() == 'Height AGL [m]'
+
     # Test apply
     shear_avg_power_law.apply(DATA['Spd80mN'], 40, 60)
     shear_avg_log_law.apply(DATA['Spd80mN'], 40, 60)
