@@ -14,7 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. 
+1. Updated the axis labels on the `Shear.Average` (and `Shear.TimeSeries`) wind profile plot for clarity: the speed axis is now labelled `Wind Speed [m/s]` (was `Speed [m/s]`) and the height axis is now labelled `Height AGL [m]` (was `Elevation [m]`). ([#632](https://github.com/brightwind-dev/brightwind/issues/632))
 
 ### Bug Fixes
 1. 
