@@ -7,7 +7,6 @@ from brightwind.analyse import plot as bw_plt
 from brightwind.transform import transform as tf
 # noinspection PyProtectedMember
 from brightwind.analyse.analyse import dist_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
-from ipywidgets import FloatProgress
 from IPython.display import display
 from IPython.display import clear_output
 import re
@@ -969,42 +968,28 @@ class Shear:
                 filled_alpha = filled_roughness
 
             df_wspds = [[None for y in range(12)] for x in range(24)]
-            f = FloatProgress(min=0, max=24 * 12, description='Calculating', bar_style='success')
-            display(f)
 
-            for i in range(0, 24):
+            #to speed up instead let's pass the alpha as dataframe columns depending on month and hour
+            wspds_df = pd.DataFrame(wspds)
+            wspds_df['hour'] = wspds_df.index.hour
+            wspds_df['month'] = wspds_df.index.strftime('%b')
+            # Reshape the filled_alpha DataFrame for merging
 
-                for j, month in enumerate(sorted(pd.unique(wspds.index.month.values))):
+            filled_alpha.index = pd.to_datetime(filled_alpha.index, format='%H:%M:%S').hour
+            alpha_df = filled_alpha.reset_index().melt(id_vars=['index'], var_name='month', value_name='alpha')
+            alpha_df['hour'] = alpha_df['index']
+            
+            # Merge the alpha values into the wspds DataFrame based on hour and month
+            wspds_df = pd.merge(wspds_df, alpha_df[['hour', 'month', 'alpha']], on=['hour', 'month'], how='left')
 
-                    month_str = calendar.month_abbr[month] 
+            if self.calc_method == 'power_law':
+                wspds_df['sheared'] = wspds_df[wspds.name] * (shear_to / height) ** wspds_df['alpha']
+            elif self.calc_method == 'log_law':
+                wspds_df['sheared'] = wspds_df[wspds.name] * np.log(shear_to / wspds_df['alpha']) / (np.log(height / wspds_df['alpha']))
 
-                    if month_str not in list(filled_alpha.columns):
-                        raise ValueError(f"The shear by TimeOfDay object doesn't have shear values for {month_str}." + 
-                                         " The shear cannot be applied to the input time series for this month.")
+            wspds_df.index = wspds.index
 
-                    if i == 23:
-                        df_wspds[i][j] = wspds[
-                            (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.month == month)]
-                    else:
-                        df_wspds[i][j] = wspds[
-                            (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.time < filled_alpha.index[i + 1])
-                            & (wspds.index.month == month)]
-
-                    if self.calc_method == 'power_law':
-                        df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      alpha=filled_alpha.loc[:, month_str].iloc[i],
-                                                      calc_method=self.calc_method)
-
-                    else:
-                        df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      roughness=filled_roughness.loc[:, month_str].iloc[i],
-                                                      calc_method=self.calc_method)
-
-                    scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
-                    f.value += 1
-
-            result = scaled_wspds.sort_index()
-            f.close()
+            result = wspds_df['sheared']
 
         if self.origin == 'BySector':
 
