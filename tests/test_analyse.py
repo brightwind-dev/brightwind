@@ -251,6 +251,31 @@ def test_dist_by_dir_sector():
 
     bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS, aggregation_method='std', return_data=True)
 
+    # test values
+    _, mean_by_sector = bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS, aggregation_method='mean',
+                                              return_data=True)
+    assert mean_by_sector.to_list() == pytest.approx([5.1607, 5.1657, 4.4028, 5.8451, 6.5435, 6.2029, 6.4255, 6.9508,
+                                                      7.6617, 8.3222, 7.1285, 5.7351], abs=1e-4)
+    _, count_by_sector = bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS, direction_bin_array=[0, 90, 130, 200, 360],
+                                               aggregation_method='count', return_data=True)
+    assert count_by_sector.to_dict() == {'0-90': 14087, '90-130': 6224, '130-200': 21882, '200-360': 52987}
+
+
+def test_binned_direction_series():
+    wdir = pd.Series([0, 14.999, 15, 180, 344.999, 345, 359.999, 360, np.nan], name='wdir')
+
+    # default 12 sectors, first sector centred on 0 i.e. 345-15
+    binned = bw.analyse.analyse._binned_direction_series(wdir, sectors=12)
+    assert binned.to_list() == [1, 1, 2, 7, 12, 1, 1, 1]
+    assert binned.index.to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
+    assert binned.name == 'wdir'
+    assert binned.dtype == 'int64'
+
+    # custom bins
+    wdir = pd.Series([0, 89.9, 90, 130, 199.9, 200, 359.9, 360])
+    binned = bw.analyse.analyse._binned_direction_series(wdir, sectors=4, direction_bin_array=[0, 90, 130, 200, 360])
+    assert binned.to_list() == [1, 1, 2, 3, 3, 4, 4, 4]
+
 
 def test_freq_table():
     target_freq_dict_no_seas_adj_sum = {'345.0-15.0': 3.616306, '15.0-45.0': 5.983400, '45.0-75.0': 4.049170,

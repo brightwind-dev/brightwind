@@ -91,21 +91,18 @@ class Shear:
                 wspds=wspds, heights=heights, min_speed=min_speed, maximise_data=maximise_data, return_raw_wspds=True
                 )
             valid_mask = (wspds > min_speed).all(axis=1) & ~wspds.isna().any(axis=1)
+            log_heights = np.log(np.asarray(heights, dtype=float))
 
             if calc_method == 'power_law':
                 alpha = pd.Series(index=wspds.index, dtype=float, name='alpha')
-                alpha_c = (wspds.loc[valid_mask].apply(Shear._calc_power_law, heights=heights,
-                                                       return_coeff=True, maximise_data=maximise_data, axis=1))
-                alpha.loc[valid_mask] = alpha_c.iloc[:, 0]
+                alpha.loc[valid_mask], _ = Shear._calc_linear_fit(log_heights, np.log(wspds.loc[valid_mask].values))
                 self._alpha = alpha
 
             elif calc_method == 'log_law':
                 slope = pd.Series(index=wspds.index, dtype=float)
                 intercept = pd.Series(index=wspds.index, dtype=float)
-                slope_intercept = (wspds.loc[valid_mask].apply(Shear._calc_log_law, heights=heights,
-                                                               return_coeff=True, maximise_data=maximise_data, axis=1))
-                slope.loc[valid_mask] = slope_intercept.iloc[:, 0]
-                intercept.loc[valid_mask] = slope_intercept.iloc[:, 1]
+                slope.loc[valid_mask], intercept.loc[valid_mask] = Shear._calc_linear_fit(
+                    log_heights, wspds.loc[valid_mask].values)
                 roughness_coefficient = pd.Series(Shear._calc_roughness(slope=slope, intercept=intercept),
                                                   name='roughness_coefficient')
                 self._roughness = roughness_coefficient
@@ -842,6 +839,30 @@ class Shear:
         if return_coeff:
             return pd.Series([coeffs[0], np.exp(coeffs[1])])
         return coeffs[0]
+
+    @staticmethod
+    def _calc_linear_fit(x, y):
+        """
+        Derive the least squares straight line fit of y against x for every row of y at once. This gives the same
+        result as calling np.polyfit(x, y_row, deg=1) on each row, but is vectorised across all rows.
+
+        :param x: Values to fit against, e.g. log of heights, one per column of y.
+        :type x:  numpy.ndarray
+        :param y: 2D array with one row per timestamp and one column per height, e.g. log of wind speeds. Each row
+                  must be complete (no NaN).
+        :type y:  numpy.ndarray
+        :return:  The slope and intercept of the best fit line for each row.
+        :rtype:   tuple(numpy.ndarray, numpy.ndarray)
+
+        METHODOLOGY:
+            slope = sum((x - mean(x)) * (y - mean(y))) / sum((x - mean(x))^2)
+            intercept = mean(y) - slope * mean(x)
+        """
+        x_dev = x - x.mean()
+        y_mean = y.mean(axis=1)
+        slope = ((y - y_mean[:, np.newaxis]) * x_dev).sum(axis=1) / (x_dev ** 2).sum()
+        intercept = y_mean - slope * x.mean()
+        return slope, intercept
 
     @staticmethod
     def _calc_roughness(slope, intercept):

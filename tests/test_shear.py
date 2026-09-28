@@ -80,6 +80,22 @@ def test_by_sector():
     assert round(shear_by_sector_power_law.alpha.mean(), 4) == 0.1235
     shear_by_sector_custom_bins.plot
     assert round(shear_by_sector_custom_bins.alpha.mean(), 4) == 0.1265
+    assert shear_by_sector_power_law.alpha.to_dict() == pytest.approx({
+        '345.0-15.0': 0.11937, '15.0-45.0': 0.145463, '45.0-75.0': 0.096945, '75.0-105.0': 0.044056,
+        '105.0-135.0': 0.054538, '135.0-165.0': 0.116558, '165.0-195.0': 0.354113, '195.0-225.0': 0.213977,
+        '225.0-255.0': 0.096221, '255.0-285.0': 0.054575, '285.0-315.0': 0.077513, '315.0-345.0': 0.10868}, abs=1e-6)
+    assert shear_by_sector_power_law.alpha_count.to_list() == [
+        1874, 3456, 2494, 3415, 3501, 1978, 8667, 13311, 8554, 10077, 7511, 1697]
+    assert shear_by_sector_log_law.roughness.to_list() == pytest.approx(
+        [0.013213, 0.058274, 0.001885, 0.0, 1e-06, 0.010458, 3.696403, 0.53858, 0.001695, 1e-06, 0.000143, 0.005848],
+        abs=1e-6)
+    assert shear_by_sector_custom_bins.alpha.to_list() == pytest.approx([
+        0.147848, 0.122666, 0.071071, 0.032401, 0.073788, 0.291367, 0.286366, 0.164111, 0.061095, 0.059813, 0.101548,
+        0.105536], abs=1e-6)
+    period = slice('2017-06-15 12:00', '2017-06-15 12:40')
+    assert shear_by_sector_power_law.apply(DATA['Spd80mN'][period], directions[period], 40,
+                                           60).to_list() == pytest.approx([8.09578, 9.81557, 9.7012, 8.38067, 8.81738],
+                                                                          abs=1e-5)
 
     # Test apply
     shear_by_sector_power_law.apply(DATA['Spd80mN'], directions, 40, 60)
@@ -205,6 +221,44 @@ def test_time_of_day():
     assert shear_by_time_power_law.alpha.iloc[5].isna().all()
 
 
+def test_calc_linear_fit():
+    rng = np.random.default_rng(0)
+    for heights in [[80, 40], [80, 60, 40], [40, 60, 80, 100, 120], [80, 80, 60, 40]]:
+        log_heights = np.log(heights)
+        log_wspds = np.log(rng.uniform(3, 20, size=(50, len(heights))))
+        slope, intercept = bw.Shear._calc_linear_fit(log_heights, log_wspds)
+        expected_slope, expected_intercept = np.polyfit(log_heights, log_wspds.T, deg=1)
+        np.testing.assert_allclose(slope, expected_slope, rtol=0, atol=1e-12)
+        np.testing.assert_allclose(intercept, expected_intercept, rtol=0, atol=1e-12)
+
+
+def test_time_series_full_data():
+    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    heights = [80, 60, 40]
+    shear_by_ts_power_law = bw.Shear.TimeSeries(anemometers, heights)
+    shear_by_ts_log_law = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law')
+
+    # test against a np.polyfit fit of every valid timestamp
+    valid = (anemometers > 3).all(axis=1)
+    slope, intercept = np.polyfit(np.log(heights), anemometers[valid].values.T, deg=1)
+    expected_roughness = bw.Shear._calc_roughness(slope=slope, intercept=intercept)
+    expected_alpha = np.polyfit(np.log(heights), np.log(anemometers[valid].values.T), deg=1)[0]
+    assert shear_by_ts_power_law.alpha.isna().to_list() == (~valid).to_list()
+    np.testing.assert_allclose(shear_by_ts_power_law.alpha[valid], expected_alpha, rtol=0, atol=1e-12)
+    realistic = expected_roughness < 10
+    np.testing.assert_allclose(shear_by_ts_log_law.roughness[valid][realistic], expected_roughness[realistic],
+                               rtol=1e-9, atol=1e-12)
+
+    # test specific values
+    assert shear_by_ts_power_law.alpha.count() == 79514
+    assert shear_by_ts_power_law.alpha.mean() == pytest.approx(0.150953, abs=1e-6)
+    assert shear_by_ts_log_law.roughness.median() == pytest.approx(0.118889, abs=1e-6)
+    assert shear_by_ts_power_law.alpha['2017-06-15 12:00':'2017-06-15 12:40'].to_list() == pytest.approx([
+        0.068212, 0.060139, 0.057766, 0.006736, 0.039497], abs=1e-6)
+    assert shear_by_ts_log_law.roughness['2017-06-15 12:00':'2017-06-15 12:40'].to_list() == pytest.approx(
+        [2.4e-05, 3e-06, 2e-06, 0.0, 0.0], abs=1e-6)
+
+
 def test_time_series():
     # Specify columns in data which contain the anemometer measurements from which to calculate shear
     anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']]
@@ -221,7 +275,7 @@ def test_time_series():
     # Test attributes
     assert round(shear_by_ts_power_law.alpha.mean(), 4) == 0.1786
     # Changed to support equality for very large numbers
-    assert (shear_by_ts_log_law.roughness.mean() / 4.306534305567819e+68 - 1) < 1e-6
+    assert abs(shear_by_ts_log_law.roughness.mean() / 4.306534305567819e+68 - 1) < 1e-6
 
     # Test apply
     shear_by_ts_power_law.apply(DATA['Spd80mN'], 40, 60)
