@@ -221,6 +221,53 @@ def test_time_of_day():
     assert shear_by_time_power_law.alpha.iloc[5].isna().all()
 
 
+def test_time_of_day_apply():
+    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    heights = [80, 60, 40]
+    # one timestamp for each month, at a different hour each time
+    timestamps = pd.to_datetime(['2016-01-10 01:00', '2016-02-01 03:00', '2016-03-01 05:00', '2016-04-01 07:00',
+                                 '2016-05-01 09:00', '2016-06-01 11:00', '2016-07-01 13:00', '2016-08-01 15:00',
+                                 '2016-09-01 17:00', '2016-10-01 19:00', '2016-11-01 21:00', '2016-12-01 23:00'])
+    cases = [
+        ({}, 40, 80, 7.470713,
+         [5.255952, 11.854113, 11.554538, 13.060339, 11.888655, 6.860667, 6.905871, 4.522068, 15.488296, 7.620377,
+          7.488793, 5.23901]),
+        ({'calc_method': 'log_law'}, 40, 80, 7.475318,
+         [5.261172, 11.863411, 11.565096, 13.064503, 11.893347, 6.863552, 6.906965, 4.522997, 15.50949, 7.624915,
+          7.493248, 5.242754]),
+        ({'by_month': False}, 40, 100, 7.725035,
+         [5.443171, 12.522484, 11.929505, 13.886765, 12.533407, 7.158539, 7.215577, 4.690742, 15.374625, 7.838723,
+          7.694895, 5.354785]),
+        ({'segments_per_day': 2, 'segment_start_time': 7}, 40, 80, 7.469702,
+         [5.258712, 11.801394, 11.53134, 12.526182, 11.726311, 6.879178, 6.964924, 4.590044, 15.477017, 7.608653,
+          7.48853, 5.183642]),
+        ({'calc_method': 'log_law', 'segments_per_day': 6, 'segment_start_time': 3}, 40, 80, 7.474933,
+         [5.262591, 11.906175, 11.579636, 12.746705, 12.006999, 6.836182, 6.926862, 4.590298, 15.389964, 7.606758,
+          7.503646, 5.206709]),
+    ]
+    for kwargs, height, shear_to, expected_mean, expected_values in cases:
+        shear_by_tod = bw.Shear.TimeOfDay(anemometers, heights, **kwargs)
+        scaled = shear_by_tod.apply(DATA['Spd40mN'], height, shear_to)
+        assert scaled.name == 'Spd40mN_scaled_to_' + str(shear_to) + 'm'
+        assert scaled.index.equals(DATA.index)
+        assert scaled.isna().sum() == DATA['Spd40mN'].isna().sum() == 449
+        assert scaled.mean() == pytest.approx(expected_mean, abs=1e-6)
+        np.testing.assert_allclose(scaled[timestamps], expected_values, rtol=0, atol=1e-6)
+
+    # input out of time order gives the same result, sorted by time
+    shear_by_tod = bw.Shear.TimeOfDay(anemometers, heights)
+    scaled = shear_by_tod.apply(DATA['Spd40mN'], 40, 80)
+    scaled_shuffled = shear_by_tod.apply(DATA['Spd40mN'].sample(frac=1, random_state=0), 40, 80)
+    pd.testing.assert_series_equal(scaled_shuffled, scaled)
+
+    # error if the object has no shear for a month in the input time series
+    shear_by_tod = bw.Shear.TimeOfDay(anemometers[anemometers.index.month != 5], heights)
+    with pytest.raises(ValueError) as except_info:
+        shear_by_tod.apply(DATA['Spd40mN'], 40, 80)
+    assert str(except_info.value) == ("The shear by TimeOfDay object doesn't have shear values for May. The shear "
+                                      "cannot be applied to the input time series for this month.")
+
+
 def test_calc_linear_fit():
     rng = np.random.default_rng(0)
     for heights in [[80, 40], [80, 60, 40], [40, 60, 80, 100, 120], [80, 80, 60, 40]]:

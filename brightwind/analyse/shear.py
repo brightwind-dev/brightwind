@@ -8,8 +8,6 @@ from brightwind.transform import transform as tf
 # noinspection PyProtectedMember
 from brightwind.analyse.analyse import dist_by_dir_sector, dist_12x24, coverage, _convert_df_to_series, \
     _get_direction_binned_series
-from ipywidgets import FloatProgress
-from IPython.display import display
 from IPython.display import clear_output
 import re
 import warnings
@@ -965,49 +963,30 @@ class Shear:
         if self.origin == 'TimeOfDay':
 
             if self.calc_method == 'power_law':
-                filled_alpha = Shear._fill_df_12x24(self.alpha)
-
+                filled_shear = Shear._fill_df_12x24(self.alpha)
             else:
-                filled_roughness = Shear._fill_df_12x24(self._roughness)
-                filled_alpha = filled_roughness
+                filled_shear = Shear._fill_df_12x24(self._roughness)
 
-            df_wspds = [[None for y in range(12)] for x in range(24)]
-            f = FloatProgress(min=0, max=24 * 12, description='Calculating', bar_style='success')
-            display(f)
+            for month in sorted(pd.unique(wspds.index.month.values)):
+                month_str = calendar.month_abbr[month]
+                if month_str not in list(filled_shear.columns):
+                    raise ValueError(f"The shear by TimeOfDay object doesn't have shear values for {month_str}." +
+                                     " The shear cannot be applied to the input time series for this month.")
 
-            for i in range(0, 24):
+            # look up the alpha or roughness coefficient for the hour and month of each timestamp
+            hour_positions = pd.Index([time.hour for time in filled_shear.index]).get_indexer(wspds.index.hour)
+            month_positions = filled_shear.columns.get_indexer(list(calendar.month_abbr))[wspds.index.month]
+            shear_values = pd.Series(filled_shear.values[hour_positions, month_positions].astype(float),
+                                     index=wspds.index)
 
-                for j, month in enumerate(sorted(pd.unique(wspds.index.month.values))):
-
-                    month_str = calendar.month_abbr[month] 
-
-                    if month_str not in list(filled_alpha.columns):
-                        raise ValueError(f"The shear by TimeOfDay object doesn't have shear values for {month_str}." + 
-                                         " The shear cannot be applied to the input time series for this month.")
-
-                    if i == 23:
-                        df_wspds[i][j] = wspds[
-                            (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.month == month)]
-                    else:
-                        df_wspds[i][j] = wspds[
-                            (wspds.index.time >= filled_alpha.index[i]) & (wspds.index.time < filled_alpha.index[i + 1])
-                            & (wspds.index.month == month)]
-
-                    if self.calc_method == 'power_law':
-                        df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      alpha=filled_alpha.loc[:, month_str].iloc[i],
-                                                      calc_method=self.calc_method)
-
-                    else:
-                        df_wspds[i][j] = Shear._scale(df_wspds[i][j], shear_to=shear_to, height=height,
-                                                      roughness=filled_roughness.loc[:, month_str].iloc[i],
-                                                      calc_method=self.calc_method)
-
-                    scaled_wspds = pd.concat([scaled_wspds, df_wspds[i][j]], axis=0)
-                    f.value += 1
+            if self.calc_method == 'power_law':
+                scaled_wspds = Shear._scale(wspds, shear_to=shear_to, height=height, alpha=shear_values,
+                                            calc_method=self.calc_method)
+            else:
+                scaled_wspds = Shear._log_roughness_scale(wspds=wspds, height=height, shear_to=shear_to,
+                                                          roughness=shear_values)
 
             result = scaled_wspds.sort_index()
-            f.close()
 
         if self.origin == 'BySector':
 
