@@ -560,18 +560,6 @@ def _get_direction_bin_labels(sectors, direction_bins, zero_centred=True):
     return mapper.values()
 
 
-def _map_direction_bin(wdir, bins, sectors):
-    kwargs = {}
-    if wdir == max(bins):
-        kwargs['right'] = True
-    else:
-        kwargs['right'] = False
-    bin_num = np.digitize([wdir], bins, **kwargs)[0]
-    if bin_num == sectors + 1:
-        bin_num = 1
-    return bin_num
-
-
 def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_method='%frequency'):
     """
     Calculates the distribution of a variable with respect to another variable.
@@ -821,7 +809,15 @@ def _binned_direction_series(direction_series, sectors, direction_bin_array=None
     """
     if direction_bin_array is None:
         direction_bin_array = utils.get_direction_bin_array(sectors)
-    return direction_series.dropna().apply(_map_direction_bin, bins=direction_bin_array, sectors=sectors)
+    direction_series = direction_series.dropna()
+    wdirs = direction_series.values
+    # a direction equal to the last bin edge is included in the last bin, and the bin beyond the last sector wraps
+    # around to the first (zero-centred) sector
+    bin_nums = np.digitize(wdirs, direction_bin_array, right=False)
+    is_max = wdirs == max(direction_bin_array)
+    bin_nums[is_max] = np.digitize(wdirs[is_max], direction_bin_array, right=True)
+    bin_nums[bin_nums == sectors + 1] = 1
+    return pd.Series(bin_nums, index=direction_series.index, name=direction_series.name, dtype='int64')
 
 
 def _get_direction_binned_series(sectors, direction_series, direction_bin_array=None, direction_bin_labels=None):

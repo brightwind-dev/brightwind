@@ -6,7 +6,8 @@ from math import e
 from brightwind.analyse import plot as bw_plt
 from brightwind.transform import transform as tf
 # noinspection PyProtectedMember
-from brightwind.analyse.analyse import dist_by_dir_sector, dist_12x24, coverage, _convert_df_to_series
+from brightwind.analyse.analyse import dist_by_dir_sector, dist_12x24, coverage, _convert_df_to_series, \
+    _get_direction_binned_series
 from ipywidgets import FloatProgress
 from IPython.display import display
 from IPython.display import clear_output
@@ -632,30 +633,17 @@ class Shear:
                 sectors = len(direction_bin_array) - 1
 
             wdir = _convert_df_to_series(wdir)
-            mean_wspds = pd.Series([], dtype='float64')
-            mean_wspds_df = pd.DataFrame([])
-            count_df = pd.DataFrame([])
-            count = pd.Series([], dtype='float64')
 
-            for i in range(len(wspds.columns)):
+            # bin directions once and get the mean wind speed and count per sector for all heights together
+            direction_binned_series, sector_labels, sectors, _, _ = _get_direction_binned_series(
+                sectors, wdir.dropna(), direction_bin_array)
+            binned_wspds = pd.concat([wspds, direction_binned_series], axis=1, join='inner')
+            grouped_wspds = binned_wspds.groupby('direction_bin')[list(wspds.columns)]
+            sector_nums = range(1, sectors + 1)
+            mean_wspds_df = grouped_wspds.mean().reindex(sector_nums, fill_value=0.0)
+            count_df = grouped_wspds.count().reindex(sector_nums, fill_value=0).mean(axis=1)
+            mean_wspds_df.index = count_df.index = list(sector_labels)
 
-                w = wspds.iloc[:, i]
-                plot, mean_wspds[i] = dist_by_dir_sector(w, wdir, direction_bin_array=direction_bin_array,
-                                                         sectors=sectors,
-                                                         aggregation_method='mean', return_data=True)
-
-                plot, count[i] = dist_by_dir_sector(w, wdir, direction_bin_array=direction_bin_array,
-                                                    sectors=sectors,
-                                                    aggregation_method='count', return_data=True)
-
-                if i == 0:
-                    mean_wspds_df = mean_wspds[i].copy()
-                    count_df = count[i].copy()
-                else:
-                    mean_wspds_df = pd.concat([mean_wspds_df, mean_wspds[i]], axis=1)
-                    count_df = pd.concat([count_df, count[i]], axis=1)
-
-            count_df = count_df.mean(axis=1)
             wind_rose_plot, wind_rose_dist = dist_by_dir_sector(wspds.iloc[:, 0], wdir,
                                                                 direction_bin_array=direction_bin_array,
                                                                 sectors=sectors,
@@ -664,12 +652,6 @@ class Shear:
             if calc_method == 'power_law':
 
                 alpha = mean_wspds_df.apply(Shear._calc_power_law, heights=heights, return_coeff=False, axis=1)
-
-                wind_rose_plot, wind_rose_dist = dist_by_dir_sector(wspds.iloc[:, 0], wdir,
-                                                                    direction_bin_array=direction_bin_array,
-                                                                    sectors=sectors,
-                                                                    direction_bin_labels=direction_bin_labels,
-                                                                    return_data=True)
 
                 self.alpha_count = count_df
                 self._alpha = pd.Series(alpha, name='alpha')
