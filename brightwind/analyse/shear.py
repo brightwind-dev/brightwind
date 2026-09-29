@@ -6,7 +6,7 @@ from math import e
 from brightwind.analyse import plot as bw_plt
 from brightwind.transform import transform as tf
 # noinspection PyProtectedMember
-from brightwind.analyse.analyse import dist_by_dir_sector, dist_12x24, coverage, _convert_df_to_series, \
+from brightwind.analyse.analyse import dist_by_dir_sector, coverage, _convert_df_to_series, \
     _get_direction_binned_series
 from IPython.display import clear_output
 import re
@@ -865,14 +865,6 @@ class Shear:
     @staticmethod
     def _calc_roughness(slope, intercept):
         return e**(-intercept/slope)
-
-    @staticmethod
-    def _by_12x24(wspds, heights, min_speed=3, return_data=False, var_name='Shear'):
-        tab_12x24 = dist_12x24(wspds[(wspds > min_speed).all(axis=1)].apply(Shear._calc_power_law, heights=heights,
-                                                                            axis=1), return_data=True)[1]
-        if return_data:
-            return bw_plt.plot_12x24_contours(tab_12x24, label=(var_name, 'mean')), tab_12x24
-        return bw_plt.plot_12x24_contours(tab_12x24, label=(var_name, 'mean'))
 
     @staticmethod
     def scale(wspd,  height, shear_to, alpha=None, roughness=None, calc_method='power_law'):
