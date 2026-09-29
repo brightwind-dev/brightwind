@@ -324,13 +324,6 @@ def test_time_series():
     # Changed to support equality for very large numbers
     assert abs(shear_by_ts_log_law.roughness.mean() / 4.306534305567819e+68 - 1) < 1e-6
 
-    # Test plot is only created when first requested and is then reused
-    assert shear_by_ts_power_law._plot is None
-    plot = shear_by_ts_power_law.plot
-    assert shear_by_ts_power_law.plot is plot
-    assert plot.axes[0].get_xlabel() == 'Wind Speed [m/s]'
-    assert plot.axes[0].get_ylabel() == 'Height AGL [m]'
-
     # Test apply
     shear_by_ts_power_law.apply(DATA['Spd80mN'], 40, 60)
     shear_by_ts_log_law.apply(DATA['Spd80mN'], 40, 60)

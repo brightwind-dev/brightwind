@@ -3,7 +3,6 @@ import numpy as np
 import datetime
 import calendar
 from math import e
-import matplotlib.pyplot as plt
 from brightwind.analyse import plot as bw_plt
 from brightwind.transform import transform as tf
 # noinspection PyProtectedMember
@@ -107,24 +106,14 @@ class Shear:
                 self._roughness = roughness_coefficient
 
             clear_output()
+            avg_plot = Shear.Average(wspds=wspds, heights=heights, calc_method=calc_method,
+                                     max_plot_height=max_plot_height)
 
             self.origin = 'TimeSeries'
             self.calc_method = calc_method
             self.wspds = wspds
-            self._heights = heights
-            self._max_plot_height = max_plot_height
-            self._plot = None
+            self.plot = avg_plot.plot
             self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed)
-
-        @property
-        def plot(self):
-            # the average wind profile plot is only created when first requested, as it needs shear to be calculated
-            # again using Shear.Average
-            if self._plot is None:
-                self._plot = Shear.Average(wspds=self.wspds, heights=self._heights, calc_method=self.calc_method,
-                                           max_plot_height=self._max_plot_height).plot
-                plt.close(self._plot)
-            return self._plot
 
         @property
         def alpha(self):
