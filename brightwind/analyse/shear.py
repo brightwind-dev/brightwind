@@ -8,7 +8,6 @@ from brightwind.transform import transform as tf
 # noinspection PyProtectedMember
 from brightwind.analyse.analyse import dist_by_dir_sector, coverage, _convert_df_to_series, \
     _get_direction_binned_series
-from IPython.display import clear_output
 import re
 import warnings
 
@@ -83,8 +82,6 @@ class Shear:
                 pprint.pprint(timeseries_log_law.info)
 
            """
-            print('This may take a while...')
-
             wspds, cvg = Shear._data_prep(
                 wspds=wspds, heights=heights, min_speed=min_speed, maximise_data=maximise_data, return_raw_wspds=True
                 )
@@ -105,7 +102,6 @@ class Shear:
                                                   name='roughness_coefficient')
                 self._roughness = roughness_coefficient
 
-            clear_output()
             avg_plot = Shear.Average(wspds=wspds, heights=heights, calc_method=calc_method,
                                      max_plot_height=max_plot_height)
 
@@ -621,7 +617,6 @@ class Shear:
                 pprint.pprint(by_sector_log_law.info)
 
             """
-            print('This may take a while...')
             wspds, cvg = Shear._data_prep(wspds=wspds, heights=heights, min_speed=min_speed)
 
             if direction_bin_array is not None:
@@ -650,7 +645,6 @@ class Shear:
 
                 self.alpha_count = count_df
                 self._alpha = pd.Series(alpha, name='alpha')
-                clear_output()
                 self.plot = bw_plt.plot_shear_by_sector(scale_variable=alpha, wind_rose_data=wind_rose_dist,
                                                         calc_method=calc_method)
 
@@ -663,7 +657,6 @@ class Shear:
                 roughness = Shear._calc_roughness(slope=slope, intercept=intercept)
                 self.roughness_count = count_df
                 self._roughness = pd.Series(roughness, name='roughness_coefficient')
-                clear_output()
                 self.plot = bw_plt.plot_shear_by_sector(scale_variable=roughness, wind_rose_data=wind_rose_dist,
                                                         calc_method=calc_method)
 
