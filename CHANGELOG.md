@@ -20,7 +20,7 @@ XX-Xxx-2026
 1. `Shear.TimeSeries` and `Shear.BySector` no longer print "This may take a while..." and no longer clear the notebook cell output when they run. ([#639](https://github.com/brightwind-dev/brightwind/issues/639))
 
 ### Bug Fixes
-1. 
+1. Fixed `maximise_data=True` having no effect in `Shear.TimeSeries`. Shear is now calculated for every timestamp with at least two valid wind speeds (above `min_speed` and not NaN), as described in the docstring, using only the valid heights at each timestamp. Results with `maximise_data=False` (the default), and for timestamps where all heights are valid, are unchanged. ([#494](https://github.com/brightwind-dev/brightwind/issues/494))
 
 ### Deprecated
 1. 
