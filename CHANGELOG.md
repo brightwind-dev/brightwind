@@ -17,7 +17,7 @@ XX-Xxx-2026
 1. Updated the axis labels on the `Shear.Average` (and `Shear.TimeSeries`) wind profile plot for clarity: the speed axis is now labelled `Wind Speed [m/s]` (was `Speed [m/s]`) and the height axis is now labelled `Height AGL [m]` (was `Elevation [m]`). ([#632](https://github.com/brightwind-dev/brightwind/issues/632))
 
 ### Bug Fixes
-1. 
+1. Fixed `Shear.TimeSeries.apply()` dropping timestamps. It now returns every timestamp of the input wind speed time series, sorted by time, with NaN where the wind speed can't be scaled (e.g. where the shear exponent or roughness coefficient is NaN, or outside the period the shear was calculated for). Values that were returned before are unchanged. ([#495](https://github.com/brightwind-dev/brightwind/issues/495))
 
 ### Deprecated
 1. 
