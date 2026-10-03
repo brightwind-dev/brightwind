@@ -675,7 +675,7 @@ class Shear:
                 self._alpha = pd.Series(alpha, name='alpha')
                 clear_output()
                 self.plot = bw_plt.plot_shear_by_sector(scale_variable=alpha, wind_rose_data=wind_rose_dist,
-                                                        calc_method=calc_method)
+                                                        calc_method=calc_method, direction_bin_array=direction_bin_array)
 
             elif calc_method == 'log_law':
 
@@ -688,7 +688,7 @@ class Shear:
                 self._roughness = pd.Series(roughness, name='roughness_coefficient')
                 clear_output()
                 self.plot = bw_plt.plot_shear_by_sector(scale_variable=roughness, wind_rose_data=wind_rose_dist,
-                                                        calc_method=calc_method)
+                                                        calc_method=calc_method, direction_bin_array=direction_bin_array)
 
             else:
                 raise ValueError("Please enter a valid calculation method, either 'power_law' or 'log_law'.")

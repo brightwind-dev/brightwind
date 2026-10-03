@@ -1921,7 +1921,7 @@ def plot_TI_by_sector(turbulence, wdir, ti):
     return ax.get_figure()
 
 
-def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'):
+def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law', direction_bin_array=None):
     """
     Plot shear by directional sectors and wind rose.
 
@@ -1974,9 +1974,19 @@ def plot_shear_by_sector(scale_variable, wind_rose_data, calc_method='power_law'
     ax.set_theta_direction(-1)
     bin_edges = pd.Series([], dtype='float64')
     for i in range(sectors):
-        bin_edges[i] = float(re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])[0])
-        if i == sectors - 1:
-            bin_edges[i + 1] = abs(float(re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])[1]))
+        nums = re.findall(r"[-+]?\d*\.\d+|\d+", wind_rose_data.index[i])
+        if len(nums) >= 2:
+            bin_edges[i] = float(nums[0])
+            if i == sectors - 1:
+                bin_edges[i + 1] = abs(float(nums[1]))
+        elif direction_bin_array is not None:
+            bin_edges[i] = float(direction_bin_array[i])
+            if i == sectors - 1:
+                bin_edges[i + 1] = abs(float(direction_bin_array[i + 1]))
+        else:
+            raise ValueError(f"Cannot parse bin edge from label '{wind_rose_data.index[i]}'. "
+                             "Please pass direction_bin_array to plot_shear_by_sector or use "
+                             "numeric direction_bin_labels.")
     label = ''
     if calc_method == 'power_law':
         label = 'Mean_Shear'
