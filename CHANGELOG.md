@@ -17,7 +17,7 @@ XX-Xxx-2026
 1. Updated the axis labels on the `Shear.Average` (and `Shear.TimeSeries`) wind profile plot for clarity: the speed axis is now labelled `Wind Speed [m/s]` (was `Speed [m/s]`) and the height axis is now labelled `Height AGL [m]` (was `Elevation [m]`). ([#632](https://github.com/brightwind-dev/brightwind/issues/632))
 
 ### Bug Fixes
-1. 
+1. Added `tests/conftest.py` to pin matplotlib to the non-interactive `Agg` backend for the test suite, fixing `_tkinter.TclError` failures (e.g. in `test_sector_ratio` and `test_dist_12x24`) when the full suite is run on machines without a usable Tcl/Tk runtime or display. ([#607](https://github.com/brightwind-dev/brightwind/issues/607))
 
 ### Deprecated
 1. 
