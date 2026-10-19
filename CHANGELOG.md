@@ -18,7 +18,7 @@ XX-Xxx-2026
 2. Made `apply_cleaning()` much faster for long cleaning logs: each column is now written once instead of once per cleaning row, and for a sorted datetime index the flagged periods are found with a binary search. The cleaned output, dtypes and errors are unchanged. ([#653](https://github.com/brightwind-dev/brightwind/issues/653))
 
 ### Bug Fixes
-1. 
+1. `apply_cleaning()` now flags the single timestamp of a cleaning row whose `Start` equals its `Stop`. Previously such a row selected an empty period and cleaned nothing, which left single readings cleaned in BrightHub (one clicked point on a scatter or sector-ratio plot) uncleaned. All other rows still flag from `Start` up to but not including `Stop`. ([#656](https://github.com/brightwind-dev/brightwind/issues/656))
 
 ### Deprecated
 1. 
