@@ -14,7 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. Add public `brighthub_request` function to make GET, POST, PUT and DELETE requests to the BrightHub APIs, and public `get_brighthub_auth_id_token` function to get the BrightHub ID token (Issue [#583](https://github.com/brightwind-dev/brightwind/issues/583))
+1. Add public `brighthub_request` function to make GET, POST, PUT and DELETE requests to the BrightHub APIs, and public `get_brighthub_auth_id_token` function to get the BrightHub ID token. The new `brightwind/utils/brighthub.py` module is portable: it only depends on the `requests` package, so it can be copied into other code bases without needing the entire brightwind library (Issue [#583](https://github.com/brightwind-dev/brightwind/issues/583))
 
 ### Bug Fixes
 1. 

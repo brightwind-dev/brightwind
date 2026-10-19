@@ -38,7 +38,7 @@ def test_brighthub_request_unsupported_method_returns_411():
 
 def test_brighthub_request_retries_on_connection_error():
     ok = MagicMock(status_code=200)
-    side_effect = [requests.exceptions.ConnectionError(), requests.exceptions.Timeout(), ok]
+    side_effect = [requests.exceptions.ConnectionError(), requests.exceptions.ReadTimeout(), ok]
     with patch('brightwind.utils.brighthub.requests.request', side_effect=side_effect) as mock_req,             patch('brightwind.utils.brighthub.time.sleep') as mock_sleep:
         response = bw.brighthub_request('GET', '/plants')
 
@@ -55,9 +55,9 @@ def test_brighthub_request_raises_after_max_attempts():
     assert mock_req.call_count == 3
 
 
-def test_brighthub_request_reauthenticates_once_on_expired_token():
+def test_brighthub_request_reauthenticates_once_on_401():
     expired = MagicMock(status_code=401)
-    expired.json.return_value = {'message': 'The incoming token has expired'}
+    expired.json.return_value = {'message': 'Unauthorized'}
     ok = MagicMock(status_code=200)
 
     def new_token():
@@ -69,6 +69,49 @@ def test_brighthub_request_reauthenticates_once_on_expired_token():
     assert response is ok
     mock_auth.assert_called_once()
     assert mock_req.call_args.kwargs['headers'] == {'authorization': 'token-2'}
+
+
+@pytest.mark.parametrize('error', [requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError])
+@pytest.mark.parametrize('method', ['POST', 'PUT', 'DELETE'])
+def test_brighthub_request_does_not_retry_writes_after_ambiguous_errors(method, error):
+    with patch('brightwind.utils.brighthub.requests.request', side_effect=error()) as mock_req,             patch('brightwind.utils.brighthub.time.sleep'):
+        with pytest.raises(error):
+            bw.brighthub_request(method, '/plants')
+
+    assert mock_req.call_count == 1
+
+
+@pytest.mark.parametrize('method', ['POST', 'PUT', 'DELETE'])
+def test_brighthub_request_retries_writes_on_connect_timeout(method):
+    ok = MagicMock(status_code=200)
+    with patch('brightwind.utils.brighthub.requests.request',
+               side_effect=[requests.exceptions.ConnectTimeout(), ok]) as mock_req,             patch('brightwind.utils.brighthub.time.sleep'):
+        assert bw.brighthub_request(method, '/plants') is ok
+
+    assert mock_req.call_count == 2
+
+
+@pytest.mark.parametrize('method, expected_calls', [('GET', 3), ('POST', 1)])
+def test_brighthub_request_retries_503_for_get_only(method, expected_calls):
+    with patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=503)) as mock_req,             patch('brightwind.utils.brighthub.time.sleep'):
+        response = bw.brighthub_request(method, '/plants')
+
+    assert response.status_code == 503
+    assert mock_req.call_count == expected_calls
+
+
+def test_brighthub_login_error_map_has_password_verifier():
+    assert 'password_verifier' in brighthub._BrighthubAuth._BrighthubAuth__BRIGHTHUB_LOGIN_ERROR_MAP
+
+
+def test_brighthub_module_does_not_import_brightwind():
+    import ast
+    with open(brighthub.__file__, encoding='utf-8') as f:
+        tree = ast.parse(f.read())
+    imported = [n.module if isinstance(n, ast.ImportFrom) else a.name
+                for n in ast.walk(tree) if isinstance(n, (ast.Import, ast.ImportFrom))
+                for a in (n.names if isinstance(n, ast.Import) else [n])]
+    assert not any(name and name.startswith('brightwind') for name in imported)
 
 
 def test_get_brighthub_auth_id_token_returns_cached_token():

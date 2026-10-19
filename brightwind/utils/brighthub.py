@@ -1,17 +1,26 @@
+# This module is self-contained and only depends on the 'requests' package, so it can be copied into other
+# code bases to interact with the BrightHub APIs.
 import os
 import time
 import warnings
 import requests
-from brightwind.utils import utils
 
 __all__ = ['brighthub_request',
            'get_brighthub_auth_id_token']
 
 _BASE_URI = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
 _SUPPORTED_METHODS = ('GET', 'POST', 'PUT', 'DELETE')
+_RETRY_ON_STATUS_METHODS = ('GET',)
+_RETRY_STATUS_CODES = (429, 502, 503, 504)
 _MAX_ATTEMPTS = 3
 _RETRY_DELAY_SECONDS = 3
 _TIMEOUT_SECONDS = 10
+
+
+def _get_environment_variable(name):
+    if name not in os.environ:
+        raise _BrighthubAuth.BrighthubAuthError('{} environmental variable is not set.'.format(name))
+    return os.environ[name]
 
 
 class _BrighthubAuth:
@@ -30,6 +39,8 @@ class _BrighthubAuth:
                                  "Kindly reset your Brighthub password and try again.",
         "password_not_verified": "Could not verify your password. "
                                  "Please ensure you have confirmed your email and the password is correct.",
+        "password_verifier": "Could not verify your password. "
+                             "Please ensure you have confirmed your email and the password is correct.",
         "ms_sso_user": "Microsoft SSO users cannot authenticate using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD'. "
                        "Please migrate to API key authentication."
     }
@@ -57,10 +68,10 @@ class _BrighthubAuth:
         """
 
         if not _BrighthubAuth.CLIENT_ID:
-            _BrighthubAuth.CLIENT_ID = utils.get_environment_variable('BRIGHTHUB_CLIENT_ID')
+            _BrighthubAuth.CLIENT_ID = _get_environment_variable('BRIGHTHUB_CLIENT_ID')
 
         if not _BrighthubAuth.CLIENT_SECRET:
-            _BrighthubAuth.CLIENT_SECRET = utils.get_environment_variable('BRIGHTHUB_CLIENT_SECRET')
+            _BrighthubAuth.CLIENT_SECRET = _get_environment_variable('BRIGHTHUB_CLIENT_SECRET')
 
         base_uri = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
         auth_url = f"{base_uri}/auth/token"
@@ -116,10 +127,10 @@ class _BrighthubAuth:
             FutureWarning
         )
         if not _BrighthubAuth.USERNAME:
-            _BrighthubAuth.USERNAME = utils.get_environment_variable('BRIGHTHUB_EMAIL')
+            _BrighthubAuth.USERNAME = _get_environment_variable('BRIGHTHUB_EMAIL')
 
         if not _BrighthubAuth.PASSWORD:
-            _BrighthubAuth.PASSWORD = utils.get_environment_variable('BRIGHTHUB_PASSWORD')
+            _BrighthubAuth.PASSWORD = _get_environment_variable('BRIGHTHUB_PASSWORD')
 
         url, headers, client_id = _BrighthubAuth._get_cognito_request()
 
@@ -292,8 +303,10 @@ def brighthub_request(method, url_extension, params=None, json=None, data=None):
     """
     Make a request to the BrightHub APIs. Authentication is handled automatically, see get_brighthub_auth_id_token().
 
-    A failed connection is retried up to 3 times, with a 3 second delay between attempts and a 10 second timeout.
-    If the token has expired, a new one is requested and the request is made once more.
+    Up to 3 attempts are made, with a 3 second delay between attempts and a 10 second timeout. Connection timeouts are
+    retried for all methods. Other connection errors, read timeouts and 429, 502, 503 and 504 responses are retried
+    for GET only, as a POST, PUT or DELETE may already have been applied by the server and retrying could duplicate it.
+    If a 401 is returned, a new token is requested and the request is made once more.
 
     :param method:        The HTTP method, one of 'GET', 'POST', 'PUT' or 'DELETE'. Not case sensitive.
     :type method:         str
@@ -332,26 +345,32 @@ def brighthub_request(method, url_extension, params=None, json=None, data=None):
 
     def _send():
         for attempt in range(_MAX_ATTEMPTS):
+            last_attempt = attempt == _MAX_ATTEMPTS - 1
             try:
-                return requests.request(method=method, url=url, headers={"authorization": _BrighthubAuth.ID_TOKEN},
-                                        params=params, json=json, data=data, timeout=_TIMEOUT_SECONDS)
-            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-                if attempt == _MAX_ATTEMPTS - 1:
+                response = requests.request(method=method, url=url,
+                                            headers={"authorization": _BrighthubAuth.ID_TOKEN},
+                                            params=params, json=json, data=data, timeout=_TIMEOUT_SECONDS)
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as error:
+                # A connect timeout means the request never reached the server so it is safe to retry for every
+                # method. For any other connection error or a read timeout the server may already have applied the
+                # request, so only retry methods that do not write.
+                safe_to_retry = (isinstance(error, requests.exceptions.ConnectTimeout)
+                                 or method in _RETRY_ON_STATUS_METHODS)
+                if last_attempt or not safe_to_retry:
                     raise
                 time.sleep(_RETRY_DELAY_SECONDS)
+                continue
+
+            if response.status_code in _RETRY_STATUS_CODES and method in _RETRY_ON_STATUS_METHODS                     and not last_attempt:
+                time.sleep(_RETRY_DELAY_SECONDS)
+                continue
+            return response
 
     response = _send()
 
-    # If there is an auth error due to expired token
-    if response.status_code == 401 and _is_token_expired(response):
+    # If there is an auth error, the token has most likely expired so authenticate again and retry once
+    if response.status_code == 401:
         _BrighthubAuth._get_id_token()
         response = _send()
 
     return response
-
-
-def _is_token_expired(response):
-    try:
-        return response.json().get("message") == "The incoming token has expired"
-    except ValueError:
-        return False
