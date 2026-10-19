@@ -14,13 +14,13 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. 
+1. Add public `brighthub_request` function to make GET, POST, PUT and DELETE requests to the BrightHub APIs, and public `get_brighthub_auth_id_token` function to get the BrightHub ID token (Issue [#583](https://github.com/brightwind-dev/brightwind/issues/583))
 
 ### Bug Fixes
 1. 
 
 ### Deprecated
-1. 
+1. `LoadBrightHub._brighthub_request` and `brightwind.load.load._BrighthubAuth` are deprecated and will be removed in v3.0.0. Use `brighthub_request` and `get_brighthub_auth_id_token` instead.
 
 ---
 ## [2.7.0]

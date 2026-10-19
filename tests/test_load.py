@@ -425,7 +425,7 @@ def test_load_brighthub_get_data_default_emits_deprecation_warning():
     api_response.json.return_value = {'url': 'https://example.com/presigned'}
     csv_response = MagicMock(text='Timestamp,Spd80mN\n2016-06-01 00:00:00,7.1\n')
 
-    with patch('brightwind.load.load.LoadBrightHub._brighthub_request', return_value=api_response) as mock_request, \
+    with patch('brightwind.load.load._brighthub.brighthub_request', return_value=api_response) as mock_request, \
             patch('brightwind.load.load.requests.get', return_value=csv_response):
         with pytest.warns(DeprecationWarning, match="file_extension"):
             df = bw.LoadBrightHub.get_data(measurement_station_uuid='uuid-1')
@@ -439,7 +439,7 @@ def test_load_brighthub_get_data_csv_explicit_no_warning():
     api_response.json.return_value = {'url': 'https://example.com/presigned'}
     csv_response = MagicMock(text='Timestamp,Spd80mN\n2016-06-01 00:00:00,7.1\n')
 
-    with patch('brightwind.load.load.LoadBrightHub._brighthub_request', return_value=api_response) as mock_request, \
+    with patch('brightwind.load.load._brighthub.brighthub_request', return_value=api_response) as mock_request, \
             patch('brightwind.load.load.requests.get', return_value=csv_response):
         with warnings.catch_warnings():
             warnings.simplefilter('error', DeprecationWarning)
@@ -465,7 +465,7 @@ def test_load_brighthub_get_data_parquet():
     api_response.json.return_value = {'url': 'https://example.com/presigned'}
     parquet_response = MagicMock(content=buffer.getvalue())
 
-    with patch('brightwind.load.load.LoadBrightHub._brighthub_request', return_value=api_response) as mock_request, \
+    with patch('brightwind.load.load._brighthub.brighthub_request', return_value=api_response) as mock_request, \
             patch('brightwind.load.load.requests.get', return_value=parquet_response):
         with warnings.catch_warnings():
             warnings.simplefilter('error', DeprecationWarning)
@@ -478,7 +478,7 @@ def test_load_brighthub_get_data_parquet():
 
 
 def test_load_brighthub_get_data_invalid_extension():
-    with patch('brightwind.load.load.LoadBrightHub._brighthub_request') as mock_request, \
+    with patch('brightwind.load.load._brighthub.brighthub_request') as mock_request, \
             patch('brightwind.load.load.requests.get') as mock_get:
         with pytest.raises(ValueError, match="Unsupported file_extension"):
             bw.LoadBrightHub.get_data(measurement_station_uuid='uuid-1', file_extension='.xlsx')
@@ -492,7 +492,7 @@ def test_load_brighthub_get_data_parquet_missing_engine_raises_importerror():
     api_response.json.return_value = {'url': 'https://example.com/presigned'}
     parquet_response = MagicMock(content=b'irrelevant')
 
-    with patch('brightwind.load.load.LoadBrightHub._brighthub_request', return_value=api_response), \
+    with patch('brightwind.load.load._brighthub.brighthub_request', return_value=api_response), \
             patch('brightwind.load.load.requests.get', return_value=parquet_response), \
             patch('brightwind.load.load.pd.read_parquet', side_effect=ImportError("no engine")):
         with pytest.raises(ImportError, match=r"brightwind\[parquet\].*brightwind\[parquet-fastparquet\]"):
