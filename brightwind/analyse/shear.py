@@ -140,7 +140,7 @@ class Shear:
                 import brightwind as bw
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
 
@@ -393,7 +393,7 @@ class Shear:
                 import brightwind as bw
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
 
@@ -437,7 +437,7 @@ class Shear:
                 import pprint
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
 
@@ -533,7 +533,7 @@ class Shear:
                 import brightwind as bw
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
 
@@ -586,7 +586,7 @@ class Shear:
                 import pprint
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
                 directions = data['Dir78mS']
@@ -703,7 +703,7 @@ class Shear:
                 import brightwind as bw
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS']]
                 heights = [80, 60]
                 directions = data[['Dir78mS']]
