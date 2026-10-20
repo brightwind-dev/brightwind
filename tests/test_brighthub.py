@@ -150,3 +150,45 @@ def test_legacy_brighthub_auth_import_still_works_and_warns():
         legacy_class = load_module._BrighthubAuth
 
     assert legacy_class is brighthub._BrighthubAuth
+
+
+def test_brighthub_request_raises_auth_error_when_401_persists():
+    unauthorised = MagicMock(status_code=401, text='{"message": "Unauthorized"}')
+    with patch('brightwind.utils.brighthub.requests.request', return_value=unauthorised),             patch.object(brighthub._BrighthubAuth, '_get_id_token'):
+        with pytest.raises(bw.BrighthubAuthError, match='unauthorised'):
+            bw.brighthub_request('GET', '/measurement-locations/uuid/cleaning-log')
+
+
+@pytest.mark.parametrize('status_code', [400, 401, 403])
+def test_client_credentials_rejected_gives_clear_auth_error(status_code):
+    brighthub._BrighthubAuth.CLIENT_ID = 'id'
+    brighthub._BrighthubAuth.CLIENT_SECRET = 'secret'
+    response = requests.Response()
+    response.status_code = status_code
+    try:
+        with patch('brightwind.utils.brighthub.requests.post', return_value=response):
+            with pytest.raises(bw.BrighthubAuthError, match='API key is invalid'):
+                brighthub._BrighthubAuth._authenticate_with_client_credentials()
+    finally:
+        brighthub._BrighthubAuth.CLIENT_ID = ''
+        brighthub._BrighthubAuth.CLIENT_SECRET = ''
+
+
+def test_client_credentials_connection_error_is_reported_as_network_error():
+    brighthub._BrighthubAuth.CLIENT_ID = 'id'
+    brighthub._BrighthubAuth.CLIENT_SECRET = 'secret'
+    try:
+        with patch('brightwind.utils.brighthub.requests.post', side_effect=requests.exceptions.ConnectionError()):
+            with pytest.raises(bw.BrighthubAuthError, match='Network or connection error'):
+                brighthub._BrighthubAuth._authenticate_with_client_credentials()
+    finally:
+        brighthub._BrighthubAuth.CLIENT_ID = ''
+        brighthub._BrighthubAuth.CLIENT_SECRET = ''
+
+
+def test_load_brighthub_get_cleaning_log_forbidden_without_details_raises_value_error_not_key_error():
+    response = MagicMock(status_code=403, text='{"message": "Forbidden"}')
+    response.json.return_value = {'message': 'Forbidden'}
+    with patch('brightwind.load.load._brighthub.brighthub_request', return_value=response):
+        with pytest.raises(ValueError, match='Status Code 403'):
+            bw.LoadBrightHub.get_cleaning_log(measurement_station_uuid='uuid-1')

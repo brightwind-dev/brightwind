@@ -1336,7 +1336,7 @@ class LoadBrightHub:
         # 503 error is returned when the timeseries data file is being assembled by Brighthub.
         # This is to ensure that only the most up to date data can be downloaded.
         assembly_in_progress_err_msg = 'The server is currently busy assembling the timeseries file.'
-        if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+        if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
             retry_after = int(response.headers.get('Retry-After', 60))  # default retry after default 60 seconds
             for _ in range(4):  # attempt 4 more times
                 time.sleep(retry_after)  # wait before retrying
@@ -1344,19 +1344,19 @@ class LoadBrightHub:
                     measurement_station_uuid, date_from, date_to, file_extension
                 )
                 response_json = response.json()
-                if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+                if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
                     retry_after *= 2  # double the retry time for each attempt
                     continue  # try again
                 else:
                     # Either the call was a success or there was a different error.
                     break  # exit for loop
             # Raise the 503 error if all the attempts have been used up.
-            if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+            if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
                 raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
 
         if response.status_code == 404 and 'details' in response_json:  # other BrightHub specific errors.
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         presigned_url = response_json["url"]
@@ -1419,7 +1419,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         presigned_url = response_json["url"]
@@ -1473,7 +1473,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         return response_json
@@ -1518,7 +1518,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         return response_json
@@ -1608,7 +1608,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         node_metadata = (response_json['metadata'] if return_metadata_json

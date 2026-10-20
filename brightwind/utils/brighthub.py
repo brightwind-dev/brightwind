@@ -6,7 +6,8 @@ import warnings
 import requests
 
 __all__ = ['brighthub_request',
-           'get_brighthub_auth_id_token']
+           'get_brighthub_auth_id_token',
+           'BrighthubAuthError']
 
 _BASE_URI = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
 _SUPPORTED_METHODS = ('GET', 'POST', 'PUT', 'DELETE')
@@ -15,6 +16,11 @@ _RETRY_STATUS_CODES = (429, 502, 503, 504)
 _MAX_ATTEMPTS = 3
 _RETRY_DELAY_SECONDS = 3
 _TIMEOUT_SECONDS = 10
+
+
+class BrighthubAuthError(Exception):
+    """Raised when authentication with BrightHub fails, e.g. invalid API key or an unauthorised request."""
+    pass
 
 
 def _get_environment_variable(name):
@@ -51,9 +57,8 @@ class _BrighthubAuth:
     CLIENT_ID = ''
     CLIENT_SECRET = ''
 
-    class BrighthubAuthError(Exception):
-        """Custom exception for Brighthub authentication failures."""
-        pass
+    # Kept as an attribute of this class for backwards compatibility
+    BrighthubAuthError = BrighthubAuthError
 
     @staticmethod
     def _authenticate_with_client_credentials():
@@ -83,8 +88,19 @@ class _BrighthubAuth:
                 timeout=10
             )
             response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            status_code = e.response.status_code if e.response is not None else None
+            if status_code in (400, 401, 403):
+                raise _BrighthubAuth.BrighthubAuthError(
+                    f"Authentication failed (status code {status_code}). The BrightHub API key is invalid, expired or "
+                    "revoked. Please check the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET environmental "
+                    "variables, and create a new API key at https://brighthub.io/account-settings/settings if needed."
+                ) from e
+            raise _BrighthubAuth.BrighthubAuthError(
+                f"Authentication failed, BrightHub returned an unexpected response: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise _BrighthubAuth.BrighthubAuthError(f"Network or connection error during authentication: {e}")
+            raise _BrighthubAuth.BrighthubAuthError(
+                f"Network or connection error during authentication: {e}") from e
 
         try:
             token_data = response.json()
@@ -372,5 +388,10 @@ def brighthub_request(method, url_extension, params=None, json=None, data=None):
     if response.status_code == 401:
         _BrighthubAuth._get_id_token()
         response = _send()
+        if response.status_code == 401:
+            raise BrighthubAuthError(
+                "BrightHub rejected the request as unauthorised (status code 401) even after re-authenticating. "
+                "Please check your API key and that it has permission to access {} {}. Response: {}".format(
+                    method, url_extension, response.text))
 
     return response
