@@ -99,10 +99,12 @@ def test_apply_cleaning_matches_row_by_row():
     bw.apply_cleaning(inplace_data, log_datetimes, inplace=1)
     pd.testing.assert_frame_equal(inplace_data, bw.apply_cleaning(data, log_datetimes), check_exact=True)
 
-    # Unchanged behaviour: prefix matching (#249), a Start equal to its Stop cleans nothing, and Stop is exclusive
+    # Prefix matching (#249), a Start equal to its Stop cleans only that timestamp, and Stop is exclusive
     cleaned = bw.apply_cleaning(data, log_datetimes)
     assert np.isnan(cleaned.loc['2016-01-01 01:00:00', 'Spd80mNStd'])
-    assert not np.isnan(cleaned.loc['2016-01-01 05:00:00', 'Dir78mS'])
+    assert np.isnan(cleaned.loc['2016-01-01 05:00:00', 'Dir78mS'])
+    assert not np.isnan(cleaned.loc['2016-01-01 04:50:00', 'Dir78mS'])
+    assert not np.isnan(cleaned.loc['2016-01-01 05:10:00', 'Dir78mS'])
     assert np.isnan(cleaned.loc['2016-01-01 12:10:00', 'Spd80mN'])
     assert np.isnan(cleaned.loc['2016-01-01 20:50:00', 'Site'])
     assert not np.isnan(cleaned.loc['2016-01-01 21:00:00', 'Spd80mN'])
@@ -129,6 +131,53 @@ def test_apply_cleaning_fallback_warns():
         warnings.simplefilter('error', RuntimeWarning)
         with pytest.raises(TypeError, match='Invalid comparison'):
             bw.apply_cleaning(data, bad_log)
+
+
+def test_apply_cleaning_single_timestamp():
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+    timestamp = '2016-01-11 06:00:00'
+
+    # Start equal to Stop flags only that timestamp, for every column starting with the sensor name
+    cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': [timestamp], 'Stop': [timestamp]})
+    data_clnd = bw.apply_cleaning(data, cleaning_df)
+    for col in ['Spd80mN', 'Spd80mNStd', 'Spd80mNMax']:
+        assert np.isnan(data_clnd[col][timestamp])
+    assert data_clnd.Spd80mN['2016-01-11 05:50:00'] == 6.878
+    assert data_clnd.Spd80mN['2016-01-11 06:10:00'] == 7.799
+    assert data_clnd.Spd80mS[timestamp] == 7.775
+    assert int(data_clnd.Spd80mN.isna().sum() - data.Spd80mN.isna().sum()) == 1
+
+    # Start and Stop in different string formats or as timestamps are recognised as equal
+    cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': ['2016-01-11T06:00:00'], 'Stop': [timestamp]})
+    assert np.isnan(bw.apply_cleaning(data, cleaning_df).Spd80mN[timestamp])
+    cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': [pd.Timestamp(timestamp)],
+                                'Stop': [pd.Timestamp(timestamp)]})
+    assert np.isnan(bw.apply_cleaning(data, cleaning_df).Spd80mN[timestamp])
+
+    # The 'All' descriptor flags that timestamp in every column
+    cleaning_df = pd.DataFrame({'Sensor': ['All'], 'Start': [timestamp], 'Stop': [timestamp]})
+    data_clnd = bw.apply_cleaning(data, cleaning_df)
+    assert data_clnd.loc[timestamp].isna().all()
+    assert data_clnd.T2m['2016-01-11 06:10:00'] == 0.852
+
+    # A single timestamp absent from the data flags nothing
+    cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': ['2016-01-11 06:05:00'],
+                                'Stop': ['2016-01-11 06:05:00']})
+    assert (bw.apply_cleaning(data, cleaning_df).fillna(-999) == data.fillna(-999)).all().all()
+
+    # A single timestamp that cannot be compared with the index raises the same error as any other period
+    cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': ['2016-01-11T06:00:00Z'],
+                                'Stop': ['2016-01-11T06:00:00Z']})
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', RuntimeWarning)
+        with pytest.raises(TypeError, match='Invalid comparison'):
+            bw.apply_cleaning(data, cleaning_df)
+
+    # A period with a later Stop still excludes the Stop timestamp
+    cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': [timestamp], 'Stop': ['2016-01-11 06:10:00']})
+    data_clnd = bw.apply_cleaning(data, cleaning_df)
+    assert np.isnan(data_clnd.Spd80mN[timestamp])
+    assert data_clnd.Spd80mN['2016-01-11 06:10:00'] == 7.799
 
 
 def test_apply_cleaning_rules():
