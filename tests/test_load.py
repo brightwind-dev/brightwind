@@ -114,6 +114,25 @@ def test_apply_cleaning_matches_row_by_row():
         bw.apply_cleaning(data, log_strings.assign(Stop='2016-01-01T06:00:00Z'))
 
 
+def test_apply_cleaning_fallback_warns():
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+    cleaning_file = bw.demo_datasets.demo_cleaning_file
+    expected = bw.apply_cleaning(data, cleaning_file)
+
+    # If the fast path fails on data the row by row loop can clean, the result is still right and a warning says so
+    with patch('brightwind.load.load._build_cleaning_masks', side_effect=TypeError('fast path bug')):
+        with pytest.warns(RuntimeWarning, match='fast path raised TypeError: fast path bug'):
+            cleaned = bw.apply_cleaning(data, cleaning_file)
+    pd.testing.assert_frame_equal(cleaned, expected, check_exact=True)
+
+    # Invalid input only raises its usual error, without the warning
+    bad_log = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': ['2016-01-11 06:00:00'], 'Stop': ['not a date']})
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', RuntimeWarning)
+        with pytest.raises(TypeError, match='Invalid comparison'):
+            bw.apply_cleaning(data, bad_log)
+
+
 def test_apply_cleaning_single_timestamp():
     data = bw.load_csv(bw.demo_datasets.demo_data)
     timestamp = '2016-01-11 06:00:00'
@@ -149,8 +168,10 @@ def test_apply_cleaning_single_timestamp():
     # A single timestamp that cannot be compared with the index raises the same error as any other period
     cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': ['2016-01-11T06:00:00Z'],
                                 'Stop': ['2016-01-11T06:00:00Z']})
-    with pytest.raises(TypeError):
-        bw.apply_cleaning(data, cleaning_df)
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', RuntimeWarning)
+        with pytest.raises(TypeError, match='Invalid comparison'):
+            bw.apply_cleaning(data, cleaning_df)
 
     # A period with a later Stop still excludes the Stop timestamp
     cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': [timestamp], 'Stop': ['2016-01-11 06:10:00']})
