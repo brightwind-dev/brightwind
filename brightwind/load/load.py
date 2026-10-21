@@ -2504,8 +2504,8 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     if len(cleaning_df) == 0:
         return data
 
-    # Work out every flagged period first, then write each column once. If anything raises, run the original row by
-    # row loop on the untouched data instead, so errors and partly cleaned data are exactly as before.
+    # Work out every flagged period first, then write each column once. If that raises, run the original row by row
+    # loop on the untouched data instead, so errors and partly cleaned data are exactly as before.
     chained_assignment = pd.options.mode.chained_assignment
     try:
         col_masks, all_mask = _build_cleaning_masks(data, cleaning_df, sensor_col_name, date_from_col_name,
@@ -2513,12 +2513,18 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
         # When cleaning in place, try the writes on a copy first so a failing write can't half clean 'data'
         _write_cleaning_masks(data if inplace is False else data.copy(deep=True), col_masks, all_mask,
                               replacement_text)
-    except Exception:
+    except (AttributeError, KeyError, TypeError, ValueError) as fast_path_error:
+        # Invalid inputs raise one of these and the row by row loop then raises its usual error for them
         pd.options.mode.chained_assignment = chained_assignment
         if inplace is False:
             data = original_data.copy(deep=True)
-        return _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
+        data = _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
                                           all_sensors_descriptor, replacement_text)
+        # The row by row loop worked where the fast path failed, which means a bug in the fast path
+        warnings.warn(f"apply_cleaning used its slower row by row loop because the fast path raised "
+                      f"{type(fast_path_error).__name__}: {fast_path_error}. The cleaned data is correct, but please "
+                      f"report this at https://github.com/brightwind-dev/brightwind/issues.", RuntimeWarning)
+        return data
     if inplace is not False:
         _write_cleaning_masks(data, col_masks, all_mask, replacement_text)
     return data
