@@ -85,19 +85,27 @@ class Shear:
             wspds, cvg = Shear._data_prep(
                 wspds=wspds, heights=heights, min_speed=min_speed, maximise_data=maximise_data, return_raw_wspds=True
                 )
-            valid_mask = (wspds > min_speed).all(axis=1) & ~wspds.isna().any(axis=1)
+            valid_heights = (wspds > min_speed) & wspds.notna()
+            if maximise_data:
+                # use every timestamp with at least two valid heights, fitting to only the valid heights
+                valid_mask = valid_heights.sum(axis=1) >= 2
+                fit_mask = valid_heights.loc[valid_mask].values
+            else:
+                valid_mask = valid_heights.all(axis=1)
+                fit_mask = None
+            valid_wspds = wspds.loc[valid_mask].where(valid_heights.loc[valid_mask]).values
             log_heights = np.log(np.asarray(heights, dtype=float))
 
             if calc_method == 'power_law':
                 alpha = pd.Series(index=wspds.index, dtype=float, name='alpha')
-                alpha.loc[valid_mask], _ = Shear._calc_linear_fit(log_heights, np.log(wspds.loc[valid_mask].values))
+                alpha.loc[valid_mask], _ = Shear._calc_linear_fit(log_heights, np.log(valid_wspds), mask=fit_mask)
                 self._alpha = alpha
 
             elif calc_method == 'log_law':
                 slope = pd.Series(index=wspds.index, dtype=float)
                 intercept = pd.Series(index=wspds.index, dtype=float)
                 slope.loc[valid_mask], intercept.loc[valid_mask] = Shear._calc_linear_fit(
-                    log_heights, wspds.loc[valid_mask].values)
+                    log_heights, valid_wspds, mask=fit_mask)
                 roughness_coefficient = pd.Series(Shear._calc_roughness(slope=slope, intercept=intercept),
                                                   name='roughness_coefficient')
                 self._roughness = roughness_coefficient
@@ -109,7 +117,8 @@ class Shear:
             self.calc_method = calc_method
             self.wspds = wspds
             self.plot = avg_plot.plot
-            self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed)
+            self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
+                                           maximise_data=maximise_data)
 
         @property
         def alpha(self):
@@ -832,27 +841,45 @@ class Shear:
         return coeffs[0]
 
     @staticmethod
-    def _calc_linear_fit(x, y):
+    def _calc_linear_fit(x, y, mask=None):
         """
         Derive the least squares straight line fit of y against x for every row of y at once. This gives the same
         result as calling np.polyfit(x, y_row, deg=1) on each row, but is vectorised across all rows.
 
-        :param x: Values to fit against, e.g. log of heights, one per column of y.
-        :type x:  numpy.ndarray
-        :param y: 2D array with one row per timestamp and one column per height, e.g. log of wind speeds. Each row
-                  must be complete (no NaN).
-        :type y:  numpy.ndarray
-        :return:  The slope and intercept of the best fit line for each row.
-        :rtype:   tuple(numpy.ndarray, numpy.ndarray)
+        :param x:    Values to fit against, e.g. log of heights, one per column of y.
+        :type x:     numpy.ndarray
+        :param y:    2D array with one row per timestamp and one column per height, e.g. log of wind speeds. If mask
+                     is None each row must be complete (no NaN).
+        :type y:     numpy.ndarray
+        :param mask: Optional 2D boolean array, the same shape as y, which is True for the values of y to use in the
+                     fit of each row. Rows need at least two values with different x, otherwise the slope and
+                     intercept are NaN.
+        :type mask:  numpy.ndarray or None
+        :return:     The slope and intercept of the best fit line for each row.
+        :rtype:      tuple(numpy.ndarray, numpy.ndarray)
 
         METHODOLOGY:
             slope = sum((x - mean(x)) * (y - mean(y))) / sum((x - mean(x))^2)
             intercept = mean(y) - slope * mean(x)
+            where the sums and means of each row only use the values selected by mask.
         """
-        x_dev = x - x.mean()
-        y_mean = y.mean(axis=1)
-        slope = ((y - y_mean[:, np.newaxis]) * x_dev).sum(axis=1) / (x_dev ** 2).sum()
-        intercept = y_mean - slope * x.mean()
+        if mask is None:
+            x_dev = x - x.mean()
+            y_mean = y.mean(axis=1)
+            slope = ((y - y_mean[:, np.newaxis]) * x_dev).sum(axis=1) / (x_dev ** 2).sum()
+            intercept = y_mean - slope * x.mean()
+            return slope, intercept
+
+        x = np.broadcast_to(x, y.shape)
+        count = mask.sum(axis=1)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            x_mean = np.where(mask, x, 0).sum(axis=1) / count
+            y_mean = np.where(mask, y, 0).sum(axis=1) / count
+            x_dev = np.where(mask, x - x_mean[:, np.newaxis], 0)
+            y_dev = np.where(mask, y - y_mean[:, np.newaxis], 0)
+            x_dev_sq_sum = (x_dev ** 2).sum(axis=1)
+            slope = np.where(x_dev_sq_sum > 0, (x_dev * y_dev).sum(axis=1) / x_dev_sq_sum, np.nan)
+        intercept = y_mean - slope * x_mean
         return slope, intercept
 
     @staticmethod
@@ -1094,7 +1121,7 @@ class Shear:
             Shear._unequal_wspd_heights_error_msg(wspds, heights)
 
         cvg = None
-        Shear._valid_wsp_data_error_msg(wspds, min_speed)
+        Shear._valid_wsp_data_error_msg(wspds, min_speed, maximise_data=maximise_data)
         if isinstance(wspds.index, pd.DatetimeIndex):
             if maximise_data is False:
                 cvg = coverage(wspds[wspds > min_speed].dropna(), period='1YS').sum().iloc[1]
@@ -1115,7 +1142,15 @@ class Shear:
                          str(len(heights)) + ' height(s) were given.')
 
     @staticmethod
-    def _valid_wsp_data_error_msg(wspds, min_speed):
+    def _valid_wsp_data_error_msg(wspds, min_speed, maximise_data=False):
+        if maximise_data:
+            # only need at least two valid heights at some timestamp
+            if (wspds.notna().sum(axis=1) >= 2).sum() == 0:
+                raise ValueError("There is no valid data within the dataset provided to calculate the shear.")
+            if ((wspds > min_speed).sum(axis=1) >= 2).sum() == 0:
+                raise ValueError(f"There is no valid data above {min_speed} m/s within the dataset provided to "
+                                 f"calculate the shear.")
+            return
         if wspds.isnull().all().any():
             raise ValueError("There is no valid data within the dataset provided to calculate the shear.")
         if len(wspds[wspds > min_speed].dropna()) == 0:
@@ -1124,7 +1159,7 @@ class Shear:
 
     @staticmethod
     def _create_info(self, heights, min_speed, cvg, direction_bin_array=None, segments_per_day=None,
-                     segment_start_time=None):
+                     segment_start_time=None, maximise_data=None):
         """
         Create the info dict that is returned to the user.
 
@@ -1135,6 +1170,7 @@ class Shear:
         :param direction_bin_array:
         :param segments_per_day:
         :param segment_start_time:
+        :param maximise_data:
         :return:
         """
 
@@ -1145,6 +1181,8 @@ class Shear:
                              'min_spd': min_speed}
         input_data['input_wind_speeds'] = input_wind_speeds
         input_data['calculation_method'] = self.calc_method
+        if maximise_data is not None:
+            input_data['maximise_data'] = maximise_data
         if cvg is not None:
             output_data['concurrent_period'] = float("{:.3f}".format(cvg))
 
