@@ -489,6 +489,31 @@ def _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=None):
     return coverage
 
 
+def _vector_avg_of_wdirs_by_period(wdirs, period):
+    """
+    Vector average wind directions for each averaging period. This gives the same result as applying
+    _vector_avg_of_wdirs_list() to each period but derives the sine and cosine components for all timestamps at once.
+
+    :param wdirs:   Wind directions to average, with a DatetimeIndex sorted in ascending order.
+    :type wdirs:    pd.Series or pd.DataFrame
+    :param period:  Period to average by, as used by pd.DataFrame.resample().
+    :type period:   str or pd.DateOffset
+    :return:        Average wind direction for each averaging period.
+    :rtype:         pd.Series or pd.DataFrame
+    """
+    wdirs_rad = np.deg2rad(wdirs)
+    # round to 5 decimal places so that opposite directions cancel out, see _vector_avg_of_wdirs_list()
+    sine = np.round(np.sin(wdirs_rad), 5).resample(period, closed='left', label='left').mean()
+    cosine = np.round(np.cos(wdirs_rad), 5).resample(period, closed='left', label='left').mean()
+
+    avg_dir = np.rad2deg(np.arctan2(sine, cosine)) % 360
+    # if both sine and cosine are zero the directions cancel out and there is no wind direction
+    avg_dir = avg_dir.mask((sine == 0) & (cosine == 0))
+    # preference to have 0 returned instead of 360
+    avg_dir = avg_dir.mask(avg_dir == 360.0, 0.0)
+    return avg_dir
+
+
 def average_data_by_period(data, period, wdir_column_names=None, aggregation_method='mean', coverage_threshold=None,
                            return_coverage=False, data_resolution=None):
     """
@@ -625,11 +650,11 @@ def average_data_by_period(data, period, wdir_column_names=None, aggregation_met
         # average wdir data
         # if data is a Series grouper_obj doesn't take columns and averaged data is a Series and not a DataFrame.
         if isinstance(data, pd.DataFrame):
-            wdir_grouped_data = grouper_obj[wdir_column_names].agg(average_wdirs)
+            wdir_grouped_data = _vector_avg_of_wdirs_by_period(data[wdir_column_names], period)
             wdir_coverage = _get_coverage_by_grouper_obj(data[wdir_column_names], grouper_obj[wdir_column_names],
                                                          data_resolution=data_resolution)
         else:
-            wdir_grouped_data = grouper_obj.agg(average_wdirs)
+            wdir_grouped_data = _vector_avg_of_wdirs_by_period(data, period)
             wdir_coverage = _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=data_resolution)
 
         # average non_wdir data if available

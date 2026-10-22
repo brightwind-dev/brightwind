@@ -20,6 +20,7 @@ XX-Xxx-2026
 1. `Shear.TimeSeries` and `Shear.BySector` no longer print "This may take a while..." and no longer clear the notebook cell output when they run. ([#639](https://github.com/brightwind-dev/brightwind/issues/639))
 1. Speed up `momm()` with `seasonal_adjustment=True` (~30x faster on long time series) by vectorising the calendar month means and days-per-month derivation in `_mean_of_monthly_means_seasonal_adjusted()`. Results are unchanged. ([#646](https://github.com/brightwind-dev/brightwind/issues/646))
 1. Speed up `average_data_by_period()` and everything built on it (e.g. `coverage()`, `monthly_means()`, `momm()`, the correlation classes and `synthesize()`) by vectorising the maximum data count per averaging period in `_max_coverage_count()`, instead of offsetting each averaged timestamp one at a time. Results are unchanged. ([#648](https://github.com/brightwind-dev/brightwind/issues/648))
+1. Sped up vector averaging of wind directions in `average_data_by_period()` (when `wdir_column_names` is given) and so `merge_datasets_by_period()` and the correlations that use wind direction (e.g. `SpeedSort`). The sine and cosine components are now averaged for all periods at once instead of calling `average_wdirs()` for each period. Results are unchanged to floating-point precision, except where the directions in a period cancel out (mean vector of ~1e-17), where both the previous and new methods return an arbitrary direction. ([#649](https://github.com/brightwind-dev/brightwind/issues/649))
 
 ### Bug Fixes
 1. 
