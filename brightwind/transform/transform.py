@@ -465,8 +465,8 @@ def _max_coverage_count(data_index, averaged_data_index, data_resolution=None):
 
     averaged_data_res = averaged_data_index.freq or _get_data_resolution(averaged_data_index)
 
-    time_delta = averaged_data_index.map(lambda x: x + data_res) - averaged_data_index
-    max_pts = (averaged_data_index.map(lambda x: x + averaged_data_res) - averaged_data_index)/time_delta
+    time_delta = (averaged_data_index + data_res) - averaged_data_index
+    max_pts = ((averaged_data_index + averaged_data_res) - averaged_data_index)/time_delta
 
     return max_pts
 

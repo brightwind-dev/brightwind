@@ -677,6 +677,28 @@ def test_get_data_resolution():
         assert len(w) == 1
 
 
+def test_max_coverage_count():
+    # 10 minute data averaged to monthly, including a leap year February
+    data_index = pd.date_range('2024-01-01', '2024-04-01', freq='10min', inclusive='left')
+    averaged_index = pd.date_range('2024-01-01', '2024-04-01', freq='MS', inclusive='left')
+    max_pts = bw.transform.transform._max_coverage_count(data_index, averaged_index)
+    assert list(max_pts) == [31 * 144, 29 * 144, 31 * 144]
+
+    # hourly data averaged to daily
+    data_index = pd.date_range('2023-01-01', '2023-01-10', freq='h', inclusive='left')
+    averaged_index = pd.date_range('2023-01-01', '2023-01-10', freq='D', inclusive='left')
+    max_pts = bw.transform.transform._max_coverage_count(data_index, averaged_index)
+    assert (max_pts == 24).all()
+
+    # monthly data resolution given as input, averaged to yearly. The data resolution time delta is taken from the
+    # first month of each averaging period (January), so the leap year has 366 / 31 rather than 12
+    data_index = pd.date_range('2020-01-01', '2022-01-01', freq='MS', inclusive='left')
+    averaged_index = pd.date_range('2020-01-01', '2022-01-01', freq='YS', inclusive='left')
+    max_pts = bw.transform.transform._max_coverage_count(data_index, averaged_index,
+                                                         data_resolution=pd.DateOffset(months=1))
+    assert list(max_pts) == [366 / 31, 365 / 31]
+
+
 def test_offset_timestamps():
     series1 = DATA['2016-01-10 00:00:00':]
 
