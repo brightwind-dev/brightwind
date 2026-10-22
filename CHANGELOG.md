@@ -19,7 +19,7 @@ XX-Xxx-2026
 1. Sped up `Shear.TimeOfDay.apply()` with no change to results. The alpha or roughness coefficient for each timestamp is now looked up by its hour and month and applied to all timestamps at once, instead of looping over every hour and month. The progress bar is no longer shown. ([#408](https://github.com/brightwind-dev/brightwind/issues/408))
 1. `Shear.TimeSeries` and `Shear.BySector` no longer print "This may take a while..." and no longer clear the notebook cell output when they run. ([#639](https://github.com/brightwind-dev/brightwind/issues/639))
 1. Sped up `momm()` with `seasonal_adjustment=True` (~30x faster on long time series) by vectorising the calendar month means and days-per-month derivation in `_mean_of_monthly_means_seasonal_adjusted()`. Results are unchanged. ([#646](https://github.com/brightwind-dev/brightwind/issues/646))
-1. Sped up `average_data_by_period()` and everything built on it (e.g. `coverage()`, `monthly_means()`, `momm()`, the correlation classes and `synthesize()`) by vectorising the maximum data count per averaging period in `_max_coverage_count()`, instead of offsetting each averaged timestamp one at a time. Results are unchanged. ([#648](https://github.com/brightwind-dev/brightwind/issues/648))
+1. Speed up `average_data_by_period()` and everything built on it (e.g. `coverage()`, `monthly_means()`, `momm()`, the correlation classes and `synthesize()`) by vectorising the maximum data count per averaging period in `_max_coverage_count()`, instead of offsetting each averaged timestamp one at a time. Results are unchanged. ([#648](https://github.com/brightwind-dev/brightwind/issues/648))
 
 ### Bug Fixes
 1. 
