@@ -21,6 +21,7 @@ XX-Xxx-2026
 
 ### Bug Fixes
 1. Fixed `maximise_data=True` having no effect in `Shear.TimeSeries`. Shear is now calculated for every timestamp with at least two valid wind speeds (above `min_speed` and not NaN), as described in the docstring, using only the valid heights at each timestamp. Results with `maximise_data=False` (the default), and for timestamps where all heights are valid, are unchanged. ([#494](https://github.com/brightwind-dev/brightwind/issues/494))
+1. `Shear.TimeSeries` with `maximise_data=True` no longer fails its data check when wind speeds are never valid at all heights at the same timestamp, or when one height has no valid data. It now only needs at least one timestamp with two or more valid wind speeds. `maximise_data` is now also recorded in `Shear.TimeSeries.info`. The wind profile plot still only uses timestamps where all heights are valid, so the full `Shear.TimeSeries` call can still fail on such data until [#341](https://github.com/brightwind-dev/brightwind/issues/341) is addressed. ([#494](https://github.com/brightwind-dev/brightwind/issues/494))
 
 ### Deprecated
 1. 

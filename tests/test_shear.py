@@ -322,6 +322,8 @@ def test_time_series_maximise_data():
         shear_all, shear_max = getattr(all_heights, name), getattr(maximised, name)
 
         assert shear_max.index.equals(anemometers.index)
+        assert all_heights.info['input data']['maximise_data'] is False
+        assert maximised.info['input data']['maximise_data'] is True
         assert all_heights.info['output data']['concurrent_period'] == 0.941
         assert maximised.info['output data']['concurrent_period'] == 1.455
         assert shear_all.notna().sum() == 49513
@@ -341,6 +343,34 @@ def test_time_series_maximise_data():
             expected = np.exp(-intercept / slope)
             realistic = expected < 10
             np.testing.assert_allclose(shear_max[two_valid].values[realistic], expected[realistic], rtol=1e-8)
+
+
+def test_time_series_maximise_data_validation():
+    heights = [80, 60, 40]
+    # heights never all valid at the same timestamp
+    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']].iloc[:100].copy()
+    anemometers.iloc[::2, 0] = np.nan
+    anemometers.iloc[1::2, 2] = np.nan
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.TimeSeries(anemometers, heights)
+    assert str(except_info.value) == "There is no valid data above 3 m/s within the dataset provided to calculate the shear."
+
+    # a whole height NaN is only allowed with maximise_data
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.TimeSeries(anemometers.assign(Spd40mN=np.nan), heights)
+    assert str(except_info.value) == "There is no valid data within the dataset provided to calculate the shear."
+
+    # maximise_data still needs two valid heights at some timestamp
+    one_height = anemometers.assign(Spd60mN=np.nan, Spd40mN=np.nan)
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear._valid_wsp_data_error_msg(one_height, 3, maximise_data=True)
+    assert str(except_info.value) == "There is no valid data within the dataset provided to calculate the shear."
+    below_min_speed = anemometers.assign(Spd60mN=2.0)
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear._valid_wsp_data_error_msg(below_min_speed, 3, maximise_data=True)
+    assert str(except_info.value) == "There is no valid data above 3 m/s within the dataset provided to calculate the shear."
+    bw.Shear._valid_wsp_data_error_msg(anemometers, 3, maximise_data=True)
+    bw.Shear._valid_wsp_data_error_msg(anemometers.assign(Spd40mN=np.nan), 3, maximise_data=True)
 
 
 def test_time_series_full_data():

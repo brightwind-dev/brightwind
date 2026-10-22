@@ -117,7 +117,8 @@ class Shear:
             self.calc_method = calc_method
             self.wspds = wspds
             self.plot = avg_plot.plot
-            self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed)
+            self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
+                                           maximise_data=maximise_data)
 
         @property
         def alpha(self):
@@ -1120,7 +1121,7 @@ class Shear:
             Shear._unequal_wspd_heights_error_msg(wspds, heights)
 
         cvg = None
-        Shear._valid_wsp_data_error_msg(wspds, min_speed)
+        Shear._valid_wsp_data_error_msg(wspds, min_speed, maximise_data=maximise_data)
         if isinstance(wspds.index, pd.DatetimeIndex):
             if maximise_data is False:
                 cvg = coverage(wspds[wspds > min_speed].dropna(), period='1YS').sum().iloc[1]
@@ -1141,7 +1142,15 @@ class Shear:
                          str(len(heights)) + ' height(s) were given.')
 
     @staticmethod
-    def _valid_wsp_data_error_msg(wspds, min_speed):
+    def _valid_wsp_data_error_msg(wspds, min_speed, maximise_data=False):
+        if maximise_data:
+            # only need at least two valid heights at some timestamp
+            if (wspds.notna().sum(axis=1) >= 2).sum() == 0:
+                raise ValueError("There is no valid data within the dataset provided to calculate the shear.")
+            if ((wspds > min_speed).sum(axis=1) >= 2).sum() == 0:
+                raise ValueError(f"There is no valid data above {min_speed} m/s within the dataset provided to "
+                                 f"calculate the shear.")
+            return
         if wspds.isnull().all().any():
             raise ValueError("There is no valid data within the dataset provided to calculate the shear.")
         if len(wspds[wspds > min_speed].dropna()) == 0:
@@ -1150,7 +1159,7 @@ class Shear:
 
     @staticmethod
     def _create_info(self, heights, min_speed, cvg, direction_bin_array=None, segments_per_day=None,
-                     segment_start_time=None):
+                     segment_start_time=None, maximise_data=None):
         """
         Create the info dict that is returned to the user.
 
@@ -1161,6 +1170,7 @@ class Shear:
         :param direction_bin_array:
         :param segments_per_day:
         :param segment_start_time:
+        :param maximise_data:
         :return:
         """
 
@@ -1171,6 +1181,8 @@ class Shear:
                              'min_spd': min_speed}
         input_data['input_wind_speeds'] = input_wind_speeds
         input_data['calculation_method'] = self.calc_method
+        if maximise_data is not None:
+            input_data['maximise_data'] = maximise_data
         if cvg is not None:
             output_data['concurrent_period'] = float("{:.3f}".format(cvg))
 
