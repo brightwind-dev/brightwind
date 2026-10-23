@@ -18,6 +18,7 @@ XX-Xxx-2026
 
 ### Bug Fixes
 1. Fixed `test_export_tws_file` failing when pytest is run from the repo root by removing hardcoded, Windows-only relative paths. Added `demo_tws_file` to `bw.demo_datasets`. ([#604](https://github.com/brightwind-dev/brightwind/issues/604))
+1. Added `tests/conftest.py` to pin matplotlib to the non-interactive `Agg` backend for the test suite, fixing `_tkinter.TclError` failures (e.g. in `test_sector_ratio` and `test_dist_12x24`) when the full suite is run on machines without a usable Tcl/Tk runtime or display. ([#607](https://github.com/brightwind-dev/brightwind/issues/607))
 
 ### Deprecated
 1. 
