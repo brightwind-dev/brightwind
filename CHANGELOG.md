@@ -15,6 +15,7 @@ XX-Xxx-2026
 
 ### New Features and Enhancements
 1. Updated the axis labels on the `Shear.Average` (and `Shear.TimeSeries`) wind profile plot for clarity: the speed axis is now labelled `Wind Speed [m/s]` (was `Speed [m/s]`) and the height axis is now labelled `Height AGL [m]` (was `Elevation [m]`). ([#632](https://github.com/brightwind-dev/brightwind/issues/632))
+2. Made `apply_cleaning()` much faster for long cleaning logs: each column is now written once instead of once per cleaning row, and for a sorted datetime index the flagged periods are found with a binary search. The cleaned output, dtypes and errors are unchanged. ([#653](https://github.com/brightwind-dev/brightwind/issues/653))
 
 ### Bug Fixes
 1. Fixed `test_export_tws_file` failing when pytest is run from the repo root by removing hardcoded, Windows-only relative paths. Added `demo_tws_file` to `bw.demo_datasets`. ([#604](https://github.com/brightwind-dev/brightwind/issues/604))

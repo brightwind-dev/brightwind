@@ -55,6 +55,82 @@ def test_apply_cleaning():
     assert np.isnan(data_clnd6.Spd40mN['2016-03-29 00:00'])
 
 
+def test_apply_cleaning_matches_row_by_row():
+    # apply_cleaning builds one mask per column and writes each column once. It must give exactly the same result
+    # as the original row by row loop, which is kept as _apply_cleaning_row_by_row.
+    from brightwind.load.load import _apply_cleaning_row_by_row
+
+    index = pd.date_range('2016-01-01', periods=300, freq='10min')
+    data = pd.DataFrame({'Spd80mN': np.linspace(1, 20, 300), 'Spd80mNStd': np.linspace(0, 2, 300),
+                         'Spd80mS': np.linspace(2, 21, 300), 'Spd': np.linspace(3, 22, 300),
+                         'Dir78mS': np.arange(300) % 360, 'Flag': np.arange(300) % 2 == 0,
+                         'Site': ['A'] * 300}, index=index)
+    starts = ['2016-01-01 01:00:00', '2016-01-01 02:30:00', '2016-01-01 05:00:00', '2016-01-01 06:00:00',
+              '2016-01-01 10:00:00', '2016-01-01 12:00:00', '2016-01-01 20:00:00', None]
+    stops = ['2016-01-01 03:00:00', '2016-01-01 04:00:00', '2016-01-01 05:00:00', '2016-01-01 05:00:00',
+             None, '2016-01-01 12:10:01', '2016-01-01 21:00:00', '2016-01-01 00:30:00']
+    sensors = ['Spd80mN', 'Spd80mN', 'Dir78mS', 'Spd80mS', 'Flag', 'Spd', 'All', 'NoSuchSensor']
+    log_strings = pd.DataFrame({'Sensor': sensors, 'Start': starts, 'Stop': stops})
+    log_datetimes = log_strings.assign(Start=pd.to_datetime(log_strings['Start']),
+                                       Stop=pd.to_datetime(log_strings['Stop']))
+
+    cases = [
+        (data, log_strings, {}),
+        (data, log_datetimes, {}),
+        (data, log_datetimes, {'replacement_text': -999}),
+        (data, log_datetimes.iloc[::-1], {}),
+        (data.iloc[::-1], log_datetimes, {}),
+        (data, log_datetimes.rename(columns={'Sensor': 'MeasurementName', 'Start': 'DateFrom', 'Stop': 'DateTo'}),
+         {'sensor_col_name': 'MeasurementName', 'date_from_col_name': 'DateFrom', 'date_to_col_name': 'DateTo'}),
+    ]
+    for frame, log, kwargs in cases:
+        expected = _apply_cleaning_row_by_row(
+            frame.copy(deep=True), log, kwargs.get('sensor_col_name', 'Sensor'),
+            kwargs.get('date_from_col_name', 'Start'), kwargs.get('date_to_col_name', 'Stop'), 'All',
+            np.nan if kwargs.get('replacement_text', 'NaN') == 'NaN' else kwargs['replacement_text'])
+        pd.testing.assert_frame_equal(bw.apply_cleaning(frame, log, **kwargs), expected, check_exact=True)
+
+        inplace_data = frame.copy(deep=True)
+        bw.apply_cleaning(inplace_data, log, inplace=True, **kwargs)
+        pd.testing.assert_frame_equal(inplace_data, expected, check_exact=True)
+
+    # Any inplace value other than False still cleans in place
+    inplace_data = data.copy(deep=True)
+    bw.apply_cleaning(inplace_data, log_datetimes, inplace=1)
+    pd.testing.assert_frame_equal(inplace_data, bw.apply_cleaning(data, log_datetimes), check_exact=True)
+
+    # Unchanged behaviour: prefix matching (#249), a Start equal to its Stop cleans nothing, and Stop is exclusive
+    cleaned = bw.apply_cleaning(data, log_datetimes)
+    assert np.isnan(cleaned.loc['2016-01-01 01:00:00', 'Spd80mNStd'])
+    assert not np.isnan(cleaned.loc['2016-01-01 05:00:00', 'Dir78mS'])
+    assert np.isnan(cleaned.loc['2016-01-01 12:10:00', 'Spd80mN'])
+    assert np.isnan(cleaned.loc['2016-01-01 20:50:00', 'Site'])
+    assert not np.isnan(cleaned.loc['2016-01-01 21:00:00', 'Spd80mN'])
+
+    # An error is raised exactly as before
+    with pytest.raises(TypeError, match='Invalid comparison'):
+        bw.apply_cleaning(data, log_strings.assign(Stop='2016-01-01T06:00:00Z'))
+
+
+def test_apply_cleaning_fallback_warns():
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+    cleaning_file = bw.demo_datasets.demo_cleaning_file
+    expected = bw.apply_cleaning(data, cleaning_file)
+
+    # If the fast path fails on data the row by row loop can clean, the result is still right and a warning says so
+    with patch('brightwind.load.load._build_cleaning_masks', side_effect=TypeError('fast path bug')):
+        with pytest.warns(RuntimeWarning, match='fast path raised TypeError: fast path bug'):
+            cleaned = bw.apply_cleaning(data, cleaning_file)
+    pd.testing.assert_frame_equal(cleaned, expected, check_exact=True)
+
+    # Invalid input only raises its usual error, without the warning
+    bad_log = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': ['2016-01-11 06:00:00'], 'Stop': ['not a date']})
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', RuntimeWarning)
+        with pytest.raises(TypeError, match='Invalid comparison'):
+            bw.apply_cleaning(data, bad_log)
+
+
 def test_apply_cleaning_rules():
     data = bw.load_csv(bw.demo_datasets.demo_data)
     data_clnd = bw.apply_cleaning_rules(data, bw.demo_datasets.demo_cleaning_rules_file)
