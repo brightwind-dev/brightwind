@@ -13,8 +13,6 @@ from IPython.display import clear_output
 import re
 import warnings
 
-pd.options.mode.chained_assignment = None
-
 __all__ = ['Shear']
 
 

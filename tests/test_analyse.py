@@ -777,13 +777,14 @@ def test_calc_rel_humidity_from_dew_point():
     # test float/int inputs
     assert bw.calc_rel_humidity_from_dew_point(10, 11) - 93.54469072330612 < 1e-3
     assert bw.calc_rel_humidity_from_dew_point(12.1, 12.1) == 100
-    # test Series inputs
-    merra2_node = bw.LoadBrightHub.get_reanalysis('MERRA-2', 53.5, -10.8, '2025-01-01', '2025-02-01',
-                                                  nearest_nodes=1, variables=['Tmp_2m_degC', 'DPTmp_2m_degC'],
-                                                  print_status=True)
-    assert (abs(bw.calc_rel_humidity_from_dew_point(merra2_node[1]['DPTmp_2m_degC'],
-                                                    merra2_node[1]['Tmp_2m_degC']).head(5).values -
-                pd.Series([71.97026223, 72.4558096, 72.94502496, 73.9525735, 74.45269691])) < 1e-3).all()
+    # test Series inputs without depending on live BrightHub data
+    index = pd.date_range('2025-01-01', periods=4, freq='h', name='Timestamp')
+    dew_point = pd.Series([10.0, 12.1, np.nan, 10.0], index=index)
+    air_temperature = pd.Series([11.0, 12.1, 11.0, np.nan], index=index)
+    expected = pd.Series([93.54469072330612, 100.0, np.nan, np.nan],
+                         index=index, name='relative_humidity')
+    pd.testing.assert_series_equal(bw.calc_rel_humidity_from_dew_point(dew_point, air_temperature),
+                                   expected)
 
 
 def test_calc_water_saturation_vapour_pressure_Pa():
