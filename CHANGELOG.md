@@ -18,6 +18,8 @@ XX-Xxx-2026
 
 ### Bug Fixes
 1. Fixed `Shear.TimeSeries.apply()` dropping timestamps. It now returns every timestamp of the input wind speed time series, sorted by time, with NaN where the wind speed can't be scaled (e.g. where the shear exponent or roughness coefficient is NaN, or outside the period the shear was calculated for). Values that were returned before are unchanged. ([#495](https://github.com/brightwind-dev/brightwind/issues/495))
+1. Fixed `test_export_tws_file` failing when pytest is run from the repo root by removing hardcoded, Windows-only relative paths. Added `demo_tws_file` to `bw.demo_datasets`. ([#604](https://github.com/brightwind-dev/brightwind/issues/604))
+1. Added `tests/conftest.py` to pin matplotlib to the non-interactive `Agg` backend for the test suite, fixing `_tkinter.TclError` failures (e.g. in `test_sector_ratio` and `test_dist_12x24`) when the full suite is run on machines without a usable Tcl/Tk runtime or display. ([#607](https://github.com/brightwind-dev/brightwind/issues/607))
 
 ### Deprecated
 1. 
