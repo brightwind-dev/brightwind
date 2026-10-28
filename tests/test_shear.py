@@ -205,6 +205,38 @@ def test_time_of_day():
     assert shear_by_time_power_law.alpha.iloc[5].isna().all()
 
 
+def test_time_series_apply():
+    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    heights = [80, 60, 40]
+    wspd = DATA['Spd40mS']
+    period = slice('2017-06-15 12:00', '2017-06-15 12:40')
+    cases = [('power_law', 8.658303, 79514, [7.272863, 9.237136, 9.076239, 7.957066, 8.335099]),
+             ('log_law', 8.680348, 79030, [7.272426, 9.236304, 9.076508, 7.956999, 8.334357])]
+    for calc_method, expected_mean, expected_count, expected_values in cases:
+        shear_by_ts = bw.Shear.TimeSeries(anemometers, heights, calc_method=calc_method)
+        scaled = shear_by_ts.apply(wspd, 40, 80)
+
+        # every timestamp of the input is returned, NaN where the wind speed can't be scaled
+        assert scaled.index.equals(wspd.index)
+        assert scaled.name == 'Spd40mS_scaled_to_80m'
+        assert scaled.count() == expected_count
+        shear_values = shear_by_ts.alpha if calc_method == 'power_law' else shear_by_ts.roughness
+        assert scaled[shear_values.isna() | wspd.isna()].isna().all()
+        assert scaled.mean() == pytest.approx(expected_mean, abs=1e-6)
+        np.testing.assert_allclose(scaled[period], expected_values, rtol=0, atol=1e-6)
+
+        # input out of time order gives the same result, sorted by time
+        pd.testing.assert_series_equal(shear_by_ts.apply(wspd.sample(frac=1, random_state=0), 40, 80), scaled)
+
+    # timestamps outside the period the shear was calculated for are NaN
+    shear_by_ts = bw.Shear.TimeSeries(anemometers['2016-06-01':'2016-12-31'], heights)
+    scaled = shear_by_ts.apply(wspd, 40, 80)
+    assert scaled.index.equals(wspd.index)
+    assert scaled[:'2016-05-31'].isna().all()
+    assert scaled['2017-01-01':].isna().all()
+    assert scaled['2016-06-01':'2016-12-31'].notna().any()
+
+
 def test_time_series():
     # Specify columns in data which contain the anemometer measurements from which to calculate shear
     anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']]
