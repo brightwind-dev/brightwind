@@ -140,7 +140,8 @@ class Shear:
            :type height: float
            :param shear_to: height to which wspds should be scaled to.
            :type shear_to: float
-           :return: a pandas.Series of the scaled wind speeds.
+           :return: a pandas.Series of the scaled wind speeds for every timestamp of wspds, sorted by time.
+                    NaN where the wind speed can't be scaled.
            :rtype: pandas.Series
 
             **Example Usage**
