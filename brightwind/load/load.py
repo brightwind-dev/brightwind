@@ -2504,14 +2504,13 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     for k in range(0, len(cleaning_df)):
         date_from, date_to = _if_null_max_the_date(cleaning_df[date_from_col_name][k], cleaning_df[date_to_col_name][k])
 
-        pd.options.mode.chained_assignment = None
-        if cleaning_df[sensor_col_name][k] == all_sensors_descriptor:
-            data.loc[(data.index >= date_from) & (data.index < date_to), data.columns] = replacement_text
-        else:
-            for col in data.columns:
-                if col.find(cleaning_df[sensor_col_name][k]) == 0:
-                    data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
-        pd.options.mode.chained_assignment = 'warn'
+        with pd.option_context('mode.chained_assignment', None):
+            if cleaning_df[sensor_col_name][k] == all_sensors_descriptor:
+                data.loc[(data.index >= date_from) & (data.index < date_to), data.columns] = replacement_text
+            else:
+                for col in data.columns:
+                    if col.find(cleaning_df[sensor_col_name][k]) == 0:
+                        data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
 
     return data
 
@@ -2778,11 +2777,10 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
     for k in range(0, len(cleaning_df)):
         date_from, date_to = _if_null_max_the_date(cleaning_df[date_from_col_name][k], cleaning_df[date_to_col_name][k])
 
-        pd.options.mode.chained_assignment = None
-        for col in data.columns:
-            if col.find(cleaning_df[sensor_col_name][k]) == 0:
-                if cleaning_df[flag_col_name][k] not in flags_to_exclude:
-                    data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
-        pd.options.mode.chained_assignment = 'warn'
+        with pd.option_context('mode.chained_assignment', None):
+            for col in data.columns:
+                if col.find(cleaning_df[sensor_col_name][k]) == 0:
+                    if cleaning_df[flag_col_name][k] not in flags_to_exclude:
+                        data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
 
     return data

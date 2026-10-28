@@ -420,6 +420,23 @@ def test_load_brighthub():
     assert cleaning_rules_json[0]['measurement_location_uuid'] == measurement_station_uuid
 
 
+@pytest.mark.skipif(
+    not (
+        (os.environ.get('BRIGHTHUB_CLIENT_ID') and os.environ.get('BRIGHTHUB_CLIENT_SECRET'))
+        or (os.environ.get('BRIGHTHUB_EMAIL') and os.environ.get('BRIGHTHUB_PASSWORD'))
+    ),
+    reason="Either BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET, or BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD "
+           "must be set to run this integration test against the live BrightHub API."
+)
+def test_load_brighthub_reanalysis_relative_humidity():
+    merra2_node = bw.LoadBrightHub.get_reanalysis('MERRA-2', 53.5, -10.8, '2025-01-01', '2025-02-01',
+                                                  nearest_nodes=1, variables=['Tmp_2m_degC', 'DPTmp_2m_degC'],
+                                                  print_status=True)
+    assert (abs(bw.calc_rel_humidity_from_dew_point(merra2_node[1]['DPTmp_2m_degC'],
+                                                    merra2_node[1]['Tmp_2m_degC']).head(5).values -
+                pd.Series([71.97026223, 72.4558096, 72.94502496, 73.9525735, 74.45269691])) < 1e-3).all()
+
+
 def test_load_brighthub_get_data_default_emits_deprecation_warning():
     api_response = MagicMock(status_code=200)
     api_response.json.return_value = {'url': 'https://example.com/presigned'}
