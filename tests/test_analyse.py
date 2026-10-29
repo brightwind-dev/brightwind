@@ -109,6 +109,14 @@ def test_momm():
     momm_seas_adj = bw.momm(data_test[['Spd40mN', 'Spd40mS']], seasonal_adjustment=True, coverage_threshold=0.7)
     assert round(momm_seas_adj.T['Spd40mS'].values[0], 6) == 6.864868
 
+    # Derive mean of monthly mean seasonal adjusted where each calendar month has a constant value, over two years
+    # including a leap year, so February is weighted by the average of 28 and 29 days
+    idx = pd.date_range('2023-01-01', '2025-01-01', freq='10min', inclusive='left')
+    data_test = pd.Series(idx.month.astype(float), index=idx, name='Spd')
+    days_in_month = np.array([31, 28.5, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
+    expected_momm = (np.arange(1, 13) * days_in_month).sum() / days_in_month.sum()
+    assert np.isclose(bw.momm(data_test, seasonal_adjustment=True, coverage_threshold=0), expected_momm)
+
 
 def test_sector_ratio():
     bw.sector_ratio(DATA['Spd80mN'], DATA['Spd80mS'], DATA['Dir78mS'], sectors=72, boom_dir_1=0,
