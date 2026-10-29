@@ -136,7 +136,8 @@ class Shear:
            :type height: float
            :param shear_to: height to which wspds should be scaled to.
            :type shear_to: float
-           :return: a pandas.Series of the scaled wind speeds.
+           :return: a pandas.Series of the scaled wind speeds for every timestamp of wspds, sorted by time.
+                    NaN where the wind speed can't be scaled.
            :rtype: pandas.Series
 
             **Example Usage**
@@ -935,19 +936,14 @@ class Shear:
         result = pd.Series([], dtype='float64')
 
         if self.origin == 'TimeSeries':
-
+            # keep every timestamp of the input, the scaled wind speed is NaN where it can't be scaled
+            wspds = wspds.sort_index()
             if self.calc_method == 'power_law':
-                df = pd.concat([wspds, self.alpha], axis=1).dropna()
-                scaled_wspds = Shear._scale(wspds=df.iloc[:, 0], height=height, shear_to=shear_to,
-                                            calc_method='power_law', alpha=df.iloc[:, 1])
-
+                result = Shear._scale(wspds=wspds, height=height, shear_to=shear_to, calc_method='power_law',
+                                      alpha=self.alpha.reindex(wspds.index))
             else:
-                df = pd.concat([wspds, self.roughness], axis=1).dropna()
-                scaled_wspds = Shear._scale(wspds=df.iloc[:, 0], height=height, shear_to=shear_to,
-                                            calc_method=self.calc_method,
-                                            roughness=self._roughness, origin=self.origin)
-
-            result = scaled_wspds.dropna()
+                result = Shear._scale(wspds=wspds, height=height, shear_to=shear_to, calc_method=self.calc_method,
+                                      roughness=self._roughness.reindex(wspds.index), origin=self.origin)
 
         if self.origin == 'TimeOfDay':
 
