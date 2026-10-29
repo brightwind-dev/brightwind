@@ -2369,6 +2369,21 @@ def _if_null_max_the_date(date_from, date_to):
     return date_from, date_to
 
 
+def _get_cleaning_period_mask(index, date_from, date_to):
+    """Build a boolean mask selecting the timestamps of index that a cleaning period flags.
+
+    `date_from` is inclusive and `date_to` is exclusive. A period whose `date_from` equals its `date_to` represents a
+    single timestamp, which the empty range would otherwise ignore, so only the timestamp equal to `date_from` is
+    flagged. Both bounds may be strings or datetimes. The range comparisons run first so that bounds which cannot be
+    compared with the index raise the same error for every period.
+    """
+    from_date_from = index >= date_from
+    before_date_to = index < date_to
+    if pd.Timestamp(date_from) == pd.Timestamp(date_to):
+        return from_date_from & (index <= date_to)
+    return from_date_from & before_date_to
+
+
 def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop', dayfirst=False, **kwargs):
     """
     Load a cleaning file which contains a list of sensor names with corresponding periods of flagged data. The timezone
@@ -2435,6 +2450,9 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     | Dir78m | 2018-12-23 02:40:00 |
 
     If the 'Stop' timestamp is missing, the data from the 'Start' until the end of the timeseries will be flagged.
+
+    Each flagged period includes the 'Start' timestamp and runs up to but not including the 'Stop' timestamp. If the
+    'Start' and 'Stop' timestamps are equal, only that single timestamp is flagged.
 
     :param data:                    Data to be cleaned.
     :type data:                     pandas.DataFrame
@@ -2565,17 +2583,18 @@ def _build_cleaning_masks(data, cleaning_df, sensor_col_name, date_from_col_name
 
 
 def _flag_period(mask, index, sorted_ns, date_from, date_to):
-    """Set mask to True for the rows of index in [date_from, date_to), the same rows as
-    (index >= date_from) & (index < date_to). sorted_ns is the index as sorted int64 nanoseconds, or None. When it is
-    given and both dates have a nanosecond value, the rows are found with a binary search instead of comparing every
-    timestamp.
+    """Set mask to True for the rows of index that the cleaning period flags, the same rows as
+    _get_cleaning_period_mask: [date_from, date_to), or only the rows equal to date_from when date_from equals
+    date_to. sorted_ns is the index as sorted int64 nanoseconds, or None. When it is given and both dates have a
+    nanosecond value, the rows are found with a binary search instead of comparing every timestamp.
     """
     if sorted_ns is not None:
         start, stop = _timestamp_ns(date_from), _timestamp_ns(date_to)
         if start is not None and stop is not None:
-            mask[sorted_ns.searchsorted(start):sorted_ns.searchsorted(stop)] = True
+            side = 'right' if start == stop else 'left'
+            mask[sorted_ns.searchsorted(start):sorted_ns.searchsorted(stop, side=side)] = True
             return
-    mask |= (index >= date_from) & (index < date_to)
+    mask |= _get_cleaning_period_mask(index, date_from, date_to)
 
 
 def _timestamp_ns(value):
@@ -2617,11 +2636,11 @@ def _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col
 
         pd.options.mode.chained_assignment = None
         if cleaning_df[sensor_col_name][k] == all_sensors_descriptor:
-            data.loc[(data.index >= date_from) & (data.index < date_to), data.columns] = replacement_text
+            data.loc[_get_cleaning_period_mask(data.index, date_from, date_to), data.columns] = replacement_text
         else:
             for col in data.columns:
                 if col.find(cleaning_df[sensor_col_name][k]) == 0:
-                    data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
+                    data.loc[_get_cleaning_period_mask(data.index, date_from, date_to), col] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
     return data
