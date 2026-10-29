@@ -2487,7 +2487,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
                                  date_from_col_name='Start Time', date_to_col_name='Stop Time')
 
     """
-    original_data = data
+
     if inplace is False:
         data = data.copy(deep=True)
 
@@ -2504,20 +2504,13 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     if len(cleaning_df) == 0:
         return data
 
-    # Work out every flagged period first, then write each column once. If that raises, run the original row by row
-    # loop on the untouched data instead, so errors and partly cleaned data are exactly as before.
-    chained_assignment = pd.options.mode.chained_assignment
+    # Work out every flagged period first, then write each column once. Working out the periods writes nothing, so if
+    # it raises, run the original row by row loop on the untouched data instead to give exactly the same error.
     try:
         col_masks, all_mask = _build_cleaning_masks(data, cleaning_df, sensor_col_name, date_from_col_name,
                                                     date_to_col_name, all_sensors_descriptor)
-        # When cleaning in place, try the writes on a copy first so a failing write can't half clean 'data'
-        _write_cleaning_masks(data if inplace is False else data.copy(deep=True), col_masks, all_mask,
-                              replacement_text)
     except (AttributeError, KeyError, TypeError, ValueError) as fast_path_error:
         # Invalid inputs raise one of these and the row by row loop then raises its usual error for them
-        pd.options.mode.chained_assignment = chained_assignment
-        if inplace is False:
-            data = original_data.copy(deep=True)
         data = _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
                                           all_sensors_descriptor, replacement_text)
         # The row by row loop worked where the fast path failed, which means a bug in the fast path
@@ -2525,8 +2518,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
                       f"{type(fast_path_error).__name__}: {fast_path_error}. The cleaned data is correct, but please "
                       f"report this at https://github.com/brightwind-dev/brightwind/issues.", RuntimeWarning)
         return data
-    if inplace is not False:
-        _write_cleaning_masks(data, col_masks, all_mask, replacement_text)
+    _write_cleaning_masks(data, col_masks, all_mask, replacement_text)
     return data
 
 
@@ -2618,7 +2610,7 @@ def _write_cleaning_masks(data, col_masks, all_mask, replacement_text):
 def _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
                                all_sensors_descriptor, replacement_text):
     """The original apply_cleaning loop, one write per cleaning row and column. apply_cleaning falls back to it
-    whenever the fast path raises, so errors and partly cleaned data are exactly as before.
+    whenever working out the flagged periods raises, so errors are exactly as before.
     """
     for k in range(0, len(cleaning_df)):
         date_from, date_to = _if_null_max_the_date(cleaning_df[date_from_col_name][k], cleaning_df[date_to_col_name][k])
