@@ -24,7 +24,7 @@ class Shear:
     class TimeSeries:
 
         def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', max_plot_height=None,
-                     maximise_data=False):
+                     maximise_data=False, plot=True):
             """
             Calculates alpha, using the power law, or the roughness coefficient, using the log law, for each timestamp
             of a wind series.
@@ -46,6 +46,9 @@ class Shear:
                                     least two wind speed readings exist for a timestamp. If False, calculations will
                                     only be carried out on timestamps where readings exist for all wind speed levels.
            :type maximise_data:     bool
+           :param plot:             If True (default), the average wind profile plot is generated. If False, no plot is
+                                    generated and the 'plot' attribute is None, which saves time on large datasets.
+           :type plot:              bool
            :return:                 TimeSeries object containing calculated alpha/roughness coefficient values, a plot
                                     and other data.
            :rtype:                  TimeSeries object
@@ -102,13 +105,14 @@ class Shear:
                                                   name='roughness_coefficient')
                 self._roughness = roughness_coefficient
 
-            avg_plot = Shear.Average(wspds=wspds, heights=heights, calc_method=calc_method,
-                                     max_plot_height=max_plot_height)
+            self.plot = None
+            if plot:
+                self.plot = Shear.Average(wspds=wspds, heights=heights, calc_method=calc_method,
+                                          max_plot_height=max_plot_height).plot
 
             self.origin = 'TimeSeries'
             self.calc_method = calc_method
             self.wspds = wspds
-            self.plot = avg_plot.plot
             self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed)
 
         @property

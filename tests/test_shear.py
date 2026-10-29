@@ -339,6 +339,12 @@ def test_time_series():
     assert pd.isna(roughness.iloc[0])
     assert True
 
+    # Test plot switched off gives same results with no plot
+    shear_ts_no_plot = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law', plot=False)
+    assert shear_ts_no_plot.plot is None
+    assert shear_ts.plot is not None
+    pd.testing.assert_series_equal(shear_ts_no_plot.roughness, roughness)
+
 
 def test_scale():
     # Specify columns in data which contain the anemometer measurements from which to calculate shear
