@@ -18,6 +18,9 @@ XX-Xxx-2026
 2. Made `apply_cleaning()` much faster for long cleaning logs: each column is now written once instead of once per cleaning row, and for a sorted datetime index the flagged periods are found with a binary search. The cleaned output, dtypes and errors are unchanged. ([#653](https://github.com/brightwind-dev/brightwind/issues/653))
 
 ### Bug Fixes
+1. Fixed `Shear.TimeSeries.apply()` dropping timestamps. It now returns every timestamp of the input wind speed time series, sorted by time, with NaN where the wind speed can't be scaled (e.g. where the shear exponent or roughness coefficient is NaN, or outside the period the shear was calculated for). Values that were returned before are unchanged. Note that `len()` of the returned series now includes the NaN timestamps, so use `.dropna()` first if only the scaled values are needed. ([#495](https://github.com/brightwind-dev/brightwind/issues/495))
+1. Fixed `test_export_tws_file` failing when pytest is run from the repo root by removing hardcoded, Windows-only relative paths. Added `demo_tws_file` to `bw.demo_datasets`. ([#604](https://github.com/brightwind-dev/brightwind/issues/604))
+1. Added `tests/conftest.py` to pin matplotlib to the non-interactive `Agg` backend for the test suite, fixing `_tkinter.TclError` failures (e.g. in `test_sector_ratio` and `test_dist_12x24`) when the full suite is run on machines without a usable Tcl/Tk runtime or display. ([#607](https://github.com/brightwind-dev/brightwind/issues/607))
 1. `apply_cleaning()` now flags the single timestamp of a cleaning row whose `Start` equals its `Stop`. Previously such a row selected an empty period and cleaned nothing, which left single readings cleaned in BrightHub (one clicked point on a scatter or sector-ratio plot) uncleaned. All other rows still flag from `Start` up to but not including `Stop`. ([#656](https://github.com/brightwind-dev/brightwind/issues/656))
 
 ### Deprecated
