@@ -2501,6 +2501,117 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     if replacement_text == 'NaN':
         replacement_text = np.nan
 
+    if len(cleaning_df) == 0:
+        return data
+
+    # Work out every flagged period first, then write each column once. Working out the periods writes nothing, so if
+    # it raises, run the original row by row loop on the untouched data instead to give exactly the same error.
+    try:
+        col_masks, all_mask = _build_cleaning_masks(data, cleaning_df, sensor_col_name, date_from_col_name,
+                                                    date_to_col_name, all_sensors_descriptor)
+    except (AttributeError, KeyError, TypeError, ValueError) as fast_path_error:
+        # Invalid inputs raise one of these and the row by row loop then raises its usual error for them
+        data = _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
+                                          all_sensors_descriptor, replacement_text)
+        # The row by row loop worked where the fast path failed, which means a bug in the fast path
+        warnings.warn(f"apply_cleaning used its slower row by row loop because the fast path raised "
+                      f"{type(fast_path_error).__name__}: {fast_path_error}. The cleaned data is correct, but please "
+                      f"report this at https://github.com/brightwind-dev/brightwind/issues.", RuntimeWarning)
+        return data
+    _write_cleaning_masks(data, col_masks, all_mask, replacement_text)
+    return data
+
+
+def _build_cleaning_masks(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
+                          all_sensors_descriptor):
+    """Combine the flagged periods of every cleaning row into one boolean mask per column of data, plus one mask
+    for the rows whose sensor is all_sensors_descriptor (None if there are none). Reads the cleaning rows the same
+    way as _apply_cleaning_row_by_row and only works out a period where that loop would. Writes nothing.
+    """
+    index = data.index
+    sorted_ns = None
+    if (isinstance(index, pd.DatetimeIndex) and index.tz is None and index.dtype == np.dtype('datetime64[ns]')
+            and not index.hasnans and index.is_monotonic_increasing):
+        sorted_ns = index.asi8
+
+    sensors = cleaning_df[sensor_col_name]
+    date_froms = cleaning_df[date_from_col_name]
+    date_tos = cleaning_df[date_to_col_name]
+    all_mask = None
+    sensor_masks = {}
+    sensor_columns = {}
+    for k in range(0, len(cleaning_df)):
+        sensor = sensors[k]
+        if sensor == all_sensors_descriptor:
+            if all_mask is None:
+                all_mask = np.zeros(len(index), dtype=bool)
+            mask = all_mask
+        else:
+            if sensor not in sensor_columns:
+                sensor_columns[sensor] = [col for col in data.columns if col.find(sensor) == 0]
+            if not sensor_columns[sensor]:
+                continue
+            if sensor not in sensor_masks:
+                sensor_masks[sensor] = np.zeros(len(index), dtype=bool)
+            mask = sensor_masks[sensor]
+        date_from, date_to = _if_null_max_the_date(date_froms[k], date_tos[k])
+        _flag_period(mask, index, sorted_ns, date_from, date_to)
+
+    col_masks = {}
+    for sensor, mask in sensor_masks.items():
+        for col in sensor_columns[sensor]:
+            col_masks[col] = mask if col not in col_masks else col_masks[col] | mask
+    return col_masks, all_mask
+
+
+def _flag_period(mask, index, sorted_ns, date_from, date_to):
+    """Set mask to True for the rows of index in [date_from, date_to), the same rows as
+    (index >= date_from) & (index < date_to). sorted_ns is the index as sorted int64 nanoseconds, or None. When it is
+    given and both dates have a nanosecond value, the rows are found with a binary search instead of comparing every
+    timestamp.
+    """
+    if sorted_ns is not None:
+        start, stop = _timestamp_ns(date_from), _timestamp_ns(date_to)
+        if start is not None and stop is not None:
+            mask[sorted_ns.searchsorted(start):sorted_ns.searchsorted(stop)] = True
+            return
+    mask |= (index >= date_from) & (index < date_to)
+
+
+def _timestamp_ns(value):
+    """Return value as int64 nanoseconds if it is a Timestamp, datetime, numpy datetime64 or string that is (or parses
+    to) a tz-naive timestamp in the datetime64[ns] range, otherwise None. Pandas converts each of these to a Timestamp
+    the same way when comparing a datetime64[ns] index with it, so comparing with this number gives the same result.
+    """
+    if type(value) is str or type(value) is datetime.datetime or type(value) is np.datetime64:
+        try:
+            value = pd.Timestamp(value)
+        except (ValueError, OverflowError):
+            return None
+    if type(value) is not pd.Timestamp or value.tz is not None:
+        return None
+    try:
+        return value.value
+    except OverflowError:
+        # Outside the datetime64[ns] range
+        return None
+
+
+def _write_cleaning_masks(data, col_masks, all_mask, replacement_text):
+    """Write replacement_text into data wherever the masks from _build_cleaning_masks are True."""
+    pd.options.mode.chained_assignment = None
+    if all_mask is not None:
+        data.loc[all_mask, data.columns] = replacement_text
+    for col, mask in col_masks.items():
+        data.loc[mask, col] = replacement_text
+    pd.options.mode.chained_assignment = 'warn'
+
+
+def _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
+                               all_sensors_descriptor, replacement_text):
+    """The original apply_cleaning loop, one write per cleaning row and column. apply_cleaning falls back to it
+    whenever working out the flagged periods raises, so errors are exactly as before.
+    """
     for k in range(0, len(cleaning_df)):
         date_from, date_to = _if_null_max_the_date(cleaning_df[date_from_col_name][k], cleaning_df[date_to_col_name][k])
 
