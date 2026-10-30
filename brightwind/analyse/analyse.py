@@ -835,7 +835,7 @@ def _get_direction_binned_series(sectors, direction_series, direction_bin_array=
 
 
 def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
-                       direction_bin_array=None, direction_bin_labels=None, return_data=False):
+                       direction_bin_array=None, direction_bin_labels=None, return_data=False, plot=True):
     """
     Derive the distribution of a time series variable with respect to wind direction sectors. For example, if time
     series of wind speeds is sent, it produces a wind rose.
@@ -858,6 +858,8 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
     :type direction_bin_labels: list, array, None
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
+    :param plot: Set to False to skip drawing the rose plot, which is then returned as None. Default is True.
+    :type plot: bool
     :returns: A plot of a rose and a DataFrame/Series with wind direction sector as row indexes and columns with
                 statistics chosen by aggregation_method.
 
@@ -877,6 +879,9 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
         #For measuring standard deviation in a sector rather than frequency in percentage (default)
         rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std',
             return_data=True)
+
+        #For returning the data only, without drawing the plot (rose is None)
+        rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS, return_data=True, plot=False)
 
     """
     var_series = _convert_df_to_series(var_series)
@@ -901,7 +906,7 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
         var_label = aggregation_method.capitalize() + ' of  var_series'
     else:
         var_label = aggregation_method.capitalize() + ' of ' + var_series.name
-    graph = bw_plt.plot_rose(result, var_label)
+    graph = bw_plt.plot_rose(result, var_label) if plot else None
     result.index = direction_bin_labels
     if return_data:
         return graph, result
