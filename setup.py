@@ -53,8 +53,6 @@ setup(
         'pytest>= 4.1.0',
         'six>= 1.12.0',
         'python-dateutil>=2.8.0',
-        'ipywidgets>=7.4.2',
-        'ipython>=7.4.0',
         'gmaps>=0.9.0',
         'colormap>=1.0.1',
         'easydev>=0.10.0',

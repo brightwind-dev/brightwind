@@ -15,6 +15,12 @@ XX-Xxx-2026
 
 ### New Features and Enhancements
 1. Updated the axis labels on the `Shear.Average` (and `Shear.TimeSeries`) wind profile plot for clarity: the speed axis is now labelled `Wind Speed [m/s]` (was `Speed [m/s]`) and the height axis is now labelled `Height AGL [m]` (was `Elevation [m]`). ([#632](https://github.com/brightwind-dev/brightwind/issues/632))
+1. Speed up `Shear.TimeSeries` and `Shear.BySector`, and `dist_by_dir_sector()`, with no change to results. `Shear.TimeSeries` now fits the power law or log law for all timestamps at once instead of calling `np.polyfit` row by row. `Shear.BySector` now calls `dist_by_dir_sector()` with the plot switched off, instead of drawing a wind rose plot that was not used for each height. Wind direction binning in `_binned_direction_series()`, used by `dist_by_dir_sector()` and the correlations that bin by direction (e.g. `SpeedSort`), is now vectorised. Added tests to check these results against the previous values. ([#408](https://github.com/brightwind-dev/brightwind/issues/408))
+1. Speed up `Shear.TimeOfDay.apply()` with no change to results. The alpha or roughness coefficient for each timestamp is now looked up by its hour and month and applied to all timestamps at once, instead of looping over every hour and month. The progress bar is no longer shown. ([#408](https://github.com/brightwind-dev/brightwind/issues/408))
+1. Added a `plot` option to `dist_by_dir_sector()` (default `True`). Set it to `False` to return only the data, with `None` in place of the rose plot. ([#408](https://github.com/brightwind-dev/brightwind/issues/408))
+1. Added a `plot` option to `Shear.TimeSeries` (default `True`). Set it to `False` to skip calculating the average wind profile plot, which is then `None`. ([#408](https://github.com/brightwind-dev/brightwind/issues/408))
+1. Removed `ipywidgets` and `ipython` from the requirements, as they are no longer used by brightwind. ([#408](https://github.com/brightwind-dev/brightwind/issues/408))
+1. `Shear.TimeSeries` and `Shear.BySector` no longer print "This may take a while..." and no longer clear the notebook cell output when they run. ([#639](https://github.com/brightwind-dev/brightwind/issues/639))
 2. Made `apply_cleaning()` much faster for long cleaning logs: each column is now written once instead of once per cleaning row, and for a sorted datetime index the flagged periods are found with a binary search. The cleaned output, dtypes and errors are unchanged. ([#653](https://github.com/brightwind-dev/brightwind/issues/653))
 
 ### Bug Fixes
