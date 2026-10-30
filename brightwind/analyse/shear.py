@@ -908,7 +908,7 @@ class Shear:
                             alpha=alpha, roughness=roughness)
 
     @staticmethod
-    def _scale(wspds, height, shear_to, calc_method='power_law', alpha=None, roughness=None, origin=None):
+    def _scale(wspds, height, shear_to, calc_method='power_law', alpha=None, roughness=None):
         """
         Private function for execution of scale()
         """
@@ -920,11 +920,8 @@ class Shear:
             scaled_wspds = wspds * scale_factor
 
         elif calc_method == 'log_law':
-            if origin == 'TimeSeries':
-                scaled_wspds = Shear._log_roughness_scale(wspds=wspds, height=height,
-                                                          shear_to=shear_to, roughness=roughness)
-            else:
-                scaled_wspds = wspds.apply(Shear._log_roughness_scale, args=(height, shear_to, roughness))
+            scaled_wspds = Shear._log_roughness_scale(wspds=wspds, height=height, shear_to=shear_to,
+                                                      roughness=roughness)
         else:
             raise ValueError("Please enter a valid calculation method, either 'power_law' or 'log_law'.")
 
@@ -943,7 +940,7 @@ class Shear:
                                       alpha=self.alpha.reindex(wspds.index))
             else:
                 result = Shear._scale(wspds=wspds, height=height, shear_to=shear_to, calc_method=self.calc_method,
-                                      roughness=self._roughness.reindex(wspds.index), origin=self.origin)
+                                      roughness=self._roughness.reindex(wspds.index))
 
         if self.origin == 'TimeOfDay':
 

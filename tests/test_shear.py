@@ -32,6 +32,9 @@ def test_average():
     # Test apply
     shear_avg_power_law.apply(DATA['Spd80mN'], 40, 60)
     shear_avg_log_law.apply(DATA['Spd80mN'], 40, 60)
+    period = slice('2017-06-15 12:00', '2017-06-15 12:40')
+    assert shear_avg_log_law.apply(DATA['Spd80mN'][period], 40, 60).to_list() == pytest.approx(
+        [7.879582, 10.020645, 9.903879, 8.555763, 9.001597], abs=1e-6)
 
     assert True
     # Test specific values
@@ -96,6 +99,9 @@ def test_by_sector():
     assert shear_by_sector_power_law.apply(DATA['Spd80mN'][period], directions[period], 40,
                                            60).to_list() == pytest.approx([8.09578, 9.81557, 9.7012, 8.38067, 8.81738],
                                                                           abs=1e-5)
+    log_law_scaled = shear_by_sector_log_law.apply(DATA['Spd80mN'][period], directions[period], 40, 60)
+    assert log_law_scaled.to_list() == pytest.approx([8.121695, 9.820136, 9.705707, 8.384565, 8.821478], abs=1e-6)
+    assert log_law_scaled.index.equals(DATA['Spd80mN'][period].index)
 
     # Test apply
     shear_by_sector_power_law.apply(DATA['Spd80mN'], directions, 40, 60)
@@ -357,6 +363,9 @@ def test_time_series():
     # Test apply
     shear_by_ts_power_law.apply(DATA['Spd80mN'], 40, 60)
     shear_by_ts_log_law.apply(DATA['Spd80mN'], 40, 60)
+    period = slice('2016-01-09 17:10', '2016-01-09 17:50')
+    assert shear_by_ts_log_law.apply(DATA['Spd80mN'][period], 40, 60).to_list() == pytest.approx(
+        [8.15835, 7.88796, 8.348092, 8.225883, 7.393811], abs=1e-6)
 
     DATA.loc[DATA.index[0], 'Spd80mN'] = 2
     shear_ts = bw.Shear.TimeSeries(anemometers, heights)
@@ -380,4 +389,8 @@ def test_scale():
     # Specify columns in data which contain the anemometer measurements from which to calculate shear
     bw.Shear.scale(DATA['Spd40mN'], 40, 60, alpha=.2)
     bw.Shear.scale(DATA['Spd40mN'], 40, 60, calc_method='log_law', roughness=.03)
-    assert True
+    period = slice('2017-06-15 12:00', '2017-06-15 12:40')
+    scaled = bw.Shear.scale(DATA['Spd40mN'][period], 40, 60, calc_method='log_law', roughness=.03)
+    assert scaled.to_list() == pytest.approx([7.481073, 9.570534, 9.464899, 8.493056, 8.725454], abs=1e-6)
+    # log law: U2 = U1 * ln(z2 / zo) / ln(z1 / zo)
+    pd.testing.assert_series_equal(scaled, DATA['Spd40mN'][period] * np.log(60 / .03) / np.log(40 / .03))
