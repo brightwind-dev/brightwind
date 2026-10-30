@@ -87,7 +87,7 @@ def test_apply_cleaning_matches_row_by_row():
         expected = _apply_cleaning_row_by_row(
             frame.copy(deep=True), log, kwargs.get('sensor_col_name', 'Sensor'),
             kwargs.get('date_from_col_name', 'Start'), kwargs.get('date_to_col_name', 'Stop'), 'All',
-            np.nan if kwargs.get('replacement_text', 'NaN') == 'NaN' else kwargs['replacement_text'])
+            np.nan if kwargs.get('replacement_text', 'NaN') == 'NaN' else kwargs['replacement_text'], 'startswith')
         pd.testing.assert_frame_equal(bw.apply_cleaning(frame, log, **kwargs), expected, check_exact=True)
 
         inplace_data = frame.copy(deep=True)
@@ -416,6 +416,134 @@ def test_apply_cleaning_rules_nested_and_time_range():
     }}]
     cleaned = bw.apply_cleaning_rules(df_stats, rules)
     assert cleaned.loc[mask, 'Spd_40m'].isna().all()
+
+
+COLUMN_MATCH_COLUMNS = ['Tmp', 'Tmp_sd', 'Tmp_max', 'Tmp_logger', 'Tmp_logger_sd', 'Wave_dir_1', 'Wave_dir_1_sd',
+                        'Wave_dir_10', 'Prs_2', 'Prs_2m', 'Spd80mS', 'Spd80mSStd', 'Air_Tmp']
+COLUMN_MATCH_DATE_FROM = pd.Timestamp('2016-01-01 01:00')
+COLUMN_MATCH_DATE_TO = pd.Timestamp('2016-01-01 02:00')
+
+
+def _synthetic_column_match_df():
+    """Synthetic DataFrame with measurements whose names start the same, e.g. 'Tmp' and 'Tmp_logger'."""
+    index = pd.date_range('2016-01-01', '2016-01-01 03:50', freq='10min')
+    return pd.DataFrame(1.0, index=index, columns=COLUMN_MATCH_COLUMNS)
+
+
+def _column_match_cleaning_df(sensor):
+    return pd.DataFrame({'Sensor': [sensor], 'Start': [COLUMN_MATCH_DATE_FROM], 'Stop': [COLUMN_MATCH_DATE_TO]})
+
+
+def _assert_cleaned_columns(cleaned, expected_columns):
+    in_window = (cleaned.index >= COLUMN_MATCH_DATE_FROM) & (cleaned.index < COLUMN_MATCH_DATE_TO)
+    for col in cleaned.columns:
+        if col in expected_columns:
+            assert cleaned.loc[in_window, col].isna().all(), col
+            assert cleaned.loc[~in_window, col].notna().all(), col
+        else:
+            assert cleaned[col].notna().all(), col
+
+
+def test_apply_cleaning_column_match_default_unchanged():
+    data = _synthetic_column_match_df()
+    for sensor, expected_columns in [
+            ('Tmp', ['Tmp', 'Tmp_sd', 'Tmp_max', 'Tmp_logger', 'Tmp_logger_sd']),
+            ('Wave_dir_1', ['Wave_dir_1', 'Wave_dir_1_sd', 'Wave_dir_10']),
+            ('Spd', ['Spd80mS', 'Spd80mSStd'])]:
+        cleaned = bw.apply_cleaning(data, _column_match_cleaning_df(sensor))
+        _assert_cleaned_columns(cleaned, expected_columns)
+        cleaned_startswith = bw.apply_cleaning(data, _column_match_cleaning_df(sensor), column_match='startswith')
+        assert cleaned.equals(cleaned_startswith)
+
+    # Demo cleaning file relies on 'Spd' and 'Dir' cleaning every speed and direction column.
+    data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+    assert bw.apply_cleaning(data, bw.demo_datasets.demo_cleaning_file).equals(
+        bw.apply_cleaning(data, bw.demo_datasets.demo_cleaning_file, column_match='startswith'))
+
+
+def test_apply_cleaning_column_match_related_statistics():
+    data = _synthetic_column_match_df()
+    for sensor, expected_columns in [
+            ('Tmp', ['Tmp', 'Tmp_sd', 'Tmp_max']),
+            ('Tmp_logger', ['Tmp_logger', 'Tmp_logger_sd']),
+            ('Wave_dir_1', ['Wave_dir_1', 'Wave_dir_1_sd']),
+            ('Prs_2', ['Prs_2']),
+            ('Spd', []),
+            ('Spd80mS', ['Spd80mS']),
+            ('All', COLUMN_MATCH_COLUMNS),
+            ('Tmpp', [])]:
+        cleaned = bw.apply_cleaning(data, _column_match_cleaning_df(sensor), column_match='related_statistics')
+        _assert_cleaned_columns(cleaned, expected_columns)
+
+    # Several log rows each clean their own measurement only.
+    cleaning_df = pd.concat([_column_match_cleaning_df('Tmp'), _column_match_cleaning_df('Wave_dir_10')],
+                            ignore_index=True)
+    cleaned = bw.apply_cleaning(data, cleaning_df, column_match='related_statistics')
+    _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max', 'Wave_dir_10'])
+
+    bw.apply_cleaning(data, _column_match_cleaning_df('Tmp'), column_match='related_statistics', inplace=True)
+    _assert_cleaned_columns(data, ['Tmp', 'Tmp_sd', 'Tmp_max'])
+
+
+def test_apply_cleaning_column_match_matches_row_by_row():
+    from brightwind.load.load import _apply_cleaning_row_by_row, COLUMN_MATCH_OPTIONS
+
+    data = _synthetic_column_match_df()
+    log = pd.DataFrame({'Sensor': ['Tmp', 'Wave_dir_1', 'Prs_2', 'Spd', 'All'],
+                        'Start': ['2016-01-01 00:30', '2016-01-01 01:00', '2016-01-01 01:30', '2016-01-01 02:00',
+                                  '2016-01-01 03:00'],
+                        'Stop': ['2016-01-01 01:30', '2016-01-01 01:00', '2016-01-01 02:30', '2016-01-01 02:30',
+                                 '2016-01-01 03:10']})
+    for column_match in COLUMN_MATCH_OPTIONS:
+        expected = _apply_cleaning_row_by_row(data.copy(deep=True), log, 'Sensor', 'Start', 'Stop', 'All', np.nan,
+                                              column_match)
+        pd.testing.assert_frame_equal(bw.apply_cleaning(data, log, column_match=column_match), expected,
+                                      check_exact=True)
+
+
+def test_apply_cleaning_rules_column_match():
+    data = _synthetic_column_match_df()
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Tmp'}],
+        'conditions': {'assembled_column_name': 'Prs_2', 'comparison_operator_id': 4, 'comparator_value': 0},
+        'date_from': '2016-01-01T01:00:00',
+        'date_to': '2016-01-01T02:00:00',
+    }}]
+    cleaned = bw.apply_cleaning_rules(data, rules)
+    _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max', 'Tmp_logger', 'Tmp_logger_sd', 'Air_Tmp'])
+    assert cleaned.equals(bw.apply_cleaning_rules(data, rules, column_match='contains'))
+
+    cleaned = bw.apply_cleaning_rules(data, rules, column_match='related_statistics')
+    _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max'])
+
+    rules[0]['rule']['clean_out'] = [{'assembled_column_name': 'Tmp'}, {'assembled_column_name': 'Wave_dir_1'}]
+    cleaned = bw.apply_cleaning_rules(data, rules, column_match='related_statistics')
+    _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max', 'Wave_dir_1', 'Wave_dir_1_sd'])
+
+
+def test_column_match_invalid():
+    data = _synthetic_column_match_df()
+    data_original = data.copy(deep=True)
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Tmp'}],
+        'conditions': {'assembled_column_name': 'Prs_2', 'comparison_operator_id': 4, 'comparator_value': 0},
+    }}]
+
+    with pytest.raises(ValueError) as except_info:
+        bw.apply_cleaning(data, _column_match_cleaning_df('Tmp'), column_match='exact', inplace=True)
+    assert "column_match must be one of" in str(except_info.value)
+    with pytest.raises(ValueError) as except_info:
+        bw.apply_cleaning(data, _column_match_cleaning_df('Tmp').iloc[0:0], column_match='exact')
+    assert "column_match must be one of" in str(except_info.value)
+    with pytest.raises(ValueError) as except_info:
+        bw.apply_cleaning_rules(data, rules, column_match='exact', inplace=True)
+    assert "column_match must be one of" in str(except_info.value)
+    assert data.equals(data_original)
+
+    # A sensor name that is not a string raises the same error in every mode
+    for column_match in ['startswith', 'related_statistics']:
+        with pytest.raises(TypeError, match='must be str'):
+            bw.apply_cleaning(data, _column_match_cleaning_df(np.nan), column_match=column_match)
 
 
 def test_load_csv():
