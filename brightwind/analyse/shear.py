@@ -10,8 +10,6 @@ from brightwind.analyse.analyse import dist_by_dir_sector, coverage, _convert_df
 import re
 import warnings
 
-pd.options.mode.chained_assignment = None
-
 __all__ = ['Shear']
 
 

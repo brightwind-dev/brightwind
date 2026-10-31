@@ -2618,12 +2618,11 @@ def _timestamp_ns(value):
 
 def _write_cleaning_masks(data, col_masks, all_mask, replacement_text):
     """Write replacement_text into data wherever the masks from _build_cleaning_masks are True."""
-    pd.options.mode.chained_assignment = None
-    if all_mask is not None:
-        data.loc[all_mask, data.columns] = replacement_text
-    for col, mask in col_masks.items():
-        data.loc[mask, col] = replacement_text
-    pd.options.mode.chained_assignment = 'warn'
+    with pd.option_context('mode.chained_assignment', None):
+        if all_mask is not None:
+            data.loc[all_mask, data.columns] = replacement_text
+        for col, mask in col_masks.items():
+            data.loc[mask, col] = replacement_text
 
 
 def _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
@@ -2634,14 +2633,13 @@ def _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col
     for k in range(0, len(cleaning_df)):
         date_from, date_to = _if_null_max_the_date(cleaning_df[date_from_col_name][k], cleaning_df[date_to_col_name][k])
 
-        pd.options.mode.chained_assignment = None
-        if cleaning_df[sensor_col_name][k] == all_sensors_descriptor:
-            data.loc[_get_cleaning_period_mask(data.index, date_from, date_to), data.columns] = replacement_text
-        else:
-            for col in data.columns:
-                if col.find(cleaning_df[sensor_col_name][k]) == 0:
-                    data.loc[_get_cleaning_period_mask(data.index, date_from, date_to), col] = replacement_text
-        pd.options.mode.chained_assignment = 'warn'
+        with pd.option_context('mode.chained_assignment', None):
+            if cleaning_df[sensor_col_name][k] == all_sensors_descriptor:
+                data.loc[_get_cleaning_period_mask(data.index, date_from, date_to), data.columns] = replacement_text
+            else:
+                for col in data.columns:
+                    if col.find(cleaning_df[sensor_col_name][k]) == 0:
+                        data.loc[_get_cleaning_period_mask(data.index, date_from, date_to), col] = replacement_text
 
     return data
 
@@ -2908,11 +2906,10 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
     for k in range(0, len(cleaning_df)):
         date_from, date_to = _if_null_max_the_date(cleaning_df[date_from_col_name][k], cleaning_df[date_to_col_name][k])
 
-        pd.options.mode.chained_assignment = None
-        for col in data.columns:
-            if col.find(cleaning_df[sensor_col_name][k]) == 0:
-                if cleaning_df[flag_col_name][k] not in flags_to_exclude:
-                    data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
-        pd.options.mode.chained_assignment = 'warn'
+        with pd.option_context('mode.chained_assignment', None):
+            for col in data.columns:
+                if col.find(cleaning_df[sensor_col_name][k]) == 0:
+                    if cleaning_df[flag_col_name][k] not in flags_to_exclude:
+                        data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
 
     return data
