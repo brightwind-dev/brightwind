@@ -461,7 +461,7 @@ def test_apply_cleaning_column_match_default_unchanged():
         bw.apply_cleaning(data, bw.demo_datasets.demo_cleaning_file, column_match='startswith'))
 
 
-def test_apply_cleaning_column_match_related_statistics():
+def test_apply_cleaning_column_match_wra_data_model():
     data = _synthetic_column_match_df()
     for sensor, expected_columns in [
             ('Tmp', ['Tmp', 'Tmp_sd', 'Tmp_max']),
@@ -472,17 +472,30 @@ def test_apply_cleaning_column_match_related_statistics():
             ('Spd80mS', ['Spd80mS']),
             ('All', COLUMN_MATCH_COLUMNS),
             ('Tmpp', [])]:
-        cleaned = bw.apply_cleaning(data, _column_match_cleaning_df(sensor), column_match='related_statistics')
+        cleaned = bw.apply_cleaning(data, _column_match_cleaning_df(sensor), column_match='wra_data_model')
         _assert_cleaned_columns(cleaned, expected_columns)
 
     # Several log rows each clean their own measurement only.
     cleaning_df = pd.concat([_column_match_cleaning_df('Tmp'), _column_match_cleaning_df('Wave_dir_10')],
                             ignore_index=True)
-    cleaned = bw.apply_cleaning(data, cleaning_df, column_match='related_statistics')
+    cleaned = bw.apply_cleaning(data, cleaning_df, column_match='wra_data_model')
     _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max', 'Wave_dir_10'])
 
-    bw.apply_cleaning(data, _column_match_cleaning_df('Tmp'), column_match='related_statistics', inplace=True)
+    bw.apply_cleaning(data, _column_match_cleaning_df('Tmp'), column_match='wra_data_model', inplace=True)
     _assert_cleaned_columns(data, ['Tmp', 'Tmp_sd', 'Tmp_max'])
+
+
+def test_apply_cleaning_column_match_exact():
+    data = _synthetic_column_match_df()
+    for sensor, expected_columns in [
+            ('Tmp', ['Tmp']),
+            ('Tmp_sd', ['Tmp_sd']),
+            ('Wave_dir_1', ['Wave_dir_1']),
+            ('Spd', []),
+            ('Spd80mSStd', ['Spd80mSStd']),
+            ('All', COLUMN_MATCH_COLUMNS)]:
+        cleaned = bw.apply_cleaning(data, _column_match_cleaning_df(sensor), column_match='exact')
+        _assert_cleaned_columns(cleaned, expected_columns)
 
 
 def test_apply_cleaning_column_match_matches_row_by_row():
@@ -513,11 +526,17 @@ def test_apply_cleaning_rules_column_match():
     _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max', 'Tmp_logger', 'Tmp_logger_sd', 'Air_Tmp'])
     assert cleaned.equals(bw.apply_cleaning_rules(data, rules, column_match='contains'))
 
-    cleaned = bw.apply_cleaning_rules(data, rules, column_match='related_statistics')
+    cleaned = bw.apply_cleaning_rules(data, rules, column_match='startswith')
+    _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max', 'Tmp_logger', 'Tmp_logger_sd'])
+
+    cleaned = bw.apply_cleaning_rules(data, rules, column_match='exact')
+    _assert_cleaned_columns(cleaned, ['Tmp'])
+
+    cleaned = bw.apply_cleaning_rules(data, rules, column_match='wra_data_model')
     _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max'])
 
     rules[0]['rule']['clean_out'] = [{'assembled_column_name': 'Tmp'}, {'assembled_column_name': 'Wave_dir_1'}]
-    cleaned = bw.apply_cleaning_rules(data, rules, column_match='related_statistics')
+    cleaned = bw.apply_cleaning_rules(data, rules, column_match='wra_data_model')
     _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max', 'Wave_dir_1', 'Wave_dir_1_sd'])
 
 
@@ -530,18 +549,18 @@ def test_column_match_invalid():
     }}]
 
     with pytest.raises(ValueError) as except_info:
-        bw.apply_cleaning(data, _column_match_cleaning_df('Tmp'), column_match='exact', inplace=True)
+        bw.apply_cleaning(data, _column_match_cleaning_df('Tmp'), column_match='endswith', inplace=True)
     assert "column_match must be one of" in str(except_info.value)
     with pytest.raises(ValueError) as except_info:
-        bw.apply_cleaning(data, _column_match_cleaning_df('Tmp').iloc[0:0], column_match='exact')
+        bw.apply_cleaning(data, _column_match_cleaning_df('Tmp').iloc[0:0], column_match='endswith')
     assert "column_match must be one of" in str(except_info.value)
     with pytest.raises(ValueError) as except_info:
-        bw.apply_cleaning_rules(data, rules, column_match='exact', inplace=True)
+        bw.apply_cleaning_rules(data, rules, column_match='endswith', inplace=True)
     assert "column_match must be one of" in str(except_info.value)
     assert data.equals(data_original)
 
     # A sensor name that is not a string raises the same error in every mode
-    for column_match in ['startswith', 'related_statistics']:
+    for column_match in ['startswith', 'exact', 'wra_data_model']:
         with pytest.raises(TypeError, match='must be str'):
             bw.apply_cleaning(data, _column_match_cleaning_df(np.nan), column_match=column_match)
 

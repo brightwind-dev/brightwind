@@ -43,11 +43,13 @@ OPERATOR_DICT = {
     6: operator.ne,
     }
 
-# Statistic-type suffixes appended to a measurement name to form its related statistic columns,
-# e.g. 'Spd80m_sd', 'Spd80m_max'. The average has no suffix.
-RELATED_STATISTIC_SUFFIXES = ('sd', 'max', 'min', 'count', 'availability', 'quality', 'sum', 'median', 'mode',
-                              'range', 'gust', 'ti', 'ti30sec', 'text', 'val')
-COLUMN_MATCH_OPTIONS = ('startswith', 'contains', 'related_statistics')
+# Statistic types as defined by the 'statistic_type_id' list of the IEA Wind Task 43 WRA Data Model, used as the
+# suffixes of a measurement's statistic columns, e.g. 'Spd80m_sd', 'Spd80m_max'. 'avg' is not in this tuple because
+# the average is the unsuffixed column, e.g. 'Spd80m'.
+# https://github.com/IEA-Task-43/digital_wra_data_standard/blob/master/schema/iea43_wra_data_model.schema.json
+WRA_DATA_MODEL_STATISTIC_TYPES = ('sd', 'max', 'min', 'count', 'availability', 'quality', 'sum', 'median', 'mode',
+                                  'range', 'gust', 'ti', 'ti30sec', 'text')
+COLUMN_MATCH_OPTIONS = ('startswith', 'contains', 'exact', 'wra_data_model')
 
 
 def _list_files(folder_path, file_type):
@@ -2398,14 +2400,18 @@ def _validate_column_match(column_match):
 def _get_columns_to_clean(name, columns, column_match):
     """Return the columns in `columns` that a cleaning entry for `name` applies to, according to `column_match`.
 
-    'startswith' returns every column starting with `name`, 'contains' every column containing `name` and
-    'related_statistics' `name` itself plus `name_<suffix>` for each suffix in RELATED_STATISTIC_SUFFIXES.
+    'startswith' returns every column starting with `name`, 'contains' every column containing `name`, 'exact'
+    `name` itself and 'wra_data_model' `name` itself plus `name_<suffix>` for each suffix in
+    WRA_DATA_MODEL_STATISTIC_TYPES.
     """
     if column_match == 'startswith':
         return [col for col in columns if col.find(name) == 0]
     if column_match == 'contains':
         return [col for col in columns if name in col]
-    related_columns = {name} | {f'{name}_{suffix}' for suffix in RELATED_STATISTIC_SUFFIXES}
+    if column_match == 'exact':
+        related_columns = {name}
+    else:
+        related_columns = {name} | {f'{name}_{suffix}' for suffix in WRA_DATA_MODEL_STATISTIC_TYPES}
     # Also checking the prefix raises the same error as 'startswith' for a name or column that is not a string
     return [col for col in columns if col.find(name) == 0 and col in related_columns]
 
@@ -2513,13 +2519,19 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
                                     e.g. 'Spd' cleans 'Spd80mN' and 'Spd60mS', but 'Tmp' also cleans a separate
                                     measurement 'Tmp_logger'.
                                     'contains': clean every column whose name contains the 'Sensor' string.
-                                    'related_statistics': clean only the column named exactly as the 'Sensor' string
-                                    and its related statistic columns, e.g. 'Tmp' cleans 'Tmp', 'Tmp_sd' and
-                                    'Tmp_max' but not 'Tmp_logger'. This assumes the statistic columns are named
-                                    <sensor>_<statistic> with one of the suffixes 'sd', 'max', 'min', 'count',
-                                    'availability', 'quality', 'sum', 'median', 'mode', 'range', 'gust', 'ti',
-                                    'ti30sec', 'text' or 'val'. A separate measurement named like a statistic column,
-                                    e.g. 'Tmp_max' next to 'Tmp', is treated as a statistic column of 'Tmp'.
+                                    'exact': clean only the column named exactly as the 'Sensor' string, e.g. 'Tmp'
+                                    cleans 'Tmp' but not 'Tmp_sd' or 'Tmp_logger'. Works with any column naming
+                                    convention, so each statistic column needs its own cleaning entry.
+                                    'wra_data_model': clean only the column named exactly as the 'Sensor' string and
+                                    its statistic columns, e.g. 'Tmp' cleans 'Tmp', 'Tmp_sd' and 'Tmp_max' but not
+                                    'Tmp_logger'. This assumes the WRA Data Model column naming convention, where the
+                                    average is the unsuffixed column and each other statistic column is named
+                                    <sensor>_<statistic> using the statistic types as defined in the WRA Data Model
+                                    ('sd', 'max', 'min', 'count', 'availability', 'quality', 'sum', 'median', 'mode',
+                                    'range', 'gust', 'ti', 'ti30sec', 'text'). Columns that do not follow this
+                                    convention, e.g. 'Spd80mSStd', are not matched. A separate measurement named like a
+                                    statistic column, e.g. 'Tmp_max' next to 'Tmp', is treated as a statistic column of
+                                    'Tmp'.
     :type column_match:             str, default 'startswith'
     :return:                        DataFrame with the flagged data removed.
     :rtype:                         pandas.DataFrame
@@ -2545,9 +2557,12 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
         data = bw.apply_cleaning(data, cleaning_file, sensor_col_name='Data column',
                                  date_from_col_name='Start Time', date_to_col_name='Stop Time')
 
-    To clean only the named column and its related statistic columns (e.g. 'Spd80m', 'Spd80m_sd'), and not other
-    columns whose name starts the same (e.g. 'Spd80m_2'):
-        data_cleaned = bw.apply_cleaning(data, cleaning_file, column_match='related_statistics')
+    To clean only the named column and its statistic columns named following the WRA Data Model convention
+    (e.g. 'Spd80m', 'Spd80m_sd'), and not other columns whose name starts the same (e.g. 'Spd80m_2'):
+        data_cleaned = bw.apply_cleaning(data, cleaning_file, column_match='wra_data_model')
+
+    To clean only the column named exactly as the 'Sensor' string, whatever the column naming convention:
+        data_cleaned = bw.apply_cleaning(data, cleaning_file, column_match='exact')
 
     """
     _validate_column_match(column_match)
@@ -2770,8 +2785,29 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     :param replacement_text:            Text used to replace the flagged data.
     :type replacement_text:             str | np.nan, default 'NaN'
     :param column_match:                How each ``clean_out`` ``assembled_column_name`` is matched to the column names
-                                        of 'data'. One of 'contains', 'startswith' or 'related_statistics'. See
-                                        'Stat-type expansion of clean_out' below.
+                                        of 'data'. One of:
+                                        'contains': clean every column whose name contains the
+                                        ``assembled_column_name``, e.g. 'Tmp' cleans 'Tmp', 'Tmp_sd' and 'Tmp_max',
+                                        but also separate measurements 'Tmp_logger' and 'Air_Tmp'. This is the
+                                        default.
+                                        'startswith': clean every column whose name starts with the
+                                        ``assembled_column_name``, e.g. 'Spd' cleans 'Spd80mN' and 'Spd60mS', but 'Tmp'
+                                        also cleans a separate measurement 'Tmp_logger'.
+                                        'exact': clean only the column named exactly as the
+                                        ``assembled_column_name``, e.g. 'Tmp' cleans 'Tmp' but not 'Tmp_sd' or
+                                        'Tmp_logger'. Works with any column naming convention, so each statistic
+                                        column needs its own ``clean_out`` item.
+                                        'wra_data_model': clean only the column named exactly as the
+                                        ``assembled_column_name`` and its statistic columns, e.g. 'Tmp' cleans 'Tmp',
+                                        'Tmp_sd' and 'Tmp_max' but not 'Tmp_logger'. This assumes the WRA Data Model
+                                        column naming convention, where the average is the unsuffixed column and each
+                                        other statistic column is named <name>_<statistic> using the statistic types
+                                        as defined in the WRA Data Model ('sd', 'max', 'min', 'count',
+                                        'availability', 'quality', 'sum', 'median', 'mode', 'range', 'gust', 'ti',
+                                        'ti30sec', 'text'). Columns that do not follow this convention, e.g.
+                                        'Spd80mSStd', are not matched. A separate measurement named like a
+                                        statistic column, e.g. 'Tmp_max' next to 'Tmp', is treated as a statistic
+                                        column of 'Tmp'.
     :type column_match:                 str, default 'contains'
     :return:                            DataFrame with the flagged data removed.
     :rtype:                             pandas.DataFrame
@@ -2832,18 +2868,19 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     **Stat-type expansion of ``clean_out``**
 
     A ``clean_out`` item naming the avg column will also clean all associated stat-type columns at
-    the same measurement point (``_sd``, ``_max``, ``_min``, ``_count``, ``_availability``,
-    ``_quality``, ``_sum``, ``_median``, ``_mode``, ``_range``, ``_gust``, ``_ti``, ``_ti30sec``,
-    ``_text``, ``_val``).
+    the same measurement point, i.e. the statistic types as defined in the WRA Data Model (``_sd``,
+    ``_max``, ``_min``, ``_count``, ``_availability``, ``_quality``, ``_sum``, ``_median``, ``_mode``,
+    ``_range``, ``_gust``, ``_ti``, ``_ti30sec``, ``_text``). ``avg`` is the unsuffixed column.
 
     With the default ``column_match='contains'`` this is done via substring matching on column
     names, so a ``clean_out`` item ``Tmp`` also cleans other measurements such as ``Tmp_logger``
-    or ``Air_Tmp``. With ``column_match='related_statistics'`` only the named column and its
-    ``<name>_<stat>`` columns listed above are cleaned. ``'related_statistics'`` is expected to
-    become the default in the next major release.
+    or ``Air_Tmp``. With ``column_match='wra_data_model'`` only the named column and its
+    ``<name>_<stat>`` columns listed above are cleaned. ``'wra_data_model'`` is expected to
+    become the default in the next major release. With ``column_match='exact'`` there is no
+    stat-type expansion and only the named column is cleaned.
     ::
         data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_file_or_list,
-                                               column_match='related_statistics')
+                                               column_match='wra_data_model')
 
     The new ``measurement_point_uuid`` and ``statistic_type_id`` fields on ``conditions`` and
     ``clean_out`` items (added in the BrightHub API) are accepted but currently ignored — only
