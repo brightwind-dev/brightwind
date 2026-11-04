@@ -1,4 +1,5 @@
 import json
+import os
 import pytest
 import requests
 import brightwind as bw
@@ -40,7 +41,8 @@ def test_brighthub_request_unsupported_method_returns_411():
 def test_brighthub_request_retries_on_connection_error():
     ok = MagicMock(status_code=200)
     side_effect = [requests.exceptions.ConnectionError(), requests.exceptions.ReadTimeout(), ok]
-    with patch('brightwind.utils.brighthub.requests.request', side_effect=side_effect) as mock_req,             patch('brightwind.utils.brighthub.time.sleep') as mock_sleep:
+    with patch('brightwind.utils.brighthub.requests.request', side_effect=side_effect) as mock_req, \
+            patch('brightwind.utils.brighthub.time.sleep') as mock_sleep:
         response = bw.brighthub_request('GET', '/plants')
 
     assert response is ok
@@ -49,7 +51,8 @@ def test_brighthub_request_retries_on_connection_error():
 
 
 def test_brighthub_request_raises_after_max_attempts():
-    with patch('brightwind.utils.brighthub.requests.request', side_effect=requests.exceptions.ConnectionError())             as mock_req, patch('brightwind.utils.brighthub.time.sleep'):
+    with patch('brightwind.utils.brighthub.requests.request', side_effect=requests.exceptions.ConnectionError()) \
+            as mock_req, patch('brightwind.utils.brighthub.time.sleep'):
         with pytest.raises(requests.exceptions.ConnectionError):
             bw.brighthub_request('GET', '/plants')
 
@@ -64,7 +67,8 @@ def test_brighthub_request_reauthenticates_once_on_401():
     def new_token():
         brighthub._BrighthubAuth.ID_TOKEN = 'token-2'
 
-    with patch('brightwind.utils.brighthub.requests.request', side_effect=[expired, ok]) as mock_req,             patch.object(brighthub._BrighthubAuth, '_get_id_token', side_effect=new_token) as mock_auth:
+    with patch('brightwind.utils.brighthub.requests.request', side_effect=[expired, ok]) as mock_req, \
+            patch.object(brighthub._BrighthubAuth, '_get_id_token', side_effect=new_token) as mock_auth:
         response = bw.brighthub_request('POST', '/plants')
 
     assert response is ok
@@ -75,7 +79,8 @@ def test_brighthub_request_reauthenticates_once_on_401():
 @pytest.mark.parametrize('error', [requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError])
 @pytest.mark.parametrize('method', ['POST', 'PUT', 'DELETE'])
 def test_brighthub_request_does_not_retry_writes_after_ambiguous_errors(method, error):
-    with patch('brightwind.utils.brighthub.requests.request', side_effect=error()) as mock_req,             patch('brightwind.utils.brighthub.time.sleep'):
+    with patch('brightwind.utils.brighthub.requests.request', side_effect=error()) as mock_req, \
+            patch('brightwind.utils.brighthub.time.sleep'):
         with pytest.raises(error):
             bw.brighthub_request(method, '/plants')
 
@@ -86,7 +91,8 @@ def test_brighthub_request_does_not_retry_writes_after_ambiguous_errors(method, 
 def test_brighthub_request_retries_writes_on_connect_timeout(method):
     ok = MagicMock(status_code=200)
     with patch('brightwind.utils.brighthub.requests.request',
-               side_effect=[requests.exceptions.ConnectTimeout(), ok]) as mock_req,             patch('brightwind.utils.brighthub.time.sleep'):
+               side_effect=[requests.exceptions.ConnectTimeout(), ok]) as mock_req, \
+                       patch('brightwind.utils.brighthub.time.sleep'):
         assert bw.brighthub_request(method, '/plants') is ok
 
     assert mock_req.call_count == 2
@@ -94,7 +100,8 @@ def test_brighthub_request_retries_writes_on_connect_timeout(method):
 
 @pytest.mark.parametrize('method, expected_calls', [('GET', 3), ('POST', 1)])
 def test_brighthub_request_retries_503_for_get_only(method, expected_calls):
-    with patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=503)) as mock_req,             patch('brightwind.utils.brighthub.time.sleep'):
+    with patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=503)) as mock_req, \
+            patch('brightwind.utils.brighthub.time.sleep'):
         response = bw.brighthub_request(method, '/plants')
 
     assert response.status_code == 503
@@ -155,7 +162,8 @@ def test_legacy_brighthub_auth_import_still_works_and_warns():
 
 def test_brighthub_request_raises_auth_error_when_401_persists():
     unauthorised = MagicMock(status_code=401, text='{"message": "Unauthorized"}')
-    with patch('brightwind.utils.brighthub.requests.request', return_value=unauthorised),             patch.object(brighthub._BrighthubAuth, '_get_id_token'):
+    with patch('brightwind.utils.brighthub.requests.request', return_value=unauthorised), \
+            patch.object(brighthub._BrighthubAuth, '_get_id_token'):
         with pytest.raises(bw.BrighthubAuthError, match='unauthorised'):
             bw.brighthub_request('GET', '/measurement-locations/uuid/cleaning-log')
 
@@ -201,7 +209,8 @@ def test_error_messages_use_the_base_uri():
     response = requests.Response()
     response.status_code = 401
     try:
-        with patch.dict('os.environ', {'BRIGHTHUB_BASE_URI': 'https://api.example.test'}),                 patch('brightwind.utils.brighthub.requests.post', return_value=response):
+        with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'), \
+                patch('brightwind.utils.brighthub.requests.post', return_value=response):
             with pytest.raises(bw.BrighthubAuthError) as auth_error:
                 brighthub._BrighthubAuth._authenticate_with_client_credentials()
     finally:
@@ -210,7 +219,9 @@ def test_error_messages_use_the_base_uri():
     assert 'https://api.example.test/auth/token' in str(auth_error.value)
     assert 'https://example.test/account-settings/settings' in str(auth_error.value)
 
-    with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'),             patch.object(brighthub._BrighthubAuth, '_get_id_token'),             patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=401, text='x')):
+    with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'), \
+            patch.object(brighthub._BrighthubAuth, '_get_id_token'), \
+            patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=401, text='x')):
         with pytest.raises(bw.BrighthubAuthError, match='GET https://api.example.test/plants'):
             bw.brighthub_request('GET', '/plants')
 
@@ -247,7 +258,8 @@ def test_brighthub_request_gateway_rejection_raises_request_error_naming_method_
     rejected = requests.Response()
     rejected.status_code = 403
     rejected._content = ('{"message": "%s"}' % message).encode()
-    with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'),             patch('brightwind.utils.brighthub.requests.request', return_value=rejected):
+    with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'), \
+            patch('brightwind.utils.brighthub.requests.request', return_value=rejected):
         with pytest.raises(bw.BrighthubRequestError) as error:
             bw.brighthub_request(method.lower(), '/measurement-locations/uuid/issues')
 
@@ -268,3 +280,28 @@ def test_brighthub_request_other_403_responses_are_returned_unchanged(body):
     forbidden._content = json.dumps(body).encode()
     with patch('brightwind.utils.brighthub.requests.request', return_value=forbidden):
         assert bw.brighthub_request('GET', '/plants') is forbidden
+
+
+def test_get_brighthub_base_uri_returns_base_uri_used_by_requests():
+    assert bw.get_brighthub_base_uri() == brighthub._BASE_URI
+    assert not bw.get_brighthub_base_uri().endswith('/')
+    with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'), \
+            patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=200)) as mock_req:
+        assert bw.get_brighthub_base_uri() == 'https://api.example.test'
+        bw.brighthub_request('GET', '/plants')
+
+    assert mock_req.call_args.kwargs['url'] == 'https://api.example.test/plants'
+
+
+def test_clear_brighthub_auth_cache_resets_all_cached_values():
+    auth = brighthub._BrighthubAuth
+    saved = {n: getattr(auth, n) for n in
+             ('ID_TOKEN', 'REFRESH_TOKEN', 'USERNAME', 'PASSWORD', 'CLIENT_ID', 'CLIENT_SECRET')}
+    try:
+        for name in saved:
+            setattr(auth, name, 'value')
+        bw.clear_brighthub_auth_cache()
+        assert all(getattr(auth, name) == '' for name in saved)
+    finally:
+        for name, value in saved.items():
+            setattr(auth, name, value)

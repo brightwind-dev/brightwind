@@ -8,9 +8,11 @@ import requests
 __all__ = ['brighthub_request',
            'get_brighthub_auth_id_token',
            'BrighthubAuthError',
-           'BrighthubRequestError']
+           'BrighthubRequestError',
+           'get_brighthub_base_uri',
+           'clear_brighthub_auth_cache']
 
-_BASE_URI = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
+_BASE_URI = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io').rstrip('/')
 _SUPPORTED_METHODS = ('GET', 'POST', 'PUT', 'DELETE')
 _RETRY_ON_STATUS_METHODS = ('GET',)
 _RETRY_STATUS_CODES = (429, 502, 503, 504)
@@ -50,7 +52,8 @@ def _get_gateway_rejection_message(response):
     except ValueError:
         return None
     # BrightHub's own errors include 'error' and 'details', a gateway rejection only has 'message'
-    if isinstance(body, dict) and list(body) == ['message'] and isinstance(body['message'], str)             and any(known in body['message'] for known in _GATEWAY_REJECTION_MESSAGES):
+    if isinstance(body, dict) and list(body) == ['message'] and isinstance(body['message'], str) \
+            and any(known in body['message'] for known in _GATEWAY_REJECTION_MESSAGES):
         return body['message']
     return None
 
@@ -115,7 +118,7 @@ class _BrighthubAuth:
         if not _BrighthubAuth.CLIENT_SECRET:
             _BrighthubAuth.CLIENT_SECRET = _get_environment_variable('BRIGHTHUB_CLIENT_SECRET')
 
-        base_uri = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
+        base_uri = _BASE_URI
         auth_url = f"{base_uri}/auth/token"
         try:
             response = requests.post(
@@ -279,7 +282,8 @@ class _BrighthubAuth:
                 if not has_legacy_credentials:
                     raise _BrighthubAuth.BrighthubAuthError(
                         "BrightHub API key not found. Please create an API key at "
-                        f"{_get_web_uri(_BASE_URI)}/account-settings/settings and set the BRIGHTHUB_CLIENT_ID and "
+                        f"{_get_web_uri(_BASE_URI)}/account-settings/settings and set the "
+                        "BRIGHTHUB_CLIENT_ID and "
                         "BRIGHTHUB_CLIENT_SECRET environmental variables. If you have just set them, restart your "
                         "Python environment for them to take effect.") from None
                 _BrighthubAuth.ID_TOKEN, _BrighthubAuth.REFRESH_TOKEN = _BrighthubAuth._authenticate_with_basic_auth()
@@ -335,6 +339,50 @@ class _BrighthubAuth:
             _BrighthubAuth.REFRESH_TOKEN = new_refresh_token
 
         return {}
+
+
+def get_brighthub_base_uri():
+    """
+    Get the base URI of the BrightHub API that requests are sent to.
+
+    This is the BRIGHTHUB_BASE_URI environmental variable if set, otherwise https://api.brighthub.io. It is read once
+    when brightwind is imported, so restart Python after changing the environmental variable.
+
+    :return: The base URI, without a trailing slash.
+    :rtype:  str
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        bw.get_brighthub_base_uri()
+
+    """
+    return _BASE_URI
+
+
+def clear_brighthub_auth_cache():
+    """
+    Clear the BrightHub token and credentials that are cached for the Python session.
+
+    The next BrightHub request authenticates again and reads the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET
+    environmental variables afresh. Use this after changing API key during a session.
+
+    :return: None
+
+    **Example usage**
+    ::
+        import os
+        import brightwind as bw
+
+        os.environ['BRIGHTHUB_CLIENT_ID'] = 'new-client-id'
+        os.environ['BRIGHTHUB_CLIENT_SECRET'] = 'new-client-secret'
+        bw.clear_brighthub_auth_cache()
+        bw.get_brighthub_auth_id_token()
+
+    """
+    for attribute in ('ID_TOKEN', 'REFRESH_TOKEN', 'USERNAME', 'PASSWORD', 'CLIENT_ID', 'CLIENT_SECRET'):
+        setattr(_BrighthubAuth, attribute, '')
 
 
 def get_brighthub_auth_id_token():
@@ -426,7 +474,8 @@ def brighthub_request(method, url_extension, params=None, json=None, data=None):
                 time.sleep(_RETRY_DELAY_SECONDS)
                 continue
 
-            if response.status_code in _RETRY_STATUS_CODES and method in _RETRY_ON_STATUS_METHODS                     and not last_attempt:
+            if response.status_code in _RETRY_STATUS_CODES and method in _RETRY_ON_STATUS_METHODS \
+                    and not last_attempt:
                 time.sleep(_RETRY_DELAY_SECONDS)
                 continue
             return response
