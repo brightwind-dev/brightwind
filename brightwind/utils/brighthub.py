@@ -7,7 +7,8 @@ import requests
 
 __all__ = ['request',
            'get_id_token',
-           'BrighthubAuthError']
+           'BrighthubAuthError',
+           'BrighthubRequestError']
 
 _BASE_URI = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
 _SUPPORTED_METHODS = ('GET', 'POST', 'PUT', 'DELETE')
@@ -22,6 +23,43 @@ _DEFAULT_TIMEOUT = (10, 35)
 class BrighthubAuthError(Exception):
     """Raised when authentication with BrightHub fails, e.g. invalid API key or an unauthorised request."""
     pass
+
+
+class BrighthubRequestError(ValueError):
+    """
+    Raised when a request is rejected by the BrightHub API gateway before it reaches BrightHub, e.g. the endpoint
+    does not exist for the HTTP method used. The status_code, method, url and response are available as attributes.
+    """
+    def __init__(self, message, status_code=None, method=None, url=None, response=None):
+        super().__init__(message)
+        self.status_code = status_code
+        self.method = method
+        self.url = url
+        self.response = response
+
+
+# Messages returned by the API gateway (not BrightHub) for an unknown route or a route that does not use API key auth
+_GATEWAY_REJECTION_MESSAGES = ('Missing Authentication Token', 'Authorization header requires')
+
+
+def _get_gateway_rejection_message(response):
+    """Return the message if the response is an API gateway rejection, otherwise None."""
+    if response.status_code != 403:
+        return None
+    try:
+        body = response.json()
+    except ValueError:
+        return None
+    # BrightHub's own errors include 'error' and 'details', a gateway rejection only has 'message'
+    if (isinstance(body, dict) and list(body) == ['message'] and isinstance(body['message'], str)
+            and any(known in body['message'] for known in _GATEWAY_REJECTION_MESSAGES)):
+        return body['message']
+    return None
+
+
+def _get_web_uri(base_uri):
+    # The BrightHub website is the API base URI without the 'api.' sub-domain e.g. https://brighthub.io
+    return base_uri.replace('://api.', '://', 1).rstrip('/')
 
 
 def _get_environment_variable(name):
@@ -88,14 +126,16 @@ class _BrighthubAuth:
                 data={"grant_type": "client_credentials"},
                 timeout=10
             )
+            print(response.json)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             status_code = e.response.status_code if e.response is not None else None
             if status_code in (400, 401, 403):
                 raise _BrighthubAuth.BrighthubAuthError(
-                    f"Authentication failed (status code {status_code}). The BrightHub API key is invalid, expired or "
-                    "revoked. Please check the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET environmental "
-                    "variables, and create a new API key at https://brighthub.io/account-settings/settings if needed."
+                    f"Authentication failed at {auth_url} (status code {status_code}). The BrightHub API key is "
+                    "invalid, expired or revoked. Please check the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET "
+                    f"environmental variables, and create a new API key at {_get_web_uri(base_uri)}"
+                    "/account-settings/settings if needed."
                 ) from e
             raise _BrighthubAuth.BrighthubAuthError(
                 f"Authentication failed, BrightHub returned an unexpected response: {e}") from e
@@ -138,7 +178,7 @@ class _BrighthubAuth:
         warnings.warn(
             "Authentication using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD' is deprecated in v2.4.0 and "
             "will be removed in v3.0.0. \nPlease migrate to API key authentication. "
-            "Create and manage API keys at: https://brighthub.io/account-settings/settings. "
+            f"Create and manage API keys at: {_get_web_uri(_BASE_URI)}/account-settings/settings. "
             "After generating a key, set the environment variables 'BRIGHTHUB_CLIENT_ID' and "
             "'BRIGHTHUB_CLIENT_SECRET'.",
             FutureWarning
@@ -234,8 +274,16 @@ class _BrighthubAuth:
                 f'BRIGHTHUB_CLIENT_ID environmental variable is not set.',
                 f'BRIGHTHUB_CLIENT_SECRET environmental variable is not set.'
             ]:
-                # Fallback to basic auth if client credentials are not provided
+                # Fallback to basic auth if client credentials are not provided but legacy credentials are.
                 # This method is depreciated in v2.4.0 and will be removed in v3.0.0
+                has_legacy_credentials = ((_BrighthubAuth.USERNAME or os.getenv('BRIGHTHUB_EMAIL'))
+                                          and (_BrighthubAuth.PASSWORD or os.getenv('BRIGHTHUB_PASSWORD')))
+                if not has_legacy_credentials:
+                    raise _BrighthubAuth.BrighthubAuthError(
+                        "BrightHub API key not found. Please create an API key at "
+                        f"{_get_web_uri(_BASE_URI)}/account-settings/settings and set the BRIGHTHUB_CLIENT_ID and "
+                        "BRIGHTHUB_CLIENT_SECRET environmental variables. If you have just set them, restart your "
+                        "Python environment for them to take effect.") from None
                 _BrighthubAuth.ID_TOKEN, _BrighthubAuth.REFRESH_TOKEN = _BrighthubAuth._authenticate_with_basic_auth()
             else:
                 raise e
@@ -324,7 +372,9 @@ def request(url_extension, method='GET', params=None, json=None, data=None, time
     A failed request is retried up to max_retries times, with a 3 second delay between attempts. Connection timeouts
     are retried for all methods. Other connection errors, read timeouts and 429, 502, 503 and 504 responses are retried
     for GET only, as a POST, PUT or DELETE may already have been applied by the server and retrying could duplicate it.
-    If a 401 is returned, a new token is requested and the request is made once more.
+    If a 401 is returned, a new token is requested and the request is made once more. A BrighthubAuthError is raised
+    if it persists. A BrighthubRequestError is raised if the API gateway rejects the request with a 403, which means the
+    endpoint does not exist for the method used or does not accept API key authentication.
 
     :param url_extension: The end of the url to be concatenated with the BrightHub base URI e.g. '/plants'.
     :type url_extension:  str
@@ -407,6 +457,14 @@ def request(url_extension, method='GET', params=None, json=None, data=None, time
             raise BrighthubAuthError(
                 "BrightHub rejected the request as unauthorised (status code 401) even after re-authenticating. "
                 "Please check your API key and that it has permission to access {} {}. Response: {}".format(
-                    method, url_extension, response.text))
+                    method, url, response.text))
+
+    gateway_message = _get_gateway_rejection_message(response)
+    if gateway_message:
+        raise BrighthubRequestError(
+            "BrightHub rejected {method} {url} before it reached the API (status code 403: {message}). "
+            "The endpoint may not exist for the {method} method, or may not accept API key authentication. "
+            "Please check the path and the HTTP method.".format(method=method, url=url, message=gateway_message),
+            status_code=response.status_code, method=method, url=url, response=response)
 
     return response
