@@ -1,4 +1,5 @@
 import json
+import os
 import pytest
 import requests
 import brightwind as bw
@@ -253,8 +254,8 @@ def test_error_messages_use_the_base_uri():
     response = requests.Response()
     response.status_code = 401
     try:
-        with patch.dict('os.environ', {'BRIGHTHUB_BASE_URI': 'https://api.example.test'}), \
-            patch('brightwind.utils.brighthub.requests.post', return_value=response):
+        with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'), \
+                patch('brightwind.utils.brighthub.requests.post', return_value=response):
             with pytest.raises(bw.brighthub.BrighthubAuthError) as auth_error:
                 brighthub._BrighthubAuth._authenticate_with_client_credentials()
     finally:
@@ -324,3 +325,28 @@ def test_brighthub_request_other_403_responses_are_returned_unchanged(body):
     forbidden._content = json.dumps(body).encode()
     with patch('brightwind.utils.brighthub.requests.request', return_value=forbidden):
         assert bw.brighthub.request('/plants') is forbidden
+
+
+def test_get_base_uri_returns_base_uri_used_by_requests():
+    assert bw.brighthub.get_base_uri() == brighthub._BASE_URI
+    assert not bw.brighthub.get_base_uri().endswith('/')
+    with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'), \
+            patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=200)) as mock_req:
+        assert bw.brighthub.get_base_uri() == 'https://api.example.test'
+        bw.brighthub.request('/plants')
+
+    assert mock_req.call_args.kwargs['url'] == 'https://api.example.test/plants'
+
+
+def test_clear_auth_cache_resets_all_cached_values():
+    auth = brighthub._BrighthubAuth
+    saved = {n: getattr(auth, n) for n in
+             ('ID_TOKEN', 'REFRESH_TOKEN', 'USERNAME', 'PASSWORD', 'CLIENT_ID', 'CLIENT_SECRET')}
+    try:
+        for name in saved:
+            setattr(auth, name, 'value')
+        bw.brighthub.clear_auth_cache()
+        assert all(getattr(auth, name) == '' for name in saved)
+    finally:
+        for name, value in saved.items():
+            setattr(auth, name, value)
