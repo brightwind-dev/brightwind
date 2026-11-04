@@ -1,3 +1,4 @@
+import json
 import pytest
 import requests
 import brightwind as bw
@@ -192,3 +193,78 @@ def test_load_brighthub_get_cleaning_log_forbidden_without_details_raises_value_
     with patch('brightwind.load.load._brighthub.brighthub_request', return_value=response):
         with pytest.raises(ValueError, match='Status Code 403'):
             bw.LoadBrightHub.get_cleaning_log(measurement_station_uuid='uuid-1')
+
+
+def test_error_messages_use_the_base_uri():
+    brighthub._BrighthubAuth.CLIENT_ID = 'id'
+    brighthub._BrighthubAuth.CLIENT_SECRET = 'secret'
+    response = requests.Response()
+    response.status_code = 401
+    try:
+        with patch.dict('os.environ', {'BRIGHTHUB_BASE_URI': 'https://api.example.test'}),                 patch('brightwind.utils.brighthub.requests.post', return_value=response):
+            with pytest.raises(bw.BrighthubAuthError) as auth_error:
+                brighthub._BrighthubAuth._authenticate_with_client_credentials()
+    finally:
+        brighthub._BrighthubAuth.CLIENT_ID = ''
+        brighthub._BrighthubAuth.CLIENT_SECRET = ''
+    assert 'https://api.example.test/auth/token' in str(auth_error.value)
+    assert 'https://example.test/account-settings/settings' in str(auth_error.value)
+
+    with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'),             patch.object(brighthub._BrighthubAuth, '_get_id_token'),             patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=401, text='x')):
+        with pytest.raises(bw.BrighthubAuthError, match='GET https://api.example.test/plants'):
+            bw.brighthub_request('GET', '/plants')
+
+
+def test_no_credentials_error_asks_for_client_id_and_secret():
+    import os
+    creds = ('BRIGHTHUB_CLIENT_ID', 'BRIGHTHUB_CLIENT_SECRET', 'BRIGHTHUB_EMAIL', 'BRIGHTHUB_PASSWORD')
+    env = {k: v for k, v in os.environ.items() if k not in creds}
+    saved = (brighthub._BrighthubAuth.ID_TOKEN, brighthub._BrighthubAuth.CLIENT_ID,
+             brighthub._BrighthubAuth.CLIENT_SECRET, brighthub._BrighthubAuth.USERNAME,
+             brighthub._BrighthubAuth.PASSWORD)
+    brighthub._BrighthubAuth.ID_TOKEN = brighthub._BrighthubAuth.CLIENT_ID = ''
+    brighthub._BrighthubAuth.CLIENT_SECRET = brighthub._BrighthubAuth.USERNAME = ''
+    brighthub._BrighthubAuth.PASSWORD = ''
+    try:
+        with patch.dict('os.environ', env, clear=True):
+            with pytest.raises(bw.BrighthubAuthError) as error:
+                bw.get_brighthub_auth_id_token()
+    finally:
+        (brighthub._BrighthubAuth.ID_TOKEN, brighthub._BrighthubAuth.CLIENT_ID,
+         brighthub._BrighthubAuth.CLIENT_SECRET, brighthub._BrighthubAuth.USERNAME,
+         brighthub._BrighthubAuth.PASSWORD) = saved
+    message = str(error.value)
+    assert 'BRIGHTHUB_CLIENT_ID' in message and 'BRIGHTHUB_CLIENT_SECRET' in message
+    assert 'BRIGHTHUB_EMAIL' not in message
+
+
+@pytest.mark.parametrize('method', ['GET', 'POST', 'PUT', 'DELETE'])
+@pytest.mark.parametrize('message', [
+    'Missing Authentication Token',
+    "Authorization header requires 'Credential' parameter. Authorization=abc",
+])
+def test_brighthub_request_gateway_rejection_raises_request_error_naming_method_and_url(method, message):
+    rejected = requests.Response()
+    rejected.status_code = 403
+    rejected._content = ('{"message": "%s"}' % message).encode()
+    with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'),             patch('brightwind.utils.brighthub.requests.request', return_value=rejected):
+        with pytest.raises(bw.BrighthubRequestError) as error:
+            bw.brighthub_request(method.lower(), '/measurement-locations/uuid/issues')
+
+    assert f'{method} https://api.example.test/measurement-locations/uuid/issues' in str(error.value)
+    assert f'for the {method} method' in str(error.value)
+    assert error.value.status_code == 403 and error.value.method == method
+    assert isinstance(error.value, ValueError)
+
+
+@pytest.mark.parametrize('body', [
+    {'error': 'Forbidden', 'details': 'Download limit reached'},
+    {'message': 'Some other forbidden reason'},
+    {'message': 'Missing Authentication Token', 'details': 'x'},
+])
+def test_brighthub_request_other_403_responses_are_returned_unchanged(body):
+    forbidden = requests.Response()
+    forbidden.status_code = 403
+    forbidden._content = json.dumps(body).encode()
+    with patch('brightwind.utils.brighthub.requests.request', return_value=forbidden):
+        assert bw.brighthub_request('GET', '/plants') is forbidden
