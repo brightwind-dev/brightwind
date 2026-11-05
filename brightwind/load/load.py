@@ -2528,7 +2528,7 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
                                     average is the unsuffixed column and each other statistic column is named
                                     <sensor>_<statistic> using the statistic types as defined in the WRA Data Model
                                     ('sd', 'max', 'min', 'count', 'availability', 'quality', 'sum', 'median', 'mode',
-                                    'range', 'gust', 'ti', 'ti30sec', 'text'). Columns that do not follow this
+                                    'range', 'gust', 'ti', 'ti30sec', 'text', 'value'). Columns that do not follow this
                                     convention, e.g. 'Spd80mSStd', are not matched. A separate measurement named like a
                                     statistic column, e.g. 'Tmp_max' next to 'Tmp', is treated as a statistic column of
                                     'Tmp'.
@@ -2804,7 +2804,7 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
                                         other statistic column is named <name>_<statistic> using the statistic types
                                         as defined in the WRA Data Model ('sd', 'max', 'min', 'count',
                                         'availability', 'quality', 'sum', 'median', 'mode', 'range', 'gust', 'ti',
-                                        'ti30sec', 'text'). Columns that do not follow this convention, e.g.
+                                        'ti30sec', 'text', 'value'). Columns that do not follow this convention, e.g.
                                         'Spd80mSStd', are not matched. A separate measurement named like a
                                         statistic column, e.g. 'Tmp_max' next to 'Tmp', is treated as a statistic
                                         column of 'Tmp'.
@@ -2870,7 +2870,7 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     A ``clean_out`` item naming the avg column will also clean all associated stat-type columns at
     the same measurement point, i.e. the statistic types as defined in the WRA Data Model (``_sd``,
     ``_max``, ``_min``, ``_count``, ``_availability``, ``_quality``, ``_sum``, ``_median``, ``_mode``,
-    ``_range``, ``_gust``, ``_ti``, ``_ti30sec``, ``_text``). ``avg`` is the unsuffixed column.
+    ``_range``, ``_gust``, ``_ti``, ``_ti30sec``, ``_text``, ``_value``). ``avg`` is the unsuffixed column.
 
     With the default ``column_match='contains'`` this is done via substring matching on column
     names, so a ``clean_out`` item ``Tmp`` also cleans other measurements such as ``Tmp_logger``
