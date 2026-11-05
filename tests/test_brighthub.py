@@ -198,7 +198,7 @@ def test_client_credentials_connection_error_is_reported_as_network_error():
 def test_load_brighthub_get_cleaning_log_forbidden_without_details_raises_value_error_not_key_error():
     response = MagicMock(status_code=403, text='{"message": "Forbidden"}')
     response.json.return_value = {'message': 'Forbidden'}
-    with patch('brightwind.load.load._brighthub.brighthub_request', return_value=response):
+    with patch('brightwind.load.load.brighthub.brighthub_request', return_value=response):
         with pytest.raises(ValueError, match='Status Code 403'):
             bw.LoadBrightHub.get_cleaning_log(measurement_station_uuid='uuid-1')
 
