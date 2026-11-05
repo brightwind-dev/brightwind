@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
-from brightwind.utils import utils, gis
-from brightwind.utils import brighthub as _brighthub
+from brightwind.utils import utils, gis, brighthub
 from brightwind.load.station import MeasurementStation
 import datetime
 import requests
@@ -964,7 +963,7 @@ class LoadBrightHub:
 
     """
 
-    __BASE_URI = _brighthub._BASE_URI
+    __BASE_URI = brighthub._BASE_URI
 
     @staticmethod
     def _brighthub_request(url_end, params=None):
@@ -986,7 +985,7 @@ class LoadBrightHub:
             FutureWarning,
             stacklevel=2
         )
-        return _brighthub.brighthub_request('GET', url_end, params=params)
+        return brighthub.brighthub_request('GET', url_end, params=params)
 
     @staticmethod
     def get_plants(plant_type=None, plant_uuid=None):
@@ -1033,13 +1032,13 @@ class LoadBrightHub:
         plants = None
         if plant_type is None and plant_uuid is None:
             # get all
-            plants = _brighthub.brighthub_request('GET', url_extension="/plants")
+            plants = brighthub.brighthub_request('GET', url_extension="/plants")
         elif plant_type in ['onshore_wind', 'offshore_wind', 'solar'] and plant_uuid is None:
             # get all for a specific plant_type
-            plants = _brighthub.brighthub_request('GET', url_extension="/plants", params={'plant_type_id': plant_type})
+            plants = brighthub.brighthub_request('GET', url_extension="/plants", params={'plant_type_id': plant_type})
         elif plant_uuid is not None:
             # get all for plant_uuid
-            plants = _brighthub.brighthub_request('GET', url_extension="/plants/{}".format(plant_uuid))
+            plants = brighthub.brighthub_request('GET', url_extension="/plants/{}".format(plant_uuid))
 
         if plants.headers.get('content-type') != 'application/json.':
             plants.raise_for_status()
@@ -1118,14 +1117,14 @@ class LoadBrightHub:
         measurement_locations = None
         if plant_uuid is None and measurement_station_uuid is None:
             # get all
-            measurement_locations = _brighthub.brighthub_request('GET', url_extension="/measurement-locations")
+            measurement_locations = brighthub.brighthub_request('GET', url_extension="/measurement-locations")
         elif plant_uuid is not None and measurement_station_uuid is None:
             # get all for plant_uuid
-            measurement_locations = _brighthub.brighthub_request('GET', url_extension="/measurement-locations",
-                                                                     params={'plant_uuid': plant_uuid})
+            measurement_locations = brighthub.brighthub_request('GET', url_extension="/measurement-locations",
+                                                                params={'plant_uuid': plant_uuid})
         elif measurement_station_uuid is not None:
             # get for measurement_station_uuid
-            measurement_locations = _brighthub.brighthub_request(
+            measurement_locations = brighthub.brighthub_request(
                 'GET',
                 url_extension="/measurement-locations/{}".format(measurement_station_uuid))
 
@@ -1172,8 +1171,8 @@ class LoadBrightHub:
                                                                         'end_date': '2016-12-19T23:01:00'}
         :rtype:                          dict
         """
-        start_end_dates = _brighthub.brighthub_request(
-                'GET',
+        start_end_dates = brighthub.brighthub_request(
+            'GET',
             url_extension="/measurement-locations/{}/start-end-dates".format(measurement_station_uuid))
 
         if start_end_dates.headers.get('content-type') != 'application/json.':
@@ -1214,8 +1213,8 @@ class LoadBrightHub:
             demo_mast.get_table()
 
         """
-        data_model = _brighthub.brighthub_request(
-                'GET',
+        data_model = brighthub.brighthub_request(
+            'GET',
             url_extension="/measurement-locations/{}/data-model".format(measurement_station_uuid))
 
         if data_model.headers.get('content-type') != 'application/json.':
@@ -1247,8 +1246,8 @@ class LoadBrightHub:
         date_from = LoadBrightHub.__date_to_datetime_str(date_from)
         date_to = LoadBrightHub.__date_to_datetime_str(date_to)
 
-        return _brighthub.brighthub_request(
-                'GET',
+        return brighthub.brighthub_request(
+            'GET',
             url_extension=f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
             params={"date_from": date_from, "date_to": date_to, "file_extension": file_extension})
 
@@ -1336,7 +1335,7 @@ class LoadBrightHub:
         # 503 error is returned when the timeseries data file is being assembled by Brighthub.
         # This is to ensure that only the most up to date data can be downloaded.
         assembly_in_progress_err_msg = 'The server is currently busy assembling the timeseries file.'
-        if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+        if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
             retry_after = int(response.headers.get('Retry-After', 60))  # default retry after default 60 seconds
             for _ in range(4):  # attempt 4 more times
                 time.sleep(retry_after)  # wait before retrying
@@ -1344,19 +1343,19 @@ class LoadBrightHub:
                     measurement_station_uuid, date_from, date_to, file_extension
                 )
                 response_json = response.json()
-                if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+                if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
                     retry_after *= 2  # double the retry time for each attempt
                     continue  # try again
                 else:
                     # Either the call was a success or there was a different error.
                     break  # exit for loop
             # Raise the 503 error if all the attempts have been used up.
-            if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+            if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
                 raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
 
         if response.status_code == 404 and 'details' in response_json:  # other BrightHub specific errors.
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         presigned_url = response_json["url"]
@@ -1405,8 +1404,8 @@ class LoadBrightHub:
             data_clnd = bw.apply_cleaning(data, cleaning_log, sensor_col_name='MeasurementName',
                                           date_from_col_name='DateFrom', date_to_col_name='DateTo')
         """
-        response = _brighthub.brighthub_request(
-                'GET',
+        response = brighthub.brighthub_request(
+            'GET',
             url_extension=f"/measurement-locations/{measurement_station_uuid}/cleaning-log")
         response_json = response.json()
 
@@ -1419,7 +1418,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         presigned_url = response_json["url"]
@@ -1459,8 +1458,8 @@ class LoadBrightHub:
             data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_json)
 
         """
-        response = _brighthub.brighthub_request(
-                'GET',
+        response = brighthub.brighthub_request(
+            'GET',
             url_extension="/measurement-locations/{}/cleaning-rules".format(measurement_station_uuid))
         response_json = response.json()
 
@@ -1473,7 +1472,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         return response_json
@@ -1498,8 +1497,8 @@ class LoadBrightHub:
                                     of the nodes.
         :rtype:                     list(dict)
         """
-        response = _brighthub.brighthub_request(
-                'GET',
+        response = brighthub.brighthub_request(
+            'GET',
             url_extension=f"/reanalysis/{reanalysis_name}/nodes",
             params={"min_latitude_ddeg": min_latitude_ddeg,
                     "max_latitude_ddeg": max_latitude_ddeg,
@@ -1518,7 +1517,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         return response_json
@@ -1591,8 +1590,8 @@ class LoadBrightHub:
         :return:                         A tuple of a MeasurementStation object and the timeseries in a DataFrame.
         :rtype:                          tuple(MeasurementStation, pandas.DataFrame)
         """
-        response = _brighthub.brighthub_request(
-                'GET',
+        response = brighthub.brighthub_request(
+            'GET',
             url_extension=f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
             params={"date_from": LoadBrightHub.__date_to_datetime_str(date_from),
                     "date_to": LoadBrightHub.__date_to_datetime_str(date_to),
@@ -1608,7 +1607,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         node_metadata = (response_json['metadata'] if return_metadata_json
@@ -2548,5 +2547,5 @@ def __getattr__(name):
             FutureWarning,
             stacklevel=2
         )
-        return _brighthub._BrighthubAuth
+        return brighthub._BrighthubAuth
     raise AttributeError("module {!r} has no attribute {!r}".format(__name__, name))

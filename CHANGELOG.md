@@ -15,9 +15,17 @@ XX-Xxx-2026
 
 ### New Features and Enhancements
 1. Add public `brighthub_request` function to make GET, POST, PUT and DELETE requests to the BrightHub APIs, and public `get_brighthub_auth_id_token` function to get the BrightHub ID token. The new `brightwind/utils/brighthub.py` module is portable: it only depends on the `requests` package, so it can be copied into other code bases without needing the entire brightwind library (Issue [#583](https://github.com/brightwind-dev/brightwind/issues/583))
+2. Add public `get_brighthub_base_uri` function to get the BrightHub API base URI, and `clear_brighthub_auth_cache` function to clear the cached BrightHub token and credentials so the next request authenticates again (Issue [#660](https://github.com/brightwind-dev/brightwind/issues/660))
+3. Add clearer BrightHub error handling (Issue [#660](https://github.com/brightwind-dev/brightwind/issues/660)):
+    - A rejected API key now raises the public `BrighthubAuthError` explaining that the key is invalid, expired or revoked, rather than a network error.
+    - A missing API key now asks for the `BRIGHTHUB_CLIENT_ID` and `BRIGHTHUB_CLIENT_SECRET` environmental variables.
+    - A 401 that persists after re-authenticating now raises `BrighthubAuthError`.
+    - A request rejected by the API gateway (403, e.g. the endpoint does not exist for the HTTP method used) now raises the public `BrighthubRequestError` naming the HTTP method and full URL.
+    - Error messages now build URLs from the BrightHub base URI.
 
 ### Bug Fixes
-1. 
+1. Fix `LoadBrightHub` methods raising `KeyError: 'url'` or `TypeError` when BrightHub or its API gateway returns an error without `error` or `details` keys, e.g. a 401 or 403 with only a `message`. A `ValueError` with the status code and response is now raised (Issue [#660](https://github.com/brightwind-dev/brightwind/issues/660))
+2. Fix `KeyError: 'password_verifier'` when BrightHub login returns a `PASSWORD_VERIFIER` challenge (Issue [#583](https://github.com/brightwind-dev/brightwind/issues/583))
 
 ### Deprecated
 1. `LoadBrightHub._brighthub_request` and `brightwind.load.load._BrighthubAuth` are deprecated and will be removed in v3.0.0. Use `brighthub_request` and `get_brighthub_auth_id_token` instead.
