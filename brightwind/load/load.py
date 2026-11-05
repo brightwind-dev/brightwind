@@ -46,9 +46,9 @@ OPERATOR_DICT = {
 # Statistic types as defined by the 'statistic_type_id' list of the IEA Wind Task 43 WRA Data Model, used as the
 # suffixes of a measurement's statistic columns, e.g. 'Spd80m_sd', 'Spd80m_max'. 'avg' is not in this tuple because
 # the average is the unsuffixed column, e.g. 'Spd80m'.
-# https://github.com/IEA-Task-43/digital_wra_data_standard/blob/master/schema/iea43_wra_data_model.schema.json
+# https://github.com/iea-wind-digitalisation/wra-data-model/blob/master/schema/iea43_wra_data_model.schema.json
 WRA_DATA_MODEL_STATISTIC_TYPES = ('sd', 'max', 'min', 'count', 'availability', 'quality', 'sum', 'median', 'mode',
-                                  'range', 'gust', 'ti', 'ti30sec', 'text')
+                                  'range', 'gust', 'ti', 'ti30sec', 'text', 'value')
 COLUMN_MATCH_OPTIONS = ('startswith', 'contains', 'exact', 'wra_data_model')
 
 
