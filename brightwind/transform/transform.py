@@ -489,6 +489,46 @@ def _get_coverage_by_grouper_obj(data, grouper_obj, data_resolution=None):
     return coverage
 
 
+def _wdir_sine_cosine(wdirs):
+    """
+    Sine (East) and cosine (North) components of each wind direction, rounded to 5 decimal places.
+
+    The rounding is needed so that opposite directions cancel out. For example the sine of 180 is not quite zero, so
+    without rounding 0 and 180 would average to 90 instead of NaN. Similarly 10 and 190 would give 270 and 90 and 270
+    would give 0 or 180.
+
+    :param wdirs: Wind directions in degrees.
+    :type wdirs:  list or np.array or pd.Series or pd.DataFrame
+    :return:      Rounded sine and cosine of each wind direction.
+    :rtype:       tuple
+    """
+    wdirs_rad = np.deg2rad(wdirs)
+    return np.round(np.sin(wdirs_rad), 5), np.round(np.cos(wdirs_rad), 5)
+
+
+def _sine_cosine_to_wdir(sine, cosine):
+    """
+    Convert mean sine and cosine components into a wind direction between 0 and 360 degrees.
+
+    If both sine and cosine are zero the directions cancel out and there is no wind direction so NaN is returned. 0 is
+    returned instead of 360.
+
+    :param sine:   Mean sine (East) component.
+    :type sine:    float or pd.Series or pd.DataFrame
+    :param cosine: Mean cosine (North) component.
+    :type cosine:  float or pd.Series or pd.DataFrame
+    :return:       Wind direction.
+    :rtype:        float or pd.Series or pd.DataFrame
+    """
+    avg_dir = np.rad2deg(np.arctan2(sine, cosine)) % 360
+    if isinstance(avg_dir, (pd.Series, pd.DataFrame)):
+        avg_dir = avg_dir.mask((sine == 0) & (cosine == 0))
+        return avg_dir.mask(avg_dir == 360.0, 0.0)
+    if sine == 0 and cosine == 0:
+        return np.nan
+    return 0.0 if avg_dir == 360.0 else avg_dir
+
+
 def _vector_avg_of_wdirs_by_period(wdirs, period):
     """
     Vector average wind directions for each averaging period. This gives the same result as applying
@@ -501,17 +541,10 @@ def _vector_avg_of_wdirs_by_period(wdirs, period):
     :return:        Average wind direction for each averaging period.
     :rtype:         pd.Series or pd.DataFrame
     """
-    wdirs_rad = np.deg2rad(wdirs)
-    # round to 5 decimal places so that opposite directions cancel out, see _vector_avg_of_wdirs_list()
-    sine = np.round(np.sin(wdirs_rad), 5).resample(period, closed='left', label='left').mean()
-    cosine = np.round(np.cos(wdirs_rad), 5).resample(period, closed='left', label='left').mean()
-
-    avg_dir = np.rad2deg(np.arctan2(sine, cosine)) % 360
-    # if both sine and cosine are zero the directions cancel out and there is no wind direction
-    avg_dir = avg_dir.mask((sine == 0) & (cosine == 0))
-    # preference to have 0 returned instead of 360
-    avg_dir = avg_dir.mask(avg_dir == 360.0, 0.0)
-    return avg_dir
+    sine, cosine = _wdir_sine_cosine(wdirs)
+    sine = sine.resample(period, closed='left', label='left').mean()
+    cosine = cosine.resample(period, closed='left', label='left').mean()
+    return _sine_cosine_to_wdir(sine, cosine)
 
 
 def average_data_by_period(data, period, wdir_column_names=None, aggregation_method='mean', coverage_threshold=None,
@@ -731,23 +764,15 @@ def _vector_avg_of_wdirs_dataframe(wdirs, wspds=None):
     negative (-6.9e-17) instead of zero which results in 270 instead of NaN. Similar for cosine when 90, 270 sent.
     Solution is to round both sin and cos to 5 decimal places to make them zero.
     """
+    sine, cosine = _wdir_sine_cosine(wdirs)
     if wspds is None:
-        sine = (np.round(np.sin(np.deg2rad(wdirs)), 5)).mean(axis=1)  # sin of each angle, convert to radian first
-        cosine = (np.round(np.cos(np.deg2rad(wdirs)), 5)).mean(axis=1)  # cos of each angle, convert to radian first
+        sine = sine.mean(axis=1)
+        cosine = cosine.mean(axis=1)
     else:
-        sine = (pd.DataFrame(np.round(np.sin(np.deg2rad(wdirs)), 5).values * wspds.values, index=wdirs.index)).mean(
-            axis=1)  # sin of each angle, convert to radian first
-        cosine = (pd.DataFrame(np.round(np.cos(np.deg2rad(wdirs)), 5).values * wspds.values, index=wdirs.index)).mean(
-            axis=1)  # cos of each angle, convert to radian first
+        sine = pd.DataFrame(sine.values * wspds.values, index=wdirs.index).mean(axis=1)
+        cosine = pd.DataFrame(cosine.values * wspds.values, index=wdirs.index).mean(axis=1)
 
-    avg_dir_df = pd.DataFrame({'sine': sine, 'cosine': cosine})
-
-    # If both sine and cosine result in zero then all the directions cancel and you end up where you started which
-    # means there is no wind direction => return NaN
-    nan_mask = (avg_dir_df['sine'] == 0) & (avg_dir_df['cosine'] == 0)
-    avg_dir_df['avg_dir'] = np.rad2deg(np.arctan2(sine, cosine)) % 360
-    avg_dir_df.loc[nan_mask,'avg_dir'] = np.nan
-    return avg_dir_df['avg_dir']
+    return _sine_cosine_to_wdir(sine, cosine).rename('avg_dir')
 
 
 def _vector_avg_of_wdirs_list(wdirs, wspds=None):
@@ -782,7 +807,8 @@ def _vector_avg_of_wdirs_list(wdirs, wspds=None):
     """
     # first drop nans, if wind speeds available need to match them first to drop equivalent values
     if wspds is None:
-        wdirs = np.array([x for x in wdirs if x == x])
+        wdirs = np.asarray(wdirs, dtype=float)
+        wdirs = wdirs[~np.isnan(wdirs)]
     else:
         a = np.array([wdirs, wspds])
         a = a[:, ~np.isnan(a).any(axis=0)]
@@ -792,22 +818,12 @@ def _vector_avg_of_wdirs_list(wdirs, wspds=None):
     if wdirs.size == 0:
         return np.nan
 
-    if wspds is None:
-        sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5))  # sin of each angle, East component
-        cosine = np.mean(np.round(np.cos(np.deg2rad(wdirs)), 5))  # cos of each angle, North component
-    else:
-        sine = np.mean(np.round(np.sin(np.deg2rad(wdirs)), 5) * wspds)  # sin of each angle, East component
-        cosine = np.mean(np.round(np.cos(np.deg2rad(wdirs)), 5) * wspds)  # cos of each angle, North component
+    sine, cosine = _wdir_sine_cosine(wdirs)
+    if wspds is not None:
+        sine = sine * wspds
+        cosine = cosine * wspds
 
-    # If both sine and cosine result in zero then all the directions cancel and you end up where you started which
-    # means there is no wind direction => return NaN
-    if sine == 0 and cosine == 0:
-        avg_dir = np.nan
-    else:
-        avg_dir = np.rad2deg(np.arctan2(sine, cosine)) % 360
-        if avg_dir == 360.0:  # preference to have 0 returned instead of 360
-            avg_dir = 0.0
-    return avg_dir
+    return _sine_cosine_to_wdir(np.mean(sine), np.mean(cosine))
 
 
 def average_wdirs(wdirs, wspds=None):

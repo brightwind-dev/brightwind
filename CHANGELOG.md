@@ -23,7 +23,7 @@ XX-Xxx-2026
 1. Sped up vector averaging of wind directions in `average_data_by_period()` (when `wdir_column_names` is given) and so `merge_datasets_by_period()` and the correlations that use wind direction (e.g. `SpeedSort`). The sine and cosine components are now averaged for all periods at once instead of calling `average_wdirs()` for each period. Results are unchanged to floating-point precision, except where the directions in a period cancel out (mean vector of ~1e-17), where both the previous and new methods return an arbitrary direction. ([#649](https://github.com/brightwind-dev/brightwind/issues/649))
 
 ### Bug Fixes
-1. 
+1. `average_wdirs()` with a DataFrame now returns 0 instead of 360 when the average wind direction is North, in line with the result for a list, array or Series. This could only happen when floating-point error left the mean sine as a tiny negative number. The vector averaging maths used by `average_wdirs()` and `average_data_by_period()` is now shared in one place. ([#649](https://github.com/brightwind-dev/brightwind/issues/649))
 
 ### Deprecated
 1. 

@@ -894,6 +894,11 @@ def test_average_wdirs():
     for i, j in zip(avg_wdirs, expected_result):
         assert i == j
 
+    # sines sum to a tiny negative number due to floating point, 0 is returned instead of 360 for list and DataFrame
+    wdirs = np.rad2deg(np.arcsin([0.3, -0.1, -0.2]))
+    assert bw.average_wdirs(wdirs) == 0.0
+    assert bw.average_wdirs(pd.DataFrame([wdirs])).values[0] == 0.0
+
 @pytest.fixture
 def dummy_data():
     """
