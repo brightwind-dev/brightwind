@@ -51,6 +51,7 @@ sodar_iea43_wra_data_model_v1_3 = os.path.join(os.path.dirname(__file__),
                                                'sodar_iea43_wra_data_model_v1_3.json')
 
 demo_data_adjusted_for_testing = os.path.join(os.path.dirname(__file__), 'demo_data_adjusted_for_testing.csv')
+demo_tws_file = os.path.join(os.path.dirname(__file__), 'demo_tws_file.tws')
 demo_floating_lidar_data = os.path.join(os.path.dirname(__file__),
                                                         'demo_floating_lidar_data.csv')
 floating_lidar_demo_iea43_wra_data_model_v1_3 = os.path.join(os.path.dirname(__file__),
