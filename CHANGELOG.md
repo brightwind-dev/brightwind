@@ -14,6 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
+1. Add public `brighthub_request` function to make GET, POST, PUT and DELETE requests to the BrightHub APIs, and public `get_brighthub_auth_id_token` function to get the BrightHub ID token. The new `brightwind/utils/brighthub.py` module is portable: it only depends on the `requests` package, so it can be copied into other code bases without needing the entire brightwind library (Issue [#583](https://github.com/brightwind-dev/brightwind/issues/583))
 1. Updated the axis labels on the `Shear.Average` (and `Shear.TimeSeries`) wind profile plot for clarity: the speed axis is now labelled `Wind Speed [m/s]` (was `Speed [m/s]`) and the height axis is now labelled `Height AGL [m]` (was `Elevation [m]`). ([#632](https://github.com/brightwind-dev/brightwind/issues/632))
 1. Speed up `Shear.TimeSeries` and `Shear.BySector`, and `dist_by_dir_sector()`, with no change to results. `Shear.TimeSeries` now fits the power law or log law for all timestamps at once instead of calling `np.polyfit` row by row. `Shear.BySector` now calls `dist_by_dir_sector()` with the plot switched off, instead of drawing a wind rose plot that was not used for each height. Wind direction binning in `_binned_direction_series()`, used by `dist_by_dir_sector()` and the correlations that bin by direction (e.g. `SpeedSort`), is now vectorised. Added tests to check these results against the previous values. ([#408](https://github.com/brightwind-dev/brightwind/issues/408))
 1. Speed up `Shear.TimeOfDay.apply()` with no change to results. The alpha or roughness coefficient for each timestamp is now looked up by its hour and month and applied to all timestamps at once, instead of looping over every hour and month. The progress bar is no longer shown. ([#408](https://github.com/brightwind-dev/brightwind/issues/408))
@@ -33,7 +34,7 @@ XX-Xxx-2026
 1. `apply_cleaning()` now flags the single timestamp of a cleaning row whose `Start` equals its `Stop`. Previously such a row selected an empty period and cleaned nothing. All other rows still flag from `Start` up to but not including `Stop`. ([#656](https://github.com/brightwind-dev/brightwind/issues/656))
 
 ### Deprecated
-1. 
+1. `LoadBrightHub._brighthub_request` and `brightwind.load.load._BrighthubAuth` are deprecated and will be removed in v3.0.0. Use `brighthub_request` and `get_brighthub_auth_id_token` instead.
 
 ---
 ## [2.7.0]
