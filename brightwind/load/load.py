@@ -43,6 +43,14 @@ OPERATOR_DICT = {
     6: operator.ne,
     }
 
+# Statistic types as defined by the 'statistic_type_id' list of the IEA Wind Task 43 WRA Data Model, used as the
+# suffixes of a measurement's statistic columns, e.g. 'Spd80m_sd', 'Spd80m_max'. 'avg' is not in this tuple because
+# the average is the unsuffixed column, e.g. 'Spd80m'.
+# https://github.com/iea-wind-digitalisation/wra-data-model/blob/master/schema/iea43_wra_data_model.schema.json
+WRA_DATA_MODEL_STATISTIC_TYPES = ('sd', 'max', 'min', 'count', 'availability', 'quality', 'sum', 'median', 'mode',
+                                  'range', 'gust', 'ti', 'ti30sec', 'text', 'value')
+COLUMN_MATCH_OPTIONS = ('startswith', 'contains', 'exact', 'wra_data_model')
+
 
 def _list_files(folder_path, file_type):
     """
@@ -2369,6 +2377,45 @@ def _if_null_max_the_date(date_from, date_to):
     return date_from, date_to
 
 
+def _get_cleaning_period_mask(index, date_from, date_to):
+    """Build a boolean mask selecting the timestamps of index that a cleaning period flags.
+
+    `date_from` is inclusive and `date_to` is exclusive. A period whose `date_from` equals its `date_to` represents a
+    single timestamp, which the empty range would otherwise ignore, so only the timestamp equal to `date_from` is
+    flagged. Both bounds may be strings or datetimes. The range comparisons run first so that bounds which cannot be
+    compared with the index raise the same error for every period.
+    """
+    from_date_from = index >= date_from
+    before_date_to = index < date_to
+    if pd.Timestamp(date_from) == pd.Timestamp(date_to):
+        return from_date_from & (index <= date_to)
+    return from_date_from & before_date_to
+
+
+def _validate_column_match(column_match):
+    if column_match not in COLUMN_MATCH_OPTIONS:
+        raise ValueError(f"column_match must be one of {COLUMN_MATCH_OPTIONS}, got '{column_match}'.")
+
+
+def _get_columns_to_clean(name, columns, column_match):
+    """Return the columns in `columns` that a cleaning entry for `name` applies to, according to `column_match`.
+
+    'startswith' returns every column starting with `name`, 'contains' every column containing `name`, 'exact'
+    `name` itself and 'wra_data_model' `name` itself plus `name_<suffix>` for each suffix in
+    WRA_DATA_MODEL_STATISTIC_TYPES.
+    """
+    if column_match == 'startswith':
+        return [col for col in columns if col.find(name) == 0]
+    if column_match == 'contains':
+        return [col for col in columns if name in col]
+    if column_match == 'exact':
+        related_columns = {name}
+    else:
+        related_columns = {name} | {f'{name}_{suffix}' for suffix in WRA_DATA_MODEL_STATISTIC_TYPES}
+    # Also checking the prefix raises the same error as 'startswith' for a name or column that is not a string
+    return [col for col in columns if col.find(name) == 0 and col in related_columns]
+
+
 def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop', dayfirst=False, **kwargs):
     """
     Load a cleaning file which contains a list of sensor names with corresponding periods of flagged data. The timezone
@@ -2420,12 +2467,14 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
 
 
 def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Sensor', date_from_col_name='Start',
-                   date_to_col_name='Stop', all_sensors_descriptor='All', replacement_text='NaN', dayfirst=False):
+                   date_to_col_name='Stop', all_sensors_descriptor='All', replacement_text='NaN', dayfirst=False,
+                   column_match='startswith'):
     """
     Apply cleaning to a timeseries DataFrame using predetermined flagged periods for each sensor listed in a cleaning
-    file. For each row in the cleaning file, if the 'Sensor' string is found at the start of a column name in the
-    timeseries DataFrame, then that column of data is flagged for the specified period. The flagged data will be
-    replaced with NaN values which then do not appear in any plots or effect calculations.
+    file. By default, for each row in the cleaning file, if the 'Sensor' string is found at the start of a column name
+    in the timeseries DataFrame, then that column of data is flagged for the specified period. Use 'column_match' to
+    change how the 'Sensor' string is matched to column names. The flagged data will be replaced with NaN values which
+    then do not appear in any plots or effect calculations.
 
     This file is a simple comma separated file with the 'Sensor' name along with the 'Start' and 'Stop' timestamps for
     the flagged period. There may be other columns in the file however these will be ignores.  E.g.:
@@ -2435,6 +2484,9 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     | Dir78m | 2018-12-23 02:40:00 |
 
     If the 'Stop' timestamp is missing, the data from the 'Start' until the end of the timeseries will be flagged.
+
+    Each flagged period includes the 'Start' timestamp and runs up to but not including the 'Stop' timestamp. If the
+    'Start' and 'Stop' timestamps are equal, only that single timestamp is flagged.
 
     :param data:                    Data to be cleaned.
     :type data:                     pandas.DataFrame
@@ -2462,6 +2514,25 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
                                     parses dates with the day first, eg 10/11/12 is parsed as 2012-11-10.
                                     More info on pandas.read_csv parameters.
     :type dayfirst:                 bool, default False
+    :param column_match:            How the 'Sensor' string is matched to the column names of 'data'. One of:
+                                    'startswith': clean every column whose name starts with the 'Sensor' string,
+                                    e.g. 'Spd' cleans 'Spd80mN' and 'Spd60mS', but 'Tmp' also cleans a separate
+                                    measurement 'Tmp_logger'.
+                                    'contains': clean every column whose name contains the 'Sensor' string.
+                                    'exact': clean only the column named exactly as the 'Sensor' string, e.g. 'Tmp'
+                                    cleans 'Tmp' but not 'Tmp_sd' or 'Tmp_logger'. Works with any column naming
+                                    convention, so each statistic column needs its own cleaning entry.
+                                    'wra_data_model': clean only the column named exactly as the 'Sensor' string and
+                                    its statistic columns, e.g. 'Tmp' cleans 'Tmp', 'Tmp_sd' and 'Tmp_max' but not
+                                    'Tmp_logger'. This assumes the WRA Data Model column naming convention, where the
+                                    average is the unsuffixed column and each other statistic column is named
+                                    <sensor>_<statistic> using the statistic types as defined in the WRA Data Model
+                                    ('sd', 'max', 'min', 'count', 'availability', 'quality', 'sum', 'median', 'mode',
+                                    'range', 'gust', 'ti', 'ti30sec', 'text', 'value'). Columns that do not follow this
+                                    convention, e.g. 'Spd80mSStd', are not matched. A separate measurement named like a
+                                    statistic column, e.g. 'Tmp_max' next to 'Tmp', is treated as a statistic column of
+                                    'Tmp'.
+    :type column_match:             str, default 'startswith'
     :return:                        DataFrame with the flagged data removed.
     :rtype:                         pandas.DataFrame
 
@@ -2486,7 +2557,15 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
         data = bw.apply_cleaning(data, cleaning_file, sensor_col_name='Data column',
                                  date_from_col_name='Start Time', date_to_col_name='Stop Time')
 
+    To clean only the named column and its statistic columns named following the WRA Data Model convention
+    (e.g. 'Spd80m', 'Spd80m_sd'), and not other columns whose name starts the same (e.g. 'Spd80m_2'):
+        data_cleaned = bw.apply_cleaning(data, cleaning_file, column_match='wra_data_model')
+
+    To clean only the column named exactly as the 'Sensor' string, whatever the column naming convention:
+        data_cleaned = bw.apply_cleaning(data, cleaning_file, column_match='exact')
+
     """
+    _validate_column_match(column_match)
 
     if inplace is False:
         data = data.copy(deep=True)
@@ -2501,16 +2580,127 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     if replacement_text == 'NaN':
         replacement_text = np.nan
 
+    if len(cleaning_df) == 0:
+        return data
+
+    # Work out every flagged period first, then write each column once. Working out the periods writes nothing, so if
+    # it raises, run the original row by row loop on the untouched data instead to give exactly the same error.
+    try:
+        col_masks, all_mask = _build_cleaning_masks(data, cleaning_df, sensor_col_name, date_from_col_name,
+                                                    date_to_col_name, all_sensors_descriptor, column_match)
+    except (AttributeError, KeyError, TypeError, ValueError) as fast_path_error:
+        # Invalid inputs raise one of these and the row by row loop then raises its usual error for them
+        data = _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
+                                          all_sensors_descriptor, replacement_text, column_match)
+        # The row by row loop worked where the fast path failed, which means a bug in the fast path
+        warnings.warn(f"apply_cleaning used its slower row by row loop because the fast path raised "
+                      f"{type(fast_path_error).__name__}: {fast_path_error}. The cleaned data is correct, but please "
+                      f"report this at https://github.com/brightwind-dev/brightwind/issues.", RuntimeWarning)
+        return data
+    _write_cleaning_masks(data, col_masks, all_mask, replacement_text)
+    return data
+
+
+def _build_cleaning_masks(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
+                          all_sensors_descriptor, column_match):
+    """Combine the flagged periods of every cleaning row into one boolean mask per column of data, plus one mask
+    for the rows whose sensor is all_sensors_descriptor (None if there are none). Reads the cleaning rows the same
+    way as _apply_cleaning_row_by_row and only works out a period where that loop would. Writes nothing.
+    """
+    index = data.index
+    sorted_ns = None
+    if (isinstance(index, pd.DatetimeIndex) and index.tz is None and index.dtype == np.dtype('datetime64[ns]')
+            and not index.hasnans and index.is_monotonic_increasing):
+        sorted_ns = index.asi8
+
+    sensors = cleaning_df[sensor_col_name]
+    date_froms = cleaning_df[date_from_col_name]
+    date_tos = cleaning_df[date_to_col_name]
+    all_mask = None
+    sensor_masks = {}
+    sensor_columns = {}
+    for k in range(0, len(cleaning_df)):
+        sensor = sensors[k]
+        if sensor == all_sensors_descriptor:
+            if all_mask is None:
+                all_mask = np.zeros(len(index), dtype=bool)
+            mask = all_mask
+        else:
+            if sensor not in sensor_columns:
+                sensor_columns[sensor] = _get_columns_to_clean(sensor, data.columns, column_match)
+            if not sensor_columns[sensor]:
+                continue
+            if sensor not in sensor_masks:
+                sensor_masks[sensor] = np.zeros(len(index), dtype=bool)
+            mask = sensor_masks[sensor]
+        date_from, date_to = _if_null_max_the_date(date_froms[k], date_tos[k])
+        _flag_period(mask, index, sorted_ns, date_from, date_to)
+
+    col_masks = {}
+    for sensor, mask in sensor_masks.items():
+        for col in sensor_columns[sensor]:
+            col_masks[col] = mask if col not in col_masks else col_masks[col] | mask
+    return col_masks, all_mask
+
+
+def _flag_period(mask, index, sorted_ns, date_from, date_to):
+    """Set mask to True for the rows of index that the cleaning period flags, the same rows as
+    _get_cleaning_period_mask: [date_from, date_to), or only the rows equal to date_from when date_from equals
+    date_to. sorted_ns is the index as sorted int64 nanoseconds, or None. When it is given and both dates have a
+    nanosecond value, the rows are found with a binary search instead of comparing every timestamp.
+    """
+    if sorted_ns is not None:
+        start, stop = _timestamp_ns(date_from), _timestamp_ns(date_to)
+        if start is not None and stop is not None:
+            side = 'right' if start == stop else 'left'
+            mask[sorted_ns.searchsorted(start):sorted_ns.searchsorted(stop, side=side)] = True
+            return
+    mask |= _get_cleaning_period_mask(index, date_from, date_to)
+
+
+def _timestamp_ns(value):
+    """Return value as int64 nanoseconds if it is a Timestamp, datetime, numpy datetime64 or string that is (or parses
+    to) a tz-naive timestamp in the datetime64[ns] range, otherwise None. Pandas converts each of these to a Timestamp
+    the same way when comparing a datetime64[ns] index with it, so comparing with this number gives the same result.
+    """
+    if type(value) is str or type(value) is datetime.datetime or type(value) is np.datetime64:
+        try:
+            value = pd.Timestamp(value)
+        except (ValueError, OverflowError):
+            return None
+    if type(value) is not pd.Timestamp or value.tz is not None:
+        return None
+    try:
+        return value.value
+    except OverflowError:
+        # Outside the datetime64[ns] range
+        return None
+
+
+def _write_cleaning_masks(data, col_masks, all_mask, replacement_text):
+    """Write replacement_text into data wherever the masks from _build_cleaning_masks are True."""
+    pd.options.mode.chained_assignment = None
+    if all_mask is not None:
+        data.loc[all_mask, data.columns] = replacement_text
+    for col, mask in col_masks.items():
+        data.loc[mask, col] = replacement_text
+    pd.options.mode.chained_assignment = 'warn'
+
+
+def _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
+                               all_sensors_descriptor, replacement_text, column_match):
+    """The original apply_cleaning loop, one write per cleaning row and column. apply_cleaning falls back to it
+    whenever working out the flagged periods raises, so errors are exactly as before.
+    """
     for k in range(0, len(cleaning_df)):
         date_from, date_to = _if_null_max_the_date(cleaning_df[date_from_col_name][k], cleaning_df[date_to_col_name][k])
 
         pd.options.mode.chained_assignment = None
         if cleaning_df[sensor_col_name][k] == all_sensors_descriptor:
-            data.loc[(data.index >= date_from) & (data.index < date_to), data.columns] = replacement_text
+            data.loc[_get_cleaning_period_mask(data.index, date_from, date_to), data.columns] = replacement_text
         else:
-            for col in data.columns:
-                if col.find(cleaning_df[sensor_col_name][k]) == 0:
-                    data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
+            for col in _get_columns_to_clean(cleaning_df[sensor_col_name][k], data.columns, column_match):
+                data.loc[_get_cleaning_period_mask(data.index, date_from, date_to), col] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
     return data
@@ -2572,7 +2762,8 @@ def _evaluate_time_range_condition(df, condition):
     return result
 
 
-def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, replacement_text='NaN'):
+def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, replacement_text='NaN',
+                         column_match='contains'):
     """
     Apply cleaning to a timeseries DataFrame using cleaning rules either from file or from an input list(dict).
     The flagged data will be replaced with replacement_text values which then do not appear in any plots or affect 
@@ -2593,6 +2784,31 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     :type inplace:                      bool
     :param replacement_text:            Text used to replace the flagged data.
     :type replacement_text:             str | np.nan, default 'NaN'
+    :param column_match:                How each ``clean_out`` ``assembled_column_name`` is matched to the column names
+                                        of 'data'. One of:
+                                        'contains': clean every column whose name contains the
+                                        ``assembled_column_name``, e.g. 'Tmp' cleans 'Tmp', 'Tmp_sd' and 'Tmp_max',
+                                        but also separate measurements 'Tmp_logger' and 'Air_Tmp'. This is the
+                                        default.
+                                        'startswith': clean every column whose name starts with the
+                                        ``assembled_column_name``, e.g. 'Spd' cleans 'Spd80mN' and 'Spd60mS', but 'Tmp'
+                                        also cleans a separate measurement 'Tmp_logger'.
+                                        'exact': clean only the column named exactly as the
+                                        ``assembled_column_name``, e.g. 'Tmp' cleans 'Tmp' but not 'Tmp_sd' or
+                                        'Tmp_logger'. Works with any column naming convention, so each statistic
+                                        column needs its own ``clean_out`` item.
+                                        'wra_data_model': clean only the column named exactly as the
+                                        ``assembled_column_name`` and its statistic columns, e.g. 'Tmp' cleans 'Tmp',
+                                        'Tmp_sd' and 'Tmp_max' but not 'Tmp_logger'. This assumes the WRA Data Model
+                                        column naming convention, where the average is the unsuffixed column and each
+                                        other statistic column is named <name>_<statistic> using the statistic types
+                                        as defined in the WRA Data Model ('sd', 'max', 'min', 'count',
+                                        'availability', 'quality', 'sum', 'median', 'mode', 'range', 'gust', 'ti',
+                                        'ti30sec', 'text', 'value'). Columns that do not follow this convention, e.g.
+                                        'Spd80mSStd', are not matched. A separate measurement named like a
+                                        statistic column, e.g. 'Tmp_max' next to 'Tmp', is treated as a statistic
+                                        column of 'Tmp'.
+    :type column_match:                 str, default 'contains'
     :return:                            DataFrame with the flagged data removed.
     :rtype:                             pandas.DataFrame
 
@@ -2652,15 +2868,26 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     **Stat-type expansion of ``clean_out``**
 
     A ``clean_out`` item naming the avg column will also clean all associated stat-type columns at
-    the same measurement point (``_sd``, ``_max``, ``_min``, ``_count``, ``_availability``,
-    ``_quality``, ``_sum``, ``_median``, ``_mode``, ``_range``, ``_gust``, ``_ti``, ``_ti30sec``,
-    ``_text``, ``_val``) via substring matching on column names.
+    the same measurement point, i.e. the statistic types as defined in the WRA Data Model (``_sd``,
+    ``_max``, ``_min``, ``_count``, ``_availability``, ``_quality``, ``_sum``, ``_median``, ``_mode``,
+    ``_range``, ``_gust``, ``_ti``, ``_ti30sec``, ``_text``, ``_value``). ``avg`` is the unsuffixed column.
+
+    With the default ``column_match='contains'`` this is done via substring matching on column
+    names, so a ``clean_out`` item ``Tmp`` also cleans other measurements such as ``Tmp_logger``
+    or ``Air_Tmp``. With ``column_match='wra_data_model'`` only the named column and its
+    ``<name>_<stat>`` columns listed above are cleaned. ``'wra_data_model'`` is expected to
+    become the default in the next major release. With ``column_match='exact'`` there is no
+    stat-type expansion and only the named column is cleaned.
+    ::
+        data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_file_or_list,
+                                               column_match='wra_data_model')
 
     The new ``measurement_point_uuid`` and ``statistic_type_id`` fields on ``conditions`` and
     ``clean_out`` items (added in the BrightHub API) are accepted but currently ignored — only
     ``assembled_column_name`` is used for column resolution.
 
     """
+    _validate_column_match(column_match)
 
     if inplace is False:
         data = data.copy(deep=True)
@@ -2690,10 +2917,10 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     for cleaning_rule in cleaning_json:
         rule = cleaning_rule['rule']
 
-        columns_to_clean = [c['assembled_column_name'] for c in rule['clean_out']]
-        columns_to_clean = [column_name for column_to_clean in columns_to_clean
-                            for column_name in data.columns
-                            if column_to_clean in column_name]
+        columns_to_clean = [column_name
+                            for clean_out in rule['clean_out']
+                            for column_name in _get_columns_to_clean(clean_out['assembled_column_name'],
+                                                                     data.columns, column_match)]
 
         mask = _evaluate_condition(data, rule['conditions'])
         mask &= _build_date_range_mask(data, rule.get('date_from'), rule.get('date_to'))

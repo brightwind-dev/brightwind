@@ -6,8 +6,7 @@ from math import e
 from brightwind.analyse import plot as bw_plt
 from brightwind.transform import transform as tf
 # noinspection PyProtectedMember
-from brightwind.analyse.analyse import dist_by_dir_sector, coverage, _convert_df_to_series, \
-    _get_direction_binned_series
+from brightwind.analyse.analyse import dist_by_dir_sector, coverage, _convert_df_to_series
 import re
 import warnings
 
@@ -24,7 +23,7 @@ class Shear:
     class TimeSeries:
 
         def __init__(self, wspds, heights, min_speed=3, calc_method='power_law', max_plot_height=None,
-                     maximise_data=False):
+                     maximise_data=False, plot=True):
             """
             Calculates alpha, using the power law, or the roughness coefficient, using the log law, for each timestamp
             of a wind series.
@@ -46,6 +45,9 @@ class Shear:
                                     least two wind speed readings exist for a timestamp. If False, calculations will
                                     only be carried out on timestamps where readings exist for all wind speed levels.
            :type maximise_data:     bool
+           :param plot:             If True (default), the average wind profile plot is generated. If False, no plot is
+                                    generated and the 'plot' attribute is None, which saves time on large datasets.
+           :type plot:              bool
            :return:                 TimeSeries object containing calculated alpha/roughness coefficient values, a plot
                                     and other data.
            :rtype:                  TimeSeries object
@@ -102,13 +104,14 @@ class Shear:
                                                   name='roughness_coefficient')
                 self._roughness = roughness_coefficient
 
-            avg_plot = Shear.Average(wspds=wspds, heights=heights, calc_method=calc_method,
-                                     max_plot_height=max_plot_height)
+            self.plot = None
+            if plot:
+                self.plot = Shear.Average(wspds=wspds, heights=heights, calc_method=calc_method,
+                                          max_plot_height=max_plot_height).plot
 
             self.origin = 'TimeSeries'
             self.calc_method = calc_method
             self.wspds = wspds
-            self.plot = avg_plot.plot
             self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed)
 
         @property
@@ -132,7 +135,8 @@ class Shear:
            :type height: float
            :param shear_to: height to which wspds should be scaled to.
            :type shear_to: float
-           :return: a pandas.Series of the scaled wind speeds.
+           :return: a pandas.Series of the scaled wind speeds for every timestamp of wspds, sorted by time.
+                    NaN where the wind speed can't be scaled.
            :rtype: pandas.Series
 
             **Example Usage**
@@ -140,7 +144,7 @@ class Shear:
                 import brightwind as bw
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
 
@@ -393,7 +397,7 @@ class Shear:
                 import brightwind as bw
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
 
@@ -437,7 +441,7 @@ class Shear:
                 import pprint
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
 
@@ -533,7 +537,7 @@ class Shear:
                 import brightwind as bw
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
 
@@ -586,7 +590,7 @@ class Shear:
                 import pprint
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS','Spd40mS']]
                 heights = [80, 60, 40]
                 directions = data['Dir78mS']
@@ -624,21 +628,19 @@ class Shear:
 
             wdir = _convert_df_to_series(wdir)
 
-            # bin directions once and get the mean wind speed and count per sector for all heights together
-            direction_binned_series, sector_labels, sectors, _, _ = _get_direction_binned_series(
-                sectors, wdir.dropna(), direction_bin_array)
-            binned_wspds = pd.concat([wspds, direction_binned_series], axis=1, join='inner')
-            grouped_wspds = binned_wspds.groupby('direction_bin')[list(wspds.columns)]
-            sector_nums = range(1, sectors + 1)
-            mean_wspds_df = grouped_wspds.mean().reindex(sector_nums, fill_value=0.0)
-            count_df = grouped_wspds.count().reindex(sector_nums, fill_value=0).mean(axis=1)
-            mean_wspds_df.index = count_df.index = list(sector_labels)
+            # mean wind speed and count per sector at each height, without drawing the rose plots
+            sector_dists = {}
+            for aggregation_method in ['mean', 'count']:
+                sector_dists[aggregation_method] = pd.concat(
+                    [dist_by_dir_sector(wspds[col], wdir, sectors=sectors, aggregation_method=aggregation_method,
+                                        direction_bin_array=direction_bin_array, return_data=True, plot=False)[1]
+                     for col in wspds.columns], axis=1, keys=wspds.columns)
+            mean_wspds_df = sector_dists['mean']
+            count_df = sector_dists['count'].mean(axis=1)
 
-            wind_rose_plot, wind_rose_dist = dist_by_dir_sector(wspds.iloc[:, 0], wdir,
-                                                                direction_bin_array=direction_bin_array,
-                                                                sectors=sectors,
-                                                                direction_bin_labels=direction_bin_labels,
-                                                                return_data=True)
+            _, wind_rose_dist = dist_by_dir_sector(wspds.iloc[:, 0], wdir, direction_bin_array=direction_bin_array,
+                                                   sectors=sectors, direction_bin_labels=direction_bin_labels,
+                                                   return_data=True, plot=False)
             if calc_method == 'power_law':
 
                 alpha = mean_wspds_df.apply(Shear._calc_power_law, heights=heights, return_coeff=False, axis=1)
@@ -703,7 +705,7 @@ class Shear:
                 import brightwind as bw
 
                 # Load anemometer data to calculate exponents
-                data = bw.load_csv(C:\\Users\\Stephen\\Documents\\Analysis\\demo_data)
+                data = bw.load_csv(bw.demo_datasets.demo_data)
                 anemometers = data[['Spd80mS', 'Spd60mS']]
                 heights = [80, 60]
                 directions = data[['Dir78mS']]
@@ -931,19 +933,14 @@ class Shear:
         result = pd.Series([], dtype='float64')
 
         if self.origin == 'TimeSeries':
-
+            # keep every timestamp of the input, the scaled wind speed is NaN where it can't be scaled
+            wspds = wspds.sort_index()
             if self.calc_method == 'power_law':
-                df = pd.concat([wspds, self.alpha], axis=1).dropna()
-                scaled_wspds = Shear._scale(wspds=df.iloc[:, 0], height=height, shear_to=shear_to,
-                                            calc_method='power_law', alpha=df.iloc[:, 1])
-
+                result = Shear._scale(wspds=wspds, height=height, shear_to=shear_to, calc_method='power_law',
+                                      alpha=self.alpha.reindex(wspds.index))
             else:
-                df = pd.concat([wspds, self.roughness], axis=1).dropna()
-                scaled_wspds = Shear._scale(wspds=df.iloc[:, 0], height=height, shear_to=shear_to,
-                                            calc_method=self.calc_method,
-                                            roughness=self._roughness, origin=self.origin)
-
-            result = scaled_wspds.dropna()
+                result = Shear._scale(wspds=wspds, height=height, shear_to=shear_to, calc_method=self.calc_method,
+                                      roughness=self._roughness.reindex(wspds.index), origin=self.origin)
 
         if self.origin == 'TimeOfDay':
 
