@@ -28,10 +28,10 @@ def test_export_tws_file():
         )
     
     # Load the export file and test that it matches the test file
-    with open(r"..\brightwind\demo_datasets\demo_tws_file.tws", "r") as f:
+    with open(bw.demo_datasets.demo_tws_file, "r") as f:
         test_file = f.read()
-        
-    with open('temp\export_tws_file.tws', "r") as f:
+
+    with open(os.path.join(TEMP_FOLDER, 'export_tws_file.tws'), "r") as f:
         new_file = f.read()
     assert new_file[85:] == test_file[85:] # skipping header, as timestamp is present, which will never match
 
