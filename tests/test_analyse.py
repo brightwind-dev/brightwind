@@ -109,6 +109,14 @@ def test_momm():
     momm_seas_adj = bw.momm(data_test[['Spd40mN', 'Spd40mS']], seasonal_adjustment=True, coverage_threshold=0.7)
     assert round(momm_seas_adj.T['Spd40mS'].values[0], 6) == 6.864868
 
+    # Derive mean of monthly mean seasonal adjusted where each calendar month has a constant value, over two years
+    # including a leap year, so February is weighted by the average of 28 and 29 days
+    idx = pd.date_range('2023-01-01', '2025-01-01', freq='10min', inclusive='left')
+    data_test = pd.Series(idx.month.astype(float), index=idx, name='Spd')
+    days_in_month = np.array([31, 28.5, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
+    expected_momm = (np.arange(1, 13) * days_in_month).sum() / days_in_month.sum()
+    assert np.isclose(bw.momm(data_test, seasonal_adjustment=True, coverage_threshold=0), expected_momm)
+
 
 def test_sector_ratio():
     bw.sector_ratio(DATA['Spd80mN'], DATA['Spd80mS'], DATA['Dir78mS'], sectors=72, boom_dir_1=0,
@@ -250,6 +258,37 @@ def test_dist_by_dir_sector():
                           return_data=True)
 
     bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS, aggregation_method='std', return_data=True)
+
+    # test values
+    _, mean_by_sector = bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS, aggregation_method='mean',
+                                              return_data=True)
+    assert mean_by_sector.to_list() == pytest.approx([5.1607, 5.1657, 4.4028, 5.8451, 6.5435, 6.2029, 6.4255, 6.9508,
+                                                      7.6617, 8.3222, 7.1285, 5.7351], abs=1e-4)
+    _, count_by_sector = bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS, direction_bin_array=[0, 90, 130, 200, 360],
+                                               aggregation_method='count', return_data=True)
+    assert count_by_sector.to_dict() == {'0-90': 14087, '90-130': 6224, '130-200': 21882, '200-360': 52987}
+
+    # plot switched off returns the same data with no plot
+    rose, mean_no_plot = bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS, aggregation_method='mean',
+                                               return_data=True, plot=False)
+    assert rose is None
+    pd.testing.assert_series_equal(mean_no_plot, mean_by_sector)
+
+
+def test_binned_direction_series():
+    wdir = pd.Series([0, 14.999, 15, 180, 344.999, 345, 359.999, 360, np.nan], name='wdir')
+
+    # default 12 sectors, first sector centred on 0 i.e. 345-15
+    binned = bw.analyse.analyse._binned_direction_series(wdir, sectors=12)
+    assert binned.to_list() == [1, 1, 2, 7, 12, 1, 1, 1]
+    assert binned.index.to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
+    assert binned.name == 'wdir'
+    assert binned.dtype == 'int64'
+
+    # custom bins
+    wdir = pd.Series([0, 89.9, 90, 130, 199.9, 200, 359.9, 360])
+    binned = bw.analyse.analyse._binned_direction_series(wdir, sectors=4, direction_bin_array=[0, 90, 130, 200, 360])
+    assert binned.to_list() == [1, 1, 2, 3, 3, 4, 4, 4]
 
 
 def test_freq_table():
