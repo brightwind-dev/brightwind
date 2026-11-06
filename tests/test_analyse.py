@@ -260,6 +260,12 @@ def test_dist_by_dir_sector():
                                                aggregation_method='count', return_data=True)
     assert count_by_sector.to_dict() == {'0-90': 14087, '90-130': 6224, '130-200': 21882, '200-360': 52987}
 
+    # plot switched off returns the same data with no plot
+    rose, mean_no_plot = bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS, aggregation_method='mean',
+                                               return_data=True, plot=False)
+    assert rose is None
+    pd.testing.assert_series_equal(mean_no_plot, mean_by_sector)
+
 
 def test_binned_direction_series():
     wdir = pd.Series([0, 14.999, 15, 180, 344.999, 345, 359.999, 360, np.nan], name='wdir')
