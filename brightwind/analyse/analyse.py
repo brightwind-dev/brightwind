@@ -420,19 +420,16 @@ def _mean_of_monthly_means_seasonal_adjusted(var_series):
 
     """
 
-    results = {}
-    number_days_month = {}
-    # derive monthly mean and number of days for each calendar month
-    for month in var_series.index.month.unique():
-        var_series_month = var_series[var_series.index.month == month]
+    # derive monthly mean for each calendar month
+    results = var_series.groupby(var_series.index.month).mean()
 
-        number_days_month.update({month: np.mean(list(pd.DatetimeIndex(
-            var_series_month.index.strftime("%Y-%m").unique()).days_in_month))})
+    # derive number of days for each calendar month as the average across the years in the dataset
+    year_months = pd.Index(var_series.index.year * 100 + var_series.index.month).unique()
+    days_in_year_months = pd.Series(pd.to_datetime(year_months.astype(str), format='%Y%m').days_in_month,
+                                    index=year_months % 100)
+    number_days_month = days_in_year_months.groupby(level=0).mean()
 
-        results.update({month: var_series_month.mean()})
-
-    result = (pd.Series(results) * pd.Series(number_days_month) / sum(
-        number_days_month.values())).sum(skipna=True)
+    result = (results * number_days_month / number_days_month.sum()).sum(skipna=True)
     return result
 
 
