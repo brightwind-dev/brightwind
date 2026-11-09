@@ -759,10 +759,7 @@ def _vector_avg_of_wdirs_dataframe(wdirs, wspds=None):
         _vector_avg_of_wdirs_dataframe(wdirs_df, wspds_df)
 
     Note:
-    The reason [0, 180] results in 90 and not NaN is because the sin of 180 is not quite zero which results in not
-    ending back exactly where you started and so gives 90. Similarly if 10, 190 is sent the mean of the sin is slightly
-    negative (-6.9e-17) instead of zero which results in 270 instead of NaN. Similar for cosine when 90, 270 sent.
-    Solution is to round both sin and cos to 5 decimal places to make them zero.
+    See _wdir_sine_cosine() for why sine and cosine are rounded.
     """
     sine, cosine = _wdir_sine_cosine(wdirs)
     if wspds is None:
@@ -800,10 +797,7 @@ def _vector_avg_of_wdirs_list(wdirs, wspds=None):
         _vector_avg_of_wdirs_list(wdirs, wspds)
 
     Note:
-    The reason [0, 180] results in 90 and not NaN is because the sin of 180 is not quite zero which results in not
-    ending back exactly where you started and so gives 90. Similarly if 10, 190 is sent the mean of the sin is slightly
-    negative (-6.9e-17) instead of zero which results in 270 instead of NaN. Similar for cosine when 90, 270 sent.
-    Solution is to round both sin and cos to 5 decimal places to make them zero.
+    See _wdir_sine_cosine() for why sine and cosine are rounded.
     """
     # first drop nans, if wind speeds available need to match them first to drop equivalent values
     if wspds is None:
