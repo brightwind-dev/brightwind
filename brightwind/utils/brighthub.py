@@ -5,16 +5,17 @@ import time
 import warnings
 import requests
 
-__all__ = ['brighthub_request',
-           'get_brighthub_auth_id_token']
+__all__ = ['request',
+           'get_id_token']
 
 _BASE_URI = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
 _SUPPORTED_METHODS = ('GET', 'POST', 'PUT', 'DELETE')
 _RETRY_ON_STATUS_METHODS = ('GET',)
 _RETRY_STATUS_CODES = (429, 502, 503, 504)
-_MAX_ATTEMPTS = 3
+_DEFAULT_MAX_RETRIES = 2
 _RETRY_DELAY_SECONDS = 3
-_TIMEOUT_SECONDS = 10
+# (connect, read) timeouts in seconds. The read timeout is how long to wait for the server to respond.
+_DEFAULT_TIMEOUT = (10, 35)
 
 
 def _get_environment_variable(name):
@@ -25,9 +26,9 @@ def _get_environment_variable(name):
 
 class _BrighthubAuth:
     """
-    This class is used to define general functions that are then called by LoadBrightHub. Functions in this
-    class are outside of LoadBrightHub and will be called only once during the analysis and this will avoid making
-    multiple login to the Brighthub user pool.
+    This class holds the BrightHub authentication state and functions. It is used by request() and get_id_token()
+    in this module, and so by LoadBrightHub. Credentials and tokens are cached at class level so that authentication
+    happens only once during the analysis, avoiding multiple logins to the Brighthub user pool.
     """
 
     # List possible errors encountered on Login
@@ -274,7 +275,7 @@ class _BrighthubAuth:
         return {}
 
 
-def get_brighthub_auth_id_token():
+def get_id_token():
     """
     Get the ID token used to authenticate requests to the BrightHub APIs.
 
@@ -290,7 +291,7 @@ def get_brighthub_auth_id_token():
     ::
         import brightwind as bw
 
-        token = bw.get_brighthub_auth_id_token()
+        token = bw.brighthub.get_id_token()
         headers = {"authorization": token}
 
     """
@@ -299,19 +300,21 @@ def get_brighthub_auth_id_token():
     return _BrighthubAuth.ID_TOKEN
 
 
-def brighthub_request(method, url_extension, params=None, json=None, data=None):
+def request(url_extension, method='GET', params=None, json=None, data=None, timeout=_DEFAULT_TIMEOUT,
+            max_retries=_DEFAULT_MAX_RETRIES):
     """
-    Make a request to the BrightHub APIs. Authentication is handled automatically, see get_brighthub_auth_id_token().
+    Make a request to the BrightHub APIs. Authentication is handled automatically, see get_id_token().
 
-    Up to 3 attempts are made, with a 3 second delay between attempts and a 10 second timeout. Connection timeouts are
-    retried for all methods. Other connection errors, read timeouts and 429, 502, 503 and 504 responses are retried
+    A failed request is retried up to max_retries times, with a 3 second delay between attempts. Connection timeouts
+    are retried for all methods. Other connection errors, read timeouts and 429, 502, 503 and 504 responses are retried
     for GET only, as a POST, PUT or DELETE may already have been applied by the server and retrying could duplicate it.
     If a 401 is returned, a new token is requested and the request is made once more.
 
-    :param method:        The HTTP method, one of 'GET', 'POST', 'PUT' or 'DELETE'. Not case sensitive.
-    :type method:         str
     :param url_extension: The end of the url to be concatenated with the BrightHub base URI e.g. '/plants'.
     :type url_extension:  str
+    :param method:        Optional. The HTTP method, one of 'GET', 'POST', 'PUT' or 'DELETE'. Not case sensitive.
+                          Default 'GET'.
+    :type method:         str
     :param params:        Optional. A dictionary, list of tuples or bytes to send as a query string. Default None.
     :type params:         dict, list(tuples), bytes
     :param json:          Optional. A JSON serialisable object to send as the body of the request. Default None.
@@ -319,24 +322,35 @@ def brighthub_request(method, url_extension, params=None, json=None, data=None):
     :param data:          Optional. A dictionary, list of tuples or bytes to send as the body of the request.
                           Default None.
     :type data:           dict, list(tuples), bytes
-    :return:              The response returned by the request. For an unsupported method a response with a
-                          status code of 411 is returned and no request is made.
+    :param timeout:       Optional. The time in seconds to wait for the server, as a (connect, read) tuple or a single
+                          value used for both. Default (10, 35). The read timeout is how long to wait for the server to
+                          respond, so raise it for requests that are expected to take longer.
+    :type timeout:        float, tuple(float, float)
+    :param max_retries:   Optional. The maximum number of times a failed request is retried, so the request is made
+                          at most max_retries + 1 times. Use 0 to turn retrying off. Writes (POST, PUT and DELETE)
+                          are still only retried after a connect timeout. Default 2.
+    :type max_retries:    int
+    :return:              The response returned by the request.
     :rtype:               requests.Response
+    :raises ValueError:   If the method is not one of 'GET', 'POST', 'PUT' or 'DELETE', or if max_retries is not a
+                          non-negative integer. No request is made.
 
     **Example usage**
     ::
         import brightwind as bw
 
-        plants = bw.brighthub_request('GET', '/plants')
-        response = bw.brighthub_request('PUT', '/plants/<plant_uuid>', json={'name': 'New name'})
+        plants = bw.brighthub.request('/plants')
+        response = bw.brighthub.request('/plants/<plant_uuid>', method='PUT', json={'name': 'New name'})
+
+        # If the name is needed on its own, it can be aliased when imported
+        from brightwind.utils.brighthub import request as brighthub_request
 
     """
     method = str(method).upper()
     if method not in _SUPPORTED_METHODS:
-        response = requests.Response()
-        response.status_code = 411
-        response.reason = "Unsupported method '{}'. Use one of {}.".format(method, ', '.join(_SUPPORTED_METHODS))
-        return response
+        raise ValueError("Unsupported method '{}'. Use one of {}.".format(method, ', '.join(_SUPPORTED_METHODS)))
+    if isinstance(max_retries, bool) or not isinstance(max_retries, int) or max_retries < 0:
+        raise ValueError("max_retries must be a non-negative integer, got {!r}.".format(max_retries))
 
     if not _BrighthubAuth.ID_TOKEN:
         _BrighthubAuth._get_id_token()
@@ -344,12 +358,12 @@ def brighthub_request(method, url_extension, params=None, json=None, data=None):
     url = "{}{}".format(_BASE_URI, url_extension)
 
     def _send():
-        for attempt in range(_MAX_ATTEMPTS):
-            last_attempt = attempt == _MAX_ATTEMPTS - 1
+        for attempt in range(max_retries + 1):
+            last_attempt = attempt == max_retries
             try:
                 response = requests.request(method=method, url=url,
                                             headers={"authorization": _BrighthubAuth.ID_TOKEN},
-                                            params=params, json=json, data=data, timeout=_TIMEOUT_SECONDS)
+                                            params=params, json=json, data=data, timeout=timeout)
             except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as error:
                 # A connect timeout means the request never reached the server so it is safe to retry for every
                 # method. For any other connection error or a read timeout the server may already have applied the
@@ -361,7 +375,8 @@ def brighthub_request(method, url_extension, params=None, json=None, data=None):
                 time.sleep(_RETRY_DELAY_SECONDS)
                 continue
 
-            if response.status_code in _RETRY_STATUS_CODES and method in _RETRY_ON_STATUS_METHODS                     and not last_attempt:
+            if (response.status_code in _RETRY_STATUS_CODES and method in _RETRY_ON_STATUS_METHODS
+                    and not last_attempt):
                 time.sleep(_RETRY_DELAY_SECONDS)
                 continue
             return response

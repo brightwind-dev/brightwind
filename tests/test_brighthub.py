@@ -16,7 +16,7 @@ def _reset_auth():
 @pytest.mark.parametrize('method', ['GET', 'POST', 'PUT', 'DELETE', 'post'])
 def test_brighthub_request_methods(method):
     with patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=200)) as mock_req:
-        response = bw.brighthub_request(method, '/plants', params={'a': 1}, json={'b': 2})
+        response = bw.brighthub.request('/plants', method=method, params={'a': 1}, json={'b': 2})
 
     assert response.status_code == 200
     kwargs = mock_req.call_args.kwargs
@@ -25,32 +25,78 @@ def test_brighthub_request_methods(method):
     assert kwargs['headers'] == {'authorization': 'token-1'}
     assert kwargs['params'] == {'a': 1}
     assert kwargs['json'] == {'b': 2}
-    assert kwargs['timeout'] == 10
+    assert kwargs['timeout'] == (10, 35)
 
 
-def test_brighthub_request_unsupported_method_returns_411():
+def test_brighthub_request_defaults_to_get():
+    with patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=200)) as mock_req:
+        bw.brighthub.request('/plants')
+
+    assert mock_req.call_args.kwargs['method'] == 'GET'
+
+
+def test_brighthub_request_custom_timeout():
+    with patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=200)) as mock_req:
+        bw.brighthub.request('/plants', timeout=(5, 120))
+
+    assert mock_req.call_args.kwargs['timeout'] == (5, 120)
+
+
+@pytest.mark.parametrize('max_retries, expected_calls', [(0, 1), (1, 2), (4, 5)])
+def test_brighthub_request_max_retries(max_retries, expected_calls):
+    with patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=503)) as mock_req, \
+            patch('brightwind.utils.brighthub.time.sleep'):
+        response = bw.brighthub.request('/plants', max_retries=max_retries)
+
+    assert response.status_code == 503
+    assert mock_req.call_count == expected_calls
+
+
+def test_brighthub_request_max_retries_does_not_retry_writes_after_read_timeout():
+    with patch('brightwind.utils.brighthub.requests.request',
+               side_effect=requests.exceptions.ReadTimeout()) as mock_req, \
+            patch('brightwind.utils.brighthub.time.sleep'):
+        with pytest.raises(requests.exceptions.ReadTimeout):
+            bw.brighthub.request('/plants', method='POST', max_retries=5)
+
+    assert mock_req.call_count == 1
+
+
+@pytest.mark.parametrize('max_retries', [-1, 1.5, '2', None, True])
+def test_brighthub_request_invalid_max_retries_raises_value_error(max_retries):
     with patch('brightwind.utils.brighthub.requests.request') as mock_req:
-        response = bw.brighthub_request('PATCH', '/plants')
+        with pytest.raises(ValueError, match='max_retries'):
+            bw.brighthub.request('/plants', max_retries=max_retries)
 
-    assert response.status_code == 411
+    mock_req.assert_not_called()
+
+
+def test_brighthub_request_unsupported_method_raises_value_error():
+    with patch('brightwind.utils.brighthub.requests.request') as mock_req:
+        with pytest.raises(ValueError, match="Unsupported method 'PATCH'"):
+            bw.brighthub.request('/plants', method='PATCH')
+
     mock_req.assert_not_called()
 
 
 def test_brighthub_request_retries_on_connection_error():
     ok = MagicMock(status_code=200)
     side_effect = [requests.exceptions.ConnectionError(), requests.exceptions.ReadTimeout(), ok]
-    with patch('brightwind.utils.brighthub.requests.request', side_effect=side_effect) as mock_req,             patch('brightwind.utils.brighthub.time.sleep') as mock_sleep:
-        response = bw.brighthub_request('GET', '/plants')
+    with patch('brightwind.utils.brighthub.requests.request', side_effect=side_effect) as mock_req, \
+            patch('brightwind.utils.brighthub.time.sleep') as mock_sleep:
+        response = bw.brighthub.request('/plants', method='GET')
 
     assert response is ok
     assert mock_req.call_count == 3
     assert mock_sleep.call_count == 2
 
 
-def test_brighthub_request_raises_after_max_attempts():
-    with patch('brightwind.utils.brighthub.requests.request', side_effect=requests.exceptions.ConnectionError())             as mock_req, patch('brightwind.utils.brighthub.time.sleep'):
+def test_brighthub_request_raises_after_default_max_retries():
+    with patch('brightwind.utils.brighthub.requests.request',
+               side_effect=requests.exceptions.ConnectionError()) as mock_req, \
+            patch('brightwind.utils.brighthub.time.sleep'):
         with pytest.raises(requests.exceptions.ConnectionError):
-            bw.brighthub_request('GET', '/plants')
+            bw.brighthub.request('/plants', method='GET')
 
     assert mock_req.call_count == 3
 
@@ -63,8 +109,9 @@ def test_brighthub_request_reauthenticates_once_on_401():
     def new_token():
         brighthub._BrighthubAuth.ID_TOKEN = 'token-2'
 
-    with patch('brightwind.utils.brighthub.requests.request', side_effect=[expired, ok]) as mock_req,             patch.object(brighthub._BrighthubAuth, '_get_id_token', side_effect=new_token) as mock_auth:
-        response = bw.brighthub_request('POST', '/plants')
+    with patch('brightwind.utils.brighthub.requests.request', side_effect=[expired, ok]) as mock_req, \
+            patch.object(brighthub._BrighthubAuth, '_get_id_token', side_effect=new_token) as mock_auth:
+        response = bw.brighthub.request('/plants', method='POST')
 
     assert response is ok
     mock_auth.assert_called_once()
@@ -74,9 +121,10 @@ def test_brighthub_request_reauthenticates_once_on_401():
 @pytest.mark.parametrize('error', [requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError])
 @pytest.mark.parametrize('method', ['POST', 'PUT', 'DELETE'])
 def test_brighthub_request_does_not_retry_writes_after_ambiguous_errors(method, error):
-    with patch('brightwind.utils.brighthub.requests.request', side_effect=error()) as mock_req,             patch('brightwind.utils.brighthub.time.sleep'):
+    with patch('brightwind.utils.brighthub.requests.request', side_effect=error()) as mock_req, \
+            patch('brightwind.utils.brighthub.time.sleep'):
         with pytest.raises(error):
-            bw.brighthub_request(method, '/plants')
+            bw.brighthub.request('/plants', method=method)
 
     assert mock_req.call_count == 1
 
@@ -85,16 +133,19 @@ def test_brighthub_request_does_not_retry_writes_after_ambiguous_errors(method, 
 def test_brighthub_request_retries_writes_on_connect_timeout(method):
     ok = MagicMock(status_code=200)
     with patch('brightwind.utils.brighthub.requests.request',
-               side_effect=[requests.exceptions.ConnectTimeout(), ok]) as mock_req,             patch('brightwind.utils.brighthub.time.sleep'):
-        assert bw.brighthub_request(method, '/plants') is ok
+               side_effect=[requests.exceptions.ConnectTimeout(), ok]) as mock_req, \
+            patch('brightwind.utils.brighthub.time.sleep'):
+        assert bw.brighthub.request('/plants', method=method) is ok
 
     assert mock_req.call_count == 2
 
 
 @pytest.mark.parametrize('method, expected_calls', [('GET', 3), ('POST', 1)])
 def test_brighthub_request_retries_503_for_get_only(method, expected_calls):
-    with patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=503)) as mock_req,             patch('brightwind.utils.brighthub.time.sleep'):
-        response = bw.brighthub_request(method, '/plants')
+    with patch('brightwind.utils.brighthub.requests.request',
+               return_value=MagicMock(status_code=503)) as mock_req, \
+            patch('brightwind.utils.brighthub.time.sleep'):
+        response = bw.brighthub.request('/plants', method=method)
 
     assert response.status_code == 503
     assert mock_req.call_count == expected_calls
@@ -114,21 +165,21 @@ def test_brighthub_module_does_not_import_brightwind():
     assert not any(name and name.startswith('brightwind') for name in imported)
 
 
-def test_get_brighthub_auth_id_token_returns_cached_token():
+def test_get_id_token_returns_cached_token():
     with patch.object(brighthub._BrighthubAuth, '_get_id_token') as mock_auth:
-        assert bw.get_brighthub_auth_id_token() == 'token-1'
+        assert bw.brighthub.get_id_token() == 'token-1'
 
     mock_auth.assert_not_called()
 
 
-def test_get_brighthub_auth_id_token_authenticates_when_empty():
+def test_get_id_token_authenticates_when_empty():
     brighthub._BrighthubAuth.ID_TOKEN = ''
 
     def new_token():
         brighthub._BrighthubAuth.ID_TOKEN = 'token-new'
 
     with patch.object(brighthub._BrighthubAuth, '_get_id_token', side_effect=new_token) as mock_auth:
-        assert bw.get_brighthub_auth_id_token() == 'token-new'
+        assert bw.brighthub.get_id_token() == 'token-new'
 
     mock_auth.assert_called_once()
 
