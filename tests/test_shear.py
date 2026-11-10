@@ -1,4 +1,5 @@
 import pytest
+import warnings
 import brightwind as bw
 import numpy as np
 import pandas as pd
@@ -334,6 +335,75 @@ def test_time_series_apply():
     assert scaled[:'2016-05-31'].isna().all()
     assert scaled['2017-01-01':].isna().all()
     assert scaled['2016-06-01':'2016-12-31'].notna().any()
+
+
+def test_time_series_apply_fill_with():
+    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']]
+    heights = [80, 60, 40]
+    wspd = DATA['Spd40mS']
+    # shear only calculated for part of the data, so timestamps outside it have no time series shear
+    for calc_method in ['power_law', 'log_law']:
+        shear_by_ts = bw.Shear.TimeSeries(anemometers['2016-06-01':'2016-12-31'], heights, calc_method=calc_method,
+                                          plot=False)
+        with pytest.warns(UserWarning, match="have no valid time series shear") as record:
+            unfilled = shear_by_ts.apply(wspd, 40, 80)
+        no_shear = unfilled.isna() & wspd.notna()
+        assert no_shear.sum() > 0
+        message = [str(w.message) for w in record if 'fill_with' in str(w.message)]
+        assert message == [f"Warning: {no_shear.sum()} of {wspd.notna().sum()} wind speeds "
+                           f"({100 * no_shear.sum() / wspd.notna().sum():.1f}%) have no valid time series shear and "
+                           f"are NaN in the output. Use 'fill_with' to scale these using a Shear.Average or "
+                           f"Shear.TimeOfDay object."]
+        for fill_obj in [bw.Shear.Average(anemometers, heights, calc_method=calc_method),
+                         bw.Shear.TimeOfDay(anemometers, heights, calc_method=calc_method)]:
+            with warnings.catch_warnings(record=True) as record:
+                warnings.simplefilter('always')
+                filled = shear_by_ts.apply(wspd, 40, 80, fill_with=fill_obj)
+            # no warning when the timestamps are filled
+            assert not [w for w in record if 'fill_with' in str(w.message)]
+            assert filled.index.equals(wspd.index)
+            assert filled.name == 'Spd40mS_scaled_to_80m'
+            # time series shear is used where it is valid and the fill_with shear everywhere else
+            pd.testing.assert_series_equal(filled[~no_shear], unfilled[~no_shear])
+            pd.testing.assert_series_equal(filled[no_shear], fill_obj.apply(wspd, 40, 80)[no_shear])
+            assert filled[wspd.isna()].isna().all()
+            assert filled[wspd.notna()].notna().all()
+            # input out of time order gives the same result, sorted by time
+            pd.testing.assert_series_equal(
+                shear_by_ts.apply(wspd.sample(frac=1, random_state=0), 40, 80, fill_with=fill_obj), filled)
+
+    # fill_with must be an Average or TimeOfDay object
+    for fill_obj in [shear_by_ts, 0.2]:
+        with pytest.raises(TypeError) as except_info:
+            shear_by_ts.apply(wspd, 40, 80, fill_with=fill_obj)
+        assert str(except_info.value) == "'fill_with' must be a Shear.Average or Shear.TimeOfDay object."
+
+
+def test_apply_same_height():
+    # scaling to the same height returns the input, whatever the shear
+    anemometers = DATA[['Spd80mS', 'Spd60mS', 'Spd40mS']]
+    heights = [80, 60, 40]
+    wspd = DATA['Spd40mN']
+    directions = DATA['Dir78mS']
+    shuffled = wspd.sample(frac=1, random_state=0)
+    expected = wspd.rename('Spd40mN_scaled_to_70m')
+    for calc_method in ['power_law', 'log_law']:
+        shear_objs = [bw.Shear.TimeSeries(anemometers, heights, calc_method=calc_method, plot=False),
+                      bw.Shear.Average(anemometers, heights, calc_method=calc_method),
+                      bw.Shear.TimeOfDay(anemometers, heights, calc_method=calc_method),
+                      bw.Shear.BySector(anemometers, heights, directions, calc_method=calc_method)]
+        for shear_obj in shear_objs:
+            if shear_obj.origin == 'BySector':
+                scaled = shear_obj.apply(wspd, directions, 70, 70)
+                scaled_shuffled = shear_obj.apply(shuffled, directions, 70, 70)
+            else:
+                scaled = shear_obj.apply(wspd, 70, 70)
+                scaled_shuffled = shear_obj.apply(shuffled, 70, 70)
+            label = f'{shear_obj.origin} {calc_method}'
+            pd.testing.assert_series_equal(scaled, expected, obj=label)
+            # Average keeps the input order, the others sort by time
+            expected_shuffled = shuffled.rename(expected.name) if shear_obj.origin == 'Average' else expected
+            pd.testing.assert_series_equal(scaled_shuffled, expected_shuffled, obj=label + ' shuffled')
 
 
 def test_time_series():
