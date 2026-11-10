@@ -122,10 +122,15 @@ class Shear:
         def roughness(self):
             return self._roughness
 
-        def apply(self, wspds, height, shear_to):
+        def apply(self, wspds, height, shear_to, fill_with=None):
             """"
             Applies shear calculated to a wind speed time series and scales wind speed from one height to
             another for each matching timestamp.
+
+            Timestamps where this object has no valid alpha or roughness coefficient are NaN in the output, unless
+            fill_with is given, and a warning gives how many. These are timestamps where too few wind speeds were valid
+            to calculate shear, or outside the period the shear was calculated for. If height equals shear_to, wspds is
+            returned unchanged.
 
            :param self: TimeSeries object to use when applying shear to the data.
            :type self: TimeSeries object
@@ -135,8 +140,12 @@ class Shear:
            :type height: float
            :param shear_to: height to which wspds should be scaled to.
            :type shear_to: float
+           :param fill_with: Optional Shear.Average or Shear.TimeOfDay object used to scale the wind speeds at
+                             timestamps where this object has no valid alpha or roughness coefficient. If None
+                             (default), these timestamps are NaN.
+           :type fill_with: Shear.Average, Shear.TimeOfDay or None
            :return: a pandas.Series of the scaled wind speeds for every timestamp of wspds, sorted by time.
-                    NaN where the wind speed can't be scaled.
+                    NaN where wspds is NaN, or where there is no valid shear for that timestamp and fill_with is None.
            :rtype: pandas.Series
 
             **Example Usage**
@@ -155,9 +164,29 @@ class Shear:
                 # Scale wind speeds using calculated exponents
                 timeseries_power_law.apply(data['Spd40mN'], height=40, shear_to=70)
                 timeseries_log_law.apply(data['Spd40mN'], height=40, shear_to=70)
-               """
 
-            return Shear._apply(self, wspds, height, shear_to)
+                # Use the average or time of day shear where there is no time series shear for a timestamp
+                average_power_law = bw.Shear.Average(anemometers, heights)
+                timeseries_power_law.apply(data['Spd40mN'], height=40, shear_to=70, fill_with=average_power_law)
+                time_of_day_log_law = bw.Shear.TimeOfDay(anemometers, heights, calc_method='log_law')
+                timeseries_log_law.apply(data['Spd40mN'], height=40, shear_to=70, fill_with=time_of_day_log_law)
+               """
+            if fill_with is not None and getattr(fill_with, 'origin', None) not in ['Average', 'TimeOfDay']:
+                raise TypeError("'fill_with' must be a Shear.Average or Shear.TimeOfDay object.")
+
+            scaled = Shear._apply(self, wspds, height, shear_to)
+            wspds = wspds.sort_index()
+            no_shear = scaled.isna() & wspds.notna()
+            if no_shear.any():
+                if fill_with is not None:
+                    # scale the timestamps without a valid time series shear using the fill_with shear instead
+                    scaled[no_shear] = fill_with.apply(wspds[no_shear], height, shear_to)
+                else:
+                    warnings.warn(f"Warning: {no_shear.sum()} of {wspds.notna().sum()} wind speeds "
+                                  f"({100 * no_shear.sum() / wspds.notna().sum():.1f}%) have no valid time series "
+                                  f"shear and are NaN in the output. Use 'fill_with' to scale these using a "
+                                  f"Shear.Average or Shear.TimeOfDay object.")
+            return scaled
 
     class TimeOfDay:
 
@@ -929,6 +958,13 @@ class Shear:
 
     @staticmethod
     def _apply(self, wspds, height, shear_to, wdir=None):
+        new_name = wspds.name + '_scaled_to_' + str(shear_to) + 'm'
+        if height == shear_to:
+            # no scaling needed, so return the input whatever the shear, in the same order as when scaling
+            if self.origin != 'Average':
+                wspds = wspds.sort_index()
+            return wspds.rename(new_name)
+
         scaled_wspds = pd.Series([], dtype='float64')
         result = pd.Series([], dtype='float64')
 
@@ -1038,7 +1074,6 @@ class Shear:
                 result = Shear._scale(wspds=wspds, height=height, shear_to=shear_to,
                                       calc_method=self.calc_method, roughness=self._roughness)
 
-        new_name = wspds.name + '_scaled_to_' + str(shear_to) + 'm'
         result.rename(new_name, inplace=True)
         return result
 
