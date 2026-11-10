@@ -41,6 +41,7 @@ class BrighthubRequestError(ValueError):
 
 
 # Messages returned by the API gateway (not BrightHub) for an unknown route or a route that does not use API key auth
+# These are matched by their text, so this list needs updating if the wording of these messages changes.
 _GATEWAY_REJECTION_MESSAGES = ('Missing Authentication Token', 'Authorization header requires')
 
 
@@ -128,7 +129,6 @@ class _BrighthubAuth:
                 data={"grant_type": "client_credentials"},
                 timeout=10
             )
-            print(response.json)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             status_code = e.response.status_code if e.response is not None else None
@@ -137,10 +137,12 @@ class _BrighthubAuth:
                     f"Authentication failed at {auth_url} (status code {status_code}). The BrightHub API key is "
                     "invalid, expired or revoked. Please check the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET "
                     f"environmental variables, and create a new API key at {_get_web_uri(base_uri)}"
-                    "/account-settings/settings if needed."
+                    "/account-settings/settings if needed. After updating the key, call "
+                    "bw.brighthub.clear_auth_cache() or restart Python so the new key is used."
                 ) from e
             raise _BrighthubAuth.BrighthubAuthError(
-                f"Authentication failed, BrightHub returned an unexpected response: {e}") from e
+                f"Authentication failed at {auth_url} (status code {status_code}), BrightHub returned an "
+                f"unexpected response: {e}") from e
         except requests.exceptions.RequestException as e:
             raise _BrighthubAuth.BrighthubAuthError(
                 f"Network or connection error during authentication: {e}") from e
