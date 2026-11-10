@@ -442,6 +442,26 @@ def test_time_series_maximise_data_no_overlap():
             expected = np.exp(-(u1 - slope * np.log(z1)) / slope)
             np.testing.assert_allclose(values[two_valid].values, expected, rtol=1e-8, equal_nan=True)
 
+    # a whole height NaN, so shear uses the other two heights
+    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']].iloc[:1000].assign(Spd40mN=np.nan)
+    valid = (anemometers > 3).values
+    used = valid[:, 0] & valid[:, 1]
+    u1, u2 = anemometers.values[used, 0], anemometers.values[used, 1]
+    for calc_method in ['power_law', 'log_law']:
+        shear = bw.Shear.TimeSeries(anemometers, heights, calc_method=calc_method, maximise_data=True, plot=False)
+        values = shear.alpha if calc_method == 'power_law' else shear.roughness
+        assert values.notna().sum() == used.sum() > 0
+        assert values[~used].isna().all()
+        assert_height_combinations(shear, valid[used], heights, values[used].values)
+        assert shear.height_combinations[['40 m', '60 m', '80 m']].values.tolist() == [[False, True, True]]
+        if calc_method == 'power_law':
+            expected = np.log(u1 / u2) / np.log(80 / 60)
+            np.testing.assert_allclose(values[used].values, expected, rtol=0, atol=1e-12)
+        else:
+            slope = (u1 - u2) / np.log(80 / 60)
+            expected = np.exp(-(u1 - slope * np.log(80)) / slope)
+            np.testing.assert_allclose(values[used].values, expected, rtol=1e-8, equal_nan=True)
+
 
 def test_time_series_maximise_data_same_height():
     # two sensors at 80 m and one at 60 m
