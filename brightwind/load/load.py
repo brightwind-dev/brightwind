@@ -2764,5 +2764,5 @@ def __getattr__(name):
             FutureWarning,
             stacklevel=2
         )
-        return brighthub._BrighthubAuth
+        return brighthub._Auth
     raise AttributeError("module {!r} has no attribute {!r}".format(__name__, name))

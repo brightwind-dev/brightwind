@@ -9,21 +9,21 @@ from brightwind.utils import brighthub
 
 @pytest.fixture(autouse=True)
 def _reset_auth():
-    original = brighthub._BrighthubAuth.ID_TOKEN
-    brighthub._BrighthubAuth.ID_TOKEN = 'token-1'
+    original = brighthub._Auth.ID_TOKEN
+    brighthub._Auth.ID_TOKEN = 'token-1'
     yield
-    brighthub._BrighthubAuth.ID_TOKEN = original
+    brighthub._Auth.ID_TOKEN = original
 
 
 @pytest.fixture
 def clean_auth_cache():
     """Start the test with no cached token or credentials, and put back what was cached afterwards."""
     names = ('ID_TOKEN', 'REFRESH_TOKEN', 'USERNAME', 'PASSWORD', 'CLIENT_ID', 'CLIENT_SECRET')
-    saved = {name: getattr(brighthub._BrighthubAuth, name) for name in names}
+    saved = {name: getattr(brighthub._Auth, name) for name in names}
     brighthub.clear_auth_cache()
     yield
     for name, value in saved.items():
-        setattr(brighthub._BrighthubAuth, name, value)
+        setattr(brighthub._Auth, name, value)
 
 
 @pytest.mark.parametrize('method', ['GET', 'POST', 'PUT', 'DELETE', 'post'])
@@ -120,10 +120,10 @@ def test_brighthub_request_reauthenticates_once_on_401():
     ok = MagicMock(status_code=200)
 
     def new_token():
-        brighthub._BrighthubAuth.ID_TOKEN = 'token-2'
+        brighthub._Auth.ID_TOKEN = 'token-2'
 
     with patch('brightwind.utils.brighthub.requests.request', side_effect=[expired, ok]) as mock_req, \
-            patch.object(brighthub._BrighthubAuth, '_get_id_token', side_effect=new_token) as mock_auth:
+            patch.object(brighthub._Auth, '_get_id_token', side_effect=new_token) as mock_auth:
         response = bw.brighthub.request('/plants', method='POST')
 
     assert response is ok
@@ -165,7 +165,7 @@ def test_brighthub_request_retries_503_for_get_only(method, expected_calls):
 
 
 def test_brighthub_login_error_map_has_password_verifier():
-    assert 'password_verifier' in brighthub._BrighthubAuth._BrighthubAuth__LOGIN_ERROR_MAP
+    assert 'password_verifier' in brighthub._Auth._Auth__LOGIN_ERROR_MAP
 
 
 def test_brighthub_module_does_not_import_brightwind():
@@ -179,19 +179,19 @@ def test_brighthub_module_does_not_import_brightwind():
 
 
 def test_get_id_token_returns_cached_token():
-    with patch.object(brighthub._BrighthubAuth, '_get_id_token') as mock_auth:
+    with patch.object(brighthub._Auth, '_get_id_token') as mock_auth:
         assert bw.brighthub.get_id_token() == 'token-1'
 
     mock_auth.assert_not_called()
 
 
 def test_get_id_token_authenticates_when_empty():
-    brighthub._BrighthubAuth.ID_TOKEN = ''
+    brighthub._Auth.ID_TOKEN = ''
 
     def new_token():
-        brighthub._BrighthubAuth.ID_TOKEN = 'token-new'
+        brighthub._Auth.ID_TOKEN = 'token-new'
 
-    with patch.object(brighthub._BrighthubAuth, '_get_id_token', side_effect=new_token) as mock_auth:
+    with patch.object(brighthub._Auth, '_get_id_token', side_effect=new_token) as mock_auth:
         assert bw.brighthub.get_id_token() == 'token-new'
 
     mock_auth.assert_called_once()
@@ -213,13 +213,13 @@ def test_legacy_brighthub_auth_import_still_works_and_warns():
     with pytest.warns(FutureWarning, match='v3.0.0'):
         legacy_class = load_module._BrighthubAuth
 
-    assert legacy_class is brighthub._BrighthubAuth
+    assert legacy_class is brighthub._Auth
 
 
 def test_brighthub_request_raises_auth_error_when_401_persists():
     unauthorised = MagicMock(status_code=401, text='{"message": "Unauthorized"}')
     with patch('brightwind.utils.brighthub.requests.request', return_value=unauthorised), \
-            patch.object(brighthub._BrighthubAuth, '_get_id_token'):
+            patch.object(brighthub._Auth, '_get_id_token'):
         with pytest.raises(bw.brighthub.BrighthubAuthError, match='unauthorised'):
             bw.brighthub.request('/measurement-locations/uuid/cleaning-log')
 
@@ -240,36 +240,36 @@ def test_brighthub_error_catches_auth_and_request_errors():
 
 @pytest.mark.parametrize('status_code', [400, 401, 403])
 def test_client_credentials_rejected_gives_clear_auth_error(status_code, clean_auth_cache):
-    brighthub._BrighthubAuth.CLIENT_ID = 'id'
-    brighthub._BrighthubAuth.CLIENT_SECRET = 'secret'
+    brighthub._Auth.CLIENT_ID = 'id'
+    brighthub._Auth.CLIENT_SECRET = 'secret'
     response = requests.Response()
     response.status_code = status_code
     with patch('brightwind.utils.brighthub.requests.post', return_value=response):
         with pytest.raises(bw.brighthub.BrighthubAuthError, match='API key is invalid') as error:
-            brighthub._BrighthubAuth._authenticate_with_client_credentials()
+            brighthub._Auth._authenticate_with_client_credentials()
 
     assert f'status code {status_code}' in str(error.value)
     assert 'clear_auth_cache()' in str(error.value)
 
 
 def test_client_credentials_unexpected_response_includes_status_code(clean_auth_cache):
-    brighthub._BrighthubAuth.CLIENT_ID = 'id'
-    brighthub._BrighthubAuth.CLIENT_SECRET = 'secret'
+    brighthub._Auth.CLIENT_ID = 'id'
+    brighthub._Auth.CLIENT_SECRET = 'secret'
     response = requests.Response()
     response.status_code = 500
     with patch('brightwind.utils.brighthub.requests.post', return_value=response):
         with pytest.raises(bw.brighthub.BrighthubAuthError, match='unexpected response') as error:
-            brighthub._BrighthubAuth._authenticate_with_client_credentials()
+            brighthub._Auth._authenticate_with_client_credentials()
 
     assert 'status code 500' in str(error.value)
 
 
 def test_client_credentials_connection_error_is_reported_as_network_error(clean_auth_cache):
-    brighthub._BrighthubAuth.CLIENT_ID = 'id'
-    brighthub._BrighthubAuth.CLIENT_SECRET = 'secret'
+    brighthub._Auth.CLIENT_ID = 'id'
+    brighthub._Auth.CLIENT_SECRET = 'secret'
     with patch('brightwind.utils.brighthub.requests.post', side_effect=requests.exceptions.ConnectionError()):
         with pytest.raises(bw.brighthub.BrighthubAuthError, match='Network or connection error'):
-            brighthub._BrighthubAuth._authenticate_with_client_credentials()
+            brighthub._Auth._authenticate_with_client_credentials()
 
 
 def test_load_brighthub_get_cleaning_log_forbidden_without_details_raises_value_error_not_key_error():
@@ -281,19 +281,19 @@ def test_load_brighthub_get_cleaning_log_forbidden_without_details_raises_value_
 
 
 def test_error_messages_use_the_base_uri(clean_auth_cache):
-    brighthub._BrighthubAuth.CLIENT_ID = 'id'
-    brighthub._BrighthubAuth.CLIENT_SECRET = 'secret'
+    brighthub._Auth.CLIENT_ID = 'id'
+    brighthub._Auth.CLIENT_SECRET = 'secret'
     response = requests.Response()
     response.status_code = 401
     with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'), \
             patch('brightwind.utils.brighthub.requests.post', return_value=response):
         with pytest.raises(bw.brighthub.BrighthubAuthError) as auth_error:
-            brighthub._BrighthubAuth._authenticate_with_client_credentials()
+            brighthub._Auth._authenticate_with_client_credentials()
     assert 'https://api.example.test/auth/token' in str(auth_error.value)
     assert 'https://example.test/account-settings/settings' in str(auth_error.value)
 
     with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'), \
-            patch.object(brighthub._BrighthubAuth, '_get_id_token'), \
+            patch.object(brighthub._Auth, '_get_id_token'), \
             patch('brightwind.utils.brighthub.requests.request', return_value=MagicMock(status_code=401, text='x')):
         with pytest.raises(bw.brighthub.BrighthubAuthError, match='GET https://api.example.test/plants'):
             bw.brighthub.request('/plants')
@@ -355,7 +355,7 @@ def test_get_base_uri_returns_base_uri_used_by_requests():
 
 
 def test_clear_auth_cache_resets_all_cached_values():
-    auth = brighthub._BrighthubAuth
+    auth = brighthub._Auth
     saved = {n: getattr(auth, n) for n in
              ('ID_TOKEN', 'REFRESH_TOKEN', 'USERNAME', 'PASSWORD', 'CLIENT_ID', 'CLIENT_SECRET')}
     try:

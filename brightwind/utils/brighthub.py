@@ -72,14 +72,14 @@ def _get_web_uri(base_uri):
 
 
 def _get_environment_variable(name):
-    # The text of this message is matched in _BrighthubAuth._get_id_token() to fall back to the legacy login,
+    # The text of this message is matched in _Auth._get_id_token() to fall back to the legacy login,
     # so do not change it without updating that check.
     if name not in os.environ:
         raise BrighthubAuthError('{} environmental variable is not set.'.format(name))
     return os.environ[name]
 
 
-class _BrighthubAuth:
+class _Auth:
     """
     This class holds the BrightHub authentication state and functions. It is used by request() and get_id_token()
     in this module, and so by LoadBrightHub. Credentials and tokens are cached at class level so that authentication
@@ -107,33 +107,30 @@ class _BrighthubAuth:
     CLIENT_ID = ''
     CLIENT_SECRET = ''
 
-    # Kept as an attribute of this class for backwards compatibility
-    BrighthubAuthError = BrighthubAuthError
-
     @staticmethod
     def _authenticate_with_client_credentials():
         """
         Authenticate a Brighthub user using the OAuth2 client credentials flow.
 
         This method retrieves the Brighthub client ID and client secret from environmental
-        variables if not already assigned in the _BrighthubAuth class.
+        variables if not already assigned in the _Auth class.
 
         :rtype: str
         :return: The JWT ID token for authenticated requests.
         """
 
-        if not _BrighthubAuth.CLIENT_ID:
-            _BrighthubAuth.CLIENT_ID = _get_environment_variable('BRIGHTHUB_CLIENT_ID')
+        if not _Auth.CLIENT_ID:
+            _Auth.CLIENT_ID = _get_environment_variable('BRIGHTHUB_CLIENT_ID')
 
-        if not _BrighthubAuth.CLIENT_SECRET:
-            _BrighthubAuth.CLIENT_SECRET = _get_environment_variable('BRIGHTHUB_CLIENT_SECRET')
+        if not _Auth.CLIENT_SECRET:
+            _Auth.CLIENT_SECRET = _get_environment_variable('BRIGHTHUB_CLIENT_SECRET')
 
         base_uri = _BASE_URI
         auth_url = f"{base_uri}/auth/token"
         try:
             response = requests.post(
                 url=auth_url,
-                auth=requests.auth.HTTPBasicAuth(_BrighthubAuth.CLIENT_ID, _BrighthubAuth.CLIENT_SECRET),
+                auth=requests.auth.HTTPBasicAuth(_Auth.CLIENT_ID, _Auth.CLIENT_SECRET),
                 data={"grant_type": "client_credentials"},
                 timeout=10
             )
@@ -196,18 +193,18 @@ class _BrighthubAuth:
             "'BRIGHTHUB_CLIENT_SECRET'.",
             FutureWarning
         )
-        if not _BrighthubAuth.USERNAME:
-            _BrighthubAuth.USERNAME = _get_environment_variable('BRIGHTHUB_EMAIL')
+        if not _Auth.USERNAME:
+            _Auth.USERNAME = _get_environment_variable('BRIGHTHUB_EMAIL')
 
-        if not _BrighthubAuth.PASSWORD:
-            _BrighthubAuth.PASSWORD = _get_environment_variable('BRIGHTHUB_PASSWORD')
+        if not _Auth.PASSWORD:
+            _Auth.PASSWORD = _get_environment_variable('BRIGHTHUB_PASSWORD')
 
-        url, headers, client_id = _BrighthubAuth._get_cognito_request()
+        url, headers, client_id = _Auth._get_cognito_request()
 
         body = {
             "AuthParameters": {
-                "USERNAME": _BrighthubAuth.USERNAME,
-                "PASSWORD": _BrighthubAuth.PASSWORD
+                "USERNAME": _Auth.USERNAME,
+                "PASSWORD": _Auth.PASSWORD
             },
             "AuthFlow": "USER_PASSWORD_AUTH",
             "ClientId": client_id
@@ -220,28 +217,28 @@ class _BrighthubAuth:
         if login_response_type:
             if login_response_type == "NotAuthorizedException":
                 raise BrighthubAuthError(
-                    _BrighthubAuth.__LOGIN_ERROR_MAP["not_authorized"])
+                    _Auth.__LOGIN_ERROR_MAP["not_authorized"])
             elif login_response_type == "UserNotConfirmedException":
                 raise BrighthubAuthError(
-                    _BrighthubAuth.__LOGIN_ERROR_MAP["user_not_confirmed"])
+                    _Auth.__LOGIN_ERROR_MAP["user_not_confirmed"])
             elif 'This account is linked to Microsoft SSO' in login_response.get("message", ""):
                 raise BrighthubAuthError(
-                    _BrighthubAuth.__LOGIN_ERROR_MAP["ms_sso_user"])
+                    _Auth.__LOGIN_ERROR_MAP["ms_sso_user"])
             else:
                 raise BrighthubAuthError(
-                    _BrighthubAuth.__LOGIN_ERROR_MAP["unexpected_error"])
+                    _Auth.__LOGIN_ERROR_MAP["unexpected_error"])
 
         # challenge returned
         if login_response.get("ChallengeName"):
             if login_response["ChallengeName"] == "NEW_PASSWORD_REQUIRED":
                 raise BrighthubAuthError(
-                    _BrighthubAuth.__LOGIN_ERROR_MAP["new_password_required"])
+                    _Auth.__LOGIN_ERROR_MAP["new_password_required"])
             elif login_response["ChallengeName"] == "PASSWORD_VERIFIER":
                 raise BrighthubAuthError(
-                    _BrighthubAuth.__LOGIN_ERROR_MAP["password_verifier"])
+                    _Auth.__LOGIN_ERROR_MAP["password_verifier"])
             else:
                 raise BrighthubAuthError(
-                    _BrighthubAuth.__LOGIN_ERROR_MAP["unexpected_error"])
+                    _Auth.__LOGIN_ERROR_MAP["unexpected_error"])
 
         # login successful
         id_token = login_response['AuthenticationResult']['IdToken']
@@ -269,9 +266,9 @@ class _BrighthubAuth:
         :rtype: dict
         :return: An empty dictionary upon successful authentication.
         """
-        if _BrighthubAuth.REFRESH_TOKEN:
+        if _Auth.REFRESH_TOKEN:
             try:
-                _BrighthubAuth._brighthub_refresh_token()
+                _Auth._brighthub_refresh_token()
                 return {}
             except Exception:
                 # If refresh fails, proceed to re-authenticate
@@ -279,7 +276,7 @@ class _BrighthubAuth:
 
         # Preferred authentication flow: client credentials (API key)
         try:
-            _BrighthubAuth.ID_TOKEN = _BrighthubAuth._authenticate_with_client_credentials()
+            _Auth.ID_TOKEN = _Auth._authenticate_with_client_credentials()
             return {}
         
         except Exception as e:
@@ -290,8 +287,8 @@ class _BrighthubAuth:
             ]:
                 # Fallback to basic auth if client credentials are not provided but legacy credentials are.
                 # This method is depreciated in v2.4.0 and will be removed in v3.0.0
-                has_legacy_credentials = ((_BrighthubAuth.USERNAME or os.getenv('BRIGHTHUB_EMAIL'))
-                                          and (_BrighthubAuth.PASSWORD or os.getenv('BRIGHTHUB_PASSWORD')))
+                has_legacy_credentials = ((_Auth.USERNAME or os.getenv('BRIGHTHUB_EMAIL'))
+                                          and (_Auth.PASSWORD or os.getenv('BRIGHTHUB_PASSWORD')))
                 if not has_legacy_credentials:
                     raise BrighthubAuthError(
                         "BrightHub API key not found. Please create an API key at "
@@ -299,7 +296,7 @@ class _BrighthubAuth:
                         "BRIGHTHUB_CLIENT_ID and "
                         "BRIGHTHUB_CLIENT_SECRET environmental variables. If you have just set them, call "
                         "bw.brighthub.clear_auth_cache() or restart Python so they are used.") from None
-                _BrighthubAuth.ID_TOKEN, _BrighthubAuth.REFRESH_TOKEN = _BrighthubAuth._authenticate_with_basic_auth()
+                _Auth.ID_TOKEN, _Auth.REFRESH_TOKEN = _Auth._authenticate_with_basic_auth()
             else:
                 raise e
 
@@ -318,11 +315,11 @@ class _BrighthubAuth:
             DeprecationWarning,
             stacklevel=3
         )
-        url, headers, cognito_client_id = _BrighthubAuth._get_cognito_request()
+        url, headers, cognito_client_id = _Auth._get_cognito_request()
 
         body = {
             "AuthParameters": {
-                "REFRESH_TOKEN": _BrighthubAuth.REFRESH_TOKEN
+                "REFRESH_TOKEN": _Auth.REFRESH_TOKEN
             },
             "AuthFlow": "REFRESH_TOKEN_AUTH",
             "ClientId": cognito_client_id
@@ -333,14 +330,14 @@ class _BrighthubAuth:
         # a login error occurred
         if login_response.get("__type"):
             if login_response["__type"] == "NotAuthorizedException":
-                raise ImportError(_BrighthubAuth.__LOGIN_ERROR_MAP["not_authorized"])
+                raise ImportError(_Auth.__LOGIN_ERROR_MAP["not_authorized"])
             elif login_response["__type"] == "UserNotConfirmedException":
-                raise ImportError(_BrighthubAuth.__LOGIN_ERROR_MAP["user_not_confirmed"])
+                raise ImportError(_Auth.__LOGIN_ERROR_MAP["user_not_confirmed"])
             else:
-                raise ImportError(_BrighthubAuth.__LOGIN_ERROR_MAP["unexpected_error"])
+                raise ImportError(_Auth.__LOGIN_ERROR_MAP["unexpected_error"])
 
         id_token = login_response['AuthenticationResult']['IdToken']
-        _BrighthubAuth.ID_TOKEN = id_token
+        _Auth.ID_TOKEN = id_token
         new_refresh_token = ""
 
         if login_response['AuthenticationResult'].get('RefreshToken'):
@@ -349,7 +346,7 @@ class _BrighthubAuth:
         # add the refresh token only if it has been generated again
         # this functionality hasn't been tested as we could not replicate an expired refresh token
         if new_refresh_token:
-            _BrighthubAuth.REFRESH_TOKEN = new_refresh_token
+            _Auth.REFRESH_TOKEN = new_refresh_token
 
         return {}
 
@@ -395,7 +392,7 @@ def clear_auth_cache():
 
     """
     for attribute in ('ID_TOKEN', 'REFRESH_TOKEN', 'USERNAME', 'PASSWORD', 'CLIENT_ID', 'CLIENT_SECRET'):
-        setattr(_BrighthubAuth, attribute, '')
+        setattr(_Auth, attribute, '')
 
 
 def get_id_token():
@@ -418,9 +415,9 @@ def get_id_token():
         headers = {"authorization": token}
 
     """
-    if not _BrighthubAuth.ID_TOKEN:
-        _BrighthubAuth._get_id_token()
-    return _BrighthubAuth.ID_TOKEN
+    if not _Auth.ID_TOKEN:
+        _Auth._get_id_token()
+    return _Auth.ID_TOKEN
 
 
 def request(url_extension, method='GET', params=None, json=None, data=None, timeout=_DEFAULT_TIMEOUT,
@@ -477,8 +474,8 @@ def request(url_extension, method='GET', params=None, json=None, data=None, time
     if isinstance(max_retries, bool) or not isinstance(max_retries, int) or max_retries < 0:
         raise ValueError("max_retries must be a non-negative integer, got {!r}.".format(max_retries))
 
-    if not _BrighthubAuth.ID_TOKEN:
-        _BrighthubAuth._get_id_token()
+    if not _Auth.ID_TOKEN:
+        _Auth._get_id_token()
 
     url = "{}{}".format(_BASE_URI, url_extension)
 
@@ -487,7 +484,7 @@ def request(url_extension, method='GET', params=None, json=None, data=None, time
             last_attempt = attempt == max_retries
             try:
                 response = requests.request(method=method, url=url,
-                                            headers={"authorization": _BrighthubAuth.ID_TOKEN},
+                                            headers={"authorization": _Auth.ID_TOKEN},
                                             params=params, json=json, data=data, timeout=timeout)
             except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as error:
                 # A connect timeout means the request never reached the server so it is safe to retry for every
@@ -510,7 +507,7 @@ def request(url_extension, method='GET', params=None, json=None, data=None, time
 
     # If there is an auth error, the token has most likely expired so authenticate again and retry once
     if response.status_code == 401:
-        _BrighthubAuth._get_id_token()
+        _Auth._get_id_token()
         response = _send()
         if response.status_code == 401:
             raise BrighthubAuthError(
