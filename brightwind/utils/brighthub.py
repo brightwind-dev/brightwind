@@ -75,7 +75,7 @@ def _get_environment_variable(name):
     # The text of this message is matched in _Auth._get_id_token() to fall back to the legacy login,
     # so do not change it without updating that check.
     if name not in os.environ:
-        raise BrighthubAuthError('{} environmental variable is not set.'.format(name))
+        raise BrighthubAuthError(f'{name} environmental variable is not set.')
     return os.environ[name]
 
 
@@ -470,14 +470,14 @@ def request(url_extension, method='GET', params=None, json=None, data=None, time
     """
     method = str(method).upper()
     if method not in _SUPPORTED_METHODS:
-        raise ValueError("Unsupported method '{}'. Use one of {}.".format(method, ', '.join(_SUPPORTED_METHODS)))
+        raise ValueError(f"Unsupported method '{method}'. Use one of {', '.join(_SUPPORTED_METHODS)}.")
     if isinstance(max_retries, bool) or not isinstance(max_retries, int) or max_retries < 0:
-        raise ValueError("max_retries must be a non-negative integer, got {!r}.".format(max_retries))
+        raise ValueError(f"max_retries must be a non-negative integer, got {max_retries!r}.")
 
     if not _Auth.ID_TOKEN:
         _Auth._get_id_token()
 
-    url = "{}{}".format(_BASE_URI, url_extension)
+    url = f"{_BASE_URI}{url_extension}"
 
     def _send():
         for attempt in range(max_retries + 1):
@@ -512,15 +512,15 @@ def request(url_extension, method='GET', params=None, json=None, data=None, time
         if response.status_code == 401:
             raise BrighthubAuthError(
                 "BrightHub rejected the request as unauthorised (status code 401) even after re-authenticating. "
-                "Please check your API key and that it has permission to access {} {}. Response: {}".format(
-                    method, url, response.text))
+                f"Please check your API key and that it has permission to access {method} {url}. "
+                f"Response: {response.text}")
 
     gateway_message = _get_gateway_rejection_message(response)
     if gateway_message:
         raise BrighthubRequestError(
-            "BrightHub rejected {method} {url} before it reached the API (status code 403: {message}). "
-            "The endpoint may not exist for the {method} method, or may not accept API key authentication. "
-            "Please check the path and the HTTP method.".format(method=method, url=url, message=gateway_message),
+            f"BrightHub rejected {method} {url} before it reached the API (status code 403: {gateway_message}). "
+            f"The endpoint may not exist for the {method} method, or may not accept API key authentication. "
+            "Please check the path and the HTTP method.",
             status_code=response.status_code, method=method, url=url, response=response)
 
     return response

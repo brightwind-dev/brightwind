@@ -318,7 +318,7 @@ def test_no_credentials_error_asks_for_client_id_and_secret(clean_auth_cache):
 def test_brighthub_request_gateway_rejection_raises_request_error_naming_method_and_url(method, message):
     rejected = requests.Response()
     rejected.status_code = 403
-    rejected._content = ('{"message": "%s"}' % message).encode()
+    rejected._content = (f'{{"message": "{message}"}}').encode()
     with patch('brightwind.utils.brighthub._BASE_URI', 'https://api.example.test'), \
             patch('brightwind.utils.brighthub.requests.request', return_value=rejected):
         with pytest.raises(bw.brighthub.BrighthubRequestError) as error:
