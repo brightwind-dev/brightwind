@@ -165,7 +165,7 @@ def test_brighthub_request_retries_503_for_get_only(method, expected_calls):
 
 
 def test_brighthub_login_error_map_has_password_verifier():
-    assert 'password_verifier' in brighthub._BrighthubAuth._BrighthubAuth__BRIGHTHUB_LOGIN_ERROR_MAP
+    assert 'password_verifier' in brighthub._BrighthubAuth._BrighthubAuth__LOGIN_ERROR_MAP
 
 
 def test_brighthub_module_does_not_import_brightwind():
@@ -222,6 +222,20 @@ def test_brighthub_request_raises_auth_error_when_401_persists():
             patch.object(brighthub._BrighthubAuth, '_get_id_token'):
         with pytest.raises(bw.brighthub.BrighthubAuthError, match='unauthorised'):
             bw.brighthub.request('/measurement-locations/uuid/cleaning-log')
+
+
+def test_brighthub_errors_share_a_base_class():
+    assert issubclass(bw.brighthub.BrighthubAuthError, bw.brighthub.BrighthubError)
+    assert issubclass(bw.brighthub.BrighthubRequestError, bw.brighthub.BrighthubError)
+    # the request error is still a ValueError, as LoadBrightHub used to raise ValueError
+    assert issubclass(bw.brighthub.BrighthubRequestError, ValueError)
+    assert not issubclass(bw.brighthub.BrighthubAuthError, ValueError)
+
+
+def test_brighthub_error_catches_auth_and_request_errors():
+    for error in (bw.brighthub.BrighthubAuthError('a'), bw.brighthub.BrighthubRequestError('b')):
+        with pytest.raises(bw.brighthub.BrighthubError):
+            raise error
 
 
 @pytest.mark.parametrize('status_code', [400, 401, 403])

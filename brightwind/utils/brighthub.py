@@ -7,6 +7,7 @@ import requests
 
 __all__ = ['request',
            'get_id_token',
+           'BrighthubError',
            'BrighthubAuthError',
            'BrighthubRequestError',
            'get_base_uri',
@@ -22,12 +23,17 @@ _RETRY_DELAY_SECONDS = 3
 _DEFAULT_TIMEOUT = (10, 35)
 
 
-class BrighthubAuthError(Exception):
+class BrighthubError(Exception):
+    """Base class for the errors raised by this module, so that all of them can be caught with one except clause."""
+    pass
+
+
+class BrighthubAuthError(BrighthubError):
     """Raised when authentication with BrightHub fails, e.g. invalid API key or an unauthorised request."""
     pass
 
 
-class BrighthubRequestError(ValueError):
+class BrighthubRequestError(BrighthubError, ValueError):
     """
     Raised when a request is rejected by the BrightHub API gateway before it reaches BrightHub, e.g. the endpoint
     does not exist for the HTTP method used. The status_code, method, url and response are available as attributes.
@@ -66,8 +72,10 @@ def _get_web_uri(base_uri):
 
 
 def _get_environment_variable(name):
+    # The text of this message is matched in _BrighthubAuth._get_id_token() to fall back to the legacy login,
+    # so do not change it without updating that check.
     if name not in os.environ:
-        raise _BrighthubAuth.BrighthubAuthError('{} environmental variable is not set.'.format(name))
+        raise BrighthubAuthError('{} environmental variable is not set.'.format(name))
     return os.environ[name]
 
 
@@ -79,15 +87,15 @@ class _BrighthubAuth:
     """
 
     # List possible errors encountered on Login
-    __BRIGHTHUB_LOGIN_ERROR_MAP = {
+    __LOGIN_ERROR_MAP = {
         "not_authorized": "The Brighthub Email or Password is incorrect",
-        "user_not_confirmed": "The User is not confirmed. Please confirm your email and try again.",
-        "unexpected_error": "An unexpected error occurred.",
+        "user_not_confirmed": "The BrightHub user is not confirmed. Please confirm your email and try again.",
+        "unexpected_error": "An unexpected error occurred while authenticating with BrightHub.",
         "new_password_required": "Your password has expired or needs to be reset. "
                                  "Kindly reset your Brighthub password and try again.",
-        "password_not_verified": "Could not verify your password. "
+        "password_not_verified": "Could not verify your BrightHub password. "
                                  "Please ensure you have confirmed your email and the password is correct.",
-        "password_verifier": "Could not verify your password. "
+        "password_verifier": "Could not verify your BrightHub password. "
                              "Please ensure you have confirmed your email and the password is correct.",
         "ms_sso_user": "Microsoft SSO users cannot authenticate using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD'. "
                        "Please migrate to API key authentication."
@@ -133,27 +141,28 @@ class _BrighthubAuth:
         except requests.exceptions.HTTPError as e:
             status_code = e.response.status_code if e.response is not None else None
             if status_code in (400, 401, 403):
-                raise _BrighthubAuth.BrighthubAuthError(
+                raise BrighthubAuthError(
                     f"Authentication failed at {auth_url} (status code {status_code}). The BrightHub API key is "
                     "invalid, expired or revoked. Please check the BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET "
                     f"environmental variables, and create a new API key at {_get_web_uri(base_uri)}"
                     "/account-settings/settings if needed. After updating the key, call "
                     "bw.brighthub.clear_auth_cache() or restart Python so the new key is used."
                 ) from e
-            raise _BrighthubAuth.BrighthubAuthError(
+            raise BrighthubAuthError(
                 f"Authentication failed at {auth_url} (status code {status_code}), BrightHub returned an "
                 f"unexpected response: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise _BrighthubAuth.BrighthubAuthError(
-                f"Network or connection error during authentication: {e}") from e
+            raise BrighthubAuthError(
+                f"Network or connection error during BrightHub authentication: {e}") from e
 
         try:
             token_data = response.json()
         except ValueError:
-            raise _BrighthubAuth.BrighthubAuthError(f"Invalid JSON response from Brighthub: {response.text}")
+            raise BrighthubAuthError(f"Invalid JSON response from Brighthub: {response.text}")
 
         if 'id_token' not in token_data:
-            raise _BrighthubAuth.BrighthubAuthError(f"Authentication failed, no id_token returned: {token_data}")
+            raise BrighthubAuthError(
+                f"BrightHub authentication failed, no id_token returned: {token_data}")
 
         return token_data['id_token']
 
@@ -210,29 +219,29 @@ class _BrighthubAuth:
         # a login error occurred
         if login_response_type:
             if login_response_type == "NotAuthorizedException":
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
+                raise BrighthubAuthError(
+                    _BrighthubAuth.__LOGIN_ERROR_MAP["not_authorized"])
             elif login_response_type == "UserNotConfirmedException":
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+                raise BrighthubAuthError(
+                    _BrighthubAuth.__LOGIN_ERROR_MAP["user_not_confirmed"])
             elif 'This account is linked to Microsoft SSO' in login_response.get("message", ""):
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["ms_sso_user"])
+                raise BrighthubAuthError(
+                    _BrighthubAuth.__LOGIN_ERROR_MAP["ms_sso_user"])
             else:
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+                raise BrighthubAuthError(
+                    _BrighthubAuth.__LOGIN_ERROR_MAP["unexpected_error"])
 
         # challenge returned
         if login_response.get("ChallengeName"):
             if login_response["ChallengeName"] == "NEW_PASSWORD_REQUIRED":
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["new_password_required"])
+                raise BrighthubAuthError(
+                    _BrighthubAuth.__LOGIN_ERROR_MAP["new_password_required"])
             elif login_response["ChallengeName"] == "PASSWORD_VERIFIER":
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["password_verifier"])
+                raise BrighthubAuthError(
+                    _BrighthubAuth.__LOGIN_ERROR_MAP["password_verifier"])
             else:
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+                raise BrighthubAuthError(
+                    _BrighthubAuth.__LOGIN_ERROR_MAP["unexpected_error"])
 
         # login successful
         id_token = login_response['AuthenticationResult']['IdToken']
@@ -274,6 +283,7 @@ class _BrighthubAuth:
             return {}
         
         except Exception as e:
+            # These messages are matched by their text, so keep them in step with _get_environment_variable()
             if str(e) in [
                 f'BRIGHTHUB_CLIENT_ID environmental variable is not set.',
                 f'BRIGHTHUB_CLIENT_SECRET environmental variable is not set.'
@@ -283,12 +293,12 @@ class _BrighthubAuth:
                 has_legacy_credentials = ((_BrighthubAuth.USERNAME or os.getenv('BRIGHTHUB_EMAIL'))
                                           and (_BrighthubAuth.PASSWORD or os.getenv('BRIGHTHUB_PASSWORD')))
                 if not has_legacy_credentials:
-                    raise _BrighthubAuth.BrighthubAuthError(
+                    raise BrighthubAuthError(
                         "BrightHub API key not found. Please create an API key at "
                         f"{_get_web_uri(_BASE_URI)}/account-settings/settings and set the "
                         "BRIGHTHUB_CLIENT_ID and "
-                        "BRIGHTHUB_CLIENT_SECRET environmental variables. If you have just set them, restart your "
-                        "Python environment for them to take effect.") from None
+                        "BRIGHTHUB_CLIENT_SECRET environmental variables. If you have just set them, call "
+                        "bw.brighthub.clear_auth_cache() or restart Python so they are used.") from None
                 _BrighthubAuth.ID_TOKEN, _BrighthubAuth.REFRESH_TOKEN = _BrighthubAuth._authenticate_with_basic_auth()
             else:
                 raise e
@@ -323,11 +333,11 @@ class _BrighthubAuth:
         # a login error occurred
         if login_response.get("__type"):
             if login_response["__type"] == "NotAuthorizedException":
-                raise ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
+                raise ImportError(_BrighthubAuth.__LOGIN_ERROR_MAP["not_authorized"])
             elif login_response["__type"] == "UserNotConfirmedException":
-                raise ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
+                raise ImportError(_BrighthubAuth.__LOGIN_ERROR_MAP["user_not_confirmed"])
             else:
-                raise ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
+                raise ImportError(_BrighthubAuth.__LOGIN_ERROR_MAP["unexpected_error"])
 
         id_token = login_response['AuthenticationResult']['IdToken']
         _BrighthubAuth.ID_TOKEN = id_token
