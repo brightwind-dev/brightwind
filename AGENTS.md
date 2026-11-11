@@ -30,6 +30,7 @@
 - **Branches**: `iss<number>_<short_description>` off `dev`, one per issue. Internal contributors push branches to `brightwind-dev/brightwind` rather than a fork, so later PRs can stack on earlier ones.
 - **Commit messages** start with the issue number: `iss #123 short description of the change`
 - **Pull requests** target `dev`, or another feature branch when stacking on work that is not yet merged. Only release PRs (`dev` → `master`) target `master`; an urgent hotfix may target `master` only when a maintainer asks for it, and must then be merged back into `dev`. Follow the "Pull requests" section of `contributing.md`: one issue per PR, all tests passing, a CHANGELOG entry for user-facing changes, updated docstrings and a test for new behaviour.
+- **PR descriptions** use `.github/pull_request_template.md` (e.g. `gh pr create --template .github/pull_request_template.md`). Fill in the description sections, but leave the checklist boxes for the user to tick.
 - **The git stash stack is shared across worktrees.** Never use bare `git stash pop`; apply by SHA (`git stash list --format='%H %gs'`) and drop the entry afterwards.
 
 ---

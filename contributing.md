@@ -82,6 +82,8 @@ Before raising a PR:
 
 In the PR, cover one issue, start the title with the issue number in the same format as commit messages (e.g. `iss #123 short description`), and clearly explain what changed and why.
 
+Fill in the PR template (`.github/pull_request_template.md`), which GitHub adds automatically when a PR is opened in the browser.
+
 PRs are reviewed and merged by the maintainers team.
 
 ---
