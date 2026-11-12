@@ -42,8 +42,15 @@ class Shear:
            :param max_plot_height:  Height to which the wind profile plot is extended.
            :type max_plot_height:   float
            :param maximise_data:    If 'maximise_data' is True, calculations will be carried out on all data where at
-                                    least two wind speed readings exist for a timestamp. If False, calculations will
-                                    only be carried out on timestamps where readings exist for all wind speed levels.
+                                    least two different heights have wind speed readings for a timestamp. If False,
+                                    calculations will only be carried out on timestamps where readings exist for all
+                                    wind speed levels.
+                                    Note that with True, each timestamp is fitted to whichever heights are valid at
+                                    that timestamp, so different timestamps can use different height ranges. As shear
+                                    changes with height, if the top anemometer is often missing the results will be
+                                    weighted towards shear at lower heights, which could bias wind speeds scaled to
+                                    hub height using apply(). Check 'height_combinations' to see which heights were
+                                    used together and how often.
            :type maximise_data:     bool
            :param plot:             If True (default), the average wind profile plot is generated. If False, no plot is
                                     generated and the 'plot' attribute is None, which saves time on large datasets.
@@ -79,6 +86,10 @@ class Shear:
                 timeseries_power_law.wspds
                 timeseries_log_law.wspds
 
+                # View which heights were used together, with the mean alpha or median roughness for each
+                timeseries_power_law.height_combinations
+                timeseries_log_law.height_combinations
+
                 # View other information
                 pprint.pprint(timeseries_power_law.info)
                 pprint.pprint(timeseries_log_law.info)
@@ -87,19 +98,29 @@ class Shear:
             wspds, cvg = Shear._data_prep(
                 wspds=wspds, heights=heights, min_speed=min_speed, maximise_data=maximise_data, return_raw_wspds=True
                 )
-            valid_mask = (wspds > min_speed).all(axis=1) & ~wspds.isna().any(axis=1)
+            valid_heights = (wspds > min_speed) & wspds.notna()
+            valid_by_height = Shear._valid_by_height(valid_heights, heights)
+            if maximise_data:
+                # use every timestamp with at least two different valid heights, fitting to only the valid heights
+                valid_mask = valid_by_height.sum(axis=1) >= 2
+                fit_mask = valid_heights.loc[valid_mask].values
+                valid_wspds = wspds.loc[valid_mask].where(valid_heights.loc[valid_mask]).values
+            else:
+                valid_mask = valid_heights.all(axis=1)
+                fit_mask = None
+                valid_wspds = wspds.loc[valid_mask].values
             log_heights = np.log(np.asarray(heights, dtype=float))
 
             if calc_method == 'power_law':
                 alpha = pd.Series(index=wspds.index, dtype=float, name='alpha')
-                alpha.loc[valid_mask], _ = Shear._calc_linear_fit(log_heights, np.log(wspds.loc[valid_mask].values))
+                alpha.loc[valid_mask], _ = Shear._calc_linear_fit(log_heights, np.log(valid_wspds), mask=fit_mask)
                 self._alpha = alpha
 
             elif calc_method == 'log_law':
                 slope = pd.Series(index=wspds.index, dtype=float)
                 intercept = pd.Series(index=wspds.index, dtype=float)
                 slope.loc[valid_mask], intercept.loc[valid_mask] = Shear._calc_linear_fit(
-                    log_heights, wspds.loc[valid_mask].values)
+                    log_heights, valid_wspds, mask=fit_mask)
                 roughness_coefficient = pd.Series(Shear._calc_roughness(slope=slope, intercept=intercept),
                                                   name='roughness_coefficient')
                 self._roughness = roughness_coefficient
@@ -112,7 +133,11 @@ class Shear:
             self.origin = 'TimeSeries'
             self.calc_method = calc_method
             self.wspds = wspds
-            self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed)
+            shear = self._alpha if calc_method == 'power_law' else self._roughness
+            self.height_combinations = Shear._height_combinations(valid_by_height.loc[valid_mask],
+                                                                  shear.loc[valid_mask], calc_method)
+            self.info = Shear._create_info(self, heights=heights, cvg=cvg, min_speed=min_speed,
+                                           maximise_data=maximise_data)
 
         @property
         def alpha(self):
@@ -834,27 +859,45 @@ class Shear:
         return coeffs[0]
 
     @staticmethod
-    def _calc_linear_fit(x, y):
+    def _calc_linear_fit(x, y, mask=None):
         """
         Derive the least squares straight line fit of y against x for every row of y at once. This gives the same
         result as calling np.polyfit(x, y_row, deg=1) on each row, but is vectorised across all rows.
 
-        :param x: Values to fit against, e.g. log of heights, one per column of y.
-        :type x:  numpy.ndarray
-        :param y: 2D array with one row per timestamp and one column per height, e.g. log of wind speeds. Each row
-                  must be complete (no NaN).
-        :type y:  numpy.ndarray
-        :return:  The slope and intercept of the best fit line for each row.
-        :rtype:   tuple(numpy.ndarray, numpy.ndarray)
+        :param x:    Values to fit against, e.g. log of heights, one per column of y.
+        :type x:     numpy.ndarray
+        :param y:    2D array with one row per timestamp and one column per height, e.g. log of wind speeds. If mask
+                     is None each row must be complete (no NaN).
+        :type y:     numpy.ndarray
+        :param mask: Optional 2D boolean array, the same shape as y, which is True for the values of y to use in the
+                     fit of each row. Rows need at least two values with different x, otherwise the slope and
+                     intercept are NaN.
+        :type mask:  numpy.ndarray or None
+        :return:     The slope and intercept of the best fit line for each row.
+        :rtype:      tuple(numpy.ndarray, numpy.ndarray)
 
         METHODOLOGY:
             slope = sum((x - mean(x)) * (y - mean(y))) / sum((x - mean(x))^2)
             intercept = mean(y) - slope * mean(x)
+            where the sums and means of each row only use the values selected by mask.
         """
-        x_dev = x - x.mean()
-        y_mean = y.mean(axis=1)
-        slope = ((y - y_mean[:, np.newaxis]) * x_dev).sum(axis=1) / (x_dev ** 2).sum()
-        intercept = y_mean - slope * x.mean()
+        if mask is None:
+            x_dev = x - x.mean()
+            y_mean = y.mean(axis=1)
+            slope = ((y - y_mean[:, np.newaxis]) * x_dev).sum(axis=1) / (x_dev ** 2).sum()
+            intercept = y_mean - slope * x.mean()
+            return slope, intercept
+
+        x = np.broadcast_to(x, y.shape)
+        count = mask.sum(axis=1)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            x_mean = np.where(mask, x, 0).sum(axis=1) / count
+            y_mean = np.where(mask, y, 0).sum(axis=1) / count
+            x_dev = np.where(mask, x - x_mean[:, np.newaxis], 0)
+            y_dev = np.where(mask, y - y_mean[:, np.newaxis], 0)
+            x_dev_sq_sum = (x_dev ** 2).sum(axis=1)
+            slope = np.where(x_dev_sq_sum > 0, (x_dev * y_dev).sum(axis=1) / x_dev_sq_sum, np.nan)
+        intercept = y_mean - slope * x_mean
         return slope, intercept
 
     @staticmethod
@@ -1091,13 +1134,12 @@ class Shear:
             Shear._unequal_wspd_heights_error_msg(wspds, heights)
 
         cvg = None
-        Shear._valid_wsp_data_error_msg(wspds, min_speed)
+        Shear._valid_wsp_data_error_msg(wspds, min_speed, maximise_data=maximise_data, heights=heights)
         if isinstance(wspds.index, pd.DatetimeIndex):
             if maximise_data is False:
                 cvg = coverage(wspds[wspds > min_speed].dropna(), period='1YS').sum().iloc[1]
             else:
-                _wspds = wspds[wspds > min_speed]
-                count = _wspds.count(axis=1)
+                count = Shear._count_valid_heights(wspds > min_speed, heights)
                 count = count[count >= 2]
                 count.rename('count', inplace=True)
                 cvg = coverage(count, period='1YS').sum()
@@ -1112,7 +1154,76 @@ class Shear:
                          str(len(heights)) + ' height(s) were given.')
 
     @staticmethod
-    def _valid_wsp_data_error_msg(wspds, min_speed):
+    def _valid_by_height(valid_wspds, heights):
+        """
+        Find which heights have a valid wind speed at each timestamp. A height is valid if any of the wind speeds
+        measured at that height are valid.
+
+        :param valid_wspds: Boolean DataFrame, True where the wind speed is valid.
+        :type valid_wspds:  pandas.DataFrame
+        :param heights:     Height of each column of valid_wspds.
+        :type heights:      list
+        :return:            Boolean DataFrame with one column per different height, in ascending order.
+        :rtype:             pandas.DataFrame
+        """
+        heights = np.asarray(heights)
+        valid = valid_wspds.values
+        return pd.DataFrame({height: valid[:, heights == height].any(axis=1) for height in np.unique(heights)},
+                            index=valid_wspds.index)
+
+    @staticmethod
+    def _count_valid_heights(valid_wspds, heights):
+        """
+        Count the number of different heights with a valid wind speed at each timestamp. Wind speeds measured at the
+        same height only count once.
+
+        :param valid_wspds: Boolean DataFrame, True where the wind speed is valid.
+        :type valid_wspds:  pandas.DataFrame
+        :param heights:     Height of each column of valid_wspds.
+        :type heights:      list
+        :return:            The number of different valid heights at each timestamp.
+        :rtype:             pandas.Series
+        """
+        return Shear._valid_by_height(valid_wspds, heights).sum(axis=1)
+
+    @staticmethod
+    def _height_combinations(valid_by_height, shear, calc_method):
+        """
+        Summarise which combinations of heights were used to calculate shear, how often each was used and the mean
+        alpha or median roughness coefficient calculated from each.
+
+        :param valid_by_height: Boolean DataFrame with one column per height, True where that height was used, for
+                                each timestamp shear was calculated for.
+        :type valid_by_height:  pandas.DataFrame
+        :param shear:           Alpha or roughness coefficient for the same timestamps.
+        :type shear:            pandas.Series
+        :param calc_method:     Either 'power_law' or 'log_law'.
+        :type calc_method:      str
+        :return:                One row per combination of heights, most used first, with a True/False column for
+                                each height and columns for the count, percentage of timestamps and the mean alpha
+                                or median roughness coefficient.
+        :rtype:                 pandas.DataFrame
+        """
+        combinations = valid_by_height.rename(columns=lambda height: f'{height:g} m')
+        grouped = shear.groupby([combinations[col] for col in combinations.columns])
+        table = grouped.size().rename('count').to_frame()
+        table['percent'] = (100 * table['count'] / table['count'].sum()).round(1)
+        if calc_method == 'power_law':
+            table['mean_alpha'] = grouped.mean()
+        else:
+            table['median_roughness'] = grouped.median()
+        return table.sort_values('count', ascending=False).reset_index()
+
+    @staticmethod
+    def _valid_wsp_data_error_msg(wspds, min_speed, maximise_data=False, heights=None):
+        if maximise_data:
+            # only need at least two different valid heights at some timestamp
+            if (Shear._count_valid_heights(wspds.notna(), heights) >= 2).sum() == 0:
+                raise ValueError("There is no valid data within the dataset provided to calculate the shear.")
+            if (Shear._count_valid_heights(wspds > min_speed, heights) >= 2).sum() == 0:
+                raise ValueError(f"There is no valid data above {min_speed} m/s within the dataset provided to "
+                                 f"calculate the shear.")
+            return
         if wspds.isnull().all().any():
             raise ValueError("There is no valid data within the dataset provided to calculate the shear.")
         if len(wspds[wspds > min_speed].dropna()) == 0:
@@ -1121,7 +1232,7 @@ class Shear:
 
     @staticmethod
     def _create_info(self, heights, min_speed, cvg, direction_bin_array=None, segments_per_day=None,
-                     segment_start_time=None):
+                     segment_start_time=None, maximise_data=None):
         """
         Create the info dict that is returned to the user.
 
@@ -1132,6 +1243,7 @@ class Shear:
         :param direction_bin_array:
         :param segments_per_day:
         :param segment_start_time:
+        :param maximise_data:
         :return:
         """
 
@@ -1142,6 +1254,8 @@ class Shear:
                              'min_spd': min_speed}
         input_data['input_wind_speeds'] = input_wind_speeds
         input_data['calculation_method'] = self.calc_method
+        if maximise_data is not None:
+            input_data['maximise_data'] = maximise_data
         if cvg is not None:
             output_data['concurrent_period'] = float("{:.3f}".format(cvg))
 
@@ -1167,7 +1281,9 @@ class Shear:
             output_data['alpha'] = self.alpha
         if self.calc_method == 'log_law':
             output_data['roughness'] = self.roughness
-            
+        if self.origin == 'TimeSeries':
+            output_data['height_combinations'] = self.height_combinations
+
         info['input data'] = input_data
         info['output data'] = output_data
 

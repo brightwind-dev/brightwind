@@ -278,6 +278,212 @@ def test_calc_linear_fit():
         np.testing.assert_allclose(slope, expected_slope, rtol=0, atol=1e-12)
         np.testing.assert_allclose(intercept, expected_intercept, rtol=0, atol=1e-12)
 
+    # fit only the values selected by the mask in each row
+    heights = [40, 60, 80, 100, 120]
+    log_heights = np.log(heights)
+    log_wspds = np.log(rng.uniform(3, 20, size=(200, len(heights))))
+    mask = rng.random(size=log_wspds.shape) > 0.4
+    mask[:, :2] = [True, True]
+    log_wspds[~mask] = np.nan
+    slope, intercept = bw.Shear._calc_linear_fit(log_heights, log_wspds, mask=mask)
+    for i in range(len(log_wspds)):
+        expected_slope, expected_intercept = np.polyfit(log_heights[mask[i]], log_wspds[i, mask[i]], deg=1)
+        assert slope[i] == pytest.approx(expected_slope, abs=1e-12)
+        assert intercept[i] == pytest.approx(expected_intercept, abs=1e-12)
+    # a full mask gives the same result as no mask
+    full_slope, full_intercept = bw.Shear._calc_linear_fit(log_heights, log_wspds[mask.all(axis=1)])
+    np.testing.assert_allclose(slope[mask.all(axis=1)], full_slope, rtol=0, atol=1e-12)
+    np.testing.assert_allclose(intercept[mask.all(axis=1)], full_intercept, rtol=0, atol=1e-12)
+    # a row with fewer than two different heights can't be fitted
+    slope, intercept = bw.Shear._calc_linear_fit(np.log([80, 80, 60]), np.log([[8.0, 8.1, 7.5], [8.0, np.nan, 7.5]]),
+                                                 mask=np.array([[True, True, False], [True, False, False]]))
+    assert np.isnan(slope).all() and np.isnan(intercept).all()
+
+
+def assert_height_combinations(shear, valid, heights, values):
+    """
+    Check TimeSeries.height_combinations against a count of each combination of valid heights.
+
+    valid is a boolean array with one row per timestamp shear was calculated for and one column per different height,
+    in the order of heights, and values are the alpha or roughness coefficients for the same timestamps.
+    """
+    table = shear.height_combinations
+    assert shear.info['output data']['height_combinations'] is table
+    stat = 'mean_alpha' if shear.calc_method == 'power_law' else 'median_roughness'
+    order = np.argsort(heights)
+    height_cols = [f'{heights[i]} m' for i in order]
+    valid = valid[:, order]
+    assert list(table.columns) == height_cols + ['count', 'percent', stat]
+    assert table['count'].is_monotonic_decreasing
+    assert table['count'].sum() == len(valid)
+    assert len(table) == len(np.unique(valid, axis=0))
+    for _, row in table.iterrows():
+        rows = (valid == row[height_cols].values.astype(bool)).all(axis=1)
+        assert row['count'] == rows.sum()
+        assert row['percent'] == round(100 * rows.sum() / len(valid), 1)
+        expected = values[rows].mean() if stat == 'mean_alpha' else np.median(values[rows])
+        np.testing.assert_allclose(row[stat], expected, rtol=1e-12)
+
+
+def test_time_series_maximise_data():
+    heights = [80, 60, 40]
+    # NaN in one height and below min_speed in another, so some timestamps only have two valid heights
+    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']].copy()
+    anemometers.iloc[::5, 0] = np.nan
+    anemometers.iloc[1::7, 1] = 2.0
+    anemometers.iloc[2::11, 2] = np.nan
+    valid = (anemometers > 3).values
+    two_valid = valid.sum(axis=1) == 2
+    # positions of the two valid heights in each row with exactly two
+    first, second = np.argsort(~valid[two_valid], axis=1, kind='stable')[:, :2].T
+    speeds = anemometers.values[two_valid]
+    rows = np.arange(len(speeds))
+    u1, u2 = speeds[rows, first], speeds[rows, second]
+    z1, z2 = np.array(heights)[first], np.array(heights)[second]
+
+    for calc_method in ['power_law', 'log_law']:
+        all_heights = bw.Shear.TimeSeries(anemometers, heights, calc_method=calc_method)
+        maximised = bw.Shear.TimeSeries(anemometers, heights, calc_method=calc_method, maximise_data=True)
+        name = 'alpha' if calc_method == 'power_law' else 'roughness'
+        shear_all, shear_max = getattr(all_heights, name), getattr(maximised, name)
+
+        assert shear_max.index.equals(anemometers.index)
+        assert all_heights.info['input data']['maximise_data'] is False
+        assert maximised.info['input data']['maximise_data'] is True
+        assert all_heights.info['output data']['concurrent_period'] == 0.941
+        assert maximised.info['output data']['concurrent_period'] == 1.455
+        assert shear_all.notna().sum() == 49513
+        assert shear_max.notna().sum() == 76552 == (valid.sum(axis=1) >= 2).sum()
+        # timestamps with all heights valid are unchanged, timestamps with fewer than two are NaN
+        complete = valid.all(axis=1)
+        np.testing.assert_allclose(shear_max[complete].values, shear_all[complete].values, rtol=0, atol=1e-12)
+        assert shear_max[valid.sum(axis=1) < 2].isna().all()
+        # with maximise_data=False only the combination of all heights is used
+        assert len(all_heights.height_combinations) == 1
+        assert all_heights.height_combinations['percent'].iloc[0] == 100
+        assert_height_combinations(all_heights, valid[complete], heights, shear_all[complete].values)
+        used = valid.sum(axis=1) >= 2
+        assert_height_combinations(maximised, valid[used], heights, shear_max[used].values)
+        assert len(maximised.height_combinations) == 4
+
+        # timestamps with two valid heights use only those two
+        if calc_method == 'power_law':
+            expected = np.log(u1 / u2) / np.log(z1 / z2)
+            np.testing.assert_allclose(shear_max[two_valid].values, expected, rtol=0, atol=1e-12)
+        else:
+            slope = (u1 - u2) / np.log(z1 / z2)
+            intercept = u1 - slope * np.log(z1)
+            expected = np.exp(-intercept / slope)
+            np.testing.assert_allclose(shear_max[two_valid].values, expected, rtol=1e-8, equal_nan=True)
+
+
+def test_time_series_maximise_data_validation():
+    heights = [80, 60, 40]
+    # heights never all valid at the same timestamp
+    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']].iloc[:100].copy()
+    anemometers.iloc[::2, 0] = np.nan
+    anemometers.iloc[1::2, 2] = np.nan
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.TimeSeries(anemometers, heights)
+    assert str(except_info.value) == "There is no valid data above 3 m/s within the dataset provided to calculate the shear."
+
+    # a whole height NaN is only allowed with maximise_data
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.TimeSeries(anemometers.assign(Spd40mN=np.nan), heights)
+    assert str(except_info.value) == "There is no valid data within the dataset provided to calculate the shear."
+
+    # maximise_data still needs two valid heights at some timestamp
+    one_height = anemometers.assign(Spd60mN=np.nan, Spd40mN=np.nan)
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear._valid_wsp_data_error_msg(one_height, 3, maximise_data=True, heights=heights)
+    assert str(except_info.value) == "There is no valid data within the dataset provided to calculate the shear."
+    below_min_speed = anemometers.assign(Spd60mN=2.0)
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear._valid_wsp_data_error_msg(below_min_speed, 3, maximise_data=True, heights=heights)
+    assert str(except_info.value) == "There is no valid data above 3 m/s within the dataset provided to calculate the shear."
+    bw.Shear._valid_wsp_data_error_msg(anemometers, 3, maximise_data=True, heights=heights)
+    bw.Shear._valid_wsp_data_error_msg(anemometers.assign(Spd40mN=np.nan), 3, maximise_data=True, heights=heights)
+
+    # two sensors at the same height only count as one height
+    same_height = DATA[['Spd80mN', 'Spd80mS', 'Spd60mN']].iloc[:100].assign(Spd60mN=np.nan)
+    with pytest.raises(ValueError) as except_info:
+        bw.Shear.TimeSeries(same_height, [80, 80, 60], maximise_data=True, plot=False)
+    assert str(except_info.value) == "There is no valid data within the dataset provided to calculate the shear."
+
+
+def test_time_series_maximise_data_no_overlap():
+    heights = [80, 60, 40]
+    # heights never all valid at the same timestamp
+    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']].iloc[:1000].copy()
+    anemometers.iloc[::2, 0] = np.nan
+    anemometers.iloc[1::2, 2] = np.nan
+    valid = (anemometers > 3).values
+    two_valid = valid.sum(axis=1) == 2
+    first, second = np.argsort(~valid[two_valid], axis=1, kind='stable')[:, :2].T
+    speeds = anemometers.values[two_valid]
+    rows = np.arange(len(speeds))
+    u1, u2 = speeds[rows, first], speeds[rows, second]
+    z1, z2 = np.array(heights)[first], np.array(heights)[second]
+
+    for calc_method in ['power_law', 'log_law']:
+        shear = bw.Shear.TimeSeries(anemometers, heights, calc_method=calc_method, maximise_data=True, plot=False)
+        values = shear.alpha if calc_method == 'power_law' else shear.roughness
+        assert shear.plot is None
+        assert values.notna().sum() == two_valid.sum() > 0
+        assert values[~two_valid].isna().all()
+        assert shear.info['input data']['maximise_data'] is True
+        assert_height_combinations(shear, valid[two_valid], heights, values[two_valid].values)
+        assert shear.height_combinations[['40 m', '60 m', '80 m']].sum(axis=1).eq(2).all()
+        if calc_method == 'power_law':
+            expected = np.log(u1 / u2) / np.log(z1 / z2)
+            np.testing.assert_allclose(values[two_valid].values, expected, rtol=0, atol=1e-12)
+        else:
+            slope = (u1 - u2) / np.log(z1 / z2)
+            expected = np.exp(-(u1 - slope * np.log(z1)) / slope)
+            np.testing.assert_allclose(values[two_valid].values, expected, rtol=1e-8, equal_nan=True)
+
+    # a whole height NaN, so shear uses the other two heights
+    anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']].iloc[:1000].assign(Spd40mN=np.nan)
+    valid = (anemometers > 3).values
+    used = valid[:, 0] & valid[:, 1]
+    u1, u2 = anemometers.values[used, 0], anemometers.values[used, 1]
+    for calc_method in ['power_law', 'log_law']:
+        shear = bw.Shear.TimeSeries(anemometers, heights, calc_method=calc_method, maximise_data=True, plot=False)
+        values = shear.alpha if calc_method == 'power_law' else shear.roughness
+        assert values.notna().sum() == used.sum() > 0
+        assert values[~used].isna().all()
+        assert_height_combinations(shear, valid[used], heights, values[used].values)
+        assert shear.height_combinations[['40 m', '60 m', '80 m']].values.tolist() == [[False, True, True]]
+        if calc_method == 'power_law':
+            expected = np.log(u1 / u2) / np.log(80 / 60)
+            np.testing.assert_allclose(values[used].values, expected, rtol=0, atol=1e-12)
+        else:
+            slope = (u1 - u2) / np.log(80 / 60)
+            expected = np.exp(-(u1 - slope * np.log(80)) / slope)
+            np.testing.assert_allclose(values[used].values, expected, rtol=1e-8, equal_nan=True)
+
+
+def test_time_series_maximise_data_same_height():
+    # two sensors at 80 m and one at 60 m
+    heights = [80, 80, 60]
+    anemometers = DATA[['Spd80mN', 'Spd80mS', 'Spd60mN']].iloc[:1000].copy()
+    anemometers.iloc[::3, 2] = np.nan
+    valid = (anemometers > 3).values
+    # needs a valid 80 m sensor and the 60 m sensor
+    used = (valid[:, 0] | valid[:, 1]) & valid[:, 2]
+    only_80m = valid[:, 0] & valid[:, 1] & ~valid[:, 2]
+    assert only_80m.sum() > 0
+
+    shear = bw.Shear.TimeSeries(anemometers, heights, maximise_data=True, plot=False)
+    assert shear.alpha.notna().sum() == used.sum()
+    assert shear.alpha[only_80m].isna().all()
+    expected_cvg = bw.coverage(pd.Series(1, index=anemometers.index[used], name='count'), period='1YS').sum()
+    assert shear.info['output data']['concurrent_period'] == float("{:.3f}".format(expected_cvg))
+    # the two 80 m sensors are one height in the combinations
+    by_height = np.column_stack([valid[used, 0] | valid[used, 1], valid[used, 2]])
+    assert_height_combinations(shear, by_height, [80, 60], shear.alpha[used].values)
+    assert len(shear.height_combinations) == 1
+
 
 def test_time_series_full_data():
     anemometers = DATA[['Spd80mN', 'Spd60mN', 'Spd40mN']]
@@ -344,15 +550,21 @@ def test_time_series():
     anemometers = anemometers[:100]
     # Test initialisation
     shear_by_ts_power_law = bw.Shear.TimeSeries(anemometers, heights)
-    shear_by_ts_power_law = bw.Shear.TimeSeries(anemometers, heights,  maximise_data=True)
     shear_by_ts_log_law = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law')
-    shear_by_ts_log_law = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law',
-                                              maximise_data=True)
+    shear_by_ts_power_law_max = bw.Shear.TimeSeries(anemometers, heights, maximise_data=True)
+    shear_by_ts_log_law_max = bw.Shear.TimeSeries(anemometers, heights, calc_method='log_law',
+                                                  maximise_data=True)
 
     # Test attributes
     assert round(shear_by_ts_power_law.alpha.mean(), 4) == 0.1786
     # Changed to support equality for very large numbers
     assert abs(shear_by_ts_log_law.roughness.mean() / 4.306534305567819e+68 - 1) < 1e-6
+    # maximise_data also uses timestamps where only two heights are valid
+    assert shear_by_ts_power_law.alpha.count() == 90
+    assert shear_by_ts_power_law_max.alpha.count() == 93
+    assert shear_by_ts_power_law_max.alpha.mean() == pytest.approx(0.191743, abs=1e-6)
+    assert shear_by_ts_log_law_max.roughness.count() == 93
+    assert shear_by_ts_log_law_max.roughness.median() == pytest.approx(0.562503, abs=1e-6)
 
     # Test apply
     shear_by_ts_power_law.apply(DATA['Spd80mN'], 40, 60)
