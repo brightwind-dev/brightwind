@@ -14,6 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
+1. Add public `bw.brighthub.request` function to make GET (the default), POST, PUT and DELETE requests to the BrightHub APIs, and public `bw.brighthub.get_id_token` function to get the BrightHub ID token. `request` has a `timeout` argument, defaulting to `(10, 35)` seconds (connect, read), and a `max_retries` argument, defaulting to 2. It raises a `ValueError` for an unsupported method. The new `brightwind/utils/brighthub.py` module is portable: it only depends on the `requests` package, so it can be copied into other code bases without needing the entire brightwind library (Issue [#583](https://github.com/brightwind-dev/brightwind/issues/583))
 1. Updated the axis labels on the `Shear.Average` (and `Shear.TimeSeries`) wind profile plot for clarity: the speed axis is now labelled `Wind Speed [m/s]` (was `Speed [m/s]`) and the height axis is now labelled `Height AGL [m]` (was `Elevation [m]`). ([#632](https://github.com/brightwind-dev/brightwind/issues/632))
 1. Speed up `Shear.TimeSeries` and `Shear.BySector`, and `dist_by_dir_sector()`, with no change to results. `Shear.TimeSeries` now fits the power law or log law for all timestamps at once instead of calling `np.polyfit` row by row. `Shear.BySector` now calls `dist_by_dir_sector()` with the plot switched off, instead of drawing a wind rose plot that was not used for each height. Wind direction binning in `_binned_direction_series()`, used by `dist_by_dir_sector()` and the correlations that bin by direction (e.g. `SpeedSort`), is now vectorised. Added tests to check these results against the previous values. ([#408](https://github.com/brightwind-dev/brightwind/issues/408))
 1. Speed up `Shear.TimeOfDay.apply()` with no change to results. The alpha or roughness coefficient for each timestamp is now looked up by its hour and month and applied to all timestamps at once, instead of looping over every hour and month. The progress bar is no longer shown. ([#408](https://github.com/brightwind-dev/brightwind/issues/408))
@@ -29,6 +30,7 @@ XX-Xxx-2026
 1. Added `AGENTS.md` with instructions for AI coding agents, an "AI-assisted contributions" section to `contributing.md` and a PR template (`.github/pull_request_template.md`). ([#669](https://github.com/brightwind-dev/brightwind/issues/669))
 
 ### Bug Fixes
+1. Fix `KeyError: 'password_verifier'` when BrightHub login returns a `PASSWORD_VERIFIER` challenge (Issue [#583](https://github.com/brightwind-dev/brightwind/issues/583)).
 1. Fixed `Shear.TimeSeries.apply()` dropping timestamps. It now returns every timestamp of the input wind speed time series, sorted by time, with NaN where the wind speed can't be scaled (e.g. where the shear exponent or roughness coefficient is NaN, or outside the period the shear was calculated for). Values that were returned before are unchanged. Note that `len()` of the returned series now includes the NaN timestamps, so use `.dropna()` first if only the scaled values are needed. ([#495](https://github.com/brightwind-dev/brightwind/issues/495))
 1. Fixed `test_export_tws_file` failing when pytest is run from the repo root by removing hardcoded, Windows-only relative paths. Added `demo_tws_file` to `bw.demo_datasets`. ([#604](https://github.com/brightwind-dev/brightwind/issues/604))
 1. Added `tests/conftest.py` to pin matplotlib to the non-interactive `Agg` backend for the test suite, fixing `_tkinter.TclError` failures (e.g. in `test_sector_ratio` and `test_dist_12x24`) when the full suite is run on machines without a usable Tcl/Tk runtime or display. ([#607](https://github.com/brightwind-dev/brightwind/issues/607))
@@ -36,7 +38,7 @@ XX-Xxx-2026
 1. `average_wdirs()` with a DataFrame now returns 0 instead of 360 when the average wind direction is North, in line with the result for a list, array or Series. This could only happen when floating-point error left the mean sine as a tiny negative number. The vector averaging maths used by `average_wdirs()` and `average_data_by_period()` is now shared in one place. ([#649](https://github.com/brightwind-dev/brightwind/issues/649))
 
 ### Deprecated
-1. 
+1. `LoadBrightHub._brighthub_request` and `brightwind.load.load._BrighthubAuth` are deprecated and will be removed in v3.0.0. Use `bw.brighthub.request` and `bw.brighthub.get_id_token` instead. ([#674](https://github.com/brightwind-dev/brightwind/issues/674))
 
 ---
 ## [2.7.0]

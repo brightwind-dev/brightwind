@@ -9,7 +9,7 @@ from .transform.scale import *
 from .export.export import *
 from . import demo_datasets
 from .utils.gis import *
-# from .utils.utils import *
+from .utils import brighthub
 
 import sys
 import warnings
