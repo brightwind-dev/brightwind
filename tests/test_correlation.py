@@ -3,6 +3,7 @@ import brightwind as bw
 import pandas as pd
 import numpy as np
 import warnings
+import matplotlib.pyplot as plt
 
 wndspd = 8
 wndspd_df = pd.DataFrame([2, 13, np.nan, 5, 8])
@@ -155,6 +156,142 @@ def test_ordinary_least_squares():
         assert test_param['sector_min'] == param['sector_min']
         assert test_param['sector_max'] == param['sector_max']
         assert test_param['sector_number'] == param['sector_number']
+
+
+def test_ordinary_least_squares_exclude_periods():
+    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M')
+    correl.run()
+    assert correl.params['num_excluded_points'] == 0
+    assert correl.excluded_data.empty
+
+    excluded_timestamps = pd.DatetimeIndex(['2016-06-01', '2017-02-01'])
+    correl_excl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+                                                 exclude_periods=['2016-06-01', pd.Timestamp('2017-02-01')])
+    correl_excl.run()
+
+    pd.testing.assert_index_equal(correl_excl.excluded_data.index, excluded_timestamps)
+    pd.testing.assert_frame_equal(correl_excl.excluded_data, correl.data.loc[excluded_timestamps])
+    pd.testing.assert_frame_equal(correl_excl.data, correl.data.drop(excluded_timestamps))
+    assert correl_excl.params['num_data_points'] == correl.params['num_data_points'] - 2
+    assert correl_excl.params['num_excluded_points'] == 2
+    # Same results as a correlation of the remaining data points
+    slope, offset = bw.Correl.OrdinaryLeastSquares._leastsquare(correl_excl.data['WS50m_m/s'],
+                                                                correl_excl.data['Spd80mN'])
+    assert round(correl_excl.params['slope'], 10) == round(slope, 10)
+    assert round(correl_excl.params['offset'], 10) == round(offset, 10)
+    assert correl_excl.params['r2'] != correl.params['r2']
+
+    # The same data points excluded using time ranges, with 'date_to' not included
+    exclude_ranges = [{'date_from': '2016-06-01', 'date_to': '2016-07-01'},
+                      {'date_from': '2017-02-15T12:00', 'date_to': '2017-03-01T00:00'}]
+    correl_ranges = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+                                                   exclude_periods=exclude_ranges)
+    correl_ranges.run()
+    assert correl_ranges.params == correl_excl.params
+
+    # None or an empty list give the same results as not excluding any periods
+    for exclude_periods in [None, []]:
+        correl_none = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'],
+                                                     averaging_prd='1M', exclude_periods=exclude_periods)
+        correl_none.run()
+        assert correl_none.params == correl.params
+        pd.testing.assert_frame_equal(correl_none.data, correl.data)
+        pd.testing.assert_frame_equal(correl_none.synthesize(), correl.synthesize())
+
+
+@pytest.mark.parametrize('averaging_prd', ['1h', '6h', '1D', '7D', '1W', '1M', '3M', '1YS'])
+def test_ordinary_least_squares_exclude_periods_averaging_periods(averaging_prd):
+    if averaging_prd == '1YS':
+        # Long term data is needed for enough annual data points
+        target_spd = MERRA2_NW['WS50m_m/s'].rename('WS50m_m/s_NW')
+    else:
+        target_spd = DATA_CLND['Spd80mN']
+    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], target_spd, averaging_prd=averaging_prd,
+                                            coverage_threshold=0)
+    idx = correl.data.index
+
+    # A timestamp excludes one data point and a time range from the middle of the 3rd averaging period to the middle
+    # of the 4th excludes both of these data points
+    middle_3rd_period = idx[2] + (idx[3] - idx[2]) / 2
+    middle_4th_period = idx[3] + (idx[4] - idx[3]) / 2
+    correl_excl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], target_spd, averaging_prd=averaging_prd,
+                                                 coverage_threshold=0,
+                                                 exclude_periods=[idx[1], {'date_from': middle_3rd_period,
+                                                                           'date_to': middle_4th_period}])
+    pd.testing.assert_index_equal(correl_excl.excluded_data.index, idx[[1, 2, 3]])
+
+    # A time range ending at the start of an averaging period does not exclude that data point
+    correl_excl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], target_spd, averaging_prd=averaging_prd,
+                                                 coverage_threshold=0,
+                                                 exclude_periods=[{'date_from': None, 'date_to': idx[2]}])
+    pd.testing.assert_index_equal(correl_excl.excluded_data.index, idx[[0, 1]])
+
+
+def test_ordinary_least_squares_exclude_periods_synthesize():
+    # Excluding the first data point does not change the averaging periods of the synthesized data, including for
+    # averaging periods where they are aligned to the first data point
+    for averaging_prd in ['1D', '1M']:
+        correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'],
+                                                averaging_prd=averaging_prd)
+        correl.run()
+        correl_excl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'],
+                                                     averaging_prd=averaging_prd,
+                                                     exclude_periods=[correl.data.index[0]])
+        correl_excl.run()
+        synth = correl.synthesize()
+        synth_excl = correl_excl.synthesize()
+        pd.testing.assert_index_equal(synth_excl.index, synth.index)
+        # The measured target data, including in the excluded period, is still used
+        pd.testing.assert_series_equal(synth_excl.loc[correl.data.index].iloc[:, 0],
+                                       synth.loc[correl.data.index].iloc[:, 0])
+
+
+def test_ordinary_least_squares_exclude_periods_errors():
+    with pytest.raises(ValueError, match='2016-06-15'):
+        bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+                                       exclude_periods=['2016-06-01', '2016-06-15'])
+    with pytest.raises(TypeError, match='must be a list'):
+        bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+                                       exclude_periods='2016-06-01')
+    with pytest.raises(ValueError, match="'date_to' must be greater than 'date_from'"):
+        bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+                                       exclude_periods=[{'date_from': '2017-02-01', 'date_to': '2017-01-01'}])
+    with pytest.raises(ValueError, match="'date_from' and 'date_to' keys"):
+        bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+                                       exclude_periods=[{'start': '2017-01-01', 'date_to': '2017-02-01'}])
+    with pytest.raises(ValueError, match='Not enough data points remain'):
+        bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+                                       exclude_periods=[{'date_from': '2016-03-01', 'date_to': None}])
+    with pytest.raises(NotImplementedError):
+        bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], ref_dir=MERRA2_NE['WD50m_deg'],
+                                       averaging_prd='1M', exclude_periods=['2016-06-01'])
+    with pytest.warns(UserWarning, match='No averaged data points of the correlation overlap'):
+        correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+                                                exclude_periods=[{'date_from': '2030-01-01', 'date_to': '2030-02-01'}])
+    assert correl.excluded_data.empty
+
+
+def test_ordinary_least_squares_exclude_periods_plot():
+    correl = bw.Correl.OrdinaryLeastSquares(MERRA2_NE['WS50m_m/s'], DATA_CLND['Spd80mN'], averaging_prd='1M',
+                                            exclude_periods=['2016-06-01', '2017-02-01'])
+    correl.run()
+
+    fig = correl.plot()
+    legend_texts = [text.get_text() for text in fig.axes[0].get_legend().get_texts()]
+    assert 'Excluded points (n = 2)' in legend_texts
+    # The axes limits include the excluded points
+    x_min, x_max = fig.axes[0].get_xlim()
+    assert x_min <= correl.excluded_data['WS50m_m/s'].min() and correl.excluded_data['WS50m_m/s'].max() <= x_max
+
+    fig = correl.plot(show_excluded_points=False)
+    legend_texts = [text.get_text() for text in fig.axes[0].get_legend().get_texts()]
+    assert not any('Excluded points' in text for text in legend_texts)
+
+    # Plotting on a subplot returns None, as for the plot without excluded points
+    fig, ax = plt.subplots()
+    assert correl.plot(ax=ax) is None
+    assert 'Excluded points (n = 2)' in [text.get_text() for text in ax.get_legend().get_texts()]
+    plt.close(fig)
 
 
 def test_synthesize():

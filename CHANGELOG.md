@@ -22,6 +22,7 @@ XX-Xxx-2026
 1. Removed `ipywidgets` and `ipython` from the requirements, as they are no longer used by brightwind. ([#408](https://github.com/brightwind-dev/brightwind/issues/408))
 1. `Shear.TimeSeries` and `Shear.BySector` no longer print "This may take a while..." and no longer clear the notebook cell output when they run. ([#639](https://github.com/brightwind-dev/brightwind/issues/639))
 2. Made `apply_cleaning()` much faster for long cleaning logs: each column is now written once instead of once per cleaning row, and for a sorted datetime index the flagged periods are found with a binary search. The cleaned output, dtypes and errors are unchanged. ([#653](https://github.com/brightwind-dev/brightwind/issues/653))
+1. Added an `exclude_periods` argument to `Correl.OrdinaryLeastSquares` to exclude averaged data points from the correlation fit. ([#672](https://github.com/brightwind-dev/brightwind/issues/672))
 
 ### Bug Fixes
 1. Fixed `Shear.TimeSeries.apply()` dropping timestamps. It now returns every timestamp of the input wind speed time series, sorted by time, with NaN where the wind speed can't be scaled (e.g. where the shear exponent or roughness coefficient is NaN, or outside the period the shear was calculated for). Values that were returned before are unchanged. Note that `len()` of the returned series now includes the NaN timestamps, so use `.dropna()` first if only the scaled values are needed. ([#495](https://github.com/brightwind-dev/brightwind/issues/495))
