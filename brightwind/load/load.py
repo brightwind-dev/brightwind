@@ -101,10 +101,10 @@ def _assemble_df_from_folder(source_folder, file_type, function_to_get_df, print
         df = function_to_get_df(file_name, **kwargs)
         assembled_df = pd.concat([assembled_df, df], verify_integrity=True)
         if print_progress:
-            print("{0} file read and appended".format(file_name))
+            print(f"{file_name} file read and appended")
         ctr = ctr + 1
     if print_progress:
-        print('Processed {0} files'.format(str(ctr)))
+        print(f'Processed {ctr} files')
     return assembled_df.sort_index()
 
 
@@ -539,7 +539,7 @@ class LoadBrightdata:
         except Exception:
             if response.status_code == 401:
                 raise Exception('Please check your BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD are correct.')
-            raise Exception('Http code {}, something is wrong with the server.'.format(str(response.status_code)))
+            raise Exception(f'Http code {response.status_code}, something is wrong with the server.')
 
         nodes_list = []
         for node in json_response:
@@ -1038,13 +1038,13 @@ class LoadBrightHub:
         plants = None
         if plant_type is None and plant_uuid is None:
             # get all
-            plants = brighthub.request(url_extension="/plants")
+            plants = brighthub.request("/plants")
         elif plant_type in ['onshore_wind', 'offshore_wind', 'solar'] and plant_uuid is None:
             # get all for a specific plant_type
-            plants = brighthub.request(url_extension="/plants", params={'plant_type_id': plant_type})
+            plants = brighthub.request("/plants", params={'plant_type_id': plant_type})
         elif plant_uuid is not None:
             # get all for plant_uuid
-            plants = brighthub.request(url_extension="/plants/{}".format(plant_uuid))
+            plants = brighthub.request(f"/plants/{plant_uuid}")
 
         if plants.headers.get('content-type') != 'application/json.':
             plants.raise_for_status()
@@ -1123,15 +1123,14 @@ class LoadBrightHub:
         measurement_locations = None
         if plant_uuid is None and measurement_station_uuid is None:
             # get all
-            measurement_locations = brighthub.request(url_extension="/measurement-locations")
+            measurement_locations = brighthub.request("/measurement-locations")
         elif plant_uuid is not None and measurement_station_uuid is None:
             # get all for plant_uuid
-            measurement_locations = brighthub.request(url_extension="/measurement-locations",
+            measurement_locations = brighthub.request("/measurement-locations",
                                                       params={'plant_uuid': plant_uuid})
         elif measurement_station_uuid is not None:
             # get for measurement_station_uuid
-            measurement_locations = brighthub.request(
-                url_extension="/measurement-locations/{}".format(measurement_station_uuid))
+            measurement_locations = brighthub.request(f"/measurement-locations/{measurement_station_uuid}")
 
         if measurement_locations.headers.get('content-type') != 'application/json.':
             measurement_locations.raise_for_status()
@@ -1176,8 +1175,7 @@ class LoadBrightHub:
                                                                         'end_date': '2016-12-19T23:01:00'}
         :rtype:                          dict
         """
-        start_end_dates = brighthub.request(
-            url_extension="/measurement-locations/{}/start-end-dates".format(measurement_station_uuid))
+        start_end_dates = brighthub.request(f"/measurement-locations/{measurement_station_uuid}/start-end-dates")
 
         if start_end_dates.headers.get('content-type') != 'application/json.':
             start_end_dates.raise_for_status()
@@ -1217,8 +1215,7 @@ class LoadBrightHub:
             demo_mast.get_table()
 
         """
-        data_model = brighthub.request(
-            url_extension="/measurement-locations/{}/data-model".format(measurement_station_uuid))
+        data_model = brighthub.request(f"/measurement-locations/{measurement_station_uuid}/data-model")
 
         if data_model.headers.get('content-type') != 'application/json.':
             data_model.raise_for_status()
@@ -1250,7 +1247,7 @@ class LoadBrightHub:
         date_to = LoadBrightHub.__date_to_datetime_str(date_to)
 
         return brighthub.request(
-            url_extension=f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
+            f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
             params={"date_from": date_from, "date_to": date_to, "file_extension": file_extension})
 
     @staticmethod
@@ -1337,7 +1334,7 @@ class LoadBrightHub:
         # 503 error is returned when the timeseries data file is being assembled by Brighthub.
         # This is to ensure that only the most up to date data can be downloaded.
         assembly_in_progress_err_msg = 'The server is currently busy assembling the timeseries file.'
-        if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+        if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
             retry_after = int(response.headers.get('Retry-After', 60))  # default retry after default 60 seconds
             for _ in range(4):  # attempt 4 more times
                 time.sleep(retry_after)  # wait before retrying
@@ -1345,19 +1342,19 @@ class LoadBrightHub:
                     measurement_station_uuid, date_from, date_to, file_extension
                 )
                 response_json = response.json()
-                if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+                if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
                     retry_after *= 2  # double the retry time for each attempt
                     continue  # try again
                 else:
                     # Either the call was a success or there was a different error.
                     break  # exit for loop
             # Raise the 503 error if all the attempts have been used up.
-            if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+            if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
                 raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
 
         if response.status_code == 404 and 'details' in response_json:  # other BrightHub specific errors.
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         presigned_url = response_json["url"]
@@ -1406,8 +1403,7 @@ class LoadBrightHub:
             data_clnd = bw.apply_cleaning(data, cleaning_log, sensor_col_name='MeasurementName',
                                           date_from_col_name='DateFrom', date_to_col_name='DateTo')
         """
-        response = brighthub.request(
-            url_extension=f"/measurement-locations/{measurement_station_uuid}/cleaning-log")
+        response = brighthub.request(f"/measurement-locations/{measurement_station_uuid}/cleaning-log")
         response_json = response.json()
 
         # error handling
@@ -1419,7 +1415,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         presigned_url = response_json["url"]
@@ -1459,8 +1455,7 @@ class LoadBrightHub:
             data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_json)
 
         """
-        response = brighthub.request(
-            url_extension="/measurement-locations/{}/cleaning-rules".format(measurement_station_uuid))
+        response = brighthub.request(f"/measurement-locations/{measurement_station_uuid}/cleaning-rules")
         response_json = response.json()
 
         # error handling
@@ -1472,7 +1467,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         return response_json
@@ -1498,7 +1493,7 @@ class LoadBrightHub:
         :rtype:                     list(dict)
         """
         response = brighthub.request(
-            url_extension=f"/reanalysis/{reanalysis_name}/nodes",
+            f"/reanalysis/{reanalysis_name}/nodes",
             params={"min_latitude_ddeg": min_latitude_ddeg,
                     "max_latitude_ddeg": max_latitude_ddeg,
                     "min_longitude_ddeg": min_longitude_ddeg,
@@ -1516,7 +1511,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         return response_json
@@ -1590,7 +1585,7 @@ class LoadBrightHub:
         :rtype:                          tuple(MeasurementStation, pandas.DataFrame)
         """
         response = brighthub.request(
-            url_extension=f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
+            f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
             params={"date_from": LoadBrightHub.__date_to_datetime_str(date_from),
                     "date_to": LoadBrightHub.__date_to_datetime_str(date_to),
                     "variables": LoadBrightHub.__parse_variables(variables)})
@@ -1605,7 +1600,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         node_metadata = (response_json['metadata'] if return_metadata_json
@@ -2764,5 +2759,5 @@ def __getattr__(name):
             FutureWarning,
             stacklevel=2
         )
-        return brighthub._BrighthubAuth
-    raise AttributeError("module {!r} has no attribute {!r}".format(__name__, name))
+        return brighthub._Auth
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
