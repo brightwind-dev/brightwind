@@ -1190,7 +1190,7 @@ class LoadBrightHub:
         """
         Get the IEA Wind: Task 43 WRA Data Model for the measurement station.
 
-        Information about the data model can be found at: https://github.com/IEA-Task-43/digital_wra_data_standard
+        Information about the data model can be found at: https://github.com/iea-wind-digitalisation/wra-data-model
 
         Once the data model is retrieved you can use the brightwind MeasurementStation class to view and
         use the data from it.

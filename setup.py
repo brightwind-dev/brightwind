@@ -1,15 +1,14 @@
 from setuptools import setup, find_packages
-import codecs
 import os.path
 
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 
 def read(rel_path):
     here = os.path.abspath(os.path.dirname(__file__))
-    with codecs.open(os.path.join(here, rel_path), 'r') as fp:
+    with open(os.path.join(here, rel_path), 'r', encoding='utf-8') as fp:
         return fp.read()
 
 
