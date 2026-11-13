@@ -47,6 +47,7 @@ XX-Xxx-2026
 1. `apply_cleaning()` now flags the single timestamp of a cleaning row whose `Start` equals its `Stop`. Previously such a row selected an empty period and cleaned nothing. All other rows still flag from `Start` up to but not including `Stop`. ([#656](https://github.com/brightwind-dev/brightwind/issues/656))
 1. `average_wdirs()` with a DataFrame now returns 0 instead of 360 when the average wind direction is North, in line with the result for a list, array or Series. This could only happen when floating-point error left the mean sine as a tiny negative number. The vector averaging maths used by `average_wdirs()` and `average_data_by_period()` is now shared in one place. ([#649](https://github.com/brightwind-dev/brightwind/issues/649))
 1. Fixed special characters in the README showing incorrectly on PyPI. ([#615](https://github.com/brightwind-dev/brightwind/issues/615))
+1. Fixed broken README links and images on PyPI by using absolute GitHub URLs. ([#616](https://github.com/brightwind-dev/brightwind/issues/616))
 
 ### Deprecated
 1. `LoadBrightHub._brighthub_request` and `brightwind.load.load._BrighthubAuth` are deprecated and will be removed in v3.0.0. Use `bw.brighthub.request` and `bw.brighthub.get_id_token` instead. ([#674](https://github.com/brightwind-dev/brightwind/issues/674))
