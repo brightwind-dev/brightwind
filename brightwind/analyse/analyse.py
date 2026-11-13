@@ -2305,7 +2305,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
         if dew_point_temperature_degC is None:
             raise ValueError("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
                              " provided.")
-        # Raise error if dew point temperature is greater than air temperature
+        # Warn if dew point temperature is greater than air temperature
         comparison = dew_point_temperature_degC > temperature
         msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature values."
                "\n This implies that the relative humidity would be greater than 100%.")
@@ -2495,7 +2495,7 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
     _assert_series_index_match(air_temperature_degC, dew_point_temperature_degC,
                                'air_temperature_degC', 'dew_point_temperature_degC')
 
-    # Raise error if dew point temperature is greater than air temperature
+    # Warn if dew point temperature is greater than air temperature
     comparison = dew_point_temperature_degC > air_temperature_degC
     msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature values."
            "\n This will result in a calculated relative humidity value greater than 100%.")
