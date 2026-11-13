@@ -743,10 +743,10 @@ def test_calc_air_density():
     # Test Series inputs
     assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m, rel_humidity_percent=DATA.RH2m,
                                     calc_method='HermanWobus_from_rel_humidity').tail(5).values -
-                pd.Series([1.19541777, 1.19614486, 1.19605542, 1.19568365, 1.19732707]) < 1e-3)).all()
+                np.array([1.19541777, 1.19614486, 1.19605542, 1.19568365, 1.19732707])) < 1e-3).all()
     # Test float inputs
-    assert bw.calc_air_density(0.711, 935, rel_humidity_percent=50,
-                               calc_method='HermanWobus_from_rel_humidity') - 1.1878427585014013 < 1e-6
+    assert abs(bw.calc_air_density(0.711, 935, rel_humidity_percent=50,
+                                   calc_method='HermanWobus_from_rel_humidity') - 1.1878427585014013) < 1e-6
 
     # Tests for calc_method = 'HermanWobus_from_dew_point'
 
@@ -757,7 +757,7 @@ def test_calc_air_density():
     assert str(except_info.value) == ("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
                                       " provided.")
 
-    # Check error is raised when dew_point_temperature_degC > temperature
+    # Check warning is raised when dew_point_temperature_degC > temperature
     msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature "
            "values.\n This implies that the relative humidity would be greater than 100%.")
     with pytest.warns(UserWarning, match=msg):
@@ -774,11 +774,11 @@ def test_calc_air_density():
     assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m,
                                     dew_point_temperature_degC=dew_point_temp,
                                     calc_method='HermanWobus_from_dew_point').tail(5).values -
-                pd.Series([1.19551981, 1.19621178, 1.19616594, 1.19579471, 1.19743759]) < 1e-3)).all()
+                np.array([1.19551981, 1.19621178, 1.19616594, 1.19579471, 1.19743759])) < 1e-3).all()
     # Test float inputs
-    assert bw.calc_air_density(0.711, 935,
-                               dew_point_temperature_degC=-1.299,
-                               calc_method='HermanWobus_from_dew_point') - 1.186717791022866 < 1e-6
+    assert abs(bw.calc_air_density(0.711, 935,
+                                   dew_point_temperature_degC=-1.299,
+                                   calc_method='HermanWobus_from_dew_point') - 1.186717791022866) < 1e-6
 
 
 def test_dist_matrix_by_direction_sector():
@@ -794,7 +794,7 @@ def test_dist_matrix_by_direction_sector():
 
 
 def test_calc_rel_humidity_from_dew_point():
-    # test error for dew point greater than temperature
+    # test warning for dew point greater than temperature
     msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature "
            "values.\n This will result in a calculated relative humidity value greater than 100%.")
     with pytest.warns(UserWarning, match=msg):
@@ -814,15 +814,17 @@ def test_calc_rel_humidity_from_dew_point():
         bw.calc_rel_humidity_from_dew_point(DATA.T2m.tail(5), DATA.T2m.tail(3))
     assert str(except_info.value) == "air_temperature_degC and dew_point_temperature_degC must have the same dimensions."
     # test float/int inputs
-    assert bw.calc_rel_humidity_from_dew_point(10, 11) - 93.54469072330612 < 1e-3
+    assert abs(bw.calc_rel_humidity_from_dew_point(10, 11) - 93.54469072330612) < 1e-3
     assert bw.calc_rel_humidity_from_dew_point(12.1, 12.1) == 100
-    # test Series inputs
-    merra2_node = bw.LoadBrightHub.get_reanalysis('MERRA-2', 53.5, -10.8, '2025-01-01', '2025-02-01',
-                                                  nearest_nodes=1, variables=['Tmp_2m_degC', 'DPTmp_2m_degC'],
-                                                  print_status=True)
-    assert (abs(bw.calc_rel_humidity_from_dew_point(merra2_node[1]['DPTmp_2m_degC'],
-                                                    merra2_node[1]['Tmp_2m_degC']).head(5).values -
-                pd.Series([71.97026223, 72.4558096, 72.94502496, 73.9525735, 74.45269691])) < 1e-3).all()
+    # test Series inputs, including dew point and air temperatures below zero
+    index = pd.date_range('2025-01-01', periods=5, freq='h')
+    dew_point_temp = pd.Series([10.0, 12.1, -1.299, 5.0, -10.0], index=index)
+    air_temp = pd.Series([11.0, 12.1, 0.711, 15.0, -5.0], index=index)
+    rel_humidity = bw.calc_rel_humidity_from_dew_point(dew_point_temp, air_temp)
+    assert isinstance(rel_humidity, pd.Series)
+    assert rel_humidity.index.equals(index)
+    assert (abs(rel_humidity.values -
+                np.array([93.54469072, 100.0, 86.38055077, 51.15937842, 67.91832184])) < 1e-3).all()
 
 
 def test_calc_water_saturation_vapour_pressure_Pa():
