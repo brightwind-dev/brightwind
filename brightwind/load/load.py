@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from brightwind.utils import utils, gis
+from brightwind.utils import utils, gis, brighthub
 from brightwind.load.station import MeasurementStation
 import datetime
 import requests
@@ -42,6 +42,14 @@ OPERATOR_DICT = {
     5: operator.eq,
     6: operator.ne,
     }
+
+# Statistic types as defined by the 'statistic_type_id' list of the IEA Wind Task 43 WRA Data Model, used as the
+# suffixes of a measurement's statistic columns, e.g. 'Spd80m_sd', 'Spd80m_max'. 'avg' is not in this tuple because
+# the average is the unsuffixed column, e.g. 'Spd80m'.
+# https://github.com/iea-wind-digitalisation/wra-data-model/blob/master/schema/iea43_wra_data_model.schema.json
+WRA_DATA_MODEL_STATISTIC_TYPES = ('sd', 'max', 'min', 'count', 'availability', 'quality', 'sum', 'median', 'mode',
+                                  'range', 'gust', 'ti', 'ti30sec', 'text', 'value')
+COLUMN_MATCH_OPTIONS = ('startswith', 'contains', 'exact', 'wra_data_model')
 
 
 def _list_files(folder_path, file_type):
@@ -93,10 +101,10 @@ def _assemble_df_from_folder(source_folder, file_type, function_to_get_df, print
         df = function_to_get_df(file_name, **kwargs)
         assembled_df = pd.concat([assembled_df, df], verify_integrity=True)
         if print_progress:
-            print("{0} file read and appended".format(file_name))
+            print(f"{file_name} file read and appended")
         ctr = ctr + 1
     if print_progress:
-        print('Processed {0} files'.format(str(ctr)))
+        print(f'Processed {ctr} files')
     return assembled_df.sort_index()
 
 
@@ -531,7 +539,7 @@ class LoadBrightdata:
         except Exception:
             if response.status_code == 401:
                 raise Exception('Please check your BRIGHTDATA_USERNAME and BRIGHTDATA_PASSWORD are correct.')
-            raise Exception('Http code {}, something is wrong with the server.'.format(str(response.status_code)))
+            raise Exception(f'Http code {response.status_code}, something is wrong with the server.')
 
         nodes_list = []
         for node in json_response:
@@ -940,255 +948,6 @@ class LoadBrightdata:
             raise error
 
 
-class _BrighthubAuth:
-    """
-    This class is used to define general functions that are then called by LoadBrightHub. Functions in this
-    class are outside of LoadBrightHub and will be called only once during the analysis and this will avoid making
-    multiple login to the Brighthub user pool.
-    """
-
-    # List possible errors encountered on Login
-    __BRIGHTHUB_LOGIN_ERROR_MAP = {
-        "not_authorized": "The Brighthub Email or Password is incorrect",
-        "user_not_confirmed": "The User is not confirmed. Please confirm your email and try again.",
-        "unexpected_error": "An unexpected error occurred.",
-        "new_password_required": "Your password has expired or needs to be reset. "
-                                 "Kindly reset your Brighthub password and try again.",
-        "password_not_verified": "Could not verify your password. "
-                                 "Please ensure you have confirmed your email and the password is correct.",
-        "ms_sso_user": "Microsoft SSO users cannot authenticate using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD'. "
-                       "Please migrate to API key authentication."
-    }
-    ID_TOKEN = ''
-    REFRESH_TOKEN = ''
-    USERNAME = ''
-    PASSWORD = ''
-    CLIENT_ID = ''
-    CLIENT_SECRET = ''
-
-    class BrighthubAuthError(Exception):
-        """Custom exception for Brighthub authentication failures."""
-        pass
-
-    @staticmethod
-    def _authenticate_with_client_credentials():
-        """
-        Authenticate a Brighthub user using the OAuth2 client credentials flow.
-
-        This method retrieves the Brighthub client ID and client secret from environmental
-        variables if not already assigned in the _BrighthubAuth class.
-
-        :rtype: str
-        :return: The JWT ID token for authenticated requests.
-        """
-
-        if not _BrighthubAuth.CLIENT_ID:
-            _BrighthubAuth.CLIENT_ID = utils.get_environment_variable('BRIGHTHUB_CLIENT_ID')
-
-        if not _BrighthubAuth.CLIENT_SECRET:
-            _BrighthubAuth.CLIENT_SECRET = utils.get_environment_variable('BRIGHTHUB_CLIENT_SECRET')
-
-        base_uri = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
-        auth_url = f"{base_uri}/auth/token"
-        try:
-            response = requests.post(
-                url=auth_url,
-                auth=requests.auth.HTTPBasicAuth(_BrighthubAuth.CLIENT_ID, _BrighthubAuth.CLIENT_SECRET),
-                data={"grant_type": "client_credentials"},
-                timeout=10
-            )
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            raise _BrighthubAuth.BrighthubAuthError(f"Network or connection error during authentication: {e}")
-
-        try:
-            token_data = response.json()
-        except ValueError:
-            raise _BrighthubAuth.BrighthubAuthError(f"Invalid JSON response from Brighthub: {response.text}")
-
-        if 'id_token' not in token_data:
-            raise _BrighthubAuth.BrighthubAuthError(f"Authentication failed, no id_token returned: {token_data}")
-
-        return token_data['id_token']
-
-    @staticmethod
-    def _get_cognito_request():
-        """
-        Function to form a request for Cognito Auth APIs
-        """
-        url = "https://cognito-idp.eu-west-1.amazonaws.com/"
-        headers = {
-            'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
-            'Content-Type': 'application/x-amz-json-1.1'
-        }
-        client_id = os.getenv("BRIGHTHUB_USER_POOL_CLIENT_ID", "3qkkpikve578cbok46p136au3g")
-
-        return url, headers, client_id
-    
-    @staticmethod
-    def _authenticate_with_basic_auth():
-        """Authenticate a Brighthub user using username and password (USER_PASSWORD_AUTH flow) 
-        via Cognito and return the ID token and refresh token.
-
-        :rtype: tuple
-        :return: A tuple containing the JWT ID token and refresh token for authenticated requests.
-        """
-        warnings.warn(
-            "Authentication using 'BRIGHTHUB_EMAIL' and 'BRIGHTHUB_PASSWORD' is deprecated in v2.4.0 and "
-            "will be removed in v3.0.0. \nPlease migrate to API key authentication. "
-            "Create and manage API keys at: https://brighthub.io/account-settings/settings. "
-            "After generating a key, set the environment variables 'BRIGHTHUB_CLIENT_ID' and "
-            "'BRIGHTHUB_CLIENT_SECRET'.",
-            FutureWarning
-        )
-        if not _BrighthubAuth.USERNAME:
-            _BrighthubAuth.USERNAME = utils.get_environment_variable('BRIGHTHUB_EMAIL')
-
-        if not _BrighthubAuth.PASSWORD:
-            _BrighthubAuth.PASSWORD = utils.get_environment_variable('BRIGHTHUB_PASSWORD')
-
-        url, headers, client_id = _BrighthubAuth._get_cognito_request()
-
-        body = {
-            "AuthParameters": {
-                "USERNAME": _BrighthubAuth.USERNAME,
-                "PASSWORD": _BrighthubAuth.PASSWORD
-            },
-            "AuthFlow": "USER_PASSWORD_AUTH",
-            "ClientId": client_id
-        }
-        response = requests.post(url, headers=headers, json=body)
-        login_response = response.json()
-        login_response_type = login_response.get("__type")
-
-        # a login error occurred
-        if login_response_type:
-            if login_response_type == "NotAuthorizedException":
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
-            elif login_response_type == "UserNotConfirmedException":
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
-            elif 'This account is linked to Microsoft SSO' in login_response.get("message", ""):
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["ms_sso_user"])
-            else:
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
-
-        # challenge returned
-        if login_response.get("ChallengeName"):
-            if login_response["ChallengeName"] == "NEW_PASSWORD_REQUIRED":
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["new_password_required"])
-            elif login_response["ChallengeName"] == "PASSWORD_VERIFIER":
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["password_verifier"])
-            else:
-                raise _BrighthubAuth.BrighthubAuthError(
-                    _BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
-
-        # login successful
-        id_token = login_response['AuthenticationResult']['IdToken']
-        refresh_token = login_response['AuthenticationResult']['RefreshToken']
-        return id_token, refresh_token
-
-    @staticmethod
-    def _get_id_token():
-        """
-        Retrieve an ID token for authenticating BrightHub API requests.
-
-        This method attempts to authenticate using API client credentials if
-        `BRIGHTHUB_CLIENT_ID` and `BRIGHTHUB_CLIENT_SECRET` are available. If they
-        are not provided, it falls back to username/password authentication using
-        `BRIGHTHUB_EMAIL` and `BRIGHTHUB_PASSWORD`.
-
-        Username/password authentication is deprecated in v2.4.0 and will be removed in
-        v3.0.0. Users should migrate to API key–based authentication.
-
-        Upon success, this method stores the resulting ID token (and refresh token,
-        when applicable) in the class-level attributes `ID_TOKEN` and
-        `REFRESH_TOKEN`. In case of authentication failure, an appropriate
-        exception is raised by the underlying authentication method.
-
-        :rtype: dict
-        :return: An empty dictionary upon successful authentication.
-        """
-        if _BrighthubAuth.REFRESH_TOKEN:
-            try:
-                _BrighthubAuth._brighthub_refresh_token()
-                return {}
-            except Exception:
-                # If refresh fails, proceed to re-authenticate
-                pass
-
-        # Preferred authentication flow: client credentials (API key)
-        try:
-            _BrighthubAuth.ID_TOKEN = _BrighthubAuth._authenticate_with_client_credentials()
-            return {}
-        
-        except Exception as e:
-            if str(e) in [
-                f'BRIGHTHUB_CLIENT_ID environmental variable is not set.',
-                f'BRIGHTHUB_CLIENT_SECRET environmental variable is not set.'
-            ]:
-                # Fallback to basic auth if client credentials are not provided
-                # This method is depreciated in v2.4.0 and will be removed in v3.0.0
-                _BrighthubAuth.ID_TOKEN, _BrighthubAuth.REFRESH_TOKEN = _BrighthubAuth._authenticate_with_basic_auth()
-            else:
-                raise e
-
-        return {}
-
-    @staticmethod
-    def _brighthub_refresh_token():
-        """
-        Function to generate a new token if the current id_token has expired. The new tokens are assigned to the global
-        variables ID_TOKEN, REFRESH_TOKEN.
-        In case of an error, an error message will be returned.
-        """
-        warnings.warn(
-            "Refresh token authentication is depreciated in v2.4.0 and will be removed in v3.0.0. "
-            "Please migrate to API key authentication.",
-            DeprecationWarning,
-            stacklevel=3
-        )
-        url, headers, cognito_client_id = _BrighthubAuth._get_cognito_request()
-
-        body = {
-            "AuthParameters": {
-                "REFRESH_TOKEN": _BrighthubAuth.REFRESH_TOKEN
-            },
-            "AuthFlow": "REFRESH_TOKEN_AUTH",
-            "ClientId": cognito_client_id
-        }
-        response = requests.post(url, headers=headers, json=body)
-        login_response = response.json()
-
-        # a login error occurred
-        if login_response.get("__type"):
-            if login_response["__type"] == "NotAuthorizedException":
-                raise ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["not_authorized"])
-            elif login_response["__type"] == "UserNotConfirmedException":
-                raise ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["user_not_confirmed"])
-            else:
-                raise ImportError(_BrighthubAuth.__BRIGHTHUB_LOGIN_ERROR_MAP["unexpected_error"])
-
-        id_token = login_response['AuthenticationResult']['IdToken']
-        _BrighthubAuth.ID_TOKEN = id_token
-        new_refresh_token = ""
-
-        if login_response['AuthenticationResult'].get('RefreshToken'):
-            new_refresh_token = login_response['AuthenticationResult']['RefreshToken']
-
-        # add the refresh token only if it has been generated again
-        # this functionality hasn't been tested as we could not replicate an expired refresh token
-        if new_refresh_token:
-            _BrighthubAuth.REFRESH_TOKEN = new_refresh_token
-
-        return {}
-
-
 class LoadBrightHub:
     """
     LoadBrightHub allows you to pull metadata and timeseries data of measurements from the BrightHub
@@ -1212,38 +971,27 @@ class LoadBrightHub:
 
     """
 
-    __BASE_URI = os.getenv('BRIGHTHUB_BASE_URI', 'https://api.brighthub.io')
-
     @staticmethod
     def _brighthub_request(url_end, params=None):
         """
+        Deprecated in v2.8.0 and will be removed in v3.0.0. Use brightwind.brighthub.request() instead.
+
         Function to make a GET request to the Brighthub endpoints
 
-        :param url_end:     The end of the url to be concatenated with the __BASE_URI in order to make the request
+        :param url_end:     The end of the url to be concatenated with the base URI in order to make the request
         :type url_end:      str
         :param params:      Optional. A dictionary, list of tuples or bytes to send as a query string. Default None
         :type params:       dict, list(tuples), bytes
-        :return response:   The requests response object returned by requests.get()
+        :return response:   The requests response object
         :rtype:             requests.Response object
         """
-      
-        if not _BrighthubAuth.ID_TOKEN:
-            _BrighthubAuth._get_id_token()
-
-        url = "{}{}".format(LoadBrightHub.__BASE_URI, url_end)
-        headers = {"authorization": _BrighthubAuth.ID_TOKEN}
-
-        response = requests.get(url=url, headers=headers, params=params)
-
-        # If there is an auth error due to expired token
-        if response.status_code == 401 and response.json().get("message") == "The incoming token has expired":
-            # Authenticate again
-            _BrighthubAuth._get_id_token()
-            headers = {"authorization": _BrighthubAuth.ID_TOKEN}
-            # Make the request again
-            response = requests.get(url=url, headers=headers, params=params)
-
-        return response
+        warnings.warn(
+            "LoadBrightHub._brighthub_request is deprecated in v2.8.0 and will be removed in v3.0.0. "
+            "\nPlease use brightwind.brighthub.request(url_extension, params=params) instead.",
+            FutureWarning,
+            stacklevel=2
+        )
+        return brighthub.request(url_end, params=params)
 
     @staticmethod
     def get_plants(plant_type=None, plant_uuid=None):
@@ -1290,13 +1038,13 @@ class LoadBrightHub:
         plants = None
         if plant_type is None and plant_uuid is None:
             # get all
-            plants = LoadBrightHub._brighthub_request(url_end="/plants")
+            plants = brighthub.request("/plants")
         elif plant_type in ['onshore_wind', 'offshore_wind', 'solar'] and plant_uuid is None:
             # get all for a specific plant_type
-            plants = LoadBrightHub._brighthub_request(url_end="/plants", params={'plant_type_id': plant_type})
+            plants = brighthub.request("/plants", params={'plant_type_id': plant_type})
         elif plant_uuid is not None:
             # get all for plant_uuid
-            plants = LoadBrightHub._brighthub_request(url_end="/plants/{}".format(plant_uuid))
+            plants = brighthub.request(f"/plants/{plant_uuid}")
 
         if plants.headers.get('content-type') != 'application/json.':
             plants.raise_for_status()
@@ -1375,15 +1123,14 @@ class LoadBrightHub:
         measurement_locations = None
         if plant_uuid is None and measurement_station_uuid is None:
             # get all
-            measurement_locations = LoadBrightHub._brighthub_request(url_end="/measurement-locations")
+            measurement_locations = brighthub.request("/measurement-locations")
         elif plant_uuid is not None and measurement_station_uuid is None:
             # get all for plant_uuid
-            measurement_locations = LoadBrightHub._brighthub_request(url_end="/measurement-locations",
-                                                                     params={'plant_uuid': plant_uuid})
+            measurement_locations = brighthub.request("/measurement-locations",
+                                                      params={'plant_uuid': plant_uuid})
         elif measurement_station_uuid is not None:
             # get for measurement_station_uuid
-            measurement_locations = LoadBrightHub._brighthub_request(
-                url_end="/measurement-locations/{}".format(measurement_station_uuid))
+            measurement_locations = brighthub.request(f"/measurement-locations/{measurement_station_uuid}")
 
         if measurement_locations.headers.get('content-type') != 'application/json.':
             measurement_locations.raise_for_status()
@@ -1428,8 +1175,7 @@ class LoadBrightHub:
                                                                         'end_date': '2016-12-19T23:01:00'}
         :rtype:                          dict
         """
-        start_end_dates = LoadBrightHub._brighthub_request(
-            url_end="/measurement-locations/{}/start-end-dates".format(measurement_station_uuid))
+        start_end_dates = brighthub.request(f"/measurement-locations/{measurement_station_uuid}/start-end-dates")
 
         if start_end_dates.headers.get('content-type') != 'application/json.':
             start_end_dates.raise_for_status()
@@ -1444,7 +1190,7 @@ class LoadBrightHub:
         """
         Get the IEA Wind: Task 43 WRA Data Model for the measurement station.
 
-        Information about the data model can be found at: https://github.com/IEA-Task-43/digital_wra_data_standard
+        Information about the data model can be found at: https://github.com/iea-wind-digitalisation/wra-data-model
 
         Once the data model is retrieved you can use the brightwind MeasurementStation class to view and
         use the data from it.
@@ -1469,8 +1215,7 @@ class LoadBrightHub:
             demo_mast.get_table()
 
         """
-        data_model = LoadBrightHub._brighthub_request(
-            url_end="/measurement-locations/{}/data-model".format(measurement_station_uuid))
+        data_model = brighthub.request(f"/measurement-locations/{measurement_station_uuid}/data-model")
 
         if data_model.headers.get('content-type') != 'application/json.':
             data_model.raise_for_status()
@@ -1501,8 +1246,8 @@ class LoadBrightHub:
         date_from = LoadBrightHub.__date_to_datetime_str(date_from)
         date_to = LoadBrightHub.__date_to_datetime_str(date_to)
 
-        return LoadBrightHub._brighthub_request(
-            url_end=f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
+        return brighthub.request(
+            f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
             params={"date_from": date_from, "date_to": date_to, "file_extension": file_extension})
 
     @staticmethod
@@ -1589,7 +1334,7 @@ class LoadBrightHub:
         # 503 error is returned when the timeseries data file is being assembled by Brighthub.
         # This is to ensure that only the most up to date data can be downloaded.
         assembly_in_progress_err_msg = 'The server is currently busy assembling the timeseries file.'
-        if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+        if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
             retry_after = int(response.headers.get('Retry-After', 60))  # default retry after default 60 seconds
             for _ in range(4):  # attempt 4 more times
                 time.sleep(retry_after)  # wait before retrying
@@ -1597,19 +1342,19 @@ class LoadBrightHub:
                     measurement_station_uuid, date_from, date_to, file_extension
                 )
                 response_json = response.json()
-                if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+                if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
                     retry_after *= 2  # double the retry time for each attempt
                     continue  # try again
                 else:
                     # Either the call was a success or there was a different error.
                     break  # exit for loop
             # Raise the 503 error if all the attempts have been used up.
-            if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details'):
+            if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
                 raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
 
         if response.status_code == 404 and 'details' in response_json:  # other BrightHub specific errors.
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         presigned_url = response_json["url"]
@@ -1658,8 +1403,7 @@ class LoadBrightHub:
             data_clnd = bw.apply_cleaning(data, cleaning_log, sensor_col_name='MeasurementName',
                                           date_from_col_name='DateFrom', date_to_col_name='DateTo')
         """
-        response = LoadBrightHub._brighthub_request(
-            url_end=f"/measurement-locations/{measurement_station_uuid}/cleaning-log")
+        response = brighthub.request(f"/measurement-locations/{measurement_station_uuid}/cleaning-log")
         response_json = response.json()
 
         # error handling
@@ -1671,7 +1415,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         presigned_url = response_json["url"]
@@ -1711,8 +1455,7 @@ class LoadBrightHub:
             data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_json)
 
         """
-        response = LoadBrightHub._brighthub_request(
-            url_end="/measurement-locations/{}/cleaning-rules".format(measurement_station_uuid))
+        response = brighthub.request(f"/measurement-locations/{measurement_station_uuid}/cleaning-rules")
         response_json = response.json()
 
         # error handling
@@ -1724,7 +1467,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         return response_json
@@ -1749,8 +1492,8 @@ class LoadBrightHub:
                                     of the nodes.
         :rtype:                     list(dict)
         """
-        response = LoadBrightHub._brighthub_request(
-            url_end=f"/reanalysis/{reanalysis_name}/nodes",
+        response = brighthub.request(
+            f"/reanalysis/{reanalysis_name}/nodes",
             params={"min_latitude_ddeg": min_latitude_ddeg,
                     "max_latitude_ddeg": max_latitude_ddeg,
                     "min_longitude_ddeg": min_longitude_ddeg,
@@ -1768,7 +1511,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         return response_json
@@ -1841,8 +1584,8 @@ class LoadBrightHub:
         :return:                         A tuple of a MeasurementStation object and the timeseries in a DataFrame.
         :rtype:                          tuple(MeasurementStation, pandas.DataFrame)
         """
-        response = LoadBrightHub._brighthub_request(
-            url_end=f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
+        response = brighthub.request(
+            f"/reanalysis/{reanalysis_name}/nodes/{latitude_ddeg}/{longitude_ddeg}/data",
             params={"date_from": LoadBrightHub.__date_to_datetime_str(date_from),
                     "date_to": LoadBrightHub.__date_to_datetime_str(date_to),
                     "variables": LoadBrightHub.__parse_variables(variables)})
@@ -1857,7 +1600,7 @@ class LoadBrightHub:
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
         if response.status_code == 500 and 'details' in response_json:  # unexpected server error
             raise ValueError(f"{response_json.get('error', '')}. {response_json.get('details', '')}")
-        elif 'error' in response_json:
+        elif response.status_code >= 400 or 'error' in response_json:
             raise ValueError(f"Unexpected error: Status Code {response.status_code}. {response.text}")
 
         node_metadata = (response_json['metadata'] if return_metadata_json
@@ -2369,6 +2112,45 @@ def _if_null_max_the_date(date_from, date_to):
     return date_from, date_to
 
 
+def _get_cleaning_period_mask(index, date_from, date_to):
+    """Build a boolean mask selecting the timestamps of index that a cleaning period flags.
+
+    `date_from` is inclusive and `date_to` is exclusive. A period whose `date_from` equals its `date_to` represents a
+    single timestamp, which the empty range would otherwise ignore, so only the timestamp equal to `date_from` is
+    flagged. Both bounds may be strings or datetimes. The range comparisons run first so that bounds which cannot be
+    compared with the index raise the same error for every period.
+    """
+    from_date_from = index >= date_from
+    before_date_to = index < date_to
+    if pd.Timestamp(date_from) == pd.Timestamp(date_to):
+        return from_date_from & (index <= date_to)
+    return from_date_from & before_date_to
+
+
+def _validate_column_match(column_match):
+    if column_match not in COLUMN_MATCH_OPTIONS:
+        raise ValueError(f"column_match must be one of {COLUMN_MATCH_OPTIONS}, got '{column_match}'.")
+
+
+def _get_columns_to_clean(name, columns, column_match):
+    """Return the columns in `columns` that a cleaning entry for `name` applies to, according to `column_match`.
+
+    'startswith' returns every column starting with `name`, 'contains' every column containing `name`, 'exact'
+    `name` itself and 'wra_data_model' `name` itself plus `name_<suffix>` for each suffix in
+    WRA_DATA_MODEL_STATISTIC_TYPES.
+    """
+    if column_match == 'startswith':
+        return [col for col in columns if col.find(name) == 0]
+    if column_match == 'contains':
+        return [col for col in columns if name in col]
+    if column_match == 'exact':
+        related_columns = {name}
+    else:
+        related_columns = {name} | {f'{name}_{suffix}' for suffix in WRA_DATA_MODEL_STATISTIC_TYPES}
+    # Also checking the prefix raises the same error as 'startswith' for a name or column that is not a string
+    return [col for col in columns if col.find(name) == 0 and col in related_columns]
+
+
 def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='Stop', dayfirst=False, **kwargs):
     """
     Load a cleaning file which contains a list of sensor names with corresponding periods of flagged data. The timezone
@@ -2420,12 +2202,14 @@ def load_cleaning_file(filepath, date_from_col_name='Start', date_to_col_name='S
 
 
 def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Sensor', date_from_col_name='Start',
-                   date_to_col_name='Stop', all_sensors_descriptor='All', replacement_text='NaN', dayfirst=False):
+                   date_to_col_name='Stop', all_sensors_descriptor='All', replacement_text='NaN', dayfirst=False,
+                   column_match='startswith'):
     """
     Apply cleaning to a timeseries DataFrame using predetermined flagged periods for each sensor listed in a cleaning
-    file. For each row in the cleaning file, if the 'Sensor' string is found at the start of a column name in the
-    timeseries DataFrame, then that column of data is flagged for the specified period. The flagged data will be
-    replaced with NaN values which then do not appear in any plots or effect calculations.
+    file. By default, for each row in the cleaning file, if the 'Sensor' string is found at the start of a column name
+    in the timeseries DataFrame, then that column of data is flagged for the specified period. Use 'column_match' to
+    change how the 'Sensor' string is matched to column names. The flagged data will be replaced with NaN values which
+    then do not appear in any plots or effect calculations.
 
     This file is a simple comma separated file with the 'Sensor' name along with the 'Start' and 'Stop' timestamps for
     the flagged period. There may be other columns in the file however these will be ignores.  E.g.:
@@ -2435,6 +2219,9 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     | Dir78m | 2018-12-23 02:40:00 |
 
     If the 'Stop' timestamp is missing, the data from the 'Start' until the end of the timeseries will be flagged.
+
+    Each flagged period includes the 'Start' timestamp and runs up to but not including the 'Stop' timestamp. If the
+    'Start' and 'Stop' timestamps are equal, only that single timestamp is flagged.
 
     :param data:                    Data to be cleaned.
     :type data:                     pandas.DataFrame
@@ -2462,6 +2249,25 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
                                     parses dates with the day first, eg 10/11/12 is parsed as 2012-11-10.
                                     More info on pandas.read_csv parameters.
     :type dayfirst:                 bool, default False
+    :param column_match:            How the 'Sensor' string is matched to the column names of 'data'. One of:
+                                    'startswith': clean every column whose name starts with the 'Sensor' string,
+                                    e.g. 'Spd' cleans 'Spd80mN' and 'Spd60mS', but 'Tmp' also cleans a separate
+                                    measurement 'Tmp_logger'.
+                                    'contains': clean every column whose name contains the 'Sensor' string.
+                                    'exact': clean only the column named exactly as the 'Sensor' string, e.g. 'Tmp'
+                                    cleans 'Tmp' but not 'Tmp_sd' or 'Tmp_logger'. Works with any column naming
+                                    convention, so each statistic column needs its own cleaning entry.
+                                    'wra_data_model': clean only the column named exactly as the 'Sensor' string and
+                                    its statistic columns, e.g. 'Tmp' cleans 'Tmp', 'Tmp_sd' and 'Tmp_max' but not
+                                    'Tmp_logger'. This assumes the WRA Data Model column naming convention, where the
+                                    average is the unsuffixed column and each other statistic column is named
+                                    <sensor>_<statistic> using the statistic types as defined in the WRA Data Model
+                                    ('sd', 'max', 'min', 'count', 'availability', 'quality', 'sum', 'median', 'mode',
+                                    'range', 'gust', 'ti', 'ti30sec', 'text', 'value'). Columns that do not follow this
+                                    convention, e.g. 'Spd80mSStd', are not matched. A separate measurement named like a
+                                    statistic column, e.g. 'Tmp_max' next to 'Tmp', is treated as a statistic column of
+                                    'Tmp'.
+    :type column_match:             str, default 'startswith'
     :return:                        DataFrame with the flagged data removed.
     :rtype:                         pandas.DataFrame
 
@@ -2486,7 +2292,15 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
         data = bw.apply_cleaning(data, cleaning_file, sensor_col_name='Data column',
                                  date_from_col_name='Start Time', date_to_col_name='Stop Time')
 
+    To clean only the named column and its statistic columns named following the WRA Data Model convention
+    (e.g. 'Spd80m', 'Spd80m_sd'), and not other columns whose name starts the same (e.g. 'Spd80m_2'):
+        data_cleaned = bw.apply_cleaning(data, cleaning_file, column_match='wra_data_model')
+
+    To clean only the column named exactly as the 'Sensor' string, whatever the column naming convention:
+        data_cleaned = bw.apply_cleaning(data, cleaning_file, column_match='exact')
+
     """
+    _validate_column_match(column_match)
 
     if inplace is False:
         data = data.copy(deep=True)
@@ -2501,16 +2315,127 @@ def apply_cleaning(data, cleaning_file_or_df, inplace=False, sensor_col_name='Se
     if replacement_text == 'NaN':
         replacement_text = np.nan
 
+    if len(cleaning_df) == 0:
+        return data
+
+    # Work out every flagged period first, then write each column once. Working out the periods writes nothing, so if
+    # it raises, run the original row by row loop on the untouched data instead to give exactly the same error.
+    try:
+        col_masks, all_mask = _build_cleaning_masks(data, cleaning_df, sensor_col_name, date_from_col_name,
+                                                    date_to_col_name, all_sensors_descriptor, column_match)
+    except (AttributeError, KeyError, TypeError, ValueError) as fast_path_error:
+        # Invalid inputs raise one of these and the row by row loop then raises its usual error for them
+        data = _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
+                                          all_sensors_descriptor, replacement_text, column_match)
+        # The row by row loop worked where the fast path failed, which means a bug in the fast path
+        warnings.warn(f"apply_cleaning used its slower row by row loop because the fast path raised "
+                      f"{type(fast_path_error).__name__}: {fast_path_error}. The cleaned data is correct, but please "
+                      f"report this at https://github.com/brightwind-dev/brightwind/issues.", RuntimeWarning)
+        return data
+    _write_cleaning_masks(data, col_masks, all_mask, replacement_text)
+    return data
+
+
+def _build_cleaning_masks(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
+                          all_sensors_descriptor, column_match):
+    """Combine the flagged periods of every cleaning row into one boolean mask per column of data, plus one mask
+    for the rows whose sensor is all_sensors_descriptor (None if there are none). Reads the cleaning rows the same
+    way as _apply_cleaning_row_by_row and only works out a period where that loop would. Writes nothing.
+    """
+    index = data.index
+    sorted_ns = None
+    if (isinstance(index, pd.DatetimeIndex) and index.tz is None and index.dtype == np.dtype('datetime64[ns]')
+            and not index.hasnans and index.is_monotonic_increasing):
+        sorted_ns = index.asi8
+
+    sensors = cleaning_df[sensor_col_name]
+    date_froms = cleaning_df[date_from_col_name]
+    date_tos = cleaning_df[date_to_col_name]
+    all_mask = None
+    sensor_masks = {}
+    sensor_columns = {}
+    for k in range(0, len(cleaning_df)):
+        sensor = sensors[k]
+        if sensor == all_sensors_descriptor:
+            if all_mask is None:
+                all_mask = np.zeros(len(index), dtype=bool)
+            mask = all_mask
+        else:
+            if sensor not in sensor_columns:
+                sensor_columns[sensor] = _get_columns_to_clean(sensor, data.columns, column_match)
+            if not sensor_columns[sensor]:
+                continue
+            if sensor not in sensor_masks:
+                sensor_masks[sensor] = np.zeros(len(index), dtype=bool)
+            mask = sensor_masks[sensor]
+        date_from, date_to = _if_null_max_the_date(date_froms[k], date_tos[k])
+        _flag_period(mask, index, sorted_ns, date_from, date_to)
+
+    col_masks = {}
+    for sensor, mask in sensor_masks.items():
+        for col in sensor_columns[sensor]:
+            col_masks[col] = mask if col not in col_masks else col_masks[col] | mask
+    return col_masks, all_mask
+
+
+def _flag_period(mask, index, sorted_ns, date_from, date_to):
+    """Set mask to True for the rows of index that the cleaning period flags, the same rows as
+    _get_cleaning_period_mask: [date_from, date_to), or only the rows equal to date_from when date_from equals
+    date_to. sorted_ns is the index as sorted int64 nanoseconds, or None. When it is given and both dates have a
+    nanosecond value, the rows are found with a binary search instead of comparing every timestamp.
+    """
+    if sorted_ns is not None:
+        start, stop = _timestamp_ns(date_from), _timestamp_ns(date_to)
+        if start is not None and stop is not None:
+            side = 'right' if start == stop else 'left'
+            mask[sorted_ns.searchsorted(start):sorted_ns.searchsorted(stop, side=side)] = True
+            return
+    mask |= _get_cleaning_period_mask(index, date_from, date_to)
+
+
+def _timestamp_ns(value):
+    """Return value as int64 nanoseconds if it is a Timestamp, datetime, numpy datetime64 or string that is (or parses
+    to) a tz-naive timestamp in the datetime64[ns] range, otherwise None. Pandas converts each of these to a Timestamp
+    the same way when comparing a datetime64[ns] index with it, so comparing with this number gives the same result.
+    """
+    if type(value) is str or type(value) is datetime.datetime or type(value) is np.datetime64:
+        try:
+            value = pd.Timestamp(value)
+        except (ValueError, OverflowError):
+            return None
+    if type(value) is not pd.Timestamp or value.tz is not None:
+        return None
+    try:
+        return value.value
+    except OverflowError:
+        # Outside the datetime64[ns] range
+        return None
+
+
+def _write_cleaning_masks(data, col_masks, all_mask, replacement_text):
+    """Write replacement_text into data wherever the masks from _build_cleaning_masks are True."""
+    pd.options.mode.chained_assignment = None
+    if all_mask is not None:
+        data.loc[all_mask, data.columns] = replacement_text
+    for col, mask in col_masks.items():
+        data.loc[mask, col] = replacement_text
+    pd.options.mode.chained_assignment = 'warn'
+
+
+def _apply_cleaning_row_by_row(data, cleaning_df, sensor_col_name, date_from_col_name, date_to_col_name,
+                               all_sensors_descriptor, replacement_text, column_match):
+    """The original apply_cleaning loop, one write per cleaning row and column. apply_cleaning falls back to it
+    whenever working out the flagged periods raises, so errors are exactly as before.
+    """
     for k in range(0, len(cleaning_df)):
         date_from, date_to = _if_null_max_the_date(cleaning_df[date_from_col_name][k], cleaning_df[date_to_col_name][k])
 
         pd.options.mode.chained_assignment = None
         if cleaning_df[sensor_col_name][k] == all_sensors_descriptor:
-            data.loc[(data.index >= date_from) & (data.index < date_to), data.columns] = replacement_text
+            data.loc[_get_cleaning_period_mask(data.index, date_from, date_to), data.columns] = replacement_text
         else:
-            for col in data.columns:
-                if col.find(cleaning_df[sensor_col_name][k]) == 0:
-                    data.loc[(data.index >= date_from) & (data.index < date_to), col] = replacement_text
+            for col in _get_columns_to_clean(cleaning_df[sensor_col_name][k], data.columns, column_match):
+                data.loc[_get_cleaning_period_mask(data.index, date_from, date_to), col] = replacement_text
         pd.options.mode.chained_assignment = 'warn'
 
     return data
@@ -2572,7 +2497,8 @@ def _evaluate_time_range_condition(df, condition):
     return result
 
 
-def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, replacement_text='NaN'):
+def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, replacement_text='NaN',
+                         column_match='contains'):
     """
     Apply cleaning to a timeseries DataFrame using cleaning rules either from file or from an input list(dict).
     The flagged data will be replaced with replacement_text values which then do not appear in any plots or affect 
@@ -2593,6 +2519,31 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     :type inplace:                      bool
     :param replacement_text:            Text used to replace the flagged data.
     :type replacement_text:             str | np.nan, default 'NaN'
+    :param column_match:                How each ``clean_out`` ``assembled_column_name`` is matched to the column names
+                                        of 'data'. One of:
+                                        'contains': clean every column whose name contains the
+                                        ``assembled_column_name``, e.g. 'Tmp' cleans 'Tmp', 'Tmp_sd' and 'Tmp_max',
+                                        but also separate measurements 'Tmp_logger' and 'Air_Tmp'. This is the
+                                        default.
+                                        'startswith': clean every column whose name starts with the
+                                        ``assembled_column_name``, e.g. 'Spd' cleans 'Spd80mN' and 'Spd60mS', but 'Tmp'
+                                        also cleans a separate measurement 'Tmp_logger'.
+                                        'exact': clean only the column named exactly as the
+                                        ``assembled_column_name``, e.g. 'Tmp' cleans 'Tmp' but not 'Tmp_sd' or
+                                        'Tmp_logger'. Works with any column naming convention, so each statistic
+                                        column needs its own ``clean_out`` item.
+                                        'wra_data_model': clean only the column named exactly as the
+                                        ``assembled_column_name`` and its statistic columns, e.g. 'Tmp' cleans 'Tmp',
+                                        'Tmp_sd' and 'Tmp_max' but not 'Tmp_logger'. This assumes the WRA Data Model
+                                        column naming convention, where the average is the unsuffixed column and each
+                                        other statistic column is named <name>_<statistic> using the statistic types
+                                        as defined in the WRA Data Model ('sd', 'max', 'min', 'count',
+                                        'availability', 'quality', 'sum', 'median', 'mode', 'range', 'gust', 'ti',
+                                        'ti30sec', 'text', 'value'). Columns that do not follow this convention, e.g.
+                                        'Spd80mSStd', are not matched. A separate measurement named like a
+                                        statistic column, e.g. 'Tmp_max' next to 'Tmp', is treated as a statistic
+                                        column of 'Tmp'.
+    :type column_match:                 str, default 'contains'
     :return:                            DataFrame with the flagged data removed.
     :rtype:                             pandas.DataFrame
 
@@ -2652,15 +2603,26 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     **Stat-type expansion of ``clean_out``**
 
     A ``clean_out`` item naming the avg column will also clean all associated stat-type columns at
-    the same measurement point (``_sd``, ``_max``, ``_min``, ``_count``, ``_availability``,
-    ``_quality``, ``_sum``, ``_median``, ``_mode``, ``_range``, ``_gust``, ``_ti``, ``_ti30sec``,
-    ``_text``, ``_val``) via substring matching on column names.
+    the same measurement point, i.e. the statistic types as defined in the WRA Data Model (``_sd``,
+    ``_max``, ``_min``, ``_count``, ``_availability``, ``_quality``, ``_sum``, ``_median``, ``_mode``,
+    ``_range``, ``_gust``, ``_ti``, ``_ti30sec``, ``_text``, ``_value``). ``avg`` is the unsuffixed column.
+
+    With the default ``column_match='contains'`` this is done via substring matching on column
+    names, so a ``clean_out`` item ``Tmp`` also cleans other measurements such as ``Tmp_logger``
+    or ``Air_Tmp``. With ``column_match='wra_data_model'`` only the named column and its
+    ``<name>_<stat>`` columns listed above are cleaned. ``'wra_data_model'`` is expected to
+    become the default in the next major release. With ``column_match='exact'`` there is no
+    stat-type expansion and only the named column is cleaned.
+    ::
+        data_cleaned = bw.apply_cleaning_rules(data, cleaning_rules_file_or_list,
+                                               column_match='wra_data_model')
 
     The new ``measurement_point_uuid`` and ``statistic_type_id`` fields on ``conditions`` and
     ``clean_out`` items (added in the BrightHub API) are accepted but currently ignored — only
     ``assembled_column_name`` is used for column resolution.
 
     """
+    _validate_column_match(column_match)
 
     if inplace is False:
         data = data.copy(deep=True)
@@ -2690,10 +2652,10 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     for cleaning_rule in cleaning_json:
         rule = cleaning_rule['rule']
 
-        columns_to_clean = [c['assembled_column_name'] for c in rule['clean_out']]
-        columns_to_clean = [column_name for column_to_clean in columns_to_clean
-                            for column_name in data.columns
-                            if column_to_clean in column_name]
+        columns_to_clean = [column_name
+                            for clean_out in rule['clean_out']
+                            for column_name in _get_columns_to_clean(clean_out['assembled_column_name'],
+                                                                     data.columns, column_match)]
 
         mask = _evaluate_condition(data, rule['conditions'])
         mask &= _build_date_range_mask(data, rule.get('date_from'), rule.get('date_to'))
@@ -2786,3 +2748,16 @@ def apply_cleaning_windographer(data, windog_cleaning_file, inplace=False, flags
         pd.options.mode.chained_assignment = 'warn'
 
     return data
+
+
+def __getattr__(name):
+    # Keep the legacy private location of the BrightHub authentication class working until v3.0.0.
+    if name == '_BrighthubAuth':
+        warnings.warn(
+            "brightwind.load.load._BrighthubAuth is deprecated in v2.8.0 and will be removed in v3.0.0. "
+            "\nPlease use brightwind.brighthub.get_id_token() to get the BrightHub ID token.",
+            FutureWarning,
+            stacklevel=2
+        )
+        return brighthub._Auth
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

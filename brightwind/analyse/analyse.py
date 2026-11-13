@@ -95,7 +95,7 @@ def dist_matrix(var_series, x_series, y_series,
     **Example usage**
     ::
         import brightwind as bw
-        df = bw.load_csv(r'C:\\Users\\Stephen\\Documents\\Analysis\\demo_data.csv')
+        df = bw.load_csv(bw.demo_datasets.demo_data)
 
         # For distribution of mean wind speed standard deviation against wind speed and temperature
         bw.dist_matrix(df.Spd40mNStd, x_series=df.T2m, y_series=df.Spd40mN, aggregation_method='mean')
@@ -420,19 +420,16 @@ def _mean_of_monthly_means_seasonal_adjusted(var_series):
 
     """
 
-    results = {}
-    number_days_month = {}
-    # derive monthly mean and number of days for each calendar month
-    for month in var_series.index.month.unique():
-        var_series_month = var_series[var_series.index.month == month]
+    # derive monthly mean for each calendar month
+    results = var_series.groupby(var_series.index.month).mean()
 
-        number_days_month.update({month: np.mean(list(pd.DatetimeIndex(
-            var_series_month.index.strftime("%Y-%m").unique()).days_in_month))})
+    # derive number of days for each calendar month as the average across the years in the dataset
+    year_months = pd.Index(var_series.index.year * 100 + var_series.index.month).unique()
+    days_in_year_months = pd.Series(pd.to_datetime(year_months.astype(str), format='%Y%m').days_in_month,
+                                    index=year_months % 100)
+    number_days_month = days_in_year_months.groupby(level=0).mean()
 
-        results.update({month: var_series_month.mean()})
-
-    result = (pd.Series(results) * pd.Series(number_days_month) / sum(
-        number_days_month.values())).sum(skipna=True)
+    result = (results * number_days_month / number_days_month.sum()).sum(skipna=True)
     return result
 
 
@@ -558,18 +555,6 @@ def _get_direction_bin_labels(sectors, direction_bins, zero_centred=True):
         else:
             mapper[i + 1] = '{0}-{1}'.format(lower_bound, direction_bins[i + 1])
     return mapper.values()
-
-
-def _map_direction_bin(wdir, bins, sectors):
-    kwargs = {}
-    if wdir == max(bins):
-        kwargs['right'] = True
-    else:
-        kwargs['right'] = False
-    bin_num = np.digitize([wdir], bins, **kwargs)[0]
-    if bin_num == sectors + 1:
-        bin_num = 1
-    return bin_num
 
 
 def _derive_distribution(var_to_bin, var_to_bin_against, bins=None, aggregation_method='%frequency'):
@@ -821,7 +806,15 @@ def _binned_direction_series(direction_series, sectors, direction_bin_array=None
     """
     if direction_bin_array is None:
         direction_bin_array = utils.get_direction_bin_array(sectors)
-    return direction_series.dropna().apply(_map_direction_bin, bins=direction_bin_array, sectors=sectors)
+    direction_series = direction_series.dropna()
+    wdirs = direction_series.values
+    # a direction equal to the last bin edge is included in the last bin, and the bin beyond the last sector wraps
+    # around to the first (zero-centred) sector
+    bin_nums = np.digitize(wdirs, direction_bin_array, right=False)
+    is_max = wdirs == max(direction_bin_array)
+    bin_nums[is_max] = np.digitize(wdirs[is_max], direction_bin_array, right=True)
+    bin_nums[bin_nums == sectors + 1] = 1
+    return pd.Series(bin_nums, index=direction_series.index, name=direction_series.name, dtype='int64')
 
 
 def _get_direction_binned_series(sectors, direction_series, direction_bin_array=None, direction_bin_labels=None):
@@ -839,7 +832,7 @@ def _get_direction_binned_series(sectors, direction_series, direction_bin_array=
 
 
 def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_method='%frequency',
-                       direction_bin_array=None, direction_bin_labels=None, return_data=False):
+                       direction_bin_array=None, direction_bin_labels=None, return_data=False, plot=True):
     """
     Derive the distribution of a time series variable with respect to wind direction sectors. For example, if time
     series of wind speeds is sent, it produces a wind rose.
@@ -862,6 +855,8 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
     :type direction_bin_labels: list, array, None
     :param return_data: Set to True if you want the data returned.
     :type return_data: bool
+    :param plot: Set to False to skip drawing the rose plot, which is then returned as None. Default is True.
+    :type plot: bool
     :returns: A plot of a rose and a DataFrame/Series with wind direction sector as row indexes and columns with
                 statistics chosen by aggregation_method.
 
@@ -881,6 +876,9 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
         #For measuring standard deviation in a sector rather than frequency in percentage (default)
         rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS, aggregation_method='std',
             return_data=True)
+
+        #For returning the data only, without drawing the plot (rose is None)
+        rose, distribution = bw.dist_by_dir_sector(df.Spd40mN, df.Dir38mS, return_data=True, plot=False)
 
     """
     var_series = _convert_df_to_series(var_series)
@@ -905,7 +903,7 @@ def dist_by_dir_sector(var_series, direction_series, sectors=12, aggregation_met
         var_label = aggregation_method.capitalize() + ' of  var_series'
     else:
         var_label = aggregation_method.capitalize() + ' of ' + var_series.name
-    graph = bw_plt.plot_rose(result, var_label)
+    graph = bw_plt.plot_rose(result, var_label) if plot else None
     result.index = direction_bin_labels
     if return_data:
         return graph, result
@@ -2307,7 +2305,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
         if dew_point_temperature_degC is None:
             raise ValueError("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
                              " provided.")
-        # Raise error if dew point temperature is greater than air temperature
+        # Warn if dew point temperature is greater than air temperature
         comparison = dew_point_temperature_degC > temperature
         msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature values."
                "\n This implies that the relative humidity would be greater than 100%.")
@@ -2497,7 +2495,7 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
     _assert_series_index_match(air_temperature_degC, dew_point_temperature_degC,
                                'air_temperature_degC', 'dew_point_temperature_degC')
 
-    # Raise error if dew point temperature is greater than air temperature
+    # Warn if dew point temperature is greater than air temperature
     comparison = dew_point_temperature_degC > air_temperature_degC
     msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature values."
            "\n This will result in a calculated relative humidity value greater than 100%.")

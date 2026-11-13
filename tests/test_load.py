@@ -55,6 +55,131 @@ def test_apply_cleaning():
     assert np.isnan(data_clnd6.Spd40mN['2016-03-29 00:00'])
 
 
+def test_apply_cleaning_matches_row_by_row():
+    # apply_cleaning builds one mask per column and writes each column once. It must give exactly the same result
+    # as the original row by row loop, which is kept as _apply_cleaning_row_by_row.
+    from brightwind.load.load import _apply_cleaning_row_by_row
+
+    index = pd.date_range('2016-01-01', periods=300, freq='10min')
+    data = pd.DataFrame({'Spd80mN': np.linspace(1, 20, 300), 'Spd80mNStd': np.linspace(0, 2, 300),
+                         'Spd80mS': np.linspace(2, 21, 300), 'Spd': np.linspace(3, 22, 300),
+                         'Dir78mS': np.arange(300) % 360, 'Flag': np.arange(300) % 2 == 0,
+                         'Site': ['A'] * 300}, index=index)
+    starts = ['2016-01-01 01:00:00', '2016-01-01 02:30:00', '2016-01-01 05:00:00', '2016-01-01 06:00:00',
+              '2016-01-01 10:00:00', '2016-01-01 12:00:00', '2016-01-01 20:00:00', None]
+    stops = ['2016-01-01 03:00:00', '2016-01-01 04:00:00', '2016-01-01 05:00:00', '2016-01-01 05:00:00',
+             None, '2016-01-01 12:10:01', '2016-01-01 21:00:00', '2016-01-01 00:30:00']
+    sensors = ['Spd80mN', 'Spd80mN', 'Dir78mS', 'Spd80mS', 'Flag', 'Spd', 'All', 'NoSuchSensor']
+    log_strings = pd.DataFrame({'Sensor': sensors, 'Start': starts, 'Stop': stops})
+    log_datetimes = log_strings.assign(Start=pd.to_datetime(log_strings['Start']),
+                                       Stop=pd.to_datetime(log_strings['Stop']))
+
+    cases = [
+        (data, log_strings, {}),
+        (data, log_datetimes, {}),
+        (data, log_datetimes, {'replacement_text': -999}),
+        (data, log_datetimes.iloc[::-1], {}),
+        (data.iloc[::-1], log_datetimes, {}),
+        (data, log_datetimes.rename(columns={'Sensor': 'MeasurementName', 'Start': 'DateFrom', 'Stop': 'DateTo'}),
+         {'sensor_col_name': 'MeasurementName', 'date_from_col_name': 'DateFrom', 'date_to_col_name': 'DateTo'}),
+    ]
+    for frame, log, kwargs in cases:
+        expected = _apply_cleaning_row_by_row(
+            frame.copy(deep=True), log, kwargs.get('sensor_col_name', 'Sensor'),
+            kwargs.get('date_from_col_name', 'Start'), kwargs.get('date_to_col_name', 'Stop'), 'All',
+            np.nan if kwargs.get('replacement_text', 'NaN') == 'NaN' else kwargs['replacement_text'], 'startswith')
+        pd.testing.assert_frame_equal(bw.apply_cleaning(frame, log, **kwargs), expected, check_exact=True)
+
+        inplace_data = frame.copy(deep=True)
+        bw.apply_cleaning(inplace_data, log, inplace=True, **kwargs)
+        pd.testing.assert_frame_equal(inplace_data, expected, check_exact=True)
+
+    # Any inplace value other than False still cleans in place
+    inplace_data = data.copy(deep=True)
+    bw.apply_cleaning(inplace_data, log_datetimes, inplace=1)
+    pd.testing.assert_frame_equal(inplace_data, bw.apply_cleaning(data, log_datetimes), check_exact=True)
+
+    # Prefix matching (#249), a Start equal to its Stop cleans only that timestamp, and Stop is exclusive
+    cleaned = bw.apply_cleaning(data, log_datetimes)
+    assert np.isnan(cleaned.loc['2016-01-01 01:00:00', 'Spd80mNStd'])
+    assert np.isnan(cleaned.loc['2016-01-01 05:00:00', 'Dir78mS'])
+    assert not np.isnan(cleaned.loc['2016-01-01 04:50:00', 'Dir78mS'])
+    assert not np.isnan(cleaned.loc['2016-01-01 05:10:00', 'Dir78mS'])
+    assert np.isnan(cleaned.loc['2016-01-01 12:10:00', 'Spd80mN'])
+    assert np.isnan(cleaned.loc['2016-01-01 20:50:00', 'Site'])
+    assert not np.isnan(cleaned.loc['2016-01-01 21:00:00', 'Spd80mN'])
+
+    # An error is raised exactly as before
+    with pytest.raises(TypeError, match='Invalid comparison'):
+        bw.apply_cleaning(data, log_strings.assign(Stop='2016-01-01T06:00:00Z'))
+
+
+def test_apply_cleaning_fallback_warns():
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+    cleaning_file = bw.demo_datasets.demo_cleaning_file
+    expected = bw.apply_cleaning(data, cleaning_file)
+
+    # If the fast path fails on data the row by row loop can clean, the result is still right and a warning says so
+    with patch('brightwind.load.load._build_cleaning_masks', side_effect=TypeError('fast path bug')):
+        with pytest.warns(RuntimeWarning, match='fast path raised TypeError: fast path bug'):
+            cleaned = bw.apply_cleaning(data, cleaning_file)
+    pd.testing.assert_frame_equal(cleaned, expected, check_exact=True)
+
+    # Invalid input only raises its usual error, without the warning
+    bad_log = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': ['2016-01-11 06:00:00'], 'Stop': ['not a date']})
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', RuntimeWarning)
+        with pytest.raises(TypeError, match='Invalid comparison'):
+            bw.apply_cleaning(data, bad_log)
+
+
+def test_apply_cleaning_single_timestamp():
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+    timestamp = '2016-01-11 06:00:00'
+
+    # Start equal to Stop flags only that timestamp, for every column starting with the sensor name
+    cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': [timestamp], 'Stop': [timestamp]})
+    data_clnd = bw.apply_cleaning(data, cleaning_df)
+    for col in ['Spd80mN', 'Spd80mNStd', 'Spd80mNMax']:
+        assert np.isnan(data_clnd[col][timestamp])
+    assert data_clnd.Spd80mN['2016-01-11 05:50:00'] == 6.878
+    assert data_clnd.Spd80mN['2016-01-11 06:10:00'] == 7.799
+    assert data_clnd.Spd80mS[timestamp] == 7.775
+    assert int(data_clnd.Spd80mN.isna().sum() - data.Spd80mN.isna().sum()) == 1
+
+    # Start and Stop in different string formats or as timestamps are recognised as equal
+    cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': ['2016-01-11T06:00:00'], 'Stop': [timestamp]})
+    assert np.isnan(bw.apply_cleaning(data, cleaning_df).Spd80mN[timestamp])
+    cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': [pd.Timestamp(timestamp)],
+                                'Stop': [pd.Timestamp(timestamp)]})
+    assert np.isnan(bw.apply_cleaning(data, cleaning_df).Spd80mN[timestamp])
+
+    # The 'All' descriptor flags that timestamp in every column
+    cleaning_df = pd.DataFrame({'Sensor': ['All'], 'Start': [timestamp], 'Stop': [timestamp]})
+    data_clnd = bw.apply_cleaning(data, cleaning_df)
+    assert data_clnd.loc[timestamp].isna().all()
+    assert data_clnd.T2m['2016-01-11 06:10:00'] == 0.852
+
+    # A single timestamp absent from the data flags nothing
+    cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': ['2016-01-11 06:05:00'],
+                                'Stop': ['2016-01-11 06:05:00']})
+    assert (bw.apply_cleaning(data, cleaning_df).fillna(-999) == data.fillna(-999)).all().all()
+
+    # A single timestamp that cannot be compared with the index raises the same error as any other period
+    cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': ['2016-01-11T06:00:00Z'],
+                                'Stop': ['2016-01-11T06:00:00Z']})
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', RuntimeWarning)
+        with pytest.raises(TypeError, match='Invalid comparison'):
+            bw.apply_cleaning(data, cleaning_df)
+
+    # A period with a later Stop still excludes the Stop timestamp
+    cleaning_df = pd.DataFrame({'Sensor': ['Spd80mN'], 'Start': [timestamp], 'Stop': ['2016-01-11 06:10:00']})
+    data_clnd = bw.apply_cleaning(data, cleaning_df)
+    assert np.isnan(data_clnd.Spd80mN[timestamp])
+    assert data_clnd.Spd80mN['2016-01-11 06:10:00'] == 7.799
+
+
 def test_apply_cleaning_rules():
     data = bw.load_csv(bw.demo_datasets.demo_data)
     data_clnd = bw.apply_cleaning_rules(data, bw.demo_datasets.demo_cleaning_rules_file)
@@ -293,6 +418,153 @@ def test_apply_cleaning_rules_nested_and_time_range():
     assert cleaned.loc[mask, 'Spd_40m'].isna().all()
 
 
+COLUMN_MATCH_COLUMNS = ['Tmp', 'Tmp_sd', 'Tmp_max', 'Tmp_logger', 'Tmp_logger_sd', 'Wave_dir_1', 'Wave_dir_1_sd',
+                        'Wave_dir_10', 'Prs_2', 'Prs_2m', 'Spd80mS', 'Spd80mSStd', 'Air_Tmp']
+COLUMN_MATCH_DATE_FROM = pd.Timestamp('2016-01-01 01:00')
+COLUMN_MATCH_DATE_TO = pd.Timestamp('2016-01-01 02:00')
+
+
+def _synthetic_column_match_df():
+    """Synthetic DataFrame with measurements whose names start the same, e.g. 'Tmp' and 'Tmp_logger'."""
+    index = pd.date_range('2016-01-01', '2016-01-01 03:50', freq='10min')
+    return pd.DataFrame(1.0, index=index, columns=COLUMN_MATCH_COLUMNS)
+
+
+def _column_match_cleaning_df(sensor):
+    return pd.DataFrame({'Sensor': [sensor], 'Start': [COLUMN_MATCH_DATE_FROM], 'Stop': [COLUMN_MATCH_DATE_TO]})
+
+
+def _assert_cleaned_columns(cleaned, expected_columns):
+    in_window = (cleaned.index >= COLUMN_MATCH_DATE_FROM) & (cleaned.index < COLUMN_MATCH_DATE_TO)
+    for col in cleaned.columns:
+        if col in expected_columns:
+            assert cleaned.loc[in_window, col].isna().all(), col
+            assert cleaned.loc[~in_window, col].notna().all(), col
+        else:
+            assert cleaned[col].notna().all(), col
+
+
+def test_apply_cleaning_column_match_default_unchanged():
+    data = _synthetic_column_match_df()
+    for sensor, expected_columns in [
+            ('Tmp', ['Tmp', 'Tmp_sd', 'Tmp_max', 'Tmp_logger', 'Tmp_logger_sd']),
+            ('Wave_dir_1', ['Wave_dir_1', 'Wave_dir_1_sd', 'Wave_dir_10']),
+            ('Spd', ['Spd80mS', 'Spd80mSStd'])]:
+        cleaned = bw.apply_cleaning(data, _column_match_cleaning_df(sensor))
+        _assert_cleaned_columns(cleaned, expected_columns)
+        cleaned_startswith = bw.apply_cleaning(data, _column_match_cleaning_df(sensor), column_match='startswith')
+        assert cleaned.equals(cleaned_startswith)
+
+    # Demo cleaning file relies on 'Spd' and 'Dir' cleaning every speed and direction column.
+    data = bw.load_campbell_scientific(bw.demo_datasets.demo_campbell_scientific_data)
+    assert bw.apply_cleaning(data, bw.demo_datasets.demo_cleaning_file).equals(
+        bw.apply_cleaning(data, bw.demo_datasets.demo_cleaning_file, column_match='startswith'))
+
+
+def test_apply_cleaning_column_match_wra_data_model():
+    data = _synthetic_column_match_df()
+    for sensor, expected_columns in [
+            ('Tmp', ['Tmp', 'Tmp_sd', 'Tmp_max']),
+            ('Tmp_logger', ['Tmp_logger', 'Tmp_logger_sd']),
+            ('Wave_dir_1', ['Wave_dir_1', 'Wave_dir_1_sd']),
+            ('Prs_2', ['Prs_2']),
+            ('Spd', []),
+            ('Spd80mS', ['Spd80mS']),
+            ('All', COLUMN_MATCH_COLUMNS),
+            ('Tmpp', [])]:
+        cleaned = bw.apply_cleaning(data, _column_match_cleaning_df(sensor), column_match='wra_data_model')
+        _assert_cleaned_columns(cleaned, expected_columns)
+
+    # Several log rows each clean their own measurement only.
+    cleaning_df = pd.concat([_column_match_cleaning_df('Tmp'), _column_match_cleaning_df('Wave_dir_10')],
+                            ignore_index=True)
+    cleaned = bw.apply_cleaning(data, cleaning_df, column_match='wra_data_model')
+    _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max', 'Wave_dir_10'])
+
+    bw.apply_cleaning(data, _column_match_cleaning_df('Tmp'), column_match='wra_data_model', inplace=True)
+    _assert_cleaned_columns(data, ['Tmp', 'Tmp_sd', 'Tmp_max'])
+
+
+def test_apply_cleaning_column_match_exact():
+    data = _synthetic_column_match_df()
+    for sensor, expected_columns in [
+            ('Tmp', ['Tmp']),
+            ('Tmp_sd', ['Tmp_sd']),
+            ('Wave_dir_1', ['Wave_dir_1']),
+            ('Spd', []),
+            ('Spd80mSStd', ['Spd80mSStd']),
+            ('All', COLUMN_MATCH_COLUMNS)]:
+        cleaned = bw.apply_cleaning(data, _column_match_cleaning_df(sensor), column_match='exact')
+        _assert_cleaned_columns(cleaned, expected_columns)
+
+
+def test_apply_cleaning_column_match_matches_row_by_row():
+    from brightwind.load.load import _apply_cleaning_row_by_row, COLUMN_MATCH_OPTIONS
+
+    data = _synthetic_column_match_df()
+    log = pd.DataFrame({'Sensor': ['Tmp', 'Wave_dir_1', 'Prs_2', 'Spd', 'All'],
+                        'Start': ['2016-01-01 00:30', '2016-01-01 01:00', '2016-01-01 01:30', '2016-01-01 02:00',
+                                  '2016-01-01 03:00'],
+                        'Stop': ['2016-01-01 01:30', '2016-01-01 01:00', '2016-01-01 02:30', '2016-01-01 02:30',
+                                 '2016-01-01 03:10']})
+    for column_match in COLUMN_MATCH_OPTIONS:
+        expected = _apply_cleaning_row_by_row(data.copy(deep=True), log, 'Sensor', 'Start', 'Stop', 'All', np.nan,
+                                              column_match)
+        pd.testing.assert_frame_equal(bw.apply_cleaning(data, log, column_match=column_match), expected,
+                                      check_exact=True)
+
+
+def test_apply_cleaning_rules_column_match():
+    data = _synthetic_column_match_df()
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Tmp'}],
+        'conditions': {'assembled_column_name': 'Prs_2', 'comparison_operator_id': 4, 'comparator_value': 0},
+        'date_from': '2016-01-01T01:00:00',
+        'date_to': '2016-01-01T02:00:00',
+    }}]
+    cleaned = bw.apply_cleaning_rules(data, rules)
+    _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max', 'Tmp_logger', 'Tmp_logger_sd', 'Air_Tmp'])
+    assert cleaned.equals(bw.apply_cleaning_rules(data, rules, column_match='contains'))
+
+    cleaned = bw.apply_cleaning_rules(data, rules, column_match='startswith')
+    _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max', 'Tmp_logger', 'Tmp_logger_sd'])
+
+    cleaned = bw.apply_cleaning_rules(data, rules, column_match='exact')
+    _assert_cleaned_columns(cleaned, ['Tmp'])
+
+    cleaned = bw.apply_cleaning_rules(data, rules, column_match='wra_data_model')
+    _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max'])
+
+    rules[0]['rule']['clean_out'] = [{'assembled_column_name': 'Tmp'}, {'assembled_column_name': 'Wave_dir_1'}]
+    cleaned = bw.apply_cleaning_rules(data, rules, column_match='wra_data_model')
+    _assert_cleaned_columns(cleaned, ['Tmp', 'Tmp_sd', 'Tmp_max', 'Wave_dir_1', 'Wave_dir_1_sd'])
+
+
+def test_column_match_invalid():
+    data = _synthetic_column_match_df()
+    data_original = data.copy(deep=True)
+    rules = [{'rule': {
+        'clean_out': [{'assembled_column_name': 'Tmp'}],
+        'conditions': {'assembled_column_name': 'Prs_2', 'comparison_operator_id': 4, 'comparator_value': 0},
+    }}]
+
+    with pytest.raises(ValueError) as except_info:
+        bw.apply_cleaning(data, _column_match_cleaning_df('Tmp'), column_match='endswith', inplace=True)
+    assert "column_match must be one of" in str(except_info.value)
+    with pytest.raises(ValueError) as except_info:
+        bw.apply_cleaning(data, _column_match_cleaning_df('Tmp').iloc[0:0], column_match='endswith')
+    assert "column_match must be one of" in str(except_info.value)
+    with pytest.raises(ValueError) as except_info:
+        bw.apply_cleaning_rules(data, rules, column_match='endswith', inplace=True)
+    assert "column_match must be one of" in str(except_info.value)
+    assert data.equals(data_original)
+
+    # A sensor name that is not a string raises the same error in every mode
+    for column_match in ['startswith', 'exact', 'wra_data_model']:
+        with pytest.raises(TypeError, match='must be str'):
+            bw.apply_cleaning(data, _column_match_cleaning_df(np.nan), column_match=column_match)
+
+
 def test_load_csv():
     data = bw.load_csv(os.path.join(DEMO_DATA_FOLDER, 'demo_data.csv'))
     data2 = bw.load_csv(os.path.join(DEMO_DATA_FOLDER, 'demo_data2.csv'), dayfirst=True)
@@ -339,7 +611,7 @@ def test_load_campbell_scientific():
             data1['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999)).all().all()
 
 
-@pytest.mark.skipif(
+requires_brighthub_credentials = pytest.mark.skipif(
     not (
         (os.environ.get('BRIGHTHUB_CLIENT_ID') and os.environ.get('BRIGHTHUB_CLIENT_SECRET'))
         or (os.environ.get('BRIGHTHUB_EMAIL') and os.environ.get('BRIGHTHUB_PASSWORD'))
@@ -347,6 +619,9 @@ def test_load_campbell_scientific():
     reason="Either BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET, or BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD "
            "must be set to run this integration test against the live BrightHub API."
 )
+
+
+@requires_brighthub_credentials
 def test_load_brighthub():
 
     plant_uuid = '7a58497e-bee1-42a2-8084-c47a5cf213b7'
@@ -404,13 +679,6 @@ def test_load_brighthub():
     for col in ['Spd80mN', 'Spd80mS', 'Dir78mS']:
         assert col in data_csv.columns
 
-    # Same window as parquet — confirms the API accepts file_extension='.parquet' and returns equivalent data.
-    data_parquet = bw.LoadBrightHub.get_data(measurement_station_uuid=measurement_station_uuid, date_from='2016-12-01',
-                                             date_to='2017-01-01', file_extension='.parquet')
-    assert list(data_parquet.columns) == list(data_csv.columns)
-    assert len(data_parquet) == len(data_csv)
-    assert data_parquet.index.name == 'Timestamp'
-
     # To get cleaning log
     cleaning_log_df = bw.LoadBrightHub.get_cleaning_log(measurement_station_uuid=measurement_station_uuid)
     assert len(cleaning_log_df) != 0
@@ -420,12 +688,31 @@ def test_load_brighthub():
     assert cleaning_rules_json[0]['measurement_location_uuid'] == measurement_station_uuid
 
 
+@requires_brighthub_credentials
+def test_load_brighthub_get_data_parquet_live():
+    try:
+        import pyarrow  # noqa: F401
+    except ImportError:
+        pytest.importorskip('fastparquet', reason="parquet engine (pyarrow or fastparquet) required to read parquet")
+
+    measurement_station_uuid = '9344e576-6d5a-45f0-9750-2a7528ebfa14'
+    data_csv = bw.LoadBrightHub.get_data(measurement_station_uuid=measurement_station_uuid, date_from='2016-12-01',
+                                         date_to='2017-01-01', file_extension='.csv')
+
+    # Same window as csv — confirms the API accepts file_extension='.parquet' and returns equivalent data.
+    data_parquet = bw.LoadBrightHub.get_data(measurement_station_uuid=measurement_station_uuid, date_from='2016-12-01',
+                                             date_to='2017-01-01', file_extension='.parquet')
+    assert list(data_parquet.columns) == list(data_csv.columns)
+    assert len(data_parquet) == len(data_csv)
+    assert data_parquet.index.name == 'Timestamp'
+
+
 def test_load_brighthub_get_data_default_emits_deprecation_warning():
     api_response = MagicMock(status_code=200)
     api_response.json.return_value = {'url': 'https://example.com/presigned'}
     csv_response = MagicMock(text='Timestamp,Spd80mN\n2016-06-01 00:00:00,7.1\n')
 
-    with patch('brightwind.load.load.LoadBrightHub._brighthub_request', return_value=api_response) as mock_request, \
+    with patch('brightwind.load.load.brighthub.request', return_value=api_response) as mock_request, \
             patch('brightwind.load.load.requests.get', return_value=csv_response):
         with pytest.warns(DeprecationWarning, match="file_extension"):
             df = bw.LoadBrightHub.get_data(measurement_station_uuid='uuid-1')
@@ -439,7 +726,7 @@ def test_load_brighthub_get_data_csv_explicit_no_warning():
     api_response.json.return_value = {'url': 'https://example.com/presigned'}
     csv_response = MagicMock(text='Timestamp,Spd80mN\n2016-06-01 00:00:00,7.1\n')
 
-    with patch('brightwind.load.load.LoadBrightHub._brighthub_request', return_value=api_response) as mock_request, \
+    with patch('brightwind.load.load.brighthub.request', return_value=api_response) as mock_request, \
             patch('brightwind.load.load.requests.get', return_value=csv_response):
         with warnings.catch_warnings():
             warnings.simplefilter('error', DeprecationWarning)
@@ -465,7 +752,7 @@ def test_load_brighthub_get_data_parquet():
     api_response.json.return_value = {'url': 'https://example.com/presigned'}
     parquet_response = MagicMock(content=buffer.getvalue())
 
-    with patch('brightwind.load.load.LoadBrightHub._brighthub_request', return_value=api_response) as mock_request, \
+    with patch('brightwind.load.load.brighthub.request', return_value=api_response) as mock_request, \
             patch('brightwind.load.load.requests.get', return_value=parquet_response):
         with warnings.catch_warnings():
             warnings.simplefilter('error', DeprecationWarning)
@@ -478,7 +765,7 @@ def test_load_brighthub_get_data_parquet():
 
 
 def test_load_brighthub_get_data_invalid_extension():
-    with patch('brightwind.load.load.LoadBrightHub._brighthub_request') as mock_request, \
+    with patch('brightwind.load.load.brighthub.request') as mock_request, \
             patch('brightwind.load.load.requests.get') as mock_get:
         with pytest.raises(ValueError, match="Unsupported file_extension"):
             bw.LoadBrightHub.get_data(measurement_station_uuid='uuid-1', file_extension='.xlsx')
@@ -492,7 +779,7 @@ def test_load_brighthub_get_data_parquet_missing_engine_raises_importerror():
     api_response.json.return_value = {'url': 'https://example.com/presigned'}
     parquet_response = MagicMock(content=b'irrelevant')
 
-    with patch('brightwind.load.load.LoadBrightHub._brighthub_request', return_value=api_response), \
+    with patch('brightwind.load.load.brighthub.request', return_value=api_response), \
             patch('brightwind.load.load.requests.get', return_value=parquet_response), \
             patch('brightwind.load.load.pd.read_parquet', side_effect=ImportError("no engine")):
         with pytest.raises(ImportError, match=r"brightwind\[parquet\].*brightwind\[parquet-fastparquet\]"):

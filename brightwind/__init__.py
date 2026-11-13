@@ -9,7 +9,7 @@ from .transform.scale import *
 from .export.export import *
 from . import demo_datasets
 from .utils.gis import *
-# from .utils.utils import *
+from .utils import brighthub
 
 import sys
 import warnings
@@ -34,4 +34,4 @@ if Version(pd.__version__) <= Version("2.2"):
 
 __all__ = ['analyse', 'transform', 'export', 'load', 'demo_datasets']
 
-__version__ = '2.7.0'
+__version__ = '2.8.0'

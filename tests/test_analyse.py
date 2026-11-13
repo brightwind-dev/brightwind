@@ -109,6 +109,14 @@ def test_momm():
     momm_seas_adj = bw.momm(data_test[['Spd40mN', 'Spd40mS']], seasonal_adjustment=True, coverage_threshold=0.7)
     assert round(momm_seas_adj.T['Spd40mS'].values[0], 6) == 6.864868
 
+    # Derive mean of monthly mean seasonal adjusted where each calendar month has a constant value, over two years
+    # including a leap year, so February is weighted by the average of 28 and 29 days
+    idx = pd.date_range('2023-01-01', '2025-01-01', freq='10min', inclusive='left')
+    data_test = pd.Series(idx.month.astype(float), index=idx, name='Spd')
+    days_in_month = np.array([31, 28.5, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
+    expected_momm = (np.arange(1, 13) * days_in_month).sum() / days_in_month.sum()
+    assert np.isclose(bw.momm(data_test, seasonal_adjustment=True, coverage_threshold=0), expected_momm)
+
 
 def test_sector_ratio():
     bw.sector_ratio(DATA['Spd80mN'], DATA['Spd80mS'], DATA['Dir78mS'], sectors=72, boom_dir_1=0,
@@ -250,6 +258,37 @@ def test_dist_by_dir_sector():
                           return_data=True)
 
     bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS, aggregation_method='std', return_data=True)
+
+    # test values
+    _, mean_by_sector = bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS, aggregation_method='mean',
+                                              return_data=True)
+    assert mean_by_sector.to_list() == pytest.approx([5.1607, 5.1657, 4.4028, 5.8451, 6.5435, 6.2029, 6.4255, 6.9508,
+                                                      7.6617, 8.3222, 7.1285, 5.7351], abs=1e-4)
+    _, count_by_sector = bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS, direction_bin_array=[0, 90, 130, 200, 360],
+                                               aggregation_method='count', return_data=True)
+    assert count_by_sector.to_dict() == {'0-90': 14087, '90-130': 6224, '130-200': 21882, '200-360': 52987}
+
+    # plot switched off returns the same data with no plot
+    rose, mean_no_plot = bw.dist_by_dir_sector(DATA.Spd40mN, DATA.Dir38mS, aggregation_method='mean',
+                                               return_data=True, plot=False)
+    assert rose is None
+    pd.testing.assert_series_equal(mean_no_plot, mean_by_sector)
+
+
+def test_binned_direction_series():
+    wdir = pd.Series([0, 14.999, 15, 180, 344.999, 345, 359.999, 360, np.nan], name='wdir')
+
+    # default 12 sectors, first sector centred on 0 i.e. 345-15
+    binned = bw.analyse.analyse._binned_direction_series(wdir, sectors=12)
+    assert binned.to_list() == [1, 1, 2, 7, 12, 1, 1, 1]
+    assert binned.index.to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
+    assert binned.name == 'wdir'
+    assert binned.dtype == 'int64'
+
+    # custom bins
+    wdir = pd.Series([0, 89.9, 90, 130, 199.9, 200, 359.9, 360])
+    binned = bw.analyse.analyse._binned_direction_series(wdir, sectors=4, direction_bin_array=[0, 90, 130, 200, 360])
+    assert binned.to_list() == [1, 1, 2, 3, 3, 4, 4, 4]
 
 
 def test_freq_table():
@@ -704,10 +743,10 @@ def test_calc_air_density():
     # Test Series inputs
     assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m, rel_humidity_percent=DATA.RH2m,
                                     calc_method='HermanWobus_from_rel_humidity').tail(5).values -
-                pd.Series([1.19541777, 1.19614486, 1.19605542, 1.19568365, 1.19732707]) < 1e-3)).all()
+                np.array([1.19541777, 1.19614486, 1.19605542, 1.19568365, 1.19732707])) < 1e-3).all()
     # Test float inputs
-    assert bw.calc_air_density(0.711, 935, rel_humidity_percent=50,
-                               calc_method='HermanWobus_from_rel_humidity') - 1.1878427585014013 < 1e-6
+    assert abs(bw.calc_air_density(0.711, 935, rel_humidity_percent=50,
+                                   calc_method='HermanWobus_from_rel_humidity') - 1.1878427585014013) < 1e-6
 
     # Tests for calc_method = 'HermanWobus_from_dew_point'
 
@@ -718,7 +757,7 @@ def test_calc_air_density():
     assert str(except_info.value) == ("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
                                       " provided.")
 
-    # Check error is raised when dew_point_temperature_degC > temperature
+    # Check warning is raised when dew_point_temperature_degC > temperature
     msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature "
            "values.\n This implies that the relative humidity would be greater than 100%.")
     with pytest.warns(UserWarning, match=msg):
@@ -735,11 +774,11 @@ def test_calc_air_density():
     assert (abs(bw.calc_air_density(DATA.T2m, DATA.P2m,
                                     dew_point_temperature_degC=dew_point_temp,
                                     calc_method='HermanWobus_from_dew_point').tail(5).values -
-                pd.Series([1.19551981, 1.19621178, 1.19616594, 1.19579471, 1.19743759]) < 1e-3)).all()
+                np.array([1.19551981, 1.19621178, 1.19616594, 1.19579471, 1.19743759])) < 1e-3).all()
     # Test float inputs
-    assert bw.calc_air_density(0.711, 935,
-                               dew_point_temperature_degC=-1.299,
-                               calc_method='HermanWobus_from_dew_point') - 1.186717791022866 < 1e-6
+    assert abs(bw.calc_air_density(0.711, 935,
+                                   dew_point_temperature_degC=-1.299,
+                                   calc_method='HermanWobus_from_dew_point') - 1.186717791022866) < 1e-6
 
 
 def test_dist_matrix_by_direction_sector():
@@ -755,7 +794,7 @@ def test_dist_matrix_by_direction_sector():
 
 
 def test_calc_rel_humidity_from_dew_point():
-    # test error for dew point greater than temperature
+    # test warning for dew point greater than temperature
     msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature "
            "values.\n This will result in a calculated relative humidity value greater than 100%.")
     with pytest.warns(UserWarning, match=msg):
@@ -775,15 +814,17 @@ def test_calc_rel_humidity_from_dew_point():
         bw.calc_rel_humidity_from_dew_point(DATA.T2m.tail(5), DATA.T2m.tail(3))
     assert str(except_info.value) == "air_temperature_degC and dew_point_temperature_degC must have the same dimensions."
     # test float/int inputs
-    assert bw.calc_rel_humidity_from_dew_point(10, 11) - 93.54469072330612 < 1e-3
+    assert abs(bw.calc_rel_humidity_from_dew_point(10, 11) - 93.54469072330612) < 1e-3
     assert bw.calc_rel_humidity_from_dew_point(12.1, 12.1) == 100
-    # test Series inputs
-    merra2_node = bw.LoadBrightHub.get_reanalysis('MERRA-2', 53.5, -10.8, '2025-01-01', '2025-02-01',
-                                                  nearest_nodes=1, variables=['Tmp_2m_degC', 'DPTmp_2m_degC'],
-                                                  print_status=True)
-    assert (abs(bw.calc_rel_humidity_from_dew_point(merra2_node[1]['DPTmp_2m_degC'],
-                                                    merra2_node[1]['Tmp_2m_degC']).head(5).values -
-                pd.Series([71.97026223, 72.4558096, 72.94502496, 73.9525735, 74.45269691])) < 1e-3).all()
+    # test Series inputs, including dew point and air temperatures below zero
+    index = pd.date_range('2025-01-01', periods=5, freq='h')
+    dew_point_temp = pd.Series([10.0, 12.1, -1.299, 5.0, -10.0], index=index)
+    air_temp = pd.Series([11.0, 12.1, 0.711, 15.0, -5.0], index=index)
+    rel_humidity = bw.calc_rel_humidity_from_dew_point(dew_point_temp, air_temp)
+    assert isinstance(rel_humidity, pd.Series)
+    assert rel_humidity.index.equals(index)
+    assert (abs(rel_humidity.values -
+                np.array([93.54469072, 100.0, 86.38055077, 51.15937842, 67.91832184])) < 1e-3).all()
 
 
 def test_calc_water_saturation_vapour_pressure_Pa():

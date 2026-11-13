@@ -100,8 +100,8 @@ For full examples — loading, plotting, shear, correlations, exporting — see 
 
 <p>
 
-![demo_image_1](read_me_1.png)
-![demo_image_2](read_me_2.png)
+![demo_image_1](https://raw.githubusercontent.com/brightwind-dev/brightwind/master/read_me_1.png)
+![demo_image_2](https://raw.githubusercontent.com/brightwind-dev/brightwind/master/read_me_2.png)
 </p>
 
 <br>
@@ -129,7 +129,7 @@ Demo datasets are bundled with the library to demonstrate functions and exercise
 | `MERRA-2_XX_2000-01-01_2017-06-30.csv` | NASA [GES DISC](https://disc.gsfc.nasa.gov/) | 4 × MERRA-2 18-year datasets to complement the demo data for long-term analyses. |
 | `demo_cleaning_file.csv` | BrightWind | Periods to clean out from the demo data. |
 | `windographer_flagging_log.txt` | BrightWind | Same cleaning info as `demo_cleaning_file.csv` formatted as a Windographer flagging file. |
-| `demo_data_iea43_wra_data_model.json` | BrightWind | A JSON file formatted to the IEA Wind Task 43 [WRA Data Model](https://github.com/IEA-Task-43/digital_wra_data_standard) standard, describing the mast configuration for the demo data. |
+| `demo_data_iea43_wra_data_model.json` | BrightWind | A JSON file formatted to the IEA Wind Task 43 [WRA Data Model](https://github.com/iea-wind-digitalisation/wra-data-model) standard, describing the mast configuration for the demo data. |
 
 <br>
 
@@ -140,7 +140,7 @@ Brightwind welcomes contributions from across the wind and solar industry — an
 developers.
 
 - **Issues, bugs and feature requests:** [GitHub issue tracker](https://github.com/brightwind-dev/brightwind/issues)
-- **Code contributions and development setup:** see [contributing.md](contributing.md)
+- **Code contributions and development setup:** see [contributing.md](https://github.com/brightwind-dev/brightwind/blob/master/contributing.md)
 - **General enquiries:** stephen@brightwindanalysis.com
 
 <br>
@@ -148,4 +148,4 @@ developers.
 ---
 ### License
 
-MIT — see [LICENSE.txt](LICENSE.txt).
+MIT — see [LICENSE.txt](https://github.com/brightwind-dev/brightwind/blob/master/LICENSE.txt).

@@ -677,6 +677,28 @@ def test_get_data_resolution():
         assert len(w) == 1
 
 
+def test_max_coverage_count():
+    # 10 minute data averaged to monthly, including a leap year February
+    data_index = pd.date_range('2024-01-01', '2024-04-01', freq='10min', inclusive='left')
+    averaged_index = pd.date_range('2024-01-01', '2024-04-01', freq='MS', inclusive='left')
+    max_pts = bw.transform.transform._max_coverage_count(data_index, averaged_index)
+    assert list(max_pts) == [31 * 144, 29 * 144, 31 * 144]
+
+    # hourly data averaged to daily
+    data_index = pd.date_range('2023-01-01', '2023-01-10', freq='h', inclusive='left')
+    averaged_index = pd.date_range('2023-01-01', '2023-01-10', freq='D', inclusive='left')
+    max_pts = bw.transform.transform._max_coverage_count(data_index, averaged_index)
+    assert (max_pts == 24).all()
+
+    # monthly data resolution given as input, averaged to yearly. The data resolution time delta is taken from the
+    # first month of each averaging period (January), so the leap year has 366 / 31 rather than 12
+    data_index = pd.date_range('2020-01-01', '2022-01-01', freq='MS', inclusive='left')
+    averaged_index = pd.date_range('2020-01-01', '2022-01-01', freq='YS', inclusive='left')
+    max_pts = bw.transform.transform._max_coverage_count(data_index, averaged_index,
+                                                         data_resolution=pd.DateOffset(months=1))
+    assert list(max_pts) == [366 / 31, 365 / 31]
+
+
 def test_offset_timestamps():
     series1 = DATA['2016-01-10 00:00:00':]
 
@@ -872,6 +894,11 @@ def test_average_wdirs():
     for i, j in zip(avg_wdirs, expected_result):
         assert i == j
 
+    # sines sum to a tiny negative number due to floating point, 0 is returned instead of 360 for list and DataFrame
+    wdirs = np.rad2deg(np.arcsin([0.3, -0.1, -0.2]))
+    assert bw.average_wdirs(wdirs) == 0.0
+    assert bw.average_wdirs(pd.DataFrame([wdirs])).values[0] == 0.0
+
 @pytest.fixture
 def dummy_data():
     """
@@ -1053,6 +1080,25 @@ def test_average_data_by_period(dummy_data):
     with pytest.raises(TypeError) as except_info:
         bw.average_data_by_period(data1.Spd80mS, period='10min', data_resolution=pd.Timedelta('10min'))
     assert str(except_info.value) == "Input data_resolution is Timedelta. A Pandas DateOffset should be used instead."
+
+    # vector averaged wind directions match average_wdirs() applied to each averaging period
+    for period in ['1h', '1D']:
+        data_avg = bw.average_data_by_period(DATA_CLND[WDIR_COLS], period=period, wdir_column_names=WDIR_COLS,
+                                             coverage_threshold=0)
+        expected = DATA_CLND[WDIR_COLS].resample(period, closed='left', label='left').agg(bw.average_wdirs)
+        assert np.allclose(data_avg, expected, rtol=0, atol=1e-9, equal_nan=True)
+
+    # opposite directions cancel out and return NaN, 360 is returned as 0 and NaN directions are ignored
+    wdirs = pd.Series([0, 180, 350, 10, 360, 360, 90, np.nan], name='wdir',
+                      index=pd.to_datetime(['2020-01-01 00:00', '2020-01-01 00:30', '2020-01-01 01:00',
+                                            '2020-01-01 01:30', '2020-01-01 02:00', '2020-01-01 02:30',
+                                            '2020-01-01 03:00', '2020-01-01 03:30']))
+    data_avg = bw.average_data_by_period(wdirs, period='1h', wdir_column_names='wdir', coverage_threshold=0,
+                                         data_resolution=pd.DateOffset(minutes=30))
+    assert np.isnan(data_avg.iloc[0])
+    assert data_avg.iloc[1] == 0.0
+    assert data_avg.iloc[2] == 0.0
+    assert data_avg.iloc[3] == 90.0
 
 
 def test_merge_datasets_by_period():

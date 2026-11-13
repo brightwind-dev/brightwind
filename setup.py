@@ -1,15 +1,14 @@
 from setuptools import setup, find_packages
-import codecs
 import os.path
 
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 
 def read(rel_path):
     here = os.path.abspath(os.path.dirname(__file__))
-    with codecs.open(os.path.join(here, rel_path), 'r') as fp:
+    with open(os.path.join(here, rel_path), 'r', encoding='utf-8') as fp:
         return fp.read()
 
 
@@ -34,7 +33,7 @@ setup(
     },
     url='https://github.com/brightwind-dev/brightwind.git',
     # UPDATE VERSION NUMBER HERE:
-    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.7.0.tar.gz',
+    download_url='https://github.com/brightwind-dev/brightwind/archive/v2.8.0.tar.gz',
     license='MIT',
     author='Stephen Holleran of BrightWind Ltd',
     author_email='stephen@brightwindanalysis.com',
@@ -53,8 +52,6 @@ setup(
         'pytest>= 4.1.0',
         'six>= 1.12.0',
         'python-dateutil>=2.8.0',
-        'ipywidgets>=7.4.2',
-        'ipython>=7.4.0',
         'gmaps>=0.9.0',
         'colormap>=1.0.1',
         'easydev>=0.10.0',
