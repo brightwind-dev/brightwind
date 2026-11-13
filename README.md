@@ -129,7 +129,7 @@ Demo datasets are bundled with the library to demonstrate functions and exercise
 | `MERRA-2_XX_2000-01-01_2017-06-30.csv` | NASA [GES DISC](https://disc.gsfc.nasa.gov/) | 4 × MERRA-2 18-year datasets to complement the demo data for long-term analyses. |
 | `demo_cleaning_file.csv` | BrightWind | Periods to clean out from the demo data. |
 | `windographer_flagging_log.txt` | BrightWind | Same cleaning info as `demo_cleaning_file.csv` formatted as a Windographer flagging file. |
-| `demo_data_iea43_wra_data_model.json` | BrightWind | A JSON file formatted to the IEA Wind Task 43 [WRA Data Model](https://github.com/IEA-Task-43/digital_wra_data_standard) standard, describing the mast configuration for the demo data. |
+| `demo_data_iea43_wra_data_model.json` | BrightWind | A JSON file formatted to the IEA Wind Task 43 [WRA Data Model](https://github.com/iea-wind-digitalisation/wra-data-model) standard, describing the mast configuration for the demo data. |
 
 <br>
 
