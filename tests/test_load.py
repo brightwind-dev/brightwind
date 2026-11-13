@@ -611,7 +611,7 @@ def test_load_campbell_scientific():
             data1['2016-01-09 15:30:00':'2016-01-10 23:50:00'].fillna(-999)).all().all()
 
 
-@pytest.mark.skipif(
+requires_brighthub_credentials = pytest.mark.skipif(
     not (
         (os.environ.get('BRIGHTHUB_CLIENT_ID') and os.environ.get('BRIGHTHUB_CLIENT_SECRET'))
         or (os.environ.get('BRIGHTHUB_EMAIL') and os.environ.get('BRIGHTHUB_PASSWORD'))
@@ -619,6 +619,9 @@ def test_load_campbell_scientific():
     reason="Either BRIGHTHUB_CLIENT_ID and BRIGHTHUB_CLIENT_SECRET, or BRIGHTHUB_EMAIL and BRIGHTHUB_PASSWORD "
            "must be set to run this integration test against the live BrightHub API."
 )
+
+
+@requires_brighthub_credentials
 def test_load_brighthub():
 
     plant_uuid = '7a58497e-bee1-42a2-8084-c47a5cf213b7'
@@ -676,13 +679,6 @@ def test_load_brighthub():
     for col in ['Spd80mN', 'Spd80mS', 'Dir78mS']:
         assert col in data_csv.columns
 
-    # Same window as parquet — confirms the API accepts file_extension='.parquet' and returns equivalent data.
-    data_parquet = bw.LoadBrightHub.get_data(measurement_station_uuid=measurement_station_uuid, date_from='2016-12-01',
-                                             date_to='2017-01-01', file_extension='.parquet')
-    assert list(data_parquet.columns) == list(data_csv.columns)
-    assert len(data_parquet) == len(data_csv)
-    assert data_parquet.index.name == 'Timestamp'
-
     # To get cleaning log
     cleaning_log_df = bw.LoadBrightHub.get_cleaning_log(measurement_station_uuid=measurement_station_uuid)
     assert len(cleaning_log_df) != 0
@@ -690,6 +686,25 @@ def test_load_brighthub():
     # To get cleaning rules
     cleaning_rules_json = bw.LoadBrightHub.get_cleaning_rules(measurement_station_uuid=measurement_station_uuid)
     assert cleaning_rules_json[0]['measurement_location_uuid'] == measurement_station_uuid
+
+
+@requires_brighthub_credentials
+def test_load_brighthub_get_data_parquet_live():
+    try:
+        import pyarrow  # noqa: F401
+    except ImportError:
+        pytest.importorskip('fastparquet', reason="parquet engine (pyarrow or fastparquet) required to read parquet")
+
+    measurement_station_uuid = '9344e576-6d5a-45f0-9750-2a7528ebfa14'
+    data_csv = bw.LoadBrightHub.get_data(measurement_station_uuid=measurement_station_uuid, date_from='2016-12-01',
+                                         date_to='2017-01-01', file_extension='.csv')
+
+    # Same window as csv — confirms the API accepts file_extension='.parquet' and returns equivalent data.
+    data_parquet = bw.LoadBrightHub.get_data(measurement_station_uuid=measurement_station_uuid, date_from='2016-12-01',
+                                             date_to='2017-01-01', file_extension='.parquet')
+    assert list(data_parquet.columns) == list(data_csv.columns)
+    assert len(data_parquet) == len(data_csv)
+    assert data_parquet.index.name == 'Timestamp'
 
 
 def test_load_brighthub_get_data_default_emits_deprecation_warning():
