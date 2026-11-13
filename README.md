@@ -100,8 +100,8 @@ For full examples — loading, plotting, shear, correlations, exporting — see 
 
 <p>
 
-![demo_image_1](read_me_1.png)
-![demo_image_2](read_me_2.png)
+![demo_image_1](https://raw.githubusercontent.com/brightwind-dev/brightwind/master/read_me_1.png)
+![demo_image_2](https://raw.githubusercontent.com/brightwind-dev/brightwind/master/read_me_2.png)
 </p>
 
 <br>
@@ -140,7 +140,7 @@ Brightwind welcomes contributions from across the wind and solar industry — an
 developers.
 
 - **Issues, bugs and feature requests:** [GitHub issue tracker](https://github.com/brightwind-dev/brightwind/issues)
-- **Code contributions and development setup:** see [contributing.md](contributing.md)
+- **Code contributions and development setup:** see [contributing.md](https://github.com/brightwind-dev/brightwind/blob/master/contributing.md)
 - **General enquiries:** stephen@brightwindanalysis.com
 
 <br>
@@ -148,4 +148,4 @@ developers.
 ---
 ### License
 
-MIT — see [LICENSE.txt](LICENSE.txt).
+MIT — see [LICENSE.txt](https://github.com/brightwind-dev/brightwind/blob/master/LICENSE.txt).
