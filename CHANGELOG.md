@@ -11,7 +11,7 @@ Additional labels for pre-release and build metadata are available as extensions
 
 ---
 ## [2.8.0]
-XX-Xxx-2026
+13-Nov-2026
 
 ### New Features and Enhancements
 1. Add public `bw.brighthub.request` function to make GET (the default), POST, PUT and DELETE requests to the BrightHub APIs, and public `bw.brighthub.get_id_token` function to get the BrightHub ID token. `request` has a `timeout` argument, defaulting to `(10, 35)` seconds (connect, read), and a `max_retries` argument, defaulting to 2. It raises a `ValueError` for an unsupported method. The new `brightwind/utils/brighthub.py` module is portable: it only depends on the `requests` package, so it can be copied into other code bases without needing the entire brightwind library (Issue [#583](https://github.com/brightwind-dev/brightwind/issues/583))
