@@ -14,7 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. Added `TI.by_speed_and_sector()` to calculate turbulence intensity by wind speed bin and direction sector, returning a heatmap of mean TI and, optionally, a table of mean TI, count and standard deviation. ([#455](https://github.com/brightwind-dev/brightwind/issues/455))
+1. Added `TI.by_speed_and_sector()` to calculate turbulence intensity by wind speed bin and direction sector, returning a heatmap of mean TI and, optionally, a table of mean TI, count, standard deviation and sigma-sigma. ([#455](https://github.com/brightwind-dev/brightwind/issues/455))
 
 ### Bug Fixes
 1. 

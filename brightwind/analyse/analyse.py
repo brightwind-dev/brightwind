@@ -1874,8 +1874,8 @@ class TI:
 
         Speed bins are closed on the left and open on the right, e.g. [-0.5, 0.5). Speed bins with no data in any
         direction sector are dropped from the returned table and the plot. Values are not filled or interpolated: a
-        speed bin and direction sector with no data has a TI_Count of 0 and a Mean_TI and TI_Std of NaN, and one with a
-        single TI value has a TI_Std of NaN.
+        speed bin and direction sector with no data has a TI_Count of 0 and a Mean_TI, TI_Std and Sigma_Sigma of NaN,
+        and one with a single TI value has a TI_Std and Sigma_Sigma of NaN.
 
         The wspd, wspd_std and wdir timeseries must have identical indexes, so that each wind speed is paired with the
         standard deviation and wind direction of the same timestamp. Timestamps where any of the three is missing are
@@ -1919,7 +1919,10 @@ class TI:
 
                                             * Mean_TI (average TI for a speed bin and direction sector),
                                             * TI_Count (number of TI values in the speed bin and direction sector),
-                                            * TI_Std (standard deviation of TI in the speed bin and direction sector)
+                                            * TI_Std (standard deviation of TI in the speed bin and direction sector),
+                                            * Sigma_Sigma (standard deviation of the wind speed standard deviation
+                                              in the speed bin and direction sector, in the units of wspd_std, for the
+                                              same timestamps as the TI values.
 
         :rtype:                         matplotlib.figure.Figure or tuple(matplotlib.figure.Figure, pandas.DataFrame)
 
@@ -1971,10 +1974,15 @@ class TI:
                        join='inner').dropna()
         ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'], min_speed=min_speed)
 
+        # sigma-sigma uses the wind speed standard deviation of the same timestamps as the TI values
+        wspd_std_of_ti = ti['wspd_std'].where(ti['Turbulence_Intensity'].notna())
         ti_dist = {}
-        for stat, aggregation_method in [('Mean_TI', 'mean'), ('TI_Count', 'count'), ('TI_Std', 'std')]:
+        for stat, var_series, aggregation_method in [('Mean_TI', ti['Turbulence_Intensity'], 'mean'),
+                                                     ('TI_Count', ti['Turbulence_Intensity'], 'count'),
+                                                     ('TI_Std', ti['Turbulence_Intensity'], 'std'),
+                                                     ('Sigma_Sigma', wspd_std_of_ti, 'std')]:
             ti_dist[stat] = _get_dist_matrix_by_dir_sector(
-                var_series=ti['Turbulence_Intensity'], var_to_bin_series=ti['wspd'], direction_series=ti['wdir'],
+                var_series=var_series, var_to_bin_series=ti['wspd'], direction_series=ti['wdir'],
                 var_bin_array=speed_bin_array, sectors=sectors, direction_bin_array=direction_bin_array,
                 aggregation_method=aggregation_method)
             if direction_bin_labels is not None:

@@ -688,8 +688,8 @@ def test_ti_by_speed_and_sector():
 
     fig, ti_dist = bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS, return_data=True)
     assert isinstance(fig, mpl.figure.Figure)
-    assert ti_dist.shape == (27, 36)
-    assert list(ti_dist.columns.get_level_values(0).unique()) == ['Mean_TI', 'TI_Count', 'TI_Std']
+    assert ti_dist.shape == (27, 48)
+    assert list(ti_dist.columns.get_level_values(0).unique()) == ['Mean_TI', 'TI_Count', 'TI_Std', 'Sigma_Sigma']
     assert ti_dist.columns.names == [None, 'Direction Bin']
     assert ti_dist.index.name == 'Speed Bin'
     assert list(ti_dist.index[:3]) == [3, 4, 5]
@@ -697,7 +697,8 @@ def test_ti_by_speed_and_sector():
     _assert_ti_by_speed_and_sector_top_left(ti_dist, {
         'Mean_TI': [[0.17976918, 0.14976495], [0.1544085, 0.1355129]],
         'TI_Count': [[145, 301], [308, 626]],
-        'TI_Std': [[0.07695292, 0.06079203], [0.05255418, 0.05709569]]})
+        'TI_Std': [[0.07695292, 0.06079203], [0.05255418, 0.05709569]],
+        'Sigma_Sigma': [[0.24628294, 0.19454466], [0.20929419, 0.22395173]]})
 
     # Counts by sector match TI.by_sector, and counts and mean TI by speed bin match TI.by_speed on the timestamps
     # with a valid direction
@@ -715,13 +716,14 @@ def test_ti_by_speed_and_sector():
                                            speed_bin_array=[0, 4, 8, 12, 16, 41],
                                            speed_bin_labels=['0-4', '4-8', '8-12', '12-16', '16+'],
                                            min_speed=4, sectors=8, return_data=True)
-    assert ti_dist.shape == (4, 24)
+    assert ti_dist.shape == (4, 32)
     assert list(ti_dist.index) == ['4-8', '8-12', '12-16', '16+']
     assert list(ti_dist['Mean_TI'].columns[:2]) == ['337.5-22.5', '22.5-67.5']
     _assert_ti_by_speed_and_sector_top_left(ti_dist, {
         'Mean_TI': [[0.13683455, 0.13589224], [0.12022447, 0.1269999]],
         'TI_Count': [[1539, 2642], [809, 1082]],
-        'TI_Std': [[0.04490374, 0.06105537], [0.02962995, 0.05323663]]})
+        'TI_Std': [[0.04490374, 0.06105537], [0.02962995, 0.05323663]],
+        'Sigma_Sigma': [[0.26312941, 0.36774547], [0.33275303, 0.52034174]]})
 
     # Test speed_bin_labels set to None, which uses the centre of each speed bin
     _, ti_dist = bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS, speed_bin_labels=None,
@@ -731,7 +733,8 @@ def test_ti_by_speed_and_sector():
     _assert_ti_by_speed_and_sector_top_left(ti_dist, {
         'Mean_TI': [[0.16563255, 0.17180907], [0.1489664, 0.16335369]],
         'TI_Count': [[592, 700], [1203, 1455]],
-        'TI_Std': [[0.06951179, 0.06922635], [0.05925433, 0.06699225]]})
+        'TI_Std': [[0.06951179, 0.06922635], [0.05925433, 0.06699225]],
+        'Sigma_Sigma': [[0.22414986, 0.22339362], [0.23380944, 0.26542527]]})
 
     # Test direction_bin_array and direction_bin_labels
     _, ti_dist = bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS,
@@ -741,7 +744,8 @@ def test_ti_by_speed_and_sector():
     _assert_ti_by_speed_and_sector_top_left(ti_dist, {
         'Mean_TI': [[0.16221183, 0.17823865], [0.15451414, 0.15987718]],
         'TI_Count': [[798, 491], [1591, 1155]],
-        'TI_Std': [[0.06798644, 0.07197293], [0.06445171, 0.06648665]]})
+        'TI_Std': [[0.06798644, 0.07197293], [0.06445171, 0.06648665]],
+        'Sigma_Sigma': [[0.21887292, 0.23183712], [0.25550982, 0.26387446]]})
 
     # Test empty and single-value cells are not filled, values below min_speed or with a missing input are excluded,
     # and directions of 0, 360 and 359.9 degrees fall in the first sector
@@ -758,6 +762,15 @@ def test_ti_by_speed_and_sector():
     assert ti_dist['TI_Count'].loc[5, '75.0-105.0'] == 0
     assert np.isnan(ti_dist['Mean_TI'].loc[5, '75.0-105.0'])
     assert np.isnan(ti_dist['TI_Std'].loc[5, '75.0-105.0'])
+    np.testing.assert_allclose(ti_dist['Sigma_Sigma'].loc[5, '345.0-15.0'], np.std([0.5, 0.52, 0.81], ddof=1))
+    assert np.isnan(ti_dist['Sigma_Sigma'].loc[5, '15.0-45.0'])
+    assert np.isnan(ti_dist['Sigma_Sigma'].loc[5, '75.0-105.0'])
+
+    # Test Sigma_Sigma uses only the timestamps with a TI value, i.e. excludes wind speeds below min_speed within the
+    # same speed bin
+    _, ti_dist = bw.TI.by_speed_and_sector(syn['spd'], syn['std'], syn['dir'], min_speed=5.1, return_data=True)
+    assert ti_dist['TI_Count'].loc[5, '345.0-15.0'] == 2
+    np.testing.assert_allclose(ti_dist['Sigma_Sigma'].loc[5, '345.0-15.0'], np.std([0.52, 0.81], ddof=1))
 
     # Test invalid inputs
     with pytest.raises(ValueError, match='speed_bin_labels'):
