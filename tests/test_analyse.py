@@ -676,6 +676,107 @@ def test_ti_by_sector():
             assert round(ti_dist_by_sector[key][sub_key], 5) == round(test_ti_by_sector3[key][sub_key], 5)
 
 
+def _assert_ti_by_speed_and_sector_top_left(ti_dist, expected):
+    for stat, values in expected.items():
+        np.testing.assert_allclose(ti_dist[stat].iloc[:2, :2].values, values, rtol=1e-6)
+
+
+def test_ti_by_speed_and_sector():
+    # Test default inputs, DataFrame inputs and return of the plot only
+    fig = bw.TI.by_speed_and_sector(DATA[['Spd80mN']], DATA[['Spd80mNStd']], DATA[['Dir78mS']])
+    assert isinstance(fig, mpl.figure.Figure)
+
+    fig, ti_dist = bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS, return_data=True)
+    assert isinstance(fig, mpl.figure.Figure)
+    assert ti_dist.shape == (27, 36)
+    assert list(ti_dist.columns.get_level_values(0).unique()) == ['Mean_TI', 'TI_Count', 'TI_Std']
+    assert ti_dist.columns.names == [None, 'Direction Bin']
+    assert ti_dist.index.name == 'Speed Bin'
+    assert list(ti_dist.index[:3]) == [3, 4, 5]
+    assert list(ti_dist['Mean_TI'].columns[:2]) == ['345.0-15.0', '15.0-45.0']
+    _assert_ti_by_speed_and_sector_top_left(ti_dist, {
+        'Mean_TI': [[0.17976918, 0.14976495], [0.1544085, 0.1355129]],
+        'TI_Count': [[145, 301], [308, 626]],
+        'TI_Std': [[0.07695292, 0.06079203], [0.05255418, 0.05709569]]})
+
+    # Counts by sector match TI.by_sector, and counts and mean TI by speed bin match TI.by_speed on the timestamps
+    # with a valid direction
+    _, ti_by_sector = bw.TI.by_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS, return_data=True)
+    assert ti_dist['TI_Count'].sum().tolist() == ti_by_sector['TI_Count'].tolist()
+    data_with_dir = DATA[DATA.Dir78mS.notna()]
+    _, ti_by_speed = bw.TI.by_speed(data_with_dir.Spd80mN, data_with_dir.Spd80mNStd, return_data=True)
+    speed_bin_count = ti_dist['TI_Count'].sum(axis=1)
+    assert (speed_bin_count.loc[ti_by_speed.index] == ti_by_speed['TI_Count']).all()
+    speed_bin_mean_ti = (ti_dist['Mean_TI'] * ti_dist['TI_Count']).sum(axis=1) / speed_bin_count
+    np.testing.assert_allclose(speed_bin_mean_ti.loc[ti_by_speed.index], ti_by_speed['Mean_TI'])
+
+    # Test speed_bin_array, speed_bin_labels, min_speed and sectors
+    _, ti_dist = bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS,
+                                           speed_bin_array=[0, 4, 8, 12, 16, 41],
+                                           speed_bin_labels=['0-4', '4-8', '8-12', '12-16', '16+'],
+                                           min_speed=4, sectors=8, return_data=True)
+    assert ti_dist.shape == (4, 24)
+    assert list(ti_dist.index) == ['4-8', '8-12', '12-16', '16+']
+    assert list(ti_dist['Mean_TI'].columns[:2]) == ['337.5-22.5', '22.5-67.5']
+    _assert_ti_by_speed_and_sector_top_left(ti_dist, {
+        'Mean_TI': [[0.13683455, 0.13589224], [0.12022447, 0.1269999]],
+        'TI_Count': [[1539, 2642], [809, 1082]],
+        'TI_Std': [[0.04490374, 0.06105537], [0.02962995, 0.05323663]]})
+
+    # Test speed_bin_labels set to None, which uses the centre of each speed bin
+    _, ti_dist = bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS, speed_bin_labels=None,
+                                           sectors=4, return_data=True)
+    assert list(ti_dist.index[:3]) == [3.0, 4.0, 5.0]
+    assert list(ti_dist['Mean_TI'].columns) == ['315.0-45.0', '45.0-135.0', '135.0-225.0', '225.0-315.0']
+    _assert_ti_by_speed_and_sector_top_left(ti_dist, {
+        'Mean_TI': [[0.16563255, 0.17180907], [0.1489664, 0.16335369]],
+        'TI_Count': [[592, 700], [1203, 1455]],
+        'TI_Std': [[0.06951179, 0.06922635], [0.05925433, 0.06699225]]})
+
+    # Test direction_bin_array and direction_bin_labels
+    _, ti_dist = bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS,
+                                           direction_bin_array=[0, 90, 180, 270, 360],
+                                           direction_bin_labels=['north', 'east', 'south', 'west'], return_data=True)
+    assert list(ti_dist['Mean_TI'].columns) == ['north', 'east', 'south', 'west']
+    _assert_ti_by_speed_and_sector_top_left(ti_dist, {
+        'Mean_TI': [[0.16221183, 0.17823865], [0.15451414, 0.15987718]],
+        'TI_Count': [[798, 491], [1591, 1155]],
+        'TI_Std': [[0.06798644, 0.07197293], [0.06445171, 0.06648665]]})
+
+    # Test empty and single-value cells are not filled, values below min_speed or with a missing input are excluded,
+    # and directions of 0, 360 and 359.9 degrees fall in the first sector
+    idx = pd.date_range('2025-01-01', periods=8, freq='10min')
+    syn = pd.DataFrame({'spd': [5.0, 5.2, 5.4, 5.1, 8.0, 2.0, 5.3, np.nan],
+                        'std': [0.5, 0.52, 0.81, 0.51, 0.8, 0.4, 0.53, 0.5],
+                        'dir': [0.0, 360.0, 359.9, 15.0, 90.0, 90.0, np.nan, 90.0]}, index=idx)
+    _, ti_dist = bw.TI.by_speed_and_sector(syn['spd'], syn['std'], syn['dir'], return_data=True)
+    assert list(ti_dist.index) == [5, 8]
+    assert ti_dist['TI_Count'].values.sum() == 5
+    np.testing.assert_allclose(ti_dist['Mean_TI'].loc[5, ['345.0-15.0', '15.0-45.0']], [0.35 / 3, 0.1])
+    assert ti_dist['TI_Count'].loc[5, ['345.0-15.0', '15.0-45.0']].tolist() == [3, 1]
+    assert np.isnan(ti_dist['TI_Std'].loc[5, '15.0-45.0'])
+    assert ti_dist['TI_Count'].loc[5, '75.0-105.0'] == 0
+    assert np.isnan(ti_dist['Mean_TI'].loc[5, '75.0-105.0'])
+    assert np.isnan(ti_dist['TI_Std'].loc[5, '75.0-105.0'])
+
+    # Test invalid inputs
+    with pytest.raises(ValueError, match='speed_bin_labels'):
+        bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS, speed_bin_array=[0, 4, 8],
+                                  speed_bin_labels=['low'])
+    with pytest.raises(ValueError, match='direction_bin_labels.*4, got: 3'):
+        bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS, sectors=4,
+                                  direction_bin_labels=['n', 'e', 's'])
+    with pytest.raises(ValueError, match='direction_bin_labels.*4, got: 2'):
+        bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS,
+                                  direction_bin_array=[0, 90, 180, 270, 360], direction_bin_labels=['n', 's'])
+
+    # Test mismatched indexes raise rather than pairing values from different timestamps
+    with pytest.raises(ValueError, match='wspd and wdir must have the same index'):
+        bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS.shift(1, freq='10min'))
+    with pytest.raises(ValueError, match='wspd and wspd_std must have the same dimensions'):
+        bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd.iloc[:100], DATA.Dir78mS)
+
+
 def test_calc_air_density():
 
     # Test error for invalid calc_method
