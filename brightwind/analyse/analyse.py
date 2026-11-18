@@ -1973,6 +1973,12 @@ class TI:
         ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std'), wdir.rename('wdir')], axis=1,
                        join='inner').dropna()
         ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'], min_speed=min_speed)
+        # speed bins are closed on the left and open on the right
+        in_speed_bins = (ti['wspd'] >= min(speed_bin_array)) & (ti['wspd'] < max(speed_bin_array))
+        if ti.loc[in_speed_bins, 'Turbulence_Intensity'].dropna().empty:
+            raise ValueError(f"No TI values to bin: `wspd`, `wspd_std` and `wdir` have no timestamps in common with "
+                             f"a wind speed of at least `min_speed` and within `speed_bin_array`, got min_speed: "
+                             f"{min_speed} and speed_bin_array from {min(speed_bin_array)} to {max(speed_bin_array)}")
 
         # sigma-sigma uses the wind speed standard deviation of the same timestamps as the TI values
         wspd_std_of_ti = ti['wspd_std'].where(ti['Turbulence_Intensity'].notna())

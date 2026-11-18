@@ -783,6 +783,15 @@ def test_ti_by_speed_and_sector():
         bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS,
                                   direction_bin_array=[0, 90, 180, 270, 360], direction_bin_labels=['n', 's'])
 
+    # Test a clear error when there are no TI values to bin
+    no_ti_cases = [(syn['spd'] * np.nan, syn['std'], syn['dir'], {}),
+                   (syn['spd'], syn['std'], syn['dir'] * np.nan, {}),
+                   (syn['spd'], syn['std'], syn['dir'], {'min_speed': 10}),
+                   (syn['spd'], syn['std'], syn['dir'], {'speed_bin_array': [20, 30], 'speed_bin_labels': ['20-30']})]
+    for spd, std, wdir, kwargs in no_ti_cases:
+        with pytest.raises(ValueError, match='No TI values to bin'):
+            bw.TI.by_speed_and_sector(spd, std, wdir, **kwargs)
+
     # Test mismatched indexes raise rather than pairing values from different timestamps
     with pytest.raises(ValueError, match='wspd and wdir must have the same index'):
         bw.TI.by_speed_and_sector(DATA.Spd80mN, DATA.Spd80mNStd, DATA.Dir78mS.shift(1, freq='10min'))
