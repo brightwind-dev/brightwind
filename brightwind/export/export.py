@@ -1,10 +1,21 @@
 import os
 import pandas as pd
+import numpy as np
 import datetime
 import re
+import warnings
+from typing import Optional, Union
 import brightwind
 
-__all__ = ['export_tab_file', 'export_csv', 'export_tws_file']
+__all__ = ['export_tab_file', 'export_csv', 'export_tws_file', 'export_wti_file']
+
+# WindFarmer .wti turbulence file format, DNV WindFarmer user guide:
+# https://mysoftware.dnv.com/download/public/renewables/windfarmer/manuals/latest/UserGuide/FileFormats/WTI.html
+WINDFARMER_WTI_MIN_SPEED = 0.5  # the first wind speed row is 1 m/s, covering 0.5 to 1.5 m/s
+# The user guide does not state a maximum. DNV's example file, M3_100.wti, has rows from 1 to 24 m/s, and WindFarmer
+# fails to load a file with rows above 24 m/s ("Illegal file format found - load failed"):
+# https://github.com/dnv-opensource/WindFarmer-automation/tree/main/DemoData/Hawaii
+WINDFARMER_WTI_MAX_SPEED = 24  # the last wind speed row is 24 m/s, covering 23.5 to 24.5 m/s
 
 
 def _calc_mean_speed_of_freq_tab(freq_tab):
@@ -241,6 +252,151 @@ def export_tws_file(
     
     # Print success message
     print(f'Export of tws file {file_name} successful.\nEastings: {eastings:.0f} E, Northings: {northings:.0f} N, Height: {height} m\n')
+
+
+def _format_wti_table(table: pd.DataFrame, value_format: str, row_prefix: str = '') -> str:
+    header = '#  \t' + '\t'.join(f'{sector_centre:7.1f}' for sector_centre in table.columns) + '\n'
+    rows = ''.join(f'{row_prefix}{speed:2d}\t' + '\t'.join(format(value, value_format) for value in values) + '\n'
+                   for speed, values in zip(table.index, table.values))
+    return header + rows
+
+
+def export_wti_file(wspd: Union[pd.Series, pd.DataFrame], wspd_std: Union[pd.Series, pd.DataFrame],
+                    wdir: Union[pd.Series, pd.DataFrame], sectors: int = 12, count_threshold: int = 5,
+                    file_name: Optional[str] = None, folder_path: Optional[str] = None) -> None:
+    """
+    Export a WindFarmer .wti turbulence file of mean turbulence intensity (TI) and sigma-sigma by wind speed and
+    direction sector, from timeseries of wind speed, wind speed standard deviation and wind direction.
+
+    The file follows the WindFarmer .wti file format described in the DNV WindFarmer user guide:
+    https://mysoftware.dnv.com/download/public/renewables/windfarmer/manuals/latest/UserGuide/FileFormats/WTI.html
+
+    The file contains three tab-separated tables, each with wind speed rows and direction sector columns:
+
+        * Mean TI in percent,
+        * Sigma-sigma, the standard deviation of the wind speed standard deviation, in the units of wspd_std,
+        * Bin counts, the number of TI values in each wind speed bin and direction sector. This table is commented
+          out and is for information only.
+
+    The values are derived using bw.TI.by_speed_and_sector(). Wind speed rows are 1 m/s bins centred on whole
+    numbers, always from 1 m/s (0.5 to 1.5 m/s) to 24 m/s (23.5 to 24.5 m/s), and TI is calculated for wind speeds
+    from 0.5 m/s up to 24.5 m/s. Wind speeds above 24.5 m/s are not used. The user guide does not state a maximum
+    wind speed, but WindFarmer fails to load a file with rows above 24 m/s, and the DNV example file, M3_100.wti, in
+    the dnv-opensource/WindFarmer-automation repository also has rows from 1 to 24 m/s. The first direction sector is
+    centred on 0 degrees.
+
+    Where a wind speed bin and direction sector has fewer than count_threshold TI values, or no value, its mean TI
+    and sigma-sigma are replaced by the values for that wind speed bin across all direction sectors. This matches the
+    DNV example file. A wind speed bin with no data in any direction sector, below the highest wind speed bin with
+    data, takes values interpolated linearly from the neighbouring wind speed bins.
+
+    The highest wind speed bins are usually measured by very few TI values, or none. Wind speed bins above the
+    highest bin with at least count_threshold TI values across all direction sectors therefore hold that bin's mean
+    TI and sigma-sigma constant, for every direction sector, up to 24 m/s. If no wind speed bin has count_threshold
+    TI values, the values of the highest wind speed bin with data are held. The bin counts table always reports the
+    measured counts.
+
+    :param wspd:            Wind speed timeseries.
+    :type wspd:             pandas.Series or pandas.DataFrame
+    :param wspd_std:        Wind speed standard deviation timeseries. Must have the same index as wspd.
+    :type wspd_std:         pandas.Series or pandas.DataFrame
+    :param wdir:            Wind direction timeseries between [0-360]. Must have the same index as wspd.
+    :type wdir:             pandas.Series or pandas.DataFrame
+    :param sectors:         Number of direction sectors, evenly spaced with the first centred on 0 degrees. Default
+                            is 12.
+    :type sectors:          int
+    :param count_threshold: Minimum number of TI values in a wind speed bin and direction sector for its own mean TI
+                            and sigma-sigma to be used. Below this, the values for that wind speed bin across all
+                            direction sectors are used. It also sets the minimum number of TI values across all
+                            direction sectors for a wind speed bin not to be replaced by the values held constant
+                            from a lower wind speed bin. Default is 5. Set to 0 to only replace cells with no value
+                            and only hold values above the highest wind speed bin with data.
+    :type count_threshold:  int
+    :param file_name:       The file name under which the wti file will be saved, or use the default,
+                            i.e '2019-06-07_brightwind_wti_export.wti'. The '.wti' extension is added if missing.
+    :type file_name:        str or None
+    :param folder_path:     The directory where the wti file will be saved, default is the working directory.
+    :type folder_path:      str or None
+    :return:                Creates a WindFarmer .wti turbulence file.
+    :rtype:                 None
+
+    **Example usage**
+    ::
+        import brightwind as bw
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+        data = bw.apply_cleaning(data, bw.demo_datasets.demo_cleaning_file)
+
+        # Export a .wti file with 12 direction sectors to the working directory
+        bw.export_wti_file(data.Spd80mN, data.Spd80mNStd, data.Dir78mS, file_name='demo_80m.wti')
+
+        # Export a .wti file with 16 direction sectors, using each cell's own values wherever it has at least
+        # 10 TI values
+        bw.export_wti_file(data.Spd80mN, data.Spd80mNStd, data.Dir78mS, sectors=16, count_threshold=10,
+                           file_name='demo_80m_16_sectors')
+
+    """
+    if not isinstance(sectors, (int, np.integer)) or isinstance(sectors, bool) or sectors < 1:
+        raise ValueError(f"The input `sectors` must be a positive integer, got: {sectors}")
+    if not isinstance(count_threshold, (int, np.integer)) or isinstance(count_threshold, bool) or count_threshold < 0:
+        raise ValueError(f"The input `count_threshold` must be a non-negative integer, got: {count_threshold}")
+
+    # contiguous 1 m/s rows from 1 to 24 m/s; TI.by_speed_and_sector raises an error if there is no data to bin
+    speed_rows = list(range(1, WINDFARMER_WTI_MAX_SPEED + 1))
+    ti_dist_kwargs = dict(speed_bin_array=np.arange(WINDFARMER_WTI_MIN_SPEED, WINDFARMER_WTI_MAX_SPEED + 1, 1),
+                          speed_bin_labels=speed_rows, min_speed=WINDFARMER_WTI_MIN_SPEED, return_data=True)
+    _, ti_by_sector = brightwind.TI.by_speed_and_sector(wspd, wspd_std, wdir, sectors=sectors, **ti_dist_kwargs)
+    _, ti_all_sectors = brightwind.TI.by_speed_and_sector(wspd, wspd_std, wdir, direction_bin_array=[0, 360],
+                                                          **ti_dist_kwargs)
+    ti_by_sector = ti_by_sector.reindex(speed_rows)
+    ti_all_sectors = ti_all_sectors.reindex(speed_rows)
+    all_sector_counts = ti_all_sectors['TI_Count'].iloc[:, 0].fillna(0)
+    ti_all_sectors = ti_all_sectors.interpolate(method='index', limit_direction='both')
+    sector_centres = np.arange(sectors) * 360.0 / sectors
+
+    counts = ti_by_sector['TI_Count'].fillna(0).astype('int64')
+    counts.columns = sector_centres
+    tables = {}
+    for stat in ['Mean_TI', 'Sigma_Sigma']:
+        table = ti_by_sector[stat].copy()
+        table.columns = sector_centres
+        all_sectors = ti_all_sectors[stat].iloc[:, 0]
+        table = table.mask((counts < count_threshold) | table.isna(), all_sectors, axis=0)
+        tables[stat] = table
+    tables['Mean_TI'] = tables['Mean_TI'] * 100
+
+    # hold the values of the highest wind speed bin with at least count_threshold TI values across all sectors, or
+    # else the highest wind speed bin with data, constant for the higher wind speed bins
+    enough_data = all_sector_counts >= max(count_threshold, 1)
+    if not enough_data.any():
+        enough_data = all_sector_counts > 0
+    hold_from_row = enough_data[enough_data].index.max()
+    for stat in tables:
+        tables[stat].loc[tables[stat].index > hold_from_row] = tables[stat].loc[hold_from_row].values
+
+    if ((tables['Mean_TI'] <= 0) | (tables['Mean_TI'] >= 100)).any().any():
+        warnings.warn("Some mean TI values are not greater than 0 % and less than 100 %, as WindFarmer requires. "
+                      "Check the wspd and wspd_std inputs.", UserWarning, stacklevel=2)
+
+    if file_name is None:
+        file_name = str(datetime.datetime.now().strftime("%Y-%m-%d")) + '_brightwind_wti_export.wti'
+    if not file_name.endswith('.wti'):
+        file_name = file_name + '.wti'
+    if folder_path is None:
+        folder_path = os.getcwd()
+    file_path = os.path.join(folder_path, file_name)
+
+    current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    wti_string = (f"# {os.path.splitext(file_name)[0]} created using brightwind version {brightwind.__version__} "
+                  f"at {current_timestamp}.\n{sectors}\n\n")
+    wti_string += _format_wti_table(tables['Mean_TI'], '7.4f')
+    wti_string += '\n#Sigma Sigma\n' + _format_wti_table(tables['Sigma_Sigma'], '7.4f')
+    wti_string += '\n#Bin Counts\n' + _format_wti_table(counts, '7d', row_prefix='#')
+
+    with open(file_path, 'w', newline='\n') as file:
+        file.write(wti_string)
+    held = f'values held constant above {hold_from_row} m/s' if hold_from_row < speed_rows[-1] else 'no values held'
+    print(f'Export of wti file "{file_name}" successful.\nWind speed rows: 1 to {speed_rows[-1]} m/s, {held}, '
+          f'direction sectors: {sectors}\n')
 
 
 def export_csv(data, file_name=None, folder_path=None, **kwargs):

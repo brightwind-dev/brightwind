@@ -15,6 +15,7 @@ XX-Xxx-2026
 
 ### New Features and Enhancements
 1. Added `TI.by_speed_and_sector()` to calculate turbulence intensity by wind speed bin and direction sector, returning a heatmap of mean TI and, optionally, a table of mean TI, count, standard deviation and sigma-sigma. ([#455](https://github.com/brightwind-dev/brightwind/issues/455))
+1. Added `export_wti_file()` to export a WindFarmer .wti turbulence file of mean TI and sigma-sigma by wind speed (1 to 24 m/s) and direction sector. Sectors with fewer than `count_threshold` values use the all-sector values for that wind speed, and wind speeds above the highest bin with enough data hold its values. ([#444](https://github.com/brightwind-dev/brightwind/issues/444))
 
 ### Bug Fixes
 1. 
