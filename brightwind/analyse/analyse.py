@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from typing import Optional, Any
+from typing import Optional, Any, Tuple
 from brightwind.transform import transform as tf
 from brightwind.utils import utils
 from brightwind.analyse import plot as bw_plt
@@ -1856,6 +1856,165 @@ class TI:
             return graph_ti_dist_by_sector, ti_dist.dropna(how='all')
         else:
             return graph_ti_dist_by_sector
+
+    @staticmethod
+    def by_speed_and_sector(wspd: Union[pd.Series, pd.DataFrame], wspd_std: Union[pd.Series, pd.DataFrame],
+                            wdir: Union[pd.Series, pd.DataFrame],
+                            speed_bin_array: Union[list, np.ndarray] = np.arange(-0.5, 41, 1),
+                            speed_bin_labels: Optional[Union[list, range, np.ndarray]] = range(0, 41),
+                            min_speed: Union[int, float] = 3, sectors: int = 12,
+                            direction_bin_array: Optional[Union[list, np.ndarray]] = None,
+                            direction_bin_labels: Optional[Union[list, np.ndarray]] = None,
+                            return_data: bool = False) -> Union[plt.Figure, Tuple[plt.Figure, pd.DataFrame]]:
+        """
+        Accepts a wind speed series, its standard deviation and a wind direction series. Calculates turbulence
+        intensity (TI) and returns a heatmap of the mean TI by speed bin and direction sector, and the distribution of
+        TI by speed bin and direction sector if return_data is set to True.
+        Note that speed values lower than the input min_speed are filtered out when deriving the TI values.
+
+        Speed bins are closed on the left and open on the right, e.g. [-0.5, 0.5). Speed bins with no data in any
+        direction sector are dropped from the returned table and the plot. Values are not filled or interpolated: a
+        speed bin and direction sector with no data has a TI_Count of 0 and a Mean_TI, TI_Std and Sigma_Sigma of NaN,
+        and one with a single TI value has a TI_Std and Sigma_Sigma of NaN.
+
+        The wspd, wspd_std and wdir timeseries must have identical indexes, so that each wind speed is paired with the
+        standard deviation and wind direction of the same timestamp. Timestamps where any of the three is missing are
+        excluded.
+
+        Sigma_Sigma follows the sigma-sigma definition of the WindFarmer .wti turbulence file format in the DNV
+        WindFarmer user guide:
+        https://mysoftware.dnv.com/download/public/renewables/windfarmer/manuals/latest/UserGuide/FileFormats/WTI.html
+
+        :param wspd:                    Wind speed data series
+        :type wspd:                     pandas.Series or pandas.DataFrame
+        :param wspd_std:                Wind speed standard deviation data series. Must have the same index as wspd.
+        :type wspd_std:                 pandas.Series or pandas.DataFrame
+        :param wdir:                    Wind direction series. Must have the same index as wspd.
+        :type wdir:                     pandas.Series or pandas.DataFrame
+        :param speed_bin_array:         (Optional) Array of numbers where adjacent elements of array form a speed bin.
+                                        Default is numpy.arange(-0.5, 41, 1), this is an array of speed values
+                                        from -0.5 to 40.5 with a 1 m/s bin interval (ie first bin is -0.5 to 0.5)
+        :type speed_bin_array:          list or numpy.array
+        :param speed_bin_labels:        (Optional) Labels to use for speed bins in the output TI distribution table.
+                                        Note that labels correspond with the central bins of each adjacent element
+                                        of the input speed_bin_array. Default is an array of values from 0 to 40 with
+                                        an interval equal to 1 (ie 0, 1, 2, 3 ..). The length of the speed_bin_labels
+                                        array must be equal to len(speed_bin_array) - 1. If None, the centre of each
+                                        speed bin is used as the label.
+        :type speed_bin_labels:         list, range, numpy.array or None
+        :param min_speed:               Set the minimum wind speed. Default is 3 m/s.
+        :type min_speed:                integer or float
+        :param sectors:                 Set the number of direction sectors. Usually 12, 16, 24, 36 or 72. Default is
+                                        12. The first sector is centred at 0 degrees.
+        :type sectors:                  integer
+        :param direction_bin_array:     (Optional) Array of wind directions where adjacent elements of array form a
+                                        bin. This overwrites the sectors. To change default behaviour of first sector
+                                        centred at 0 assign an array of bins to this.
+        :type direction_bin_array:      numpy.array, list or None
+        :param direction_bin_labels:    (Optional) Labels to be used for the direction bins. Default is using string
+                                        labels of format '30.0-90.0'. The length must be equal to the number of
+                                        direction sectors.
+        :type direction_bin_labels:     numpy.array, list or None
+        :param return_data:             Set to True if you want the data returned.
+        :type return_data:              bool
+        :return:                        Return heatmap of mean TI by speed bin and direction sector and, when
+                                        return_data is True, a table with speed bins as rows and two column levels,
+                                        statistic and direction sector, for the statistics below:
+
+                                            * Mean_TI (average TI for a speed bin and direction sector),
+                                            * TI_Count (number of TI values in the speed bin and direction sector),
+                                            * TI_Std (standard deviation of TI in the speed bin and direction sector),
+                                            * Sigma_Sigma (standard deviation of the wind speed standard deviation
+                                              in the speed bin and direction sector, in the units of wspd_std, for the
+                                              same timestamps as the TI values)
+
+        :rtype:                         matplotlib.figure.Figure or tuple(matplotlib.figure.Figure, pandas.DataFrame)
+
+        **Example usage**
+        ::
+            import brightwind as bw
+            data = bw.load_csv(bw.demo_datasets.demo_data)
+
+            # Plot mean TI by speed bin and direction sector using default inputs
+            fig_ti_dist = bw.TI.by_speed_and_sector(data[['Spd80mN']], data[['Spd80mNStd']], data[['Dir78mS']])
+            display(fig_ti_dist)
+
+            # Return the TI distribution table and select the mean TI for each speed bin and direction sector
+            fig_ti_dist, ti_dist = bw.TI.by_speed_and_sector(data.Spd80mN, data.Spd80mNStd, data.Dir78mS,
+                                                             return_data=True)
+            display(ti_dist['Mean_TI'])
+
+            # Give as input speed_bin_array, speed_bin_labels, min_speed and sectors
+            fig_ti_dist, ti_dist = bw.TI.by_speed_and_sector(data.Spd80mN, data.Spd80mNStd, data.Dir78mS,
+                                                             speed_bin_array=[0, 4, 8, 12, 16, 41],
+                                                             speed_bin_labels=['0-4', '4-8', '8-12', '12-16', '16+'],
+                                                             min_speed=4, sectors=8, return_data=True)
+            display(ti_dist)
+
+            # Give as input direction_bin_array and direction_bin_labels
+            fig_ti_dist, ti_dist = bw.TI.by_speed_and_sector(data.Spd80mN, data.Spd80mNStd, data.Dir78mS,
+                                                             direction_bin_array=[0, 90, 180, 270, 360],
+                                                             direction_bin_labels=['north', 'east', 'south', 'west'],
+                                                             return_data=True)
+            display(ti_dist)
+
+        """
+        if speed_bin_labels is not None and not (len(speed_bin_array) - 1) == len(speed_bin_labels):
+            raise ValueError('The length of the input `speed_bin_labels` array must be equal to '
+                             'len(`speed_bin_array`) - 1. Speed bin labels correspond with the central '
+                             'bins of each adjacent element of the input `speed_bin_array`.')
+        if direction_bin_labels is not None:
+            num_sectors = sectors if direction_bin_array is None else len(direction_bin_array) - 1
+            if len(direction_bin_labels) != num_sectors:
+                raise ValueError(f"The length of the input `direction_bin_labels` must be equal to the number of "
+                                 f"direction sectors, {num_sectors}, got: {len(direction_bin_labels)}")
+
+        wspd = _convert_df_to_series(wspd)
+        wspd_std = _convert_df_to_series(wspd_std)
+        wdir = _convert_df_to_series(wdir)
+        _assert_series_index_match(wspd, wspd_std, 'wspd', 'wspd_std')
+        _assert_series_index_match(wspd, wdir, 'wspd', 'wdir')
+        ti = pd.concat([wspd.rename('wspd'), wspd_std.rename('wspd_std'), wdir.rename('wdir')], axis=1,
+                       join='inner').dropna()
+        ti['Turbulence_Intensity'] = TI.calc(ti['wspd'], ti['wspd_std'], min_speed=min_speed)
+        # speed bins are closed on the left and open on the right
+        in_speed_bins = (ti['wspd'] >= min(speed_bin_array)) & (ti['wspd'] < max(speed_bin_array))
+        if ti.loc[in_speed_bins, 'Turbulence_Intensity'].dropna().empty:
+            raise ValueError(f"No TI values to bin: `wspd`, `wspd_std` and `wdir` have no timestamps in common with "
+                             f"a wind speed of at least `min_speed` and within `speed_bin_array`, got min_speed: "
+                             f"{min_speed} and speed_bin_array from {min(speed_bin_array)} to {max(speed_bin_array)}")
+
+        # sigma-sigma uses the wind speed standard deviation of the same timestamps as the TI values
+        wspd_std_of_ti = ti['wspd_std'].where(ti['Turbulence_Intensity'].notna())
+        ti_dist = {}
+        for stat, var_series, aggregation_method in [('Mean_TI', ti['Turbulence_Intensity'], 'mean'),
+                                                     ('TI_Count', ti['Turbulence_Intensity'], 'count'),
+                                                     ('TI_Std', ti['Turbulence_Intensity'], 'std'),
+                                                     ('Sigma_Sigma', wspd_std_of_ti, 'std')]:
+            ti_dist[stat] = _get_dist_matrix_by_dir_sector(
+                var_series=var_series, var_to_bin_series=ti['wspd'], direction_series=ti['wdir'],
+                var_bin_array=speed_bin_array, sectors=sectors, direction_bin_array=direction_bin_array,
+                aggregation_method=aggregation_method)
+            if direction_bin_labels is not None:
+                ti_dist[stat].columns = direction_bin_labels
+        ti_dist['TI_Count'] = ti_dist['TI_Count'].fillna(0).astype('int64')
+
+        ti_dist = pd.concat(ti_dist, axis=1)
+        ti_dist.columns.names = [None, 'Direction Bin']
+        if speed_bin_labels is not None:
+            ti_dist.index = list(speed_bin_labels)
+        else:
+            ti_dist.index = [i.mid for i in ti_dist.index]
+        ti_dist.index.rename('Speed Bin', inplace=True)
+        ti_dist = ti_dist[ti_dist['TI_Count'].sum(axis=1) > 0]
+
+        mean_ti = ti_dist['Mean_TI']
+        graph_ti_dist = bw_plt.plot_dist_matrix(mean_ti, colorbar_label='Mean Turbulence Intensity',
+                                                xticklabels=mean_ti.columns, yticklabels=mean_ti.index)
+
+        if return_data:
+            return graph_ti_dist, ti_dist
+        return graph_ti_dist
 
     @staticmethod
     def twelve_by_24(wspd, wspd_std, return_data=False, var_name_label='Turbulence Intensity'):
