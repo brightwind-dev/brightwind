@@ -1881,6 +1881,10 @@ class TI:
         standard deviation and wind direction of the same timestamp. Timestamps where any of the three is missing are
         excluded.
 
+        Sigma_Sigma follows the sigma-sigma definition of the WindFarmer .wti turbulence file format in the DNV
+        WindFarmer user guide:
+        https://mysoftware.dnv.com/download/public/renewables/windfarmer/manuals/latest/UserGuide/FileFormats/WTI.html
+
         :param wspd:                    Wind speed data series
         :type wspd:                     pandas.Series or pandas.DataFrame
         :param wspd_std:                Wind speed standard deviation data series. Must have the same index as wspd.
@@ -1922,7 +1926,7 @@ class TI:
                                             * TI_Std (standard deviation of TI in the speed bin and direction sector),
                                             * Sigma_Sigma (standard deviation of the wind speed standard deviation
                                               in the speed bin and direction sector, in the units of wspd_std, for the
-                                              same timestamps as the TI values.
+                                              same timestamps as the TI values)
 
         :rtype:                         matplotlib.figure.Figure or tuple(matplotlib.figure.Figure, pandas.DataFrame)
 
