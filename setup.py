@@ -52,7 +52,6 @@ setup(
         'pytest>= 4.1.0',
         'six>= 1.12.0',
         'python-dateutil>=2.8.0',
-        'gmaps>=0.9.0',
         'colormap>=1.0.1',
         'easydev>=0.10.0',
         'jsonschema>=4.17.3',
@@ -63,6 +62,8 @@ setup(
         # pandas picks the installed engine at read time (prefers pyarrow, falls back to fastparquet).
         'parquet': ['pyarrow>=5.0.0'],
         'parquet-fastparquet': ['fastparquet>=0.8.0'],
+        # Optional, deprecated Google Maps backend for plot_meas_station_on_gmap() (see issue #418).
+        'maps': ['gmaps>=0.9.0'],
     },
     classifiers=[
         "Programming Language :: Python :: 3.6",

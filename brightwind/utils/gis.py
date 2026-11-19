@@ -1,7 +1,7 @@
 from brightwind.load.station import MeasurementStation
 from brightwind.utils import utils
-import gmaps
 import math
+import warnings
 
 
 __all__ = ['plot_meas_station_on_gmap',
@@ -13,9 +13,15 @@ def _create_coord_dict(name, latitude, longitude):
     return {'name': name, 'coords': (latitude, longitude)}
 
 
-def plot_meas_station_on_gmap(meas_station, map_type='TERRAIN', zoom_level=9):
+def plot_meas_station_on_gmap(meas_station: MeasurementStation, map_type: str = 'TERRAIN',
+                              zoom_level: int = 9) -> 'gmaps.figure.Figure':
     """
     Visualise on Google Maps the location of the measurement station.
+
+    .. deprecated:: 2.9.0
+        The `gmaps` library is unmaintained and no longer renders with current versions of `ipywidgets`. This function
+        is deprecated and will be removed or replaced in v3.0.0.
+        See https://github.com/brightwind-dev/brightwind/issues/418.
 
     Unfortunately, to use this function you must have a Google Maps API key which should be free. To get one, follow
     the 'Get Started' instructions on the Google Maps Platform or go to the 'Credentials' section:
@@ -30,7 +36,8 @@ def plot_meas_station_on_gmap(meas_station, map_type='TERRAIN', zoom_level=9):
     If Anaconda or your Python environment is running you will need to restart it for the environmental variables to
     take effect.
 
-    Additionally, the function requires the 'gmaps' library installed, instructions to install it are at the link below:
+    Additionally, the function requires the optional 'gmaps' library, which is not installed with the default
+    brightwind installation. Install it with ``pip install brightwind[maps]`` or follow the instructions at:
     https://jupyter-gmaps.readthedocs.io/en/latest/install.html
 
     :param meas_station:    A measurement station object which contains the latitude and longitude of it's location.
@@ -54,6 +61,19 @@ def plot_meas_station_on_gmap(meas_station, map_type='TERRAIN', zoom_level=9):
         bw.plot_meas_station_on_gmap(mm1, map_type='SATELLITE')
 
     """
+    warnings.warn(
+        "plot_meas_station_on_gmap() is deprecated and will be removed or replaced in v3.0.0, as the 'gmaps' "
+        "library is unmaintained and no longer works with current versions of ipywidgets. "
+        "See https://github.com/brightwind-dev/brightwind/issues/418.",
+        FutureWarning,
+        stacklevel=2,
+    )
+    try:
+        import gmaps
+    except ImportError as error:
+        raise ImportError("plot_meas_station_on_gmap() requires the optional 'gmaps' library, which could not be "
+                          "imported. Install it with: pip install brightwind[maps]") from error
+
     gmaps.configure(api_key=utils.get_environment_variable('GMAPS_API_KEY'))
     figure_layout = {
         'width': '900px',
