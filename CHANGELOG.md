@@ -14,13 +14,13 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. 
+1. Make the `gmaps` library an optional dependency, installed with `pip install brightwind[maps]`, and import it only inside `plot_meas_station_on_gmap()` so that `import brightwind` no longer requires it. A clear `ImportError` is raised if the function is called without it (iss #625).
 
 ### Bug Fixes
 1. 
 
 ### Deprecated
-1. 
+1. `plot_meas_station_on_gmap()` is deprecated and will be removed or replaced in v3.0.0, as the `gmaps` library is unmaintained and does not work with current versions of `ipywidgets` (iss #418, iss #625).
 
 ---
 ## [2.8.0]
