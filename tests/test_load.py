@@ -853,3 +853,58 @@ def test_load_brighthub_get_data_invalid_column_filters(kwargs, error, message):
 
     mock_request.assert_not_called()
     mock_get.assert_not_called()
+
+
+def _chained_rules_data_and_rules():
+    """Rule A cleans the wind speed below 0.5 m/s; rule B cleans the direction below 1 m/s, reading that speed."""
+    index = pd.date_range('2016-01-01 00:00', periods=4, freq='10min')
+    data = pd.DataFrame({'Spd80mN': [0.3, 0.8, 5.0, 0.2], 'Dir78mS': [10.0, 20.0, 30.0, 40.0]}, index=index)
+    rule_a = {'rule': {'clean_out': [{'assembled_column_name': 'Spd80mN'}],
+                       'conditions': {'assembled_column_name': 'Spd80mN', 'comparison_operator_id': 1,
+                                      'comparator_value': 0.5}}}
+    rule_b = {'rule': {'clean_out': [{'assembled_column_name': 'Dir78mS'}],
+                       'conditions': {'assembled_column_name': 'Spd80mN', 'comparison_operator_id': 1,
+                                      'comparator_value': 1}}}
+    return data, rule_a, rule_b
+
+
+def test_apply_cleaning_rules_result_does_not_depend_on_rule_order():
+    data, rule_a, rule_b = _chained_rules_data_and_rules()
+    original = data.copy()
+
+    a_then_b = bw.apply_cleaning_rules(data, [rule_a, rule_b])
+    b_then_a = bw.apply_cleaning_rules(data, [rule_b, rule_a])
+
+    # Rule B reads the supplied speed even when rule A, which cleans that speed, comes first.
+    assert a_then_b.equals(b_then_a)
+    assert a_then_b['Spd80mN'].isna().tolist() == [True, False, False, True]
+    assert a_then_b['Dir78mS'].isna().tolist() == [True, True, False, True]
+    assert data.equals(original)
+
+
+def test_apply_cleaning_rules_rule_order_inplace_and_replacement_text():
+    data, rule_a, rule_b = _chained_rules_data_and_rules()
+    returned = bw.apply_cleaning_rules(data, [rule_a, rule_b], inplace=True, replacement_text=-999)
+    assert returned is None
+    assert data['Spd80mN'].tolist() == [-999, 0.8, 5.0, -999]
+    assert data['Dir78mS'].tolist() == [-999, -999, 30.0, -999]
+
+
+def test_apply_cleaning_rules_ne_condition_ignores_values_cleaned_by_another_rule():
+    # A replaced value fails <, > and == but passes !=, so a != condition must not read values another rule cleaned.
+    data, rule_a, _ = _chained_rules_data_and_rules()
+    rule_ne = {'rule': {'clean_out': [{'assembled_column_name': 'Dir78mS'}],
+                        'conditions': {'assembled_column_name': 'Spd80mN', 'comparison_operator_id': 6,
+                                       'comparator_value': 0.3}}}
+    cleaned = bw.apply_cleaning_rules(data, [rule_a, rule_ne])
+    assert cleaned['Dir78mS'].isna().tolist() == [False, True, True, True]
+    assert cleaned.equals(bw.apply_cleaning_rules(data, [rule_ne, rule_a]))
+
+
+def test_apply_cleaning_rules_demo_rules_in_any_order():
+    data = bw.load_csv(bw.demo_datasets.demo_data)
+    rules_file = bw.demo_datasets.demo_cleaning_rules_file
+    with open(rules_file) as file:
+        rules = json.load(file)
+    cleaned = bw.apply_cleaning_rules(data, rules_file)
+    assert cleaned.equals(bw.apply_cleaning_rules(data, list(reversed(rules))))
