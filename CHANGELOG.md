@@ -17,7 +17,7 @@ XX-Xxx-2026
 1. Add `column_names` and `measurement_point_uuids` arguments to `LoadBrightHub.get_data` to download only the selected columns instead of every column of the measurement station. Requests without these arguments are unchanged ([#690](https://github.com/brightwind-dev/brightwind/issues/690))
 
 ### Bug Fixes
-1. 
+1. `apply_cleaning_rules` now evaluates every rule's conditions on the data as supplied, before any rule is applied. Previously each rule saw the data as cleaned by the earlier rules, so when one rule cleaned a column that another rule's condition read, the result depended on the order of the rules, e.g. a rule cleaning the wind speed when availability is below 80 % did nothing if a rule cleaning that availability ran first. The result no longer depends on the order of the rules ([#692](https://github.com/brightwind-dev/brightwind/issues/692))
 
 ### Deprecated
 1. 

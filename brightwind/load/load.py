@@ -2567,6 +2567,12 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     The format of the cleaning rules JSON should validate against the 'cleaning_rule.schema.json' file found
     in the 'load' area of this library.
 
+    Every rule's conditions are evaluated on 'data' as supplied, before any rule is applied, and then every rule is
+    applied. A rule that cleans a column therefore does not change what another rule's conditions read, and the
+    result does not depend on the order of the rules. For example, with rule A cleaning 'Spd80mN' when 'Spd80mN'
+    < 0.5 and rule B cleaning 'Dir78mS' when 'Spd80mN' < 1, a wind speed of 0.3 m/s cleans both 'Spd80mN' and
+    'Dir78mS', whichever rule comes first.
+
     :param data:                        Data to be cleaned.
     :type data:                         pandas.DataFrame
     :param cleaning_rules_file_or_list: File path of the json file or a list dictionary which contains the cleaning
@@ -2709,6 +2715,9 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
     if replacement_text == 'NaN':
         replacement_text = np.nan
 
+    # Build every rule's mask before applying any rule, so each rule's conditions see the supplied data and the
+    # result does not depend on the order of the rules.
+    masks_to_apply = []
     for cleaning_rule in cleaning_json:
         rule = cleaning_rule['rule']
 
@@ -2721,7 +2730,9 @@ def apply_cleaning_rules(data, cleaning_rules_file_or_list, inplace=False, repla
         mask &= _build_date_range_mask(data, rule.get('date_from'), rule.get('date_to'))
         if 'time_range_conditions' in rule:
             mask &= _evaluate_time_range_condition(data, rule['time_range_conditions'])
+        masks_to_apply.append((mask, columns_to_clean))
 
+    for mask, columns_to_clean in masks_to_apply:
         for col in columns_to_clean:
             data.loc[mask, col] = replacement_text
 
