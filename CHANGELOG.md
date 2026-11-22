@@ -14,7 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. 
+1. Add `column_names` and `measurement_point_uuids` arguments to `LoadBrightHub.get_data` to download only the selected columns instead of every column of the measurement station. Requests without these arguments are unchanged ([#690](https://github.com/brightwind-dev/brightwind/issues/690))
 
 ### Bug Fixes
 1. 

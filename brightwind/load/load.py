@@ -4,7 +4,7 @@ from brightwind.utils import utils, gis, brighthub
 from brightwind.load.station import MeasurementStation
 import datetime
 import requests
-from typing import List
+from typing import List, Optional, Union
 import errno
 import os
 import shutil
@@ -1239,24 +1239,51 @@ class LoadBrightHub:
         return date_str
 
     @staticmethod
-    def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None, file_extension='.csv'):
+    def __validate_column_filter(name, values):
         """
-        Sub function to return the Brighthub GET timeseries-data API response.
+        Check a column filter of LoadBrightHub.get_data and return it as a list. A single string is treated as one
+        item, so a column name that contains a comma is not split.
+        """
+        if values is None:
+            return None
+        if isinstance(values, str):
+            values = [values]
+        if not isinstance(values, (list, tuple)) or not all(isinstance(value, str) for value in values):
+            raise TypeError(f"{name} must be a string or a list of strings, got: {values!r}")
+        if len(values) == 0:
+            raise ValueError(f"{name} must contain at least one item, got: {values!r}")
+        return list(values)
+
+    @staticmethod
+    def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None, file_extension='.csv',
+                              column_names=None, measurement_point_uuids=None):
+        """
+        Sub function to return the Brighthub GET timeseries-data API response. The column filters are only added to
+        the query string when given, so a request without them is unchanged.
         """
         date_from = LoadBrightHub.__date_to_datetime_str(date_from)
         date_to = LoadBrightHub.__date_to_datetime_str(date_to)
 
-        return brighthub.request(
-            f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
-            params={"date_from": date_from, "date_to": date_to, "file_extension": file_extension})
+        params = {"date_from": date_from, "date_to": date_to, "file_extension": file_extension}
+        if column_names is not None:
+            params["column_names"] = ",".join(column_names)
+        if measurement_point_uuids is not None:
+            params["measurement_point_uuids"] = ",".join(measurement_point_uuids)
+        return brighthub.request(f"/measurement-locations/{measurement_station_uuid}/timeseries-data", params=params)
 
     @staticmethod
-    def get_data(measurement_station_uuid, date_from=None, date_to=None, file_extension=_FILE_EXTENSION_NOT_SET):
+    def get_data(measurement_station_uuid, date_from=None, date_to=None, file_extension=_FILE_EXTENSION_NOT_SET,
+                 column_names: Optional[Union[str, List[str]]] = None,
+                 measurement_point_uuids: Optional[Union[str, List[str]]] = None) -> pd.DataFrame:
         """
         Get the timeseries data from BrightHub for a particular measurement station.
 
         When using the date filters, the brightwind convention for date ranges is greater than or equal to 'date_from'
         to less than 'date_to'.
+
+        Use column_names or measurement_point_uuids to download only the columns needed instead of every column of
+        the station. The filters are sent in the query string of the request, so a very long list of names or uuids
+        can exceed the maximum length of the query string that the server accepts.
 
         :param measurement_station_uuid: A specific measurement station's uuid.
         :type measurement_station_uuid:  str
@@ -1275,8 +1302,21 @@ class LoadBrightHub:
                                              ``file_extension`` explicitly to silence the DeprecationWarning and lock
                                              in the desired format.
         :type file_extension:            str
+        :param column_names:             Optional. Only return these columns, given by their names in the BrightHub
+                                         timeseries data, e.g. ['Spd_80m', 'Dir_78m']. A single string is treated as
+                                         one column name. Cannot be used together with measurement_point_uuids.
+                                         Default None returns all the columns.
+        :type column_names:              str or list(str) or None
+        :param measurement_point_uuids:  Optional. Only return the columns of these measurement points, given by their
+                                         uuids. A single string is treated as one uuid. Cannot be used together with
+                                         column_names. Default None returns all the columns.
+        :type measurement_point_uuids:   str or list(str) or None
         :return:                         The timeseries data.
         :rtype:                          pd.DataFrame
+        :raises TypeError:               If column_names or measurement_point_uuids is not a string or a list of
+                                         strings.
+        :raises ValueError:              If file_extension is not supported, if column_names or
+                                         measurement_point_uuids is an empty list, or if both are given.
 
         **Example usage**
         ::
@@ -1309,6 +1349,17 @@ class LoadBrightHub:
             data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
                                              file_extension='.parquet')
 
+        To get only some columns, by name
+        ::
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
+                                             file_extension='.csv', column_names=['Spd_80m', 'Dir_78m'])
+
+        To get only the columns of some measurement points, by their uuids
+        ::
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
+                                             file_extension='.csv',
+                                             measurement_point_uuids=['<measurement_point_uuid>'])
+
         """
         if file_extension is _FILE_EXTENSION_NOT_SET:
             warnings.warn(
@@ -1327,7 +1378,16 @@ class LoadBrightHub:
                 f"Unsupported file_extension '{file_extension}'. Expected '.csv' or '.parquet'."
             )
 
-        response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to, file_extension)
+        column_names = LoadBrightHub.__validate_column_filter('column_names', column_names)
+        measurement_point_uuids = LoadBrightHub.__validate_column_filter('measurement_point_uuids',
+                                                                         measurement_point_uuids)
+        if column_names is not None and measurement_point_uuids is not None:
+            raise ValueError("Use either column_names or measurement_point_uuids, not both, got: "
+                             f"column_names={column_names!r}, measurement_point_uuids={measurement_point_uuids!r}")
+        column_filters = {"column_names": column_names, "measurement_point_uuids": measurement_point_uuids}
+
+        response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to, file_extension,
+                                                       **column_filters)
         response_json = response.json()
 
         # Handle 503 Service Unavailable error response using Retry-After header.
@@ -1339,7 +1399,7 @@ class LoadBrightHub:
             for _ in range(4):  # attempt 4 more times
                 time.sleep(retry_after)  # wait before retrying
                 response = LoadBrightHub.__get_timeseries_data(
-                    measurement_station_uuid, date_from, date_to, file_extension
+                    measurement_station_uuid, date_from, date_to, file_extension, **column_filters
                 )
                 response_json = response.json()
                 if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):
