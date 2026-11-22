@@ -784,3 +784,72 @@ def test_load_brighthub_get_data_parquet_missing_engine_raises_importerror():
             patch('brightwind.load.load.pd.read_parquet', side_effect=ImportError("no engine")):
         with pytest.raises(ImportError, match=r"brightwind\[parquet\].*brightwind\[parquet-fastparquet\]"):
             bw.LoadBrightHub.get_data(measurement_station_uuid='uuid-1', file_extension='.parquet')
+
+
+def _mock_brighthub_csv_responses():
+    api_response = MagicMock(status_code=200)
+    api_response.json.return_value = {'url': 'https://example.com/presigned'}
+    csv_response = MagicMock(text='Timestamp,Spd80mN\n2016-06-01 00:00:00,7.1\n')
+    return api_response, csv_response
+
+
+def test_load_brighthub_get_data_without_column_filters_sends_unchanged_get_request():
+    api_response, csv_response = _mock_brighthub_csv_responses()
+    with patch('brightwind.load.load.brighthub.request', return_value=api_response) as mock_request, \
+            patch('brightwind.load.load.requests.get', return_value=csv_response):
+        bw.LoadBrightHub.get_data(measurement_station_uuid='uuid-1', date_from='2016-06-01', file_extension='.csv')
+
+    assert mock_request.call_args.args == ('/measurement-locations/uuid-1/timeseries-data',)
+    assert mock_request.call_args.kwargs == {
+        'params': {'date_from': '2016-06-01 00:00:00', 'date_to': None, 'file_extension': '.csv'}}
+
+
+@pytest.mark.parametrize('filter_name, values, expected', [
+    ('column_names', ['Spd80mN', 'Dir78mS'], 'Spd80mN,Dir78mS'),
+    ('column_names', 'Spd80mN', 'Spd80mN'),
+    ('measurement_point_uuids', ['uuid-a', 'uuid-b'], 'uuid-a,uuid-b'),
+    ('measurement_point_uuids', 'uuid-a', 'uuid-a'),
+])
+def test_load_brighthub_get_data_column_filters_in_query_string(filter_name, values, expected):
+    api_response, csv_response = _mock_brighthub_csv_responses()
+    with patch('brightwind.load.load.brighthub.request', return_value=api_response) as mock_request, \
+            patch('brightwind.load.load.requests.get', return_value=csv_response):
+        bw.LoadBrightHub.get_data(measurement_station_uuid='uuid-1', file_extension='.csv', **{filter_name: values})
+
+    assert mock_request.call_args.args == ('/measurement-locations/uuid-1/timeseries-data',)
+    assert mock_request.call_args.kwargs['params'][filter_name] == expected
+    other_filter = 'measurement_point_uuids' if filter_name == 'column_names' else 'column_names'
+    assert other_filter not in mock_request.call_args.kwargs['params']
+
+
+def test_load_brighthub_get_data_column_filter_reused_on_retry():
+    busy_response = MagicMock(status_code=503, headers={'Retry-After': '0'})
+    busy_response.json.return_value = {
+        'error': 'Service Unavailable', 'details': 'The server is currently busy assembling the timeseries file.'}
+    api_response, csv_response = _mock_brighthub_csv_responses()
+    with patch('brightwind.load.load.brighthub.request', side_effect=[busy_response, api_response]) as mock_request, \
+            patch('brightwind.load.load.requests.get', return_value=csv_response), \
+            patch('brightwind.load.load.time.sleep'):
+        bw.LoadBrightHub.get_data(measurement_station_uuid='uuid-1', file_extension='.csv', column_names=['Spd80mN'])
+
+    assert mock_request.call_count == 2
+    first_call, retry_call = mock_request.call_args_list
+    assert first_call == retry_call
+    assert retry_call.kwargs['params']['column_names'] == 'Spd80mN'
+
+
+@pytest.mark.parametrize('kwargs, error, message', [
+    ({'column_names': ['Spd80mN'], 'measurement_point_uuids': ['uuid-a']}, ValueError, 'not both'),
+    ({'column_names': []}, ValueError, 'column_names must contain at least one item'),
+    ({'measurement_point_uuids': []}, ValueError, 'measurement_point_uuids must contain at least one item'),
+    ({'column_names': ['Spd80mN', 1]}, TypeError, 'column_names must be a string or a list of strings'),
+    ({'measurement_point_uuids': 5}, TypeError, 'measurement_point_uuids must be a string or a list of strings'),
+])
+def test_load_brighthub_get_data_invalid_column_filters(kwargs, error, message):
+    with patch('brightwind.load.load.brighthub.request') as mock_request, \
+            patch('brightwind.load.load.requests.get') as mock_get:
+        with pytest.raises(error, match=message):
+            bw.LoadBrightHub.get_data(measurement_station_uuid='uuid-1', file_extension='.csv', **kwargs)
+
+    mock_request.assert_not_called()
+    mock_get.assert_not_called()
