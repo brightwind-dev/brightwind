@@ -376,7 +376,7 @@ class MeasurementStation:
     Create a Measurement Station object by loading in an IEA Wind Resource Assessment Data Model.
 
     The IEA Wind: Task 43 Work Package 4 WRA Data Model was first released in January 2021. Versions of the
-    Data Model Schema can be found at https://github.com/IEA-Task-43/digital_wra_data_standard
+    Data Model Schema can be found at https://github.com/iea-wind-digitalisation/wra-data-model
 
     The Schema associated with this data model file will be downloaded from GitHub and used to validate and
     parse the data model.
@@ -415,7 +415,7 @@ class MeasurementStation:
         Load a IEA Wind Resource Assessment Data Model.
 
         The IEA Wind: Task 43 Work Package 4 WRA Data Model was first released in January 2021. Versions of the
-        Data Model Schema can be found at https://github.com/IEA-Task-43/digital_wra_data_standard
+        Data Model Schema can be found at https://github.com/iea-wind-digitalisation/wra-data-model
 
         :param wra_data_model: The filepath to an implementation of the WRA Data Model as a .json file or
                                a json formatted string or

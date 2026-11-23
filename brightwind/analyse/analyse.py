@@ -420,19 +420,16 @@ def _mean_of_monthly_means_seasonal_adjusted(var_series):
 
     """
 
-    results = {}
-    number_days_month = {}
-    # derive monthly mean and number of days for each calendar month
-    for month in var_series.index.month.unique():
-        var_series_month = var_series[var_series.index.month == month]
+    # derive monthly mean for each calendar month
+    results = var_series.groupby(var_series.index.month).mean()
 
-        number_days_month.update({month: np.mean(list(pd.DatetimeIndex(
-            var_series_month.index.strftime("%Y-%m").unique()).days_in_month))})
+    # derive number of days for each calendar month as the average across the years in the dataset
+    year_months = pd.Index(var_series.index.year * 100 + var_series.index.month).unique()
+    days_in_year_months = pd.Series(pd.to_datetime(year_months.astype(str), format='%Y%m').days_in_month,
+                                    index=year_months % 100)
+    number_days_month = days_in_year_months.groupby(level=0).mean()
 
-        results.update({month: var_series_month.mean()})
-
-    result = (pd.Series(results) * pd.Series(number_days_month) / sum(
-        number_days_month.values())).sum(skipna=True)
+    result = (results * number_days_month / number_days_month.sum()).sum(skipna=True)
     return result
 
 
@@ -2308,7 +2305,7 @@ def calc_air_density(temperature: Union[float, pd.Series],
         if dew_point_temperature_degC is None:
             raise ValueError("For 'HermanWobus_from_dew_point' calc_method, dew_point_temperature_degC must be"
                              " provided.")
-        # Raise error if dew point temperature is greater than air temperature
+        # Warn if dew point temperature is greater than air temperature
         comparison = dew_point_temperature_degC > temperature
         msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature values."
                "\n This implies that the relative humidity would be greater than 100%.")
@@ -2498,7 +2495,7 @@ def calc_rel_humidity_from_dew_point(dew_point_temperature_degC: Union[float, pd
     _assert_series_index_match(air_temperature_degC, dew_point_temperature_degC,
                                'air_temperature_degC', 'dew_point_temperature_degC')
 
-    # Raise error if dew point temperature is greater than air temperature
+    # Warn if dew point temperature is greater than air temperature
     comparison = dew_point_temperature_degC > air_temperature_degC
     msg = ("Detected dew_point_temperature_degC values which are greater than corresponding air temperature values."
            "\n This will result in a calculated relative humidity value greater than 100%.")
