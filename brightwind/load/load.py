@@ -1239,7 +1239,8 @@ class LoadBrightHub:
         return date_str
 
     @staticmethod
-    def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None, file_extension='.csv'):
+    def __get_timeseries_data(measurement_station_uuid, date_from=None, date_to=None, file_extension='.csv',
+                              date_to_inclusive=False):
         """
         Sub function to return the Brighthub GET timeseries-data API response.
         """
@@ -1248,23 +1249,26 @@ class LoadBrightHub:
 
         return brighthub.request(
             f"/measurement-locations/{measurement_station_uuid}/timeseries-data",
-            params={"date_from": date_from, "date_to": date_to, "file_extension": file_extension})
+            params={"date_from": date_from, "date_to": date_to, "file_extension": file_extension,
+                    "date_to_inclusive": str(bool(date_to_inclusive)).lower()})
 
     @staticmethod
-    def get_data(measurement_station_uuid, date_from=None, date_to=None, file_extension=_FILE_EXTENSION_NOT_SET):
+    def get_data(measurement_station_uuid, date_from=None, date_to=None, file_extension=_FILE_EXTENSION_NOT_SET,
+                 date_to_inclusive=False):
         """
         Get the timeseries data from BrightHub for a particular measurement station.
 
         When using the date filters, the brightwind convention for date ranges is greater than or equal to 'date_from'
-        to less than 'date_to'.
+        to less than 'date_to'. Set 'date_to_inclusive' to True to also include the record at 'date_to'.
 
         :param measurement_station_uuid: A specific measurement station's uuid.
         :type measurement_station_uuid:  str
         :param date_from:                Optional filter to retrieve data from and including this date onwards.
         :type date_from:                 str
-        :param date_to:                  Optional filter to retrieve data up to this date.
+        :param date_to:                  Optional filter to retrieve data up to this date. The record at 'date_to' is
+                                         excluded unless 'date_to_inclusive' is True.
         :type date_to:                   str
-        :param file_extension:           File format to request from BrightHub. One of '.csv' (current default) or
+        :param file_extension:          File format to request from BrightHub. One of '.csv' (current default) or
                                          '.parquet'. Reading '.parquet' requires either ``pyarrow`` or ``fastparquet``
                                          to be installed (``pip install brightwind[parquet]`` for ``pyarrow``, or
                                          ``pip install brightwind[parquet-fastparquet]`` for ``fastparquet``).
@@ -1275,6 +1279,9 @@ class LoadBrightHub:
                                              ``file_extension`` explicitly to silence the DeprecationWarning and lock
                                              in the desired format.
         :type file_extension:            str
+        :param date_to_inclusive:        If True, the record at 'date_to' is included, i.e. data is retrieved up to and
+                                         including 'date_to'. If False, the record at 'date_to' is excluded.
+        :type date_to_inclusive:         bool, default False
         :return:                         The timeseries data.
         :rtype:                          pd.DataFrame
 
@@ -1292,6 +1299,13 @@ class LoadBrightHub:
             data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
                                              date_from='2016-06-01',
                                              date_to='2016-07-01')
+
+        To get data for a specific time period including the last timestamp
+        ::
+            data = bw.LoadBrightHub.get_data(measurement_station_uuid='9344e576-6d5a-45f0-9750-2a7528ebfa14',
+                                             date_from='2016-06-01',
+                                             date_to='2016-06-30 23:50:00',
+                                             date_to_inclusive=True)
 
         To get data from a specific date
         ::
@@ -1327,7 +1341,8 @@ class LoadBrightHub:
                 f"Unsupported file_extension '{file_extension}'. Expected '.csv' or '.parquet'."
             )
 
-        response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to, file_extension)
+        response = LoadBrightHub.__get_timeseries_data(measurement_station_uuid, date_from, date_to, file_extension,
+                                                       date_to_inclusive)
         response_json = response.json()
 
         # Handle 503 Service Unavailable error response using Retry-After header.
@@ -1339,7 +1354,7 @@ class LoadBrightHub:
             for _ in range(4):  # attempt 4 more times
                 time.sleep(retry_after)  # wait before retrying
                 response = LoadBrightHub.__get_timeseries_data(
-                    measurement_station_uuid, date_from, date_to, file_extension
+                    measurement_station_uuid, date_from, date_to, file_extension, date_to_inclusive
                 )
                 response_json = response.json()
                 if response.status_code == 503 and assembly_in_progress_err_msg in response_json.get('details', ''):

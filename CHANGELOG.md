@@ -14,7 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. 
+1. Add a `date_to_inclusive` option to `LoadBrightHub.get_data()` (default `False`). Set it to `True` to include the record at `date_to`. The default keeps the existing behaviour of greater than or equal to `date_from` to less than `date_to`. ([#695](https://github.com/brightwind-dev/brightwind/issues/695))
 
 ### Bug Fixes
 1. 

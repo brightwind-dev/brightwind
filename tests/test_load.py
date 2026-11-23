@@ -764,6 +764,23 @@ def test_load_brighthub_get_data_parquet():
     assert np.allclose(df['Spd80mN'].values, sample['Spd80mN'].values)
 
 
+@pytest.mark.parametrize('kwargs, expected', [({}, 'false'), ({'date_to_inclusive': True}, 'true'),
+                                              ({'date_to_inclusive': False}, 'false')])
+def test_load_brighthub_get_data_date_to_inclusive(kwargs, expected):
+    api_response = MagicMock(status_code=200)
+    api_response.json.return_value = {'url': 'https://example.com/presigned'}
+    csv_response = MagicMock(text='Timestamp,Spd80mN\n2016-06-30 23:50:00,7.1\n')
+
+    with patch('brightwind.load.load.brighthub.request', return_value=api_response) as mock_request, \
+            patch('brightwind.load.load.requests.get', return_value=csv_response):
+        bw.LoadBrightHub.get_data(measurement_station_uuid='uuid-1', date_from='2016-06-01',
+                                  date_to='2016-06-30 23:50:00', file_extension='.csv', **kwargs)
+
+    params = mock_request.call_args.kwargs['params']
+    assert params['date_to_inclusive'] == expected
+    assert params['date_to'] == '2016-06-30 23:50:00'
+
+
 def test_load_brighthub_get_data_invalid_extension():
     with patch('brightwind.load.load.brighthub.request') as mock_request, \
             patch('brightwind.load.load.requests.get') as mock_get:
