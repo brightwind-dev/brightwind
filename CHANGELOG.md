@@ -14,7 +14,7 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. 
+1. Added an `exclude_periods` argument to `Correl.OrdinaryLeastSquares` to exclude averaged data points from the correlation fit. ([#672](https://github.com/brightwind-dev/brightwind/issues/672))
 
 ### Bug Fixes
 1. 

@@ -2,7 +2,9 @@ import numpy as np
 import pandas as pd
 from typing import List
 from brightwind.transform import transform as tf
-from brightwind.analyse.plot import plot_scatter, plot_scatter_by_sector, plot_scatter_wdir
+import matplotlib.pyplot as plt
+from brightwind.analyse.plot import plot_scatter, plot_scatter_by_sector, plot_scatter_wdir, COLOR_PALETTE, \
+    _derive_axes_limits_for_scatter_plot
 from scipy.odr import ODR, RealData, Model
 from scipy.linalg import lstsq
 from brightwind.analyse.analyse import momm, _binned_direction_series
@@ -19,7 +21,12 @@ __all__ = ['']
 class CorrelBase:
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=None, ref_dir=None, target_dir=None,
                  sectors=12, direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean',
-                 forced_intercept_origin=False):
+                 forced_intercept_origin=False, exclude_periods=None):
+
+        exclude_periods = CorrelBase._check_exclude_periods(exclude_periods)
+        if exclude_periods and ref_dir is not None:
+            raise NotImplementedError("Excluding periods from a correlation by direction sector is not "
+                                      "implemented yet.")
 
         self.ref_spd = ref_spd
         self.ref_dir = ref_dir
@@ -44,6 +51,10 @@ class CorrelBase:
         # Average and merge datasets into one df
         self.data = CorrelBase._averager(self, self.ref_spd, target_spd, averaging_prd, coverage_threshold,
                                          self.ref_dir, target_dir, ref_aggregation_method, target_aggregation_method)
+        # Start of the first averaging period before any periods are excluded, used to align the synthesized data
+        self._data_start = self.data.index[0]
+        self.exclude_periods = exclude_periods
+        self.data, self.excluded_data = self._exclude_periods_from_data(self.data, exclude_periods)
         self.num_data_pts = len(self.data)
         self.params = {'status': 'not yet run'}
 
@@ -94,22 +105,111 @@ class CorrelBase:
             raise ValueError("Not enough overlapping data points to perform correlation.")
         return data
 
+    @staticmethod
+    def _check_exclude_periods(exclude_periods):
+        """
+        Check the format of the exclude_periods input and convert its timestamps to pd.Timestamp.
+
+        :param exclude_periods: List of timestamps of averaged data points and/or dictionaries with 'date_from' and
+                                'date_to' keys, or None.
+        :type exclude_periods:  list or None
+        :returns:               List of the timestamps as pd.Timestamp and of the time ranges as dictionaries with
+                                'date_from' and 'date_to' as pd.Timestamp or None. An empty list if exclude_periods
+                                is None.
+        :rtype:                 list
+        """
+        if exclude_periods is None:
+            return []
+        if isinstance(exclude_periods, (str, dict, pd.Timestamp)) or not isinstance(exclude_periods,
+                                                                                    (list, tuple, pd.Index)):
+            raise TypeError("'exclude_periods' must be a list of timestamps and/or dictionaries with 'date_from' and "
+                            "'date_to' keys, received: {}".format(type(exclude_periods).__name__))
+        checked_periods = []
+        for period in exclude_periods:
+            if isinstance(period, dict):
+                unknown_keys = set(period) - {'date_from', 'date_to'}
+                if unknown_keys:
+                    raise ValueError("The time ranges in 'exclude_periods' can only have 'date_from' and 'date_to' "
+                                     "keys, received: {}".format(sorted(unknown_keys)))
+                date_from = None if period.get('date_from') is None else pd.Timestamp(period['date_from'])
+                date_to = None if period.get('date_to') is None else pd.Timestamp(period['date_to'])
+                if date_from is not None and date_to is not None and date_to <= date_from:
+                    raise ValueError("'date_to' must be greater than 'date_from' for the time ranges in "
+                                     "'exclude_periods', received: {}".format(period))
+                checked_periods.append({'date_from': date_from, 'date_to': date_to})
+            else:
+                checked_periods.append(pd.Timestamp(period))
+        return checked_periods
+
+    def _exclude_periods_from_data(self, data, exclude_periods):
+        """
+        Split the averaged data into the data points to use for the correlation and the data points to exclude.
+
+        A timestamp excludes the averaged data point with that timestamp, i.e. the start of its averaging period. A time
+        range excludes every averaged data point whose averaging period overlaps the range, where 'date_from' is
+        included and 'date_to' is not.
+
+        :param data:            Averaged data of the correlation, with the start of each averaging period as index.
+        :type data:             pd.DataFrame
+        :param exclude_periods: Periods to exclude as returned by `_check_exclude_periods`.
+        :type exclude_periods:  list
+        :returns:               The data points to use and the data points excluded.
+        :rtype:                 tuple(pd.DataFrame, pd.DataFrame)
+        """
+        is_excluded = np.zeros(len(data), dtype=bool)
+        timestamps = pd.DatetimeIndex([period for period in exclude_periods if not isinstance(period, dict)])
+        time_ranges = [period for period in exclude_periods if isinstance(period, dict)]
+
+        if len(timestamps) > 0:
+            unmatched_timestamps = timestamps[~timestamps.isin(data.index)]
+            if len(unmatched_timestamps) > 0:
+                raise ValueError("The following timestamps in 'exclude_periods' are not timestamps of the averaged "
+                                 "data points of the correlation: {}. Each timestamp must be the start of an "
+                                 "averaging period, e.g. '2016-06-01' for a '1M' averaging period."
+                                 .format([str(timestamp) for timestamp in unmatched_timestamps]))
+            is_excluded |= data.index.isin(timestamps)
+
+        if time_ranges:
+            period_starts = data.index
+            with warnings.catch_warnings():
+                # Adding a calendar offset, e.g. months, to a DatetimeIndex is not vectorised by pandas
+                warnings.simplefilter('ignore', pd.errors.PerformanceWarning)
+                period_ends = data.index + tf._freq_str_to_dateoffset(self.averaging_prd)
+            for time_range in time_ranges:
+                overlaps = np.ones(len(data), dtype=bool)
+                if time_range['date_from'] is not None:
+                    overlaps &= np.asarray(period_ends > time_range['date_from'])
+                if time_range['date_to'] is not None:
+                    overlaps &= np.asarray(period_starts < time_range['date_to'])
+                if not overlaps.any():
+                    warnings.warn("No averaged data points of the correlation overlap the time range from {} to {} in "
+                                  "'exclude_periods'.".format(time_range['date_from'], time_range['date_to']))
+                is_excluded |= overlaps
+
+        if len(data.index) - is_excluded.sum() <= 1:
+            raise ValueError("Not enough data points remain to perform correlation after excluding 'exclude_periods'.")
+        return data[~is_excluded], data[is_excluded]
+
     def show_params(self):
         """Show the dictionary of parameters"""
         pprint.pprint(self.params)
 
-    def plot(self, figure_size=(10, 10.2), ax=None):
+    def plot(self, figure_size=(10, 10.2), ax=None, show_excluded_points=True):
         """
         Plots scatter plot of reference versus target speed data. If ref_dir is given as input to the correlation then
         the plot is showing scatter subplots for each sector. The regression line and the line of slope 1 passing
-        through the origin are also shown on each plot.
+        through the origin are also shown on each plot. If data points were excluded from the correlation using
+        `exclude_periods`, they are shown as crosses.
 
-        :param figure_size: Figure size in tuple format (width, height)
-        :type figure_size:  tuple
-        :param ax:          Matplotlib ax object for a subplot.
-        :type ax:           matplotlib.axes.Axes
-        :returns:           A matplotlib figure
-        :rtype:             matplotlib.figure.Figure | None
+        :param figure_size:          Figure size in tuple format (width, height)
+        :type figure_size:           tuple
+        :param ax:                   Matplotlib ax object for a subplot.
+        :type ax:                    matplotlib.axes.Axes
+        :param show_excluded_points: Default True, show the data points excluded from the correlation using
+                                     `exclude_periods`, if any. The axes limits include the excluded points.
+        :type show_excluded_points:  bool
+        :returns:                    A matplotlib figure
+        :rtype:                      matplotlib.figure.Figure | None
 
         **Example usage**
         ::
@@ -132,11 +232,34 @@ class CorrelBase:
 
         """
         if self.ref_dir is None:
-            return plot_scatter(self.data[self._ref_spd_col_name],
-                                self.data[self._tar_spd_col_name],
-                                self._predict(self.data[self._ref_spd_col_name]),
-                                x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name,
-                                line_of_slope_1=True, figure_size=figure_size, ax=ax)
+            if not show_excluded_points or self.excluded_data.empty:
+                return plot_scatter(self.data[self._ref_spd_col_name],
+                                    self.data[self._tar_spd_col_name],
+                                    self._predict(self.data[self._ref_spd_col_name]),
+                                    x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name,
+                                    line_of_slope_1=True, figure_size=figure_size, ax=ax)
+
+            # Set the same axes limits for both axes, as plot_scatter does, but including the excluded points
+            all_data = pd.concat([self.data, self.excluded_data])
+            x_min, x_max, y_min, y_max = _derive_axes_limits_for_scatter_plot(all_data[self._ref_spd_col_name],
+                                                                              all_data[self._tar_spd_col_name])
+            axes_limits = (min(x_min, y_min), max(x_max, y_max))
+            return_fig = ax is None
+            if return_fig:
+                fig, ax = plt.subplots(figsize=figure_size)
+            plot_scatter(self.data[self._ref_spd_col_name],
+                         self.data[self._tar_spd_col_name],
+                         self._predict(self.data[self._ref_spd_col_name]),
+                         x_label=self._ref_spd_col_name, y_label=self._tar_spd_col_name,
+                         x_limits=axes_limits, y_limits=axes_limits, line_of_slope_1=True, ax=ax)
+            ax.scatter(self.excluded_data[self._ref_spd_col_name], self.excluded_data[self._tar_spd_col_name],
+                       marker='x', color=COLOR_PALETTE.tertiary, s=max(18, 216 - 0.2 * len(all_data)),
+                       linewidths=2, label='Excluded points (n = {})'.format(len(self.excluded_data)))
+            ax.legend()
+            if return_fig:
+                plt.close()
+                return fig
+            return None
         else:
             """For plotting scatter by sector"""
             return plot_scatter_by_sector(self.data[self._ref_spd_col_name],
@@ -226,17 +349,17 @@ class CorrelBase:
                           '20h', '21h', '22h', '23h', 'D', 'W']
         if any(freq in self.averaging_prd for freq in none_even_freq):
             self.averaging_prd = tf._normalize_freq_string(self.averaging_prd)
-            ref_time_array = pd.date_range(start=self.data.index[0], freq='-' + self.averaging_prd,
+            ref_time_array = pd.date_range(start=self._data_start, freq='-' + self.averaging_prd,
                                            end=self.ref_spd.index[0])
             if ref_time_array.empty:
-                ref_start_date = self.data.index[0]
+                ref_start_date = self._data_start
             else:
                 ref_start_date = ref_time_array[-1]
 
-            tar_time_array = pd.date_range(start=self.data.index[0], freq='-' + self.averaging_prd,
+            tar_time_array = pd.date_range(start=self._data_start, freq='-' + self.averaging_prd,
                                            end=self.target_spd.index[0])
             if tar_time_array.empty:
-                tar_start_date = self.data.index[0]
+                tar_start_date = self._data_start
             else:
                 tar_start_date = tar_time_array[-1]
         else:
@@ -359,6 +482,25 @@ class OrdinaryLeastSquares(CorrelBase):
     :type target_aggregation_method:  str
     :param forced_intercept_origin:   Default False; if set to True will force the regression to pass through [0; 0]
     :type forced_intercept_origin:    boolean
+    :param exclude_periods:           Default None. List of averaged data points and/or time ranges to exclude from
+                                      the correlation, e.g. spurious points seen on the correlation scatter plot.
+
+            - A timestamp, e.g. '2016-06-01', excludes the averaged data point with this timestamp, i.e. the start of
+              its averaging period. It must exactly match the timestamp of an averaged data point, otherwise a
+              ValueError is raised.
+            - A dictionary with 'date_from' and 'date_to' keys, e.g. {'date_from': '2017-01-15T00:00',
+              'date_to': '2017-02-10T00:00'}, excludes every averaged data point whose averaging period overlaps the
+              time range, even if the range only covers part of the averaging period. 'date_from' is included and
+              'date_to' is not, as for `apply_cleaning_rules`. A bound set to None is unbounded on that side. A warning
+              is shown if no averaged data points overlap the range.
+
+                                      The timestamps of '7D', '1W' and multi-month averaged data points depend on the
+                                      start of the data, so they can change if the data period changes. Time ranges
+                                      are more robust for re-running a correlation on updated data. The excluded
+                                      data points are only excluded from the correlation fit; the measured target data
+                                      in these periods are still used by `synthesize()`. Not implemented for a
+                                      correlation by direction sector, i.e. when `ref_dir` is given.
+    :type exclude_periods:            list(str or pd.Timestamp or dict) or None
     :returns:                         An object representing ordinary least squares fit model
 
     **Example usage**
@@ -425,15 +567,28 @@ class OrdinaryLeastSquares(CorrelBase):
         ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'],
                                                  ref_dir=m2_ne['WD50m_deg'], averaging_prd='1h',
                                                  coverage_threshold=0.9, forced_intercept_origin=True)
+
+        # Correlate wind speeds on a monthly basis excluding the June 2016 averaged data point and the averaged data
+        # points overlapping 15 January 2017 to 10 February 2017, i.e. January and February 2017.
+        ols_cor = bw.Correl.OrdinaryLeastSquares(m2_ne['WS50m_m/s'], data['Spd80mN'], averaging_prd='1M',
+                                                 exclude_periods=['2016-06-01', {'date_from': '2017-01-15T00:00',
+                                                                                 'date_to': '2017-02-10T00:00'}])
+        ols_cor.run()
+
+        # To retrieve the excluded data points.
+        ols_cor.excluded_data
+
+        # To plot the scatter plot without showing the excluded data points.
+        ols_cor.plot(show_excluded_points=False)
     """
     def __init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold=0.9, ref_dir=None, sectors=12,
                  direction_bin_array=None, ref_aggregation_method='mean', target_aggregation_method='mean',
-                 forced_intercept_origin=False):
+                 forced_intercept_origin=False, exclude_periods=None):
         CorrelBase.__init__(self, ref_spd, target_spd, averaging_prd, coverage_threshold, ref_dir=ref_dir,
                             sectors=sectors, direction_bin_array=direction_bin_array,
                             ref_aggregation_method=ref_aggregation_method,
                             target_aggregation_method=target_aggregation_method,
-                            forced_intercept_origin=forced_intercept_origin)
+                            forced_intercept_origin=forced_intercept_origin, exclude_periods=exclude_periods)
 
     def __repr__(self):
         return 'Ordinary Least Squares Model ' + str(self.params)
@@ -463,6 +618,7 @@ class OrdinaryLeastSquares(CorrelBase):
                                              forced_intercept_origin=self.forced_intercept_origin)
             
             self.params['num_data_points'] = self.num_data_pts
+            self.params['num_excluded_points'] = len(self.excluded_data)
         elif type(self.ref_dir) is pd.Series:
             self.params = []
             for sector, group in pd.concat([self.data, self._ref_dir_bins],
