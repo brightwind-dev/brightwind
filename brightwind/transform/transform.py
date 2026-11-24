@@ -9,6 +9,7 @@ import pandas as pd
 import brightwind.transform.scale
 from brightwind.utils import utils
 from brightwind.load.station import _Measurements
+from brightwind.load.station import MeasurementStation
 from brightwind.load.station import DATE_INSTEAD_OF_NONE
 from brightwind.utils.utils import validate_coverage_threshold
 
@@ -21,6 +22,8 @@ __all__ = ['average_data_by_period',
            'offset_wind_direction',
            'selective_avg',
            'offset_timestamps',
+           'get_logger_utc_offsets',
+           'convert_timestamps_to_utc',
            'apply_wspd_slope_offset_adj',
            'apply_device_orientation_offset']
 
@@ -1797,7 +1800,7 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
         shifted = original[original < date_from].append(shifted_slice)
         shifted = shifted.append(original[original >= date_to])
         shifted = shifted.drop_duplicates().sort_values()
-        return pd.DatetimeIndex(shifted)
+        return pd.DatetimeIndex(shifted, name=data.name)
 
     elif isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
 
@@ -1821,8 +1824,459 @@ def offset_timestamps(data, offset, date_from=None, date_to=None, overwrite=Fals
                 df_copy = df_copy.drop(intersection_back - _freq_str_to_dateoffset(offset), axis=0)
                 sec_mid = shifted_slice.drop(intersection_front).drop(intersection_back)
                 shifted = (original[(original < date_from)].append(sec_mid)).append(original[(original >= date_to)])
-            df_copy.index = shifted
+            df_copy.index = shifted.rename(data.index.name)
             return df_copy.sort_index()
+
+
+def _date_from_sort_key(period):
+    """Sort key for configuration periods by `date_from`, with no `date_from` sorted first."""
+    date_from = period.get('date_from')
+    return pd.Timestamp.min if date_from is None else pd.to_datetime(date_from)
+
+
+def _format_utc_offset(offset_hrs):
+    """Format an offset from UTC in hours as e.g. 'UTC+01:00', 'UTC-05:00' or 'UTC+05:30'."""
+    sign = '-' if offset_hrs < 0 else '+'
+    hours, minutes = divmod(int(round(abs(offset_hrs) * 60)), 60)
+    return 'UTC{}{:02d}:{:02d}'.format(sign, hours, minutes)
+
+
+def _format_timestamps(timestamps, max_shown=10):
+    """List timestamps as text, showing at most `max_shown` of them."""
+    text = ', '.join(str(timestamp) for timestamp in timestamps[:max_shown])
+    if len(timestamps) > max_shown:
+        text += ' and {} more'.format(len(timestamps) - max_shown)
+    return text
+
+
+def get_logger_utc_offsets(measurement_station, logger_serial_numbers=None):
+    """
+    Get the logger offset from UTC (`offset_from_utc_hrs`) over time from the logger main configs of a measurement
+    station, with the period each offset applies to and the logger it comes from.
+
+    The logger main configs of each logger (identified by `logger_serial_number`) are sorted by `date_from` (a
+    config with no `date_from` is treated as the earliest). Within each logger, a config's `date_to` that differs
+    from the next config's `date_from` (e.g. a `date_to` given as the last timestamp of the config, i.e.
+    inclusive) is set to the next config's `date_from`, so the returned `date_to` is exclusive.
+
+    If more than one logger has configs covering the same period, e.g. concurrent loggers or a replaced logger
+    whose configs overlap with the new logger's, the offset of the logger with the highest priority is used for
+    that period. A lower priority logger is used for the periods the higher priority loggers do not cover. The
+    priority is the order of `logger_serial_numbers`. If `logger_serial_numbers` is not given, all the loggers are
+    used, ordered by the total time their configs cover (longest first), then by their earliest `date_from`, and a
+    warning is raised for any period where loggers with different offsets from UTC overlap.
+
+    Consecutive periods of the same logger and offset are merged. Configs with no offset on record are returned
+    with an offset of `None`, so that periods with an unknown offset are not merged into the periods either side
+    of them. Periods not covered by any logger are not returned.
+
+    :param measurement_station:     A simplified object to represent the IEA Wind Task 43 WRA Data Model.
+    :type measurement_station:      bw.MeasurementStation
+    :param logger_serial_numbers:   (Optional) The serial numbers of the loggers to use, highest priority first.
+                                    Only these loggers are used. Default is all the loggers of the station.
+    :type logger_serial_numbers:    list[str]
+    :return:                        One dict per period, sorted earliest to latest, with keys
+                                    'logger_serial_number', 'date_from', 'date_to' (either date can be `None`, i.e.
+                                    open ended; `date_to` is exclusive except for the last config of a logger, which
+                                    is as given in the data model) and 'offset_from_utc_hrs' (a float, or `None` if
+                                    no offset is on record).
+    :rtype:                         list[dict]
+    :raises TypeError:              If `measurement_station` is not a `bw.MeasurementStation`.
+    :raises ValueError:             If a serial number in `logger_serial_numbers` is not one of the station's
+                                    loggers.
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        measurement_station = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
+        bw.get_logger_utc_offsets(measurement_station)
+
+        # Use only the logger with serial number '1234567'
+        bw.get_logger_utc_offsets(measurement_station, logger_serial_numbers=['1234567'])
+
+    """
+    if not isinstance(measurement_station, MeasurementStation):
+        raise TypeError("'measurement_station' must be a bw.MeasurementStation, not {}."
+                        .format(type(measurement_station).__name__))
+
+    logger_main_configs = measurement_station.logger_main_configs.properties
+    if isinstance(logger_main_configs, dict):
+        logger_main_configs = [logger_main_configs]
+
+    loggers = {}
+    for logger_main_config in logger_main_configs or []:
+        offset_from_utc_hrs = logger_main_config.get('offset_from_utc_hrs')
+        config = {'date_from': logger_main_config.get('date_from'), 'date_to': logger_main_config.get('date_to'),
+                  'offset_from_utc_hrs': None if offset_from_utc_hrs is None else float(offset_from_utc_hrs)}
+        configs = loggers.setdefault(logger_main_config.get('logger_serial_number'), [])
+        # A logger main config can be repeated, e.g. once for each lidar config
+        if config not in configs:
+            configs.append(config)
+
+    if logger_serial_numbers is not None:
+        if isinstance(logger_serial_numbers, str):
+            logger_serial_numbers = [logger_serial_numbers]
+        unknown = [serial_number for serial_number in logger_serial_numbers if serial_number not in loggers]
+        if unknown:
+            raise ValueError("Logger serial number(s) {} not found in the logger main configs. The loggers of the "
+                             "measurement station are: {}.".format(unknown, list(loggers)))
+        priority = list(logger_serial_numbers)
+    else:
+        priority = None
+
+    # Make each logger's configs end where its next config starts, so date_to is exclusive
+    for serial_number, configs in loggers.items():
+        configs.sort(key=_date_from_sort_key)
+        for i, config in enumerate(configs):
+            next_config = configs[i + 1] if i < len(configs) - 1 else None
+            config['date_to'] = _resolve_period_date_to(config['date_to'], pd.Timestamp.max, next_config)
+        loggers[serial_number] = [config for config in configs
+                                  if config['date_to'] is None or config['date_from'] is None
+                                  or pd.to_datetime(config['date_to']) > pd.to_datetime(config['date_from'])]
+
+    if priority is None:
+        priority = _logger_priority_by_coverage(loggers)
+    return _logger_utc_offset_timeline(loggers, priority, warn_overlaps=logger_serial_numbers is None)
+
+
+def _logger_priority_by_coverage(loggers):
+    """
+    Order the loggers by the total time their configs cover (longest first), then by their earliest `date_from`.
+    An open ended config is taken to run from the earliest, or to the latest, date of all the configs.
+
+    :param loggers: The configs of each logger, by serial number, each a dict with 'date_from', 'date_to' and
+                    'offset_from_utc_hrs'.
+    :type loggers:  dict
+    :return:        The serial numbers, highest priority first.
+    :rtype:         list
+    """
+    dates = [pd.to_datetime(config[key]) for configs in loggers.values() for config in configs
+             for key in ('date_from', 'date_to') if config[key] is not None]
+    earliest = min(dates) if dates else pd.Timestamp(0)
+    latest = max(dates) if dates else pd.Timestamp(0)
+
+    def sort_key(serial_number):
+        configs = loggers[serial_number]
+        starts = [earliest if config['date_from'] is None else pd.to_datetime(config['date_from'])
+                  for config in configs]
+        ends = [latest if config['date_to'] is None else pd.to_datetime(config['date_to']) for config in configs]
+        covered = sum((max(end - start, pd.Timedelta(0)) for start, end in zip(starts, ends)), pd.Timedelta(0))
+        return -covered, min(starts), str(serial_number)
+
+    return sorted(loggers, key=sort_key)
+
+
+def _logger_utc_offset_timeline(loggers, priority, warn_overlaps):
+    """
+    Combine the configs of several loggers into one timeline of offsets from UTC. The timeline is cut wherever a
+    config starts or ends, and each piece takes the offset of the first logger in `priority` with a config covering
+    it. Consecutive pieces of the same logger and offset are merged, and pieces no logger covers are dropped.
+
+    :param loggers:         The configs of each logger, by serial number, each a dict with 'date_from', 'date_to'
+                            (exclusive) and 'offset_from_utc_hrs'.
+    :type loggers:          dict
+    :param priority:        The serial numbers of the loggers to use, highest priority first.
+    :type priority:         list
+    :param warn_overlaps:   If True, warn about pieces where loggers with different offsets from UTC overlap.
+    :type warn_overlaps:    bool
+    :return:                The timeline, see `get_logger_utc_offsets()`.
+    :rtype:                 list[dict]
+    """
+    candidates = [
+        {'rank': rank, 'logger_serial_number': serial_number,
+         'start': pd.Timestamp.min if config['date_from'] is None else pd.to_datetime(config['date_from']),
+         'end': pd.Timestamp.max if config['date_to'] is None else pd.to_datetime(config['date_to']),
+         'offset_from_utc_hrs': config['offset_from_utc_hrs']}
+        for rank, serial_number in enumerate(priority) for config in loggers[serial_number]]
+    cuts = sorted({moment for candidate in candidates for moment in (candidate['start'], candidate['end'])})
+
+    timeline, overlaps = [], []
+    for start, end in zip(cuts, cuts[1:]):
+        covering = [candidate for candidate in candidates if candidate['start'] <= start and candidate['end'] >= end]
+        if not covering:
+            continue
+        active = min(covering, key=lambda candidate: (candidate['rank'], -candidate['start'].value))
+        if len({candidate['offset_from_utc_hrs'] for candidate in covering}) > 1:
+            overlaps.append((start, end, active, covering))
+        key = (active['logger_serial_number'], active['offset_from_utc_hrs'])
+        if timeline and timeline[-1]['_end'] == start and timeline[-1]['_key'] == key:
+            timeline[-1]['_end'] = end
+        else:
+            timeline.append({'_key': key, '_start': start, '_end': end})
+
+    if warn_overlaps and overlaps:
+        details = []
+        for start, end, active, covering in overlaps[:5]:
+            details.append('from {} to {} (exclusive): {}; logger {} used'.format(
+                'the start' if start == pd.Timestamp.min else start,
+                'the end' if end == pd.Timestamp.max else end,
+                ', '.join('logger {} at {}'.format(
+                    candidate['logger_serial_number'],
+                    'an unknown offset' if candidate['offset_from_utc_hrs'] is None
+                    else _format_utc_offset(candidate['offset_from_utc_hrs'])) for candidate in covering),
+                active['logger_serial_number']))
+        warnings.warn('Loggers with different offsets from UTC have logger main configs covering the same period. '
+                      'The logger with the longest coverage is used. Set `logger_serial_numbers` to choose the '
+                      'loggers and their priority. {}{}.'.format('; '.join(details),
+                                                                 ' and {} more'.format(len(overlaps) - 5)
+                                                                 if len(overlaps) > 5 else ''))
+
+    date_format = '%Y-%m-%dT%H:%M:%S'
+    return [{'logger_serial_number': piece['_key'][0],
+             'date_from': None if piece['_start'] == pd.Timestamp.min else piece['_start'].strftime(date_format),
+             'date_to': None if piece['_end'] == pd.Timestamp.max else piece['_end'].strftime(date_format),
+             'offset_from_utc_hrs': piece['_key'][1]}
+            for piece in timeline]
+
+
+def _get_utc_offset_periods(utc_offsets, logger_serial_numbers=None):
+    """
+    Return the periods of logger offset from UTC given to `convert_timestamps_to_utc()`, validated and sorted by
+    `date_from`.
+    """
+    if isinstance(utc_offsets, MeasurementStation):
+        utc_offsets = get_logger_utc_offsets(utc_offsets, logger_serial_numbers=logger_serial_numbers)
+    elif logger_serial_numbers is not None:
+        raise TypeError("'logger_serial_numbers' can only be used when 'utc_offsets' is a bw.MeasurementStation.")
+    elif isinstance(utc_offsets, dict):
+        utc_offsets = [utc_offsets]
+    if not isinstance(utc_offsets, list) or not all(isinstance(period, dict) for period in utc_offsets):
+        raise TypeError("'utc_offsets' must be a bw.MeasurementStation or a list of dicts with keys 'date_from', "
+                        "'date_to' and 'offset_from_utc_hrs'.")
+
+    periods = []
+    for period in utc_offsets:
+        if 'offset_from_utc_hrs' not in period:
+            raise ValueError("Each period in 'utc_offsets' must have an 'offset_from_utc_hrs' key: {}."
+                             .format(period))
+        offset_from_utc_hrs = period['offset_from_utc_hrs']
+        if offset_from_utc_hrs is not None:
+            if isinstance(offset_from_utc_hrs, bool) or not isinstance(offset_from_utc_hrs, (int, float, np.number)):
+                raise TypeError("'offset_from_utc_hrs' must be a number of hours or None, not {}."
+                                .format(repr(offset_from_utc_hrs)))
+            offset_from_utc_hrs = float(offset_from_utc_hrs)
+            if abs(offset_from_utc_hrs) > 14:
+                raise ValueError("An offset from UTC of {:+g} hours is outside the valid range of -14 to +14 hours."
+                                 .format(offset_from_utc_hrs))
+        periods.append({'logger_serial_number': period.get('logger_serial_number'),
+                        'date_from': period.get('date_from'), 'date_to': period.get('date_to'),
+                        'offset_from_utc_hrs': offset_from_utc_hrs})
+    return sorted(periods, key=_date_from_sort_key)
+
+
+def convert_timestamps_to_utc(data, utc_offsets, logger_serial_numbers=None, inplace=False):
+    """
+    Convert the timestamps of logger data from logger time to UTC, using the logger offset from UTC of each period,
+    e.g. `offset_from_utc_hrs` in the logger main configs of a measurement station.
+
+    If the measurement station has more than one logger with configs covering the same period, the offset of the
+    logger with the highest priority is used, see `get_logger_utc_offsets()`. Use `logger_serial_numbers` to choose
+    the loggers and their priority.
+
+    The timestamps of each period are shifted by minus that period's offset, e.g. data logged at UTC+01:00 are
+    shifted by -1 hour and data logged at UTC-05:00 are shifted by +5 hours. The shift of each timestamp is worked
+    out from the original timestamps before any are moved, so data shifted out of one period are never shifted
+    again by the next period.
+
+    Each change of logger time must be given as a separate period, including any change between summer time and
+    winter time if the logger clock followed local summer time. Data logged during a change of logger time that is
+    not given as a period will be converted incorrectly, and this can't be detected by this function.
+
+    Periods are treated as [date_from, date_to), i.e. `date_from` inclusive and `date_to` exclusive. A `date_to`
+    given as the last timestamp of the period (inclusive) is also accepted: if a period's `date_to` differs from
+    the next period's `date_from`, the period is taken to end where the next one starts, so any gap between the two
+    periods is converted with the earlier period's offset. If the last period's `date_to` is at or after the last
+    timestamp of the data, the period runs to the end of the data. This is the same as for
+    `apply_wind_vane_deadband_offset()` and `apply_device_orientation_offset()`.
+
+    Where the offset from UTC changes between periods, the converted timestamps either side of the change are
+    checked and one of the following is reported:
+
+    - A gap, e.g. where the logger clock was moved back by an hour (end of summer time) and the logger overwrote
+      the repeated hour, so that hour of data is missing.
+    - An overlap, where converted timestamps from the earlier period run past the start of the later period. Any
+      duplicate timestamps this creates are removed, keeping the data from the earlier period.
+    - Continuous timestamps, e.g. where the logger clock was moved forward by an hour (start of summer time) and
+      the hour skipped in logger time is closed by the conversion.
+
+    Timestamps not covered by any period, or in a period with no offset on record, are left unchanged and a warning
+    is raised.
+
+    To then convert the data from UTC to local standard time (i.e. without summer time), shift the full record by
+    the local offset from UTC with `offset_timestamps()`, e.g. `bw.offset_timestamps(data_utc, offset='1h')`.
+
+    **Note:** When using `inplace=True`, be careful not to apply this function more than once to the same data, as
+    the timestamps will be shifted again.
+
+    :param data:            Timeseries data with timestamps in logger time.
+    :type data:             pd.DataFrame or pd.Series
+    :param utc_offsets:     The logger offset from UTC over time, either a measurement station whose logger main
+                            configs hold the offset (`offset_from_utc_hrs`), or a list of dicts with keys
+                            'date_from', 'date_to' and 'offset_from_utc_hrs' (a number of hours, e.g. 1, -5 or 5.5,
+                            or `None` if not known), as returned by `get_logger_utc_offsets()`. `None` dates are
+                            open ended.
+    :type utc_offsets:      bw.MeasurementStation or list[dict]
+    :param logger_serial_numbers: (Optional) Only when `utc_offsets` is a measurement station. The serial numbers
+                            of the loggers to use, highest priority first. Only these loggers are used. Default is
+                            all the loggers of the station, ordered as described in `get_logger_utc_offsets()`.
+    :type logger_serial_numbers: list[str]
+    :param inplace:         If True, the timestamps of `data` are converted in place. If False, `data` is not
+                            changed and a new object with converted timestamps is returned. To store this, please
+                            ensure it is assigned to a new variable. Default is False.
+    :type inplace:          bool
+    :return:                Data with timestamps in UTC.
+    :rtype:                 pd.DataFrame or pd.Series
+    :raises TypeError:      If `data` is not a pd.DataFrame or pd.Series with a timezone naive pd.DatetimeIndex,
+                            `utc_offsets` is not in one of the formats above, or `logger_serial_numbers` is given
+                            without a measurement station.
+    :raises ValueError:     If `data` has duplicate timestamps, as these can't be assigned to a period (e.g. an hour
+                            recorded twice when the logger clock was moved back; resolve them before converting),
+                            an offset is missing or outside -14 to +14 hours, or a logger serial number is not one of
+                            the station's loggers.
+
+    **Example usage**
+    ::
+        import brightwind as bw
+
+        data = bw.load_csv(bw.demo_datasets.demo_data)
+
+        # Logger clock on UTC+01:00 until the end of summer time at 2016-10-30 02:00 logger time, then on UTC+00:00
+        utc_offsets = [{'date_from': None, 'date_to': '2016-10-30T02:00:00', 'offset_from_utc_hrs': 1},
+                       {'date_from': '2016-10-30T02:00:00', 'date_to': None, 'offset_from_utc_hrs': 0}]
+
+        # Convert timestamps to UTC, and assign to a new variable
+        data_utc = bw.convert_timestamps_to_utc(data, utc_offsets)
+
+        # Convert timestamps from UTC to local standard time UTC+01:00 for the full record
+        data_local = bw.offset_timestamps(data_utc, offset='1h')
+
+        # Use the logger offsets from UTC in the logger main configs of a measurement station (the demo station
+        # has no offset on record, so a warning is raised and the timestamps are left unchanged)
+        measurement_station = bw.MeasurementStation(bw.demo_datasets.demo_wra_data_model)
+        data_utc = bw.convert_timestamps_to_utc(data, measurement_station)
+
+        # Use only the logger with serial number '1234567' (in order of priority if more than one is given)
+        data_utc = bw.convert_timestamps_to_utc(data, measurement_station, logger_serial_numbers=['1234567'])
+
+        # Convert timestamps to UTC, applying in place
+        bw.convert_timestamps_to_utc(data, utc_offsets, inplace=True)
+
+    """
+    if not isinstance(data, (pd.Series, pd.DataFrame)) or not isinstance(data.index, pd.DatetimeIndex):
+        raise TypeError("'data' must be a pd.DataFrame or pd.Series with a pd.DatetimeIndex.")
+    if data.index.tz is not None:
+        raise TypeError("'data' already has timezone aware timestamps ({}). Use pandas tz_convert('UTC') instead."
+                        .format(data.index.tz))
+    if data.index.has_duplicates:
+        duplicates = data.index[data.index.duplicated()].unique()
+        raise ValueError(
+            "'data' has {} duplicate timestamp(s), which can't be assigned to a period: {}. This can happen when the "
+            "logger clock was moved back (e.g. at the end of summer time) and the repeated hour was recorded twice. "
+            "Resolve the duplicate timestamps before converting to UTC.".format(len(duplicates),
+                                                                                 _format_timestamps(duplicates)))
+    periods = _get_utc_offset_periods(utc_offsets, logger_serial_numbers)
+
+    data = data if inplace else data.copy(deep=True)
+    if data.empty:
+        return data
+    data.sort_index(inplace=True)
+    timestamps = data.index
+    shift_hrs = np.full(len(timestamps), np.nan)
+
+    periods_with_data = []
+    for i, period in enumerate(periods):
+        date_from = period['date_from']
+        next_period = periods[i + 1] if i < len(periods) - 1 else None
+        date_to = _resolve_period_date_to(period['date_to'], timestamps[-1], next_period)
+
+        in_period = np.isnan(shift_hrs)
+        if date_from is not None:
+            in_period &= np.asarray(timestamps >= pd.to_datetime(date_from))
+        if date_to is not None:
+            in_period &= np.asarray(timestamps < pd.to_datetime(date_to))
+        if not in_period.any():
+            continue
+
+        period_txt = 'from {} to {}'.format(date_from or 'the start of the data',
+                                            '{} (exclusive)'.format(date_to) if date_to else 'the end of the data')
+        if period['logger_serial_number'] is not None:
+            period_txt += ' (logger {})'.format(period['logger_serial_number'])
+        offset_from_utc_hrs = period['offset_from_utc_hrs']
+        if offset_from_utc_hrs is None:
+            shift_hrs[in_period] = 0
+            warnings.warn('No logger offset from UTC is on record {}. The {} timestamp(s) in this period are left '
+                          'unchanged.'.format(period_txt, in_period.sum()))
+            continue
+
+        shift_hrs[in_period] = -offset_from_utc_hrs
+        periods_with_data.append((offset_from_utc_hrs, in_period))
+        if offset_from_utc_hrs == 0:
+            print('Timestamps {} are already in UTC (logger time is UTC+00:00). No change made.'.format(period_txt))
+        else:
+            print('Timestamps {} converted from logger time ({}) to UTC by shifting them by {} hours.'
+                  .format(period_txt, utils.bold(_format_utc_offset(offset_from_utc_hrs)),
+                          utils.bold('{:+g}'.format(-offset_from_utc_hrs))))
+
+    not_covered = np.isnan(shift_hrs)
+    if not_covered.any():
+        shift_hrs[not_covered] = 0
+        warnings.warn('{} timestamp(s) are not covered by any period with a logger offset from UTC and are left '
+                      'unchanged: {}.'.format(not_covered.sum(), _format_timestamps(timestamps[not_covered])))
+
+    converted = (timestamps + pd.to_timedelta(np.round(shift_hrs * 60), unit='min')).rename(timestamps.name)
+    _report_utc_offset_changes(timestamps, converted, periods_with_data)
+
+    duplicated = converted.duplicated(keep='first')
+    if duplicated.any():
+        warnings.warn('{} duplicate timestamp(s) were created by the conversion to UTC and have been removed, keeping '
+                      'the data from the earlier period: {}.'.format(duplicated.sum(),
+                                                                     _format_timestamps(converted[duplicated])))
+        data.drop(index=timestamps[duplicated], inplace=True)
+        converted = converted[~duplicated]
+
+    data.index = converted
+    data.sort_index(inplace=True)
+    return data
+
+
+def _report_utc_offset_changes(timestamps, converted, periods_with_data):
+    """
+    Report any gap or overlap in the converted timestamps where the logger offset from UTC changes between
+    consecutive periods. See `convert_timestamps_to_utc()`.
+
+    :param timestamps:          The original timestamps, in logger time.
+    :type timestamps:           pd.DatetimeIndex
+    :param converted:           The converted timestamps, in UTC, in the same order as `timestamps`.
+    :type converted:            pd.DatetimeIndex
+    :param periods_with_data:   The offset from UTC and the mask of the timestamps of each period with data and an
+                                offset on record, in time order.
+    :type periods_with_data:    list[tuple[float, np.ndarray]]
+    """
+    data_resolution = timestamps.to_series().diff().median() if len(timestamps) > 1 else pd.Timedelta(0)
+    for (offset_before, in_period_before), (offset_after, in_period_after) in zip(periods_with_data,
+                                                                                  periods_with_data[1:]):
+        if offset_before == offset_after:
+            continue
+        last_before = converted[in_period_before].max()
+        first_after = converted[in_period_after].min()
+        change_txt = 'where the logger offset from UTC changes from {} to {}'.format(
+            _format_utc_offset(offset_before), _format_utc_offset(offset_after))
+        if first_after <= last_before:
+            warnings.warn(
+                'The converted timestamps overlap from {} to {} (inclusive, UTC) {}, as the converted timestamps of '
+                'the earlier period run past the start of the later period. Check the dates of this change of logger '
+                'time.'.format(first_after, last_before, change_txt))
+        elif first_after - last_before > data_resolution:
+            gap_from = last_before + data_resolution
+            warnings.warn(
+                'There is a gap of {:g} hours in the converted timestamps from {} to {} (exclusive, UTC) {}. If the '
+                'logger clock was moved back at this point (e.g. at the end of summer time), the logger may have '
+                'overwritten the repeated data, or there may be a gap in the logger data.'
+                .format((first_after - gap_from) / pd.Timedelta(hours=1), gap_from, first_after, change_txt))
+        else:
+            print('The converted timestamps are continuous at {} (UTC) {}.'.format(utils.bold(str(first_after)),
+                                                                                  change_txt))
 
 
 def apply_device_orientation_offset(
@@ -1972,20 +2426,11 @@ def apply_device_orientation_offset(
                     meas_station_data_model_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') if
                                                     meas_station_data_model_from is None or meas_station_data_model_from ==
                                                     DATE_INSTEAD_OF_NONE else meas_station_data_model_from)
-                    meas_station_data_model_to = device_properties.get('date_to')
-                    # If the last logger properties date to has been explicitly set as the last timestamp of the
-                    # dataset, set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
-                    if meas_station_data_model_to is not None:
-                        if pd.to_datetime(meas_station_data_model_to) >= df.index[-1]:
-                            meas_station_data_model_to = None
-                    # If [date_from, date_to) convention has not been used, we force this convention by setting
-                    # meas_station_data_model_to to the next_meas_station_data_model_from of the next
-                    # measurement_station property.
-                    if j < len(measurement_station_items) - 1:
-                        next_meas_station_data_model_from = measurement_station[j+1].get('date_from')
-                        if next_meas_station_data_model_from != meas_station_data_model_to:
-                            meas_station_data_model_to = next_meas_station_data_model_from
-                    
+                    next_device_properties = (measurement_station_items[j + 1]
+                                              if j < len(measurement_station_items) - 1 else None)
+                    meas_station_data_model_to = _resolve_period_date_to(
+                        device_properties.get('date_to'), df.index[-1], next_device_properties)
+
                     if date_to is None or date_to == DATE_INSTEAD_OF_NONE:
                         date_to_tmp = meas_station_data_model_to
                     else:
@@ -2070,27 +2515,53 @@ def _resolve_period_boundaries(df, wdirs_properties, current_index, name):
                                 the period extends to the end of the dataset. 
     :rtype:                     Tuple[str, str]
     """
-    date_to = wdirs_properties[current_index].get('date_to')
-
-    # If the last logger properties date to has been explicitly set as the last timestamp of the dataset, 
-    # set it to None. This avoids missing this timestamp due to [date_from, date_to) logic
-    if date_to is not None:
-        if pd.to_datetime(date_to) >= df.index[-1]:
-            date_to = None
-
-    # If [date_from, date_to) convention has not been used, we force this convention by setting 
-    # date_to to the date_from of the next logger property
+    next_period = None
     if current_index < len(wdirs_properties) - 1:
-        if wdirs_properties[current_index+1].get('name') == name:
-            next_date_from = wdirs_properties[current_index + 1].get('date_from')
-            if next_date_from != date_to:
-                date_to = next_date_from
+        if wdirs_properties[current_index + 1].get('name') == name:
+            next_period = wdirs_properties[current_index + 1]
+    date_to = _resolve_period_date_to(wdirs_properties[current_index].get('date_to'), df.index[-1], next_period)
 
     date_from = wdirs_properties[current_index].get('date_from')
-    date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S') 
+    date_from = (df.index[0].strftime('%Y-%m-%dT%H:%M:%S')
                     if date_from is None or date_from == DATE_INSTEAD_OF_NONE else date_from)
-    
-    return date_from, date_to  
+
+    return date_from, date_to
+
+
+def _resolve_period_date_to(date_to, last_timestamp, next_period=None):
+    """
+    Return the end of a configuration period to use with the [date_from, date_to) convention, i.e. `date_to`
+    exclusive, accepting a `date_to` that was given either as exclusive (equal to the next period's `date_from`) or
+    as inclusive (the last timestamp of the period). This ensures a timestamp is never in two periods, and the last
+    timestamp of a period is not missed.
+
+    - If `date_to` is at or after the last timestamp of the data, `None` is returned (the period runs to the end of
+      the data), so the last timestamp is not missed.
+    - If there is a next period and its `date_from` differs from `date_to`, the next period's `date_from` is
+      returned, so that the period ends exactly where the next one starts. Note that any gap between the two
+      periods is therefore included in this period.
+
+    :param date_to:         The `date_to` of the period, as given in the data model. `None` if open ended.
+    :type date_to:          str or None
+    :param last_timestamp:  The last timestamp of the data.
+    :type last_timestamp:   pd.Timestamp
+    :param next_period:     The next period of the same item, sorted by `date_from`, or `None` if this is the last
+                            period.
+    :type next_period:      dict or None
+    :return:                The exclusive end of the period, or `None` if the period runs to the end of the data.
+    :rtype:                 str or None
+    """
+    # If date_to has been explicitly set as the last timestamp of the data (or later), set it to None. This avoids
+    # missing the last timestamp due to the [date_from, date_to) logic
+    if date_to is not None and pd.to_datetime(date_to) >= last_timestamp:
+        date_to = None
+
+    # If the [date_from, date_to) convention has not been used, force it by setting date_to to the date_from of the
+    # next period
+    if next_period is not None and next_period.get('date_from') != date_to:
+        date_to = next_period.get('date_from')
+
+    return date_to
 
 
 def _check_vertical_profiler_properties_overlap(measurement_station, df):

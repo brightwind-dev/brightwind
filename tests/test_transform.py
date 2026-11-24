@@ -7,6 +7,7 @@ import copy
 import io
 import sys
 import re
+import json
 import warnings
 
 from brightwind.transform.transform import (
@@ -1206,3 +1207,227 @@ def test_scale_wind_speed():
     df = pd.DataFrame({'Spd_100m': [0.5, 1.2], 'Spd_101m': [3, 4], 'c': ['a', 'b']})
     result_df = pd.DataFrame({'Spd_100m': [1.0, 2.4], 'Spd_101m': [6, 8], 'c': ['a', 'b']})
     assert result_df.equals(bw.scale_wind_speed(df, 2))
+
+
+def test_offset_timestamps_keeps_index_name():
+    data = DATA_CLND[['Spd80mN']].head(10)
+    assert bw.offset_timestamps(data, offset='1h').index.name == data.index.name
+    assert bw.offset_timestamps(data['Spd80mN'], offset='-1h', overwrite=True).index.name == data.index.name
+    assert bw.offset_timestamps(data.index, offset='1h').name == data.index.name
+
+
+def test_resolve_period_date_to():
+    from brightwind.transform.transform import _resolve_period_date_to
+    last_timestamp = pd.Timestamp('2024-01-01 12:00')
+    # exclusive date_to, equal to the next date_from, is kept
+    assert _resolve_period_date_to('2024-01-01T06:00:00', last_timestamp,
+                                   {'date_from': '2024-01-01T06:00:00'}) == '2024-01-01T06:00:00'
+    # inclusive date_to (last timestamp of the period) ends where the next period starts
+    assert _resolve_period_date_to('2024-01-01T05:50:00', last_timestamp,
+                                   {'date_from': '2024-01-01T06:00:00'}) == '2024-01-01T06:00:00'
+    # date_to at or after the last timestamp of the data runs to the end of the data
+    assert _resolve_period_date_to('2024-01-01T12:00:00', last_timestamp) is None
+    assert _resolve_period_date_to('2100-12-31', last_timestamp) is None
+    assert _resolve_period_date_to(None, last_timestamp) is None
+    # date_to before the end of the data with no next period is kept
+    assert _resolve_period_date_to('2024-01-01T06:00:00', last_timestamp) == '2024-01-01T06:00:00'
+
+
+def _utc_test_data(date_from='2024-01-01 00:00', date_to='2024-01-01 06:00', freq='1h', name='Timestamp'):
+    index = pd.date_range(date_from, date_to, freq=freq, name=name)
+    return pd.DataFrame({'Spd80mN': np.arange(len(index), dtype=float)}, index=index)
+
+
+def _station_with_logger_configs(configs):
+    """Demo measurement station with logger main configs (serial number, date_from, date_to, offset_from_utc_hrs)."""
+    with open(bw.demo_datasets.demo_wra_data_model) as file:
+        data_model = json.load(file)
+    logger_main_config = data_model['measurement_location'][0]['logger_main_config'][0]
+    data_model['measurement_location'][0]['logger_main_config'] = [
+        dict(logger_main_config, logger_serial_number=serial_number, date_from=date_from, date_to=date_to,
+             offset_from_utc_hrs=offset)
+        for serial_number, date_from, date_to, offset in configs]
+    return bw.MeasurementStation(data_model)
+
+
+def test_get_logger_utc_offsets():
+    assert bw.get_logger_utc_offsets(STATION) == [
+        {'logger_serial_number': '1234567', 'date_from': '2016-01-09T15:30:00', 'date_to': None,
+         'offset_from_utc_hrs': None}]
+
+    station = _station_with_logger_configs([
+        ('1', '2016-06-01T00:00:00', '2016-09-01T00:00:00', 1), ('1', '2016-01-01T00:00:00', '2016-03-01T00:00:00', 0),
+        ('1', '2016-03-01T00:00:00', '2016-05-31T23:50:00', 1),
+        ('1', '2016-09-01T00:00:00', '2016-10-01T00:00:00', None), ('1', '2016-10-01T00:00:00', None, 0)])
+    # sorted, inclusive date_to made exclusive, consecutive equal offsets merged and the unknown offset kept
+    assert bw.get_logger_utc_offsets(station) == [
+        {'logger_serial_number': '1', 'date_from': '2016-01-01T00:00:00', 'date_to': '2016-03-01T00:00:00',
+         'offset_from_utc_hrs': 0.0},
+        {'logger_serial_number': '1', 'date_from': '2016-03-01T00:00:00', 'date_to': '2016-09-01T00:00:00',
+         'offset_from_utc_hrs': 1.0},
+        {'logger_serial_number': '1', 'date_from': '2016-09-01T00:00:00', 'date_to': '2016-10-01T00:00:00',
+         'offset_from_utc_hrs': None},
+        {'logger_serial_number': '1', 'date_from': '2016-10-01T00:00:00', 'date_to': None,
+         'offset_from_utc_hrs': 0.0}]
+
+    # a logger main config repeated for each lidar config is not repeated in the periods
+    lidar_periods = bw.get_logger_utc_offsets(STATION_LIDAR)
+    assert len(lidar_periods) == len({(period['date_from'], period['date_to']) for period in lidar_periods})
+
+    with pytest.raises(TypeError):
+        bw.get_logger_utc_offsets(STATION.data_model)
+    with pytest.raises(ValueError, match='not found in the logger main configs'):
+        bw.get_logger_utc_offsets(STATION, logger_serial_numbers=['999'])
+
+
+def test_get_logger_utc_offsets_overlapping_loggers():
+    # Logger 'A' covers two months at UTC+01:00, logger 'B' runs from February at UTC+00:00 and is still installed
+    station = _station_with_logger_configs([('A', '2024-01-01T00:00:00', '2024-03-01T00:00:00', 1),
+                                            ('B', '2024-02-01T00:00:00', None, 0)])
+    # by default the logger covering the longest time is used where they overlap, with a warning
+    with pytest.warns(UserWarning, match='from 2024-02-01 00:00:00 to 2024-03-01 00:00:00 \\(exclusive\\): logger A '
+                                         'at UTC\\+01:00, logger B at UTC\\+00:00; logger A used'):
+        periods = bw.get_logger_utc_offsets(station)
+    assert periods == [
+        {'logger_serial_number': 'A', 'date_from': '2024-01-01T00:00:00', 'date_to': '2024-03-01T00:00:00',
+         'offset_from_utc_hrs': 1.0},
+        {'logger_serial_number': 'B', 'date_from': '2024-03-01T00:00:00', 'date_to': None, 'offset_from_utc_hrs': 0.0}]
+
+    # in the order of priority given, with no warning
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
+        assert bw.get_logger_utc_offsets(station, logger_serial_numbers=['B', 'A']) == [
+            {'logger_serial_number': 'A', 'date_from': '2024-01-01T00:00:00', 'date_to': '2024-02-01T00:00:00',
+             'offset_from_utc_hrs': 1.0},
+            {'logger_serial_number': 'B', 'date_from': '2024-02-01T00:00:00', 'date_to': None,
+             'offset_from_utc_hrs': 0.0}]
+        # only the loggers given are used
+        assert bw.get_logger_utc_offsets(station, logger_serial_numbers=['B']) == [
+            {'logger_serial_number': 'B', 'date_from': '2024-02-01T00:00:00', 'date_to': None,
+             'offset_from_utc_hrs': 0.0}]
+
+    # converting with the priority given, logger A's data to 2024-02-01 00:00 then logger B's
+    data = _utc_test_data('2024-01-31 22:00', '2024-02-01 02:00')
+    with pytest.warns(UserWarning, match='gap of 1 hours') as record:
+        data_utc = bw.convert_timestamps_to_utc(data, station, logger_serial_numbers=['B', 'A'])
+    assert not any('Loggers with different offsets' in str(warning.message) for warning in record)
+    assert list(data_utc['Spd80mN']) == [0, 1, 2, 3, 4]
+    assert data_utc.index[0] == pd.Timestamp('2024-01-31 21:00')
+    assert data_utc.index[2] == pd.Timestamp('2024-02-01 00:00')
+
+    with pytest.raises(TypeError, match='only be used when'):
+        bw.convert_timestamps_to_utc(data, [{'date_from': None, 'date_to': None, 'offset_from_utc_hrs': 1}],
+                                     logger_serial_numbers=['A'])
+
+
+def test_convert_timestamps_to_utc_single_offset():
+    data = _utc_test_data()
+    data_utc = bw.convert_timestamps_to_utc(data, [{'date_from': None, 'date_to': None, 'offset_from_utc_hrs': 2}])
+    assert (data_utc.index == data.index - pd.Timedelta(hours=2)).all()
+    assert (data_utc['Spd80mN'].values == data['Spd80mN'].values).all()
+    assert data_utc.index.name == 'Timestamp'
+    # input not changed
+    assert data.index[0] == pd.Timestamp('2024-01-01 00:00')
+
+
+def test_convert_timestamps_to_utc_negative_offsets_not_shifted_twice():
+    # Logger on UTC-05:00 then UTC-04:00 (clock moved forward at 02:00, so 02:00 to 03:00 is not logged)
+    data = _utc_test_data('2024-03-10 00:00', '2024-03-10 05:00')
+    data = data.drop(pd.Timestamp('2024-03-10 02:00'))
+    utc_offsets = [{'date_from': None, 'date_to': '2024-03-10T02:00:00', 'offset_from_utc_hrs': -5},
+                   {'date_from': '2024-03-10T03:00:00', 'date_to': None, 'offset_from_utc_hrs': -4}]
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
+        data_utc = bw.convert_timestamps_to_utc(data, utc_offsets)
+    assert list(data_utc.index) == list(pd.date_range('2024-03-10 05:00', '2024-03-10 09:00', freq='1h'))
+    assert list(data_utc['Spd80mN']) == [0, 1, 3, 4, 5]
+
+
+def test_convert_timestamps_to_utc_end_of_summer_time_gap():
+    # Logger on UTC+01:00 until 02:00 logger time, then on UTC+00:00. The repeated hour was overwritten.
+    data = _utc_test_data('2024-10-27 00:00', '2024-10-27 04:00')
+    utc_offsets = [{'date_from': None, 'date_to': '2024-10-27T02:00:00', 'offset_from_utc_hrs': 1},
+                   {'date_from': '2024-10-27T02:00:00', 'date_to': None, 'offset_from_utc_hrs': 0}]
+    with pytest.warns(UserWarning, match='gap of 1 hours in the converted timestamps from 2024-10-27 01:00:00 to '
+                                         '2024-10-27 02:00:00'):
+        data_utc = bw.convert_timestamps_to_utc(data, utc_offsets)
+    assert list(data_utc.index) == [pd.Timestamp(t) for t in ['2024-10-26 23:00', '2024-10-27 00:00',
+                                                              '2024-10-27 02:00', '2024-10-27 03:00',
+                                                              '2024-10-27 04:00']]
+
+
+def test_convert_timestamps_to_utc_inclusive_date_to():
+    # date_to given as the last timestamp of each period (inclusive) rather than exclusive
+    data = _utc_test_data('2024-01-01 00:00', '2024-01-01 05:00')
+    utc_offsets = [{'date_from': '2024-01-01T00:00:00', 'date_to': '2024-01-01T02:00:00', 'offset_from_utc_hrs': 9},
+                   {'date_from': '2024-01-01T03:00:00', 'date_to': '2024-01-01T05:00:00', 'offset_from_utc_hrs': 10}]
+    with pytest.warns(UserWarning) as record:
+        data_utc = bw.convert_timestamps_to_utc(data, utc_offsets)
+    assert not any('not covered' in str(warning.message) for warning in record)
+    # 02:00, the last timestamp of the first period, is shifted by -9 hours, and 05:00, the last timestamp of the
+    # data, by -10 hours. 03:00 at UTC+10:00 lands on 17:00, the same as 02:00 at UTC+09:00, and is removed.
+    assert list(data_utc.index) == [pd.Timestamp(t) for t in ['2023-12-31 15:00', '2023-12-31 16:00',
+                                                              '2023-12-31 17:00', '2023-12-31 18:00',
+                                                              '2023-12-31 19:00']]
+    assert list(data_utc['Spd80mN']) == [0, 1, 2, 4, 5]
+
+
+def test_convert_timestamps_to_utc_overlap_removes_duplicates():
+    data = _utc_test_data('2024-01-01 00:00', '2024-01-01 05:00')
+    utc_offsets = [{'date_from': None, 'date_to': '2024-01-01T03:00:00', 'offset_from_utc_hrs': 0},
+                   {'date_from': '2024-01-01T03:00:00', 'date_to': None, 'offset_from_utc_hrs': 2}]
+    with pytest.warns(UserWarning) as record:
+        data_utc = bw.convert_timestamps_to_utc(data, utc_offsets)
+    messages = [str(warning.message) for warning in record]
+    assert any('overlap from 2024-01-01 01:00:00 to 2024-01-01 02:00:00 (inclusive, UTC)' in m for m in messages)
+    assert any('2 duplicate timestamp(s)' in m and '2024-01-01 01:00:00, 2024-01-01 02:00:00' in m
+               for m in messages)
+    assert list(data_utc['Spd80mN']) == [0, 1, 2, 5]
+
+
+def test_convert_timestamps_to_utc_unknown_offset_and_not_covered():
+    data = _utc_test_data('2024-01-01 00:00', '2024-01-01 05:00')
+    utc_offsets = [{'date_from': '2024-01-01T01:00:00', 'date_to': '2024-01-01T03:00:00', 'offset_from_utc_hrs': None},
+                   {'date_from': '2024-01-01T03:00:00', 'date_to': '2024-01-01T04:00:00', 'offset_from_utc_hrs': 0.5}]
+    with pytest.warns(UserWarning) as record:
+        data_utc = bw.convert_timestamps_to_utc(data, utc_offsets)
+    messages = [str(warning.message) for warning in record]
+    assert any('No logger offset from UTC is on record from 2024-01-01T01:00:00 to 2024-01-01T03:00:00 (exclusive)'
+               in m for m in messages)
+    assert any('3 timestamp(s) are not covered' in m
+               and '2024-01-01 00:00:00, 2024-01-01 04:00:00, 2024-01-01 05:00:00' in m for m in messages)
+    assert list(data_utc.index) == [pd.Timestamp(t) for t in ['2024-01-01 00:00', '2024-01-01 01:00',
+                                                              '2024-01-01 02:00', '2024-01-01 02:30',
+                                                              '2024-01-01 04:00', '2024-01-01 05:00']]
+
+
+def test_convert_timestamps_to_utc_series_inplace_and_measurement_station():
+    series = _utc_test_data()['Spd80mN']
+    result = bw.convert_timestamps_to_utc(series, [{'date_from': None, 'date_to': None, 'offset_from_utc_hrs': 5.5}],
+                                          inplace=True)
+    assert result is series
+    assert series.index[0] == pd.Timestamp('2023-12-31 18:30')
+
+    # the demo measurement station has no offset from UTC on record
+    with pytest.warns(UserWarning, match='No logger offset from UTC is on record'):
+        data_utc = bw.convert_timestamps_to_utc(DATA_CLND.head(5), STATION)
+    assert (data_utc.index == DATA_CLND.head(5).index).all()
+
+
+def test_convert_timestamps_to_utc_invalid_inputs():
+    data = _utc_test_data()
+    utc_offsets = [{'date_from': None, 'date_to': None, 'offset_from_utc_hrs': 1}]
+    with pytest.raises(TypeError):
+        bw.convert_timestamps_to_utc(data.reset_index(), utc_offsets)
+    with pytest.raises(TypeError):
+        bw.convert_timestamps_to_utc(data.tz_localize('UTC'), utc_offsets)
+    with pytest.raises(ValueError, match='duplicate timestamp'):
+        bw.convert_timestamps_to_utc(pd.concat([data, data.head(1)]), utc_offsets)
+    with pytest.raises(TypeError):
+        bw.convert_timestamps_to_utc(data, 'UTC+1')
+    with pytest.raises(TypeError):
+        bw.convert_timestamps_to_utc(data, [{'date_from': None, 'date_to': None, 'offset_from_utc_hrs': '1'}])
+    with pytest.raises(ValueError):
+        bw.convert_timestamps_to_utc(data, [{'date_from': None, 'date_to': None}])
+    with pytest.raises(ValueError, match='outside the valid range'):
+        bw.convert_timestamps_to_utc(data, [{'date_from': None, 'date_to': None, 'offset_from_utc_hrs': 15}])

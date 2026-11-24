@@ -14,10 +14,10 @@ Additional labels for pre-release and build metadata are available as extensions
 XX-Xxx-2026
 
 ### New Features and Enhancements
-1. 
+1. Added `get_logger_utc_offsets()` to get the logger offset from UTC over time from the logger main configs of a `bw.MeasurementStation`, and `convert_timestamps_to_utc()` to convert data from logger time to UTC using these offsets (or a list of periods), with an optional order of priority for loggers whose configs overlap, reporting any gap or overlap where the offset changes, e.g. at the end of summer time. ([#464](https://github.com/brightwind-dev/brightwind/issues/464))
 
 ### Bug Fixes
-1. 
+1. Fixed `offset_timestamps()` dropping the name of the timestamp index (e.g. `Timestamp`). ([#464](https://github.com/brightwind-dev/brightwind/issues/464))
 
 ### Deprecated
 1. 
